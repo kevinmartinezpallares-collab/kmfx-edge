@@ -1,0 +1,14 @@
+.DS_Store
+**/.DS_Store
+
+*.log
+*.zip
+
+kmfx_equity_8765.json
+kmfx_risk_8765.json
+kmfx_bridge_8765.log
+
+# Local generated bridge/runtime artifacts
+kmfx_equity_*.json
+kmfx_risk_*.json
+kmfx_bridge_*.log

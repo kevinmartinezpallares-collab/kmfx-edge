@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KMFX Edge</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
+  <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
+  <link rel="stylesheet" href="./styles.css?v=mobile-final-1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-topbar">
+          <div class="brand-lockup">
+            <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-claro-512.svg" alt="KMFX Edge">
+            <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+          </div>
+          <div class="brand-copy">
+            <div class="brand-title">KMFX Edge</div>
+          </div>
+        </div>
+        <div class="sidebar-search">
+          <svg class="sidebar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input class="sidebar-search-input" type="search" placeholder="Buscar módulo" aria-label="Buscar módulo">
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <nav class="nav-list" id="mainNav">
+          <div class="nav-group">
+            <div class="nav-group-label">General</div>
+            <button class="nav-item active" data-page="dashboard" title="Panel"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg><span class="nav-item-label">Panel</span></button>
+            <button class="nav-item" data-page="calendar" title="Calendario"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span class="nav-item-label">Calendario</span></button>
+            <button class="nav-item" data-page="trades" title="Operaciones"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg><span class="nav-item-label">Operaciones</span></button>
+            <button class="nav-item" data-page="strategies" title="Estrategias"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path></svg><span class="nav-item-label">Estrategias</span></button>
+            <button class="nav-item" data-page="analytics" title="Análisis"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg><span class="nav-item-label">Análisis</span></button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Gestión</div>
+            <button class="nav-item" data-page="portfolio" title="Portfolio"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path></svg><span class="nav-item-label">Portfolio</span></button>
+            <button class="nav-item" data-page="funded" title="Funded"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M9 11.5c0-1.2 1.3-2.2 3-2.2s3 1 3 2.2-1.3 2.2-3 2.2-3 1-3 2.3 1.3 2.2 3 2.2 3-1 3-2.2"></path></svg><span class="nav-item-label">Funded</span></button>
+            <button class="nav-item" data-page="risk" title="Riesgo"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path></svg><span class="nav-item-label">Riesgo</span></button>
+            <button class="nav-item" data-page="calculator" title="Calculadora"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="11" x2="8" y2="11"></line><line x1="12" y1="11" x2="12" y2="11"></line><line x1="16" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="8" y2="15"></line><line x1="12" y1="15" x2="12" y2="15"></line><line x1="16" y1="15" x2="16" y2="15"></line></svg><span class="nav-item-label">Calculadora</span></button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Progreso</div>
+            <button class="nav-item" data-page="talent" title="Talento"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="3"></circle><path d="M5 20c1.5-3 4-4.5 7-4.5S17.5 17 19 20"></path></svg><span class="nav-item-label">Talento</span></button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Sistema</div>
+            <button class="nav-item" data-page="connections" title="Conexiones"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12a3 3 0 0 1 3-3h3"></path><path d="M15 12a3 3 0 0 1-3 3H9"></path><path d="M7 9H5a3 3 0 0 0 0 6h2"></path><path d="M17 9h2a3 3 0 1 1 0 6h-2"></path></svg><span class="nav-item-label">Conexiones</span></button>
+            <button class="nav-item" data-page="debug" title="Debug"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3h6"></path><path d="M10 6h4"></path><rect x="7" y="8" width="10" height="10" rx="2"></rect><path d="M4 11h3"></path><path d="M17 11h3"></path><path d="M10 12h4"></path><path d="M10 15h4"></path></svg><span class="nav-item-label">Debug</span></button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-label">Config</div>
+            <button class="nav-item" data-page="settings" title="Ajustes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"></path></svg><span class="nav-item-label">Ajustes</span></button>
+          </div>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom sidebar-footer">
+        <div class="sidebar-profile" id="sidebarProfile">
+          <div class="sidebar-profile-avatar">KC</div>
+          <div class="sidebar-profile-copy">
+            <div class="sidebar-profile-name">Kevin C.</div>
+            <div class="sidebar-profile-sub">Cuenta activa</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-row">
+            <div class="topbar-brand-mark" aria-hidden="true">
+              <img class="topbar-brand-logo topbar-brand-logo-light" src="./assets/logos/logo-azul-violeta-claro-192.svg" alt="">
+              <img class="topbar-brand-logo topbar-brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-192.svg" alt="">
+            </div>
+            <div class="topbar-title">KMFX Edge</div>
+          </div>
+          <div class="topbar-sub" id="topbarContext"></div>
+        </div>
+        <div class="topbar-meta">
+          <button class="theme-icon-btn" type="button" data-theme-toggle aria-label="Cambiar tema" title="Cambiar tema">
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2.2"></path>
+              <path d="M12 19.8V22"></path>
+              <path d="m4.93 4.93 1.55 1.55"></path>
+              <path d="m17.52 17.52 1.55 1.55"></path>
+              <path d="M2 12h2.2"></path>
+              <path d="M19.8 12H22"></path>
+              <path d="m4.93 19.07 1.55-1.55"></path>
+              <path d="m17.52 6.48 1.55-1.55"></path>
+            </svg>
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z"></path>
+            </svg>
+          </button>
+          <div id="topbarQuickInfo"></div>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page active" id="page-dashboard">
+          <div class="dashboard-page-flow">
+            <div id="accountSwitcher"></div>
+            <div id="dashboardRoot"></div>
+          </div>
+        </section>
+
+        <section class="page" id="page-analytics">
+          <div class="tl-page-header">
+            <div class="tl-page-title">Panel de Análisis</div>
+            <div class="tl-page-sub">Insights limpios sobre rendimiento, riesgo y timing operativo.</div>
+            <div class="tl-tab-bar" id="analyticsTabs">
+              <button class="tl-tab active" data-tab="summary">Resumen</button>
+              <button class="tl-tab" data-tab="daily">Diario</button>
+              <button class="tl-tab" data-tab="hourly">Hora</button>
+              <button class="tl-tab" data-tab="risk">Riesgo</button>
+            </div>
+          </div>
+          <div id="analyticsRoot"></div>
+        </section>
+
+        <section class="page" id="page-risk">
+          <div id="riskRoot"></div>
+        </section>
+
+        <section class="page" id="page-trades">
+          <div id="tradesRoot"></div>
+        </section>
+
+        <section class="page" id="page-calendar">
+          <div id="calendarRoot"></div>
+        </section>
+
+        <section class="page" id="page-connections">
+          <div id="connectionsRoot"></div>
+        </section>
+
+        <section class="page" id="page-calculator">
+          <div id="calculatorRoot"></div>
+        </section>
+
+        <section class="page" id="page-journal">
+          <div id="journalRoot"></div>
+        </section>
+
+        <section class="page" id="page-strategies">
+          <div id="strategiesRoot"></div>
+        </section>
+
+        <section class="page" id="page-funded">
+          <div id="fundedRoot"></div>
+        </section>
+
+        <section class="page" id="page-market">
+          <div id="marketRoot"></div>
+        </section>
+
+        <section class="page" id="page-talent">
+          <div id="talentRoot"></div>
+        </section>
+
+        <section class="page" id="page-portfolio">
+          <div id="portfolioRoot"></div>
+        </section>
+
+        <section class="page" id="page-glossary">
+          <div id="glossaryRoot"></div>
+        </section>
+
+        <section class="page" id="page-debug">
+          <div id="debugRoot"></div>
+        </section>
+
+        <section class="page" id="page-settings">
+          <div class="tl-page-header">
+            <div class="tl-page-title">Configuración de cuenta</div>
+            <div class="tl-page-sub">Ajusta tu perfil, preferencias de trading y dashboard en un solo lugar.</div>
+          </div>
+          <div class="settings-toolbar">
+            <div class="settings-inline-note" data-settings-status>Cambios listos para editar y guardar.</div>
+            <div class="settings-edit-actions">
+              <button class="btn-secondary btn-inline" type="button" data-settings-reset>Restaurar</button>
+              <button class="btn-primary btn-inline" type="button" data-settings-save>Guardar cambios</button>
+            </div>
+          </div>
+          <div class="settings-grid-clean settings-grid-clean--panel">
+            <article class="tl-section-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Perfil</div>
+                  <div class="settings-section-sub">Gestiona tu identidad visible y la cuenta que se abre por defecto.</div>
+                </div>
+              </div>
+              <div class="settings-profile-card">
+                <div class="sidebar-profile-avatar" data-settings-avatar>KC</div>
+                <div class="settings-profile-copy">
+                  <div class="sidebar-profile-name" data-settings-display-name>Kevin C.</div>
+                  <div class="settings-profile-email" data-settings-display-email>kevin@kmfxedge.local</div>
+                  <div class="sidebar-profile-sub" data-settings-display-account>Cuenta principal</div>
+                </div>
+              </div>
+              <div class="form-grid-clean" data-settings-profile-form>
+                <label class="form-stack"><span>Nombre</span><input type="text" data-settings-field="name" value="Kevin C."></label>
+                <label class="form-stack"><span>Email</span><input type="email" data-settings-field="email" value="kevin@kmfxedge.local"></label>
+                <label class="form-stack"><span>Discord</span><input type="text" data-settings-field="discord" value="@kevin.kmfx"></label>
+                <label class="form-stack"><span>Avatar / iniciales</span><input type="text" maxlength="3" data-settings-field="initials" value="KC"></label>
+                <label class="form-stack form-stack-wide"><span>Cuenta por defecto</span><select data-settings-field="defaultAccount"></select></label>
+              </div>
+            </article>
+
+            <article class="tl-section-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Trading</div>
+                  <div class="settings-section-sub">Preferencias operativas que sí merece la pena recordar.</div>
+                </div>
+              </div>
+              <div class="form-grid-clean">
+                <label class="form-stack form-stack-wide"><span>Pares favoritos</span><input type="text" data-settings-field="favorites" value="EURUSD · XAUUSD · NAS100"></label>
+                <label class="form-stack">
+                  <span>Estilo de trading</span>
+                  <select data-settings-field="style">
+                    <option>Intradía</option>
+                    <option>Swing</option>
+                    <option>Scalping</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Sesión principal</span>
+                  <select data-settings-field="primarySession">
+                    <option>London</option>
+                    <option>New York</option>
+                    <option>Asia</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Riesgo por defecto</span>
+                  <input type="number" step="0.05" min="0" max="5" data-settings-field="defaultRisk" value="0.45">
+                </label>
+                <label class="form-stack">
+                  <span>Moneda base</span>
+                  <select data-settings-field="baseCurrency">
+                    <option>USD</option>
+                    <option>EUR</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Zona horaria</span>
+                  <select data-settings-field="timezone">
+                    <option>Europe/Andorra</option>
+                    <option>UTC</option>
+                    <option>America/New_York</option>
+                    <option>Europe/Madrid</option>
+                  </select>
+                </label>
+              </div>
+            </article>
+
+            <article class="tl-section-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Dashboard</div>
+                  <div class="settings-section-sub">Ajustes visibles del workspace sin romper la estructura.</div>
+                </div>
+              </div>
+              <div class="form-grid-clean">
+                <label class="form-stack">
+                  <span>Tema</span>
+                  <select data-settings-field="theme">
+                    <option value="dark">Oscuro</option>
+                    <option value="light">Claro</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Densidad visual</span>
+                  <select data-settings-field="density">
+                    <option value="comfortable">Cómoda</option>
+                    <option value="compact">Compacta</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Página inicial</span>
+                  <select data-settings-field="landingPage"></select>
+                </label>
+                <label class="form-stack">
+                  <span>Cuenta activa por defecto</span>
+                  <select data-settings-field="dashboardAccount"></select>
+                </label>
+                <label class="form-stack">
+                  <span>Vista de charts</span>
+                  <select data-settings-field="chartPreference">
+                    <option value="balanced">Equilibrada</option>
+                    <option value="compact">Compacta</option>
+                    <option value="labels">Etiquetas completas</option>
+                  </select>
+                </label>
+                <label class="form-stack">
+                  <span>Preset calculadora</span>
+                  <select data-settings-field="calculatorPreset">
+                    <option value="standard">Estándar</option>
+                    <option value="funded">Fondeada</option>
+                    <option value="swing">Swing</option>
+                  </select>
+                </label>
+              </div>
+              <div class="settings-check-grid">
+                <label class="settings-check"><input type="checkbox" data-settings-field="showAdvancedMetrics" checked><span>Mostrar métricas avanzadas</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="showRiskAlerts" checked><span>Mostrar alertas de riesgo</span></label>
+              </div>
+              <div class="settings-actions">
+                <button class="btn-secondary" id="resetView">Ir a la vista inicial</button>
+                <div class="meta-badge" id="themeBadge">Tema oscuro</div>
+              </div>
+            </article>
+
+            <article class="tl-section-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Riesgo</div>
+                  <div class="settings-section-sub">Controles editables solo donde ya son seguros en frontend.</div>
+                </div>
+              </div>
+              <div class="settings-check-grid settings-check-grid--wide">
+                <label class="settings-check"><input type="checkbox" data-settings-field="alertDrawdown" checked><span>Alertas de drawdown</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="alertStreaks" checked><span>Alertas por rachas</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="alertWinRate" checked><span>Alertas por caída de win rate</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="alertOvertrading" checked><span>Alertas por overtrading</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="riskGuidanceEnabled" checked><span>Recomendación de riesgo</span></label>
+                <label class="settings-check"><input type="checkbox" data-settings-field="autoBlockOptIn"><span>Auto-bloqueo (opt-in)</span></label>
+              </div>
+              <div class="form-grid-clean">
+                <label class="form-stack"><span>Límite Daily DD</span><input type="number" step="0.1" data-settings-field="dailyDrawdownLimit" value="1.2"></label>
+                <label class="form-stack"><span>Límite Max DD</span><input type="number" step="0.1" data-settings-field="maxDrawdownLimit" value="10"></label>
+              </div>
+            </article>
+
+            <article class="tl-section-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Conexión</div>
+                  <div class="settings-section-sub">Bridge local y cadencia de refresco antes de MT5 real.</div>
+                </div>
+              </div>
+              <div class="form-grid-clean">
+                <label class="form-stack form-stack-wide"><span>Bridge URL / endpoint</span><input type="text" data-settings-field="bridgeUrl" value="ws://localhost:8080/bridge"></label>
+                <label class="form-stack">
+                  <span>Refresh interval</span>
+                  <select data-settings-field="refreshInterval">
+                    <option value="3">3s</option>
+                    <option value="5">5s</option>
+                    <option value="10">10s</option>
+                    <option value="15">15s</option>
+                  </select>
+                </label>
+                <div class="settings-status-card">
+                  <span>Estado</span>
+                  <strong data-settings-connection-status>Sin conexión</strong>
+                  <small data-settings-connection-source>Bridge local</small>
+                </div>
+                <div class="settings-status-card">
+                  <span>Última sync</span>
+                  <strong data-settings-last-sync>—</strong>
+                  <small data-settings-last-account>Sin cuenta seleccionada</small>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="authRoot"></div>
+  <div id="modalRoot"></div>
+  <div id="mobileNavRoot"></div>
+
+  <script type="module" src="./app.js?v=mobile-final-1"></script>
+</body>
+</html>
