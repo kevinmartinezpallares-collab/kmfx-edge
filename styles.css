@@ -99,15 +99,15 @@
   --neutral-strong: #f3f2ee;
   --neutral: rgba(243, 242, 238, 0.58);
   --neutral-soft: rgba(243, 242, 238, 0.36);
-  --shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
-  --shadow-md: 0 16px 34px rgba(0, 0, 0, 0.2);
-  --card-surface: rgba(15, 18, 24, 0.94);
-  --card-border: rgba(255, 255, 255, 0.055);
-  --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  --shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  --shadow-md: 0 12px 26px rgba(0, 0, 0, 0.18);
+  --card-surface: linear-gradient(180deg, rgba(22, 25, 33, 0.985), rgba(16, 19, 26, 0.975));
+  --card-border: rgba(255, 255, 255, 0.052);
+  --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
   --card-sheen:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.008) 24%, transparent 68%);
-  --card-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
-  --card-hover-border: rgba(111, 141, 255, 0.14);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.004) 22%, transparent 62%);
+  --card-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  --card-hover-border: rgba(255, 255, 255, 0.072);
   --shell-surface: rgba(15, 18, 24, 0.9);
   --shell-border: rgba(255, 255, 255, 0.06);
   --shell-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
@@ -1190,9 +1190,9 @@ body[data-theme="dark"] .topbar {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 88% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 58%),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 54%),
     var(--card-sheen);
-  opacity: 0.88;
+  opacity: 0.8;
 }
 
 html[data-theme="dark"] .account-switcher::before,
@@ -1212,9 +1212,9 @@ body[data-theme="dark"] .pnlcal-card::before,
 body[data-theme="dark"] .account-banner--premium::before,
 body[data-theme="dark"] .widget-card::before {
   background:
-    radial-gradient(120% 88% at 50% 0%, rgba(255, 255, 255, 0.03), transparent 56%),
+    radial-gradient(120% 76% at 50% 0%, rgba(255, 255, 255, 0.022), transparent 52%),
     var(--card-sheen);
-  opacity: 0.82;
+  opacity: 0.74;
 }
 
 .account-switcher-header {
@@ -1307,22 +1307,22 @@ body[data-theme="dark"] .widget-card::before {
 
 html[data-theme="dark"] .account-hero-card,
 body[data-theme="dark"] .account-hero-card {
-  border-color: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.05);
   background:
-    linear-gradient(180deg, rgba(18, 21, 28, 0.965), rgba(13, 16, 22, 0.95));
+    linear-gradient(180deg, rgba(24, 27, 35, 0.988), rgba(17, 20, 27, 0.978));
   box-shadow:
-    0 10px 20px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.032);
+    0 8px 18px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.026);
 }
 
 .account-hero-card:hover,
 .account-hero-card.active {
   transform: translateY(-1px);
-  border-color: rgba(112, 132, 176, 0.34);
-  background: linear-gradient(180deg, rgba(30, 35, 47, 0.985), rgba(20, 24, 33, 0.965));
+  border-color: rgba(58, 96, 187, 0.44);
+  background: linear-gradient(180deg, rgba(32, 39, 58, 0.992), rgba(24, 30, 45, 0.982));
   box-shadow:
-    0 12px 22px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 10px 20px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .account-hero-card__top {
@@ -1687,12 +1687,11 @@ body[data-theme="dark"] .pnlcal-card,
 body[data-theme="dark"] .widget-card,
 body[data-theme="dark"] .account-switcher,
 body[data-theme="dark"] .account-banner--premium {
-  background:
-    linear-gradient(180deg, rgba(16, 19, 26, 0.965), rgba(13, 16, 22, 0.945));
-  border-color: rgba(255, 255, 255, 0.055);
+  background: var(--card-surface);
+  border-color: rgba(255, 255, 255, 0.052);
   box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    0 8px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.028);
 }
 
 .tl-kpi-card,
@@ -1752,7 +1751,7 @@ body[data-theme="dark"] .account-banner--premium {
   transform: translateY(-1px);
   border-color: var(--card-hover-border);
   box-shadow:
-    var(--shadow-md),
+    0 12px 24px rgba(0, 0, 0, 0.16),
     var(--card-inner-glow);
 }
 
