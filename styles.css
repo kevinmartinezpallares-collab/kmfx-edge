@@ -101,8 +101,8 @@
   --bg3: #111317;
   --surface: #282828;
   --surface2: #282828;
-  --border: #1C1F26;
-  --border2: #1C1F26;
+  --border: #34373D;
+  --border2: #34373D;
   --text: #FFFFFF;
   --text1: #FFFFFF;
   --text2: #FFFFFF;
@@ -135,13 +135,13 @@
   --shadow-md: none;
   --shadow-lg: none;
   --card-surface: #282828;
-  --card-border: #1C1F26;
+  --card-border: #34373D;
   --card-inner-glow: none;
   --card-sheen: none;
   --card-shadow: none;
-  --card-hover-border: #1C1F26;
+  --card-hover-border: #34373D;
   --shell-surface: #111317;
-  --shell-border: #1C1F26;
+  --shell-border: transparent;
   --shell-shadow: none;
   --active-surface: rgba(255,255,255,0.055);
   --active-border: rgba(255,255,255,0.08);
@@ -1148,17 +1148,24 @@ html[data-theme="dark"] .sidebar,
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .topbar {
-  border-color: var(--border-subtle);
+  border-color: transparent;
 }
 
 html[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .sidebar {
-  background: var(--bg-sidebar);
+  background: transparent;
 }
 
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
   background: var(--bg-topbar);
+}
+
+html[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .content {
+  background: #0D0E12;
 }
 
 .workspace-strip {
