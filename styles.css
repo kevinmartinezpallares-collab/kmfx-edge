@@ -86,9 +86,9 @@
   --bg-sidebar: #0D0E12;
   --bg-topbar: #0D0E12;
   --bg-panel: #0D0E12;
-  --bg-card: #2a2624;
-  --bg-card-alt: #2a2624;
-  --border-subtle: rgba(255,255,255,0.055);
+  --bg-card: #282828;
+  --bg-card-alt: #282828;
+  --border-subtle: rgba(255,255,255,0.06);
   --text-primary: #FFFFFF;
   --text-secondary: #8E9196;
   --text-muted: #6F7782;
@@ -99,10 +99,10 @@
   --bg: #0D0E12;
   --bg2: #111317;
   --bg3: #111317;
-  --surface: #2a2624;
-  --surface2: #2a2624;
-  --border: rgba(255,255,255,0.055);
-  --border2: rgba(255,255,255,0.055);
+  --surface: #282828;
+  --surface2: #282828;
+  --border: #34373D;
+  --border2: #34373D;
   --text: #FFFFFF;
   --text1: #FFFFFF;
   --text2: #FFFFFF;
@@ -134,12 +134,12 @@
   --shadow: none;
   --shadow-md: none;
   --shadow-lg: none;
-  --card-surface: #2a2624;
-  --card-border: rgba(255,255,255,0.055);
+  --card-surface: #282828;
+  --card-border: #34373D;
   --card-inner-glow: none;
   --card-sheen: none;
   --card-shadow: none;
-  --card-hover-border: rgba(255,255,255,0.055);
+  --card-hover-border: #34373D;
   --shell-surface: #111317;
   --shell-border: transparent;
   --shell-shadow: none;
@@ -1351,8 +1351,8 @@ body[data-theme="dark"] .widget-card::before {
   width: 100%;
   padding: 11px 12px;
   border-radius: 16px;
-  border: 1px solid var(--card-border);
-  background: var(--card-surface);
+  border: 1px solid #1C1F26;
+  background: #111317;
   color: var(--text2);
   transition: 0.16s ease;
   cursor: pointer;
@@ -1372,8 +1372,8 @@ html:not([data-theme="dark"]) .account-hero-card {
 
 html[data-theme="dark"] .account-hero-card,
 body[data-theme="dark"] .account-hero-card {
-  border-color: var(--card-border);
-  background: var(--card-surface);
+  border-color: #1C1F26;
+  background: #111317;
   box-shadow: none;
 }
 
@@ -1381,7 +1381,7 @@ body[data-theme="dark"] .account-hero-card {
 .account-hero-card.active {
   transform: translateY(-1px);
   border-color: rgba(61, 123, 255, 0.42);
-  background: color-mix(in srgb, var(--card-surface) 94%, #3D7BFF 6%);
+  background: color-mix(in srgb, #111317 90%, #3D7BFF 10%);
   box-shadow: none;
 }
 
