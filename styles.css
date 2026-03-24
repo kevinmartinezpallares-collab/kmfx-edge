@@ -1,9 +1,9 @@
 :root {
-  --bg: #f4f7fb;
-  --bg2: rgba(240, 245, 252, 0.98);
-  --bg3: #e8eef6;
-  --surface: rgba(250, 252, 255, 0.96);
-  --surface2: rgba(244, 248, 253, 0.98);
+  --bg: #edf2f8;
+  --bg2: rgba(239, 244, 251, 0.98);
+  --bg3: #e3ebf4;
+  --surface: rgba(248, 251, 255, 0.97);
+  --surface2: rgba(242, 247, 253, 0.98);
   --border: rgba(20, 24, 36, 0.11);
   --border2: rgba(20, 24, 36, 0.16);
   --text: #141824;
@@ -45,16 +45,16 @@
   --shadow-lg: 0 24px 50px rgba(24, 36, 60, 0.16);
   --card-radius: 20px;
   --card-padding: 18px;
-  --card-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 255, 0.94));
-  --card-border: rgba(20, 24, 36, 0.085);
+  --card-surface: linear-gradient(180deg, rgba(251, 253, 255, 0.97), rgba(244, 248, 253, 0.95));
+  --card-border: rgba(20, 24, 36, 0.08);
   --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   --card-sheen:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 34%, transparent 72%);
   --card-shadow: 0 18px 38px rgba(25, 37, 59, 0.11);
   --card-hover-border: color-mix(in srgb, var(--accent) 18%, var(--border));
-  --shell-surface: linear-gradient(180deg, rgba(246, 249, 254, 0.92), rgba(239, 244, 251, 0.88));
-  --shell-border: rgba(20, 24, 36, 0.085);
-  --shell-shadow: 0 14px 30px rgba(24, 36, 60, 0.08);
+  --shell-surface: linear-gradient(180deg, rgba(243, 247, 252, 0.94), rgba(236, 242, 249, 0.9));
+  --shell-border: rgba(20, 24, 36, 0.082);
+  --shell-shadow: 0 12px 26px rgba(24, 36, 60, 0.07);
   --active-surface: rgba(47, 107, 255, 0.1);
   --active-border: rgba(47, 107, 255, 0.18);
   --active-text: #2f6bff;
@@ -134,6 +134,10 @@ body {
   letter-spacing: -0.012em;
   overflow: hidden;
   position: relative;
+}
+
+html:not([data-theme="dark"]) body {
+  background: linear-gradient(180deg, #eef3f9 0%, #e8eff7 46%, #e6edf6 100%);
 }
 
 body::before {
@@ -359,6 +363,10 @@ button {
   height: 100vh;
   min-height: 100vh;
   background: var(--bg);
+}
+
+html:not([data-theme="dark"]) .app-shell {
+  background: linear-gradient(180deg, #eef3f9 0%, #e8eff7 46%, #e6edf6 100%);
 }
 
 /* KMFX dark shell baseline locked: keep sidebar/topbar/main/content in this tonal relationship unless explicitly redefining the shell system. */
@@ -875,6 +883,10 @@ html[data-theme="dark"] .brand-lockup {
   padding: 10px 12px 12px 12px;
   background:
     linear-gradient(180deg, rgba(12, 14, 19, 0.96), rgba(11, 13, 18, 0.95));
+}
+
+html:not([data-theme="dark"]) .main-panel {
+  background: linear-gradient(180deg, rgba(236, 242, 249, 0.96), rgba(232, 239, 247, 0.95));
 }
 
 .topbar {
@@ -2739,27 +2751,36 @@ html:not([data-theme="dark"]) .topbar {
 }
 
 html:not([data-theme="dark"]) .content {
-  background: linear-gradient(180deg, rgba(246, 250, 255, 0.96), rgba(238, 244, 251, 0.93));
-  border-color: rgba(20, 24, 36, 0.09);
+  background: linear-gradient(180deg, rgba(241, 246, 252, 0.96), rgba(235, 241, 248, 0.94));
+  border-color: rgba(20, 24, 36, 0.078);
   box-shadow:
-    -16px 0 28px -28px rgba(24, 36, 60, 0.08),
-    0 24px 48px -32px rgba(24, 36, 60, 0.1);
+    -10px 0 18px -20px rgba(24, 36, 60, 0.045),
+    0 18px 38px -30px rgba(24, 36, 60, 0.075);
 }
 
 html:not([data-theme="dark"]) .sidebar {
-  background: linear-gradient(180deg, rgba(245, 249, 254, 0.94), rgba(237, 243, 250, 0.9));
+  background: linear-gradient(180deg, rgba(242, 247, 252, 0.95), rgba(235, 241, 248, 0.92));
 }
 
 html:not([data-theme="dark"]) .topbar {
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.95), rgba(241, 246, 252, 0.92));
+  background: linear-gradient(180deg, rgba(244, 248, 253, 0.96), rgba(238, 243, 249, 0.93));
+}
+
+html:not([data-theme="dark"]) .topbar-user-card,
+html:not([data-theme="dark"]) .topbar-time-stack,
+html:not([data-theme="dark"]) .sidebar-search,
+html:not([data-theme="dark"]) .sidebar-profile {
+  background: linear-gradient(180deg, rgba(246, 250, 255, 0.94), rgba(239, 244, 250, 0.91));
+  border-color: rgba(20, 24, 36, 0.082);
+  box-shadow: 0 8px 18px rgba(24, 36, 60, 0.04);
 }
 
 html:not([data-theme="dark"]) .account-banner--premium {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 255, 0.92));
-  border-color: rgba(17, 24, 39, 0.11);
+    linear-gradient(180deg, rgba(250, 252, 255, 0.97), rgba(243, 247, 252, 0.94));
+  border-color: rgba(17, 24, 39, 0.09);
   box-shadow:
-    0 20px 40px rgba(25, 37, 59, 0.09),
+    0 16px 34px rgba(25, 37, 59, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
@@ -2801,7 +2822,7 @@ html:not([data-theme="dark"]) .account-banner .account-banner-context strong {
 html:not([data-theme="dark"]) .table-wrap,
 html:not([data-theme="dark"]) .widget-table-wrap {
   border-color: color-mix(in srgb, var(--border) 94%, transparent);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 248, 254, 0.92));
+  background: linear-gradient(180deg, rgba(249, 252, 255, 0.96), rgba(242, 247, 253, 0.94));
 }
 
 html:not([data-theme="dark"]) .list-row,
@@ -2845,8 +2866,23 @@ html:not([data-theme="dark"]) .row-chip,
 html:not([data-theme="dark"]) .pill,
 html:not([data-theme="dark"]) .calc-chip,
 html:not([data-theme="dark"]) .calc-pill {
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.94), rgba(241, 246, 252, 0.9));
+  background: linear-gradient(180deg, rgba(246, 250, 255, 0.95), rgba(239, 244, 250, 0.92));
   border-color: rgba(20, 24, 36, 0.1);
+}
+
+html:not([data-theme="dark"]) .tl-kpi-card,
+html:not([data-theme="dark"]) .rm4-card,
+html:not([data-theme="dark"]) .tl-section-card,
+html:not([data-theme="dark"]) .chart-card,
+html:not([data-theme="dark"]) .pnlcal-card,
+html:not([data-theme="dark"]) .widget-card,
+html:not([data-theme="dark"]) .account-banner,
+html:not([data-theme="dark"]) .account-switcher {
+  background: var(--card-surface);
+  border-color: var(--card-border);
+  box-shadow:
+    0 14px 30px rgba(25, 37, 59, 0.075),
+    var(--card-inner-glow);
 }
 
 html:not([data-theme="dark"]) .widget-segmented-btn.active,
