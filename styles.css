@@ -2525,6 +2525,7 @@ body[data-theme="dark"] .account-banner--premium {
   min-width: 84px;
   padding: 8px 10px;
   border-radius: 12px;
+  text-align: center;
 }
 
 .kmfx-chart-tooltip.is-bar-chart::after {
@@ -2846,9 +2847,9 @@ html[data-theme="dark"] .kmfx-chart-tooltip {
 
 html[data-theme="dark"] .kmfx-chart-tooltip.is-bar-chart {
   background:
-    linear-gradient(180deg, rgba(17, 20, 28, 0.96), rgba(10, 13, 19, 0.92));
+    linear-gradient(180deg, rgba(12, 14, 18, 0.98), rgba(8, 10, 14, 0.95));
   box-shadow:
-    0 16px 30px rgba(0, 0, 0, 0.3),
+    0 16px 30px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 

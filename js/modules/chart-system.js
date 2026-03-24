@@ -627,14 +627,16 @@ function createBarChart(ChartLib, canvas, spec) {
       },
       plugins: {
         ...buildBaseOptions(spec).plugins,
-        kmfxBarTracks: spec.barTracks === false
-          ? false
-          : {
-              alpha: spec.trackAlpha ?? 0.14,
-              activeAlpha: spec.trackActiveAlpha ?? 0.18,
-              minWidth: spec.trackMinWidth ?? (mobile ? 10 : 12),
-              maxWidth: spec.trackMaxWidth ?? (mobile ? 12 : 14)
-            },
+        kmfxBarTracks: spec.barTracks
+          ? {
+              alpha: spec.trackAlpha ?? 0.1,
+              activeAlpha: spec.trackActiveAlpha ?? 0.14,
+              minWidth: spec.trackMinWidth ?? (mobile ? 18 : 26),
+              maxWidth: spec.trackMaxWidth ?? (mobile ? 18 : 26),
+              topInset: spec.trackTopInset ?? 6,
+              bottomInset: spec.trackBottomInset ?? 2
+            }
+          : false,
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
           callbacks: spec.tooltipCallbacks || {
