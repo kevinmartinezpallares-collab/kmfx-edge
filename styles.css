@@ -81,13 +81,13 @@
 }
 
 [data-theme="dark"] {
-  --bg-app: #0D0E12;
-  --bg-shell: #0D0E12;
-  --bg-sidebar: #0D0E12;
-  --bg-topbar: #0D0E12;
-  --bg-panel: #0D0E12;
-  --bg-card: #282828;
-  --bg-card-alt: #282828;
+  --bg-app: #26201F;
+  --bg-shell: #26201F;
+  --bg-sidebar: #26201F;
+  --bg-topbar: #26201F;
+  --bg-panel: #26201F;
+  --bg-card: #2e2825;
+  --bg-card-alt: #2e2825;
   --border-subtle: rgba(255,255,255,0.06);
   --text-primary: #FFFFFF;
   --text-secondary: #8E9196;
@@ -99,10 +99,10 @@
   --bg: #0D0E12;
   --bg2: #111317;
   --bg3: #111317;
-  --surface: #282828;
-  --surface2: #282828;
-  --border: #34373D;
-  --border2: #34373D;
+  --surface: #2e2825;
+  --surface2: #2e2825;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.07);
   --text: #FFFFFF;
   --text1: #FFFFFF;
   --text2: #FFFFFF;
@@ -134,13 +134,13 @@
   --shadow: none;
   --shadow-md: none;
   --shadow-lg: none;
-  --card-surface: #282828;
-  --card-border: #34373D;
+  --card-surface: #2e2825;
+  --card-border: rgba(255,255,255,0.07);
   --card-inner-glow: none;
   --card-sheen: none;
   --card-shadow: none;
-  --card-hover-border: #34373D;
-  --shell-surface: #111317;
+  --card-hover-border: rgba(255,255,255,0.07);
+  --shell-surface: #26201F;
   --shell-border: transparent;
   --shell-shadow: none;
   --active-surface: rgba(255,255,255,0.055);
@@ -404,13 +404,13 @@ html:not([data-theme="dark"]) .app-shell {
 /* KMFX dark shell baseline locked: keep sidebar/topbar/main/content in this tonal relationship unless explicitly redefining the shell system. */
 html[data-theme="dark"] .app-shell,
 body[data-theme="dark"] .app-shell {
-  background: #0D0E12;
+  background: #26201F;
 }
 
 .sidebar {
   position: fixed;
   inset: 18px auto 18px 18px;
-  width: 272px;
+  width: 200px;
   height: auto;
   display: flex;
   flex-direction: column;
@@ -602,7 +602,7 @@ body[data-theme="dark"] .app-shell {
   text-align: left;
   border: 1px solid transparent;
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 8px 12px;
   background: transparent;
   color: var(--text3);
   cursor: pointer;
@@ -627,6 +627,7 @@ body[data-theme="dark"] .app-shell {
 
 .nav-item-label {
   white-space: nowrap;
+  font-size: 13px;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
@@ -921,7 +922,7 @@ html[data-theme="dark"] .brand-lockup {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  margin-left: 308px;
+  margin-left: 236px;
   padding: 18px 20px 20px 0;
   background: var(--bg-shell);
 }
@@ -1165,7 +1166,7 @@ html[data-theme="dark"] .main-panel,
 html[data-theme="dark"] .content,
 body[data-theme="dark"] .main-panel,
 body[data-theme="dark"] .content {
-  background: #0D0E12;
+  background: #26201F;
 }
 
 .workspace-strip {
