@@ -85,7 +85,7 @@
   --bg-shell: #0D0E12;
   --bg-sidebar: #0D0E12;
   --bg-topbar: #0D0E12;
-  --bg-panel: #202020;
+  --bg-panel: #0D0E12;
   --bg-card: #282828;
   --bg-card-alt: #282828;
   --border-subtle: rgba(255,255,255,0.06);
@@ -97,8 +97,8 @@
   --accent-violet: #B9A7FF;
   --positive: #4ADE80;
   --bg: #0D0E12;
-  --bg2: #202020;
-  --bg3: #202020;
+  --bg2: #111317;
+  --bg3: #111317;
   --surface: #282828;
   --surface2: #282828;
   --border: #34373D;
