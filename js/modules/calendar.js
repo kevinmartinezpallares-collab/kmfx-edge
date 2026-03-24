@@ -72,10 +72,10 @@ export function renderCalendar(root, state) {
     `));
     if (week) {
       calendarRows.push(`
-        <div class="calendar-week-summary">
+        <div class="calendar-week-summary calendar-week-summary--side">
           <div class="calendar-week-summary-title">${week.label}</div>
-          <div class="calendar-week-summary-meta">${week.trades} ops.</div>
           <div class="calendar-week-summary-value ${week.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(week.pnl)}</div>
+          <div class="calendar-week-summary-meta">${week.trades} ops.</div>
           <div class="calendar-week-summary-value ${week.returnPct >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(week.returnPct)}</div>
         </div>
       `);
@@ -110,6 +110,7 @@ export function renderCalendar(root, state) {
       <div class="pnlcal-card pnlcal-month-card">
         <div class="calendar-grid">
           ${model.calendar.headers.map((head) => `<div class="calendar-head">${head}</div>`).join("")}
+          <div class="calendar-head calendar-head--summary">Sem</div>
           ${calendarRows.join("")}
         </div>
       </div>

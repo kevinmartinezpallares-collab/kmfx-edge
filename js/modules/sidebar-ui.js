@@ -10,6 +10,19 @@ export function initSidebarUI(store) {
   if (!shell) return;
   shell.classList.remove("sidebar-collapsed");
 
+  const syncMenuState = () => {
+    const menu = profileRoot?.querySelector(".sidebar-profile-menu");
+    const toggle = profileRoot?.querySelector("[data-sidebar-menu-toggle]");
+    const isOpen = Boolean(profileRoot?.__menuOpen);
+    if (menu) {
+      menu.hidden = !isOpen;
+      menu.classList.toggle("is-open", isOpen);
+    }
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+  };
+
   settingsShortcut?.addEventListener("click", () => {
     store.setState((state) => ({
       ...state,
@@ -29,10 +42,17 @@ export function initSidebarUI(store) {
     });
   });
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("pointerdown", (event) => {
     if (!profileRoot?.contains(event.target)) {
       profileRoot.__menuOpen = false;
-      renderProfile(store.getState());
+      syncMenuState();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && profileRoot?.__menuOpen) {
+      profileRoot.__menuOpen = false;
+      syncMenuState();
     }
   });
 
@@ -71,11 +91,13 @@ export function initSidebarUI(store) {
     profileRoot.querySelector("[data-sidebar-menu-toggle]")?.addEventListener("click", (event) => {
       event.stopPropagation();
       profileRoot.__menuOpen = !profileRoot.__menuOpen;
-      renderProfile(store.getState());
+      syncMenuState();
     });
 
-    profileRoot.querySelector('[data-sidebar-action="settings"]')?.addEventListener("click", () => {
+    profileRoot.querySelector('[data-sidebar-action="settings"]')?.addEventListener("click", (event) => {
+      event.stopPropagation();
       profileRoot.__menuOpen = false;
+      syncMenuState();
       store.setState((prev) => ({
         ...prev,
         ui: {
@@ -85,13 +107,14 @@ export function initSidebarUI(store) {
       }));
     });
 
-    profileRoot.querySelector('[data-sidebar-action="logout"]')?.addEventListener("click", async () => {
+    profileRoot.querySelector('[data-sidebar-action="logout"]')?.addEventListener("click", async (event) => {
+      event.stopPropagation();
       profileRoot.__menuOpen = false;
+      syncMenuState();
       await window.kmfxAuth?.signOut?.();
     });
   };
 
   renderProfile(store.getState());
   store.subscribe(renderProfile);
-  console.log("[KMFX][SIDEBAR] fixed sidebar ready");
 }

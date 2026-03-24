@@ -98,8 +98,10 @@ function externalTooltipHandler(context) {
 
   const title = tooltip.title?.[0] || "";
   const body = tooltip.body?.map((item) => item.lines.join(" ")).join(" ") || "";
+  const isBarChart = chart?.config?.type === "bar";
   tooltipEl.classList.toggle("is-minimal", chart?.config?.options?.plugins?.tooltip?.kmfxMinimal === true);
   tooltipEl.classList.toggle("has-title", Boolean(title));
+  tooltipEl.classList.toggle("is-bar-chart", isBarChart);
   tooltipEl.querySelector(".kmfx-chart-tooltip-title").textContent = title;
   tooltipEl.querySelector(".kmfx-chart-tooltip-body").textContent = body;
 
@@ -173,6 +175,16 @@ function createGradient(context, area, tone, alphaStart = 0.16, alphaEnd = 0.01,
   return gradient;
 }
 
+function createBarSurfaceGradient(context, area, tone, hover = false) {
+  const { start, end } = toneColors(tone);
+  const gradient = context.createLinearGradient(area.left, area.top, area.left, area.bottom);
+  gradient.addColorStop(0, withAlpha(end, hover ? 0.96 : 0.9));
+  gradient.addColorStop(0.18, withAlpha(end, hover ? 0.9 : 0.82));
+  gradient.addColorStop(0.48, withAlpha(start, hover ? 0.92 : 0.84));
+  gradient.addColorStop(1, withAlpha(start, hover ? 0.76 : 0.68));
+  return gradient;
+}
+
 function solidToneColor(tone, value = null) {
   if (tone === "violet") return withAlpha(getCssVar("--chart-violet-a"), 0.78);
   if (tone === "green") return withAlpha(getCssVar("--green"), 0.84);
@@ -180,6 +192,30 @@ function solidToneColor(tone, value = null) {
   if (tone === "blue") return withAlpha(getCssVar("--chart-blue-a"), 0.8);
   if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.84) : withAlpha(getCssVar("--red"), 0.84);
   return withAlpha(getCssVar("--chart-blue-a"), 0.8);
+}
+
+function solidToneHoverColor(tone, value = null) {
+  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-b"), 0.9);
+  if (tone === "green") return withAlpha(getCssVar("--green"), 0.92);
+  if (tone === "red") return withAlpha(getCssVar("--red"), 0.92);
+  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-b"), 0.9);
+  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.92) : withAlpha(getCssVar("--red"), 0.92);
+  return withAlpha(getCssVar("--chart-blue-b"), 0.9);
+}
+
+function roundedRectPath(ctx, x, y, width, height, radius) {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.arcTo(x + width, y, x + width, y + r, r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+  ctx.lineTo(x + r, y + height);
+  ctx.arcTo(x, y + height, x, y + height - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 function buildBaseOptions(spec) {
@@ -245,6 +281,37 @@ const crosshairPlugin = {
   }
 };
 
+const barTrackPlugin = {
+  id: "kmfxBarTracks",
+  beforeDatasetsDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta?.data?.length) return;
+    const { ctx, chartArea } = chart;
+    const top = chartArea.top + (pluginOptions?.topInset ?? 8);
+    const bottom = chartArea.bottom - (pluginOptions?.bottomInset ?? 2);
+    const height = Math.max(0, bottom - top);
+    if (!height) return;
+
+    ctx.save();
+    meta.data.forEach((element, index) => {
+      const width = Math.max(
+        pluginOptions?.minWidth ?? 10,
+        Math.min(pluginOptions?.maxWidth ?? 16, element.width || pluginOptions?.width || 12)
+      );
+      const x = element.x - width / 2;
+      const active = chart.tooltip?.getActiveElements?.().some((item) => item.datasetIndex === 0 && item.index === index);
+      const tone = active
+        ? withAlpha(getCssVar("--chart-blue-a") || "#2f6bff", pluginOptions?.activeAlpha ?? 0.14)
+        : withAlpha(getCssVar("--border") || "#334155", pluginOptions?.alpha ?? 0.12);
+      roundedRectPath(ctx, x, top, width, height, width / 2);
+      ctx.fillStyle = tone;
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+};
+
 const doughnutCenterPlugin = {
   id: "kmfxDoughnutCenter",
   afterDraw(chart) {
@@ -282,7 +349,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin);
+  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -449,9 +516,11 @@ function createBarChart(ChartLib, canvas, spec) {
         borderRadius: 999,
         borderSkipped: false,
         hoverBorderWidth: 0,
+        glowColor: spec.positiveNegative ? null : withAlpha(end, spec.glowAlpha ?? 0.12),
+        barThickness: spec.barThickness ?? Math.min(spec.maxBarThickness || 14, mobile ? 10 : 12),
         maxBarThickness: Math.min(spec.maxBarThickness || 22, mobile ? 18 : 22),
-        categoryPercentage: spec.categoryPercentage || 0.82,
-        barPercentage: spec.barPercentage || 0.86,
+        categoryPercentage: spec.categoryPercentage || 0.9,
+        barPercentage: spec.barPercentage || 0.92,
         backgroundColor(context) {
           const value = context.raw;
           if (spec.focusBarStyle) {
@@ -460,21 +529,25 @@ function createBarChart(ChartLib, canvas, spec) {
             }
             const area = context.chart.chartArea;
             if (!area) return start;
-            return createGradient(context.chart.ctx, area, spec.tone || "blue", 0.76, 0.42, false);
+            return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", false);
           }
           if (spec.solidBars) {
-            if (spec.positiveNegative) return solidToneColor(null, value);
+            if (spec.positiveNegative) {
+              const tone = value >= 0 ? "green" : "red";
+              const area = context.chart.chartArea;
+              if (!area) return solidToneColor(tone);
+              return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
+            }
             return solidToneColor(spec.tone || "blue");
           }
           if (spec.positiveNegative) {
-            const positiveTone = toneColors(value >= 0 ? "green" : "red");
             const area = context.chart.chartArea;
-            if (!area) return value >= 0 ? positiveTone.start : positiveTone.end;
-            return createGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", 0.7, 0.4, false);
+            if (!area) return value >= 0 ? toneColors("green").start : toneColors("red").start;
+            return createBarSurfaceGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", false);
           }
           const area = context.chart.chartArea;
           if (!area) return start;
-          return createGradient(context.chart.ctx, area, spec.tone || "blue", 0.7, 0.38, false);
+          return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", false);
         },
         hoverBackgroundColor(context) {
           const value = context.raw;
@@ -484,20 +557,25 @@ function createBarChart(ChartLib, canvas, spec) {
             }
             const area = context.chart.chartArea;
             if (!area) return end;
-            return createGradient(context.chart.ctx, area, spec.tone || "blue", 0.82, 0.48, false);
+            return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", true);
           }
           if (spec.solidBars) {
-            if (spec.positiveNegative) return solidToneColor(null, value);
-            return solidToneColor(spec.tone || "blue");
+            if (spec.positiveNegative) {
+              const tone = value >= 0 ? "green" : "red";
+              const area = context.chart.chartArea;
+              if (!area) return solidToneHoverColor(tone);
+              return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
+            }
+            return solidToneHoverColor(spec.tone || "blue");
           }
           if (spec.positiveNegative) {
             const area = context.chart.chartArea;
             if (!area) return value >= 0 ? toneColors("green").start : toneColors("red").start;
-            return createGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", 0.76, 0.44, false);
+            return createBarSurfaceGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", true);
           }
           const area = context.chart.chartArea;
           if (!area) return end;
-          return createGradient(context.chart.ctx, area, spec.tone || "blue", 0.76, 0.42, false);
+          return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", true);
         },
         borderColor(context) {
           if (spec.focusBarStyle && context.dataIndex !== focusIndex) {
@@ -510,11 +588,21 @@ function createBarChart(ChartLib, canvas, spec) {
     },
     options: {
       ...buildBaseOptions(spec),
+      layout: {
+        padding: {
+          left: spec.layoutPaddingLeft ?? 0,
+          right: spec.layoutPaddingRight ?? 0,
+          top: spec.layoutPaddingTop ?? 6,
+          bottom: spec.layoutPaddingBottom ?? 0
+        }
+      },
       scales: {
         x: {
+          offset: spec.xOffset ?? true,
           ticks: {
             color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.84),
             font: { size: 10, weight: "500" },
+            padding: spec.xTickPadding ?? 8,
             autoSkip: mobile,
             maxRotation: 0,
             minRotation: 0,
@@ -526,6 +614,7 @@ function createBarChart(ChartLib, canvas, spec) {
           ticks: {
             color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.76),
             font: { size: 10, weight: "500" },
+            padding: spec.yTickPadding ?? 8,
             maxTicksLimit: spec.maxYTicks || (mobile ? 3 : 4),
             callback: spec.axisFormatter || ((value) => value)
           },
@@ -538,6 +627,14 @@ function createBarChart(ChartLib, canvas, spec) {
       },
       plugins: {
         ...buildBaseOptions(spec).plugins,
+        kmfxBarTracks: spec.barTracks === false
+          ? false
+          : {
+              alpha: spec.trackAlpha ?? 0.14,
+              activeAlpha: spec.trackActiveAlpha ?? 0.18,
+              minWidth: spec.trackMinWidth ?? (mobile ? 10 : 12),
+              maxWidth: spec.trackMaxWidth ?? (mobile ? 12 : 14)
+            },
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
           callbacks: spec.tooltipCallbacks || {
