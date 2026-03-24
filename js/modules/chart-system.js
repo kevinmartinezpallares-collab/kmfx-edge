@@ -312,6 +312,75 @@ const barTrackPlugin = {
   }
 };
 
+const referencePillBarPlugin = {
+  id: "kmfxReferencePillBars",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const meta = chart.getDatasetMeta(0);
+    const dataset = chart.data.datasets?.[0];
+    if (!meta?.data?.length || !dataset) return;
+
+    const { ctx, chartArea } = chart;
+    const yScale = chart.scales?.y;
+    if (!yScale) return;
+
+    const top = chartArea.top + (pluginOptions?.topInset ?? 6);
+    const bottom = chartArea.bottom - (pluginOptions?.bottomInset ?? 2);
+    const trackHeight = Math.max(0, bottom - top);
+    if (!trackHeight) return;
+
+    const activeIndex = chart.tooltip?.getActiveElements?.()?.[0]?.index ?? -1;
+    const fallbackTone = pluginOptions?.tone || "blue";
+
+    ctx.save();
+
+    meta.data.forEach((element, index) => {
+      const value = Number(dataset.data[index] ?? 0);
+      const width = Math.max(
+        pluginOptions?.minWidth ?? 18,
+        Math.min(pluginOptions?.maxWidth ?? 26, element.width || pluginOptions?.width || 22)
+      );
+      const x = element.x - width / 2;
+      const isActive = index === activeIndex;
+
+      roundedRectPath(ctx, x, top, width, trackHeight, width / 2);
+      ctx.fillStyle = withAlpha(
+        getCssVar("--border") || "#334155",
+        isActive ? (pluginOptions?.trackActiveAlpha ?? 0.11) : (pluginOptions?.trackAlpha ?? 0.08)
+      );
+      ctx.fill();
+
+      const barTop = Math.min(element.y, element.base);
+      const barBottom = Math.max(element.y, element.base);
+      const barHeight = Math.max(0, barBottom - barTop);
+      if (!barHeight) return;
+
+      let tone = fallbackTone;
+      if (pluginOptions?.positiveNegative) {
+        tone = value >= 0 ? "green" : "red";
+      }
+
+      const barGradient = createBarSurfaceGradient(
+        ctx,
+        { left: x, right: x + width, top: barTop, bottom: barBottom },
+        tone,
+        isActive
+      );
+      roundedRectPath(ctx, x, barTop, width, barHeight, width / 2);
+      ctx.fillStyle = pluginOptions?.solid === true ? solidToneColor(tone, value) : barGradient;
+      ctx.fill();
+
+      const capHeight = Math.max(4, Math.min(8, width * 0.32));
+      const capInset = Math.max(1.5, width * 0.08);
+      roundedRectPath(ctx, x + capInset, barTop + 1, width - capInset * 2, capHeight, (width - capInset * 2) / 2);
+      ctx.fillStyle = withAlpha("#ffffff", isActive ? 0.18 : 0.12);
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }
+};
+
 const doughnutCenterPlugin = {
   id: "kmfxDoughnutCenter",
   afterDraw(chart) {
@@ -349,7 +418,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin);
+  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -503,6 +572,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
 function createBarChart(ChartLib, canvas, spec) {
   const mobile = isMobileViewport();
   const { start, end } = toneColors(spec.tone || "blue");
+  const useReferencePillBars = spec.referencePillBars === true;
   const focusIndex = spec.focusIndex ?? spec.points.reduce((best, point, index, list) => {
     if (best === -1) return index;
     return Math.abs(point.value) > Math.abs(list[best].value) ? index : best;
@@ -522,6 +592,7 @@ function createBarChart(ChartLib, canvas, spec) {
         categoryPercentage: spec.categoryPercentage || 0.9,
         barPercentage: spec.barPercentage || 0.92,
         backgroundColor(context) {
+          if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
           if (spec.focusBarStyle) {
             if (context.dataIndex !== focusIndex) {
@@ -550,6 +621,7 @@ function createBarChart(ChartLib, canvas, spec) {
           return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", false);
         },
         hoverBackgroundColor(context) {
+          if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
           if (spec.focusBarStyle) {
             if (context.dataIndex !== focusIndex) {
@@ -578,6 +650,7 @@ function createBarChart(ChartLib, canvas, spec) {
           return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", true);
         },
         borderColor(context) {
+          if (useReferencePillBars) return "rgba(0,0,0,0)";
           if (spec.focusBarStyle && context.dataIndex !== focusIndex) {
             return withAlpha(getCssVar("--border") || "#334155", 0.08);
           }
@@ -635,6 +708,19 @@ function createBarChart(ChartLib, canvas, spec) {
               maxWidth: spec.trackMaxWidth ?? (mobile ? 18 : 26),
               topInset: spec.trackTopInset ?? 6,
               bottomInset: spec.trackBottomInset ?? 2
+            }
+          : false,
+        kmfxReferencePillBars: useReferencePillBars
+          ? {
+              tone: spec.tone || "blue",
+              positiveNegative: spec.positiveNegative === true,
+              solid: spec.referenceSolidBars === true,
+              minWidth: spec.trackMinWidth ?? (mobile ? 18 : 26),
+              maxWidth: spec.trackMaxWidth ?? (mobile ? 18 : 26),
+              topInset: spec.trackTopInset ?? 6,
+              bottomInset: spec.trackBottomInset ?? 2,
+              trackAlpha: spec.trackAlpha ?? 0.08,
+              trackActiveAlpha: spec.trackActiveAlpha ?? 0.11
             }
           : false,
         tooltip: {
