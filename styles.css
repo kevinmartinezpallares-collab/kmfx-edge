@@ -86,8 +86,8 @@
   --bg-sidebar: #0D0E12;
   --bg-topbar: #0D0E12;
   --bg-panel: #0D0E12;
-  --bg-card: #282828;
-  --bg-card-alt: #282828;
+  --bg-card: #111317;
+  --bg-card-alt: #111317;
   --border-subtle: rgba(255,255,255,0.06);
   --text-primary: #FFFFFF;
   --text-secondary: #8E9196;
@@ -99,8 +99,8 @@
   --bg: #0D0E12;
   --bg2: #111317;
   --bg3: #111317;
-  --surface: #282828;
-  --surface2: #282828;
+  --surface: #111317;
+  --surface2: #111317;
   --border: #34373D;
   --border2: #34373D;
   --text: #FFFFFF;
@@ -134,7 +134,7 @@
   --shadow: none;
   --shadow-md: none;
   --shadow-lg: none;
-  --card-surface: #282828;
+  --card-surface: #111317;
   --card-border: #34373D;
   --card-inner-glow: none;
   --card-sheen: none;
@@ -1352,7 +1352,7 @@ body[data-theme="dark"] .widget-card::before {
   padding: 11px 12px;
   border-radius: 16px;
   border: 1px solid var(--card-border);
-  background: #202020;
+  background: #111317;
   color: var(--text2);
   transition: 0.16s ease;
   cursor: pointer;
@@ -1373,7 +1373,7 @@ html:not([data-theme="dark"]) .account-hero-card {
 html[data-theme="dark"] .account-hero-card,
 body[data-theme="dark"] .account-hero-card {
   border-color: var(--card-border);
-  background: #202020;
+  background: #111317;
   box-shadow: none;
 }
 
@@ -1381,7 +1381,7 @@ body[data-theme="dark"] .account-hero-card {
 .account-hero-card.active {
   transform: translateY(-1px);
   border-color: rgba(61, 123, 255, 0.42);
-  background: color-mix(in srgb, #202020 92%, #3D7BFF 8%);
+  background: color-mix(in srgb, #111317 92%, #3D7BFF 8%);
   box-shadow: none;
 }
 
