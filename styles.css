@@ -672,7 +672,7 @@ body[data-theme="dark"] .app-shell {
 
 .sidebar-profile:hover {
   border-color: color-mix(in srgb, var(--accent) 16%, var(--border));
-  background: color-mix(in srgb, var(--surface) 88%, var(--accent-bg) 12%);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--accent) 8%);
 }
 
 .sidebar-profile-avatar {
@@ -731,7 +731,7 @@ body[data-theme="dark"] .app-shell {
   height: 32px;
   border-radius: 11px;
   border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
-  background: color-mix(in srgb, var(--surface2) 86%, transparent);
+  background: var(--bg-card);
   color: var(--text3);
   display: inline-flex;
   align-items: center;
@@ -742,8 +742,8 @@ body[data-theme="dark"] .app-shell {
 
 .sidebar-profile-menu-btn:hover {
   color: var(--text2);
-  border-color: var(--active-border);
-  background: color-mix(in srgb, var(--active-surface) 68%, var(--surface2) 32%);
+  border-color: #1C1F26;
+  background: #161A20;
 }
 
 .sidebar-profile-menu-btn svg {
@@ -761,14 +761,11 @@ body[data-theme="dark"] .app-shell {
   gap: 4px;
   padding: 8px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
-  background:
-    linear-gradient(180deg, rgba(18, 22, 31, 0.82), rgba(12, 15, 21, 0.72));
-  backdrop-filter: blur(18px) saturate(1.08);
-  -webkit-backdrop-filter: blur(18px) saturate(1.08);
-  box-shadow:
-    0 20px 34px -26px rgba(0, 0, 0, 0.58),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid #1C1F26;
+  background: #111317;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .sidebar-profile-menu {
@@ -825,8 +822,7 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-item:hover {
 }
 
 html[data-theme="dark"] .sidebar {
-  background:
-    linear-gradient(180deg, rgba(20, 21, 24, 0.995), rgba(17, 18, 21, 0.992));
+  background: #111317;
 }
 
 html[data-theme="dark"] .sidebar::after {
@@ -834,7 +830,7 @@ html[data-theme="dark"] .sidebar::after {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.016), transparent 16%, rgba(255, 255, 255, 0.006));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 18%, rgba(255, 255, 255, 0.004));
 }
 
 html[data-theme="dark"] .nav-item {
@@ -856,8 +852,8 @@ html[data-theme="dark"] .nav-item.active {
 html[data-theme="dark"] .sidebar-search,
 html[data-theme="dark"] .sidebar-profile,
 html[data-theme="dark"] .theme-icon-btn {
-  background: color-mix(in srgb, var(--bg-panel) 86%, rgba(255, 255, 255, 0.014) 14%);
-  border-color: var(--border-subtle);
+  background: #111317;
+  border-color: #1C1F26;
 }
 
 html[data-theme="dark"] .brand-lockup {
@@ -872,11 +868,11 @@ html[data-theme="dark"] .brand-lockup {
   gap: 8px;
   border-radius: 999px;
   padding: 6px 10px;
-  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+  background: #111317;
   color: var(--text2);
   font-size: 10px;
   font-weight: 600;
-  border: 1px solid color-mix(in srgb, var(--border) 66%, transparent);
+  border: 1px solid #1C1F26;
 }
 
 .theme-icon-btn {
@@ -886,8 +882,8 @@ html[data-theme="dark"] .brand-lockup {
   align-items: center;
   justify-content: center;
   border-radius: 13px;
-  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-  background: color-mix(in srgb, var(--shell-surface) 80%, var(--surface) 20%);
+  border: 1px solid #1C1F26;
+  background: #111317;
   color: var(--text2);
   cursor: pointer;
   transition:
@@ -899,9 +895,9 @@ html[data-theme="dark"] .brand-lockup {
 
 .theme-icon-btn:hover {
   transform: translateY(-1px);
-  border-color: var(--active-border);
-  background: color-mix(in srgb, var(--active-surface) 76%, var(--shell-surface) 24%);
-  box-shadow: var(--shadow);
+  border-color: #1C1F26;
+  background: #161A20;
+  box-shadow: none;
 }
 
 .theme-icon {
@@ -1034,7 +1030,7 @@ html:not([data-theme="dark"]) .main-panel {
   padding: 10px 14px;
   border: 1px solid var(--shell-border);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--bg-panel) 94%, transparent);
+  background: #111317;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   transition:
@@ -1046,8 +1042,8 @@ html:not([data-theme="dark"]) .main-panel {
 
 .topbar-user-card:hover {
   transform: translateY(-1px);
-  border-color: var(--active-border);
-  box-shadow: var(--shell-shadow);
+  border-color: #1C1F26;
+  box-shadow: none;
 }
 
 .topbar-user-copy {
@@ -1072,7 +1068,7 @@ html:not([data-theme="dark"]) .main-panel {
   place-items: center;
   flex-shrink: 0;
   border: 1px solid var(--shell-border);
-  background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
+  background: #111317;
   color: var(--text);
   font-size: 12px;
   font-weight: 800;
@@ -1333,10 +1329,8 @@ body[data-theme="dark"] .widget-card::before {
   width: 100%;
   padding: 11px 12px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 9%, transparent), transparent 30%),
-    color-mix(in srgb, var(--surface2) 86%, transparent);
+  border: 1px solid #1C1F26;
+  background: #111317;
   color: var(--text2);
   transition: 0.16s ease;
   cursor: pointer;
@@ -1356,22 +1350,17 @@ html:not([data-theme="dark"]) .account-hero-card {
 
 html[data-theme="dark"] .account-hero-card,
 body[data-theme="dark"] .account-hero-card {
-  border-color: rgba(255, 255, 255, 0.05);
-  background:
-    linear-gradient(180deg, rgba(24, 27, 35, 0.988), rgba(17, 20, 27, 0.978));
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.026);
+  border-color: #1C1F26;
+  background: #111317;
+  box-shadow: none;
 }
 
 .account-hero-card:hover,
 .account-hero-card.active {
   transform: translateY(-1px);
-  border-color: rgba(58, 96, 187, 0.44);
-  background: linear-gradient(180deg, rgba(32, 39, 58, 0.992), rgba(24, 30, 45, 0.982));
-  box-shadow:
-    0 10px 20px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border-color: rgba(61, 123, 255, 0.42);
+  background: color-mix(in srgb, #111317 90%, #3D7BFF 10%);
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .account-hero-card:hover,
@@ -1484,9 +1473,9 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--card-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: var(--card-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
   margin-bottom: 14px;
 }
 
@@ -1494,13 +1483,11 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   position: relative;
   overflow: hidden;
   min-height: 268px;
-  background: rgba(20, 23, 29, 0.9);
-  border-color: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow:
-    0 16px 30px rgba(0, 0, 0, 0.16),
-    var(--card-inner-glow);
+  background: #111317;
+  border-color: #1C1F26;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .account-banner-copy,
@@ -1631,10 +1618,10 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-  background: rgba(12, 14, 18, 0.58);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #1C1F26;
+  background: #111317;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .widget-segmented-btn {
@@ -1663,11 +1650,9 @@ html:not([data-theme="dark"]) .account-hero-card.active {
 
 .widget-segmented-btn.active {
   color: var(--text1);
-  background: rgba(255, 255, 255, 0.065);
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.04),
-    0 8px 16px rgba(0, 0, 0, 0.08);
+  background: #161A20;
+  border: 1px solid #1C1F26;
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .widget-segmented {
@@ -1685,8 +1670,8 @@ html:not([data-theme="dark"]) .widget-segmented-btn {
   min-height: 30px;
   padding: 6px 11px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 88%, var(--bg3) 12%);
+  border: 1px solid #1C1F26;
+  background: #111317;
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.04em;
@@ -2694,8 +2679,8 @@ body[data-theme="dark"] .account-banner--premium {
   min-height: 28px;
   padding: 5px 9px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg3) 86%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  background: #111317;
+  border: 1px solid #1C1F26;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -2708,8 +2693,8 @@ body[data-theme="dark"] .account-banner--premium {
   gap: 7px;
   padding: 5px 9px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  background: color-mix(in srgb, var(--surface2) 82%, var(--bg3) 18%);
+  border: 1px solid #1C1F26;
+  background: #111317;
   color: var(--text2);
   font-size: 10px;
   font-weight: 600;
