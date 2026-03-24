@@ -785,9 +785,12 @@ html[data-theme="dark"] .nav-item:hover {
 }
 
 html[data-theme="dark"] .nav-item.active {
-  color: var(--active-text);
-  background: var(--active-surface);
-  border-color: var(--active-border);
+  color: rgba(243, 242, 238, 0.96);
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 18px rgba(0, 0, 0, 0.1);
 }
 
 html[data-theme="dark"] .sidebar-search,
@@ -1306,18 +1309,20 @@ html[data-theme="dark"] .account-hero-card,
 body[data-theme="dark"] .account-hero-card {
   border-color: rgba(255, 255, 255, 0.055);
   background:
-    linear-gradient(180deg, rgba(22, 26, 35, 0.94), rgba(17, 20, 28, 0.92));
+    linear-gradient(180deg, rgba(18, 21, 28, 0.965), rgba(13, 16, 22, 0.95));
   box-shadow:
     0 10px 20px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.028);
+    inset 0 1px 0 rgba(255, 255, 255, 0.032);
 }
 
 .account-hero-card:hover,
 .account-hero-card.active {
   transform: translateY(-1px);
-  border-color: var(--accent-border);
-  background: color-mix(in srgb, var(--accent-bg) 58%, var(--surface2));
-  box-shadow: var(--shadow);
+  border-color: rgba(112, 132, 176, 0.34);
+  background: linear-gradient(180deg, rgba(30, 35, 47, 0.985), rgba(20, 24, 33, 0.965));
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .account-hero-card__top {
@@ -1598,11 +1603,12 @@ body[data-theme="dark"] .account-hero-card {
 }
 
 .widget-segmented-btn.active {
-  color: var(--active-text);
-  background: var(--active-surface);
+  color: var(--text1);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.085);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.035),
-    0 8px 16px rgba(0, 0, 0, 0.06);
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 html:not([data-theme="dark"]) .widget-segmented {
@@ -2914,12 +2920,12 @@ html[data-theme="dark"] .kmfx-chart-tooltip-body {
 }
 
 .tl-tab.active {
-  color: var(--active-text);
-  background: var(--active-surface);
-  border: 1px solid var(--active-border);
+  color: var(--text1);
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.035),
-    0 8px 16px rgba(0, 0, 0, 0.06);
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 .analytics-panel {
@@ -5830,6 +5836,29 @@ tfoot td {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
+html[data-theme="dark"] .btn-primary,
+body[data-theme="dark"] .btn-primary {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(32, 37, 48, 0.96), rgba(20, 24, 33, 0.94));
+  color: rgba(243, 242, 238, 0.96);
+  box-shadow:
+    0 10px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] .btn-secondary,
+body[data-theme="dark"] .btn-secondary,
+html[data-theme="dark"] .pnlcal-nav-btn,
+body[data-theme="dark"] .pnlcal-nav-btn {
+  border-color: rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(24, 28, 37, 0.95), rgba(16, 19, 26, 0.93));
+  color: rgba(243, 242, 238, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -5842,6 +5871,18 @@ button:disabled {
 .pnlcal-nav-btn:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow);
+}
+
+html[data-theme="dark"] .btn-primary:hover,
+html[data-theme="dark"] .btn-secondary:hover,
+html[data-theme="dark"] .pnlcal-nav-btn:hover,
+body[data-theme="dark"] .btn-primary:hover,
+body[data-theme="dark"] .btn-secondary:hover,
+body[data-theme="dark"] .pnlcal-nav-btn:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 20px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
 .btn-primary:active,
