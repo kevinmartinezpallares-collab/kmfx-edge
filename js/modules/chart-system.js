@@ -203,6 +203,25 @@ function solidToneHoverColor(tone, value = null) {
   return withAlpha(getCssVar("--chart-blue-b"), 0.9);
 }
 
+function resolveBarTone(spec, point, index, value) {
+  if (Array.isArray(spec.pointTones) && spec.pointTones[index]) return spec.pointTones[index];
+  if (typeof spec.pointTone === "function") {
+    const resolved = spec.pointTone(point, index, value);
+    if (resolved) return resolved;
+  }
+  if (spec.positiveNegative) return value >= 0 ? "green" : "red";
+  return spec.tone || "blue";
+}
+
+function createTrackGradient(ctx, rect, active = false) {
+  const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+  const topColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.18 : 0.12);
+  const bottomColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.08 : 0.05);
+  gradient.addColorStop(0, topColor);
+  gradient.addColorStop(1, bottomColor);
+  return gradient;
+}
+
 function roundedRectPath(ctx, x, y, width, height, radius) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   ctx.beginPath();
@@ -343,11 +362,9 @@ const referencePillBarPlugin = {
       const x = element.x - width / 2;
       const isActive = index === activeIndex;
 
+      const trackRect = { left: x, right: x + width, top, bottom };
       roundedRectPath(ctx, x, top, width, trackHeight, width / 2);
-      ctx.fillStyle = withAlpha(
-        getCssVar("--border") || "#334155",
-        isActive ? (pluginOptions?.trackActiveAlpha ?? 0.11) : (pluginOptions?.trackAlpha ?? 0.08)
-      );
+      ctx.fillStyle = createTrackGradient(ctx, trackRect, isActive);
       ctx.fill();
 
       const barTop = Math.min(element.y, element.base);
@@ -355,10 +372,10 @@ const referencePillBarPlugin = {
       const barHeight = Math.max(0, barBottom - barTop);
       if (!barHeight) return;
 
-      let tone = fallbackTone;
-      if (pluginOptions?.positiveNegative) {
-        tone = value >= 0 ? "green" : "red";
-      }
+      const point = chart.config.data.labels?.[index] != null
+        ? { label: chart.config.data.labels[index], value }
+        : { value };
+      const tone = resolveBarTone(pluginOptions, point, index, value) || fallbackTone;
 
       const barGradient = createBarSurfaceGradient(
         ctx,
@@ -375,6 +392,22 @@ const referencePillBarPlugin = {
       roundedRectPath(ctx, x + capInset, barTop + 1, width - capInset * 2, capHeight, (width - capInset * 2) / 2);
       ctx.fillStyle = withAlpha("#ffffff", isActive ? 0.18 : 0.12);
       ctx.fill();
+
+      if (pluginOptions?.showValueLabels) {
+        const labelText = typeof pluginOptions.valueLabelFormatter === "function"
+          ? pluginOptions.valueLabelFormatter(value, point, index)
+          : `${value}`;
+        if (labelText) {
+          ctx.save();
+          ctx.textAlign = "center";
+          ctx.textBaseline = "bottom";
+          ctx.fillStyle = withAlpha(getCssVar("--text") || "#F3F5F7", 0.95);
+          ctx.font = "700 11px Avenir Next, Nunito Sans, SF Pro Display, sans-serif";
+          const labelY = barHeight > 0 ? Math.max(chartArea.top + 12, barTop - 8) : chartArea.bottom - 10;
+          ctx.fillText(labelText, element.x, labelY);
+          ctx.restore();
+        }
+      }
     });
 
     ctx.restore();
@@ -622,67 +655,53 @@ function createBarChart(ChartLib, canvas, spec) {
         borderSkipped: false,
         hoverBorderWidth: 0,
         glowColor: spec.positiveNegative ? null : withAlpha(end, spec.glowAlpha ?? 0.12),
-        barThickness: spec.barThickness ?? Math.min(spec.maxBarThickness || 14, mobile ? 10 : 12),
-        maxBarThickness: Math.min(spec.maxBarThickness || 22, mobile ? 18 : 22),
-        categoryPercentage: spec.categoryPercentage || 0.9,
-        barPercentage: spec.barPercentage || 0.92,
+        barThickness: spec.barThickness ?? Math.min(spec.maxBarThickness || 24, mobile ? 18 : 26),
+        maxBarThickness: Math.min(spec.maxBarThickness || 28, mobile ? 22 : 30),
+        categoryPercentage: spec.categoryPercentage || 0.72,
+        barPercentage: spec.barPercentage || 0.86,
         backgroundColor(context) {
           if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
+          const point = spec.points[context.dataIndex];
+          const tone = resolveBarTone(spec, point, context.dataIndex, value);
           if (spec.focusBarStyle) {
             if (context.dataIndex !== focusIndex) {
               return withAlpha(getCssVar("--text4") || "#94a3b8", spec.neutralAlpha ?? 0.12);
             }
             const area = context.chart.chartArea;
             if (!area) return start;
-            return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", false);
+            return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
           }
           if (spec.solidBars) {
-            if (spec.positiveNegative) {
-              const tone = value >= 0 ? "green" : "red";
-              const area = context.chart.chartArea;
-              if (!area) return solidToneColor(tone);
-              return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
-            }
-            return solidToneColor(spec.tone || "blue");
-          }
-          if (spec.positiveNegative) {
             const area = context.chart.chartArea;
-            if (!area) return value >= 0 ? toneColors("green").start : toneColors("red").start;
-            return createBarSurfaceGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", false);
+            if (!area) return solidToneColor(tone, value);
+            return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
           }
           const area = context.chart.chartArea;
           if (!area) return start;
-          return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", false);
+          return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
         },
         hoverBackgroundColor(context) {
           if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
+          const point = spec.points[context.dataIndex];
+          const tone = resolveBarTone(spec, point, context.dataIndex, value);
           if (spec.focusBarStyle) {
             if (context.dataIndex !== focusIndex) {
               return withAlpha(getCssVar("--text4") || "#94a3b8", spec.neutralAlpha ?? 0.12);
             }
             const area = context.chart.chartArea;
             if (!area) return end;
-            return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", true);
+            return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
           }
           if (spec.solidBars) {
-            if (spec.positiveNegative) {
-              const tone = value >= 0 ? "green" : "red";
-              const area = context.chart.chartArea;
-              if (!area) return solidToneHoverColor(tone);
-              return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
-            }
-            return solidToneHoverColor(spec.tone || "blue");
-          }
-          if (spec.positiveNegative) {
             const area = context.chart.chartArea;
-            if (!area) return value >= 0 ? toneColors("green").start : toneColors("red").start;
-            return createBarSurfaceGradient(context.chart.ctx, area, value >= 0 ? "green" : "red", true);
+            if (!area) return solidToneHoverColor(tone, value);
+            return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
           }
           const area = context.chart.chartArea;
           if (!area) return end;
-          return createBarSurfaceGradient(context.chart.ctx, area, spec.tone || "blue", true);
+          return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
         },
         borderColor(context) {
           if (useReferencePillBars) return "rgba(0,0,0,0)";
@@ -749,13 +768,17 @@ function createBarChart(ChartLib, canvas, spec) {
           ? {
               tone: spec.tone || "blue",
               positiveNegative: spec.positiveNegative === true,
+              pointTone: spec.pointTone,
+              pointTones: spec.pointTones,
               solid: spec.referenceSolidBars === true,
-              minWidth: spec.trackMinWidth ?? (mobile ? 18 : 26),
-              maxWidth: spec.trackMaxWidth ?? (mobile ? 18 : 26),
+              minWidth: spec.trackMinWidth ?? (mobile ? 20 : 30),
+              maxWidth: spec.trackMaxWidth ?? (mobile ? 20 : 30),
               topInset: spec.trackTopInset ?? 6,
               bottomInset: spec.trackBottomInset ?? 2,
-              trackAlpha: spec.trackAlpha ?? 0.08,
-              trackActiveAlpha: spec.trackActiveAlpha ?? 0.11
+              trackAlpha: spec.trackAlpha ?? 0.12,
+              trackActiveAlpha: spec.trackActiveAlpha ?? 0.18,
+              showValueLabels: spec.showValueLabels === true,
+              valueLabelFormatter: spec.valueLabelFormatter
             }
           : false,
         tooltip: {

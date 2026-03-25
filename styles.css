@@ -2709,9 +2709,9 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .kmfx-chart-tooltip.is-bar-chart {
-  min-width: 88px;
-  padding: 8px 12px;
-  border-radius: 999px;
+  min-width: 110px;
+  padding: 10px 12px;
+  border-radius: 12px;
   text-align: center;
 }
 
@@ -2719,9 +2719,9 @@ body[data-theme="dark"] .account-banner--premium {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -5px;
-  width: 10px;
-  height: 10px;
+  bottom: -4px;
+  width: 9px;
+  height: 9px;
   background: inherit;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
@@ -3270,10 +3270,10 @@ html[data-theme="dark"] .kmfx-chart-tooltip {
 
 html[data-theme="dark"] .kmfx-chart-tooltip.is-bar-chart {
   background:
-    linear-gradient(180deg, rgba(10, 12, 16, 0.985), rgba(6, 8, 12, 0.97));
-  border-color: rgba(255, 255, 255, 0.06);
+    linear-gradient(180deg, rgba(17, 19, 23, 0.985), rgba(11, 13, 18, 0.975));
+  border-color: rgba(255, 255, 255, 0.08);
   box-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.38),
+    0 18px 34px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
