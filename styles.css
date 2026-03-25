@@ -473,12 +473,12 @@ body[data-theme="dark"] .app-shell {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 7px;
 }
 
 .brand-lockup {
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 16px;
   display: grid;
   place-items: center;
@@ -489,8 +489,8 @@ body[data-theme="dark"] .app-shell {
 }
 
 .brand-logo {
-  width: 33px;
-  height: 33px;
+  width: 37px;
+  height: 37px;
   object-fit: contain;
   image-rendering: -webkit-optimize-contrast;
 }
@@ -511,27 +511,29 @@ body[data-theme="dark"] .app-shell {
   min-width: 0;
   display: grid;
   gap: 0;
+  align-self: center;
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .brand-title {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: 18px;
+  gap: 5px;
+  font-size: 20px;
   letter-spacing: -0.02em;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .brand-title-main {
   color: var(--text1);
-  font-weight: 720;
+  font-weight: 740;
 }
 
 .brand-title-edge {
   color: var(--text3);
-  font-size: 14px;
-  font-weight: 460;
+  font-size: 12px;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
@@ -1543,9 +1545,9 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   display: grid;
   align-content: center;
   align-self: center;
-  max-width: 420px;
+  max-width: 440px;
   padding-right: 18px;
-  gap: 8px;
+  gap: 12px;
 }
 
 .account-banner-metric {
@@ -1564,19 +1566,22 @@ html:not([data-theme="dark"]) .account-hero-card.active {
 
 .account-banner-context {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: flex-start;
-  gap: 16px;
-  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 6px;
   font-size: 11px;
   color: var(--text3);
-  flex-wrap: wrap;
+  width: auto;
 }
 
 .account-banner-context strong {
   font-size: 12px;
   font-weight: 650;
   white-space: nowrap;
+  justify-self: auto;
+  text-align: left;
 }
 
 .account-banner-chart {
@@ -1830,6 +1835,10 @@ body[data-theme="dark"] .account-banner--premium {
   align-items: start;
 }
 
+.dashboard-bottom-grid > .widget-card {
+  align-self: start;
+}
+
 .widget-card {
   position: relative;
   overflow: hidden;
@@ -1848,8 +1857,8 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .widget-card--kpi {
-  min-height: 164px;
-  padding: 16px 16px 14px;
+  min-height: 176px;
+  padding: 17px 17px 16px;
   box-shadow: none;
 }
 
@@ -1876,7 +1885,7 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .widget-card--feature {
-  min-height: 368px;
+  min-height: 382px;
   box-shadow: none;
 }
 
@@ -1886,7 +1895,7 @@ body[data-theme="dark"] .account-banner--premium {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .widget-card-meta,
@@ -1934,11 +1943,11 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .widget-card--kpi .widget-card-meta {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .widget-card--kpi .widget-kpi-trend {
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .widget-card:hover {
@@ -2090,8 +2099,16 @@ body[data-theme="dark"] .account-banner--premium {
 .widget-return-shell,
 .widget-score-grid {
   display: grid;
-  grid-template-columns: 1fr 220px;
-  gap: 12px;
+  gap: 18px;
+}
+
+.widget-return-shell {
+  grid-template-columns: minmax(0, 1fr) 240px;
+  align-items: center;
+}
+
+.widget-score-grid {
+  grid-template-columns: 220px minmax(0, 1fr);
   align-items: center;
 }
 
@@ -2099,7 +2116,11 @@ body[data-theme="dark"] .account-banner--premium {
 .widget-stat-list,
 .widget-advanced-grid {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+}
+
+.widget-stat-list {
+  align-content: center;
 }
 
 .widget-detail-grid {
@@ -2329,8 +2350,8 @@ body[data-theme="dark"] .account-banner--premium {
 
 .widget-ring {
   position: relative;
-  width: 188px;
-  height: 188px;
+  width: 180px;
+  height: 180px;
   display: grid;
   place-items: center;
   margin-inline: auto;
