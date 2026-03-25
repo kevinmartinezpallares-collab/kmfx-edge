@@ -3817,6 +3817,22 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   margin-top: 8px;
 }
 
+.analytics-ratio-meta .ui-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  gap: 6px;
+  line-height: 1;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+
+.analytics-ratio-meta .ui-badge__dot {
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .analytics-inline-risk-tag {
   display: inline-flex;
   align-items: center;
@@ -3928,7 +3944,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 
 .analytics-session-row {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
@@ -3944,7 +3960,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 
 .analytics-session-copy {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
 }
 
@@ -4034,14 +4050,18 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 
 .analytics-winloss-card {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  align-content: start;
+}
+
+.analytics-winloss-shell {
   align-content: start;
 }
 
 .analytics-winloss-summary {
   display: grid;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 13px 14px;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
   background: color-mix(in srgb, var(--surface2) 90%, transparent);
@@ -4089,13 +4109,13 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-winloss-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .analytics-winloss-stat {
   display: grid;
   gap: 4px;
-  padding: 14px 15px;
+  padding: 12px 13px;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
   background: color-mix(in srgb, var(--surface2) 88%, transparent);
@@ -4132,13 +4152,13 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-winloss-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .analytics-winloss-metric {
   display: grid;
   gap: 6px;
-  padding: 14px 15px;
+  padding: 12px 13px;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
   background: color-mix(in srgb, var(--surface2) 84%, transparent);

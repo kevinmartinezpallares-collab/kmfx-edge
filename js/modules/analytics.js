@@ -802,7 +802,30 @@ export function renderAnalytics(root, state) {
           </div>
         </article>
 
-        <article class="tl-section-card analytics-plain-block analytics-bento-card analytics-bento-card--6">
+        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
+          <div class="tl-section-header"><div class="tl-section-title">Session Analysis</div></div>
+          <div class="analytics-session-stack">
+            ${model.sessions.map((session) => `
+              <article class="analytics-session-row">
+                <div class="analytics-session-main">
+                  <div class="analytics-session-copy">
+                    <div class="session-label">${session.key}</div>
+                    <div class="analytics-inline-risk-tag">${badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
+                  </div>
+                  <div class="analytics-session-metrics">
+                    <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
+                    <span>WR ${formatPercent(session.winRate)}</span>
+                  </div>
+                </div>
+                <div class="analytics-session-rail">
+                  <div class="analytics-session-rail-fill ${session.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(session.winRate, 100))}%"></div>
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </article>
+
+        <article class="tl-section-card analytics-plain-block analytics-winloss-shell analytics-bento-card analytics-bento-card--4">
           <div class="tl-section-header"><div class="tl-section-title">Win / Loss Analysis</div></div>
           <div class="analytics-winloss-card">
             <div class="analytics-winloss-summary">
@@ -840,7 +863,7 @@ export function renderAnalytics(root, state) {
           </div>
         </article>
 
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
+        <article class="tl-section-card analytics-bento-card analytics-bento-card--8">
           <div class="tl-section-header"><div class="tl-section-title">Daily Performance</div></div>
           ${renderDailyPerformanceBreakdown(weekdayWorkdays, {
             winningDays,
@@ -907,6 +930,17 @@ export function renderAnalytics(root, state) {
         </article>
 
         <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
+          <div class="tl-section-header"><div class="tl-section-title">Drawdown Curve</div></div>
+          ${chartCanvas("analytics-overview-drawdown-curve", 260, "kmfx-chart-shell--feature analytics-drawdown-chart")}
+        </article>
+
+        <article class="tl-section-card analytics-bento-card analytics-bento-card--6 analytics-bento-card--distribution">
+          <div class="tl-section-header"><div class="tl-section-title">Profit Distribution</div></div>
+          <div class="row-sub">Buckets de resultados por rango de beneficio/pérdida.</div>
+          ${chartCanvas("analytics-overview-profit-distribution", 260, "kmfx-chart-shell--feature analytics-distribution-chart")}
+        </article>
+
+        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
           <div class="tl-section-header"><div class="tl-section-title">Heatmap 24h</div></div>
           <div class="heat-legend">
             <span><i class="heat-legend-dot heat-legend-dot--gain"></i>High profit</span>
@@ -923,40 +957,6 @@ export function renderAnalytics(root, state) {
               </div>
             `).join("")}
           </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header"><div class="tl-section-title">Session Analysis</div></div>
-          <div class="analytics-session-stack">
-            ${model.sessions.map((session) => `
-              <article class="analytics-session-row">
-                <div class="analytics-session-main">
-                  <div class="analytics-session-copy">
-                    <div class="session-label">${session.key}</div>
-                    <div class="analytics-inline-risk-tag">${badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
-                  </div>
-                  <div class="analytics-session-metrics">
-                    <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
-                    <span>WR ${formatPercent(session.winRate)}</span>
-                  </div>
-                </div>
-                <div class="analytics-session-rail">
-                  <div class="analytics-session-rail-fill ${session.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(session.winRate, 100))}%"></div>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6 analytics-bento-card--drawdown">
-          <div class="tl-section-header"><div class="tl-section-title">Drawdown Curve</div></div>
-          ${chartCanvas("analytics-overview-drawdown-curve", 260, "kmfx-chart-shell--feature analytics-drawdown-chart")}
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6 analytics-bento-card--distribution">
-          <div class="tl-section-header"><div class="tl-section-title">Profit Distribution</div></div>
-          <div class="row-sub">Buckets de resultados por rango de beneficio/pérdida.</div>
-          ${chartCanvas("analytics-overview-profit-distribution", 260, "kmfx-chart-shell--feature analytics-distribution-chart")}
         </article>
 
         <div class="tl-section-card analytics-bento-card analytics-bento-card--full">
