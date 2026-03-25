@@ -2283,6 +2283,11 @@ body[data-theme="dark"] .account-banner--premium {
   background: color-mix(in srgb, var(--bg3) 78%, transparent);
 }
 
+.metric-rail-hint {
+  display: block;
+  margin-top: 9px;
+}
+
 .metric-rail-fill {
   height: 100%;
   border-radius: inherit;
