@@ -215,7 +215,7 @@ export function initAuthUI(store) {
         <div class="auth-card">
           <div class="auth-brand">
             <div class="auth-brand-mark">
-              <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-claro-512.svg" alt="KMFX Edge">
+              <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
               <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
             </div>
             <div>
