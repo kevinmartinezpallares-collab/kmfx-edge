@@ -290,6 +290,36 @@ function roundedRectPath(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
+function directionalBarPath(ctx, x, y, width, height, radius, { roundTop = false, roundBottom = false } = {}) {
+  const rTop = roundTop ? Math.max(0, Math.min(radius, width / 2, height / 2)) : 0;
+  const rBottom = roundBottom ? Math.max(0, Math.min(radius, width / 2, height / 2)) : 0;
+  ctx.beginPath();
+  ctx.moveTo(x, y + height);
+  if (rBottom > 0) {
+    ctx.lineTo(x, y + rTop);
+  } else {
+    ctx.lineTo(x, y);
+  }
+  if (rTop > 0) {
+    ctx.lineTo(x, y + rTop);
+    ctx.quadraticCurveTo(x, y, x + rTop, y);
+    ctx.lineTo(x + width - rTop, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + rTop);
+  } else {
+    ctx.lineTo(x + width, y);
+  }
+  if (rBottom > 0) {
+    ctx.lineTo(x + width, y + height - rBottom);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - rBottom, y + height);
+    ctx.lineTo(x + rBottom, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - rBottom);
+  } else {
+    ctx.lineTo(x + width, y + height);
+    ctx.lineTo(x, y + height);
+  }
+  ctx.closePath();
+}
+
 function buildBaseOptions(spec) {
   return {
     responsive: true,
@@ -514,7 +544,18 @@ const literalHistogramBarPlugin = {
       const tone = resolveBarTone(pluginOptions, point, index, value);
 
       if (barHeight > 0) {
-        roundedRectPath(ctx, x + fillInset, barTop, fillWidth, barHeight, Math.min(8, fillWidth / 2));
+        const baseY = element.base;
+        const roundTop = element.y < baseY;
+        const roundBottom = element.y > baseY;
+        directionalBarPath(
+          ctx,
+          x + fillInset,
+          barTop,
+          fillWidth,
+          barHeight,
+          Math.min(8, fillWidth / 2),
+          { roundTop, roundBottom }
+        );
         ctx.fillStyle = pluginOptions?.solid === true
           ? solidToneColor(tone, value)
           : createBarSurfaceGradient(ctx, { left: x + fillInset, right: x + fillInset + fillWidth, top: barTop, bottom: barBottom }, tone, isActive);
@@ -606,6 +647,26 @@ const literalHistogramBarPlugin = {
   }
 };
 
+const zeroDividerPlugin = {
+  id: "kmfxZeroDivider",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const yScale = chart.scales?.y;
+    const { chartArea, ctx } = chart;
+    if (!yScale || !chartArea) return;
+    const zeroY = yScale.getPixelForValue(0);
+    if (!Number.isFinite(zeroY) || zeroY < chartArea.top || zeroY > chartArea.bottom) return;
+    ctx.save();
+    ctx.strokeStyle = pluginOptions?.color || withAlpha(getCssVar("--border-subtle") || getCssVar("--border") || "#94A3B8", pluginOptions?.alpha ?? 0.65);
+    ctx.lineWidth = pluginOptions?.lineWidth || 1;
+    ctx.beginPath();
+    ctx.moveTo(chartArea.left + 4, zeroY + 0.5);
+    ctx.lineTo(chartArea.right - 4, zeroY + 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
 const doughnutCenterPlugin = {
   id: "kmfxDoughnutCenter",
   afterDraw(chart) {
@@ -643,7 +704,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin);
+  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -998,6 +1059,12 @@ function createBarChart(ChartLib, canvas, spec) {
               valueLabelFormatter: spec.valueLabelFormatter,
               tooltipTitleFormatter: spec.tooltipTitleFormatter,
               tooltipBodyFormatter: spec.tooltipBodyFormatter
+            }
+          : false,
+        kmfxZeroDivider: spec.zeroDivider
+          ? {
+              alpha: spec.zeroDividerAlpha ?? 0.55,
+              lineWidth: spec.zeroDividerWidth ?? 1
             }
           : false,
         tooltip: {
