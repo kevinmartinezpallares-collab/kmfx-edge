@@ -720,10 +720,11 @@ export function renderAnalytics(root, state) {
           <div class="analytics-score-interpretation">
             <strong>${model.totals.riskScore} / 100</strong>
             <span>${scoreInterpretation}</span>
+            <div class="analytics-score-badge">${badgeMarkup(contextTags.stabilityMeta, "ui-badge--compact")}</div>
           </div>
           <div class="analytics-drivers-grid">
             <div class="score-bar-row score-bar-row--compact">
-              <span>Win Rate <span class="analytics-inline-risk-tag">${badgeMarkup(contextTags.stabilityMeta, "ui-badge--compact")}</span></span>
+              <span>Win Rate</span>
               <div class="score-bar-track"><div class="score-bar-fill score-bar-fill--green" style="width:${Math.max(0, Math.min(model.totals.winRate, 100))}%"></div></div>
               <strong>${formatPercent(model.totals.winRate)}</strong>
             </div>
