@@ -1,5 +1,24 @@
+const pageTitle = {
+  dashboard: "Panel",
+  analytics: "Análisis",
+  risk: "Riesgo",
+  trades: "Operaciones",
+  calendar: "Calendario",
+  connections: "Conexiones",
+  calculator: "Calculadora",
+  journal: "Diario",
+  strategies: "Estrategias",
+  funded: "Funded",
+  market: "Mercado",
+  talent: "Talento",
+  portfolio: "Portfolio",
+  glossary: "Glosario",
+  debug: "Debug",
+  settings: "Ajustes"
+};
+
 const pageContext = {
-  dashboard: "",
+  dashboard: "Visión general de rendimiento, cuentas y métricas clave",
   analytics: "Análisis de rendimiento, timing y riesgo",
   risk: "Gobernanza de riesgo y control operativo",
   trades: "Histórico de ejecución y revisión de operaciones",
@@ -20,13 +39,15 @@ const pageContext = {
 export function initNavigation(store) {
   const navButtons = document.querySelectorAll(".nav-item");
   const pages = document.querySelectorAll(".page");
+  const topbarTitle = document.getElementById("topbarTitle");
   const topbarContext = document.getElementById("topbarContext");
   const analyticsTabs = document.getElementById("analyticsTabs");
   const syncNavigation = (state) => {
     const { activePage, analyticsTab } = state.ui;
     navButtons.forEach((item) => item.classList.toggle("active", item.dataset.page === activePage));
     pages.forEach((panel) => panel.classList.toggle("active", panel.id === `page-${activePage}`));
-    if (topbarContext) topbarContext.textContent = pageContext[activePage] || "KMFX Edge";
+    if (topbarTitle) topbarTitle.textContent = pageTitle[activePage] || "Panel";
+    if (topbarContext) topbarContext.textContent = pageContext[activePage] || "";
 
     analyticsTabs?.querySelectorAll(".tl-tab").forEach((item) => {
       item.classList.toggle("active", item.dataset.tab === analyticsTab);

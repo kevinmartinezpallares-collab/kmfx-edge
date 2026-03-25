@@ -80,6 +80,7 @@
   --dur-med: 0.2s;
 }
 
+/* KMFX dark palette locked: do not change bg/shell/canvas/card tones without an explicit dark-mode redesign decision. */
 [data-theme="dark"] {
   --bg-app: #0D0E12;
   --bg-shell: #0D0E12;
@@ -953,47 +954,10 @@ html:not([data-theme="dark"]) .main-panel {
   min-width: 0;
 }
 
-.topbar-brand-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topbar-brand-mark {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.topbar-brand-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  image-rendering: -webkit-optimize-contrast;
-}
-
-.topbar-brand-logo-dark {
-  display: none;
-}
-
-[data-theme="dark"] .topbar-brand-logo-light {
-  display: none;
-}
-
-[data-theme="dark"] .topbar-brand-logo-dark {
-  display: block;
-}
-
 .topbar-title {
   font-size: 18px;
-  font-weight: 620;
-  letter-spacing: -0.02em;
-}
-
-.topbar-title span {
-  color: var(--accent3);
+  font-weight: 680;
+  letter-spacing: -0.03em;
 }
 
 .topbar-sub {
