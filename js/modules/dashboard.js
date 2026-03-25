@@ -80,6 +80,7 @@ export function renderDashboard(root, state) {
   const chartSpecs = [];
   const heroRange = root.dataset.heroRange || "1M";
   const heroCurve = getHeroRangePoints(heroRange, model.equityCurve);
+  const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
   const heroDelta = heroEnd - heroStart;
@@ -167,6 +168,14 @@ export function renderDashboard(root, state) {
   chartSpecs.push(
     lineAreaSpec("dashboard-hero-equity-chart", heroCurve, {
       tone: "blue",
+      extraDatasets: [{
+        label: "Balance",
+        points: balanceCurve,
+        tone: "violet",
+        borderDash: [5, 5],
+        borderWidth: 1.35,
+        formatter: (value) => formatCurrency(value)
+      }],
       showXAxis: true,
       showYAxis: true,
       maxYTicks: 4,

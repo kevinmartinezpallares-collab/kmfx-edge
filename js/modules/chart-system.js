@@ -476,37 +476,64 @@ function createSparklineChart(ChartLib, canvas, spec) {
 function createLineAreaChart(ChartLib, canvas, spec) {
   const mobile = isMobileViewport();
   const { start, end } = toneColors(spec.tone || "blue");
+  const datasets = [{
+    data: spec.points.map((point) => point.value),
+    borderColor(context) {
+      const area = context.chart.chartArea;
+      if (!area) return start;
+      return createGradient(context.chart.ctx, area, spec.tone || "blue", 1, 1, true);
+    },
+    backgroundColor(context) {
+      const area = context.chart.chartArea;
+      if (!area) return withAlpha(start, 0.16);
+      return createGradient(context.chart.ctx, area, spec.tone || "blue", spec.fillAlphaStart || 0.16, spec.fillAlphaEnd || 0.01);
+    },
+    fill: spec.fill !== false,
+    cubicInterpolationMode: "monotone",
+    tension: spec.tension || 0.34,
+    pointRadius: spec.pointRadius ?? 0,
+    pointHoverRadius: spec.pointHoverRadius ?? 2.25,
+    pointHitRadius: spec.pointHitRadius ?? 16,
+    pointHoverBackgroundColor: withAlpha("#ffffff", 0.98),
+    pointBackgroundColor: withAlpha("#ffffff", 0.95),
+    pointBorderColor: start,
+    pointBorderWidth: 1.1,
+    borderWidth: spec.borderWidth || 2.05,
+    borderCapStyle: "round",
+    borderJoinStyle: "round",
+    glowColor: withAlpha(end, spec.glowAlpha ?? 0.05)
+  }];
+
+  (spec.extraDatasets || []).forEach((datasetSpec) => {
+    const overlayTone = datasetSpec.tone || "violet";
+    const overlayColors = toneColors(overlayTone);
+    datasets.push({
+      label: datasetSpec.label || "",
+      data: datasetSpec.points.map((point) => point.value),
+      borderColor(context) {
+        const area = context.chart.chartArea;
+        if (!area) return overlayColors.start;
+        return createGradient(context.chart.ctx, area, overlayTone, 0.9, 0.9, true);
+      },
+      backgroundColor: "transparent",
+      fill: false,
+      cubicInterpolationMode: "monotone",
+      tension: datasetSpec.tension ?? spec.tension ?? 0.34,
+      pointRadius: datasetSpec.pointRadius ?? 0,
+      pointHoverRadius: datasetSpec.pointHoverRadius ?? 0,
+      pointHitRadius: datasetSpec.pointHitRadius ?? 10,
+      borderWidth: datasetSpec.borderWidth ?? 1.55,
+      borderCapStyle: "round",
+      borderJoinStyle: "round",
+      borderDash: datasetSpec.borderDash || [6, 5],
+      glowColor: null
+    });
+  });
   return new ChartLib(canvas, {
     type: "line",
     data: {
       labels: spec.points.map((point) => point.label),
-      datasets: [{
-        data: spec.points.map((point) => point.value),
-        borderColor(context) {
-          const area = context.chart.chartArea;
-          if (!area) return start;
-          return createGradient(context.chart.ctx, area, spec.tone || "blue", 1, 1, true);
-        },
-        backgroundColor(context) {
-          const area = context.chart.chartArea;
-          if (!area) return withAlpha(start, 0.16);
-          return createGradient(context.chart.ctx, area, spec.tone || "blue", spec.fillAlphaStart || 0.16, spec.fillAlphaEnd || 0.01);
-        },
-        fill: spec.fill !== false,
-        cubicInterpolationMode: "monotone",
-        tension: spec.tension || 0.34,
-        pointRadius: spec.pointRadius ?? 0,
-        pointHoverRadius: spec.pointHoverRadius ?? 2.25,
-        pointHitRadius: spec.pointHitRadius ?? 16,
-        pointHoverBackgroundColor: withAlpha("#ffffff", 0.98),
-        pointBackgroundColor: withAlpha("#ffffff", 0.95),
-        pointBorderColor: start,
-        pointBorderWidth: 1.1,
-        borderWidth: spec.borderWidth || 2.05,
-        borderCapStyle: "round",
-        borderJoinStyle: "round",
-        glowColor: withAlpha(end, spec.glowAlpha ?? 0.05)
-      }]
+      datasets
     },
     options: {
       ...buildBaseOptions(spec),
@@ -561,7 +588,15 @@ function createLineAreaChart(ChartLib, canvas, spec) {
           ...buildBaseOptions(spec).plugins.tooltip,
           callbacks: spec.tooltipCallbacks || {
             title: (items) => items[0]?.label || "",
-            label: (context) => spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`
+            label: (context) => {
+              if (context.datasetIndex > 0) {
+                const overlayFormatter = spec.extraDatasets?.[context.datasetIndex - 1]?.formatter;
+                const overlayLabel = context.dataset.label ? `${context.dataset.label}: ` : "";
+                const overlayValue = overlayFormatter ? overlayFormatter(context.parsed.y, context) : `${context.parsed.y}`;
+                return `${overlayLabel}${overlayValue}`;
+              }
+              return spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`;
+            }
           }
         }
       }

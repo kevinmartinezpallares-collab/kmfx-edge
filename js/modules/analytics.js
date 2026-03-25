@@ -669,11 +669,6 @@ export function renderAnalytics(root, state) {
               <small>Penaliza solo el downside.</small>
             </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Calmar</span>
-              <strong>${model.totals.ratios.calmar.toFixed(2)}</strong>
-              <small>Rentabilidad frente a drawdown.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
               <span>Std deviation</span>
               <strong>${formatCurrency(stdDevPnl)}</strong>
               <small>Dispersión diaria del resultado.</small>
