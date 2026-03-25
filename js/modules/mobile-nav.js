@@ -7,6 +7,12 @@ const primaryItems = [
 
 const secondarySections = [
   {
+    label: "General",
+    items: [
+      { page: "discipline", label: "Disciplina", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' }
+    ]
+  },
+  {
     label: "Gestión",
     items: [
       { page: "portfolio", label: "Portfolio", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' },

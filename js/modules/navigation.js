@@ -1,6 +1,7 @@
 const pageTitle = {
   dashboard: "Panel",
   analytics: "Análisis",
+  discipline: "Disciplina",
   risk: "Riesgo",
   trades: "Operaciones",
   calendar: "Calendario",
@@ -20,6 +21,7 @@ const pageTitle = {
 const pageContext = {
   dashboard: "Visión general de rendimiento, cuentas y métricas clave",
   analytics: "Análisis de rendimiento, timing y riesgo",
+  discipline: "Comportamiento del trader, consistencia y control de ejecución",
   risk: "Gobernanza de riesgo y control operativo",
   trades: "Histórico de ejecución y revisión de operaciones",
   calendar: "Calendario mensual y desempeño diario",

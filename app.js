@@ -2,6 +2,7 @@ import { createStore } from "./js/modules/store.js";
 import { initNavigation } from "./js/modules/navigation.js";
 import { renderDashboard } from "./js/modules/dashboard.js";
 import { renderAnalytics } from "./js/modules/analytics.js";
+import { renderDiscipline } from "./js/modules/discipline.js";
 import { renderRisk } from "./js/modules/risk.js";
 import { renderTrades } from "./js/modules/trades.js";
 import { renderCalendar } from "./js/modules/calendar.js";
@@ -46,6 +47,7 @@ const store = createStore();
 const pageRenderers = {
   dashboard: (state) => renderDashboard(document.getElementById("dashboardRoot"), state),
   analytics: (state) => renderAnalytics(document.getElementById("analyticsRoot"), state),
+  discipline: (state) => renderDiscipline(document.getElementById("disciplineRoot"), state),
   risk: (state) => renderRisk(document.getElementById("riskRoot"), state),
   trades: (state) => renderTrades(document.getElementById("tradesRoot"), state),
   calendar: (state) => renderCalendar(document.getElementById("calendarRoot"), state),
@@ -113,6 +115,7 @@ function initSettings() {
     ["trades", "Operaciones"],
     ["strategies", "Estrategias"],
     ["analytics", "Análisis"],
+    ["discipline", "Disciplina"],
     ["portfolio", "Portfolio"],
     ["funded", "Funded"],
     ["risk", "Riesgo"],

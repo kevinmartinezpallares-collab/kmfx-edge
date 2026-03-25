@@ -5490,6 +5490,160 @@ body[data-theme="dark"] .settings-profile-card {
   outline: 0;
 }
 
+.discipline-page-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.discipline-kpi-row {
+  margin-bottom: 0;
+}
+
+.discipline-control-grid {
+  align-items: start;
+}
+
+.discipline-control-list {
+  display: grid;
+  gap: 10px;
+}
+
+.discipline-inline-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.discipline-inline-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+}
+
+.discipline-inline-note span {
+  font-size: 10px;
+  color: var(--text4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.discipline-inline-note strong {
+  font-size: 18px;
+  font-weight: 680;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.discipline-inline-note small {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+.discipline-hourly-card .kmfx-chart-shell--feature {
+  min-height: 230px;
+}
+
+.discipline-score-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.discipline-score-main {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 10px 4px 0 0;
+}
+
+.discipline-score-value {
+  font-size: 60px;
+  font-weight: 720;
+  line-height: 0.94;
+  letter-spacing: -0.05em;
+  color: var(--text);
+}
+
+.discipline-score-copy {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text2);
+}
+
+.discipline-score-meta {
+  font-size: 11px;
+  color: var(--text4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.discipline-score-parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.discipline-score-part {
+  display: grid;
+  gap: 7px;
+  padding: 14px 15px 13px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+}
+
+.discipline-score-part-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.discipline-score-part-head span {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.discipline-score-part-head strong {
+  font-size: 18px;
+  font-weight: 680;
+  color: var(--text);
+}
+
+.discipline-score-part-track {
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg3) 78%, transparent);
+}
+
+.discipline-score-part-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--chart-blue-a), var(--chart-violet-a));
+}
+
+.discipline-score-part small {
+  font-size: 11px;
+  color: var(--text4);
+}
+
+@media (max-width: 980px) {
+  .discipline-score-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .discipline-score-parts,
+  .discipline-inline-notes {
+    grid-template-columns: 1fr;
+  }
+}
+
 .trades-filter-field select:focus,
 .trades-filter-field input:focus {
   border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
