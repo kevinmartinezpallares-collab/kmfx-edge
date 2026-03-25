@@ -158,7 +158,7 @@ export function renderDashboard(root, state) {
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
         const delta = value - prev;
-        return `${formatCurrency(value)} · ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`;
+        return `${formatCurrency(value)} / ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`;
       },
       axisFormatter: (value) => formatCompact(value)
     }),
@@ -181,7 +181,7 @@ export function renderDashboard(root, state) {
       showAxisBorder: true,
       formatter: (value, context) => {
         const point = weeklyEquity[context.dataIndex];
-        return `${formatCurrency(value)} · ${formatCurrency(point.pnl)} · ${point.trades} trades`;
+        return `${formatCurrency(value)} / ${formatCurrency(point.pnl)} / ${point.trades} trades`;
       },
       axisFormatter: (value) => formatCompact(value),
       fillAlphaStart: 0.13
@@ -279,11 +279,11 @@ export function renderDashboard(root, state) {
           <div class="account-banner-side">
             <div class="account-banner-metric">${formatCurrency(model.account.equity)}</div>
             <div class="account-banner-meta ${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-              ${formatCurrency(model.totals.pnl)} · ${formatPercent(cumulativeReturn)}
+              ${formatCurrency(model.totals.pnl)} / ${formatPercent(cumulativeReturn)}
             </div>
             <div class="account-banner-context">
               <span>Rango activo: ${heroRangeLabel}</span>
-              <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} · ${formatPercent(heroDeltaPct)}</strong>
+              <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} / ${formatPercent(heroDeltaPct)}</strong>
             </div>
           </div>
           <div class="account-banner-chart">
@@ -425,7 +425,7 @@ export function renderDashboard(root, state) {
               <div class="widget-activity-item">
                 <div class="widget-activity-main">
                   <strong>${trade.symbol}</strong>
-                  <span>${trade.side} · ${trade.session}</span>
+                  <span>${trade.side} / ${trade.session}</span>
                 </div>
                 <div class="widget-activity-side">
                   <span>${trade.side}</span>
@@ -470,11 +470,11 @@ export function renderDashboard(root, state) {
           </div>
           <div class="widget-position-rails">
             ${model.positions.map((position) => statRail(
-              `${position.symbol} · ${position.side}`,
+              `${position.symbol} / ${position.side}`,
               formatCurrency(position.pnl),
               clampPercent((Math.abs(position.pnl) / positionExposure) * 100),
               position.pnl >= 0 ? "green" : "red",
-              `Vol ${position.volume} · Entrada ${position.entry}`
+              `Vol ${position.volume} / Entrada ${position.entry}`
             )).join("")}
           </div>
         </article>
