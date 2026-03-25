@@ -1821,7 +1821,7 @@ body[data-theme="dark"] .account-banner--premium {
 
 .dashboard-premium-grid {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .dashboard-hero-shell,
@@ -1830,12 +1830,12 @@ body[data-theme="dark"] .account-banner--premium {
 .dashboard-tertiary-grid,
 .dashboard-bottom-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dashboard-kpi-premium-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1875,8 +1875,8 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .widget-card--kpi {
-  min-height: 176px;
-  padding: 17px 17px 16px;
+  min-height: 154px;
+  padding: 16px 16px 14px;
   box-shadow: none;
 }
 
@@ -1903,7 +1903,7 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .widget-card--feature {
-  min-height: 382px;
+  min-height: 404px;
   box-shadow: none;
 }
 
@@ -2011,7 +2011,7 @@ body[data-theme="dark"] .account-banner--premium {
 
 .widget-feature-chart {
   margin-top: 14px;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid color-mix(in srgb, var(--border) 56%, transparent);
 }
 
@@ -2117,7 +2117,7 @@ body[data-theme="dark"] .account-banner--premium {
 .widget-return-shell,
 .widget-score-grid {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .widget-return-shell {
@@ -3121,7 +3121,7 @@ html[data-theme="dark"] .kmfx-chart-tooltip-body {
   display: grid;
   opacity: 1;
   transform: translateY(0);
-  gap: 22px;
+  gap: 16px;
 }
 
 .analytics-panel .tl-section-card,
@@ -3515,7 +3515,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-bento-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 18px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -3552,8 +3552,8 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-top-metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .analytics-top-metrics-grid--seven {
@@ -3565,7 +3565,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin: 14px 0 16px;
+  margin: 10px 0 14px;
 }
 
 .analytics-trend-chip {
@@ -3611,7 +3611,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-decision-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .analytics-decision-item {
@@ -3779,11 +3779,11 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 }
 
 .analytics-ratio-minimal-card--bento {
-  min-height: 148px;
+  min-height: 128px;
   display: grid;
   align-content: start;
-  gap: 6px;
-  padding: 17px 17px 15px;
+  gap: 5px;
+  padding: 15px 15px 13px;
 }
 
 .analytics-ratio-minimal-card span {
@@ -4779,7 +4779,7 @@ body[data-theme="dark"] .settings-profile-card {
 
 .analytics-panel.active {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .analytics-panel .tl-section-card,
@@ -4919,7 +4919,7 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-status-widget {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 18px 20px;
 }
 
@@ -4933,7 +4933,7 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .risk-status-main {
@@ -5061,7 +5061,7 @@ body[data-theme="dark"] .settings-profile-card {
 }
 
 .risk-current-grid {
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .risk-kpi-card {
@@ -5089,8 +5089,8 @@ body[data-theme="dark"] .settings-profile-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
-  margin-bottom: 16px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
 }
 
 .risk-security-card--premium {
@@ -5436,7 +5436,7 @@ body[data-theme="dark"] .settings-profile-card {
 
 .trades-history-surface {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .trades-table-summary {
@@ -5462,7 +5462,7 @@ body[data-theme="dark"] .settings-profile-card {
 .trades-toolbar {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .trades-filter-field {
@@ -5681,7 +5681,7 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .pnlcal-kpi {
@@ -5709,8 +5709,8 @@ tbody tr:hover {
 .pnlcal-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
   align-items: start;
 }
 
@@ -5865,7 +5865,7 @@ body[data-theme="dark"] .calendar-cell.muted .calendar-trades {
 
 .pnlcal-month-card {
   padding: 18px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .pnlcal-range-switch {
