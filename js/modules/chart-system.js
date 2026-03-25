@@ -99,9 +99,11 @@ function externalTooltipHandler(context) {
   const title = tooltip.title?.[0] || "";
   const body = tooltip.body?.map((item) => item.lines.join(" ")).join(" ") || "";
   const isBarChart = chart?.config?.type === "bar";
+  const isProofBarChart = chart?.config?.options?.plugins?.tooltip?.kmfxProof === true;
   tooltipEl.classList.toggle("is-minimal", chart?.config?.options?.plugins?.tooltip?.kmfxMinimal === true);
   tooltipEl.classList.toggle("has-title", Boolean(title));
   tooltipEl.classList.toggle("is-bar-chart", isBarChart);
+  tooltipEl.classList.toggle("is-proof-bar-chart", isProofBarChart);
   tooltipEl.querySelector(".kmfx-chart-tooltip-title").textContent = title;
   tooltipEl.querySelector(".kmfx-chart-tooltip-body").textContent = body;
 
@@ -118,8 +120,8 @@ function externalTooltipHandler(context) {
     ? positionX + referenceColumn.centerX - (tooltipWidth / 2)
     : positionX + tooltip.caretX - (tooltipWidth / 2);
   const rawTop = referenceColumn
-    ? positionY + referenceColumn.top - tooltipHeight - 10
-    : positionY + tooltip.caretY - tooltipHeight - 14;
+    ? positionY + referenceColumn.top - tooltipHeight - (isProofBarChart ? 18 : 10)
+    : positionY + tooltip.caretY - tooltipHeight - (isProofBarChart ? 20 : 14);
   const left = Math.max(8, Math.min(rawLeft, clientWidth - tooltipWidth - 8));
   const top = Math.max(8, rawTop);
 
@@ -225,6 +227,13 @@ function createTrackGradient(ctx, rect, active = false) {
   const bottomColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.1 : 0.07);
   gradient.addColorStop(0, topColor);
   gradient.addColorStop(1, bottomColor);
+  return gradient;
+}
+
+function createProofTrackGradient(ctx, rect, active = false) {
+  const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+  gradient.addColorStop(0, withAlpha("#6b7280", active ? 0.24 : 0.18));
+  gradient.addColorStop(1, withAlpha("#374151", active ? 0.18 : 0.13));
   return gradient;
 }
 
@@ -384,7 +393,7 @@ const referencePillBarPlugin = {
 
       const trackRect = { left: x, right: x + trackWidth, top, bottom };
       roundedRectPath(ctx, x, top, trackWidth, trackHeight, trackWidth / 2);
-      ctx.fillStyle = createTrackGradient(ctx, trackRect, isActive);
+      ctx.fillStyle = pluginOptions?.proofMode ? createProofTrackGradient(ctx, trackRect, isActive) : createTrackGradient(ctx, trackRect, isActive);
       ctx.fill();
 
       const barTop = Math.min(element.y, element.base);
@@ -800,12 +809,14 @@ function createBarChart(ChartLib, canvas, spec) {
               bottomInset: spec.trackBottomInset ?? 2,
               trackAlpha: spec.trackAlpha ?? 0.12,
               trackActiveAlpha: spec.trackActiveAlpha ?? 0.18,
+              proofMode: spec.proofMode === true,
               showValueLabels: spec.showValueLabels === true,
               valueLabelFormatter: spec.valueLabelFormatter
             }
           : false,
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
+          kmfxProof: spec.proofMode === true,
           callbacks: spec.tooltipCallbacks || {
             title: (items) => items[0]?.label || "",
             label: (context) => spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`
