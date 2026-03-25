@@ -3099,7 +3099,7 @@ html:not([data-theme="dark"]) .sidebar,
 html:not([data-theme="dark"]) .topbar,
 html:not([data-theme="dark"]) .main-panel {
   background: var(--bg-shell);
-  border-color: var(--border-subtle);
+  border-color: transparent;
   box-shadow: none;
 }
 
@@ -3107,6 +3107,18 @@ html:not([data-theme="dark"]) .content {
   background: var(--bg-app);
   border-color: var(--border-subtle);
   box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .app-shell {
+  background: var(--bg-shell);
+}
+
+html:not([data-theme="dark"]) .sidebar {
+  border-right: 0;
+}
+
+html:not([data-theme="dark"]) .topbar {
+  border-bottom: 0;
 }
 
 html:not([data-theme="dark"]) .brand-lockup,
