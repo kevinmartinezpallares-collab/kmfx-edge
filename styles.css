@@ -170,7 +170,7 @@ body {
 }
 
 html:not([data-theme="dark"]) body {
-  background: linear-gradient(180deg, #edf3fb 0%, #e7eef8 42%, #e3ebf5 100%);
+  background: var(--bg-app);
 }
 
 body::before {
@@ -184,6 +184,78 @@ body::after {
 [data-theme="dark"] body,
 body[data-theme="dark"] {
   background: #0D0E12;
+}
+
+html:not([data-theme="dark"]) {
+  --bg-app: #F6F8FB;
+  --bg-shell: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --bg-topbar: #FFFFFF;
+  --bg-panel: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-alt: #F9FBFD;
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --accent-blue: #3B82F6;
+  --accent-green: #22C55E;
+  --accent-violet: #8B5CF6;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --bg: var(--bg-app);
+  --bg2: var(--bg-app);
+  --bg3: #EEF3F9;
+  --surface: var(--bg-card);
+  --surface2: var(--bg-card-alt);
+  --border: var(--border-subtle);
+  --border2: rgba(15, 23, 42, 0.09);
+  --text: var(--text-primary);
+  --text1: var(--text-primary);
+  --text2: var(--text-secondary);
+  --text3: var(--text-secondary);
+  --text4: var(--text-muted);
+  --chart-axis-text: rgba(15, 23, 42, 0.62);
+  --chart-axis-strong: rgba(15, 23, 42, 0.8);
+  --chart-axis-line: rgba(15, 23, 42, 0.09);
+  --chart-grid: rgba(15, 23, 42, 0.06);
+  --accent: var(--accent-blue);
+  --accent2: #60A5FA;
+  --accent3: var(--text-primary);
+  --primary: var(--accent-blue);
+  --primary-2: #60A5FA;
+  --primary-bg: rgba(59, 130, 246, 0.1);
+  --primary-border: rgba(59, 130, 246, 0.16);
+  --accent-bg: rgba(59, 130, 246, 0.1);
+  --accent-border: rgba(59, 130, 246, 0.16);
+  --chart-blue-a: var(--accent-blue);
+  --chart-blue-b: #93C5FD;
+  --chart-violet-a: var(--accent-violet);
+  --chart-violet-b: #C4B5FD;
+  --green: var(--accent-green);
+  --green-bg: rgba(34, 197, 94, 0.1);
+  --green-border: rgba(34, 197, 94, 0.14);
+  --neutral-strong: var(--text-primary);
+  --neutral: var(--text-secondary);
+  --neutral-soft: var(--text-muted);
+  --radius: 14px;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --card-radius: 14px;
+  --card-surface: var(--bg-card);
+  --card-border: var(--border-subtle);
+  --card-inner-glow: none;
+  --card-sheen: none;
+  --card-shadow: none;
+  --card-hover-border: rgba(59, 130, 246, 0.18);
+  --shell-surface: var(--bg-shell);
+  --shell-border: var(--border-subtle);
+  --shell-shadow: none;
+  --active-surface: rgba(59, 130, 246, 0.09);
+  --active-border: rgba(59, 130, 246, 0.16);
+  --active-text: var(--accent-blue);
 }
 
 body.modal-open {
@@ -399,7 +471,7 @@ button {
 }
 
 html:not([data-theme="dark"]) .app-shell {
-  background: linear-gradient(180deg, #edf3fb 0%, #e7eef8 42%, #e3ebf5 100%);
+  background: var(--bg-app);
 }
 
 /* KMFX dark shell baseline locked: keep sidebar/topbar/main/content in this tonal relationship unless explicitly redefining the shell system. */
@@ -949,7 +1021,7 @@ html[data-theme="dark"] .brand-lockup {
 }
 
 html:not([data-theme="dark"]) .main-panel {
-  background: linear-gradient(180deg, rgba(232, 239, 248, 0.98), rgba(227, 235, 245, 0.96));
+  background: var(--bg-shell);
 }
 
 .topbar {
@@ -1102,8 +1174,8 @@ html:not([data-theme="dark"]) .main-panel {
 }
 
 html:not([data-theme="dark"]) .content {
-  background: transparent;
-  border-color: transparent;
+  background: var(--bg-app);
+  border-color: var(--border-subtle);
   box-shadow: none;
 }
 
@@ -3021,6 +3093,152 @@ html:not([data-theme="dark"]) .nav-item.active {
   background: linear-gradient(180deg, rgba(236, 244, 255, 0.98), rgba(228, 238, 252, 0.94));
   border-color: rgba(47, 107, 255, 0.16);
   color: var(--accent3);
+}
+
+html:not([data-theme="dark"]) .sidebar,
+html:not([data-theme="dark"]) .topbar,
+html:not([data-theme="dark"]) .main-panel {
+  background: var(--bg-shell);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .content {
+  background: var(--bg-app);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .brand-lockup,
+html:not([data-theme="dark"]) .sidebar-search,
+html:not([data-theme="dark"]) .sidebar-profile,
+html:not([data-theme="dark"]) .topbar-user-card,
+html:not([data-theme="dark"]) .topbar-time-stack,
+html:not([data-theme="dark"]) .theme-toggle-badge,
+html:not([data-theme="dark"]) .theme-badge-option,
+html:not([data-theme="dark"]) .sidebar-profile-menu-btn {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .theme-badge-option:hover,
+html:not([data-theme="dark"]) .sidebar-profile-menu-btn:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--active-border);
+  color: var(--text-primary);
+}
+
+html:not([data-theme="dark"]) .theme-badge-option.is-active,
+html:not([data-theme="dark"]) .widget-segmented-btn.active,
+html:not([data-theme="dark"]) .tl-tab.active,
+html:not([data-theme="dark"]) .nav-item.active,
+html:not([data-theme="dark"]) .account-hero-card.active {
+  background: var(--active-surface);
+  border-color: var(--active-border);
+  color: var(--active-text);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .tl-kpi-card,
+html:not([data-theme="dark"]) .rm4-card,
+html:not([data-theme="dark"]) .tl-section-card,
+html:not([data-theme="dark"]) .chart-card,
+html:not([data-theme="dark"]) .pnlcal-card,
+html:not([data-theme="dark"]) .widget-card,
+html:not([data-theme="dark"]) .account-banner,
+html:not([data-theme="dark"]) .account-banner--premium,
+html:not([data-theme="dark"]) .account-switcher,
+html:not([data-theme="dark"]) .table-wrap,
+html:not([data-theme="dark"]) .widget-table-wrap,
+html:not([data-theme="dark"]) .chart-shell,
+html:not([data-theme="dark"]) .kmfx-chart-shell,
+html:not([data-theme="dark"]) .weekly-chart-shell {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .account-switcher::before,
+html:not([data-theme="dark"]) .tl-kpi-card::before,
+html:not([data-theme="dark"]) .rm4-card::before,
+html:not([data-theme="dark"]) .tl-section-card::before,
+html:not([data-theme="dark"]) .chart-card::before,
+html:not([data-theme="dark"]) .pnlcal-card::before,
+html:not([data-theme="dark"]) .account-banner--premium::before,
+html:not([data-theme="dark"]) .widget-card::before {
+  background: none;
+  opacity: 0;
+}
+
+html:not([data-theme="dark"]) .account-hero-card {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .account-hero-card:hover {
+  background: color-mix(in srgb, var(--bg-card) 94%, var(--accent-blue) 6%);
+  border-color: var(--active-border);
+}
+
+html:not([data-theme="dark"]) .account-hero-card.active::after {
+  background: radial-gradient(circle at 18% 18%, rgba(59, 130, 246, 0.12), transparent 42%);
+}
+
+html:not([data-theme="dark"]) .sidebar-profile-menu {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html:not([data-theme="dark"]) .sidebar-profile-menu-item:hover {
+  background: var(--active-surface);
+  border-color: var(--active-border);
+  color: var(--active-text);
+}
+
+html:not([data-theme="dark"]) .ui-badge,
+html:not([data-theme="dark"]) .widget-segmented,
+html:not([data-theme="dark"]) .row-chip,
+html:not([data-theme="dark"]) .pill,
+html:not([data-theme="dark"]) .calc-chip,
+html:not([data-theme="dark"]) .calc-pill,
+html:not([data-theme="dark"]) .widget-pill,
+html:not([data-theme="dark"]) .tl-tab-bar {
+  background: var(--bg-card-alt);
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) th {
+  background: var(--bg-card-alt);
+  color: var(--text-secondary);
+  border-bottom-color: var(--border-subtle);
+}
+
+html:not([data-theme="dark"]) td,
+html:not([data-theme="dark"]) .list-row,
+html:not([data-theme="dark"]) .calendar-cell,
+html:not([data-theme="dark"]) .settings-check,
+html:not([data-theme="dark"]) .settings-status-card {
+  border-color: var(--border-subtle);
+}
+
+html:not([data-theme="dark"]) .table-wrap tbody tr:hover,
+html:not([data-theme="dark"]) .widget-table-wrap tbody tr:hover {
+  background: color-mix(in srgb, var(--active-surface) 40%, transparent);
+}
+
+html:not([data-theme="dark"]) .kmfx-chart-tooltip,
+html:not([data-theme="dark"]) .weekly-chart-tooltip {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 html[data-theme="dark"] .kmfx-chart-tooltip {
