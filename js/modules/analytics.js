@@ -804,26 +804,38 @@ export function renderAnalytics(root, state) {
 
         <article class="tl-section-card analytics-plain-block analytics-bento-card analytics-bento-card--6">
           <div class="tl-section-header"><div class="tl-section-title">Win / Loss Analysis</div></div>
-          <div class="analytics-vertical-list">
-            <div class="analytics-vertical-item">
-              <span class="analytics-dot analytics-dot--green"></span>
-              <span class="analytics-vertical-label">Winning Trades</span>
-              <strong class="analytics-vertical-value">${winningTrades.length}</strong>
+          <div class="analytics-winloss-card">
+            <div class="analytics-winloss-summary">
+              <div class="analytics-winloss-header">
+                <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
+                <div class="analytics-winloss-sub">trades cerrados analizados</div>
+              </div>
+              <div class="analytics-winloss-bar" aria-hidden="true">
+                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+              </div>
             </div>
-            <div class="analytics-vertical-item">
-              <span class="analytics-dot analytics-dot--red"></span>
-              <span class="analytics-vertical-label">Losing Trades</span>
-              <strong class="analytics-vertical-value">${losingTrades.length}</strong>
+            <div class="analytics-winloss-grid">
+              <article class="analytics-winloss-stat analytics-winloss-stat--win">
+                <span class="analytics-winloss-label">Winning Trades</span>
+                <strong>${winningTrades.length}</strong>
+                <small>${formatPercent((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
+              </article>
+              <article class="analytics-winloss-stat analytics-winloss-stat--loss">
+                <span class="analytics-winloss-label">Losing Trades</span>
+                <strong>${losingTrades.length}</strong>
+                <small>${formatPercent((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
+              </article>
             </div>
-            <div class="analytics-vertical-item">
-              <span class="analytics-dot analytics-dot--green"></span>
-              <span class="analytics-vertical-label">Average Winning Trade</span>
-              <strong class="analytics-vertical-value">${formatCurrency(averageWinningTrade)}</strong>
-            </div>
-            <div class="analytics-vertical-item">
-              <span class="analytics-dot analytics-dot--red"></span>
-              <span class="analytics-vertical-label">Average Losing Trade</span>
-              <strong class="analytics-vertical-value">${formatCurrency(-averageLosingTrade)}</strong>
+            <div class="analytics-winloss-metrics">
+              <div class="analytics-winloss-metric">
+                <span>Average Winning Trade</span>
+                <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
+              </div>
+              <div class="analytics-winloss-metric">
+                <span>Average Losing Trade</span>
+                <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
+              </div>
             </div>
           </div>
         </article>
@@ -919,7 +931,7 @@ export function renderAnalytics(root, state) {
             ${model.sessions.map((session) => `
               <article class="analytics-session-row">
                 <div class="analytics-session-main">
-                  <div>
+                  <div class="analytics-session-copy">
                     <div class="session-label">${session.key}</div>
                     <div class="analytics-inline-risk-tag">${badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
                   </div>

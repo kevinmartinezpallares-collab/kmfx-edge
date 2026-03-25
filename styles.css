@@ -3938,8 +3938,19 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-session-main {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
+}
+
+.analytics-session-copy {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.analytics-session-copy .analytics-inline-risk-tag {
+  margin-left: 0;
+  margin-top: 0;
 }
 
 .analytics-session-metrics {
@@ -4019,6 +4030,130 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   display: grid;
   gap: 10px;
   align-content: start;
+}
+
+.analytics-winloss-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.analytics-winloss-summary {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  background: color-mix(in srgb, var(--surface2) 90%, transparent);
+}
+
+.analytics-winloss-header {
+  display: grid;
+  gap: 3px;
+}
+
+.analytics-winloss-total {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text1);
+}
+
+.analytics-winloss-sub {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+.analytics-winloss-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.analytics-winloss-bar-segment {
+  height: 9px;
+  border-radius: 999px;
+}
+
+.analytics-winloss-bar-segment--win {
+  justify-self: start;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--green) 70%, white), var(--green));
+}
+
+.analytics-winloss-bar-segment--loss {
+  justify-self: end;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 70%, white), var(--red));
+}
+
+.analytics-winloss-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.analytics-winloss-stat {
+  display: grid;
+  gap: 4px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+}
+
+.analytics-winloss-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text4);
+}
+
+.analytics-winloss-stat strong {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text1);
+}
+
+.analytics-winloss-stat small {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.35;
+}
+
+.analytics-winloss-stat--win strong {
+  color: var(--green);
+}
+
+.analytics-winloss-stat--loss strong {
+  color: var(--red);
+}
+
+.analytics-winloss-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.analytics-winloss-metric {
+  display: grid;
+  gap: 6px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+  background: color-mix(in srgb, var(--surface2) 84%, transparent);
+}
+
+.analytics-winloss-metric span {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.35;
+}
+
+.analytics-winloss-metric strong {
+  font-size: 22px;
+  font-weight: 690;
+  letter-spacing: -0.03em;
 }
 
 .analytics-vertical-item {
