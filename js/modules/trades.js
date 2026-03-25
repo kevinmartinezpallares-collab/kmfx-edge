@@ -1,5 +1,24 @@
 import { formatCurrency, selectCurrentModel } from "./utils.js";
 
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function positionRail(position, exposureBase) {
+  return `
+    <div class="metric-rail">
+      <div class="metric-rail-copy">
+        <span>${position.symbol} / ${position.side}</span>
+        <strong class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</strong>
+      </div>
+      <div class="metric-rail-track">
+        <div class="metric-rail-fill metric-rail-fill--${position.pnl >= 0 ? "green" : "red"}" style="width:${clampPercent((Math.abs(position.pnl) / Math.max(exposureBase, 1)) * 100)}%"></div>
+      </div>
+      <div class="metric-rail-hint">Vol ${position.volume} / Entrada ${position.entry}</div>
+    </div>
+  `;
+}
+
 export function renderTrades(root, state) {
   const model = selectCurrentModel(state);
   if (!model) {
@@ -25,6 +44,7 @@ export function renderTrades(root, state) {
   const filteredPnl = filteredTrades.reduce((sum, trade) => sum + trade.pnl, 0);
   const filteredWinRate = filteredTrades.length ? (filteredTrades.filter((trade) => trade.pnl > 0).length / filteredTrades.length) * 100 : 0;
   const filteredAvgR = filteredTrades.length ? filteredTrades.reduce((sum, trade) => sum + trade.rMultiple, 0) / filteredTrades.length : 0;
+  const exposureBase = model.positions.reduce((sum, position) => sum + Math.abs(position.pnl || 0), 0) || 1;
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -34,10 +54,10 @@ export function renderTrades(root, state) {
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Trades filtrados</div><div class="tl-kpi-val">${filteredTrades.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Balance</div><div class="tl-kpi-val">${formatCurrency(model.account.balance)}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Equity</div><div class="tl-kpi-val">${formatCurrency(model.account.equity)}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">PnL filtrado</div><div class="tl-kpi-val ${filteredPnl >= 0 ? "green" : "red"}">${formatCurrency(filteredPnl)}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Win Rate</div><div class="tl-kpi-val">${Math.round(filteredWinRate)}%</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">R medio</div><div class="tl-kpi-val">${filteredAvgR.toFixed(1)}R</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${avgDuration}m</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Open P&L</div><div class="tl-kpi-val ${model.account.openPnl >= 0 ? "green" : "red"}">${formatCurrency(model.account.openPnl)}</div></article>
     </div>
 
     <div class="grid-2 equal">
@@ -61,6 +81,43 @@ export function renderTrades(root, state) {
           `).join("")}
         </div>
       </article>
+    </div>
+
+    <div class="tl-section-card">
+      <div class="tl-section-header">
+        <div class="tl-section-title">Posiciones abiertas</div>
+        <div class="trades-table-summary">
+          <span>${model.positions.length} abiertas</span>
+          <span>${formatCurrency(model.account.openPnl)}</span>
+        </div>
+      </div>
+      <div class="table-wrap widget-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Par</th>
+              <th>Dir</th>
+              <th>Vol</th>
+              <th>Entrada</th>
+              <th>P&amp;L</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${model.positions.map((position) => `
+              <tr>
+                <td><span class="table-symbol">${position.symbol}</span></td>
+                <td><span class="row-chip">${position.side}</span></td>
+                <td>${position.volume}</td>
+                <td>${position.entry}</td>
+                <td class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="widget-position-rails">
+        ${model.positions.map((position) => positionRail(position, exposureBase)).join("")}
+      </div>
     </div>
 
     <div class="tl-section-card trades-history-surface">

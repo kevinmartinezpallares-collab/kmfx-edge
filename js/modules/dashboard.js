@@ -69,24 +69,8 @@ export function renderDashboard(root, state) {
     return;
   }
 
-  const weeklyTotal = model.weekly.reduce((sum, day) => sum + day.pnl, 0);
-  const weeklyTrades = model.weekly.reduce((sum, day) => sum + day.trades, 0);
   const weeklyWinDays = model.weekly.filter((day) => day.pnl > 0).length;
-  const weeklyReturn = model.account.balance ? (weeklyTotal / model.account.balance) * 100 : 0;
   const cumulativeReturn = model.cumulative?.totalPct || 0;
-  const weekBaseEquity = model.account.equity - weeklyTotal;
-  let runningWeekEquity = weekBaseEquity;
-  const weeklyEquity = model.weekly.map((day) => {
-    runningWeekEquity += day.pnl;
-    return {
-      label: day.label,
-      pnl: day.pnl,
-      trades: day.trades,
-      value: runningWeekEquity
-    };
-  });
-  const positionExposure = model.positions.reduce((sum, position) => sum + Math.abs(position.pnl), 0) || 1;
-  const drawdownPct = model.totals.drawdown.maxPct || 0;
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
   const accountTypeLabel = getAccountTypeLabel(model.profile.mode, account.name);
@@ -101,7 +85,25 @@ export function renderDashboard(root, state) {
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
+  const latestDay = model.dayStats?.at?.(-1) || model.weekly?.at?.(-1) || { pnl: 0 };
+  const accountStateLabel = account.compliance?.riskStatus === "violation"
+    ? "Bloqueada"
+    : account.compliance?.riskStatus === "warning"
+      ? "En vigilancia"
+      : "Operativa";
   const kpis = [
+    {
+      label: "Equity actual",
+      value: formatCurrency(model.account.equity),
+      tone: "blue",
+      meta: `${account.name}`
+    },
+    {
+      label: "Balance",
+      value: formatCurrency(model.account.balance),
+      tone: "blue",
+      meta: "Capital base"
+    },
     {
       label: "P&L Total",
       value: formatCurrency(model.totals.pnl),
@@ -109,16 +111,28 @@ export function renderDashboard(root, state) {
       meta: `${model.totals.totalTrades} operaciones cerradas`
     },
     {
+      label: "P&L del día",
+      value: formatCurrency(latestDay.pnl || 0),
+      tone: (latestDay.pnl || 0) >= 0 ? "green" : "red",
+      meta: "Sesión actual"
+    },
+    {
+      label: "% retorno",
+      value: formatPercent(cumulativeReturn),
+      tone: cumulativeReturn >= 0 ? "green" : "red",
+      meta: "Desde balance inicial"
+    },
+    {
+      label: "Total trades",
+      value: `${model.totals.totalTrades}`,
+      tone: "blue",
+      meta: `${weeklyWinDays} días ganadores`
+    },
+    {
       label: "Win Rate",
       value: formatPercent(model.totals.winRate),
       tone: "blue",
-      meta: `${weeklyWinDays} días ganadores esta semana`
-    },
-    {
-      label: "Trades",
-      value: `${model.totals.totalTrades}`,
-      tone: "blue",
-      meta: `${weeklyTrades} operaciones en la semana`
+      meta: "Tasa de acierto"
     },
     {
       label: "Profit Factor",
@@ -127,10 +141,26 @@ export function renderDashboard(root, state) {
       meta: `Expectativa ${formatCurrency(model.totals.expectancy)}`
     },
     {
+      label: "Avg R",
+      value: `${model.totals.rr.toFixed(2)}R`,
+      tone: "violet",
+      meta: "R multiple medio"
+    },
+    {
       label: "Mejor Trade",
       value: formatCurrency(model.totals.bestTrade),
       tone: "green",
       meta: `${model.streaks.bestWin} racha ganadora`
+    },
+    {
+      label: "Estado cuenta",
+      value: accountStateLabel,
+      tone: riskGuidance.risk_state === "LOCKED" || accountStateLabel === "Bloqueada"
+        ? "red"
+        : riskGuidance.risk_state === "DANGER" || accountStateLabel === "En vigilancia"
+          ? "violet"
+          : "green",
+      meta: `Riesgo ${riskGuidance.risk_state}`
     }
   ];
 
@@ -161,94 +191,8 @@ export function renderDashboard(root, state) {
         return `${formatCurrency(value)} / ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`;
       },
       axisFormatter: (value) => formatCompact(value)
-    }),
-    lineAreaSpec("dashboard-weekly-equity-chart", weeklyEquity, {
-      tone: "blue",
-      borderWidth: 2.15,
-      pointHoverRadius: 2.25,
-      pointHitRadius: 16,
-      fillAlphaStart: isDarkTheme ? 0.13 : 0.095,
-      fillAlphaEnd: 0.015,
-      glowAlpha: 0.06,
-      tension: 0.34,
-      axisColor: axisStandard,
-      axisFontSize: 10,
-      axisFontWeight: isDarkTheme ? "500" : "600",
-      yTickPadding: 12,
-      xTickPadding: 10,
-      gridAlpha: isDarkTheme ? 0.05 : 0.06,
-      crosshairAlpha: isDarkTheme ? 0.14 : 0.11,
-      showAxisBorder: true,
-      formatter: (value, context) => {
-        const point = weeklyEquity[context.dataIndex];
-        return `${formatCurrency(value)} / ${formatCurrency(point.pnl)} / ${point.trades} trades`;
-      },
-      axisFormatter: (value) => formatCompact(value),
-      fillAlphaStart: 0.13
     })
   );
-
-  const detailMetrics = [
-    detailMetric("↑", "green", "Mejor Mes", model.totals.bestMonth ? formatCurrency(model.totals.bestMonth.pnl) : "—", model.totals.bestMonth?.label || ""),
-    detailMetric("↓", "red", "Peor Mes", model.totals.worstMonth ? formatCurrency(model.totals.worstMonth.pnl) : "—", model.totals.worstMonth?.label || ""),
-    detailMetric("$", "blue", "P&L Total", formatCurrency(model.totals.pnl)),
-    detailMetric("#", "violet", "Total Trades", `${model.totals.totalTrades}`),
-    detailMetric("%", "green", "Win Rate", formatPercent(model.totals.winRate)),
-    detailMetric("E", "blue", "Expectativa", formatCurrency(model.totals.expectancy)),
-    detailMetric("C", "violet", "Comisiones", formatCurrency(model.totals.commissions)),
-    detailMetric("PF", "blue", "Profit Factor", model.totals.profitFactor.toFixed(2))
-  ];
-
-  const advancedMetrics = [
-    { label: "Recommended Risk", value: `${riskGuidance.recommendedRiskPct.toFixed(2)}%`, width: riskGuidance.recommendedRiskPct * 100, tone: riskGuidance.risk_state === "LOCKED" ? "red" : riskGuidance.risk_state === "DANGER" ? "red" : riskGuidance.risk_state === "CAUTION" ? "violet" : "green" },
-    { label: "Sharpe", value: model.totals.ratios.sharpe.toFixed(2), width: clampPercent(model.totals.ratios.sharpe * 20), tone: "blue" },
-    { label: "Sortino", value: model.totals.ratios.sortino.toFixed(2), width: clampPercent(model.totals.ratios.sortino * 20), tone: "violet" },
-    { label: "Calmar", value: model.totals.ratios.calmar.toFixed(2), width: clampPercent(model.totals.ratios.calmar * 20), tone: "green" },
-    { label: "Recovery", value: model.totals.ratios.recovery.toFixed(2), width: clampPercent(model.totals.ratios.recovery * 18), tone: "blue" },
-    { label: "R:R medio", value: model.totals.rr.toFixed(2), width: clampPercent(model.totals.rr * 30), tone: "violet" },
-    { label: "Profit bruto", value: formatCurrency(model.totals.grossProfit), width: clampPercent((model.totals.grossProfit / Math.max(Math.abs(model.totals.pnl) || 1, 1)) * 36), tone: "green" },
-    { label: "Loss bruto", value: formatCurrency(-model.totals.grossLoss), width: clampPercent((model.totals.grossLoss / Math.max(model.totals.grossProfit || 1, 1)) * 100), tone: "red" },
-    { label: "Risk State", value: riskGuidance.risk_state, width: riskGuidance.risk_state === "LOCKED" ? 100 : riskGuidance.risk_state === "DANGER" ? 76 : riskGuidance.risk_state === "CAUTION" ? 52 : 28, tone: riskGuidance.risk_state === "LOCKED" ? "red" : riskGuidance.risk_state === "DANGER" ? "red" : riskGuidance.risk_state === "CAUTION" ? "violet" : "green" }
-  ];
-
-  const goals = [
-    {
-      label: "Win rate objetivo",
-      current: model.totals.winRate,
-      target: model.account.winRateTarget,
-      value: formatPercent(model.totals.winRate),
-      hint: `Objetivo ${formatPercent(model.account.winRateTarget)}`,
-      width: model.account.winRateTarget ? (model.totals.winRate / model.account.winRateTarget) * 100 : 0,
-      tone: "blue"
-    },
-    {
-      label: "Profit factor objetivo",
-      current: model.totals.profitFactor,
-      target: model.account.profitFactorTarget,
-      value: model.totals.profitFactor.toFixed(2),
-      hint: `Objetivo ${model.account.profitFactorTarget.toFixed(2)}`,
-      width: model.account.profitFactorTarget ? (model.totals.profitFactor / model.account.profitFactorTarget) * 100 : 0,
-      tone: "violet"
-    },
-    {
-      label: "Drawdown máximo",
-      current: model.totals.drawdown.maxPct,
-      target: model.account.maxDrawdownLimit,
-      value: `${model.totals.drawdown.maxPct.toFixed(1)}%`,
-      hint: `Límite ${model.account.maxDrawdownLimit.toFixed(1)}%`,
-      width: 100 - ((model.totals.drawdown.maxPct / Math.max(model.account.maxDrawdownLimit, 0.01)) * 100),
-      tone: "green"
-    },
-    {
-      label: "Sharpe objetivo",
-      current: model.totals.ratios.sharpe,
-      target: 1,
-      value: model.totals.ratios.sharpe.toFixed(2),
-      hint: "Objetivo 1.00",
-      width: model.totals.ratios.sharpe * 100,
-      tone: "blue"
-    }
-  ];
 
   root.innerHTML = `
     <div class="dashboard-premium-grid">
@@ -309,216 +253,6 @@ export function renderDashboard(root, state) {
             </article>
           `).join("")}
         </div>
-      </section>
-
-      <section class="dashboard-main-grid">
-        <article class="widget-card widget-card--feature widget-card--weekly">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Resumen semanal</div>
-              <div class="tl-section-title">Rendimiento semanal</div>
-            </div>
-            <div class="widget-pill">${model.weekly.filter((day) => day.trades).length} días activos</div>
-          </div>
-          <div class="widget-metric-row">
-            <div class="widget-metric">
-              <span>Total semana</span>
-              <strong class="${weeklyTotal >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(weeklyTotal)}</strong>
-            </div>
-            <div class="widget-metric">
-              <span>Días ganadores</span>
-              <strong>${weeklyWinDays}</strong>
-            </div>
-            <div class="widget-metric">
-              <span>Operaciones</span>
-              <strong>${weeklyTrades}</strong>
-            </div>
-            <div class="widget-metric">
-              <span>Retorno semanal</span>
-              <strong>${formatPercent(weeklyReturn)}</strong>
-            </div>
-          </div>
-          <div class="week-strip week-strip--premium">
-            ${model.weekly.map((day) => `
-              <div class="week-day-cell ${day.state === "win" ? "win" : day.state === "loss" ? "loss" : ""}">
-                <div class="wdc-label">${day.label}</div>
-                <div class="wdc-val">${formatCompact(day.pnl)}</div>
-                <div class="wdc-meta">${day.trades} trades</div>
-              </div>
-            `).join("")}
-          </div>
-          <div class="widget-feature-chart">
-            ${chartCanvas("dashboard-weekly-equity-chart", 220, "kmfx-chart-shell--feature")}
-          </div>
-        </article>
-
-        <article class="widget-card widget-card--feature widget-card--return">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Cumulative return</div>
-              <div class="tl-section-title">Retorno acumulado</div>
-            </div>
-            <div class="widget-pill ${cumulativeReturn >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(cumulativeReturn)}</div>
-          </div>
-          <div class="widget-return-shell">
-            <div class="widget-return-copy">
-              <div class="widget-return-intro">
-                <div class="metric-label">Crecimiento desde balance inicial</div>
-                <div class="metric-large ${cumulativeReturn >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(cumulativeReturn)}</div>
-                <div class="row-sub">${formatCurrency(model.cumulative.totalUsd || 0)} netos acumulados</div>
-              </div>
-              <div class="widget-return-rails">
-                ${statRail("Balance", formatCurrency(model.account.balance), 72, "blue")}
-                ${statRail("Equity", formatCurrency(model.account.equity), 78, "violet")}
-                ${statRail("Retorno semanal", formatPercent(weeklyReturn), clampPercent(Math.abs(weeklyReturn) * 12), weeklyReturn >= 0 ? "green" : "red")}
-                ${statRail("DD máximo", formatPercent(-drawdownPct), 100 - clampPercent(drawdownPct * 8), "red")}
-              </div>
-            </div>
-            ${radialWidget(model.totals.riskScore, "Trader score", "blue")}
-          </div>
-        </article>
-      </section>
-
-      <section class="dashboard-secondary-grid">
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Detailed metrics</div>
-              <div class="tl-section-title">Métricas detalladas</div>
-            </div>
-          </div>
-          <div class="widget-detail-grid">
-            ${detailMetrics.join("")}
-          </div>
-        </article>
-
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Advanced metrics</div>
-              <div class="tl-section-title">Métricas avanzadas</div>
-            </div>
-          </div>
-          <div class="widget-advanced-grid">
-            ${advancedMetrics.map((metric) => `
-              <div class="widget-advanced-item">
-                <div class="widget-advanced-label">${metric.label}</div>
-                <div class="widget-advanced-value">${metric.value}</div>
-                <div class="metric-rail-track"><div class="metric-rail-fill metric-rail-fill--${metric.tone}" style="width:${metric.width}%"></div></div>
-              </div>
-            `).join("")}
-          </div>
-        </article>
-      </section>
-
-      <section class="dashboard-tertiary-grid">
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Recent activity</div>
-              <div class="tl-section-title">Actividad reciente</div>
-            </div>
-            <div class="widget-pill">${model.recentTrades.length} últimas</div>
-          </div>
-          <div class="widget-activity-list">
-            ${model.recentTrades.map((trade) => `
-              <div class="widget-activity-item">
-                <div class="widget-activity-main">
-                  <strong>${trade.symbol}</strong>
-                  <span>${trade.side} / ${trade.session}</span>
-                </div>
-                <div class="widget-activity-side">
-                  <span>${trade.side}</span>
-                  <strong class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</strong>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </article>
-
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Open positions</div>
-              <div class="tl-section-title">Posiciones abiertas</div>
-            </div>
-            <div class="widget-pill">${model.positions.length} abiertas</div>
-          </div>
-          <div class="table-wrap widget-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Par</th>
-                  <th>Dir</th>
-                  <th>Vol</th>
-                  <th>Entrada</th>
-                  <th>P&amp;L</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${model.positions.map((position) => `
-                  <tr>
-                    <td><span class="table-symbol">${position.symbol}</span></td>
-                    <td><span class="row-chip">${position.side}</span></td>
-                    <td>${position.volume}</td>
-                    <td>${position.entry}</td>
-                    <td class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-          <div class="widget-position-rails">
-            ${model.positions.map((position) => statRail(
-              `${position.symbol} / ${position.side}`,
-              formatCurrency(position.pnl),
-              clampPercent((Math.abs(position.pnl) / positionExposure) * 100),
-              position.pnl >= 0 ? "green" : "red",
-              `Vol ${position.volume} / Entrada ${position.entry}`
-            )).join("")}
-          </div>
-        </article>
-      </section>
-
-      <section class="dashboard-bottom-grid">
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Trader score</div>
-              <div class="tl-section-title">Score del trader</div>
-            </div>
-          </div>
-          <div class="widget-score-grid">
-            ${radialWidget(model.totals.riskScore, "Disciplina", "violet")}
-            <div class="widget-stat-list">
-              ${statRail("Win rate", formatPercent(model.totals.winRate), model.totals.winRate, "green")}
-              ${statRail("R:R medio", model.totals.rr.toFixed(2), clampPercent(model.totals.rr * 30), "blue")}
-              ${statRail("Profit factor", model.totals.profitFactor.toFixed(2), clampPercent(model.totals.profitFactor * 25), "violet")}
-              ${statRail("Drawdown", formatPercent(-drawdownPct), 100 - clampPercent(drawdownPct * 8), "red")}
-            </div>
-          </div>
-        </article>
-
-        <article class="widget-card">
-          <div class="widget-card-head">
-            <div>
-              <div class="widget-eyebrow">Goals</div>
-              <div class="tl-section-title">Objetivos</div>
-            </div>
-          </div>
-          <div class="goal-grid">
-            ${goals.map((goal) => `
-              <div class="goal-card">
-                <div class="metric-label">${goal.label}</div>
-                <div class="goal-card-value">${goal.value}</div>
-                <div class="goal-card-sub">${goal.hint}</div>
-                <div class="metric-rail-track">
-                  <div class="metric-rail-fill metric-rail-fill--${goal.tone}" style="width:${clampPercent(goal.width)}%"></div>
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </article>
       </section>
     </div>
   `;

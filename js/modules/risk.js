@@ -2,6 +2,7 @@ import { formatCurrency, formatDateTime, formatPercent, selectCurrentAccount, se
 import { badgeMarkup, getRiskStatusMeta } from "./status-badges.js";
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js";
 import { computeRecommendedRiskFromModel } from "./risk-engine.js";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js";
 
 function ladderRows(risk) {
   return risk.ladder.map((row) => ({
@@ -184,6 +185,24 @@ export function renderRisk(root, state) {
   const securityArc = renderSecurityArc(securitySegments({ account, model, risk, score: securityScore }), securityScore);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
+  const equityPeak = Math.max(account.balance || 0, ...((model.equityCurve || []).map((point) => Number(point.value || 0))));
+  const currentDrawdownAmount = Math.max(0, equityPeak - Number(account.equity || 0));
+  const currentDrawdownPct = equityPeak ? (currentDrawdownAmount / equityPeak) * 100 : 0;
+  const dailyDrawdownPct = account.balance ? (Math.abs(Math.min(0, risk.dailyLossUsd || 0)) / account.balance) * 100 : 0;
+  const exposureOpen = model.positions.reduce((sum, item) => sum + Math.abs(item.pnl || 0), 0);
+  const currentLossStreak = (() => {
+    let streak = 0;
+    for (let index = model.trades.length - 1; index >= 0; index -= 1) {
+      const trade = model.trades[index];
+      if ((trade.pnl || 0) < 0) {
+        streak += 1;
+        continue;
+      }
+      break;
+    }
+    return streak;
+  })();
+  const avgLoss = Number(model.totals.avgLoss || 0);
   const ladderLevel = currentLadderLevel(ladder, risk);
   const riskStateTone = riskGuidance.risk_state === "LOCKED" || riskGuidance.risk_state === "DANGER"
     ? "error"
@@ -205,6 +224,66 @@ export function renderRisk(root, state) {
       <div class="tl-page-sub">Controles operativos, configuración de límites y lectura clara del estado de seguridad.</div>
     </div>
     ${riskAlertsMarkup(riskAlerts, 3)}
+
+    <article class="tl-section-card risk-overview-surface">
+      <div class="tl-section-header">
+        <div>
+          <div class="tl-section-title">Resumen de Riesgo</div>
+          <div class="row-sub">Drawdown, exposición y presión actual concentrados en un único bloque.</div>
+        </div>
+      </div>
+      <div class="trades-kpi-row risk-current-grid">
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Current Drawdown</div>
+          <div class="tl-kpi-val ${currentDrawdownAmount > 0 ? "red" : ""}">${formatCurrency(-currentDrawdownAmount)}</div>
+          <div class="row-sub">${formatPercent(currentDrawdownPct)} desde el último pico</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Daily Drawdown</div>
+          <div class="tl-kpi-val ${risk.dailyLossUsd < 0 ? "red" : ""}">${formatCurrency(risk.dailyLossUsd)}</div>
+          <div class="row-sub">${formatPercent(dailyDrawdownPct)} del balance</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Max Drawdown</div>
+          <div class="tl-kpi-val red">${formatCurrency(-model.totals.drawdown.maxAmount)}</div>
+          <div class="row-sub">${formatPercent(model.totals.drawdown.maxPct)} máximo histórico</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Risk Pressure</div>
+          <div class="tl-kpi-val ${riskStateTone === "error" ? "red" : riskStateTone === "warn" ? "metric-warning" : "green"}">${riskGuidance.risk_state}</div>
+          <div class="row-sub">Recomendado ${riskGuidance.recommendedRiskPct.toFixed(2)}%</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Risk / Trade</div>
+          <div class="tl-kpi-val">${risk.currentRiskPct.toFixed(2)}%</div>
+          <div class="row-sub">${formatCurrency(risk.currentRiskUsd)} por operación</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Exposure</div>
+          <div class="tl-kpi-val ${account.openPnl >= 0 ? "green" : "red"}">${formatCurrency(account.openPnl)}</div>
+          <div class="row-sub">${formatCurrency(exposureOpen)} flotante absoluta</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Consecutive Losses</div>
+          <div class="tl-kpi-val ${currentLossStreak >= 3 ? "red" : ""}">${currentLossStreak}</div>
+          <div class="row-sub">Máximo histórico ${model.streaks.bestLoss}</div>
+        </article>
+        <article class="tl-kpi-card risk-kpi-card">
+          <div class="tl-kpi-label">Average Loss</div>
+          <div class="tl-kpi-val red">${formatCurrency(-avgLoss)}</div>
+          <div class="row-sub">Recovery ${model.totals.ratios.recovery.toFixed(2)}</div>
+        </article>
+      </div>
+      <div class="widget-feature-chart">
+        ${chartCanvas("risk-drawdown-curve", 240, "kmfx-chart-shell--feature")}
+      </div>
+      <div class="risk-overview-meta">
+        <span>Límite DD total ${formatPercent(account.maxDrawdownLimit || 0)}</span>
+        <span>Límite DD diario ${formatPercent(model.riskProfile.dailyLossLimitPct || 0)}</span>
+        <span>Max consecutive losses ${model.streaks.bestLoss}</span>
+        <span>Recovery Factor ${model.totals.ratios.recovery.toFixed(2)}</span>
+      </div>
+    </article>
 
     <article class="tl-section-card risk-status-widget risk-status-widget--${riskStateTone}">
       <div class="risk-status-top">
@@ -405,4 +484,17 @@ export function renderRisk(root, state) {
   });
 
   attachArcInteractions(root);
+  mountCharts(root, [
+    lineAreaSpec("risk-drawdown-curve", model.drawdownCurve, {
+      tone: "red",
+      borderWidth: 2.2,
+      pointHoverRadius: 3,
+      minimalTooltip: true,
+      formatter: (value) => formatPercent(value),
+      axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
+      fillAlphaStart: 0.12,
+      fillAlphaEnd: 0.015,
+      glowAlpha: 0.1
+    })
+  ]);
 }

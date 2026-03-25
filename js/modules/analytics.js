@@ -349,6 +349,13 @@ function buildHourlyBars(rows, mode = "pnl") {
   return { width, height, zeroY, bars };
 }
 
+function standardDeviation(values = []) {
+  if (!values.length) return 0;
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
 function attachArcInteractions(root) {
   root.querySelectorAll("[data-arc-widget]").forEach((widget) => {
     const paths = [...widget.querySelectorAll(".kmfx-arc-path")];
@@ -407,6 +414,9 @@ export function renderAnalytics(root, state) {
   const riskAlerts = computeRiskAlerts(model, account);
   const trendComparisons = computeTrendComparisons(model);
   const contextTags = analyticsRiskContext(model);
+  const profitPerTrade = model.totals.totalTrades ? model.totals.pnl / model.totals.totalTrades : 0;
+  const winLossRatio = averageLosingTrade ? averageWinningTrade / averageLosingTrade : 0;
+  const stdDevPnl = standardDeviation((model.dayStats || []).map((day) => Number(day.pnl || 0)));
   const detailedMetrics = [
     {
       tone: "blue",
@@ -517,28 +527,6 @@ export function renderAnalytics(root, state) {
       formatter: (value) => formatCurrency(value),
       axisFormatter: (value) => formatCompact(value)
     }),
-    barChartSpec("analytics-overview-hourly-pnl", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.pnl })), {
-      positiveNegative: true,
-      referencePillBars: true,
-      maxBarThickness: 32,
-      barThickness: 28,
-      categoryPercentage: 0.5,
-      barPercentage: 0.7,
-      xOffset: true,
-      xTickPadding: 6,
-      yTickPadding: 6,
-      layoutPaddingLeft: 0,
-      layoutPaddingRight: 0,
-      trackAlpha: 0.08,
-      trackActiveAlpha: 0.11,
-      trackMinWidth: 28,
-      trackMaxWidth: 28,
-      trackTopInset: 10,
-      trackBottomInset: 4,
-      minimalTooltip: true,
-      formatter: (value) => formatCurrency(value),
-      axisFormatter: (value) => formatCompact(value)
-    }),
     barChartSpec("analytics-hourly-trades", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.trades })), {
       tone: "blue",
       referencePillBars: true,
@@ -560,66 +548,6 @@ export function renderAnalytics(root, state) {
       minimalTooltip: true,
       formatter: (value) => `${value} trades`
     }),
-    barChartSpec("analytics-overview-hourly-trades", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.trades })), {
-      tone: "blue",
-      referencePillBars: true,
-      maxBarThickness: 32,
-      barThickness: 28,
-      categoryPercentage: 0.5,
-      barPercentage: 0.7,
-      xOffset: true,
-      xTickPadding: 6,
-      yTickPadding: 6,
-      layoutPaddingLeft: 0,
-      layoutPaddingRight: 0,
-      trackAlpha: 0.08,
-      trackActiveAlpha: 0.11,
-      trackMinWidth: 28,
-      trackMaxWidth: 28,
-      trackTopInset: 10,
-      trackBottomInset: 4,
-      minimalTooltip: true,
-      formatter: (value) => `${value} trades`
-    }),
-    lineAreaSpec("analytics-overview-drawdown-curve", model.drawdownCurve, {
-      tone: "red",
-      borderWidth: 2.2,
-      pointHoverRadius: 3,
-      minimalTooltip: true,
-      formatter: (value) => formatPercent(value),
-      axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
-      fillAlphaStart: 0.12,
-      fillAlphaEnd: 0.015,
-      glowAlpha: 0.1
-    }),
-    lineAreaSpec("analytics-drawdown-curve", model.drawdownCurve, {
-      tone: "red",
-      borderWidth: 2.2,
-      pointHoverRadius: 3,
-      minimalTooltip: true,
-      formatter: (value) => formatPercent(value),
-      axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
-      fillAlphaStart: 0.12,
-      fillAlphaEnd: 0.015,
-      glowAlpha: 0.1
-    }),
-    barChartSpec("analytics-overview-profit-distribution", model.profitDistribution.map((bin) => ({ label: bin.label, value: bin.count })), {
-      tone: "blue",
-      maxBarThickness: 18,
-      barThickness: 12,
-      solidBars: true,
-      gridAlpha: 0.04,
-      categoryPercentage: 0.9,
-      barPercentage: 0.94,
-      xOffset: true,
-      xTickPadding: 6,
-      yTickPadding: 6,
-      layoutPaddingLeft: 0,
-      layoutPaddingRight: 0,
-      trackAlpha: 0.13,
-      minimalTooltip: true,
-      formatter: (value) => `${value} trades`
-    }),
     barChartSpec("analytics-profit-distribution", model.profitDistribution.map((bin) => ({ label: bin.label, value: bin.count })), {
       tone: "blue",
       maxBarThickness: 18,
@@ -638,9 +566,6 @@ export function renderAnalytics(root, state) {
       formatter: (value) => `${value} trades`
     })
   ];
-  const hourlyPnlBars = buildHourlyBars(hourlyRows, "pnl");
-  const hourlyTradeBars = buildHourlyBars(hourlyRows, "trades");
-
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-bento-grid">
@@ -695,53 +620,7 @@ export function renderAnalytics(root, state) {
           </div>
         </article>
 
-        <div class="tl-section-card analytics-score-card analytics-bento-card analytics-bento-card--4">
-          <div class="score-header">
-            <div class="analytics-score-copy">
-              <div class="tl-section-title">Trading Risk Score</div>
-              <p class="body-copy">Lectura agregada de calidad operativa y disciplina de ejecución.</p>
-            </div>
-            <div class="score-ring score-ring--arc">
-              ${renderArcScoreWidget({
-                key: "analytics-risk-score",
-                score: model.totals.riskScore,
-                label: "Trading Risk Score",
-                subtitle: "SCORE",
-                compact: true,
-                segments: [
-                  { tone: "orange", value: drivers[0].value, label: drivers[0].label },
-                  { tone: "gold", value: drivers[1].value, label: drivers[1].label },
-                  { tone: "green", value: drivers[2].value, label: drivers[2].label },
-                  { tone: "blue", value: drivers[3].value, label: drivers[3].label }
-                ]
-              })}
-            </div>
-          </div>
-          <div class="analytics-score-interpretation">
-            <strong>${model.totals.riskScore} / 100</strong>
-            <span>${scoreInterpretation}</span>
-            <div class="analytics-score-badge">${badgeMarkup(contextTags.stabilityMeta, "ui-badge--compact")}</div>
-          </div>
-          <div class="analytics-drivers-grid">
-            <div class="score-bar-row score-bar-row--compact">
-              <span>Win Rate</span>
-              <div class="score-bar-track"><div class="score-bar-fill score-bar-fill--green" style="width:${Math.max(0, Math.min(model.totals.winRate, 100))}%"></div></div>
-              <strong>${formatPercent(model.totals.winRate)}</strong>
-            </div>
-            <div class="score-bar-row score-bar-row--compact">
-              <span>Risk/Reward</span>
-              <div class="score-bar-track"><div class="score-bar-fill score-bar-fill--blue" style="width:${Math.max(0, Math.min((model.totals.rr / 3) * 100, 100))}%"></div></div>
-              <strong>${model.totals.rr.toFixed(2)}</strong>
-            </div>
-            <div class="score-bar-row score-bar-row--compact">
-              <span>Consistency</span>
-              <div class="score-bar-track"><div class="score-bar-fill score-bar-fill--violet" style="width:${drivers[2].value}%"></div></div>
-              <strong>${drivers[2].display}</strong>
-            </div>
-          </div>
-        </div>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--8">
+        <article class="tl-section-card analytics-bento-card analytics-bento-card--full">
           <div class="tl-section-header">
             <div>
               <div class="tl-section-title">Advanced Ratios</div>
@@ -749,6 +628,36 @@ export function renderAnalytics(root, state) {
             </div>
           </div>
           <div class="analytics-ratios-minimal-grid analytics-ratios-minimal-grid--wide analytics-ratios-minimal-grid--bento">
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Expectancy</span>
+              <strong>${formatCurrency(model.totals.expectancy)}</strong>
+              <small>Resultado esperado por trade.</small>
+            </article>
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Avg win</span>
+              <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
+              <small>Promedio de trades ganadores.</small>
+            </article>
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Avg loss</span>
+              <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
+              <small>Promedio de trades perdedores.</small>
+            </article>
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Avg R multiple</span>
+              <strong>${model.totals.rr.toFixed(2)}R</strong>
+              <small>Relación beneficio / pérdida media.</small>
+            </article>
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Profit / trade</span>
+              <strong class="${profitPerTrade >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(profitPerTrade)}</strong>
+              <small>PnL medio por operación.</small>
+            </article>
+            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
+              <span>Win/Loss ratio</span>
+              <strong>${winLossRatio.toFixed(2)}</strong>
+              <small>Avg win frente a avg loss.</small>
+            </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
               <span>Sharpe</span>
               <strong>${model.totals.ratios.sharpe.toFixed(2)}</strong>
@@ -760,20 +669,14 @@ export function renderAnalytics(root, state) {
               <small>Penaliza solo el downside.</small>
             </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Max DD</span>
-              <strong class="metric-negative">${formatPercent(model.totals.drawdown.maxPct)}</strong>
-              <small>Retroceso máximo desde pico.</small>
-              <div class="analytics-ratio-meta">${badgeMarkup(contextTags.drawdownMeta, "ui-badge--compact")}</div>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
               <span>Calmar</span>
               <strong>${model.totals.ratios.calmar.toFixed(2)}</strong>
               <small>Rentabilidad frente a drawdown.</small>
             </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Recovery Factor</span>
-              <strong>${model.totals.ratios.recovery.toFixed(2)}</strong>
-              <small>Capacidad para recuperar pérdidas.</small>
+              <span>Std deviation</span>
+              <strong>${formatCurrency(stdDevPnl)}</strong>
+              <small>Dispersión diaria del resultado.</small>
             </article>
           </div>
         </article>
@@ -860,102 +763,6 @@ export function renderAnalytics(root, state) {
                 <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
               </div>
             </div>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--8">
-          <div class="tl-section-header"><div class="tl-section-title">Daily Performance</div></div>
-          ${renderDailyPerformanceBreakdown(weekdayWorkdays, {
-            winningDays,
-            losingDays,
-            breakEven: Math.max(0, 5 - winningDays - losingDays)
-          })}
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header"><div class="tl-section-title">Hourly Performance</div></div>
-          <div class="analytics-hourly-bento-grid">
-            <article class="hhc-card green"><div class="hhc-label">Mejor hora</div><div class="hhc-val green">${String(bestHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(bestHour.pnl)}</div></article>
-            <article class="hhc-card red"><div class="hhc-label">Peor hora</div><div class="hhc-val red">${String(worstHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(worstHour.pnl)}</div></article>
-            <article class="hhc-card blue"><div class="hhc-label">Hora más activa</div><div class="hhc-val">${String(activeHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${activeHour.trades} trades</div></article>
-          </div>
-          <div class="analytics-hourly-stack">
-            <section class="analytics-hourly-section">
-              <div class="analytics-hourly-section-head">
-                <strong>PnL by Hour</strong>
-              </div>
-              <div class="analytics-hourly-bars-stage">
-                <svg class="analytics-hourly-bars-svg" viewBox="0 0 ${hourlyPnlBars.width} ${hourlyPnlBars.height}" preserveAspectRatio="none" aria-hidden="true">
-                  <line x1="0" y1="${hourlyPnlBars.zeroY}" x2="${hourlyPnlBars.width}" y2="${hourlyPnlBars.zeroY}" class="analytics-daily-zero"></line>
-                  ${hourlyPnlBars.bars.map((bar) => `
-                    <rect
-                      class="analytics-hourly-bar ${bar.value >= 0 ? "is-positive" : "is-negative"}"
-                      x="${bar.x}"
-                      y="${bar.y}"
-                      width="${bar.width}"
-                      height="${bar.height}"
-                      rx="${bar.rx}">
-                    </rect>
-                  `).join("")}
-                </svg>
-                <div class="analytics-hourly-bars-x">
-                  ${hourlyRows.map((hour) => `<span>${String(hour.hour).padStart(2, "0")}</span>`).join("")}
-                </div>
-              </div>
-            </section>
-            <section class="analytics-hourly-section">
-              <div class="analytics-hourly-section-head">
-                <strong>Trades by Hour</strong>
-              </div>
-              <div class="analytics-hourly-bars-stage">
-                <svg class="analytics-hourly-bars-svg" viewBox="0 0 ${hourlyTradeBars.width} ${hourlyTradeBars.height}" preserveAspectRatio="none" aria-hidden="true">
-                  <line x1="0" y1="${hourlyTradeBars.zeroY}" x2="${hourlyTradeBars.width}" y2="${hourlyTradeBars.zeroY}" class="analytics-daily-zero"></line>
-                  ${hourlyTradeBars.bars.map((bar) => `
-                    <rect
-                      class="analytics-hourly-bar analytics-hourly-bar--trades"
-                      x="${bar.x}"
-                      y="${bar.y}"
-                      width="${bar.width}"
-                      height="${bar.height}"
-                      rx="${bar.rx}">
-                    </rect>
-                  `).join("")}
-                </svg>
-                <div class="analytics-hourly-bars-x">
-                  ${hourlyRows.map((hour) => `<span>${String(hour.hour).padStart(2, "0")}</span>`).join("")}
-                </div>
-              </div>
-            </section>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header"><div class="tl-section-title">Drawdown Curve</div></div>
-          ${chartCanvas("analytics-overview-drawdown-curve", 260, "kmfx-chart-shell--feature analytics-drawdown-chart")}
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6 analytics-bento-card--distribution">
-          <div class="tl-section-header"><div class="tl-section-title">Profit Distribution</div></div>
-          <div class="row-sub">Buckets de resultados por rango de beneficio/pérdida.</div>
-          ${chartCanvas("analytics-overview-profit-distribution", 260, "kmfx-chart-shell--feature analytics-distribution-chart")}
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header"><div class="tl-section-title">Heatmap 24h</div></div>
-          <div class="heat-legend">
-            <span><i class="heat-legend-dot heat-legend-dot--gain"></i>High profit</span>
-            <span><i class="heat-legend-dot heat-legend-dot--neutral"></i>Neutral</span>
-            <span><i class="heat-legend-dot heat-legend-dot--loss"></i>High loss</span>
-            <span><i class="heat-legend-dot heat-legend-dot--empty"></i>No data</span>
-          </div>
-          <div class="heat-grid heat-grid--24 analytics-heatmap-grid">
-            ${model.hours.map((hour) => `
-              <div class="heat-cell analytics-heatmap-cell ${hour.trades ? "" : "heat-cell--empty"} ${hour.trades && hour.pnl === 0 ? "analytics-heatmap-cell--neutral" : ""}" style="${hour.trades ? `background:${hour.pnl > 0 ? "var(--green-bg)" : hour.pnl < 0 ? "var(--red-bg)" : "color-mix(in srgb, var(--surface2) 96%, transparent)"};border-color:${hour.pnl > 0 ? "var(--green-border)" : hour.pnl < 0 ? "var(--red-border)" : "color-mix(in srgb, var(--border) 42%, transparent)"}` : ""}">
-                <div class="heat-hour">${String(hour.hour).padStart(2, "0")}:00</div>
-                <div class="heat-pnl ${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${hour.trades ? formatCurrency(hour.pnl) : "—"}</div>
-                <div class="row-sub">${hour.trades ? `${hour.trades} trades` : "Sin datos"}</div>
-              </div>
-            `).join("")}
           </div>
         </article>
 
@@ -1077,13 +884,73 @@ export function renderAnalytics(root, state) {
 
       <div class="grid-2 equal">
         <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">Curva de Drawdown</div></div>
-          ${chartCanvas("analytics-drawdown-curve", 240, "kmfx-chart-shell--feature")}
-        </article>
-        <article class="tl-section-card">
           <div class="tl-section-header"><div class="tl-section-title">Distribución de Profits</div></div>
           ${chartCanvas("analytics-profit-distribution", 240, "kmfx-chart-shell--feature")}
         </article>
+        <article class="tl-section-card">
+          <div class="tl-section-header"><div class="tl-section-title">Win / Loss Distribution</div></div>
+          <div class="analytics-winloss-card">
+            <div class="analytics-winloss-summary">
+              <div class="analytics-winloss-header">
+                <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
+                <div class="analytics-winloss-sub">trades cerrados analizados</div>
+              </div>
+              <div class="analytics-winloss-bar" aria-hidden="true">
+                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+              </div>
+            </div>
+            <div class="analytics-winloss-grid">
+              <article class="analytics-winloss-stat analytics-winloss-stat--win">
+                <span class="analytics-winloss-label">Winning Trades</span>
+                <strong>${winningTrades.length}</strong>
+                <small>${formatPercent((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
+              </article>
+              <article class="analytics-winloss-stat analytics-winloss-stat--loss">
+                <span class="analytics-winloss-label">Losing Trades</span>
+                <strong>${losingTrades.length}</strong>
+                <small>${formatPercent((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
+              </article>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="tl-section-card">
+        <div class="tl-section-header"><div class="tl-section-title">Performance by Symbol</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Símbolo</th><th class="num">P&amp;L Total</th><th class="num">Operaciones</th><th>Tasa Acierto</th><th class="num">Gan. Prom.</th><th class="num">Perd. Prom.</th><th class="num">P&amp;L Prom.</th><th class="num">Factor Ben.</th></tr></thead>
+            <tbody>
+              ${model.symbols.map((row) => `
+                <tr>
+                  <td>
+                    <div class="analytics-symbol-cell">
+                      <strong>${row.key}</strong>
+                      <div class="row-sub">${row.pnl >= 0 ? "Rentable" : "Presión"}</div>
+                    </div>
+                  </td>
+                  <td class="num ${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</td>
+                  <td class="num">${row.trades}</td>
+                  <td>
+                    <div class="analytics-wr-cell">
+                      <div class="analytics-wr-meta">
+                        <span>${formatPercent(row.winRate)}</span>
+                      </div>
+                      <div class="analytics-wr-track">
+                        <div class="analytics-wr-fill ${row.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(row.winRate, 100))}%"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="num metric-positive">${formatCurrency(row.avgWin)}</td>
+                  <td class="num metric-negative">${formatCurrency(-row.avgLoss)}</td>
+                  <td class="num ${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)}</td>
+                  <td class="num">${row.profitFactor.toFixed(2)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   `;
