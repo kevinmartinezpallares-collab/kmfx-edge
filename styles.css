@@ -2709,9 +2709,9 @@ body[data-theme="dark"] .account-banner--premium {
 }
 
 .kmfx-chart-tooltip.is-bar-chart {
-  min-width: 110px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  min-width: 118px;
+  padding: 9px 12px;
+  border-radius: 8px;
   text-align: center;
 }
 
@@ -2719,9 +2719,9 @@ body[data-theme="dark"] .account-banner--premium {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -4px;
-  width: 9px;
-  height: 9px;
+  bottom: -3px;
+  width: 8px;
+  height: 8px;
   background: inherit;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);

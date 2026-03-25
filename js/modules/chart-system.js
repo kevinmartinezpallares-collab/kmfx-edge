@@ -222,6 +222,15 @@ function createTrackGradient(ctx, rect, active = false) {
   return gradient;
 }
 
+function getBarSlotWidth(meta, index, chartArea) {
+  const current = meta.data[index];
+  const prev = index > 0 ? meta.data[index - 1] : null;
+  const next = index < meta.data.length - 1 ? meta.data[index + 1] : null;
+  const leftGap = prev ? current.x - prev.x : next ? next.x - current.x : (chartArea.right - chartArea.left) / Math.max(meta.data.length, 1);
+  const rightGap = next ? next.x - current.x : prev ? current.x - prev.x : leftGap;
+  return Math.min(leftGap, rightGap);
+}
+
 function roundedRectPath(ctx, x, y, width, height, radius) {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   ctx.beginPath();
@@ -355,15 +364,18 @@ const referencePillBarPlugin = {
 
     meta.data.forEach((element, index) => {
       const value = Number(dataset.data[index] ?? 0);
-      const width = Math.max(
+      const slotWidth = getBarSlotWidth(meta, index, chartArea);
+      const trackWidth = Math.max(
         pluginOptions?.minWidth ?? 18,
-        Math.min(pluginOptions?.maxWidth ?? 26, element.width || pluginOptions?.width || 22)
+        Math.min(pluginOptions?.maxWidth ?? 26, slotWidth * (pluginOptions?.trackWidthRatio ?? 0.82))
       );
-      const x = element.x - width / 2;
+      const fillInset = pluginOptions?.fillInset ?? Math.max(1, Math.min(2.5, trackWidth * 0.06));
+      const fillWidth = Math.max(4, trackWidth - fillInset * 2);
+      const x = element.x - trackWidth / 2;
       const isActive = index === activeIndex;
 
-      const trackRect = { left: x, right: x + width, top, bottom };
-      roundedRectPath(ctx, x, top, width, trackHeight, width / 2);
+      const trackRect = { left: x, right: x + trackWidth, top, bottom };
+      roundedRectPath(ctx, x, top, trackWidth, trackHeight, trackWidth / 2);
       ctx.fillStyle = createTrackGradient(ctx, trackRect, isActive);
       ctx.fill();
 
@@ -379,17 +391,17 @@ const referencePillBarPlugin = {
 
       const barGradient = createBarSurfaceGradient(
         ctx,
-        { left: x, right: x + width, top: barTop, bottom: barBottom },
+        { left: x + fillInset, right: x + fillInset + fillWidth, top: barTop, bottom: barBottom },
         tone,
         isActive
       );
-      roundedRectPath(ctx, x, barTop, width, barHeight, width / 2);
+      roundedRectPath(ctx, x + fillInset, barTop, fillWidth, barHeight, fillWidth / 2);
       ctx.fillStyle = pluginOptions?.solid === true ? solidToneColor(tone, value) : barGradient;
       ctx.fill();
 
-      const capHeight = Math.max(4, Math.min(8, width * 0.32));
-      const capInset = Math.max(1.5, width * 0.08);
-      roundedRectPath(ctx, x + capInset, barTop + 1, width - capInset * 2, capHeight, (width - capInset * 2) / 2);
+      const capHeight = Math.max(4, Math.min(7, fillWidth * 0.26));
+      const capInset = Math.max(1.2, fillWidth * 0.06);
+      roundedRectPath(ctx, x + fillInset + capInset, barTop + 1, fillWidth - capInset * 2, capHeight, (fillWidth - capInset * 2) / 2);
       ctx.fillStyle = withAlpha("#ffffff", isActive ? 0.18 : 0.12);
       ctx.fill();
 
@@ -773,6 +785,8 @@ function createBarChart(ChartLib, canvas, spec) {
               solid: spec.referenceSolidBars === true,
               minWidth: spec.trackMinWidth ?? (mobile ? 20 : 30),
               maxWidth: spec.trackMaxWidth ?? (mobile ? 20 : 30),
+              trackWidthRatio: spec.trackWidthRatio ?? (mobile ? 0.78 : 0.84),
+              fillInset: spec.fillInset ?? (mobile ? 1.2 : 1.6),
               topInset: spec.trackTopInset ?? 6,
               bottomInset: spec.trackBottomInset ?? 2,
               trackAlpha: spec.trackAlpha ?? 0.12,
