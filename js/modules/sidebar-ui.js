@@ -4,7 +4,6 @@ import { applyAvatarContent } from "./avatar-utils.js";
 export function initSidebarUI(store) {
   const shell = document.querySelector(".app-shell");
   const settingsShortcut = document.getElementById("sidebarSettingsShortcut");
-  const searchInput = document.querySelector(".sidebar-search-input");
   const profileRoot = document.getElementById("sidebarProfile");
 
   if (!shell) return;
@@ -31,15 +30,6 @@ export function initSidebarUI(store) {
         activePage: "settings"
       }
     }));
-  });
-
-  searchInput?.addEventListener("input", () => {
-    const query = searchInput.value.trim().toLowerCase();
-    document.querySelectorAll(".nav-item").forEach((item) => {
-      const label = (item.textContent || "").trim().toLowerCase();
-      const visible = !query || label.includes(query);
-      item.hidden = !visible;
-    });
   });
 
   document.addEventListener("pointerdown", (event) => {

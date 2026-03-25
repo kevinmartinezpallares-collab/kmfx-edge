@@ -158,7 +158,7 @@ export function renderDashboard(root, state) {
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
         const delta = value - prev;
-        return `${formatCurrency(value)} · ${delta >= 0 ? "+" : ""}${formatCurrency(delta).replace("US$", "").trim()} US$`;
+        return `${formatCurrency(value)} · ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`;
       },
       axisFormatter: (value) => formatCompact(value)
     }),

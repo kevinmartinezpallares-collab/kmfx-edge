@@ -1,4 +1,4 @@
-const esMoney = new Intl.NumberFormat("es-ES", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
@@ -12,8 +12,45 @@ const symbolBasePrices = {
   NAS100: 18240
 };
 
-export function formatCurrency(value) {
-  return esMoney.format(value || 0);
+function readPreferredCurrency() {
+  try {
+    const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
+    if (settingsRaw) {
+      const settings = JSON.parse(settingsRaw);
+      if (settings?.baseCurrency === "EUR" || settings?.baseCurrency === "USD") {
+        return settings.baseCurrency;
+      }
+    }
+  } catch (error) {
+    console.warn("[KMFX][UTILS] settings currency read failed", error);
+  }
+
+  try {
+    const appRaw = window.localStorage.getItem("kmfx_frontend_state");
+    if (appRaw) {
+      const appState = JSON.parse(appRaw);
+      const currency = appState?.workspace?.baseCurrency || appState?.preferences?.baseCurrency;
+      if (currency === "EUR" || currency === "USD") return currency;
+    }
+  } catch (error) {
+    console.warn("[KMFX][UTILS] app currency read failed", error);
+  }
+
+  return "USD";
+}
+
+function getCurrencySymbol(currency) {
+  if (currency === "EUR") return "€";
+  return "$";
+}
+
+export function formatCurrency(value, currencyOverride) {
+  const amount = Number(value) || 0;
+  const currency = currencyOverride || readPreferredCurrency();
+  const symbol = getCurrencySymbol(currency);
+  const sign = amount < 0 ? "-" : "";
+  const abs = esNumber.format(Math.abs(amount));
+  return `${sign}${symbol}${abs}`;
 }
 
 export function formatCompact(value) {

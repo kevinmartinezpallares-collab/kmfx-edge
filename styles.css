@@ -411,7 +411,7 @@ body[data-theme="dark"] .app-shell {
 .sidebar {
   position: fixed;
   inset: 18px auto 18px 18px;
-  width: 272px;
+  width: 200px;
   height: auto;
   display: flex;
   flex-direction: column;
@@ -922,7 +922,7 @@ html[data-theme="dark"] .brand-lockup {
   min-width: 0;
   height: 100vh;
   overflow: hidden;
-  margin-left: 308px;
+  margin-left: 236px;
   padding: 18px 20px 20px 0;
   background: var(--bg-shell);
 }
@@ -1578,8 +1578,20 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   min-width: 0;
   display: grid;
   align-content: center;
-  padding-left: 30px;
-  border-left: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
+  position: relative;
+  padding-left: 34px;
+  border-left: 0;
+}
+
+.account-banner-chart::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: color-mix(in srgb, var(--border) 54%, transparent);
+  pointer-events: none;
 }
 
 .account-banner-badges {
@@ -6314,6 +6326,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
   }
 
+  .account-banner-chart::before {
+    content: none;
+  }
+
   .dashboard-kpi-premium-grid,
   .dashboard-main-grid,
   .dashboard-secondary-grid,
@@ -6549,6 +6565,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     padding-top: 12px;
     border-left: 0;
     border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  }
+
+  .account-banner-chart::before {
+    content: none;
   }
 
   .account-banner-side {
@@ -6915,6 +6935,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     padding-top: 10px;
     border-left: 0;
     border-top: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+  }
+
+  .account-banner-chart::before {
+    content: none;
   }
 
   .account-banner-badges,
