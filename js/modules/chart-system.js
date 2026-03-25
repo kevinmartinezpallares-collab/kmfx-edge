@@ -112,8 +112,14 @@ function externalTooltipHandler(context) {
   const clientHeight = host?.clientHeight || chart.canvas.clientHeight;
   const tooltipWidth = tooltipEl.offsetWidth || 136;
   const tooltipHeight = tooltipEl.offsetHeight || 48;
-  const rawLeft = positionX + tooltip.caretX - (tooltipWidth / 2);
-  const rawTop = positionY + tooltip.caretY - tooltipHeight - 14;
+  const activeIndex = tooltip?.dataPoints?.[0]?.dataIndex ?? -1;
+  const referenceColumn = isBarChart && activeIndex >= 0 ? chart?.$kmfxReferenceColumns?.[activeIndex] : null;
+  const rawLeft = referenceColumn
+    ? positionX + referenceColumn.centerX - (tooltipWidth / 2)
+    : positionX + tooltip.caretX - (tooltipWidth / 2);
+  const rawTop = referenceColumn
+    ? positionY + referenceColumn.top - tooltipHeight - 10
+    : positionY + tooltip.caretY - tooltipHeight - 14;
   const left = Math.max(8, Math.min(rawLeft, clientWidth - tooltipWidth - 8));
   const top = Math.max(8, rawTop);
 
@@ -215,8 +221,8 @@ function resolveBarTone(spec, point, index, value) {
 
 function createTrackGradient(ctx, rect, active = false) {
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  const topColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.18 : 0.12);
-  const bottomColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.08 : 0.05);
+  const topColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.2 : 0.14);
+  const bottomColor = withAlpha(getCssVar("--text-muted") || "#94A3B8", active ? 0.1 : 0.07);
   gradient.addColorStop(0, topColor);
   gradient.addColorStop(1, bottomColor);
   return gradient;
@@ -359,6 +365,7 @@ const referencePillBarPlugin = {
 
     const activeIndex = chart.tooltip?.getActiveElements?.()?.[0]?.index ?? -1;
     const fallbackTone = pluginOptions?.tone || "blue";
+    const referenceColumns = [];
 
     ctx.save();
 
@@ -373,6 +380,7 @@ const referencePillBarPlugin = {
       const fillWidth = Math.max(4, trackWidth - fillInset * 2);
       const x = element.x - trackWidth / 2;
       const isActive = index === activeIndex;
+      referenceColumns.push({ centerX: element.x, top, bottom, left: x, width: trackWidth });
 
       const trackRect = { left: x, right: x + trackWidth, top, bottom };
       roundedRectPath(ctx, x, top, trackWidth, trackHeight, trackWidth / 2);
@@ -423,6 +431,7 @@ const referencePillBarPlugin = {
     });
 
     ctx.restore();
+    chart.$kmfxReferenceColumns = referenceColumns;
   }
 };
 
