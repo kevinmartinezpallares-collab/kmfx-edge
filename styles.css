@@ -926,8 +926,9 @@ html[data-theme="dark"] .brand-lockup {
 }
 
 .theme-badge-option.is-active {
-  background: var(--active-surface);
-  color: var(--active-text);
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--accent) 12%);
+  color: var(--text1);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
 }
 
 .theme-badge-option .theme-icon {
@@ -3328,13 +3329,20 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 }
 
 .score-bar-row--compact {
-  grid-template-columns: 96px 1fr auto;
+  grid-template-columns: 132px 1fr auto;
   margin-top: 0;
 }
 
 .score-bar-row span {
   color: var(--text3);
   font-weight: 550;
+}
+
+.score-bar-row--compact > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .score-bar-row strong {
@@ -3497,6 +3505,7 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 18px;
+  align-items: start;
 }
 
 .analytics-bento-card {
@@ -3759,11 +3768,11 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 }
 
 .analytics-ratio-minimal-card--bento {
-  min-height: 168px;
+  min-height: 148px;
   display: grid;
   align-content: start;
-  gap: 0;
-  padding: 18px 18px 16px;
+  gap: 6px;
+  padding: 17px 17px 15px;
 }
 
 .analytics-ratio-minimal-card span {
@@ -3799,6 +3808,12 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   vertical-align: middle;
 }
 
+.analytics-ratio-minimal-card--bento .analytics-inline-risk-tag {
+  margin-left: 0;
+  margin-top: 2px;
+  justify-self: start;
+}
+
 .analytics-inline-risk-tag .ui-badge {
   display: inline-flex;
   align-items: center;
@@ -3811,6 +3826,11 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 .analytics-inline-risk-tag .ui-badge__dot {
   flex-shrink: 0;
   align-self: center;
+}
+
+.analytics-ratio-minimal-card--bento .analytics-inline-risk-tag .ui-badge {
+  min-height: 26px;
+  padding: 0 11px;
 }
 
 .analytics-hourly-bento-grid {
@@ -6001,9 +6021,9 @@ tfoot td {
 }
 
 .btn-primary {
-  border: 1px solid #3D7BFF;
-  background: #3D7BFF;
-  color: #fff;
+  border: 1px solid color-mix(in srgb, #3D7BFF 20%, var(--border));
+  background: color-mix(in srgb, var(--surface2) 88%, #3D7BFF 12%);
+  color: var(--text1);
   box-shadow: none;
 }
 
@@ -6016,8 +6036,8 @@ tfoot td {
 
 html[data-theme="dark"] .btn-primary,
 body[data-theme="dark"] .btn-primary {
-  border-color: #3D7BFF;
-  background: #3D7BFF;
+  border-color: color-mix(in srgb, #3D7BFF 20%, var(--border));
+  background: color-mix(in srgb, #111317 88%, #3D7BFF 12%);
   color: #FFFFFF;
   box-shadow: none;
 }
@@ -6052,7 +6072,7 @@ html[data-theme="dark"] .pnlcal-nav-btn:hover,
 body[data-theme="dark"] .btn-primary:hover,
 body[data-theme="dark"] .btn-secondary:hover,
 body[data-theme="dark"] .pnlcal-nav-btn:hover {
-  border-color: #3D7BFF;
+  border-color: color-mix(in srgb, #3D7BFF 28%, var(--border));
   box-shadow: none;
 }
 
