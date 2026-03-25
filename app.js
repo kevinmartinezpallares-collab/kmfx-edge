@@ -13,7 +13,6 @@ import { initJournal, renderJournal } from "./js/modules/journal.js";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js";
 import { initFunded, renderFunded } from "./js/modules/funded.js";
 import { renderMarket } from "./js/modules/market.js";
-import { renderTalent } from "./js/modules/talent.js";
 import { renderPortfolio } from "./js/modules/portfolio.js";
 import { renderGlossary } from "./js/modules/glossary.js";
 import { renderDebug } from "./js/modules/debug.js";
@@ -57,7 +56,6 @@ const pageRenderers = {
   strategies: (state) => renderStrategies(document.getElementById("strategiesRoot"), state),
   funded: (state) => renderFunded(document.getElementById("fundedRoot"), state),
   market: (state) => renderMarket(document.getElementById("marketRoot"), state),
-  talent: (state) => renderTalent(document.getElementById("talentRoot"), state),
   portfolio: (state) => renderPortfolio(document.getElementById("portfolioRoot"), state),
   glossary: (state) => renderGlossary(document.getElementById("glossaryRoot"), state),
   debug: (state) => renderDebug(document.getElementById("debugRoot"), state),
@@ -120,7 +118,6 @@ function initSettings() {
     ["funded", "Funded"],
     ["risk", "Riesgo"],
     ["calculator", "Calculadora"],
-    ["talent", "Talento"],
     ["connections", "Conexiones"],
     ["settings", "Ajustes"]
   ];

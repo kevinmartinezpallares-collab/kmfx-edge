@@ -3,7 +3,7 @@ import { evaluateCompliance } from "./account-runtime.js";
 import { readPersistedAuthState } from "./auth-session.js";
 
 const STORAGE_KEY = "kmfx_frontend_state";
-const validPages = new Set(["dashboard", "analytics", "risk", "trades", "calendar", "connections", "calculator", "journal", "strategies", "funded", "market", "talent", "portfolio", "glossary", "debug", "settings"]);
+const validPages = new Set(["dashboard", "analytics", "risk", "trades", "calendar", "connections", "calculator", "journal", "strategies", "funded", "market", "portfolio", "glossary", "debug", "settings"]);
 const validAnalyticsTabs = new Set(["summary", "daily", "hourly", "risk"]);
 
 function safeStorageGet(key) {

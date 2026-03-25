@@ -45,6 +45,13 @@ function hourlyBehavior(model) {
   };
 }
 
+function activeDayConsistency(model) {
+  const activeDays = model.dailyReturns?.length || 0;
+  const greenDays = model.weekdays?.filter((day) => day.pnl > 0).length || 0;
+  if (!activeDays) return 0;
+  return (greenDays / activeDays) * 100;
+}
+
 function buildDisciplineScore(model) {
   const scoreWinRate = clamp(model.totals.winRate);
   const scoreProfitFactor = clamp((Math.min(model.totals.profitFactor || 0, 3) / 3) * 100);
@@ -82,101 +89,93 @@ export function renderDiscipline(root, state) {
   const hourly = hourlyBehavior(model);
   const avgLossValue = model.totals.avgLoss || 0;
   const discipline = buildDisciplineScore(model);
+  const lossConcentration = clamp(((currentLosses * Math.abs(avgLossValue)) / Math.max(Math.abs(model.totals.worstTrade || avgLossValue || 1), 1)) * 36, 0, 100);
+  const behaviorConsistency = activeDayConsistency(model);
+  const peakHourLabel = `${String(hourly.peak.hour).padStart(2, "0")}:00`;
 
   root.innerHTML = `
     <div class="tl-page-header">
       <div class="tl-page-title">Disciplina</div>
-      <div class="tl-page-sub">Comportamiento del trader, control de ejecución y consistencia operativa.</div>
+      <div class="tl-page-sub">¿Estás operando con disciplina o alejándote de tu sistema?</div>
     </div>
 
     <div class="discipline-page-stack">
       <div class="tl-kpi-row discipline-kpi-row">
-        <article class="tl-kpi-card">
+        <article class="tl-kpi-card discipline-kpi-card discipline-kpi-card--score">
+          <div class="tl-kpi-label">KMFX Discipline Score</div>
+          <div class="tl-kpi-val">${discipline.total}</div>
+          <div class="row-sub">Lectura agregada de disciplina operativa</div>
+        </article>
+        <article class="tl-kpi-card discipline-kpi-card">
           <div class="tl-kpi-label">Win rate</div>
           <div class="tl-kpi-val">${Math.round(model.totals.winRate)}%</div>
           <div class="row-sub">Tasa de acierto global</div>
         </article>
-        <article class="tl-kpi-card">
+        <article class="tl-kpi-card discipline-kpi-card">
           <div class="tl-kpi-label">Avg R</div>
           <div class="tl-kpi-val">${avgRValue.toFixed(2)}R</div>
           <div class="row-sub">Promedio por trade</div>
         </article>
-        <article class="tl-kpi-card">
-          <div class="tl-kpi-label">Consecutive losses</div>
-          <div class="tl-kpi-val ${currentLosses >= 2 ? "red" : ""}">${currentLosses}</div>
-          <div class="row-sub">Racha negativa actual</div>
-        </article>
-        <article class="tl-kpi-card">
+        <article class="tl-kpi-card discipline-kpi-card">
           <div class="tl-kpi-label">Win / Loss ratio</div>
           <div class="tl-kpi-val">${wlRatio.toFixed(2)}</div>
           <div class="row-sub">Ganadoras frente a perdedoras</div>
         </article>
       </div>
 
-      <div class="grid-2 equal discipline-control-grid">
-        <article class="tl-section-card discipline-control-card">
-          <div class="tl-section-header">
-            <div>
-              <div class="tl-section-title">Trading Control</div>
-              <div class="tl-section-sub">Ritmo operativo y concentración de pérdidas con el sample actual.</div>
-            </div>
-          </div>
-          <div class="discipline-control-list">
-            <div class="metric-rail">
-              <div class="metric-rail-copy">
-                <span>Trades por día</span>
-                <strong>${tradesDay.toFixed(1)}</strong>
-              </div>
-              <div class="metric-rail-track"><div class="metric-rail-fill metric-rail-fill--blue" style="width:${clamp((tradesDay / 6) * 100, 8, 100)}%"></div></div>
-              <div class="metric-rail-hint">${model.totals.totalTrades} trades / ${model.dailyReturns.length} días activos</div>
-            </div>
-            <div class="metric-rail">
-              <div class="metric-rail-copy">
-                <span>Loss concentration</span>
-                <strong class="${currentLosses >= 2 ? "metric-negative" : ""}">${currentLosses}x / ${formatCurrency(avgLossValue)}</strong>
-              </div>
-              <div class="metric-rail-track"><div class="metric-rail-fill metric-rail-fill--red" style="width:${clamp(((currentLosses * Math.abs(avgLossValue)) / Math.max(Math.abs(model.totals.worstTrade || avgLossValue || 1), 1)) * 36, 8, 100)}%"></div></div>
-              <div class="metric-rail-hint">Racha actual de pérdidas / pérdida media</div>
-            </div>
-            <div class="discipline-inline-notes">
-              <div class="discipline-inline-note">
-                <span>Hora dominante</span>
-                <strong>${String(hourly.peak.hour).padStart(2, "0")}:00</strong>
-                <small>${hourly.peak.trades} trades / ${formatCurrency(hourly.peak.pnl)}</small>
-              </div>
-              <div class="discipline-inline-note">
-                <span>Concentración horaria</span>
-                <strong>${Math.round(hourly.concentration)}%</strong>
-                <small>del total de trades en la franja principal</small>
-              </div>
-            </div>
-          </div>
+      <div class="tl-kpi-row discipline-kpi-row">
+        <article class="tl-kpi-card discipline-kpi-card">
+          <div class="tl-kpi-label">Consecutive losses</div>
+          <div class="tl-kpi-val ${currentLosses >= 2 ? "red" : ""}">${currentLosses}</div>
+          <div class="row-sub">Racha negativa actual</div>
         </article>
-
-        <article class="tl-section-card discipline-hourly-card">
-          <div class="tl-section-header">
-            <div>
-              <div class="tl-section-title">Hourly Behavior</div>
-              <div class="tl-section-sub">Actividad por hora para detectar impulsividad o concentración excesiva.</div>
-            </div>
-          </div>
-          ${chartCanvas("discipline-hourly-behavior", 220, "kmfx-chart-shell--feature")}
+        <article class="tl-kpi-card discipline-kpi-card">
+          <div class="tl-kpi-label">Trades por día</div>
+          <div class="tl-kpi-val">${tradesDay.toFixed(1)}</div>
+          <div class="row-sub">${model.totals.totalTrades} trades / ${model.dailyReturns.length} días activos</div>
+        </article>
+        <article class="tl-kpi-card discipline-kpi-card">
+          <div class="tl-kpi-label">Loss concentration</div>
+          <div class="tl-kpi-val ${currentLosses >= 2 ? "red" : ""}">${Math.round(lossConcentration)}%</div>
+          <div class="row-sub">${currentLosses}x racha / ${formatCurrency(avgLossValue)} pérdida media</div>
+        </article>
+        <article class="tl-kpi-card discipline-kpi-card">
+          <div class="tl-kpi-label">Consistencia activa</div>
+          <div class="tl-kpi-val">${Math.round(behaviorConsistency)}%</div>
+          <div class="row-sub">Días verdes sobre actividad registrada</div>
         </article>
       </div>
+
+      <article class="tl-section-card discipline-hourly-card">
+        <div class="tl-section-header">
+          <div>
+            <div class="tl-section-title">Hourly Behavior</div>
+            <div class="tl-section-sub">La disciplina también se ve en cuándo operas: concentración, repetición y sesgo horario.</div>
+          </div>
+        </div>
+        <div class="discipline-inline-notes discipline-inline-notes--chart">
+          <div class="discipline-inline-note">
+            <span>Hora dominante</span>
+            <strong>${peakHourLabel}</strong>
+            <small>${hourly.peak.trades} trades / ${formatCurrency(hourly.peak.pnl)}</small>
+          </div>
+          <div class="discipline-inline-note">
+            <span>Concentración horaria</span>
+            <strong>${Math.round(hourly.concentration)}%</strong>
+            <small>del total de trades en una sola franja</small>
+          </div>
+        </div>
+        ${chartCanvas("discipline-hourly-behavior", 240, "kmfx-chart-shell--feature")}
+      </article>
 
       <article class="tl-section-card discipline-score-card">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">KMFX Discipline Score</div>
-            <div class="tl-section-sub">Score 0–100 basado en Win Rate, Profit Factor, Max DD y Avg R.</div>
+            <div class="tl-section-title">Cómo se calcula el score</div>
+            <div class="tl-section-sub">Transparencia simple: el score solo pondera métricas ya presentes en KMFX Edge.</div>
           </div>
         </div>
         <div class="discipline-score-layout">
-          <div class="discipline-score-main">
-            <div class="discipline-score-value">${discipline.total}</div>
-            <div class="discipline-score-copy">Disciplina operativa</div>
-            <div class="discipline-score-meta">35% WR / 25% PF / 20% DD / 20% Avg R</div>
-          </div>
           <div class="discipline-score-parts">
             ${discipline.parts.map((part) => `
               <div class="discipline-score-part">
@@ -188,6 +187,11 @@ export function renderDiscipline(root, state) {
                 <small>${part.note}</small>
               </div>
             `).join("")}
+          </div>
+          <div class="discipline-score-main">
+            <div class="discipline-score-value">${discipline.total}</div>
+            <div class="discipline-score-copy">Disciplina operativa</div>
+            <div class="discipline-score-meta">35% Win rate / 25% Profit Factor / 20% Max DD / 20% Avg R</div>
           </div>
         </div>
       </article>

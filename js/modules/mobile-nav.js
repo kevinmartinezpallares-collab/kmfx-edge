@@ -24,8 +24,7 @@ const secondarySections = [
   {
     label: "Progreso",
     items: [
-      { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
-      { page: "talent", label: "Talento", icon: '<circle cx="12" cy="8" r="3"></circle><path d="M5 20c1.5-3 4-4.5 7-4.5S17.5 17 19 20"></path>' }
+      { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' }
     ]
   },
   {

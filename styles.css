@@ -5492,11 +5492,31 @@ body[data-theme="dark"] .settings-profile-card {
 
 .discipline-page-stack {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .discipline-kpi-row {
   margin-bottom: 0;
+}
+
+.discipline-kpi-card {
+  min-height: 124px;
+}
+
+.discipline-kpi-card .row-sub {
+  max-width: 20ch;
+  line-height: 1.45;
+}
+
+.discipline-kpi-card--score {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--surface2)) 0%, var(--surface2) 100%);
+}
+
+.discipline-kpi-card--score .tl-kpi-val {
+  font-size: clamp(42px, 4.4vw, 54px);
+  line-height: 0.92;
 }
 
 .discipline-control-grid {
@@ -5512,6 +5532,10 @@ body[data-theme="dark"] .settings-profile-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.discipline-inline-notes--chart {
+  margin: 2px 0 8px;
 }
 
 .discipline-inline-note {
@@ -5549,20 +5573,25 @@ body[data-theme="dark"] .settings-profile-card {
 
 .discipline-score-layout {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
   align-items: start;
 }
 
 .discipline-score-main {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-content: start;
-  padding: 10px 4px 0 0;
+  padding: 10px 0 0;
+  align-self: stretch;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+  padding: 18px 18px 16px;
 }
 
 .discipline-score-value {
-  font-size: 60px;
+  font-size: 54px;
   font-weight: 720;
   line-height: 0.94;
   letter-spacing: -0.05em;
@@ -5580,6 +5609,7 @@ body[data-theme="dark"] .settings-profile-card {
   color: var(--text4);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  line-height: 1.5;
 }
 
 .discipline-score-parts {
@@ -5634,6 +5664,10 @@ body[data-theme="dark"] .settings-profile-card {
 }
 
 @media (max-width: 980px) {
+  .discipline-kpi-card {
+    min-height: 112px;
+  }
+
   .discipline-score-layout {
     grid-template-columns: 1fr;
   }
