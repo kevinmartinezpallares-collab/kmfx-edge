@@ -234,12 +234,13 @@ function solidToneHoverColor(tone, value = null) {
 }
 
 function resolveBarTone(spec, point, index, value) {
+  const semanticValue = point?.rawValue ?? value;
   if (Array.isArray(spec.pointTones) && spec.pointTones[index]) return spec.pointTones[index];
   if (typeof spec.pointTone === "function") {
-    const resolved = spec.pointTone(point, index, value);
+    const resolved = spec.pointTone(point, index, semanticValue);
     if (resolved) return resolved;
   }
-  if (spec.positiveNegative) return value >= 0 ? "green" : "red";
+  if (spec.positiveNegative) return semanticValue >= 0 ? "green" : "red";
   return spec.tone || "blue";
 }
 
@@ -667,6 +668,33 @@ const zeroDividerPlugin = {
   }
 };
 
+const literalAxesPlugin = {
+  id: "kmfxLiteralAxes",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const { ctx, chartArea, scales } = chart;
+    const xScale = scales?.x;
+    const yScale = scales?.y;
+    if (!ctx || !chartArea || !xScale || !yScale) return;
+    const axisColor = pluginOptions?.color || withAlpha(getCssVar("--border-subtle") || getCssVar("--border") || "#94A3B8", 0.8);
+    const lineWidth = pluginOptions?.lineWidth || 1;
+    const left = Math.round(chartArea.left) + 0.5;
+    const right = Math.round(chartArea.right) - 0.5;
+    const top = Math.round(chartArea.top) + 0.5;
+    const bottom = Math.round(chartArea.bottom) - 0.5;
+
+    ctx.save();
+    ctx.strokeStyle = axisColor;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left, bottom);
+    ctx.lineTo(right, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
 const doughnutCenterPlugin = {
   id: "kmfxDoughnutCenter",
   afterDraw(chart) {
@@ -704,7 +732,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin);
+  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -715,7 +743,7 @@ function createSparklineChart(ChartLib, canvas, spec) {
     data: {
       labels: spec.points.map((point) => point.label),
       datasets: [{
-        data: spec.points.map((point) => point.value),
+        data: spec.points.map((point) => spec.absoluteBars === true ? Math.abs(point.value) : point.value),
         borderColor(context) {
           const area = context.chart.chartArea;
           if (!area) return start;
@@ -1065,6 +1093,12 @@ function createBarChart(ChartLib, canvas, spec) {
           ? {
               alpha: spec.zeroDividerAlpha ?? 0.55,
               lineWidth: spec.zeroDividerWidth ?? 1
+            }
+          : false,
+        kmfxLiteralAxes: spec.literalAxes !== false
+          ? {
+              alpha: spec.axisLineAlpha ?? 0.8,
+              lineWidth: spec.axisLineWidth ?? 1
             }
           : false,
         tooltip: {
