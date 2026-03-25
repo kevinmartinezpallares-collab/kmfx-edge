@@ -216,21 +216,17 @@ function createBarSurfaceGradient(context, area, tone, hover = false) {
 }
 
 function solidToneColor(tone, value = null) {
-  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-a"), 0.7);
-  if (tone === "green") return withAlpha(getCssVar("--green"), 0.76);
-  if (tone === "red") return withAlpha(getCssVar("--red"), 0.76);
-  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-a"), 0.72);
-  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.76) : withAlpha(getCssVar("--red"), 0.76);
-  return withAlpha(getCssVar("--chart-blue-a"), 0.72);
+  if (tone === "red") return "#B23030";
+  if (tone === "green" || tone === "blue" || tone === "violet") return "#B2E600";
+  if (value != null) return value >= 0 ? "#B2E600" : "#B23030";
+  return "#B2E600";
 }
 
 function solidToneHoverColor(tone, value = null) {
-  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-b"), 0.78);
-  if (tone === "green") return withAlpha(getCssVar("--green"), 0.82);
-  if (tone === "red") return withAlpha(getCssVar("--red"), 0.82);
-  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-b"), 0.78);
-  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.82) : withAlpha(getCssVar("--red"), 0.82);
-  return withAlpha(getCssVar("--chart-blue-b"), 0.78);
+  if (tone === "red") return "#B23030";
+  if (tone === "green" || tone === "blue" || tone === "violet") return "#B2E600";
+  if (value != null) return value >= 0 ? "#B2E600" : "#B23030";
+  return "#B2E600";
 }
 
 function resolveBarTone(spec, point, index, value) {
@@ -676,7 +672,7 @@ const literalAxesPlugin = {
     const xScale = scales?.x;
     const yScale = scales?.y;
     if (!ctx || !chartArea || !xScale || !yScale) return;
-    const axisColor = pluginOptions?.color || withAlpha(getCssVar("--border-subtle") || getCssVar("--border") || "#94A3B8", 0.8);
+    const axisColor = pluginOptions?.color || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14);
     const lineWidth = pluginOptions?.lineWidth || 1;
     const left = Math.round(chartArea.left) + 0.5;
     const right = Math.round(chartArea.right) - 0.5;
