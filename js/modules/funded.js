@@ -157,7 +157,10 @@ function deriveFundedAccount(raw, linked) {
   const targetPct = Number(
     raw.targetPct ?? raw.profitTargetPct ?? preset?.profitTargetPct ?? 0
   ) || 0;
-  const targetCompletionPct = targetPct > 0 ? clamp((currentProfitPct / targetPct) * 100, 0, 100) : (phase === "Funded" ? 100 : 0);
+  const targetUsd = targetPct > 0 ? (accountSize * targetPct) / 100 : 0;
+  const progressRatio = targetUsd > 0 ? clamp(currentProfitUsd / targetUsd, 0, 1) : (phase === "Funded" ? 1 : 0);
+  const targetCompletionPct = progressRatio * 100;
+  const remainingUsd = targetUsd > 0 ? Math.max(targetUsd - Math.max(currentProfitUsd, 0), 0) : 0;
   const dailyDdPct = Number(raw.dailyDdPct ?? linked?.model?.riskSummary?.dailyDrawdownPct ?? 0) || 0;
   const maxDdPct = Number(raw.maxDdPct ?? linked?.model?.totals?.drawdown?.maxPct ?? 0) || 0;
   const dailyLimitPct = Number(raw.dailyLossLimitPct ?? preset?.dailyLossLimitPct ?? linked?.model?.riskProfile?.dailyLossLimitPct ?? 0) || 0;
@@ -223,7 +226,10 @@ function deriveFundedAccount(raw, linked) {
     currentProfitUsd,
     currentProfitPct,
     targetPct,
+    targetUsd,
+    progressRatio,
     targetCompletionPct,
+    remainingUsd,
     dailyDdPct,
     maxDdPct,
     dailyLimitPct,
@@ -457,20 +463,20 @@ export function renderFunded(root, state) {
             <div class="tl-section-title">Progress vs target</div>
             <div class="tl-section-sub">Ancla principal del challenge: beneficio actual frente al objetivo de la fase.</div>
           </div>
-          <div class="funded-progress-metric">${selected.targetPct ? `${formatPercent(selected.currentProfitPct)} / ${formatPercent(selected.targetPct)}` : "Capital preservation"}</div>
+          <div class="funded-progress-metric">${selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : "Capital preservation"}</div>
         </div>
         <div class="funded-progress-layout">
           <div class="funded-progress-main">
-            <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selected.currentProfitUsd)}</div>
-            <div class="row-sub">${selected.targetPct ? `${Math.round(selected.targetCompletionPct)}% del objetivo completado` : "Sin profit target en esta fase"}</div>
+            <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : formatCurrency(selected.currentProfitUsd)}</div>
+            <div class="row-sub">${selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}% completado · Remaining: ${formatCurrency(selected.remainingUsd)}` : "Sin profit target en esta fase"}</div>
           </div>
           <div class="funded-progress-track">
             <div class="funded-progress-bar">
-              <div class="funded-progress-fill ${progressFillClass(selected.targetCompletionPct)}" style="width:${selected.targetPct ? selected.targetCompletionPct : clamp(selected.currentProfitPct + 50, 0, 100)}%"></div>
+              <div class="funded-progress-fill ${progressFillClass(selected.targetCompletionPct)}" style="width:${selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
             </div>
             <div class="funded-progress-meta">
-              <span>Profit actual: ${formatPercent(selected.currentProfitPct)}</span>
-              <span>${selected.targetPct ? `Target: ${formatPercent(selected.targetPct)}` : "Target no aplicable"}</span>
+              <span>Current profit: ${formatCurrency(selected.currentProfitUsd)}</span>
+              <span>${selected.targetUsd ? `Target: ${formatCurrency(selected.targetUsd)}` : "Target no aplicable"}</span>
             </div>
           </div>
         </div>
