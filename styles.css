@@ -1330,6 +1330,16 @@ body[data-theme="dark"] .widget-card::before {
   overflow: hidden;
 }
 
+.account-hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease;
+}
+
 html:not([data-theme="dark"]) .account-hero-card {
   border-color: rgba(20, 24, 36, 0.08);
   background:
@@ -1352,6 +1362,13 @@ body[data-theme="dark"] .account-hero-card {
   border-color: rgba(61, 123, 255, 0.42);
   background: color-mix(in srgb, #111317 92%, #3D7BFF 8%);
   box-shadow: none;
+}
+
+.account-hero-card.active::after {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(61, 123, 255, 0.22), transparent 42%),
+    radial-gradient(circle at 84% 82%, rgba(61, 123, 255, 0.12), transparent 38%);
 }
 
 html:not([data-theme="dark"]) .account-hero-card:hover,
