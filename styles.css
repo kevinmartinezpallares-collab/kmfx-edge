@@ -3134,6 +3134,11 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-btn {
   box-shadow: none;
 }
 
+html:not([data-theme="dark"]) .brand-lockup {
+  background: transparent;
+  border-color: transparent;
+}
+
 html:not([data-theme="dark"]) .theme-badge-option:hover,
 html:not([data-theme="dark"]) .sidebar-profile-menu-btn:hover {
   background: var(--bg-card-alt);
@@ -4818,15 +4823,33 @@ body[data-theme="dark"] .settings-profile-card {
 }
 
 .hhc-card.green {
-  background: color-mix(in srgb, var(--green) 3%, var(--surface));
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--green) 18%, transparent) 0%, transparent 58%),
+    linear-gradient(180deg, color-mix(in srgb, var(--green) 8%, var(--card-surface)), color-mix(in srgb, var(--green) 4%, var(--card-surface)));
+  border-color: color-mix(in srgb, var(--green) 20%, var(--card-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--green) 8%, transparent);
 }
 
 .hhc-card.red {
-  background: color-mix(in srgb, var(--red) 3%, var(--surface));
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--red) 18%, transparent) 0%, transparent 58%),
+    linear-gradient(180deg, color-mix(in srgb, var(--red) 8%, var(--card-surface)), color-mix(in srgb, var(--red) 4%, var(--card-surface)));
+  border-color: color-mix(in srgb, var(--red) 20%, var(--card-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--red) 8%, transparent);
 }
 
 .hhc-card.blue {
-  background: color-mix(in srgb, var(--accent) 3%, var(--surface));
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 58%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--card-surface)), color-mix(in srgb, var(--accent) 4%, var(--card-surface)));
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--card-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .hhc-label,
@@ -8239,4 +8262,24 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .bnav-more-grid {
     grid-template-columns: 1fr;
   }
+}
+
+html:not([data-theme="dark"]) .brand-logo-light,
+body:not([data-theme="dark"]) .brand-logo-light {
+  display: block;
+}
+
+html:not([data-theme="dark"]) .brand-logo-dark,
+body:not([data-theme="dark"]) .brand-logo-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .brand-logo-light,
+body[data-theme="dark"] .brand-logo-light {
+  display: none;
+}
+
+html[data-theme="dark"] .brand-logo-dark,
+body[data-theme="dark"] .brand-logo-dark {
+  display: block;
 }
