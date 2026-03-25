@@ -3207,6 +3207,7 @@ html:not([data-theme="dark"]) .pill,
 html:not([data-theme="dark"]) .calc-chip,
 html:not([data-theme="dark"]) .calc-pill,
 html:not([data-theme="dark"]) .widget-pill,
+html:not([data-theme="dark"]) .footer-chip,
 html:not([data-theme="dark"]) .tl-tab-bar {
   background: var(--bg-card-alt);
   border-color: var(--border-subtle);
