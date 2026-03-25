@@ -361,10 +361,12 @@ export function renderDashboard(root, state) {
             <div class="widget-pill ${cumulativeReturn >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(cumulativeReturn)}</div>
           </div>
           <div class="widget-return-shell">
-            <div>
-              <div class="metric-label">Crecimiento desde balance inicial</div>
-              <div class="metric-large ${cumulativeReturn >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(cumulativeReturn)}</div>
-              <div class="row-sub">${formatCurrency(model.cumulative.totalUsd || 0)} netos acumulados</div>
+            <div class="widget-return-copy">
+              <div class="widget-return-intro">
+                <div class="metric-label">Crecimiento desde balance inicial</div>
+                <div class="metric-large ${cumulativeReturn >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(cumulativeReturn)}</div>
+                <div class="row-sub">${formatCurrency(model.cumulative.totalUsd || 0)} netos acumulados</div>
+              </div>
               <div class="widget-return-rails">
                 ${statRail("Balance", formatCurrency(model.account.balance), 72, "blue")}
                 ${statRail("Equity", formatCurrency(model.account.equity), 78, "violet")}
