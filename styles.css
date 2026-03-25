@@ -3811,6 +3811,12 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   line-height: 1.45;
 }
 
+.analytics-ratio-meta {
+  display: inline-flex;
+  justify-self: start;
+  margin-top: 8px;
+}
+
 .analytics-inline-risk-tag {
   display: inline-flex;
   align-items: center;
@@ -3840,8 +3846,10 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
 }
 
 .analytics-ratio-minimal-card--bento .analytics-inline-risk-tag .ui-badge {
-  min-height: 26px;
-  padding: 0 11px;
+  min-height: 22px;
+  padding: 0 9px;
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
 }
 
 .analytics-hourly-bento-grid {

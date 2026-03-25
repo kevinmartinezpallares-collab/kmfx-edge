@@ -761,9 +761,9 @@ export function renderAnalytics(root, state) {
             </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
               <span>Max DD</span>
-              <div class="analytics-inline-risk-tag">${badgeMarkup(contextTags.drawdownMeta, "ui-badge--compact")}</div>
               <strong class="metric-negative">${formatPercent(model.totals.drawdown.maxPct)}</strong>
               <small>Retroceso máximo desde pico.</small>
+              <div class="analytics-ratio-meta">${badgeMarkup(contextTags.drawdownMeta, "ui-badge--compact")}</div>
             </article>
             <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
               <span>Calmar</span>
