@@ -208,29 +208,29 @@ function createGradient(context, area, tone, alphaStart = 0.16, alphaEnd = 0.01,
 function createBarSurfaceGradient(context, area, tone, hover = false) {
   const { start, end } = toneColors(tone);
   const gradient = context.createLinearGradient(area.left, area.top, area.left, area.bottom);
-  gradient.addColorStop(0, withAlpha(end, hover ? 0.96 : 0.9));
-  gradient.addColorStop(0.18, withAlpha(end, hover ? 0.9 : 0.82));
-  gradient.addColorStop(0.48, withAlpha(start, hover ? 0.92 : 0.84));
-  gradient.addColorStop(1, withAlpha(start, hover ? 0.76 : 0.68));
+  gradient.addColorStop(0, withAlpha(end, hover ? 0.84 : 0.76));
+  gradient.addColorStop(0.2, withAlpha(end, hover ? 0.8 : 0.72));
+  gradient.addColorStop(0.52, withAlpha(start, hover ? 0.78 : 0.68));
+  gradient.addColorStop(1, withAlpha(start, hover ? 0.66 : 0.58));
   return gradient;
 }
 
 function solidToneColor(tone, value = null) {
-  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-a"), 0.78);
-  if (tone === "green") return withAlpha(getCssVar("--green"), 0.84);
-  if (tone === "red") return withAlpha(getCssVar("--red"), 0.84);
-  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-a"), 0.8);
-  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.84) : withAlpha(getCssVar("--red"), 0.84);
-  return withAlpha(getCssVar("--chart-blue-a"), 0.8);
+  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-a"), 0.7);
+  if (tone === "green") return withAlpha(getCssVar("--green"), 0.76);
+  if (tone === "red") return withAlpha(getCssVar("--red"), 0.76);
+  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-a"), 0.72);
+  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.76) : withAlpha(getCssVar("--red"), 0.76);
+  return withAlpha(getCssVar("--chart-blue-a"), 0.72);
 }
 
 function solidToneHoverColor(tone, value = null) {
-  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-b"), 0.9);
-  if (tone === "green") return withAlpha(getCssVar("--green"), 0.92);
-  if (tone === "red") return withAlpha(getCssVar("--red"), 0.92);
-  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-b"), 0.9);
-  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.92) : withAlpha(getCssVar("--red"), 0.92);
-  return withAlpha(getCssVar("--chart-blue-b"), 0.9);
+  if (tone === "violet") return withAlpha(getCssVar("--chart-violet-b"), 0.78);
+  if (tone === "green") return withAlpha(getCssVar("--green"), 0.82);
+  if (tone === "red") return withAlpha(getCssVar("--red"), 0.82);
+  if (tone === "blue") return withAlpha(getCssVar("--chart-blue-b"), 0.78);
+  if (value != null) return value >= 0 ? withAlpha(getCssVar("--green"), 0.82) : withAlpha(getCssVar("--red"), 0.82);
+  return withAlpha(getCssVar("--chart-blue-b"), 0.78);
 }
 
 function resolveBarTone(spec, point, index, value) {
@@ -261,8 +261,8 @@ function createProofTrackGradient(ctx, rect, active = false) {
 
 function createInactiveTrackGradient(ctx, rect, pluginOptions) {
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  gradient.addColorStop(0, pluginOptions?.inactiveTop || "#2e2e42");
-  gradient.addColorStop(1, pluginOptions?.inactiveBottom || "#1a1a28");
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || "#262734");
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || "#1b1c26");
   return gradient;
 }
 
