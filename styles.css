@@ -2124,6 +2124,27 @@ body[data-theme="dark"] .account-banner--premium {
   align-items: center;
 }
 
+.widget-card--return .metric-label {
+  display: block;
+  margin-bottom: 10px;
+  max-width: 16ch;
+  line-height: 1.24;
+}
+
+.widget-card--return .metric-large {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.widget-card--return .row-sub {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .widget-score-grid {
   grid-template-columns: 220px minmax(0, 1fr);
   align-items: center;
