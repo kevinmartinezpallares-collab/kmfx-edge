@@ -233,8 +233,12 @@ function initSettings() {
       themeBadge.textContent = theme === "dark" ? "Tema oscuro" : "Tema claro";
     }
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-      button.setAttribute("aria-label", theme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
-      button.setAttribute("title", theme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
+      const buttonTheme = button.dataset.themeValue;
+      const isActive = buttonTheme === theme;
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-label", buttonTheme === "dark" ? "Cambiar a tema oscuro" : "Cambiar a tema claro");
+      button.setAttribute("title", buttonTheme === "dark" ? "Cambiar a tema oscuro" : "Cambiar a tema claro");
     });
     if (themeSelect) themeSelect.value = theme;
   };
@@ -321,8 +325,7 @@ function initSettings() {
     return hydrateInFlight;
   };
 
-  const toggleTheme = () => {
-    const next = store.getState().ui.theme === "dark" ? "light" : "dark";
+  const setTheme = (next) => {
     store.setState((state) => ({
       ...state,
       ui: {
@@ -333,7 +336,11 @@ function initSettings() {
   };
 
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.addEventListener("click", toggleTheme);
+    button.addEventListener("click", () => {
+      const next = button.dataset.themeValue || (store.getState().ui.theme === "dark" ? "light" : "dark");
+      if (next === store.getState().ui.theme) return;
+      setTheme(next);
+    });
   });
 
   document.getElementById("resetView")?.addEventListener("click", () => {

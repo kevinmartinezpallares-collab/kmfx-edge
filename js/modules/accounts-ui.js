@@ -32,7 +32,6 @@ export function initAccountsUI(store) {
     const activeAccount = selectCurrentAccount(state);
     const activeModel = selectCurrentModel(state);
     const accounts = Object.values(state.accounts);
-    const totalAccounts = accounts.length;
     const activeAccountLabel = getAccountTypeLabel(activeAccount?.model?.profile?.mode, activeAccount?.name);
 
     root.innerHTML = `
@@ -48,12 +47,7 @@ export function initAccountsUI(store) {
             </div>
           </div>
           <div class="account-switcher-summary">
-            <div class="footer-chip">${totalAccounts} cuentas activas</div>
-            <div class="account-switcher-balance">${formatCurrency(activeModel?.account?.equity || 0)}</div>
-            <div class="account-switcher-metric">
-              <span class="${activeModel?.totals?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(activeModel?.totals?.pnl || 0)}</span>
-              <span>WR ${formatPercent(activeModel?.totals?.winRate || 0)}</span>
-            </div>
+            <div class="footer-chip">${accounts.length} cuentas activas</div>
           </div>
         </div>
 
