@@ -2724,6 +2724,14 @@ body[data-theme="dark"] .account-banner--premium {
   transform-origin: bottom center;
 }
 
+.kmfx-chart-tooltip.is-literal-bar-chart {
+  min-width: 170px;
+  max-width: 196px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-align: left;
+}
+
 .kmfx-chart-tooltip.is-bar-chart::after {
   display: none;
 }
@@ -3281,6 +3289,27 @@ html[data-theme="dark"] .kmfx-chart-tooltip.is-proof-bar-chart {
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow:
     0 20px 34px rgba(0, 0, 0, 0.34);
+}
+
+html[data-theme="dark"] .kmfx-chart-tooltip.is-literal-bar-chart {
+  background: #1a1a2e;
+  border-color: #2a2a3e;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.kmfx-chart-tooltip.is-literal-bar-chart .kmfx-chart-tooltip-title {
+  display: block;
+  margin-bottom: 4px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.kmfx-chart-tooltip.is-literal-bar-chart .kmfx-chart-tooltip-body {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 html[data-theme="dark"] .kmfx-chart-tooltip-body {

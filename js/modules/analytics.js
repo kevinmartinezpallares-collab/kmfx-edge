@@ -507,8 +507,7 @@ export function renderAnalytics(root, state) {
     }),
     barChartSpec("analytics-hourly-pnl", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.pnl })), {
       positiveNegative: true,
-      referencePillBars: true,
-      proofMode: true,
+      literalHistogramBars: true,
       maxBarThickness: 48,
       barThickness: 42,
       categoryPercentage: 0.9,
@@ -529,12 +528,14 @@ export function renderAnalytics(root, state) {
       minimalTooltip: true,
       formatter: (value) => formatCurrency(value),
       axisFormatter: (value) => formatCompact(value),
-      showYAxis: false
+      showYAxis: false,
+      valueLabelFormatter: (value) => value ? formatCurrency(value) : "",
+      tooltipTitleFormatter: (column) => column.point?.label || "",
+      tooltipBodyFormatter: (column) => formatCurrency(column.value)
     }),
     barChartSpec("analytics-hourly-trades", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.trades })), {
       tone: "blue",
-      referencePillBars: true,
-      proofMode: true,
+      literalHistogramBars: true,
       maxBarThickness: 48,
       barThickness: 42,
       categoryPercentage: 0.9,
@@ -554,12 +555,14 @@ export function renderAnalytics(root, state) {
       trackBottomInset: 4,
       minimalTooltip: true,
       formatter: (value) => `${value} trades`,
-      showYAxis: false
+      showYAxis: false,
+      valueLabelFormatter: (value) => value ? `${value}` : "",
+      tooltipTitleFormatter: (column) => column.point?.label || "",
+      tooltipBodyFormatter: (column) => `${column.value} trades`
     }),
     barChartSpec("analytics-profit-distribution", model.profitDistribution.map((bin) => ({ label: bin.label, value: bin.count })), {
-      referencePillBars: true,
+      literalHistogramBars: true,
       referenceSolidBars: true,
-      proofMode: true,
       maxBarThickness: 40,
       barThickness: 36,
       categoryPercentage: 0.92,
@@ -586,7 +589,12 @@ export function renderAnalytics(root, state) {
       valueLabelFormatter: (value) => `${value}`,
       minimalTooltip: true,
       formatter: (value, context) => `${context.label}: ${value} trades`,
-      showYAxis: false
+      showYAxis: false,
+      tooltipTitleFormatter: (column) => {
+        const count = column.value;
+        return count === 1 ? "1 trade en rango" : `${count} trades en rango`;
+      },
+      tooltipBodyFormatter: (column) => `${column.point?.label || ""}`
     })
   ];
   root.innerHTML = `

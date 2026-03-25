@@ -86,8 +86,30 @@ function ensureTooltipEl(chart) {
   return tooltipEl;
 }
 
+function hideTooltipEl(chart) {
+  const tooltipEl = ensureTooltipEl(chart);
+  if (!tooltipEl) return;
+  tooltipEl.classList.remove("is-visible", "is-bar-chart", "is-proof-bar-chart", "is-literal-bar-chart", "has-title");
+}
+
+function showTooltipEl(chart, { title = "", body = "", left = 0, top = 0, isBarChart = false, isProofBarChart = false, isLiteralBarChart = false }) {
+  const tooltipEl = ensureTooltipEl(chart);
+  if (!tooltipEl) return;
+  tooltipEl.classList.toggle("is-bar-chart", isBarChart);
+  tooltipEl.classList.toggle("is-proof-bar-chart", isProofBarChart);
+  tooltipEl.classList.toggle("is-literal-bar-chart", isLiteralBarChart);
+  tooltipEl.classList.toggle("is-minimal", false);
+  tooltipEl.classList.toggle("has-title", Boolean(title));
+  tooltipEl.querySelector(".kmfx-chart-tooltip-title").textContent = title;
+  tooltipEl.querySelector(".kmfx-chart-tooltip-body").textContent = body;
+  tooltipEl.style.left = `${left}px`;
+  tooltipEl.style.top = `${top}px`;
+  tooltipEl.classList.add("is-visible");
+}
+
 function externalTooltipHandler(context) {
   const { chart, tooltip } = context;
+  if (chart?.config?.options?.plugins?.kmfxLiteralHistogram) return;
   const tooltipEl = ensureTooltipEl(chart);
   if (!tooltipEl) return;
 
@@ -234,6 +256,13 @@ function createProofTrackGradient(ctx, rect, active = false) {
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
   gradient.addColorStop(0, withAlpha("#6b7280", active ? 0.24 : 0.18));
   gradient.addColorStop(1, withAlpha("#374151", active ? 0.18 : 0.13));
+  return gradient;
+}
+
+function createInactiveTrackGradient(ctx, rect, pluginOptions) {
+  const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || "#2e2e42");
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || "#1a1a28");
   return gradient;
 }
 
@@ -444,6 +473,139 @@ const referencePillBarPlugin = {
   }
 };
 
+const literalHistogramBarPlugin = {
+  id: "kmfxLiteralHistogram",
+  beforeDatasetDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false || args.index !== 0) return;
+    const meta = chart.getDatasetMeta(0);
+    const dataset = chart.data.datasets?.[0];
+    if (!meta?.data?.length || !dataset) return false;
+
+    const { ctx, chartArea } = chart;
+    const top = chartArea.top + (pluginOptions?.topInset ?? 6);
+    const bottom = chartArea.bottom - (pluginOptions?.bottomInset ?? 2);
+    const trackHeight = Math.max(0, bottom - top);
+    const activeIndex = chart.$kmfxLiteralHoverIndex ?? -1;
+    const columns = [];
+
+    ctx.save();
+
+    meta.data.forEach((element, index) => {
+      const value = Number(dataset.data[index] ?? 0);
+      const point = pluginOptions.points?.[index] || { label: chart.data.labels?.[index], value };
+      const slotWidth = getBarSlotWidth(meta, index, chartArea);
+      const trackWidth = Math.max(
+        pluginOptions?.minWidth ?? 22,
+        Math.min(pluginOptions?.maxWidth ?? 42, slotWidth * (pluginOptions?.trackWidthRatio ?? 0.9))
+      );
+      const fillInset = pluginOptions?.fillInset ?? 1;
+      const fillWidth = Math.max(4, trackWidth - fillInset * 2);
+      const x = element.x - trackWidth / 2;
+      const isActive = index === activeIndex;
+
+      const trackRect = { left: x, right: x + trackWidth, top, bottom };
+      roundedRectPath(ctx, x, top, trackWidth, trackHeight, Math.min(8, trackWidth / 2));
+      ctx.fillStyle = createInactiveTrackGradient(ctx, trackRect, pluginOptions);
+      ctx.fill();
+
+      const barTop = Math.min(element.y, element.base);
+      const barBottom = Math.max(element.y, element.base);
+      const barHeight = Math.max(0, barBottom - barTop);
+      const tone = resolveBarTone(pluginOptions, point, index, value);
+
+      if (barHeight > 0) {
+        roundedRectPath(ctx, x + fillInset, barTop, fillWidth, barHeight, Math.min(8, fillWidth / 2));
+        ctx.fillStyle = pluginOptions?.solid === true
+          ? solidToneColor(tone, value)
+          : createBarSurfaceGradient(ctx, { left: x + fillInset, right: x + fillInset + fillWidth, top: barTop, bottom: barBottom }, tone, isActive);
+        ctx.fill();
+      }
+
+      columns.push({
+        centerX: element.x,
+        left: x,
+        width: trackWidth,
+        top,
+        bottom,
+        fillTop: barHeight > 0 ? barTop : bottom,
+        fillBottom: barHeight > 0 ? barBottom : bottom,
+        point,
+        value,
+        tone
+      });
+    });
+
+    chart.$kmfxReferenceColumns = columns;
+    chart.$kmfxLiteralColumns = columns;
+
+    ctx.restore();
+    return false;
+  },
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const columns = chart.$kmfxLiteralColumns || [];
+    if (!columns.length) return;
+    const { ctx, chartArea } = chart;
+    ctx.save();
+    columns.forEach((column, index) => {
+      if (!column.value) return;
+      const labelText = typeof pluginOptions.valueLabelFormatter === "function"
+        ? pluginOptions.valueLabelFormatter(column.value, column.point, index)
+        : `${column.value}`;
+      if (!labelText) return;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = pluginOptions?.labelColor || withAlpha(getCssVar("--text") || "#F3F5F7", 0.95);
+      ctx.font = pluginOptions?.labelFont || "700 11px Inter, 'Segoe UI', sans-serif";
+      const labelY = Math.max(chartArea.top + 12, column.fillTop - 8);
+      ctx.fillText(labelText, column.centerX, labelY);
+    });
+    ctx.restore();
+  },
+  afterEvent(chart, args, pluginOptions) {
+    if (chart.config.type !== "bar" || pluginOptions === false) return;
+    const nativeEvent = args.event?.native;
+    const hits = nativeEvent
+      ? chart.getElementsAtEventForMode(nativeEvent, "nearest", { intersect: true }, false)
+      : [];
+    if (!hits.length) {
+      chart.$kmfxLiteralHoverIndex = -1;
+      hideTooltipEl(chart);
+      return;
+    }
+
+    const idx = hits[0].index;
+    chart.$kmfxLiteralHoverIndex = idx;
+    const column = chart.$kmfxLiteralColumns?.[idx];
+    if (!column) return;
+
+    const tooltipWidth = 188;
+    const tooltipHeight = 58;
+    const host = chart.canvas.parentNode;
+    const positionX = chart.canvas.offsetLeft;
+    const positionY = chart.canvas.offsetTop;
+    const clientWidth = host?.clientWidth || chart.canvas.clientWidth;
+    const left = Math.max(10, Math.min(positionX + column.centerX - tooltipWidth / 2, clientWidth - tooltipWidth - 10));
+    const top = Math.max(10, positionY + column.fillTop - tooltipHeight - 16);
+
+    const title = typeof pluginOptions.tooltipTitleFormatter === "function"
+      ? pluginOptions.tooltipTitleFormatter(column, idx)
+      : (column.point?.label || "");
+    const body = typeof pluginOptions.tooltipBodyFormatter === "function"
+      ? pluginOptions.tooltipBodyFormatter(column, idx)
+      : `${column.value}`;
+
+    showTooltipEl(chart, {
+      title,
+      body,
+      left,
+      top,
+      isBarChart: true,
+      isLiteralBarChart: true
+    });
+  }
+};
+
 const doughnutCenterPlugin = {
   id: "kmfxDoughnutCenter",
   afterDraw(chart) {
@@ -481,7 +643,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin);
+  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -671,6 +833,7 @@ function createBarChart(ChartLib, canvas, spec) {
   const mobile = isMobileViewport();
   const { start, end } = toneColors(spec.tone || "blue");
   const useReferencePillBars = spec.referencePillBars === true;
+  const useLiteralHistogramBars = spec.literalHistogramBars === true;
   const focusIndex = spec.focusIndex ?? spec.points.reduce((best, point, index, list) => {
     if (best === -1) return index;
     return Math.abs(point.value) > Math.abs(list[best].value) ? index : best;
@@ -690,6 +853,7 @@ function createBarChart(ChartLib, canvas, spec) {
         categoryPercentage: spec.categoryPercentage || 0.72,
         barPercentage: spec.barPercentage || 0.86,
         backgroundColor(context) {
+          if (useLiteralHistogramBars) return "rgba(0,0,0,0)";
           if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
           const point = spec.points[context.dataIndex];
@@ -712,6 +876,7 @@ function createBarChart(ChartLib, canvas, spec) {
           return createBarSurfaceGradient(context.chart.ctx, area, tone, false);
         },
         hoverBackgroundColor(context) {
+          if (useLiteralHistogramBars) return "rgba(0,0,0,0)";
           if (useReferencePillBars) return "rgba(0,0,0,0)";
           const value = context.raw;
           const point = spec.points[context.dataIndex];
@@ -734,6 +899,7 @@ function createBarChart(ChartLib, canvas, spec) {
           return createBarSurfaceGradient(context.chart.ctx, area, tone, true);
         },
         borderColor(context) {
+          if (useLiteralHistogramBars) return "rgba(0,0,0,0)";
           if (useReferencePillBars) return "rgba(0,0,0,0)";
           if (spec.focusBarStyle && context.dataIndex !== focusIndex) {
             return withAlpha(getCssVar("--border") || "#334155", 0.08);
@@ -814,8 +980,30 @@ function createBarChart(ChartLib, canvas, spec) {
               valueLabelFormatter: spec.valueLabelFormatter
             }
           : false,
+        kmfxLiteralHistogram: useLiteralHistogramBars
+          ? {
+              points: spec.points,
+              tone: spec.tone || "blue",
+              pointTone: spec.pointTone,
+              pointTones: spec.pointTones,
+              solid: spec.referenceSolidBars === true || spec.solidBars === true,
+              minWidth: spec.trackMinWidth ?? (mobile ? 20 : 34),
+              maxWidth: spec.trackMaxWidth ?? (mobile ? 20 : 40),
+              trackWidthRatio: spec.trackWidthRatio ?? (mobile ? 0.92 : 0.94),
+              fillInset: spec.fillInset ?? 0.8,
+              topInset: spec.trackTopInset ?? 8,
+              bottomInset: spec.trackBottomInset ?? 4,
+              inactiveTop: spec.inactiveTrackTop || "#2e2e42",
+              inactiveBottom: spec.inactiveTrackBottom || "#1a1a28",
+              valueLabelFormatter: spec.valueLabelFormatter,
+              tooltipTitleFormatter: spec.tooltipTitleFormatter,
+              tooltipBodyFormatter: spec.tooltipBodyFormatter
+            }
+          : false,
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
+          enabled: useLiteralHistogramBars ? false : buildBaseOptions(spec).plugins.tooltip.enabled,
+          external: useLiteralHistogramBars ? undefined : buildBaseOptions(spec).plugins.tooltip.external,
           kmfxProof: spec.proofMode === true,
           callbacks: spec.tooltipCallbacks || {
             title: (items) => items[0]?.label || "",

@@ -205,9 +205,8 @@ export function renderDiscipline(root, state) {
     })), {
       tone: "blue",
       formatter: (value) => `${Math.round(value)} trades`,
-      referencePillBars: true,
+      literalHistogramBars: true,
       solidBars: true,
-      proofMode: true,
       minimalTooltip: true,
       categoryPercentage: 0.9,
       barPercentage: 0.98,
@@ -226,7 +225,10 @@ export function renderDiscipline(root, state) {
       showXGrid: false,
       showYAxis: false,
       maxXTicks: 6,
-      maxYTicks: 4
+      maxYTicks: 4,
+      valueLabelFormatter: (value) => value ? `${Math.round(value)}` : "",
+      tooltipTitleFormatter: (column) => column.point?.label || "",
+      tooltipBodyFormatter: (column) => `${Math.round(column.value)} trades`
     })
   ]);
 }
