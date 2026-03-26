@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad — KMFX Edge</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
+  <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
+  <link rel="stylesheet" href="./styles.css?v=privacy-1">
+  <script>
+    (() => {
+      try {
+        const raw = localStorage.getItem("kmfx_frontend_state");
+        const parsed = raw ? JSON.parse(raw) : null;
+        const theme = parsed?.ui?.theme === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (error) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main class="legal-page">
+    <div class="legal-page__shell">
+      <article class="legal-page__card">
+        <div class="legal-page__brand">
+          <div class="legal-page__brand-mark">
+            <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+            <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+          </div>
+          <div>
+            <h1 class="legal-page__title">Política de Privacidad — KMFX Edge</h1>
+            <p class="legal-page__intro">Resumen claro sobre qué información se usa dentro de la plataforma y con qué finalidad.</p>
+          </div>
+        </div>
+
+        <div class="legal-page__sections">
+          <section class="legal-page__section">
+            <h2>1. Información que recopilamos</h2>
+            <p>KMFX Edge puede recopilar información básica de usuario como:</p>
+            <ul>
+              <li>Dirección de correo electrónico (a través de Google Login)</li>
+              <li>Datos de uso de la aplicación</li>
+              <li>Datos de trading conectados (solo con fines de visualización y análisis)</li>
+            </ul>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>2. Uso de la información</h2>
+            <p>La información recopilada se utiliza exclusivamente para:</p>
+            <ul>
+              <li>Proporcionar acceso a la plataforma</li>
+              <li>Mostrar estadísticas y métricas de trading</li>
+              <li>Mejorar la experiencia del usuario</li>
+            </ul>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>3. Compartición de datos</h2>
+            <p>KMFX Edge no vende, alquila ni comparte datos personales con terceros.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>4. Seguridad</h2>
+            <p>Aplicamos medidas razonables para proteger la información del usuario.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>5. Servicios de terceros</h2>
+            <p>Utilizamos servicios como:</p>
+            <ul>
+              <li>Google (autenticación)</li>
+              <li>Supabase (infraestructura)</li>
+            </ul>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>6. Cambios</h2>
+            <p>Esta política puede actualizarse en cualquier momento.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>7. Contacto</h2>
+            <p>kevinmartinezpallares@gmail.com</p>
+          </section>
+        </div>
+
+        <footer class="legal-page__footer">
+          <a class="legal-page__footer-link" href="/privacy">Privacy Policy</a>
+        </footer>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
