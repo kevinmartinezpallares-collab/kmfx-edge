@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Términos de Servicio — KMFX Edge</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
+  <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
+  <link rel="stylesheet" href="./styles.css?v=terms-1">
+  <script>
+    (() => {
+      try {
+        const raw = localStorage.getItem("kmfx_frontend_state");
+        const parsed = raw ? JSON.parse(raw) : null;
+        const theme = parsed?.ui?.theme === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (error) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main class="legal-page">
+    <div class="legal-page__shell">
+      <article class="legal-page__card">
+        <div class="legal-page__brand">
+          <div class="legal-page__brand-mark">
+            <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+            <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+          </div>
+          <div>
+            <h1 class="legal-page__title">Términos de Servicio — KMFX Edge</h1>
+            <p class="legal-page__intro">Documento legal básico sobre el uso de la plataforma y sus límites de responsabilidad.</p>
+          </div>
+        </div>
+
+        <div class="legal-page__sections">
+          <section class="legal-page__section">
+            <h2>1. Uso de la plataforma</h2>
+            <p>KMFX Edge proporciona herramientas de análisis y visualización de datos de trading. El usuario es responsable del uso que haga de la información mostrada.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>2. No es asesoramiento financiero</h2>
+            <p>KMFX Edge no proporciona asesoramiento financiero. Toda la información mostrada es únicamente con fines informativos.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>3. Cuenta de usuario</h2>
+            <p>El acceso se realiza mediante autenticación con Google. El usuario es responsable de mantener la seguridad de su cuenta.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>4. Uso aceptable</h2>
+            <p>El usuario se compromete a no utilizar la plataforma para actividades ilegales o abusivas.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>5. Limitación de responsabilidad</h2>
+            <p>KMFX Edge no se hace responsable de pérdidas económicas derivadas del uso de la plataforma.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>6. Disponibilidad del servicio</h2>
+            <p>La plataforma puede experimentar interrupciones o cambios sin previo aviso.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>7. Cambios en los términos</h2>
+            <p>Estos términos pueden actualizarse en cualquier momento.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>8. Contacto</h2>
+            <p>kevinmartinezpallares@gmail.com</p>
+          </section>
+        </div>
+
+        <footer class="legal-page__footer">
+          <a class="legal-page__footer-link" href="/terms">Terms of Service</a>
+        </footer>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
