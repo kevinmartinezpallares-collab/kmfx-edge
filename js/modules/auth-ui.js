@@ -219,10 +219,6 @@ export function initAuthUI(store) {
                 <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
                 <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
               </div>
-              <div class="auth-showcase-brand-copy">
-                <div class="auth-showcase-kicker">KMFX Edge</div>
-                <div class="auth-showcase-label">Professional trading intelligence</div>
-              </div>
             </div>
 
             <div class="auth-showcase-copyblock">
@@ -245,10 +241,6 @@ export function initAuthUI(store) {
           <div class="auth-panel">
             <div class="auth-card">
               <div class="auth-brand">
-                <div class="auth-brand-mark">
-                  <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
-                  <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
-                </div>
                 <div>
                   <div class="auth-kicker">Access</div>
                   <h1 class="auth-title">${authTitle}</h1>
