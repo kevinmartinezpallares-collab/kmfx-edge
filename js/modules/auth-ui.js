@@ -375,7 +375,15 @@ export function initAuthUI(store) {
                     : (isEmailLoading ? "Entrando..." : "Entrar con email")}
                 </button>
                 ${!isForgotMode && !isResetMode ? `<button class="btn-secondary auth-action auth-action--google" type="button" data-auth-google ${uiState.loading ? "disabled" : ""}>
-                  ${isGoogleLoading ? "Conectando..." : "Continuar con Google"}
+                  <span class="auth-google-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.26-.96 2.33-2.04 3.05l3.3 2.56c1.92-1.77 3.04-4.38 3.04-7.5 0-.72-.06-1.4-.18-2.06H12z"/>
+                      <path fill="#34A853" d="M12 22c2.76 0 5.08-.92 6.77-2.49l-3.3-2.56c-.92.62-2.1.99-3.47.99-2.67 0-4.93-1.8-5.74-4.22l-3.42 2.64A10 10 0 0 0 12 22z"/>
+                      <path fill="#4A90E2" d="M6.26 13.72A5.98 5.98 0 0 1 5.94 12c0-.6.11-1.18.32-1.72L2.84 7.64A10 10 0 0 0 2 12c0 1.61.38 3.13 1.06 4.36l3.2-2.64z"/>
+                      <path fill="#FBBC05" d="M12 6.02c1.5 0 2.85.52 3.91 1.54l2.93-2.93C17.07 2.98 14.76 2 12 2A10 10 0 0 0 3.06 7.64l3.2 2.64C7.07 7.82 9.33 6.02 12 6.02z"/>
+                    </svg>
+                  </span>
+                  <span>${isGoogleLoading ? "Conectando..." : "Continuar con Google"}</span>
                 </button>
                 <div class="auth-trust-line">No spam. Secure login via Google.</div>` : ""}
                 ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
