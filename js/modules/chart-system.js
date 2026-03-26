@@ -343,6 +343,44 @@ function buildBaseOptions(spec) {
   };
 }
 
+function collectNumericValues(spec) {
+  const values = [];
+  (spec.points || []).forEach((point) => {
+    const value = Number(point?.value);
+    if (Number.isFinite(value)) values.push(value);
+  });
+  (spec.extraDatasets || []).forEach((dataset) => {
+    (dataset.points || []).forEach((point) => {
+      const value = Number(point?.value);
+      if (Number.isFinite(value)) values.push(value);
+    });
+  });
+  return values;
+}
+
+function computeYHeadroom(spec) {
+  const values = collectNumericValues(spec);
+  if (!values.length) return {};
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, Math.abs(max), 1);
+  const topPad = span * (spec.yHeadroomRatio ?? 0.12);
+  const bottomPad = span * (spec.yBottomPaddingRatio ?? 0.04);
+
+  if (min >= 0) {
+    return {
+      suggestedMin: Math.max(0, min - bottomPad),
+      suggestedMax: max + topPad
+    };
+  }
+
+  return {
+    suggestedMin: min - bottomPad,
+    suggestedMax: max + topPad
+  };
+}
+
 const glowLinePlugin = {
   id: "kmfxGlowLine",
   beforeDatasetDraw(chart, args, pluginOptions) {
@@ -881,6 +919,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
         },
         y: {
           display: spec.showYAxis ?? (spec.showAxes ?? true),
+          ...computeYHeadroom(spec),
           border: {
             display: spec.showAxisBorder ?? false,
             color: getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
@@ -1036,6 +1075,7 @@ function createBarChart(ChartLib, canvas, spec) {
           grid: { display: false, drawBorder: false }
         },
         y: {
+          ...computeYHeadroom(spec),
           ticks: {
             color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.76),
             font: { size: 10, weight: "500" },
