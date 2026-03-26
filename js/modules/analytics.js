@@ -438,7 +438,7 @@ export function renderAnalytics(root, state) {
       ? "Perfil saludable con margen de mejora."
       : "Conviene reforzar control y consistencia.";
   const decisionEngine = computeDecisionEngine(model);
-  const hourlyRows = model.hours || [];
+  const hourlyRows = (model.hours || []).filter((hour) => hour.trades);
   const denseProfitDistribution = buildDenseProfitDistribution(model.trades, 10);
   const monthlyRows = monthlyMatrixRows(model);
   const winningTrades = model.trades.filter((trade) => trade.pnl > 0);
