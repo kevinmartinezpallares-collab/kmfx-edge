@@ -160,6 +160,12 @@ body {
   height: 100%;
 }
 
+html.legal-document-root,
+html.legal-document-root body.legal-document {
+  min-height: 100%;
+  height: auto;
+}
+
 body {
   font-family: "Inter", "Roboto", "Segoe UI", sans-serif;
   background: linear-gradient(180deg, #f7f9fd 0%, var(--bg) 44%, #edf2f9 100%);
@@ -167,6 +173,12 @@ body {
   letter-spacing: -0.01em;
   overflow: hidden;
   position: relative;
+}
+
+body.legal-document {
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: static;
 }
 
 html:not([data-theme="dark"]) body {
