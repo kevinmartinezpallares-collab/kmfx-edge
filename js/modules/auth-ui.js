@@ -219,11 +219,16 @@ export function initAuthUI(store) {
                 <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
                 <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
               </div>
+              <div class="auth-showcase-brand-copy">
+                <div class="auth-showcase-kicker">KMFX Edge</div>
+                <div class="auth-showcase-label">Professional trading intelligence</div>
+              </div>
             </div>
 
             <div class="auth-showcase-copyblock">
               <h1 class="auth-showcase-title">Track your trading performance like a professional</h1>
               <p class="auth-showcase-copy">All your metrics, risk and discipline in one place.</p>
+              <div class="auth-showcase-value">Used by traders to track performance, risk and consistency.</div>
             </div>
 
             <ul class="auth-benefits" aria-label="Platform benefits">
@@ -233,14 +238,58 @@ export function initAuthUI(store) {
               <li class="auth-benefit">Discipline insights</li>
             </ul>
 
+            <div class="auth-preview" aria-hidden="true">
+              <div class="auth-preview-shell">
+                <div class="auth-preview-topline">
+                  <span class="auth-preview-dot"></span>
+                  <span class="auth-preview-dot"></span>
+                  <span class="auth-preview-dot"></span>
+                </div>
+                <div class="auth-preview-hero">
+                  <div class="auth-preview-metric">
+                    <span>Equity</span>
+                    <strong>$129,180</strong>
+                  </div>
+                  <div class="auth-preview-kpis">
+                    <div class="auth-preview-kpi">
+                      <span>Win rate</span>
+                      <strong>72.2%</strong>
+                    </div>
+                    <div class="auth-preview-kpi">
+                      <span>Avg R</span>
+                      <strong>1.98R</strong>
+                    </div>
+                    <div class="auth-preview-kpi">
+                      <span>PF</span>
+                      <strong>5.16</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="auth-preview-chart">
+                  <span class="auth-preview-bar" style="height:34%"></span>
+                  <span class="auth-preview-bar" style="height:48%"></span>
+                  <span class="auth-preview-bar" style="height:64%"></span>
+                  <span class="auth-preview-bar" style="height:54%"></span>
+                  <span class="auth-preview-bar" style="height:78%"></span>
+                  <span class="auth-preview-bar" style="height:72%"></span>
+                  <span class="auth-preview-bar" style="height:88%"></span>
+                </div>
+              </div>
+            </div>
+
             <div class="auth-showcase-footnote">
               Built for traders who want a cleaner read on performance, risk, and execution quality.
             </div>
           </section>
 
           <div class="auth-panel">
+            <div class="auth-panel-cta">Start tracking your edge today</div>
             <div class="auth-card">
               <div class="auth-brand">
+                <div class="auth-brand-mark">
+                  <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+                  <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+                </div>
                 <div>
                   <div class="auth-kicker">Access</div>
                   <h1 class="auth-title">${authTitle}</h1>
@@ -304,6 +353,11 @@ export function initAuthUI(store) {
                   ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
                 </button>` : ""}
               </div>
+
+              ${!isForgotMode && !isResetMode ? `<div class="auth-trust-indicators" aria-label="Trust indicators">
+                <div class="auth-trust-indicator">No credit card required</div>
+                <div class="auth-trust-indicator">Secure authentication</div>
+              </div>` : ""}
 
               <div class="auth-disclaimer">
                 KMFX Edge is an analysis tool. It does not provide financial advice. Trading involves risk and users are solely responsible for their decisions.
