@@ -257,9 +257,10 @@ function createProofTrackGradient(ctx, rect, active = false) {
 }
 
 function createInactiveTrackGradient(ctx, rect, pluginOptions) {
+  const isDarkTheme = document.documentElement.dataset.theme === "dark";
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  gradient.addColorStop(0, pluginOptions?.inactiveTop || "#262734");
-  gradient.addColorStop(1, pluginOptions?.inactiveBottom || "#1b1c26");
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "#1a1c24" : "#fbfcfe"));
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "#15171d" : "#f7f9fc"));
   return gradient;
 }
 
@@ -1069,6 +1070,7 @@ function createBarChart(ChartLib, canvas, spec) {
           ? {
               points: spec.points,
               tone: spec.tone || "blue",
+              positiveNegative: spec.positiveNegative === true,
               pointTone: spec.pointTone,
               pointTones: spec.pointTones,
               solid: spec.referenceSolidBars === true || spec.solidBars === true,
