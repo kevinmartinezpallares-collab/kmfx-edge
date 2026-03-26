@@ -8315,6 +8315,208 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 }
 
+@media (max-width: 920px) {
+  .dashboard-kpi-premium-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+
+  .widget-card--kpi {
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .widget-card--kpi .tl-kpi-val {
+    font-size: clamp(22px, 7vw, 30px);
+    line-height: 0.96;
+  }
+
+  .widget-card--kpi .widget-card-meta,
+  .widget-card--kpi .widget-kpi-trend {
+    font-size: 11px;
+  }
+
+  #connectionsRoot .connections-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  #connectionsRoot .connections-grid > .tl-section-card {
+    padding: 12px !important;
+    gap: 10px;
+  }
+
+  #connectionsRoot .tl-section-header {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  #connectionsRoot .info-list.compact > div {
+    padding: 7px 0;
+    font-size: 12px;
+  }
+
+  #connectionsRoot .settings-actions {
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  #connectionsRoot .settings-actions > * {
+    flex: 1 1 auto;
+    min-height: 38px;
+  }
+
+  .pnlcal-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+  }
+
+  .pnlcal-kpi {
+    min-height: 0;
+    padding: 12px !important;
+  }
+
+  .pnlcal-kpi-label {
+    font-size: 10px;
+  }
+
+  .pnlcal-kpi-val {
+    font-size: clamp(18px, 5.5vw, 22px);
+  }
+
+  .discipline-page-stack {
+    gap: 14px;
+  }
+
+  .discipline-hourly-card {
+    gap: 14px;
+  }
+
+  .discipline-inline-notes--chart {
+    margin-bottom: 2px;
+  }
+
+  .discipline-hourly-card .kmfx-chart-shell--feature {
+    min-height: 272px;
+  }
+
+  #discipline-hourly-behavior {
+    min-height: 248px;
+  }
+
+  .funded-page-stack {
+    gap: 14px;
+  }
+
+  .funded-hero-card,
+  .funded-progress-card,
+  .funded-alerts-card {
+    gap: 12px;
+  }
+
+  .funded-account-switch {
+    gap: 6px;
+  }
+
+  .funded-account-pill {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .funded-hero-grid,
+  .funded-progress-layout,
+  .funded-config-grid,
+  .funded-hero-kpis,
+  .funded-rules-grid,
+  .funded-secondary-kpis {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .funded-hero-head,
+  .funded-progress-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .funded-hero-config {
+    padding: 13px;
+  }
+
+  .funded-progress-value {
+    font-size: clamp(28px, 10vw, 40px);
+  }
+
+  .funded-rule-card {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .tl-tab-bar {
+    position: static;
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  #analyticsTabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  #analyticsTabs .tl-tab {
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    letter-spacing: -0.01em;
+  }
+
+  html:not([data-theme="dark"]) .bnav-more-overlay {
+    background:
+      radial-gradient(circle at 50% 100%, rgba(75, 141, 255, 0.05), transparent 34%),
+      rgba(248, 250, 252, 0.52);
+  }
+
+  html:not([data-theme="dark"]) .bnav-more-menu {
+    border-color: rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(18px) saturate(1.02);
+    -webkit-backdrop-filter: blur(18px) saturate(1.02);
+    box-shadow:
+      0 16px 34px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
+
+  html:not([data-theme="dark"]) .bnav-more-handle {
+    background: rgba(148, 163, 184, 0.34);
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-kpi-premium-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #analyticsTabs {
+    gap: 6px;
+  }
+
+  #analyticsTabs .tl-tab {
+    min-height: 38px;
+    font-size: 10px;
+    padding: 0 6px;
+  }
+}
+
 html:not([data-theme="dark"]) .brand-logo-light,
 body:not([data-theme="dark"]) .brand-logo-light {
   display: block;
