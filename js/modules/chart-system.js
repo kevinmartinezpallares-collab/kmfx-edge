@@ -257,10 +257,11 @@ function createProofTrackGradient(ctx, rect, active = false) {
 }
 
 function createInactiveTrackGradient(ctx, rect, pluginOptions) {
-  const isDarkTheme = document.documentElement.dataset.theme === "dark";
+  const isDarkTheme = document.documentElement.matches("[data-theme=\"dark\"]")
+    || document.body?.matches?.("[data-theme=\"dark\"]");
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.03)"));
-  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.018)"));
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "rgba(255,255,255,0.028)" : "rgba(15,23,42,0.015)"));
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "rgba(255,255,255,0.016)" : "rgba(15,23,42,0.008)"));
   return gradient;
 }
 
@@ -1087,8 +1088,8 @@ function createBarChart(ChartLib, canvas, spec) {
               fillInset: spec.fillInset ?? 0.8,
               topInset: spec.trackTopInset ?? 8,
               bottomInset: spec.trackBottomInset ?? 4,
-              inactiveTop: spec.inactiveTrackTop || "#2e2e42",
-              inactiveBottom: spec.inactiveTrackBottom || "#1a1a28",
+              inactiveTop: spec.inactiveTrackTop,
+              inactiveBottom: spec.inactiveTrackBottom,
               valueLabelFormatter: spec.valueLabelFormatter,
               tooltipTitleFormatter: spec.tooltipTitleFormatter,
               tooltipBodyFormatter: spec.tooltipBodyFormatter
