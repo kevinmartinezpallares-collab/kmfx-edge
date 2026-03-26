@@ -59,6 +59,7 @@ export function initMobileNav(store) {
     const activePage = state.ui.activePage;
     const moreActive = secondaryPages.has(activePage);
     const moreOpen = Boolean(root.__mobileNavState.moreOpen);
+    const isAuthenticated = state.auth?.status === "authenticated";
 
     root.innerHTML = `
       <div class="bnav-more-overlay ${moreOpen ? "open" : ""}" data-bnav-close-overlay></div>
@@ -79,6 +80,13 @@ export function initMobileNav(store) {
             </div>
           `).join("")}
         </div>
+        ${isAuthenticated ? `
+          <div class="bnav-more-actions">
+            <button class="bnav-more-item bnav-more-item--action bnav-more-item--danger" type="button" data-bnav-action="logout">
+              Cerrar sesión
+            </button>
+          </div>
+        ` : ""}
       </section>
 
       <nav class="bottom-nav" aria-label="Navegación móvil principal">
@@ -100,6 +108,7 @@ export function initMobileNav(store) {
     const closeOverlay = event.target.closest("[data-bnav-close-overlay]");
     const moreButton = event.target.closest("[data-bnav-more]");
     const pageButton = event.target.closest("[data-bnav-page]");
+    const actionButton = event.target.closest("[data-bnav-action]");
 
     if (closeOverlay) {
       setMobileNavState({ moreOpen: false });
@@ -120,6 +129,12 @@ export function initMobileNav(store) {
           activePage: pageButton.dataset.bnavPage
         }
       }));
+      return;
+    }
+
+    if (actionButton?.dataset.bnavAction === "logout") {
+      setMobileNavState({ moreOpen: false });
+      window.kmfxAuth?.signOut?.();
     }
   });
 
