@@ -1020,10 +1020,18 @@ function createBarChart(ChartLib, canvas, spec) {
             color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.84),
             font: { size: 10, weight: "500" },
             padding: spec.xTickPadding ?? 8,
-            autoSkip: mobile,
+            autoSkip: spec.autoSkipXTicks ?? mobile,
             maxRotation: 0,
             minRotation: 0,
-            maxTicksLimit: spec.maxXTicks || (mobile ? 4 : undefined)
+            maxTicksLimit: spec.maxXTicks || (mobile ? 4 : undefined),
+            callback(value, index, ticks) {
+              const point = spec.points?.[index];
+              const label = this.getLabelForValue ? this.getLabelForValue(value) : `${value}`;
+              if (typeof spec.xAxisFormatter === "function") {
+                return spec.xAxisFormatter(label, index, point, ticks, this);
+              }
+              return label;
+            }
           },
           grid: { display: false, drawBorder: false }
         },

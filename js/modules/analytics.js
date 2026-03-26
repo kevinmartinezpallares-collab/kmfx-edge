@@ -558,6 +558,7 @@ export function renderAnalytics(root, state) {
       barPercentage: 0.95,
       xOffset: true,
       xTickPadding: 6,
+      autoSkipXTicks: false,
       yTickPadding: 6,
       layoutPaddingLeft: 16,
       layoutPaddingRight: 16,
@@ -574,6 +575,7 @@ export function renderAnalytics(root, state) {
       axisFormatter: (value) => formatCompact(value),
       showYAxis: false,
       zeroDivider: false,
+      xAxisFormatter: (label, index, point) => (point?.rawValue || point?.value ? label : ""),
       valueLabelFormatter: (value, point) => value ? formatCurrency(point.rawValue ?? value) : "",
       tooltipTitleFormatter: (column) => column.point?.label || "",
       tooltipBodyFormatter: (column) => formatCurrency(column.point?.rawValue ?? column.value)
@@ -588,6 +590,7 @@ export function renderAnalytics(root, state) {
       barPercentage: 0.95,
       xOffset: true,
       xTickPadding: 6,
+      autoSkipXTicks: false,
       yTickPadding: 6,
       layoutPaddingLeft: 16,
       layoutPaddingRight: 16,
@@ -602,6 +605,7 @@ export function renderAnalytics(root, state) {
       minimalTooltip: true,
       formatter: (value) => `${value} trades`,
       showYAxis: false,
+      xAxisFormatter: (label, index, point) => (point?.value ? label : ""),
       valueLabelFormatter: (value) => value ? `${value}` : "",
       tooltipTitleFormatter: (column) => column.point?.label || "",
       tooltipBodyFormatter: (column) => `${column.value} trades`
