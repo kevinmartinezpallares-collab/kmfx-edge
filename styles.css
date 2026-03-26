@@ -7152,8 +7152,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
 .bnav-more-item,
 .bnav-item {
-  border: 1px solid color-mix(in srgb, var(--primary) 10%, var(--border));
-  background: color-mix(in srgb, var(--surface2) 72%, rgba(8, 11, 18, 0.92));
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--surface2) 82%, transparent);
   color: var(--text2);
   cursor: pointer;
 }
@@ -7194,15 +7194,15 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--primary) 15%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(13, 17, 28, 0.88), rgba(9, 12, 20, 0.82));
-  backdrop-filter: blur(26px) saturate(1.08);
-  -webkit-backdrop-filter: blur(26px) saturate(1.08);
+    linear-gradient(180deg, rgba(13, 17, 28, 0.62), rgba(9, 12, 20, 0.56));
+  backdrop-filter: blur(28px) saturate(1.02);
+  -webkit-backdrop-filter: blur(28px) saturate(1.02);
   box-shadow:
-    0 20px 44px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+    0 20px 44px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
 .bnav-item {
@@ -7235,18 +7235,18 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 .bnav-more-item.active,
 .bnav-item:hover,
 .bnav-more-item:hover {
-  color: color-mix(in srgb, white 82%, var(--accent3));
+  color: color-mix(in srgb, white 88%, var(--text));
   background:
-    linear-gradient(180deg, rgba(73, 111, 255, 0.22), rgba(73, 111, 255, 0.12));
-  border-color: color-mix(in srgb, var(--primary) 40%, rgba(255, 255, 255, 0.06));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  border-color: color-mix(in srgb, var(--border) 92%, rgba(255, 255, 255, 0.12));
   box-shadow:
-    0 10px 20px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 10px 20px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .bnav-item.active svg,
 .bnav-more-item.active {
-  filter: drop-shadow(0 0 8px rgba(111, 141, 255, 0.12));
+  filter: none;
 }
 
 @media (max-width: 1180px) {
@@ -8054,26 +8054,25 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     padding: 7px 7px calc(7px + env(safe-area-inset-bottom));
     overflow: visible;
     isolation: isolate;
-    border-color: rgba(128, 154, 255, 0.22);
+    border-color: color-mix(in srgb, var(--border) 72%, transparent);
     background:
-      linear-gradient(180deg, rgba(16, 22, 38, 0.54), rgba(8, 12, 24, 0.42));
-    backdrop-filter: blur(34px) saturate(1.22);
-    -webkit-backdrop-filter: blur(34px) saturate(1.22);
+      linear-gradient(180deg, rgba(16, 22, 38, 0.56), rgba(8, 12, 24, 0.48));
+    backdrop-filter: blur(34px) saturate(1.04);
+    -webkit-backdrop-filter: blur(34px) saturate(1.04);
     box-shadow:
-      0 20px 44px rgba(1, 5, 16, 0.34),
-      0 8px 24px rgba(52, 86, 214, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 20px 44px rgba(1, 5, 16, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   html:not([data-theme="dark"]) .bottom-nav {
-    border-color: rgba(75, 107, 255, 0.14);
+    border-color: var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(246, 249, 255, 0.66));
-    backdrop-filter: blur(22px) saturate(1.04);
-    -webkit-backdrop-filter: blur(22px) saturate(1.04);
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 58%, transparent), color-mix(in srgb, var(--bg-card-alt) 46%, transparent));
+    backdrop-filter: blur(30px) saturate(1.02);
+    -webkit-backdrop-filter: blur(30px) saturate(1.02);
     box-shadow:
-      0 16px 34px rgba(20, 30, 48, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      0 16px 34px rgba(20, 30, 48, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.56);
   }
 
   .bottom-nav::before,
@@ -8093,10 +8092,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .bottom-nav::after {
     inset: 1px;
-    border: 1px solid rgba(185, 205, 255, 0.08);
-    background:
-      radial-gradient(circle at 18% 0%, rgba(103, 145, 255, 0.14), transparent 42%),
-      radial-gradient(circle at 82% 130%, rgba(59, 97, 220, 0.12), transparent 48%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
     opacity: 0.88;
   }
 
@@ -8106,10 +8103,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   html:not([data-theme="dark"]) .bottom-nav::after {
-    border-color: rgba(255, 255, 255, 0.42);
-    background:
-      radial-gradient(circle at 18% 0%, rgba(114, 144, 255, 0.12), transparent 42%),
-      radial-gradient(circle at 82% 130%, rgba(84, 124, 255, 0.08), transparent 48%);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: transparent;
   }
 
   .bottom-nav::-webkit-scrollbar {
@@ -8151,22 +8146,22 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .bnav-item.active,
   .bnav-item:hover {
     background:
-      linear-gradient(180deg, rgba(104, 134, 255, 0.18), rgba(104, 134, 255, 0.08));
-    border-color: rgba(140, 164, 255, 0.22);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    border-color: color-mix(in srgb, var(--border) 88%, rgba(255, 255, 255, 0.1));
     box-shadow:
-      0 10px 22px rgba(0, 0, 0, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      0 10px 22px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
   }
 
   html:not([data-theme="dark"]) .bnav-item.active,
   html:not([data-theme="dark"]) .bnav-item:hover {
-    color: var(--accent3);
+    color: var(--text-primary);
     background:
-      linear-gradient(180deg, rgba(75, 107, 255, 0.14), rgba(75, 107, 255, 0.08));
-    border-color: rgba(75, 107, 255, 0.18);
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 48%, transparent), color-mix(in srgb, var(--bg-card-alt) 38%, transparent));
+    border-color: rgba(59, 130, 246, 0.14);
     box-shadow:
-      0 10px 20px rgba(20, 30, 48, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      0 10px 20px rgba(20, 30, 48, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
   }
 
   .pnlcal-month-card {
@@ -8482,19 +8477,19 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   html:not([data-theme="dark"]) .bnav-more-overlay {
     background:
-      radial-gradient(circle at 50% 100%, rgba(75, 141, 255, 0.05), transparent 34%),
-      rgba(248, 250, 252, 0.28);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.18)),
+      rgba(248, 250, 252, 0.22);
   }
 
   html:not([data-theme="dark"]) .bnav-more-menu {
-    border-color: rgba(148, 163, 184, 0.2);
+    border-color: var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(248, 250, 252, 0.56));
-    backdrop-filter: blur(28px) saturate(1.08);
-    -webkit-backdrop-filter: blur(28px) saturate(1.08);
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 62%, transparent), color-mix(in srgb, var(--bg-card-alt) 54%, transparent));
+    backdrop-filter: blur(30px) saturate(1.02);
+    -webkit-backdrop-filter: blur(30px) saturate(1.02);
     box-shadow:
-      0 18px 42px rgba(15, 23, 42, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      0 18px 42px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.56);
   }
 
   html:not([data-theme="dark"]) .bnav-more-handle {
@@ -8510,46 +8505,44 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   html:not([data-theme="dark"]) .bnav-more-item {
-    border-color: rgba(148, 163, 184, 0.22);
+    border-color: var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(248, 250, 252, 0.24));
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 40%, transparent), color-mix(in srgb, var(--bg-card-alt) 30%, transparent));
     color: var(--text-primary);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.42),
-      0 10px 24px rgba(148, 163, 184, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.36),
+      0 10px 24px rgba(148, 163, 184, 0.05);
   }
 
   html:not([data-theme="dark"]) .bnav-more-item.active,
   html:not([data-theme="dark"]) .bnav-more-item:hover {
     background:
-      linear-gradient(180deg, rgba(59, 130, 246, 0.16), rgba(59, 130, 246, 0.1));
-    border-color: rgba(59, 130, 246, 0.24);
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 46%, transparent), color-mix(in srgb, var(--bg-card-alt) 36%, transparent));
+    border-color: rgba(59, 130, 246, 0.16);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.54),
-      0 12px 22px rgba(59, 130, 246, 0.12);
+      inset 0 1px 0 rgba(255, 255, 255, 0.42),
+      0 12px 22px rgba(148, 163, 184, 0.05);
   }
 
   html:not([data-theme="dark"]) .bottom-nav {
-    border-color: rgba(148, 163, 184, 0.2);
+    border-color: var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(248, 250, 252, 0.46));
-    backdrop-filter: blur(28px) saturate(1.06);
-    -webkit-backdrop-filter: blur(28px) saturate(1.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 56%, transparent), color-mix(in srgb, var(--bg-card-alt) 44%, transparent));
+    backdrop-filter: blur(30px) saturate(1.02);
+    -webkit-backdrop-filter: blur(30px) saturate(1.02);
     box-shadow:
-      0 18px 36px rgba(15, 23, 42, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.68);
+      0 18px 36px rgba(15, 23, 42, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.54);
   }
 
   html:not([data-theme="dark"]) .bottom-nav::before {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.1) 42%, transparent 100%);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.04) 42%, transparent 100%);
   }
 
   html:not([data-theme="dark"]) .bottom-nav::after {
-    border-color: rgba(255, 255, 255, 0.26);
-    background:
-      radial-gradient(circle at 18% 0%, rgba(114, 144, 255, 0.08), transparent 42%),
-      radial-gradient(circle at 82% 130%, rgba(84, 124, 255, 0.05), transparent 48%);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: transparent;
   }
 
   html:not([data-theme="dark"]) .topbar-user-card,
