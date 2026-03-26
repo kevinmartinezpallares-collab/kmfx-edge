@@ -293,6 +293,13 @@ body.auth-locked #modalRoot {
   -webkit-backdrop-filter: blur(22px);
 }
 
+html[data-theme="dark"] .auth-screen,
+body[data-theme="dark"] .auth-screen {
+  background:
+    radial-gradient(circle at top center, rgba(94, 112, 172, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(7, 9, 14, 0.9), rgba(9, 11, 16, 0.92));
+}
+
 .auth-card {
   width: min(100%, 440px);
   display: grid;
