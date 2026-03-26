@@ -239,40 +239,77 @@ export function initAuthUI(store) {
             </ul>
 
             <div class="auth-preview" aria-hidden="true">
-              <div class="auth-preview-shell">
+              <div class="auth-preview-shell auth-preview-shell--carousel">
                 <div class="auth-preview-topline">
                   <span class="auth-preview-dot"></span>
                   <span class="auth-preview-dot"></span>
                   <span class="auth-preview-dot"></span>
                 </div>
-                <div class="auth-preview-hero">
-                  <div class="auth-preview-metric">
-                    <span>Equity</span>
-                    <strong>$129,180</strong>
-                  </div>
-                  <div class="auth-preview-kpis">
-                    <div class="auth-preview-kpi">
-                      <span>Win rate</span>
-                      <strong>72.2%</strong>
-                    </div>
-                    <div class="auth-preview-kpi">
-                      <span>Avg R</span>
-                      <strong>1.98R</strong>
-                    </div>
-                    <div class="auth-preview-kpi">
-                      <span>PF</span>
-                      <strong>5.16</strong>
-                    </div>
+                <div class="auth-carousel-window">
+                  <div class="auth-carousel-track">
+                    <article class="auth-carousel-slide auth-carousel-slide--panel">
+                      <div class="auth-carousel-slide-head">
+                        <span>Panel</span>
+                        <strong>Resumen</strong>
+                      </div>
+                      <div class="auth-carousel-metric">$129,180</div>
+                      <div class="auth-carousel-grid">
+                        <div class="auth-carousel-stat">
+                          <span>Win rate</span>
+                          <strong>72.2%</strong>
+                        </div>
+                        <div class="auth-carousel-stat">
+                          <span>Profit Factor</span>
+                          <strong>5.16</strong>
+                        </div>
+                        <div class="auth-carousel-stat">
+                          <span>Best trade</span>
+                          <strong>$605</strong>
+                        </div>
+                      </div>
+                    </article>
+
+                    <article class="auth-carousel-slide auth-carousel-slide--analytics">
+                      <div class="auth-carousel-slide-head">
+                        <span>Análisis</span>
+                        <strong>Hourly edge</strong>
+                      </div>
+                      <div class="auth-carousel-bars">
+                        <span style="height: 34%"></span>
+                        <span style="height: 58%"></span>
+                        <span style="height: 76%"></span>
+                        <span style="height: 48%"></span>
+                        <span style="height: 86%"></span>
+                        <span style="height: 66%"></span>
+                        <span style="height: 42%"></span>
+                      </div>
+                      <div class="auth-carousel-meta">Performance breakdown by session, weekday and execution quality.</div>
+                    </article>
+
+                    <article class="auth-carousel-slide auth-carousel-slide--risk">
+                      <div class="auth-carousel-slide-head">
+                        <span>Riesgo</span>
+                        <strong>Live limits</strong>
+                      </div>
+                      <div class="auth-carousel-risk">
+                        <div class="auth-carousel-risk-row">
+                          <span>Daily DD</span>
+                          <strong>1.2%</strong>
+                        </div>
+                        <div class="auth-carousel-risk-track"><span style="width: 38%"></span></div>
+                        <div class="auth-carousel-risk-row">
+                          <span>Max DD</span>
+                          <strong>10%</strong>
+                        </div>
+                        <div class="auth-carousel-risk-track auth-carousel-risk-track--warning"><span style="width: 54%"></span></div>
+                      </div>
+                    </article>
                   </div>
                 </div>
-                <div class="auth-preview-chart">
-                  <span class="auth-preview-bar" style="height:34%"></span>
-                  <span class="auth-preview-bar" style="height:48%"></span>
-                  <span class="auth-preview-bar" style="height:64%"></span>
-                  <span class="auth-preview-bar" style="height:54%"></span>
-                  <span class="auth-preview-bar" style="height:78%"></span>
-                  <span class="auth-preview-bar" style="height:72%"></span>
-                  <span class="auth-preview-bar" style="height:88%"></span>
+                <div class="auth-carousel-nav">
+                  <span></span>
+                  <span></span>
+                  <span></span>
                 </div>
               </div>
             </div>
