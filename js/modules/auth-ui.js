@@ -280,6 +280,10 @@ export function initAuthUI(store) {
               ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
             </button>` : ""}
           </div>
+
+          <div class="auth-disclaimer">
+            KMFX Edge is an analysis tool. It does not provide financial advice. Trading involves risk and users are solely responsible for their decisions.
+          </div>
         </div>
       </div>
     `;

@@ -418,6 +418,13 @@ body[data-theme="dark"] .auth-screen {
   color: var(--green);
 }
 
+.auth-disclaimer {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(243, 242, 238, 0.46);
+}
+
 .auth-card .form-stack {
   color: rgba(243, 242, 238, 0.88);
 }
@@ -4756,6 +4763,19 @@ body[data-theme="dark"] .settings-section-sub {
   font-weight: 600;
   color: color-mix(in srgb, var(--text3) 92%, transparent);
   line-height: 1.5;
+}
+
+.settings-disclaimer {
+  margin: -4px 0 16px;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text3) 88%, transparent);
+}
+
+html[data-theme="dark"] .settings-disclaimer,
+body[data-theme="dark"] .settings-disclaimer {
+  color: #8E9196;
 }
 
 .settings-profile-copy {
