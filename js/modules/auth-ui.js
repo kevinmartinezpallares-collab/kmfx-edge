@@ -198,91 +198,127 @@ export function initAuthUI(store) {
     const authTitle = isResetMode
       ? "Restablecer contraseña"
       : isSignUpMode
-        ? "Crear cuenta en KMFX Edge"
+        ? "Create your KMFX Edge account"
         : isForgotMode
-          ? "Recuperar acceso"
-          : "Entrar en KMFX Edge";
+          ? "Recover access"
+          : "Welcome to KMFX Edge";
     const authCopy = isResetMode
       ? "Define una nueva contraseña para volver a entrar con normalidad."
       : isSignUpMode
-        ? "Crea tu cuenta con email y contraseña o continúa con Google."
+        ? "Create your account with email and password or continue with Google."
         : isForgotMode
           ? "Introduce tu email y te enviaremos un enlace seguro para restablecer la contraseña."
-          : "Accede con email o continúa con Google. La sesión queda persistida en este entorno de desarrollo.";
+          : "Secure access to your full trading workspace with email or Google.";
 
     root.innerHTML = `
       <div class="auth-screen">
-        <div class="auth-card">
-          <div class="auth-brand">
-            <div class="auth-brand-mark">
-              <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
-              <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+        <div class="auth-layout auth-layout--fade-in">
+          <section class="auth-showcase" aria-label="KMFX Edge overview">
+            <div class="auth-showcase-brand">
+              <div class="auth-showcase-brand-mark">
+                <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+                <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+              </div>
+              <div class="auth-showcase-brand-copy">
+                <div class="auth-showcase-kicker">KMFX Edge</div>
+                <div class="auth-showcase-label">Professional trading intelligence</div>
+              </div>
             </div>
-            <div>
-              <div class="auth-kicker">Acceso</div>
-              <h1 class="auth-title">${authTitle}</h1>
-              <p class="auth-copy">${authCopy}</p>
+
+            <div class="auth-showcase-copyblock">
+              <h1 class="auth-showcase-title">Track your trading performance like a professional</h1>
+              <p class="auth-showcase-copy">All your metrics, risk and discipline in one place.</p>
             </div>
-          </div>
 
-          ${!isForgotMode && !isResetMode ? `<div class="auth-mode-switch" role="tablist" aria-label="Modo de autenticación">
-            <button class="auth-mode-btn ${!isSignUpMode ? "is-active" : ""}" type="button" data-auth-mode="signin" ${uiState.loading ? "disabled" : ""}>
-              Iniciar sesión
-            </button>
-            <button class="auth-mode-btn ${isSignUpMode ? "is-active" : ""}" type="button" data-auth-mode="signup" ${uiState.loading ? "disabled" : ""}>
-              Crear cuenta
-            </button>
-          </div>` : ""}
+            <ul class="auth-benefits" aria-label="Platform benefits">
+              <li class="auth-benefit">Advanced analytics</li>
+              <li class="auth-benefit">Real-time performance tracking</li>
+              <li class="auth-benefit">Funded account control</li>
+              <li class="auth-benefit">Discipline insights</li>
+            </ul>
+          </section>
 
-          <div class="auth-form-grid">
-            ${(isSignUpMode && !isResetMode) ? `
-              <label class="form-stack">
-                <span>Nombre</span>
-                <input type="text" data-auth-field="name" placeholder="Kevin C." value="${escapeHtml(uiState.name)}">
-              </label>
-            ` : ""}
-            <label class="form-stack">
-              <span>Email</span>
-              <input type="email" data-auth-field="email" placeholder="kevin@kmfxedge.local" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
-            </label>
-            ${!isForgotMode ? `<label class="form-stack">
-              <span>Contraseña</span>
-              <input type="password" data-auth-field="password" placeholder="${isResetMode ? "Nueva contraseña" : "Mínimo 6 caracteres"}" value="${escapeHtml(uiState.password)}">
-            </label>` : ""}
-            ${(isSignUpMode || isResetMode) ? `
-              <label class="form-stack">
-                <span>${isResetMode ? "Confirmar nueva contraseña" : "Confirmar contraseña"}</span>
-                <input type="password" data-auth-field="confirmPassword" placeholder="${isResetMode ? "Repite la nueva contraseña" : "Repite la contraseña"}" value="${escapeHtml(uiState.confirmPassword)}">
-              </label>
-            ` : ""}
-          </div>
+          <div class="auth-panel">
+            <div class="auth-card">
+              <div class="auth-brand">
+                <div class="auth-brand-mark">
+                  <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+                  <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+                </div>
+                <div>
+                  <div class="auth-kicker">Access</div>
+                  <h1 class="auth-title">${authTitle}</h1>
+                  <p class="auth-copy">${authCopy}</p>
+                </div>
+              </div>
 
-          ${uiState.error
-            ? `<div class="auth-feedback auth-feedback--error">${escapeHtml(uiState.error)}</div>`
-            : uiState.notice
-              ? `<div class="auth-feedback auth-feedback--success">${escapeHtml(uiState.notice)}</div>`
-              : `<div class="auth-feedback">La identidad del usuario y la cuenta de trading se mantienen separadas.</div>`}
+              ${!isForgotMode && !isResetMode ? `<div class="auth-mode-switch" role="tablist" aria-label="Modo de autenticación">
+                <button class="auth-mode-btn ${!isSignUpMode ? "is-active" : ""}" type="button" data-auth-mode="signin" ${uiState.loading ? "disabled" : ""}>
+                  Iniciar sesión
+                </button>
+                <button class="auth-mode-btn ${isSignUpMode ? "is-active" : ""}" type="button" data-auth-mode="signup" ${uiState.loading ? "disabled" : ""}>
+                  Crear cuenta
+                </button>
+              </div>` : ""}
 
-          <div class="auth-actions">
-            <button class="btn-primary auth-action" type="button" data-auth-submit ${uiState.loading ? "disabled" : ""}>
-              ${isResetMode
-                ? (isResetPasswordLoading ? "Actualizando..." : "Guardar nueva contraseña")
-                : isForgotMode
-                  ? (isResetRequestLoading ? "Enviando..." : "Enviar email de recuperación")
-                : isSignUpMode
-                ? (isSignupLoading ? "Creando cuenta..." : "Crear cuenta")
-                : (isEmailLoading ? "Entrando..." : "Entrar con email")}
-            </button>
-            ${!isForgotMode && !isResetMode ? `<button class="btn-secondary auth-action" type="button" data-auth-google ${uiState.loading ? "disabled" : ""}>
-              ${isGoogleLoading ? "Conectando..." : "Continuar con Google"}
-            </button>` : ""}
-            ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
-              ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
-            </button>` : ""}
-          </div>
+              <div class="auth-form-grid">
+                ${(isSignUpMode && !isResetMode) ? `
+                  <label class="form-stack">
+                    <span>Nombre</span>
+                    <input type="text" data-auth-field="name" placeholder="Kevin C." value="${escapeHtml(uiState.name)}">
+                  </label>
+                ` : ""}
+                <label class="form-stack">
+                  <span>Email</span>
+                  <input type="email" data-auth-field="email" placeholder="kevin@kmfxedge.local" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
+                </label>
+                ${!isForgotMode ? `<label class="form-stack">
+                  <span>Contraseña</span>
+                  <input type="password" data-auth-field="password" placeholder="${isResetMode ? "Nueva contraseña" : "Mínimo 6 caracteres"}" value="${escapeHtml(uiState.password)}">
+                </label>` : ""}
+                ${(isSignUpMode || isResetMode) ? `
+                  <label class="form-stack">
+                    <span>${isResetMode ? "Confirmar nueva contraseña" : "Confirmar contraseña"}</span>
+                    <input type="password" data-auth-field="confirmPassword" placeholder="${isResetMode ? "Repite la nueva contraseña" : "Repite la contraseña"}" value="${escapeHtml(uiState.confirmPassword)}">
+                  </label>
+                ` : ""}
+              </div>
 
-          <div class="auth-disclaimer">
-            KMFX Edge is an analysis tool. It does not provide financial advice. Trading involves risk and users are solely responsible for their decisions.
+              ${uiState.error
+                ? `<div class="auth-feedback auth-feedback--error">${escapeHtml(uiState.error)}</div>`
+                : uiState.notice
+                  ? `<div class="auth-feedback auth-feedback--success">${escapeHtml(uiState.notice)}</div>`
+                  : `<div class="auth-feedback">La identidad del usuario y la cuenta de trading se mantienen separadas.</div>`}
+
+              <div class="auth-actions">
+                <button class="btn-primary auth-action" type="button" data-auth-submit ${uiState.loading ? "disabled" : ""}>
+                  ${isResetMode
+                    ? (isResetPasswordLoading ? "Actualizando..." : "Guardar nueva contraseña")
+                    : isForgotMode
+                      ? (isResetRequestLoading ? "Enviando..." : "Enviar email de recuperación")
+                    : isSignUpMode
+                    ? (isSignupLoading ? "Creando cuenta..." : "Crear cuenta")
+                    : (isEmailLoading ? "Entrando..." : "Entrar con email")}
+                </button>
+                ${!isForgotMode && !isResetMode ? `<button class="btn-secondary auth-action auth-action--google" type="button" data-auth-google ${uiState.loading ? "disabled" : ""}>
+                  ${isGoogleLoading ? "Conectando..." : "Continuar con Google"}
+                </button>
+                <div class="auth-trust-line">No spam. Secure login via Google.</div>` : ""}
+                ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
+                  ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
+                </button>` : ""}
+              </div>
+
+              <div class="auth-disclaimer">
+                KMFX Edge is an analysis tool. It does not provide financial advice. Trading involves risk and users are solely responsible for their decisions.
+              </div>
+
+              <div class="auth-legal-links" aria-label="Legal links">
+                <a class="auth-legal-link" href="/privacy">Privacy</a>
+                <span aria-hidden="true">·</span>
+                <a class="auth-legal-link" href="/terms">Terms</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
