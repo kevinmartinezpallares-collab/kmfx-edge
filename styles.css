@@ -8604,3 +8604,34 @@ html[data-theme="dark"] .brand-logo-dark,
 body[data-theme="dark"] .brand-logo-dark {
   display: block;
 }
+
+@media (max-width: 768px) {
+  html[data-theme="dark"] .bnav-item[data-bnav-more],
+  body[data-theme="dark"] .bnav-item[data-bnav-more],
+  html[data-theme="dark"] .bnav-item[data-bnav-more].active,
+  body[data-theme="dark"] .bnav-item[data-bnav-more].active,
+  html[data-theme="dark"] .bnav-item[data-bnav-more]:hover,
+  body[data-theme="dark"] .bnav-item[data-bnav-more]:hover,
+  html[data-theme="dark"] .bnav-more-item.active,
+  body[data-theme="dark"] .bnav-more-item.active,
+  html[data-theme="dark"] .bnav-more-item:hover,
+  body[data-theme="dark"] .bnav-more-item:hover {
+    color: var(--text1) !important;
+    background: rgba(40, 40, 40, 0.42) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+      0 10px 20px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  }
+
+  html:not([data-theme="dark"]) .bnav-item[data-bnav-more],
+  html:not([data-theme="dark"]) .bnav-item[data-bnav-more].active,
+  html:not([data-theme="dark"]) .bnav-item[data-bnav-more]:hover {
+    color: var(--text-primary) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow:
+      0 10px 20px rgba(20, 30, 48, 0.03),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  }
+}
