@@ -4856,30 +4856,56 @@ body[data-theme="dark"] .settings-profile-card {
 }
 
 .hhc-card.green {
-  background: color-mix(in srgb, var(--card-surface) 96%, var(--green) 4%);
-  border-color: color-mix(in srgb, var(--card-border) 82%, var(--green) 18%);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--green) 32%, transparent);
+  background: var(--card-surface);
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow), var(--card-inner-glow);
 }
 
 .hhc-card.red {
-  background: color-mix(in srgb, var(--card-surface) 96%, var(--red) 4%);
-  border-color: color-mix(in srgb, var(--card-border) 82%, var(--red) 18%);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--red) 32%, transparent);
+  background: var(--card-surface);
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow), var(--card-inner-glow);
 }
 
 .hhc-card.blue {
-  background: color-mix(in srgb, var(--card-surface) 96%, var(--accent) 4%);
-  border-color: color-mix(in srgb, var(--card-border) 82%, var(--accent) 18%);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--card-surface);
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow), var(--card-inner-glow);
 }
 
 .hhc-label,
 .session-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card-alt);
   font-size: 10px;
   color: color-mix(in srgb, var(--text3) 88%, transparent);
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.hhc-card.green .hhc-label {
+  color: color-mix(in srgb, var(--green) 76%, var(--text2));
+  border-color: color-mix(in srgb, var(--green) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--green-bg) 72%, var(--bg-card-alt));
+}
+
+.hhc-card.red .hhc-label {
+  color: color-mix(in srgb, var(--red) 76%, var(--text2));
+  border-color: color-mix(in srgb, var(--red) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--red-bg) 72%, var(--bg-card-alt));
+}
+
+.hhc-card.blue .hhc-label {
+  color: color-mix(in srgb, var(--accent) 76%, var(--text2));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--active-surface) 78%, var(--bg-card-alt));
 }
 
 .hhc-val,
