@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" class="legal-document-root">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Policy — KMFX Edge</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
+  <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
+  <link rel="stylesheet" href="./styles.css?v=refunds-1">
+  <script>
+    (() => {
+      try {
+        const raw = localStorage.getItem("kmfx_frontend_state");
+        const parsed = raw ? JSON.parse(raw) : null;
+        const theme = parsed?.ui?.theme === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (error) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+</head>
+<body class="legal-document">
+  <main class="legal-page">
+    <div class="legal-page__shell">
+      <article class="legal-page__card">
+        <div class="legal-page__brand">
+          <div class="legal-page__brand-mark">
+            <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+            <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+          </div>
+          <div>
+            <h1 class="legal-page__title">Refund Policy — KMFX Edge</h1>
+            <p class="legal-page__intro">Información clara sobre suscripciones, cancelaciones y excepciones relacionadas con reembolsos.</p>
+          </div>
+        </div>
+
+        <div class="legal-page__sections">
+          <section class="legal-page__section">
+            <h2>1. Subscription</h2>
+            <p>KMFX Edge operates on a subscription basis.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>2. No refunds</h2>
+            <p>All payments are final. We do not offer refunds once a subscription period has started.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>3. Cancellation</h2>
+            <p>Users can cancel their subscription at any time. Access will remain active until the end of the billing period.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>4. Exceptions</h2>
+            <p>Refunds may be considered only in case of technical issues preventing access to the platform.</p>
+          </section>
+
+          <section class="legal-page__section">
+            <h2>5. Contact</h2>
+            <p>kevinmartinezpallares@gmail.com</p>
+          </section>
+        </div>
+
+        <footer class="legal-page__footer">
+          <a class="legal-page__footer-link" href="/refunds">Refund Policy</a>
+        </footer>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
