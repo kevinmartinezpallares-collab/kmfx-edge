@@ -106,6 +106,19 @@ function clearRecoveryUrlState() {
   window.history.replaceState({}, document.title, nextUrl || window.location.pathname);
 }
 
+function resolveOAuthRedirectUrl() {
+  const { protocol, hostname, port, pathname } = window.location;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  const isLocalDev = isLocalhost || protocol === "file:";
+
+  if (isLocalDev) {
+    const origin = protocol === "file:" ? "http://localhost:3000" : `${window.location.origin}`;
+    return `${origin}${pathname || "/"}`;
+  }
+
+  return "https://dashboard.kmfxedge.com";
+}
+
 export function getInitialsFromAuthName(name = "") {
   return String(name || "")
     .split(" ")
@@ -511,7 +524,7 @@ export function initAuthSession(store) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}${window.location.pathname}`,
+          redirectTo: resolveOAuthRedirectUrl(),
           queryParams: {
             prompt: "select_account"
           }
