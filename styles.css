@@ -4856,33 +4856,21 @@ body[data-theme="dark"] .settings-profile-card {
 }
 
 .hhc-card.green {
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--green) 18%, transparent) 0%, transparent 58%),
-    linear-gradient(180deg, color-mix(in srgb, var(--green) 8%, var(--card-surface)), color-mix(in srgb, var(--green) 4%, var(--card-surface)));
-  border-color: color-mix(in srgb, var(--green) 20%, var(--card-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--green) 8%, transparent);
+  background: color-mix(in srgb, var(--card-surface) 96%, var(--green) 4%);
+  border-color: color-mix(in srgb, var(--card-border) 82%, var(--green) 18%);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--green) 32%, transparent);
 }
 
 .hhc-card.red {
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--red) 18%, transparent) 0%, transparent 58%),
-    linear-gradient(180deg, color-mix(in srgb, var(--red) 8%, var(--card-surface)), color-mix(in srgb, var(--red) 4%, var(--card-surface)));
-  border-color: color-mix(in srgb, var(--red) 20%, var(--card-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--red) 8%, transparent);
+  background: color-mix(in srgb, var(--card-surface) 96%, var(--red) 4%);
+  border-color: color-mix(in srgb, var(--card-border) 82%, var(--red) 18%);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--red) 32%, transparent);
 }
 
 .hhc-card.blue {
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 58%),
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--card-surface)), color-mix(in srgb, var(--accent) 4%, var(--card-surface)));
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--card-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--card-surface) 96%, var(--accent) 4%);
+  border-color: color-mix(in srgb, var(--card-border) 82%, var(--accent) 18%);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .hhc-label,
