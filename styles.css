@@ -298,6 +298,8 @@ body.auth-locked #modalRoot {
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 18% 18%, rgba(77, 110, 255, 0.12), transparent 28%),
     radial-gradient(circle at 82% 14%, rgba(72, 223, 164, 0.08), transparent 26%),
@@ -316,6 +318,7 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-layout {
   width: min(100%, 1180px);
+  min-height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(380px, 460px);
   gap: clamp(28px, 4vw, 52px);
@@ -8858,19 +8861,22 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-screen {
     padding: 16px;
-    align-items: center;
+    align-items: start;
+    place-items: start center;
+    overflow-y: auto;
   }
 
   .auth-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     width: min(100%, 520px);
+    min-height: auto;
   }
 
   .auth-showcase {
     min-height: 0;
-    gap: 18px;
-    padding: 20px;
+    gap: 14px;
+    padding: 18px;
     border-radius: 24px;
   }
 
@@ -8889,24 +8895,25 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-benefits {
-    gap: 10px;
+    gap: 8px;
   }
 
   .auth-benefit {
-    padding: 12px 14px 12px 36px;
+    padding: 10px 12px 10px 34px;
     border-radius: 16px;
+    font-size: 13px;
   }
 
   .auth-card {
     width: min(100%, 520px);
-    gap: 14px;
-    padding: 20px;
+    gap: 12px;
+    padding: 18px;
     border-radius: 22px;
   }
 
   .auth-form-grid,
   .auth-actions {
-    gap: 10px;
+    gap: 8px;
   }
 
   .auth-brand-mark,
@@ -8931,7 +8938,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-showcase-footnote {
-    font-size: 12px;
+    display: none;
   }
 
   .auth-preview {
@@ -8949,6 +8956,12 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-trust-indicators {
     grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .auth-trust-indicator {
+    min-height: 36px;
+    font-size: 11px;
   }
 
 .auth-card .form-stack input,
