@@ -8505,6 +8505,26 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   color: var(--text1);
 }
 
+.app-disclaimer-footer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 4px 2px;
+}
+
+.app-disclaimer-text {
+  max-width: 760px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: center;
+  color: color-mix(in srgb, var(--text3) 88%, transparent);
+}
+
+html[data-theme="dark"] .app-disclaimer-text,
+body[data-theme="dark"] .app-disclaimer-text {
+  color: rgba(142, 145, 150, 0.86);
+}
+
 html[data-theme="dark"] .legal-page,
 body[data-theme="dark"] .legal-page {
   background: var(--bg-shell);
@@ -8540,6 +8560,16 @@ body[data-theme="dark"] .legal-page__section {
   .legal-page__section {
     padding: 16px 14px;
     border-radius: 16px;
+  }
+
+  .app-disclaimer-footer {
+    padding: 4px 4px 2px;
+  }
+
+  .app-disclaimer-text {
+    font-size: 10px;
+    line-height: 1.5;
+    text-align: left;
   }
 }
 
