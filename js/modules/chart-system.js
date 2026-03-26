@@ -259,8 +259,8 @@ function createProofTrackGradient(ctx, rect, active = false) {
 function createInactiveTrackGradient(ctx, rect, pluginOptions) {
   const isDarkTheme = document.documentElement.dataset.theme === "dark";
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "#1a1c24" : "#fbfcfe"));
-  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "#15171d" : "#f7f9fc"));
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.03)"));
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "rgba(255,255,255,0.03)" : "rgba(15,23,42,0.018)"));
   return gradient;
 }
 
@@ -532,7 +532,15 @@ const literalHistogramBarPlugin = {
       const isActive = index === activeIndex;
 
       const trackRect = { left: x, right: x + trackWidth, top, bottom };
-      roundedRectPath(ctx, x, top, trackWidth, trackHeight, Math.min(8, trackWidth / 2));
+      directionalBarPath(
+        ctx,
+        x,
+        top,
+        trackWidth,
+        trackHeight,
+        Math.min(8, trackWidth / 2),
+        { roundTop: true, roundBottom: false }
+      );
       ctx.fillStyle = createInactiveTrackGradient(ctx, trackRect, pluginOptions);
       ctx.fill();
 
@@ -544,7 +552,6 @@ const literalHistogramBarPlugin = {
       if (barHeight > 0) {
         const baseY = element.base;
         const roundTop = element.y < baseY;
-        const roundBottom = element.y > baseY;
         directionalBarPath(
           ctx,
           x + fillInset,
@@ -552,7 +559,7 @@ const literalHistogramBarPlugin = {
           fillWidth,
           barHeight,
           Math.min(8, fillWidth / 2),
-          { roundTop, roundBottom }
+          { roundTop, roundBottom: false }
         );
         ctx.fillStyle = pluginOptions?.solid === true
           ? solidToneColor(tone, value)
