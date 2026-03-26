@@ -356,6 +356,47 @@ function standardDeviation(values = []) {
   return Math.sqrt(variance);
 }
 
+function buildDenseProfitDistribution(trades = [], binCount = 10) {
+  if (!trades.length) return [];
+  const pnlValues = trades.map((trade) => Number(trade.pnl || 0));
+  const min = Math.min(...pnlValues);
+  const max = Math.max(...pnlValues);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+  if (min === max) {
+    return [{ label: `${Math.round(min)}`, value: pnlValues.length, tone: min < 0 ? "red" : "green" }];
+  }
+
+  const step = (max - min) / binCount || 1;
+  const bins = Array.from({ length: binCount }, (_, index) => {
+    const start = min + (step * index);
+    const end = index === binCount - 1 ? max : min + (step * (index + 1));
+    return {
+      start,
+      end,
+      count: 0
+    };
+  });
+
+  pnlValues.forEach((value) => {
+    let index = Math.floor((value - min) / step);
+    if (!Number.isFinite(index)) index = 0;
+    index = Math.max(0, Math.min(binCount - 1, index));
+    bins[index].count += 1;
+  });
+
+  return bins.map((bin) => {
+    const nearZero = bin.start < 0 && bin.end >= 0;
+    const tone = nearZero ? "red" : (((bin.start + bin.end) / 2) < 0 ? "red" : "green");
+    const startLabel = Math.round(bin.start);
+    const endLabel = Math.round(bin.end);
+    return {
+      label: `${startLabel} / ${endLabel}`,
+      value: bin.count,
+      tone
+    };
+  });
+}
+
 function attachArcInteractions(root) {
   root.querySelectorAll("[data-arc-widget]").forEach((widget) => {
     const paths = [...widget.querySelectorAll(".kmfx-arc-path")];
@@ -397,7 +438,8 @@ export function renderAnalytics(root, state) {
       ? "Perfil saludable con margen de mejora."
       : "Conviene reforzar control y consistencia.";
   const decisionEngine = computeDecisionEngine(model);
-  const hourlyRows = model.hours.filter((hour) => hour.trades);
+  const hourlyRows = model.hours || [];
+  const denseProfitDistribution = buildDenseProfitDistribution(model.trades, 10);
   const monthlyRows = monthlyMatrixRows(model);
   const winningTrades = model.trades.filter((trade) => trade.pnl > 0);
   const losingTrades = model.trades.filter((trade) => trade.pnl < 0);
@@ -517,8 +559,8 @@ export function renderAnalytics(root, state) {
       xOffset: true,
       xTickPadding: 6,
       yTickPadding: 6,
-      layoutPaddingLeft: 44,
-      layoutPaddingRight: 44,
+      layoutPaddingLeft: 16,
+      layoutPaddingRight: 16,
       trackAlpha: 0.12,
       trackActiveAlpha: 0.18,
       trackMinWidth: 36,
@@ -547,8 +589,8 @@ export function renderAnalytics(root, state) {
       xOffset: true,
       xTickPadding: 6,
       yTickPadding: 6,
-      layoutPaddingLeft: 44,
-      layoutPaddingRight: 44,
+      layoutPaddingLeft: 16,
+      layoutPaddingRight: 16,
       trackAlpha: 0.12,
       trackActiveAlpha: 0.18,
       trackMinWidth: 36,
@@ -564,7 +606,7 @@ export function renderAnalytics(root, state) {
       tooltipTitleFormatter: (column) => column.point?.label || "",
       tooltipBodyFormatter: (column) => `${column.value} trades`
     }),
-    barChartSpec("analytics-profit-distribution", model.profitDistribution.map((bin) => ({ label: bin.label, value: bin.count })), {
+    barChartSpec("analytics-profit-distribution", denseProfitDistribution.map((bin) => ({ label: bin.label, value: bin.value, tone: bin.tone })), {
       literalHistogramBars: true,
       referenceSolidBars: true,
       maxBarThickness: 40,
@@ -574,8 +616,8 @@ export function renderAnalytics(root, state) {
       xOffset: true,
       xTickPadding: 6,
       yTickPadding: 6,
-      layoutPaddingLeft: 42,
-      layoutPaddingRight: 42,
+      layoutPaddingLeft: 12,
+      layoutPaddingRight: 12,
       trackAlpha: 0.14,
       trackActiveAlpha: 0.2,
       trackMinWidth: 32,
@@ -584,11 +626,7 @@ export function renderAnalytics(root, state) {
       fillInset: 0.55,
       trackTopInset: 8,
       trackBottomInset: 4,
-      pointTone: (point) => {
-        if (point.label.includes("<") || point.label.startsWith("-")) return "red";
-        if (point.label.includes("-50 / 50")) return "red";
-        return "green";
-      },
+      pointTone: (point) => point.tone || "green",
       showValueLabels: true,
       valueLabelFormatter: (value) => `${value}`,
       minimalTooltip: true,

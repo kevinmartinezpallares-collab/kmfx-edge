@@ -36,7 +36,7 @@ function tradesPerDay(model) {
 }
 
 function hourlyBehavior(model) {
-  const rows = (model.hours || []).filter((hour) => hour.trades > 0);
+  const rows = model.hours || [];
   const peak = [...rows].sort((a, b) => b.trades - a.trades)[0] || { hour: 0, trades: 0, pnl: 0 };
   return {
     rows,
@@ -222,8 +222,8 @@ export function renderDiscipline(root, state) {
       xOffset: true,
       xTickPadding: 6,
       yTickPadding: 8,
-      layoutPaddingLeft: 54,
-      layoutPaddingRight: 54,
+      layoutPaddingLeft: 16,
+      layoutPaddingRight: 16,
       showYGrid: false,
       showXGrid: false,
       showYAxis: false,
