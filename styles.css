@@ -3700,6 +3700,10 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.analytics-daily-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .analytics-daily-breakdown-list {
   display: grid;
   gap: 10px;

@@ -65,6 +65,12 @@ function calcWinRate(trades = []) {
   return (trades.filter((trade) => trade.pnl > 0).length / trades.length) * 100;
 }
 
+function calcAvgR(trades = []) {
+  const validTrades = trades.filter((trade) => Number.isFinite(Number(trade.rMultiple)));
+  if (!validTrades.length) return 0;
+  return validTrades.reduce((sum, trade) => sum + Number(trade.rMultiple || 0), 0) / validTrades.length;
+}
+
 function calcConsistency(days = []) {
   if (!days.length) return 0;
   return (days.filter((day) => day.pnl > 0).length / days.length) * 100;
@@ -427,7 +433,27 @@ export function renderAnalytics(root, state) {
     return;
   }
 
-  const weekdayWorkdays = model.weekdays.filter((day) => ["Lun", "Mar", "Mié", "Jue", "Vie"].includes(day.label));
+  const workdayIndexes = new Set([1, 2, 3, 4, 5]);
+  const weekdayTrades = new Map([...workdayIndexes].map((index) => [index, []]));
+  model.trades.forEach((trade) => {
+    const weekday = trade.when.getDay();
+    if (weekdayTrades.has(weekday)) weekdayTrades.get(weekday).push(trade);
+  });
+  const weekdayWorkdays = model.weekdays
+    .filter((day) => ["Lun", "Mar", "Mié", "Jue", "Vie"].includes(day.label))
+    .map((day) => {
+      const trades = weekdayTrades.get(day.index) || [];
+      return {
+        ...day,
+        winRate: calcWinRate(trades),
+        avgR: calcAvgR(trades),
+        hasAvgR: trades.some((trade) => Number.isFinite(Number(trade.rMultiple)))
+      };
+    });
+  const tradedWeekdays = weekdayWorkdays.filter((day) => day.trades > 0);
+  const sortableWeekdays = tradedWeekdays.length ? tradedWeekdays : weekdayWorkdays;
+  const bestWeekday = [...sortableWeekdays].sort((a, b) => b.pnl - a.pnl)[0] || weekdayWorkdays[0];
+  const worstWeekday = [...sortableWeekdays].sort((a, b) => a.pnl - b.pnl)[0] || weekdayWorkdays[0];
   const bestHour = [...model.hours].sort((a, b) => b.pnl - a.pnl)[0] || { hour: 0, pnl: 0, trades: 0 };
   const worstHour = [...model.hours].sort((a, b) => a.pnl - b.pnl)[0] || { hour: 0, pnl: 0, trades: 0 };
   const activeHour = [...model.hours].sort((a, b) => b.trades - a.trades)[0] || { hour: 0, pnl: 0, trades: 0 };
@@ -884,8 +910,24 @@ export function renderAnalytics(root, state) {
             <div class="hhc-label">${day.label}</div>
             <div class="hhc-val ${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</div>
             <div class="hhc-sub">${day.trades} trades</div>
+            <div class="hhc-sub">WR ${formatPercent(day.winRate)}</div>
+            <div class="hhc-sub">Avg R ${day.hasAvgR ? `${day.avgR.toFixed(2)}R` : "—"}</div>
           </article>
         `).join("")}
+      </div>
+      <div class="hour-hero-cards analytics-daily-summary">
+        <article class="hhc-card green">
+          <div class="hhc-label">Mejor día</div>
+          <div class="hhc-val ${bestWeekday?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestWeekday?.label || "—"}</div>
+          <div class="hhc-sub">${formatCurrency(bestWeekday?.pnl || 0)}</div>
+          <div class="hhc-sub">WR ${formatPercent(bestWeekday?.winRate || 0)}</div>
+        </article>
+        <article class="hhc-card red">
+          <div class="hhc-label">Peor día</div>
+          <div class="hhc-val ${worstWeekday?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${worstWeekday?.label || "—"}</div>
+          <div class="hhc-sub">${formatCurrency(worstWeekday?.pnl || 0)}</div>
+          <div class="hhc-sub">Avg R ${worstWeekday?.hasAvgR ? `${worstWeekday.avgR.toFixed(2)}R` : "—"}</div>
+        </article>
       </div>
       <article class="tl-section-card">
         <div class="tl-section-header"><div class="tl-section-title">Rendimiento por Día</div></div>
