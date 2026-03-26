@@ -328,14 +328,15 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-showcase {
   display: grid;
-  gap: 28px;
+  gap: 30px;
   align-content: center;
   min-height: min(76vh, 760px);
   padding: clamp(24px, 4vw, 44px);
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
-    linear-gradient(180deg, rgba(14, 17, 24, 0.82), rgba(10, 12, 18, 0.68));
+    radial-gradient(circle at top left, rgba(61, 123, 255, 0.1), transparent 30%),
+    linear-gradient(180deg, rgba(14, 17, 24, 0.9), rgba(10, 12, 18, 0.72));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 28px 70px rgba(0, 0, 0, 0.28);
@@ -383,7 +384,7 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-showcase-copyblock {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   max-width: 560px;
 }
 
@@ -408,28 +409,39 @@ body[data-theme="dark"] .auth-screen {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 14px;
+  gap: 12px;
   max-width: 420px;
 }
 
 .auth-benefit {
   position: relative;
-  padding-left: 22px;
+  padding: 14px 16px 14px 42px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
   font-size: 15px;
-  font-weight: 560;
+  font-weight: 600;
   color: rgba(243, 242, 238, 0.78);
 }
 
 .auth-benefit::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 10px;
+  left: 18px;
+  top: 50%;
   width: 8px;
   height: 8px;
   border-radius: 999px;
   background: #3d7bff;
   box-shadow: 0 0 0 5px rgba(61, 123, 255, 0.16);
+  transform: translateY(-50%);
+}
+
+.auth-showcase-footnote {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(243, 242, 238, 0.48);
 }
 
 .auth-panel {
@@ -441,7 +453,7 @@ body[data-theme="dark"] .auth-screen {
   width: min(100%, 460px);
   display: grid;
   gap: 18px;
-  padding: 28px;
+  padding: 30px;
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
@@ -493,7 +505,7 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-copy {
   margin: 7px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(243, 242, 238, 0.62);
   line-height: 1.55;
 }
@@ -581,12 +593,13 @@ body[data-theme="dark"] .auth-screen {
 .auth-action {
   width: 100%;
   justify-content: center;
-  min-height: 52px;
+  min-height: 54px;
   border-radius: 16px;
 }
 
 .auth-action--google {
   font-weight: 700;
+  font-size: 15px;
 }
 
 .auth-link-btn {
@@ -659,6 +672,7 @@ html:not([data-theme="dark"]) .auth-screen {
 html:not([data-theme="dark"]) .auth-showcase {
   border-color: rgba(15, 23, 42, 0.06);
   background:
+    radial-gradient(circle at top left, rgba(61, 123, 255, 0.08), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 251, 0.94));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
@@ -676,8 +690,14 @@ html:not([data-theme="dark"]) .auth-showcase-kicker {
 
 html:not([data-theme="dark"]) .auth-showcase-label,
 html:not([data-theme="dark"]) .auth-showcase-copy,
-html:not([data-theme="dark"]) .auth-benefit {
+html:not([data-theme="dark"]) .auth-benefit,
+html:not([data-theme="dark"]) .auth-showcase-footnote {
   color: rgba(15, 23, 42, 0.72);
+}
+
+html:not([data-theme="dark"]) .auth-benefit {
+  border-color: rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 html:not([data-theme="dark"]) .auth-showcase-title,
@@ -8695,6 +8715,11 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     gap: 10px;
   }
 
+  .auth-benefit {
+    padding: 12px 14px 12px 36px;
+    border-radius: 16px;
+  }
+
   .auth-card {
     width: min(100%, 520px);
     gap: 14px;
@@ -8725,6 +8750,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-copy {
+    font-size: 12px;
+  }
+
+  .auth-showcase-footnote {
     font-size: 12px;
   }
 

@@ -236,6 +236,10 @@ export function initAuthUI(store) {
               <li class="auth-benefit">Funded account control</li>
               <li class="auth-benefit">Discipline insights</li>
             </ul>
+
+            <div class="auth-showcase-footnote">
+              Built for traders who want a cleaner read on performance, risk, and execution quality.
+            </div>
           </section>
 
           <div class="auth-panel">
