@@ -7759,6 +7759,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .settings-grid-clean > .tl-section-card {
     padding: 14px;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .settings-grid-clean > .tl-section-card .tl-section-header {
@@ -7777,6 +7779,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .settings-profile-copy {
     width: 100%;
     gap: 4px;
+    min-width: 0;
   }
 
   .settings-inline-note,
@@ -7792,6 +7795,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .settings-check {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     min-height: 46px;
     padding: 11px 12px;
     align-items: flex-start;
@@ -7799,6 +7804,21 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .settings-check span {
     line-height: 1.35;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .settings-grid-clean label,
+  .settings-grid-clean .form-stack,
+  .settings-grid-clean input,
+  .settings-grid-clean select,
+  .settings-grid-clean textarea,
+  .settings-actions,
+  .settings-edit-actions,
+  .settings-status-card,
+  .settings-check-grid {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .topbar-user-card {
@@ -8458,11 +8478,11 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .discipline-hourly-card .kmfx-chart-shell--feature {
-    min-height: 272px;
+    min-height: 312px;
   }
 
   #discipline-hourly-behavior {
-    min-height: 248px;
+    min-height: 286px;
   }
 
   .funded-page-stack {

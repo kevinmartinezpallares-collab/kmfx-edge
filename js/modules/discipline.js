@@ -92,6 +92,8 @@ export function renderDiscipline(root, state) {
   const lossConcentration = clamp(((currentLosses * Math.abs(avgLossValue)) / Math.max(Math.abs(model.totals.worstTrade || avgLossValue || 1), 1)) * 36, 0, 100);
   const behaviorConsistency = activeDayConsistency(model);
   const peakHourLabel = `${String(hourly.peak.hour).padStart(2, "0")}:00`;
+  const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
+  const disciplineChartRows = (isMobileViewport ? hourly.rows.filter((hour) => hour.trades > 0) : hourly.rows);
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -199,7 +201,7 @@ export function renderDiscipline(root, state) {
   `;
 
   mountCharts(root, [
-    barChartSpec("discipline-hourly-behavior", hourly.rows.map((hour) => ({
+    barChartSpec("discipline-hourly-behavior", disciplineChartRows.map((hour) => ({
       label: `${String(hour.hour).padStart(2, "0")}:00`,
       value: hour.trades
     })), {
