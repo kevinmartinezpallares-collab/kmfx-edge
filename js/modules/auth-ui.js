@@ -385,20 +385,10 @@ export function initAuthUI(store) {
                     </svg>
                   </span>
                   <span>${isGoogleLoading ? "Conectando..." : "Continuar con Google"}</span>
-                </button>
-                <div class="auth-trust-line">No spam. Secure login via Google.</div>` : ""}
+                </button>` : ""}
                 ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
                   ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
                 </button>` : ""}
-              </div>
-
-              ${!isForgotMode && !isResetMode ? `<div class="auth-trust-indicators" aria-label="Trust indicators">
-                <div class="auth-trust-indicator">No credit card required</div>
-                <div class="auth-trust-indicator">Secure authentication</div>
-              </div>` : ""}
-
-              <div class="auth-disclaimer">
-                KMFX Edge is an analysis tool. It does not provide financial advice. Trading involves risk and users are solely responsible for their decisions.
               </div>
 
               <div class="auth-legal-links" aria-label="Legal links">
