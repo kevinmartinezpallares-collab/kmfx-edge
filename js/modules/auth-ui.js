@@ -40,23 +40,31 @@ export function initAuthUI(store) {
     }
   };
 
+  const updateAuthCarouselView = () => {
+    const nextIndex = Math.max(0, Math.min(authSlides.length - 1, Number(root.__authUiState?.slideIndex || 0)));
+    root.querySelector(".auth-carousel-track")?.style.setProperty("transform", `translateX(-${nextIndex * 100}%)`);
+    root.querySelectorAll("[data-auth-slide]")?.forEach((dot, index) => {
+      dot.classList.toggle("is-active", index === nextIndex);
+    });
+  };
+
   const authSlides = [
     {
       section: "Panel",
-      title: "Control your trading like a professional",
-      copy: "All your metrics, risk and performance in one place",
+      title: "Controla tu trading como un profesional",
+      copy: "Todas tus métricas, riesgo y rendimiento en un solo lugar",
       tone: "panel"
     },
     {
       section: "Riesgo",
-      title: "Know your risk before it controls you",
-      copy: "Drawdown, exposure and risk pressure in real time",
+      title: "Controla el riesgo antes de que te controle a ti",
+      copy: "Drawdown, exposición y presión de riesgo en tiempo real",
       tone: "risk"
     },
     {
       section: "Disciplina",
-      title: "Your edge is your discipline",
-      copy: "Track behavior, consistency and performance patterns",
+      title: "Tu ventaja está en tu disciplina",
+      copy: "Analiza tu comportamiento y mejora tu consistencia como trader",
       tone: "discipline"
     }
   ];
@@ -69,8 +77,9 @@ export function initAuthUI(store) {
     if (window.matchMedia("(max-width: 860px)").matches) return;
     root.__authCarouselTimer = window.setInterval(() => {
       const current = Number(root.__authUiState?.slideIndex || 0);
-      setUiState({ slideIndex: (current + 1) % authSlides.length }, { rerender: true });
-    }, 4800);
+      setUiState({ slideIndex: (current + 1) % authSlides.length }, { rerender: false });
+      updateAuthCarouselView();
+    }, 5600);
   };
 
   const signInWithPassword = async () => {
@@ -236,22 +245,22 @@ export function initAuthUI(store) {
     const authTitle = isResetMode
       ? "Restablecer contraseña"
       : isSignUpMode
-        ? "Create your KMFX Edge account"
+        ? "Crea tu cuenta en KMFX Edge"
         : isForgotMode
-          ? "Recover access"
-          : "Welcome to KMFX Edge";
+          ? "Recupera el acceso"
+          : "Accede a tu panel de trading";
     const authCopy = isResetMode
       ? "Define una nueva contraseña para volver a entrar con normalidad."
       : isSignUpMode
-        ? "Create your account with email and password or continue with Google."
+        ? "Crea tu cuenta con correo y contraseña o continúa con Google."
         : isForgotMode
           ? "Introduce tu email y te enviaremos un enlace seguro para restablecer la contraseña."
-          : "Secure access to your full trading workspace with email or Google.";
+          : "Visualiza tu rendimiento, riesgo y disciplina en tiempo real.";
 
     const activeSlideIndex = Math.max(0, Math.min(authSlides.length - 1, Number(uiState.slideIndex || 0)));
     root.innerHTML = `
       <div class="auth-screen">
-        <div class="auth-layout auth-layout--fade-in">
+        <div class="auth-layout ${root.__authHasRendered ? "" : "auth-layout--fade-in"}">
           <section class="auth-showcase" aria-label="KMFX Edge overview">
             <div class="auth-showcase-brand">
               <div class="auth-showcase-brand-mark">
@@ -262,16 +271,16 @@ export function initAuthUI(store) {
             </div>
 
             <div class="auth-showcase-copyblock">
-              <h1 class="auth-showcase-title">Track your trading performance like a professional</h1>
-              <p class="auth-showcase-copy">All your metrics, risk and discipline in one place.</p>
-              <div class="auth-showcase-value">Used by traders to track performance, risk and consistency.</div>
+              <h1 class="auth-showcase-title">Controla tu trading como un profesional</h1>
+              <p class="auth-showcase-copy">Todas tus métricas, riesgo y rendimiento en un solo lugar.</p>
+              <div class="auth-showcase-value">Usado por traders para medir rendimiento, riesgo y consistencia.</div>
             </div>
 
             <ul class="auth-benefits" aria-label="Platform benefits">
-              <li class="auth-benefit">Advanced analytics</li>
-              <li class="auth-benefit">Real-time performance tracking</li>
-              <li class="auth-benefit">Funded account control</li>
-              <li class="auth-benefit">Discipline insights</li>
+              <li class="auth-benefit">Analítica avanzada</li>
+              <li class="auth-benefit">Seguimiento del rendimiento en tiempo real</li>
+              <li class="auth-benefit">Control de cuentas fondeadas</li>
+              <li class="auth-benefit">Insights de disciplina</li>
             </ul>
 
             <div class="auth-preview" aria-hidden="true">
@@ -340,7 +349,7 @@ export function initAuthUI(store) {
                       class="auth-carousel-dot ${index === activeSlideIndex ? "is-active" : ""}"
                       type="button"
                       data-auth-slide="${index}"
-                      aria-label="Mostrar slide ${index + 1}: ${slide.section}"
+                      aria-label="Mostrar diapositiva ${index + 1}: ${slide.section}"
                     ></button>
                   `).join("")}
                 </div>
@@ -348,16 +357,16 @@ export function initAuthUI(store) {
             </div>
 
             <div class="auth-showcase-footnote">
-              Built for traders who want a cleaner read on performance, risk, and execution quality.
+              Diseñado para traders que quieren una lectura más clara de su rendimiento, riesgo y ejecución.
             </div>
           </section>
 
           <div class="auth-panel">
-            <div class="auth-panel-cta">Start tracking your edge today</div>
+            <div class="auth-panel-cta">Empieza a medir tu ventaja hoy</div>
             <div class="auth-card">
               <div class="auth-brand">
                 <div>
-                  <div class="auth-kicker">Access</div>
+                  <div class="auth-kicker">Acceso</div>
                   <h1 class="auth-title">${authTitle}</h1>
                   <p class="auth-copy">${authCopy}</p>
                 </div>
@@ -380,7 +389,7 @@ export function initAuthUI(store) {
                   </label>
                 ` : ""}
                 <label class="form-stack">
-                  <span>Email</span>
+                  <span>Correo electrónico</span>
                   <input type="email" data-auth-field="email" placeholder="kevin@kmfxedge.local" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
                 </label>
                 ${!isForgotMode ? `<label class="form-stack">
@@ -421,16 +430,18 @@ export function initAuthUI(store) {
                     </svg>
                   </span>
                   <span>${isGoogleLoading ? "Conectando..." : "Continuar con Google"}</span>
-                </button>` : ""}
+                </button>
+                <div class="auth-trust-line">Usamos Google para proteger tu cuenta. No almacenamos contraseñas.</div>` : ""}
                 ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
                   ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
                 </button>` : ""}
               </div>
 
               <div class="auth-legal-links" aria-label="Legal links">
-                <a class="auth-legal-link" href="/privacy">Privacy</a>
-                <span aria-hidden="true">·</span>
-                <a class="auth-legal-link" href="/terms">Terms</a>
+                <span>Al continuar, aceptas nuestros</span>
+                <a class="auth-legal-link" href="/terms">Términos</a>
+                <span aria-hidden="true">y</span>
+                <a class="auth-legal-link" href="/privacy">Política de Privacidad</a>
               </div>
             </div>
           </div>
@@ -486,7 +497,8 @@ export function initAuthUI(store) {
     root.querySelectorAll("[data-auth-slide]")?.forEach((button) => {
       button.addEventListener("click", () => {
         const nextIndex = Number(button.getAttribute("data-auth-slide") || 0);
-        setUiState({ slideIndex: nextIndex }, { rerender: true });
+        setUiState({ slideIndex: nextIndex }, { rerender: false });
+        updateAuthCarouselView();
       });
     });
     root.querySelector('[data-auth-secondary-action]')?.addEventListener("click", () => {
@@ -532,6 +544,7 @@ export function initAuthUI(store) {
     }
 
     startAuthCarousel();
+    root.__authHasRendered = true;
   };
 
   let lastAuthSignature = getAuthRenderSignature(store.getState());
