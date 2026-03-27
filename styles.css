@@ -749,27 +749,38 @@ body[data-theme="dark"] .auth-screen {
 .auth-mode-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 6px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  gap: 6px;
+  padding: 5px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .auth-mode-btn {
-  min-height: 40px;
+  min-height: 38px;
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 12px;
   background: transparent;
-  color: rgba(243, 242, 238, 0.62);
+  color: rgba(243, 242, 238, 0.58);
+  font-size: 13px;
   font-weight: 650;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .auth-mode-btn.is-active {
-  background: rgba(111, 141, 255, 0.16);
-  border-color: rgba(111, 141, 255, 0.24);
-  color: #cddaff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f3f2ee;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.auth-mode-btn:hover,
+.auth-mode-btn:focus-visible {
+  color: rgba(243, 242, 238, 0.82);
 }
 
 .auth-feedback {
@@ -818,22 +829,91 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-actions {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .auth-action {
   width: 100%;
   justify-content: center;
-  min-height: 48px;
+  min-height: 50px;
   border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
 }
 
 .auth-action--google {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 700;
+  gap: 11px;
+  min-height: 54px;
+  padding-inline: 18px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
   font-size: 15px;
+  font-weight: 700;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.auth-action--google:hover,
+.auth-action--google:focus-visible {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 14px 26px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+}
+
+.auth-action--google:active {
+  transform: translateY(0);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.auth-action:not(.auth-action--google) {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(31, 40, 68, 0.92), rgba(21, 29, 48, 0.94));
+  color: #f3f2ee;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.auth-action:not(.auth-action--google):hover,
+.auth-action:not(.auth-action--google):focus-visible {
+  border-color: rgba(122, 150, 255, 0.26);
+  background:
+    linear-gradient(180deg, rgba(37, 48, 84, 0.96), rgba(24, 34, 58, 0.98));
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.auth-action:not(.auth-action--google):active {
+  transform: translateY(0);
+}
+
+.auth-action[disabled],
+.auth-mode-btn[disabled],
+.auth-link-btn[disabled] {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .auth-google-mark {
@@ -853,16 +933,20 @@ body[data-theme="dark"] .auth-screen {
 .auth-link-btn {
   border: 0;
   background: transparent;
-  color: rgba(205, 218, 255, 0.86);
-  font-weight: 600;
-  min-height: 32px;
-  padding: 0;
+  color: rgba(205, 218, 255, 0.72);
+  font-size: 13px;
+  font-weight: 620;
+  min-height: 28px;
+  padding: 2px 10px;
   justify-self: center;
+  border-radius: 999px;
+  transition: color 160ms ease, background-color 160ms ease;
 }
 
 .auth-link-btn:hover,
 .auth-link-btn:focus-visible {
   color: #f3f2ee;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .auth-trust-line {
@@ -1052,13 +1136,53 @@ html:not([data-theme="dark"]) .auth-mode-btn {
 }
 
 html:not([data-theme="dark"]) .auth-mode-btn.is-active {
-  background: rgba(61, 123, 255, 0.09);
-  border-color: rgba(61, 123, 255, 0.14);
-  color: #2559ca;
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
 }
 
 html:not([data-theme="dark"]) .auth-action--google {
-  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+html:not([data-theme="dark"]) .auth-action--google:hover,
+html:not([data-theme="dark"]) .auth-action--google:focus-visible {
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+html:not([data-theme="dark"]) .auth-action:not(.auth-action--google) {
+  border-color: rgba(15, 23, 42, 0.08);
+  background:
+    linear-gradient(180deg, rgba(237, 242, 255, 0.98), rgba(227, 235, 252, 0.98));
+  color: #16325c;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html:not([data-theme="dark"]) .auth-action:not(.auth-action--google):hover,
+html:not([data-theme="dark"]) .auth-action:not(.auth-action--google):focus-visible {
+  border-color: rgba(61, 123, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(232, 239, 255, 1), rgba(220, 231, 252, 1));
+}
+
+html:not([data-theme="dark"]) .auth-link-btn {
+  color: rgba(37, 89, 202, 0.88);
+}
+
+html:not([data-theme="dark"]) .auth-link-btn:hover,
+html:not([data-theme="dark"]) .auth-link-btn:focus-visible {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
 }
 
 html:not([data-theme="dark"]) .auth-card .form-stack,
