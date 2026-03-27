@@ -4,6 +4,7 @@ export function initAuthUI(store) {
 
   root.__authUiState = root.__authUiState || {
     mode: "signin",
+    slideIndex: 0,
     name: "",
     email: "",
     password: "",
@@ -37,6 +38,39 @@ export function initAuthUI(store) {
     if (rerender) {
       render(store.getState());
     }
+  };
+
+  const authSlides = [
+    {
+      section: "Panel",
+      title: "Control your trading like a professional",
+      copy: "All your metrics, risk and performance in one place",
+      tone: "panel"
+    },
+    {
+      section: "Riesgo",
+      title: "Know your risk before it controls you",
+      copy: "Drawdown, exposure and risk pressure in real time",
+      tone: "risk"
+    },
+    {
+      section: "Disciplina",
+      title: "Your edge is your discipline",
+      copy: "Track behavior, consistency and performance patterns",
+      tone: "discipline"
+    }
+  ];
+
+  const startAuthCarousel = () => {
+    if (root.__authCarouselTimer) {
+      window.clearInterval(root.__authCarouselTimer);
+      root.__authCarouselTimer = null;
+    }
+    if (window.matchMedia("(max-width: 860px)").matches) return;
+    root.__authCarouselTimer = window.setInterval(() => {
+      const current = Number(root.__authUiState?.slideIndex || 0);
+      setUiState({ slideIndex: (current + 1) % authSlides.length }, { rerender: true });
+    }, 4800);
   };
 
   const signInWithPassword = async () => {
@@ -171,6 +205,10 @@ export function initAuthUI(store) {
     const isAuthenticated = auth.status === "authenticated";
     document.body.classList.toggle("auth-locked", !isAuthenticated || isRecoveryMode);
     if (isAuthenticated && !isRecoveryMode) {
+      if (root.__authCarouselTimer) {
+        window.clearInterval(root.__authCarouselTimer);
+        root.__authCarouselTimer = null;
+      }
       root.innerHTML = "";
       root.hidden = true;
       return;
@@ -210,6 +248,7 @@ export function initAuthUI(store) {
           ? "Introduce tu email y te enviaremos un enlace seguro para restablecer la contraseña."
           : "Secure access to your full trading workspace with email or Google.";
 
+    const activeSlideIndex = Math.max(0, Math.min(authSlides.length - 1, Number(uiState.slideIndex || 0)));
     root.innerHTML = `
       <div class="auth-screen">
         <div class="auth-layout auth-layout--fade-in">
@@ -237,76 +276,73 @@ export function initAuthUI(store) {
 
             <div class="auth-preview" aria-hidden="true">
               <div class="auth-preview-shell auth-preview-shell--carousel">
-                <div class="auth-preview-topline">
-                  <span class="auth-preview-dot"></span>
-                  <span class="auth-preview-dot"></span>
-                  <span class="auth-preview-dot"></span>
-                </div>
                 <div class="auth-carousel-window">
-                  <div class="auth-carousel-track">
-                    <article class="auth-carousel-slide auth-carousel-slide--panel">
-                      <div class="auth-carousel-slide-head">
-                        <span>Panel</span>
-                        <strong>Resumen</strong>
-                      </div>
-                      <div class="auth-carousel-metric">$129,180</div>
-                      <div class="auth-carousel-grid">
-                        <div class="auth-carousel-stat">
-                          <span>Win rate</span>
-                          <strong>72.2%</strong>
+                  <div class="auth-carousel-track" style="transform: translateX(-${activeSlideIndex * 100}%);">
+                    ${authSlides.map((slide) => `
+                      <article class="auth-carousel-slide auth-carousel-slide--${slide.tone}">
+                        <div class="auth-carousel-slide-copy">
+                          <span>${slide.section}</span>
+                          <strong>${slide.title}</strong>
+                          <p>${slide.copy}</p>
                         </div>
-                        <div class="auth-carousel-stat">
-                          <span>Profit Factor</span>
-                          <strong>5.16</strong>
+                        <div class="auth-carousel-visual auth-carousel-visual--${slide.tone}">
+                          <div class="auth-carousel-visual-shell">
+                            <div class="auth-carousel-visual-header">
+                              <span></span><span></span><span></span>
+                            </div>
+                            ${slide.tone === "panel" ? `
+                              <div class="auth-carousel-visual-panel-kpis">
+                                <div><label>Equity</label><strong>$129,180</strong></div>
+                                <div><label>Return</label><strong>+3.0%</strong></div>
+                                <div><label>Trades</label><strong>142</strong></div>
+                              </div>
+                              <div class="auth-carousel-visual-bars">
+                                <span style="height: 36%"></span>
+                                <span style="height: 54%"></span>
+                                <span style="height: 66%"></span>
+                                <span style="height: 48%"></span>
+                                <span style="height: 78%"></span>
+                                <span style="height: 62%"></span>
+                              </div>
+                            ` : ""}
+                            ${slide.tone === "risk" ? `
+                              <div class="auth-carousel-visual-risk">
+                                <div class="auth-carousel-visual-risk-row"><label>Drawdown</label><strong>2.4%</strong></div>
+                                <div class="auth-carousel-visual-risk-track"><span style="width: 38%"></span></div>
+                                <div class="auth-carousel-visual-risk-row"><label>Exposure</label><strong>31%</strong></div>
+                                <div class="auth-carousel-visual-risk-track auth-carousel-visual-risk-track--warning"><span style="width: 54%"></span></div>
+                                <div class="auth-carousel-visual-risk-row"><label>Risk Pressure</label><strong>Low</strong></div>
+                              </div>
+                            ` : ""}
+                            ${slide.tone === "discipline" ? `
+                              <div class="auth-carousel-visual-discipline">
+                                <div class="auth-carousel-visual-ring">
+                                  <div class="auth-carousel-visual-ring-core">
+                                    <strong>80</strong>
+                                    <span>Score</span>
+                                  </div>
+                                </div>
+                                <div class="auth-carousel-visual-discipline-metrics">
+                                  <div><label>Consistency</label><strong>5/5</strong></div>
+                                  <div><label>Avg R</label><strong>1.9</strong></div>
+                                </div>
+                              </div>
+                            ` : ""}
+                          </div>
                         </div>
-                        <div class="auth-carousel-stat">
-                          <span>Best trade</span>
-                          <strong>$605</strong>
-                        </div>
-                      </div>
-                    </article>
-
-                    <article class="auth-carousel-slide auth-carousel-slide--analytics">
-                      <div class="auth-carousel-slide-head">
-                        <span>Análisis</span>
-                        <strong>Hourly edge</strong>
-                      </div>
-                      <div class="auth-carousel-bars">
-                        <span style="height: 34%"></span>
-                        <span style="height: 58%"></span>
-                        <span style="height: 76%"></span>
-                        <span style="height: 48%"></span>
-                        <span style="height: 86%"></span>
-                        <span style="height: 66%"></span>
-                        <span style="height: 42%"></span>
-                      </div>
-                      <div class="auth-carousel-meta">Performance breakdown by session, weekday and execution quality.</div>
-                    </article>
-
-                    <article class="auth-carousel-slide auth-carousel-slide--risk">
-                      <div class="auth-carousel-slide-head">
-                        <span>Riesgo</span>
-                        <strong>Live limits</strong>
-                      </div>
-                      <div class="auth-carousel-risk">
-                        <div class="auth-carousel-risk-row">
-                          <span>Daily DD</span>
-                          <strong>1.2%</strong>
-                        </div>
-                        <div class="auth-carousel-risk-track"><span style="width: 38%"></span></div>
-                        <div class="auth-carousel-risk-row">
-                          <span>Max DD</span>
-                          <strong>10%</strong>
-                        </div>
-                        <div class="auth-carousel-risk-track auth-carousel-risk-track--warning"><span style="width: 54%"></span></div>
-                      </div>
-                    </article>
+                      </article>
+                    `).join("")}
                   </div>
                 </div>
-                <div class="auth-carousel-nav">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+                <div class="auth-carousel-nav" role="tablist" aria-label="Login preview slides">
+                  ${authSlides.map((slide, index) => `
+                    <button
+                      class="auth-carousel-dot ${index === activeSlideIndex ? "is-active" : ""}"
+                      type="button"
+                      data-auth-slide="${index}"
+                      aria-label="Mostrar slide ${index + 1}: ${slide.section}"
+                    ></button>
+                  `).join("")}
                 </div>
               </div>
             </div>
@@ -447,6 +483,12 @@ export function initAuthUI(store) {
       signInWithPassword();
     });
     root.querySelector('[data-auth-google]')?.addEventListener("click", signInWithGoogle);
+    root.querySelectorAll("[data-auth-slide]")?.forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextIndex = Number(button.getAttribute("data-auth-slide") || 0);
+        setUiState({ slideIndex: nextIndex }, { rerender: true });
+      });
+    });
     root.querySelector('[data-auth-secondary-action]')?.addEventListener("click", () => {
       setUiState({
         mode: isForgotMode ? "signin" : "forgot",
@@ -488,6 +530,8 @@ export function initAuthUI(store) {
         }
       }
     }
+
+    startAuthCarousel();
   };
 
   let lastAuthSignature = getAuthRenderSignature(store.getState());
