@@ -363,7 +363,7 @@ export function initAuthUI(store) {
                 ? `<div class="auth-feedback auth-feedback--error">${escapeHtml(uiState.error)}</div>`
                 : uiState.notice
                   ? `<div class="auth-feedback auth-feedback--success">${escapeHtml(uiState.notice)}</div>`
-                  : `<div class="auth-feedback">La identidad del usuario y la cuenta de trading se mantienen separadas.</div>`}
+                  : ``}
 
               <div class="auth-actions">
                 <button class="btn-primary auth-action" type="button" data-auth-submit ${uiState.loading ? "disabled" : ""}>

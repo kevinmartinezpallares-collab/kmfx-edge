@@ -784,7 +784,6 @@ body[data-theme="dark"] .auth-screen {
 }
 
 .auth-feedback {
-  min-height: 18px;
   font-size: 12px;
   color: rgba(243, 242, 238, 0.6);
 }
