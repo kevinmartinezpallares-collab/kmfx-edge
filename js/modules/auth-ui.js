@@ -325,15 +325,21 @@ export function initAuthUI(store) {
                             ` : ""}
                             ${slide.tone === "discipline" ? `
                               <div class="auth-carousel-visual-discipline">
-                                <div class="auth-carousel-visual-ring">
-                                  <div class="auth-carousel-visual-ring-core">
-                                    <strong>80</strong>
-                                    <span>Score</span>
-                                  </div>
+                                <div class="auth-carousel-visual-discipline-head">
+                                  <div><label>Racha limpia</label><strong>4 sesiones</strong></div>
+                                  <div><label>Avg R</label><strong>1.9</strong></div>
+                                </div>
+                                <div class="auth-carousel-visual-bars auth-carousel-visual-bars--discipline">
+                                  <span style="height: 26%"></span>
+                                  <span style="height: 74%"></span>
+                                  <span style="height: 78%"></span>
+                                  <span style="height: 22%"></span>
+                                  <span style="height: 46%"></span>
+                                  <span style="height: 32%"></span>
                                 </div>
                                 <div class="auth-carousel-visual-discipline-metrics">
-                                  <div><label>Consistency</label><strong>5/5</strong></div>
-                                  <div><label>Avg R</label><strong>1.9</strong></div>
+                                  <div><label>Constancia</label><strong>5/5</strong></div>
+                                  <div><label>Sesgo horario</label><strong>08:00</strong></div>
                                 </div>
                               </div>
                             ` : ""}
