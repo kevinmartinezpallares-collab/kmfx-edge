@@ -163,6 +163,14 @@ body {
   touch-action: manipulation;
 }
 
+.main-content,
+[data-page],
+.page-section {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
 html.legal-document-root,
 html.legal-document-root body.legal-document {
   min-height: 100%;
@@ -176,6 +184,7 @@ body {
   letter-spacing: -0.01em;
   overflow: hidden;
   position: relative;
+  overscroll-behavior: none;
 }
 
 body.legal-document {
