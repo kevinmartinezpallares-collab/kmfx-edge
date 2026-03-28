@@ -773,6 +773,11 @@ body[data-theme="dark"] .auth-screen {
   color: #f3f2ee;
 }
 
+.auth-card--signup {
+  gap: 9px;
+  padding: 18px 20px;
+}
+
 .auth-brand {
   display: grid;
   grid-template-columns: 1fr;
@@ -812,6 +817,11 @@ body[data-theme="dark"] .auth-screen {
 .auth-form-grid {
   display: grid;
   gap: 12px;
+}
+
+.auth-form-grid--signup {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
 }
 
 .auth-mode-switch {
@@ -916,6 +926,28 @@ body[data-theme="dark"] .auth-screen {
 .auth-actions {
   display: grid;
   gap: 10px;
+}
+
+.auth-card--signup .auth-actions {
+  gap: 8px;
+}
+
+.auth-card--signup .auth-copy {
+  margin-top: 5px;
+  max-width: 24ch;
+}
+
+.auth-card--signup .auth-turnstile-wrap {
+  margin-top: 0;
+}
+
+.auth-card--signup .auth-turnstile-slot {
+  min-height: 58px;
+}
+
+.auth-card--signup .auth-trust-line {
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .auth-action {
@@ -9697,8 +9729,18 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     border-radius: 16px;
   }
 
+  .auth-card--signup {
+    gap: 8px;
+    padding: 14px;
+  }
+
   .auth-form-grid,
   .auth-actions {
+    gap: 6px;
+  }
+
+  .auth-form-grid--signup {
+    grid-template-columns: 1fr;
     gap: 6px;
   }
 
@@ -9782,6 +9824,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-turnstile-slot {
     min-height: 62px;
+  }
+
+  .auth-card--signup .auth-turnstile-slot {
+    min-height: 58px;
   }
 
   .auth-trust-line {

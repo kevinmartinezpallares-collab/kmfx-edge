@@ -461,7 +461,7 @@ export function initAuthUI(store) {
 
           <div class="auth-panel">
             <div class="auth-panel-cta">Empieza a medir tu ventaja hoy</div>
-            <div class="auth-card">
+            <div class="auth-card ${isSignUpMode ? "auth-card--signup" : ""}">
               <div class="auth-brand">
                 <div>
                   <div class="auth-kicker">Acceso</div>
@@ -479,7 +479,7 @@ export function initAuthUI(store) {
                 </button>
               </div>` : ""}
 
-              <div class="auth-form-grid">
+              <div class="auth-form-grid ${isSignUpMode && !isResetMode ? "auth-form-grid--signup" : ""}">
                 ${(isSignUpMode && !isResetMode) ? `
                   <label class="form-stack">
                     <span>Nombre</span>
@@ -536,7 +536,7 @@ export function initAuthUI(store) {
                   <span>${isGoogleLoading ? "Conectando..." : "Continuar con Google"}</span>
                 </button>
                 <div class="auth-trust-line">Usamos Google para proteger tu cuenta. No almacenamos contraseñas.</div>` : ""}
-                ${!isResetMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
+                ${!isResetMode && !isSignUpMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
                   ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
                 </button>` : ""}
               </div>
