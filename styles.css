@@ -6923,7 +6923,13 @@ body[data-theme="dark"] .settings-profile-card {
   cursor: pointer;
   overflow: hidden;
   isolation: isolate;
-  background: #0f1218;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.005)),
+    #0f1218;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  box-shadow:
+    0 14px 36px rgba(6, 10, 22, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .risk-config-card--editable::before,
@@ -6938,18 +6944,20 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-config-card--editable::before {
   background:
-    radial-gradient(42% 48% at 20% 78%, rgba(66, 111, 255, 0.18), transparent 72%),
-    radial-gradient(36% 42% at 84% 18%, rgba(147, 102, 255, 0.18), transparent 70%),
-    radial-gradient(34% 38% at 52% 58%, rgba(72, 112, 242, 0.12), transparent 68%);
-  filter: blur(10px);
-  animation: riskConfigMeshShift 11s ease-in-out infinite alternate;
+    radial-gradient(44% 50% at 18% 82%, rgba(66, 111, 255, 0.26), transparent 70%),
+    radial-gradient(38% 44% at 88% 16%, rgba(147, 102, 255, 0.24), transparent 68%),
+    radial-gradient(32% 38% at 54% 56%, rgba(72, 112, 242, 0.18), transparent 66%),
+    radial-gradient(24% 28% at 72% 72%, rgba(55, 90, 214, 0.12), transparent 72%);
+  filter: blur(16px);
+  opacity: 1;
+  animation: riskConfigMeshShift 10s ease-in-out infinite alternate;
 }
 
 .risk-config-card--editable::after {
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 32%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
   z-index: 0;
 }
 
@@ -7077,7 +7085,7 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-config-control textarea {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+  background: color-mix(in srgb, var(--surface2) 92%, transparent);
   color: var(--text1);
   border-radius: 12px;
   padding: 10px 12px;
@@ -7085,11 +7093,13 @@ body[data-theme="dark"] .settings-profile-card {
   font-weight: 600;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   resize: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .risk-config-control input[type="number"],
 .risk-input-field input[type="number"] {
-  padding-right: 38px;
+  padding-right: 12px;
 }
 
 .risk-config-control input:focus,
@@ -7101,31 +7111,9 @@ body[data-theme="dark"] .settings-profile-card {
 
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
   margin: 0;
-  opacity: 1;
-  width: 18px;
-  min-height: 30px;
-  border-left: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
-  border-radius: 0 10px 10px 0;
-  filter: saturate(0.7);
-}
-
-html[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button,
-html[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
-body[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button,
-body[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button {
-  border-left-color: rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-}
-
-html:not([data-theme="dark"]) input[type="number"]::-webkit-outer-spin-button,
-html:not([data-theme="dark"]) input[type="number"]::-webkit-inner-spin-button {
-  border-left-color: rgba(10, 18, 34, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 246, 252, 0.9));
 }
 
 @keyframes riskConfigMeshShift {
@@ -7141,21 +7129,28 @@ html:not([data-theme="dark"]) input[type="number"]::-webkit-inner-spin-button {
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable {
-  background: #f7f9fc;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 248, 253, 0.92)),
+    #f7f9fc;
+  border-color: rgba(76, 103, 186, 0.18);
+  box-shadow:
+    0 18px 34px rgba(60, 84, 126, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable::before {
   background:
-    radial-gradient(44% 48% at 18% 80%, rgba(92, 130, 255, 0.18), transparent 72%),
-    radial-gradient(34% 40% at 84% 16%, rgba(161, 128, 255, 0.16), transparent 70%),
-    radial-gradient(30% 34% at 56% 52%, rgba(133, 166, 255, 0.1), transparent 66%);
-  filter: blur(16px);
+    radial-gradient(46% 50% at 18% 82%, rgba(92, 130, 255, 0.22), transparent 72%),
+    radial-gradient(36% 42% at 86% 16%, rgba(161, 128, 255, 0.18), transparent 70%),
+    radial-gradient(30% 34% at 54% 54%, rgba(133, 166, 255, 0.14), transparent 66%);
+  filter: blur(18px);
+  opacity: 1;
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable::after {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.08) 36%, rgba(255, 255, 255, 0.02)),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.12) 36%, rgba(255, 255, 255, 0.03)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
 }
 
 .risk-limit-form {
