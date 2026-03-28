@@ -91,7 +91,8 @@ function getRiskPreferencesDraft(root) {
       autoBlockOptIn: Boolean(preferences.autoBlockOptIn),
       allowedSessions: String(panelConfig.allowedSessions ?? ""),
       maxVolume: String(panelConfig.maxVolume ?? ""),
-      allowedSymbols: String(panelConfig.allowedSymbols ?? "")
+      allowedSymbols: String(panelConfig.allowedSymbols ?? ""),
+      favoriteSymbols: String(panelConfig.favoriteSymbols ?? "")
     };
   }
   return root.__riskPrefsDraft;
@@ -116,6 +117,24 @@ function riskConfigStatusLabel(status) {
 
 function toggleStatusLabel(active, enabledLabel = "Activo", disabledLabel = "Off") {
   return active ? enabledLabel : disabledLabel;
+}
+
+function parseTokenList(value) {
+  return String(value || "")
+    .split(/[·,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serializeTokenList(values = []) {
+  return values.filter(Boolean).join(" · ");
+}
+
+function ensureRiskUiState(root) {
+  if (!root.__riskUiState) {
+    root.__riskUiState = { openMenu: null };
+  }
+  return root.__riskUiState;
 }
 
 function renderStepperInput({
@@ -148,7 +167,7 @@ function renderStepperInput({
 }
 
 function focusCardControl(card) {
-  const control = card?.querySelector("input, textarea");
+  const control = card?.querySelector("input, textarea, [data-risk-menu-trigger]");
   control?.focus();
 }
 
@@ -268,6 +287,25 @@ export function renderRisk(root, state) {
   const securityScore = isBlocked ? 8 : account.compliance.riskStatus === "warning" ? Math.min(risk.securityProgress, 52) : risk.securityProgress;
   const ladder = ladderRows(risk);
   const prefsDraft = getRiskPreferencesDraft(root);
+  const riskUi = ensureRiskUiState(root);
+  const sessionOptions = ["Asia", "London", "New York"];
+  const availableSymbols = [...new Set((model.symbols || []).map((item) => item.key).filter(Boolean))];
+  const selectedSessions = parseTokenList(prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "));
+  const selectedSymbols = parseTokenList(prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || availableSymbols).join(" · "));
+  const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
+  const sortedSymbols = [...availableSymbols].sort((a, b) => {
+    const favDelta = Number(favoriteSymbols.has(b)) - Number(favoriteSymbols.has(a));
+    if (favDelta !== 0) return favDelta;
+    const selectedDelta = Number(selectedSymbols.includes(b)) - Number(selectedSymbols.includes(a));
+    if (selectedDelta !== 0) return selectedDelta;
+    return a.localeCompare(b);
+  });
+  const selectedSessionsLabel = selectedSessions.length ? serializeTokenList(selectedSessions) : "Sin sesiones";
+  const selectedSymbolsLabel = selectedSymbols.length
+    ? selectedSymbols.length <= 4
+      ? serializeTokenList(selectedSymbols)
+      : `${selectedSymbols.length} símbolos seleccionados`
+    : "Sin símbolos";
   const securityArc = renderSecurityArc(securitySegments({ account, model, risk, score: securityScore }), securityScore);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
@@ -317,15 +355,31 @@ export function renderRisk(root, state) {
     {
       title: "Horarios Permitidos",
       description: "Ventanas operativas UTC",
-      value: prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "),
+      value: selectedSessionsLabel,
       checked: true,
       key: "__alwaysOnSessions",
       statusLabel: "Editable",
       controls: `
-        <label class="risk-config-control">
+        <div class="risk-config-control">
           <span>Sesiones</span>
-          <input type="text" value="${prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · ")}" data-risk-pref-text="allowedSessions" placeholder="London · New York">
-        </label>
+          <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}">
+              <span>${selectedSessionsLabel}</span>
+              <strong>${selectedSessions.length}/3</strong>
+            </button>
+            <div class="risk-select-menu">
+              <button class="risk-select-bulk" type="button" data-risk-sessions-all>Marcar las 3</button>
+              <div class="risk-select-options">
+                ${sessionOptions.map((session) => `
+                  <label class="risk-select-option">
+                    <input type="checkbox" data-risk-session-option="${session}" ${selectedSessions.includes(session) ? "checked" : ""}>
+                    <span>${session}</span>
+                  </label>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
       `
     },
     {
@@ -340,15 +394,36 @@ export function renderRisk(root, state) {
     {
       title: "Símbolos Permitidos",
       description: "Universo habilitado",
-      value: prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || model.symbols.map((item) => item.key)).join(" · "),
+      value: selectedSymbolsLabel,
       checked: true,
       key: "__alwaysOnSymbols",
       statusLabel: "Editable",
       controls: `
-        <label class="risk-config-control">
+        <div class="risk-config-control">
           <span>Símbolos</span>
-          <textarea rows="2" data-risk-pref-text="allowedSymbols" placeholder="EURUSD · GBPUSD · XAUUSD">${prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || model.symbols.map((item) => item.key)).join(" · ")}</textarea>
-        </label>
+          <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}">
+              <span>${selectedSymbolsLabel}</span>
+              <strong>${selectedSymbols.length}</strong>
+            </button>
+            <div class="risk-select-menu risk-select-menu--symbols">
+              <label class="risk-select-search">
+                <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search>
+              </label>
+              <div class="risk-select-options risk-select-options--symbols">
+                ${sortedSymbols.map((symbol) => `
+                  <div class="risk-symbol-option" data-risk-symbol-row="${symbol}">
+                    <label class="risk-select-option">
+                      <input type="checkbox" data-risk-symbol-option="${symbol}" ${selectedSymbols.includes(symbol) ? "checked" : ""}>
+                      <span>${symbol}</span>
+                    </label>
+                    <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol}" aria-label="Marcar ${symbol} como favorito">★</button>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
       `
     },
     {
@@ -651,6 +726,64 @@ export function renderRisk(root, state) {
     });
   });
 
+  root.querySelectorAll("[data-risk-menu-trigger]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const ui = ensureRiskUiState(root);
+      ui.openMenu = ui.openMenu === button.dataset.riskMenuTrigger ? null : button.dataset.riskMenuTrigger;
+      renderRisk(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-risk-session-option]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const next = new Set(selectedSessions);
+      if (input.checked) next.add(input.dataset.riskSessionOption);
+      else next.delete(input.dataset.riskSessionOption);
+      persistRiskPreferencesDraft(root, { allowedSessions: serializeTokenList([...next]) });
+      ensureRiskUiState(root).openMenu = "sessions";
+      renderRisk(root, state);
+    });
+  });
+
+  root.querySelector("[data-risk-sessions-all]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    persistRiskPreferencesDraft(root, { allowedSessions: serializeTokenList(sessionOptions) });
+    ensureRiskUiState(root).openMenu = "sessions";
+    renderRisk(root, state);
+  });
+
+  root.querySelectorAll("[data-risk-symbol-option]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const next = new Set(selectedSymbols);
+      if (input.checked) next.add(input.dataset.riskSymbolOption);
+      else next.delete(input.dataset.riskSymbolOption);
+      persistRiskPreferencesDraft(root, { allowedSymbols: serializeTokenList([...next]) });
+      ensureRiskUiState(root).openMenu = "symbols";
+      renderRisk(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-risk-symbol-favorite]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const nextFavorites = new Set(favoriteSymbols);
+      const symbol = button.dataset.riskSymbolFavorite;
+      if (nextFavorites.has(symbol)) nextFavorites.delete(symbol);
+      else nextFavorites.add(symbol);
+      persistRiskPreferencesDraft(root, { favoriteSymbols: serializeTokenList([...nextFavorites]) });
+      ensureRiskUiState(root).openMenu = "symbols";
+      renderRisk(root, state);
+    });
+  });
+
+  root.querySelector("[data-risk-symbol-search]")?.addEventListener("input", (event) => {
+    const query = event.target.value.trim().toLowerCase();
+    root.querySelectorAll("[data-risk-symbol-row]").forEach((row) => {
+      row.hidden = query ? !row.dataset.riskSymbolRow.toLowerCase().includes(query) : false;
+    });
+  });
+
   const stepInputValue = (input, direction, stepValue) => {
     const step = Number(stepValue || input.step || "1");
     const min = input.min !== "" ? Number(input.min) : -Infinity;
@@ -683,10 +816,20 @@ export function renderRisk(root, state) {
 
   root.querySelectorAll(".risk-config-card--editable").forEach((card) => {
     card.addEventListener("click", (event) => {
-      if (event.target.closest("input, textarea, label, .risk-config-toggle, .risk-config-state-pill")) return;
+      if (event.target.closest("input, textarea, label, button, .risk-config-toggle, .risk-config-state-pill, .risk-select-menu")) return;
       focusCardControl(card);
     });
   });
+
+  root.addEventListener("click", (event) => {
+    if (!event.target.closest(".risk-select")) {
+      const ui = ensureRiskUiState(root);
+      if (ui.openMenu) {
+        ui.openMenu = null;
+        renderRisk(root, state);
+      }
+    }
+  }, { once: true });
 
   root.querySelector("[data-risk-reset]")?.addEventListener("click", () => {
     persistRiskPanelStorage({});
@@ -732,7 +875,8 @@ export function renderRisk(root, state) {
     persistRiskPanelStorage({
       allowedSessions: getRiskPreferencesDraft(root).allowedSessions,
       maxVolume: getRiskPreferencesDraft(root).maxVolume,
-      allowedSymbols: getRiskPreferencesDraft(root).allowedSymbols
+      allowedSymbols: getRiskPreferencesDraft(root).allowedSymbols,
+      favoriteSymbols: getRiskPreferencesDraft(root).favoriteSymbols
     });
     root.__riskSaving = false;
     root.__riskPrefsStatus = "saved";
