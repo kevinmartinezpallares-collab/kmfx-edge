@@ -2766,7 +2766,7 @@ html:not([data-theme="dark"]) .account-hero-card.active {
 .page-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   margin-top: 10px;
 }
@@ -7642,21 +7642,9 @@ tbody tr:hover {
   margin-bottom: 16px;
 }
 
-.pnlcal-nav-btn,
-.btn-primary,
-.btn-secondary {
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.16s ease;
-}
-
 .pnlcal-nav-btn {
   width: 40px;
   height: 40px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text2);
 }
 
 .pnlcal-nav-title {
@@ -8273,29 +8261,167 @@ html:not([data-theme="dark"]) .calc-advisory-copy {
   flex-wrap: wrap;
 }
 
+.btn-primary,
+.btn-secondary,
+.btn-destructive,
+.btn-ghost,
 .btn-inline {
-  padding: 6px 10px;
-}
-
-.glossary-row {
-  align-items: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    transform 0.12s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.12s ease,
+    background 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .btn-primary,
+.btn-secondary,
+.btn-destructive {
+  padding: 10px 18px;
+  min-height: 44px;
+}
+
+.btn-inline {
+  padding: 6px 12px;
+  font-size: 13px;
+  min-height: 32px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: #007AFF;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #0071f0;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  background: #0066de;
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] .btn-primary,
+body[data-theme="dark"] .btn-primary {
+  background: #007AFF;
+  color: #ffffff;
+}
+
 .btn-secondary {
-  padding: 9px 14px;
-  transition:
-    transform var(--dur-fast) var(--ease-premium),
-    box-shadow var(--dur-fast) var(--ease-premium),
-    border-color var(--dur-fast) var(--ease-premium),
-    background var(--dur-fast) var(--ease-premium),
-    color var(--dur-fast) var(--ease-premium);
+  background: #ffffff;
+  color: #1c1c1e;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.10),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:hover {
+  background: #f8f8f8;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:active {
+  transform: scale(0.97);
+  background: #f0f0f0;
+  opacity: 0.82;
+}
+
+html[data-theme="dark"] .btn-secondary,
+body[data-theme="dark"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .btn-secondary:hover,
+body[data-theme="dark"] .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.btn-destructive {
+  background: rgba(255, 59, 48, 0.10);
+  color: #ff3b30;
+}
+
+.btn-destructive:hover {
+  background: rgba(255, 59, 48, 0.16);
+}
+
+.btn-destructive:active {
+  transform: scale(0.97);
+  opacity: 0.82;
+}
+
+html[data-theme="dark"] .btn-destructive,
+body[data-theme="dark"] .btn-destructive {
+  background: rgba(255, 69, 58, 0.14);
+  color: #ff453a;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #007AFF;
+  padding: 10px 14px;
+  min-height: 44px;
+}
+
+.btn-ghost:hover {
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.btn-ghost:active {
+  transform: scale(0.97);
+  opacity: 0.72;
+}
+
+html[data-theme="dark"] .btn-ghost,
+body[data-theme="dark"] .btn-ghost {
+  color: #0A84FF;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-destructive:disabled,
+.btn-ghost:disabled,
+.btn-inline:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-destructive:active,
+.btn-ghost:active,
+.btn-inline:active {
+  transform: scale(0.97);
 }
 
 .settings-toolbar .btn-primary,
 .settings-toolbar .btn-secondary {
   min-height: 40px;
-  padding-inline: 14px;
+  padding-inline: 16px;
+  font-size: 14px;
+}
+
+.glossary-row {
+  align-items: flex-start;
 }
 
 .settings-grid-clean > .tl-section-card {
@@ -8308,71 +8434,30 @@ html:not([data-theme="dark"]) .calc-advisory-copy {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 52%, transparent);
 }
 
-.btn-primary {
-  border: 1px solid color-mix(in srgb, #3D7BFF 20%, var(--border));
-  background: color-mix(in srgb, var(--surface2) 88%, #3D7BFF 12%);
-  color: var(--text1);
-  box-shadow: none;
+.pnlcal-nav-btn,
+.pnlcal-range-btn {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1c1c1e;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-secondary {
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  background: color-mix(in srgb, var(--surface2) 92%, var(--bg3) 8%);
-  color: var(--text2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-html[data-theme="dark"] .btn-primary,
-body[data-theme="dark"] .btn-primary {
-  border-color: color-mix(in srgb, #3D7BFF 20%, var(--border));
-  background: color-mix(in srgb, #111317 88%, #3D7BFF 12%);
-  color: #FFFFFF;
-  box-shadow: none;
-}
-
-html[data-theme="dark"] .btn-secondary,
-body[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .pnlcal-nav-btn,
-body[data-theme="dark"] .pnlcal-nav-btn {
-  border-color: #1C1F26;
-  background: #111317;
-  color: #FFFFFF;
-  box-shadow: none;
+body[data-theme="dark"] .pnlcal-nav-btn,
+html[data-theme="dark"] .pnlcal-range-btn,
+body[data-theme="dark"] .pnlcal-range-btn {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.btn-primary:hover,
-.btn-secondary:hover,
-.pnlcal-nav-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: none;
-}
-
-html[data-theme="dark"] .btn-primary:hover,
-html[data-theme="dark"] .btn-secondary:hover,
-html[data-theme="dark"] .pnlcal-nav-btn:hover,
-body[data-theme="dark"] .btn-primary:hover,
-body[data-theme="dark"] .btn-secondary:hover,
-body[data-theme="dark"] .pnlcal-nav-btn:hover {
-  border-color: color-mix(in srgb, #3D7BFF 28%, var(--border));
-  box-shadow: none;
-}
-
-.btn-primary:active,
-.btn-secondary:active,
-.widget-segmented-btn:active,
-.tl-tab:active,
-.calc-chip:active,
-.calc-pill:active,
-.pnlcal-range-btn:active,
-.theme-badge-option:active {
-  transform: translateY(0) scale(0.985);
+.pnlcal-nav-btn:active,
+.pnlcal-range-btn:active {
+  transform: scale(0.96);
+  opacity: 0.78;
 }
 
 :root[data-density="compact"] {
@@ -8501,10 +8586,15 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: stretch;
+  gap: 8px;
   margin-top: 18px;
   flex-wrap: wrap;
+}
+
+.modal-actions > * {
+  flex: 1;
+  min-width: 0;
 }
 
 #mobileNavRoot {
@@ -9257,14 +9347,6 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .modal-body {
     padding: 16px;
-  }
-
-  .modal-actions {
-    justify-content: stretch;
-  }
-
-  .modal-actions > * {
-    width: 100%;
   }
 
   .settings-profile-card,
