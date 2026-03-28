@@ -193,6 +193,8 @@ export function renderDashboard(root, state) {
       xTickPadding: 12,
       gridAlpha: isDarkTheme ? 0.045 : 0.06,
       crosshairAlpha: isDarkTheme ? 0.16 : 0.12,
+      yHeadroomRatio: 0.065,
+      yBottomPaddingRatio: 0.018,
       showAxisBorder: true,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;

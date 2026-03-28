@@ -2621,6 +2621,21 @@ html:not([data-theme="dark"]) .account-hero-card.active {
 
 .account-banner-viz {
   margin-top: 4px;
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface2) 92%, transparent), color-mix(in srgb, var(--surface) 98%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+  overflow: hidden;
+}
+
+html:not([data-theme="dark"]) .account-banner-viz {
+  border-color: rgba(20, 24, 36, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 251, 255, 0.56));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 .kmfx-chart-shell--hero {
