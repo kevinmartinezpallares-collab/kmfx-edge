@@ -7352,6 +7352,37 @@ html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge {
   color: rgba(245, 247, 252, 0.97);
 }
 
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-state-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(245, 247, 252, 0.92);
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(245, 247, 252, 0.92);
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--ok {
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #7ff0ac;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--info {
+  background: rgba(96, 140, 255, 0.16);
+  border-color: rgba(96, 140, 255, 0.24);
+  color: #c9d8ff;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--neutral {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(245, 247, 252, 0.86);
+}
+
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-meta,
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control span {
   color: rgba(236, 241, 250, 0.78);
