@@ -4113,38 +4113,47 @@ html:not([data-theme="dark"]) .widget-card::before {
 }
 
 html:not([data-theme="dark"]) .account-hero-card {
-  border-color: rgba(20, 24, 36, 0.12);
+  border-color: rgba(74, 88, 126, 0.46);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(87, 128, 224, 0.18) 0%, rgba(87, 128, 224, 0.08) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(188, 176, 255, 0.16) 0%, rgba(188, 176, 255, 0.06) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(246, 249, 255, 0.99) 0%, rgba(237, 243, 252, 0.98) 44%, rgba(224, 234, 248, 0.96) 100%);
+    radial-gradient(118% 118% at 16% 82%, rgba(72, 112, 222, 0.56) 0%, rgba(72, 112, 222, 0.18) 20%, transparent 46%),
+    radial-gradient(84% 88% at 88% 16%, rgba(202, 182, 255, 0.46) 0%, rgba(202, 182, 255, 0.18) 24%, transparent 48%),
+    radial-gradient(60% 60% at 22% 72%, rgba(255, 255, 255, 0.11) 0%, transparent 52%),
+    linear-gradient(145deg, rgba(3, 7, 21, 0.99) 0%, rgba(7, 11, 30, 0.985) 44%, rgba(12, 39, 106, 0.95) 100%);
+  color: rgba(245, 247, 252, 0.96);
   box-shadow:
-    0 12px 24px rgba(24, 36, 60, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 28px rgba(15, 23, 42, 0.18);
 }
 
 html:not([data-theme="dark"]) .account-hero-card:hover {
-  border-color: rgba(47, 107, 255, 0.26);
+  border-color: rgba(102, 138, 255, 0.5);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(97, 136, 226, 0.22) 0%, rgba(97, 136, 226, 0.1) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(194, 182, 255, 0.18) 0%, rgba(194, 182, 255, 0.07) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(240, 247, 255, 0.99) 0%, rgba(231, 241, 255, 0.98) 44%, rgba(220, 233, 252, 0.96) 100%);
+    radial-gradient(118% 118% at 16% 82%, rgba(82, 122, 232, 0.62) 0%, rgba(82, 122, 232, 0.22) 20%, transparent 46%),
+    radial-gradient(84% 88% at 88% 16%, rgba(210, 190, 255, 0.52) 0%, rgba(210, 190, 255, 0.22) 24%, transparent 48%),
+    radial-gradient(60% 60% at 22% 72%, rgba(255, 255, 255, 0.14) 0%, transparent 52%),
+    linear-gradient(145deg, rgba(4, 8, 23, 0.995) 0%, rgba(8, 13, 34, 0.99) 44%, rgba(16, 45, 116, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 30px rgba(15, 23, 42, 0.2);
 }
 
 html:not([data-theme="dark"]) .account-hero-card.active {
-  border-color: rgba(47, 107, 255, 0.24);
+  border-color: rgba(108, 146, 255, 0.54);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(102, 140, 230, 0.18) 0%, rgba(102, 140, 230, 0.08) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(198, 186, 255, 0.18) 0%, rgba(198, 186, 255, 0.06) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(245, 249, 255, 0.99) 0%, rgba(236, 244, 255, 0.97) 44%, rgba(226, 239, 255, 0.95) 100%);
-  color: var(--active-text);
+    radial-gradient(118% 118% at 16% 82%, rgba(88, 128, 236, 0.66) 0%, rgba(88, 128, 236, 0.24) 20%, transparent 46%),
+    radial-gradient(84% 88% at 88% 16%, rgba(214, 194, 255, 0.56) 0%, rgba(214, 194, 255, 0.24) 24%, transparent 48%),
+    radial-gradient(60% 60% at 22% 72%, rgba(255, 255, 255, 0.16) 0%, transparent 52%),
+    linear-gradient(145deg, rgba(4, 8, 23, 0.995) 0%, rgba(8, 13, 34, 0.99) 44%, rgba(18, 49, 123, 0.97) 100%);
+  color: rgba(245, 247, 252, 0.98);
   box-shadow:
-    0 14px 28px rgba(24, 36, 60, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 34px rgba(15, 23, 42, 0.22);
 }
 
 html:not([data-theme="dark"]) .account-hero-card.active::after {
-  background: radial-gradient(circle at 18% 18%, rgba(59, 130, 246, 0.12), transparent 42%);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(109, 156, 255, 0.18), transparent 42%),
+    radial-gradient(circle at 84% 82%, rgba(124, 188, 255, 0.08), transparent 38%);
 }
 
 html:not([data-theme="dark"]) .account-hero-card .account-hero-card__name,
