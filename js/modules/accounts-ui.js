@@ -11,6 +11,11 @@ const accountMeshMarkup = () => `
   </div>
 `;
 
+function isBridgeDataPending(account) {
+  if (!account || account.sourceType !== "mt5") return false;
+  return !account.connection?.lastSync;
+}
+
 export function initAccountsUI(store) {
   const root = document.getElementById("accountSwitcher");
   if (!root) return;
@@ -64,8 +69,9 @@ export function initAccountsUI(store) {
             const isActive = account.id === state.currentAccount;
             const pnl = account.model.totals.pnl;
             const accountTypeLabel = getAccountTypeLabel(account.model.profile.mode, account.name);
+            const isLoading = isBridgeDataPending(account);
             return `
-              <button class="account-card account-hero-card ${isActive ? "active" : ""}" data-account-id="${account.id}">
+              <button class="account-card account-hero-card ${isActive ? "active" : ""} ${isLoading ? "is-loading" : ""}" data-account-id="${account.id}">
                 ${accountMeshMarkup()}
                 <div class="account-hero-card__top">
                   <div>

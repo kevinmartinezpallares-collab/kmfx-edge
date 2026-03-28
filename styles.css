@@ -204,6 +204,11 @@ body::before {
   to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
 .kmfx-toast {
   position: fixed;
   top: calc(16px + env(safe-area-inset-top));
@@ -227,6 +232,18 @@ body::before {
 
 .kmfx-toast--success { border-color: rgba(34, 153, 84, 0.35); }
 .kmfx-toast--error   { border-color: rgba(192, 57, 43, 0.35); }
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
 
 body::after {
   content: none;
@@ -2534,6 +2551,30 @@ body[data-theme="dark"] .widget-card::before {
 .account-hero-card > *:not(.account-card-blobs) {
   position: relative;
   z-index: 1;
+}
+
+.account-hero-card.is-loading .account-hero-card__name,
+.account-hero-card.is-loading .account-hero-card__value,
+.account-hero-card.is-loading .account-hero-card__meta {
+  color: transparent !important;
+  position: relative;
+}
+
+.account-hero-card.is-loading .account-hero-card__name::after,
+.account-hero-card.is-loading .account-hero-card__value::after,
+.account-hero-card.is-loading .account-hero-card__meta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.10) 50%,
+    rgba(255,255,255,0.05) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
 html[data-theme="dark"] .account-hero-card .metric-label,
