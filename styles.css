@@ -2635,6 +2635,10 @@ html:not([data-theme="dark"]) .account-banner-viz {
   box-shadow: none;
 }
 
+html:not([data-theme="dark"]) .account-banner-chart::before {
+  content: none;
+}
+
 .kmfx-chart-shell--hero {
   min-height: 186px;
   padding: 0;
