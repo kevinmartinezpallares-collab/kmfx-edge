@@ -1,6 +1,15 @@
 import { formatCurrency, formatDateTime, getAccountTypeLabel } from "./utils.js";
 import { badgeMarkup, getConnectionStatusMeta } from "./status-badges.js";
 
+const accountMeshMarkup = () => `
+  <div class="account-card-blobs" aria-hidden="true">
+    <div class="account-card-blob blob-1"></div>
+    <div class="account-card-blob blob-2"></div>
+    <div class="account-card-blob blob-3"></div>
+    <div class="account-card-blob blob-4"></div>
+  </div>
+`;
+
 export function renderPortfolio(root, state) {
   const accounts = Object.values(state.accounts);
   if (!accounts.length) {
@@ -36,7 +45,8 @@ export function renderPortfolio(root, state) {
           const status = getConnectionStatusMeta(account.connection);
           const accountTypeLabel = getAccountTypeLabel(model.profile?.mode, account.name);
           return `
-            <article class="account-hero-card portfolio-account-card ${account.id === state.currentAccount ? "active" : ""}">
+            <article class="account-card account-hero-card portfolio-account-card ${account.id === state.currentAccount ? "active" : ""}">
+              ${accountMeshMarkup()}
               <div class="account-hero-card__top">
                 <div>
                   <div class="account-hero-card__name">${account.name}</div>

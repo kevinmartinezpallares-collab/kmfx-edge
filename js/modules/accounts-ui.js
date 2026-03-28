@@ -2,6 +2,14 @@ import { formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccoun
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js";
 
 const accountSurfacePages = new Set(["dashboard"]);
+const accountMeshMarkup = () => `
+  <div class="account-card-blobs" aria-hidden="true">
+    <div class="account-card-blob blob-1"></div>
+    <div class="account-card-blob blob-2"></div>
+    <div class="account-card-blob blob-3"></div>
+    <div class="account-card-blob blob-4"></div>
+  </div>
+`;
 
 export function initAccountsUI(store) {
   const root = document.getElementById("accountSwitcher");
@@ -57,7 +65,8 @@ export function initAccountsUI(store) {
             const pnl = account.model.totals.pnl;
             const accountTypeLabel = getAccountTypeLabel(account.model.profile.mode, account.name);
             return `
-              <button class="account-hero-card ${isActive ? "active" : ""}" data-account-id="${account.id}">
+              <button class="account-card account-hero-card ${isActive ? "active" : ""}" data-account-id="${account.id}">
+                ${accountMeshMarkup()}
                 <div class="account-hero-card__top">
                   <div>
                     <div class="account-hero-card__name">${account.name}</div>
