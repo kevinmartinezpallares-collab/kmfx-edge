@@ -192,6 +192,14 @@ export function renderCalculator(root, state) {
     : model.riskAdvice?.risk_state === "CAUTION"
       ? "warn"
       : "ok";
+  const advisoryMesh = `
+    <div class="calc-advisory-blobs" aria-hidden="true">
+      <div class="calc-advisory-blob blob-1"></div>
+      <div class="calc-advisory-blob blob-2"></div>
+      <div class="calc-advisory-blob blob-3"></div>
+      <div class="calc-advisory-blob blob-4"></div>
+    </div>
+  `;
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -204,6 +212,7 @@ export function renderCalculator(root, state) {
         <div class="tl-section-header"><div class="tl-section-title">Configuración del trade</div></div>
 
         <div class="calc-advisory-block">
+          ${advisoryMesh}
           <div class="calc-advisory-top">
             <div>
               <div class="calc-advisory-title">Riesgo recomendado</div>

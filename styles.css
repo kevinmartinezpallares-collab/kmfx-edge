@@ -7788,6 +7788,65 @@ tfoot td {
     0 16px 34px rgba(0, 0, 0, 0.18);
 }
 
+.calc-advisory-blobs {
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(16px - 1px);
+  clip-path: inset(0 round 15px);
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.calc-advisory-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.88;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.calc-advisory-blob.blob-1 {
+  width: 210px;
+  height: 210px;
+  left: -42px;
+  bottom: -72px;
+  background: rgba(26, 58, 143, 0.92);
+  animation: accountBlobFloatA 10.5s ease-in-out infinite;
+  animation-delay: 0s;
+}
+
+.calc-advisory-blob.blob-2 {
+  width: 190px;
+  height: 190px;
+  right: -28px;
+  top: -40px;
+  background: rgba(107, 63, 160, 0.9);
+  animation: accountBlobFloatB 11.5s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+.calc-advisory-blob.blob-3 {
+  width: 240px;
+  height: 240px;
+  right: 8%;
+  bottom: -108px;
+  background: rgba(13, 42, 122, 0.95);
+  animation: accountBlobFloatC 8.8s ease-in-out infinite;
+  animation-delay: -6s;
+}
+
+.calc-advisory-blob.blob-4 {
+  width: 150px;
+  height: 150px;
+  left: 18%;
+  bottom: -26px;
+  background: rgba(128, 128, 192, 0.7);
+  animation: accountBlobFloatD 9.8s ease-in-out infinite;
+  animation-delay: -1.5s;
+}
+
 .calc-advisory-block::before {
   content: "";
   position: absolute;
@@ -7817,6 +7876,10 @@ tfoot td {
 .calc-advisory-block > * {
   position: relative;
   z-index: 1;
+}
+
+.calc-advisory-block > .calc-advisory-blobs {
+  z-index: 0;
 }
 
 .calc-advisory-top {
