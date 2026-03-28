@@ -1,3 +1,4 @@
+import { openModal } from "./modal-system.js";
 import { formatCurrency, selectCurrentModel } from "./utils.js";
 
 function clampPercent(value) {
@@ -17,6 +18,42 @@ function positionRail(position, exposureBase) {
       <div class="metric-rail-hint">Vol ${position.volume} / Entrada ${position.entry}</div>
     </div>
   `;
+}
+
+function addLongPress(element, callback, delay = 500) {
+  let timer = null;
+
+  element.addEventListener("touchstart", (e) => {
+    timer = setTimeout(() => {
+      callback(e);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, delay);
+  }, { passive: true });
+
+  element.addEventListener("touchend", () => clearTimeout(timer));
+  element.addEventListener("touchmove", () => clearTimeout(timer));
+  element.addEventListener("touchcancel", () => clearTimeout(timer));
+}
+
+function showTradeContextMenu(trade) {
+  if (!trade) return;
+  openModal({
+    title: `${trade.symbol} · ${trade.side}`,
+    subtitle: "Acciones rápidas de la operación",
+    maxWidth: 420,
+    content: `
+      <div class="info-list compact">
+        <div><strong>Fecha</strong><span>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span></div>
+        <div><strong>Setup</strong><span>${trade.setup}</span></div>
+        <div><strong>Sesión</strong><span>${trade.session}</span></div>
+        <div><strong>P&L</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
+        <div><strong>R-Multiple</strong><span>${trade.rMultiple.toFixed(1)}R</span></div>
+      </div>
+      <div class="settings-actions">
+        <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
+      </div>
+    `
+  });
 }
 
 export function renderTrades(root, state) {
@@ -185,7 +222,7 @@ export function renderTrades(root, state) {
           </thead>
           <tbody>
             ${filteredTrades.slice().reverse().map((trade) => `
-              <tr>
+              <tr class="trade-row" data-trade-id="${trade.id}">
                 <td>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</td>
                 <td>${trade.symbol}</td>
                 <td><span class="trade-side trade-side--${trade.side.toLowerCase()}">${trade.side}</span></td>
@@ -228,6 +265,13 @@ export function renderTrades(root, state) {
       next.queryRaw = field === "query" ? input.value : next.queryRaw;
       root.__tradeFilters = next;
       renderTrades(root, state);
+    });
+  });
+
+  const tradesById = new Map(filteredTrades.map((trade) => [String(trade.id), trade]));
+  root.querySelectorAll(".trade-row").forEach((row) => {
+    addLongPress(row, () => {
+      showTradeContextMenu(tradesById.get(String(row.dataset.tradeId)));
     });
   });
 }
