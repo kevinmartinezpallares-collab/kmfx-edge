@@ -28,8 +28,8 @@
   --text2: #232a39;
   --text3: rgba(20, 24, 36, 0.62);
   --text4: rgba(20, 24, 36, 0.44);
-  --chart-axis-text: rgba(20, 24, 36, 0.74);
-  --chart-axis-strong: rgba(20, 24, 36, 0.86);
+  --chart-axis-text: #141824;
+  --chart-axis-strong: #141824;
   --chart-axis-line: rgba(20, 24, 36, 0.14);
   --chart-grid: rgba(20, 24, 36, 0.07);
   --accent: #2f6bff;
@@ -109,8 +109,8 @@
   --text2: #FFFFFF;
   --text3: #8E9196;
   --text4: #6F7782;
-  --chart-axis-strong: rgba(243, 242, 238, 0.72);
-  --chart-axis-text: rgba(243, 242, 238, 0.5);
+  --chart-axis-strong: #FFFFFF;
+  --chart-axis-text: #FFFFFF;
   --chart-axis-line: rgba(255, 255, 255, 0.08);
   --chart-grid: rgba(255, 255, 255, 0.03);
   --accent: #3D7BFF;
@@ -228,8 +228,8 @@ html:not([data-theme="dark"]) {
   --text2: var(--text-secondary);
   --text3: var(--text-secondary);
   --text4: var(--text-muted);
-  --chart-axis-text: rgba(15, 23, 42, 0.62);
-  --chart-axis-strong: rgba(15, 23, 42, 0.8);
+  --chart-axis-text: #0F172A;
+  --chart-axis-strong: #0F172A;
   --chart-axis-line: rgba(15, 23, 42, 0.09);
   --chart-grid: rgba(15, 23, 42, 0.06);
   --accent: var(--accent-blue);
