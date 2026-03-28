@@ -4200,6 +4200,13 @@ html:not([data-theme="dark"]) .account-hero-card .ui-badge--compact {
   box-shadow: none;
 }
 
+html:not([data-theme="dark"]) .kmfx-chart-shell--feature:has(> canvas#calendar-cumulative-return),
+html:not([data-theme="dark"]) .kmfx-chart-shell--feature:has(> canvas#risk-drawdown-curve) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 html:not([data-theme="dark"]) .sidebar-profile-menu {
   background: var(--bg-card);
   border-color: var(--border-subtle);
