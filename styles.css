@@ -9049,19 +9049,22 @@ body[data-theme="dark"] .pnlcal-range-btn {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .modal-card {
   width: min(100%, 640px);
   max-height: min(84vh, 860px);
   overflow: auto;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  background: color-mix(in srgb, var(--surface) 84%, transparent);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 18px 40px rgba(1, 7, 57, 0.1);
+  background: #1c1c1e;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+  animation: modalCardEnter 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .modal-head {
@@ -9073,48 +9076,175 @@ body[data-theme="dark"] .pnlcal-range-btn {
   justify-content: space-between;
   gap: 14px;
   padding: 18px 20px 14px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  background: #1c1c1e;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .modal-title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  color: #fff;
 }
 
 .modal-subtitle {
   margin-top: 4px;
-  font-size: 12px;
-  color: var(--text3);
+  font-size: 13px;
+  color: #636366;
 }
 
 .modal-close {
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface2);
-  color: var(--text2);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
 }
 
 .modal-body {
   padding: 18px 20px 20px;
+  color: #fff;
 }
 
 .modal-actions {
   display: flex;
   justify-content: stretch;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
 
 .modal-actions > * {
   flex: 1;
   min-width: 0;
+}
+
+.modal-card .form-grid-clean {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.modal-card .form-stack {
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93;
+  text-transform: none;
+}
+
+.modal-card .form-stack span,
+.modal-card .form-stack label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93;
+  text-transform: none;
+  margin-bottom: 0;
+}
+
+.modal-card input:not([type="checkbox"]):not([type="radio"]),
+.modal-card textarea,
+.modal-card select {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #2c2c2e;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.modal-card textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.modal-card input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.modal-card textarea::placeholder {
+  color: #636366;
+}
+
+.modal-card input:not([type="checkbox"]):not([type="radio"]):focus,
+.modal-card textarea:focus,
+.modal-card select:focus {
+  outline: none;
+  border-color: #0A84FF;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.modal-card select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+}
+
+.modal-select-wrap {
+  position: relative;
+}
+
+.modal-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.modal-actions .btn-primary,
+.modal-actions .btn-secondary {
+  min-height: 50px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.modal-actions .btn-primary {
+  background: #0A84FF;
+  color: #fff;
+}
+
+.modal-actions .btn-primary:hover {
+  background: #0077eb;
+}
+
+.modal-actions .btn-secondary {
+  background: #ffffff;
+  color: #1c1c1e;
+}
+
+html[data-theme="dark"] .modal-actions .btn-secondary,
+body[data-theme="dark"] .modal-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+@keyframes modalCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 #mobileNavRoot {
@@ -9852,13 +9982,13 @@ body[data-theme="dark"] .pnlcal-range-btn {
 
   .modal-overlay {
     padding: 10px;
-    align-items: end;
+    place-items: center;
   }
 
   .modal-card {
     width: 100%;
     max-height: min(92vh, 860px);
-    border-radius: 18px;
+    border-radius: 20px;
   }
 
   .modal-head {
@@ -9971,6 +10101,12 @@ body[data-theme="dark"] .pnlcal-range-btn {
   }
 
   .glossary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-card .form-grid-clean {
     grid-template-columns: 1fr;
   }
 }

@@ -6,6 +6,27 @@ function ensureRoot() {
   return modalRoot;
 }
 
+function enhanceModalSelects(scope) {
+  scope.querySelectorAll(".modal-body select").forEach((select) => {
+    if (select.parentElement?.classList.contains("modal-select-wrap")) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "modal-select-wrap";
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+
+    const chevron = document.createElement("span");
+    chevron.className = "modal-select-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    `;
+    wrapper.appendChild(chevron);
+  });
+}
+
 export function closeModal() {
   const root = ensureRoot();
   if (!root) return;
@@ -33,6 +54,7 @@ export function openModal({ title, subtitle = "", maxWidth = 560, content = "", 
   `;
 
   document.body.classList.add("modal-open");
+  enhanceModalSelects(root);
 
   root.onclick = (event) => {
     const dismissTarget = event.target.closest("[data-modal-dismiss='true']");
