@@ -6,6 +6,24 @@ import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js";
 import { selectVisibleUserProfile } from "./auth-session.js";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js";
 
+const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
+
+function readRiskPanelStorage() {
+  try {
+    return JSON.parse(window.localStorage.getItem(RISK_PANEL_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function persistRiskPanelStorage(values = {}) {
+  try {
+    window.localStorage.setItem(RISK_PANEL_STORAGE_KEY, JSON.stringify(values));
+  } catch {
+    // noop
+  }
+}
+
 function ladderRows(risk) {
   return risk.ladder.map((row) => ({
     ...row,
@@ -60,6 +78,7 @@ function renderLadderProgress(ladder, currentLevel) {
 function getRiskPreferencesDraft(root) {
   if (!root.__riskPrefsDraft) {
     const preferences = readLocalPreferences();
+    const panelConfig = readRiskPanelStorage();
     root.__riskPrefsDraft = {
       defaultRisk: String(preferences.defaultRisk ?? "0.45"),
       dailyDrawdownLimit: String(preferences.dailyDrawdownLimit ?? "1.2"),
@@ -69,7 +88,10 @@ function getRiskPreferencesDraft(root) {
       alertWinRate: Boolean(preferences.alertWinRate),
       alertOvertrading: Boolean(preferences.alertOvertrading),
       riskGuidanceEnabled: Boolean(preferences.riskGuidanceEnabled),
-      autoBlockOptIn: Boolean(preferences.autoBlockOptIn)
+      autoBlockOptIn: Boolean(preferences.autoBlockOptIn),
+      allowedSessions: String(panelConfig.allowedSessions ?? ""),
+      maxVolume: String(panelConfig.maxVolume ?? ""),
+      allowedSymbols: String(panelConfig.allowedSymbols ?? "")
     };
   }
   return root.__riskPrefsDraft;
@@ -94,6 +116,11 @@ function riskConfigStatusLabel(status) {
 
 function toggleStatusLabel(active, enabledLabel = "Activo", disabledLabel = "Off") {
   return active ? enabledLabel : disabledLabel;
+}
+
+function focusCardControl(card) {
+  const control = card?.querySelector("input, textarea");
+  control?.focus();
 }
 
 function polar(cx, cy, radius, deg) {
@@ -241,7 +268,19 @@ export function renderRisk(root, state) {
       value: `${Number(prefsDraft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(prefsDraft.maxDrawdownLimit || 0).toFixed(1)}%`,
       checked: prefsDraft.alertDrawdown,
       key: "alertDrawdown",
-      statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off")
+      statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off"),
+      controls: `
+        <div class="risk-config-edit-grid risk-config-edit-grid--two">
+          <label class="risk-config-control">
+            <span>Daily DD</span>
+            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
+          </label>
+          <label class="risk-config-control">
+            <span>Max DD</span>
+            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
+          </label>
+        </div>
+      `
     },
     {
       title: "Riesgo por Trade",
@@ -249,31 +288,55 @@ export function renderRisk(root, state) {
       value: `${Number(prefsDraft.defaultRisk || 0).toFixed(2)}%`,
       checked: prefsDraft.riskGuidanceEnabled,
       key: "riskGuidanceEnabled",
-      statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off")
+      statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off"),
+      controls: `
+        <label class="risk-config-control">
+          <span>Riesgo máximo</span>
+          <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
+        </label>
+      `
     },
     {
-      title: "Alertas por Rachas",
-      description: "Advierte cuando la secuencia de pérdidas empeora.",
-      value: "Protección de disciplina",
-      checked: prefsDraft.alertStreaks,
-      key: "alertStreaks",
-      statusLabel: toggleStatusLabel(prefsDraft.alertStreaks, "Activo", "Off")
+      title: "Horarios Permitidos",
+      description: "Ventanas operativas UTC",
+      value: prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "),
+      checked: true,
+      key: "__alwaysOnSessions",
+      statusLabel: "Editable",
+      controls: `
+        <label class="risk-config-control">
+          <span>Sesiones</span>
+          <input type="text" value="${prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · ")}" data-risk-pref-text="allowedSessions" placeholder="London · New York">
+        </label>
+      `
     },
     {
-      title: "Alertas de Win Rate",
-      description: "Detecta caída de calidad antes de sobreoperar.",
-      value: "Seguimiento estadístico",
-      checked: prefsDraft.alertWinRate,
-      key: "alertWinRate",
-      statusLabel: toggleStatusLabel(prefsDraft.alertWinRate, "Activo", "Off")
+      title: "Control de Volumen",
+      description: "Lote máximo por trade",
+      value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5),
+      checked: true,
+      key: "__alwaysOnVolume",
+      statusLabel: "Editable",
+      controls: `
+        <label class="risk-config-control">
+          <span>Lote máximo</span>
+          <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5)}" data-risk-pref-text="maxVolume">
+        </label>
+      `
     },
     {
-      title: "Alertas de Overtrading",
-      description: "Marca exceso de operaciones y calor operativo.",
-      value: "Control de frecuencia",
-      checked: prefsDraft.alertOvertrading,
-      key: "alertOvertrading",
-      statusLabel: toggleStatusLabel(prefsDraft.alertOvertrading, "Activo", "Off")
+      title: "Símbolos Permitidos",
+      description: "Universo habilitado",
+      value: prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || model.symbols.map((item) => item.key)).join(" · "),
+      checked: true,
+      key: "__alwaysOnSymbols",
+      statusLabel: "Editable",
+      controls: `
+        <label class="risk-config-control">
+          <span>Símbolos</span>
+          <textarea rows="2" data-risk-pref-text="allowedSymbols" placeholder="EURUSD · GBPUSD · XAUUSD">${prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || model.symbols.map((item) => item.key)).join(" · ")}</textarea>
+        </label>
+      `
     },
     {
       title: "Bloqueo Automático",
@@ -438,14 +501,19 @@ export function renderRisk(root, state) {
                 <div class="risk-config-title">${rule.title}</div>
                 <div class="risk-config-meta">${rule.description}</div>
               </div>
-              <label class="risk-config-toggle" aria-label="${rule.title}">
-                <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
-                <span class="risk-config-toggle-ui"></span>
-              </label>
+              ${rule.key.startsWith("__alwaysOn")
+                ? `<div class="risk-config-state-pill">${rule.statusLabel}</div>`
+                : `
+                  <label class="risk-config-toggle" aria-label="${rule.title}">
+                    <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
+                    <span class="risk-config-toggle-ui"></span>
+                  </label>
+                `}
             </div>
             <div class="risk-config-value">${rule.value}</div>
+            ${rule.controls || ""}
             <div class="risk-config-footer">
-              ${badgeMarkup({ label: rule.statusLabel, tone: rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
+              ${badgeMarkup({ label: rule.statusLabel, tone: rule.key.startsWith("__alwaysOn") ? "info" : rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
             </div>
           </article>
         `).join("")}
@@ -551,6 +619,16 @@ export function renderRisk(root, state) {
     });
   });
 
+  root.querySelectorAll("[data-risk-pref-text]").forEach((input) => {
+    input.addEventListener("input", () => {
+      persistRiskPreferencesDraft(root, {
+        [input.dataset.riskPrefText]: input.value
+      });
+      const note = root.querySelector(".risk-limit-note");
+      if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
+    });
+  });
+
   root.querySelectorAll("[data-risk-pref-bool]").forEach((input) => {
     input.addEventListener("change", () => {
       persistRiskPreferencesDraft(root, {
@@ -560,7 +638,15 @@ export function renderRisk(root, state) {
     });
   });
 
+  root.querySelectorAll(".risk-config-card--editable").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("input, textarea, label, .risk-config-toggle, .risk-config-state-pill")) return;
+      focusCardControl(card);
+    });
+  });
+
   root.querySelector("[data-risk-reset]")?.addEventListener("click", () => {
+    persistRiskPanelStorage({});
     root.__riskPrefsDraft = null;
     root.__riskPrefsStatus = null;
     renderRisk(root, state);
@@ -600,6 +686,11 @@ export function renderRisk(root, state) {
     }
 
     persistLocalPreferences(nextPreferences);
+    persistRiskPanelStorage({
+      allowedSessions: getRiskPreferencesDraft(root).allowedSessions,
+      maxVolume: getRiskPreferencesDraft(root).maxVolume,
+      allowedSymbols: getRiskPreferencesDraft(root).allowedSymbols
+    });
     root.__riskSaving = false;
     root.__riskPrefsStatus = "saved";
     renderRisk(root, state);

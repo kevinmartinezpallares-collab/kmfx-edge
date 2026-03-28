@@ -3,7 +3,7 @@ import { initNavigation } from "./js/modules/navigation.js";
 import { renderDashboard } from "./js/modules/dashboard.js";
 import { renderAnalytics } from "./js/modules/analytics.js";
 import { renderDiscipline } from "./js/modules/discipline.js";
-import { renderRisk } from "./js/modules/risk.js?v=risk-configurable-1";
+import { renderRisk } from "./js/modules/risk.js?v=risk-configurable-2";
 import { renderTrades } from "./js/modules/trades.js";
 import { renderCalendar } from "./js/modules/calendar.js";
 import { initAccountsUI } from "./js/modules/accounts-ui.js";

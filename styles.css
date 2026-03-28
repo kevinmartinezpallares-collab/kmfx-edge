@@ -6919,6 +6919,7 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-config-card--editable {
   display: grid;
   gap: 12px;
+  cursor: pointer;
 }
 
 .risk-config-card-head {
@@ -6954,6 +6955,18 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-config-footer {
   margin-top: auto;
+}
+
+.risk-config-state-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface3) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
 }
 
 .risk-config-toggle {
@@ -7001,6 +7014,48 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-config-toggle input:checked + .risk-config-toggle-ui::after {
   transform: translateX(20px);
+}
+
+.risk-config-edit-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.risk-config-edit-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.risk-config-control {
+  display: grid;
+  gap: 6px;
+}
+
+.risk-config-control span {
+  font-size: 10px;
+  color: var(--text4);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.risk-config-control input,
+.risk-config-control textarea {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  background: color-mix(in srgb, var(--surface2) 88%, transparent);
+  color: var(--text1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 600;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  resize: none;
+}
+
+.risk-config-control input:focus,
+.risk-config-control textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .risk-limit-form {
@@ -9523,6 +9578,10 @@ body[data-theme="dark"] .pnlcal-range-btn {
 }
 
 @media (max-width: 768px) {
+  .risk-config-edit-grid--two {
+    grid-template-columns: 1fr;
+  }
+
   [data-theme="dark"] body,
   body[data-theme="dark"] {
     background: linear-gradient(180deg, #06070b 0%, #090b11 42%, #0d1118 100%);
