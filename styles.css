@@ -2639,6 +2639,14 @@ html:not([data-theme="dark"]) .account-banner-viz {
   box-shadow: none;
 }
 
+html:not([data-theme="dark"]) .account-banner-viz .kmfx-chart-shell--hero,
+html:not([data-theme="dark"]) .account-banner-viz .kmfx-chart-shell,
+html:not([data-theme="dark"]) .account-banner-viz canvas {
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 .kmfx-chart-shell--hero {
   min-height: 186px;
   padding: 0;
@@ -3933,6 +3941,8 @@ html:not([data-theme="dark"]) .account-banner--premium::before {
 
 html:not([data-theme="dark"]) .account-banner-chart {
   border-left-color: rgba(20, 24, 36, 0.1);
+  background: transparent;
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .account-banner .widget-pill,
