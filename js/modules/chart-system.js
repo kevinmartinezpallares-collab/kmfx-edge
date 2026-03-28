@@ -1308,6 +1308,14 @@ export function mountCharts(root, specs) {
   specs.forEach((spec) => {
     const canvas = root.querySelector(`[data-kmfx-chart="${spec.key}"]`);
     if (!canvas) return;
+    const shell = canvas.parentNode;
+    if (shell?.classList) {
+      shell.classList.toggle("kmfx-chart-shell--bar", spec.kind === "bar");
+      shell.classList.toggle("kmfx-chart-shell--line-area", spec.kind === "line-area");
+      shell.classList.toggle("kmfx-chart-shell--sparkline", spec.kind === "sparkline");
+      shell.classList.toggle("kmfx-chart-shell--doughnut", spec.kind === "doughnut");
+      shell.classList.toggle("kmfx-chart-shell--radar", spec.kind === "radar");
+    }
     let chart = null;
     if (spec.kind === "sparkline") chart = createSparklineChart(ChartLib, canvas, spec);
     if (spec.kind === "line-area") chart = createLineAreaChart(ChartLib, canvas, spec);

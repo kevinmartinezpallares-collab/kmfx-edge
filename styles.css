@@ -3893,6 +3893,16 @@ html:not([data-theme="dark"]) .kmfx-chart-shell--blended-card {
   box-shadow: none !important;
 }
 
+html:not([data-theme="dark"]) .kmfx-chart-shell--bar {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .kmfx-chart-shell--bar canvas {
+  background: transparent !important;
+}
+
 .kmfx-chart-shell--compact {
   min-height: 128px;
 }
