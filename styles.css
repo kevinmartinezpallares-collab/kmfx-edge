@@ -1549,28 +1549,13 @@ body[data-theme="dark"] .app-shell {
   scrollbar-gutter: stable;
   padding-right: 2px;
   padding-left: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(31, 41, 55, 0.18) transparent;
+  scrollbar-width: none;
 }
 
 .sidebar-nav::-webkit-scrollbar {
-  width: 7px;
-}
-
-.sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(31, 41, 55, 0.16);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.sidebar-nav:hover::-webkit-scrollbar-thumb {
-  background: rgba(31, 41, 55, 0.24);
-  background-clip: padding-box;
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .sidebar-topbar {
