@@ -864,6 +864,25 @@ body[data-theme="dark"] .auth-screen {
   color: var(--green);
 }
 
+.auth-turnstile-wrap {
+  display: grid;
+  justify-items: center;
+  margin-top: 2px;
+}
+
+.auth-turnstile-slot {
+  width: 100%;
+  min-height: 66px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.auth-turnstile-slot > div {
+  max-width: 100%;
+}
+
 .auth-disclaimer {
   margin-top: 2px;
   font-size: 11px;
@@ -1240,6 +1259,11 @@ html:not([data-theme="dark"]) .auth-feedback,
 html:not([data-theme="dark"]) .auth-disclaimer,
 html:not([data-theme="dark"]) .auth-legal-links {
   color: rgba(71, 85, 105, 0.72);
+}
+
+html:not([data-theme="dark"]) .auth-turnstile-slot {
+  background: rgba(15, 23, 42, 0.025);
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 html:not([data-theme="dark"]) .auth-mode-switch {
@@ -9754,6 +9778,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .auth-google-mark {
     width: 18px;
     height: 18px;
+  }
+
+  .auth-turnstile-slot {
+    min-height: 62px;
   }
 
   .auth-trust-line {

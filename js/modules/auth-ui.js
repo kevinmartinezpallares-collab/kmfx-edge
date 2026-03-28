@@ -2,6 +2,12 @@ export function initAuthUI(store) {
   const root = document.getElementById("authRoot");
   if (!root) return;
 
+  root.__turnstile = root.__turnstile || {
+    widgets: {},
+    tokens: {},
+    ready: false
+  };
+
   root.__authUiState = root.__authUiState || {
     mode: "signin",
     slideIndex: 0,
@@ -13,6 +19,85 @@ export function initAuthUI(store) {
     error: "",
     notice: "",
     providerLoading: ""
+  };
+
+  const getTurnstileSiteKey = () => {
+    const metaSiteKey = document.querySelector('meta[name="kmfx-turnstile-site-key"]')?.getAttribute("content")?.trim();
+    const runtimeSiteKey = window.__KMFX_CONFIG__?.turnstile?.siteKey?.trim?.();
+    return runtimeSiteKey || metaSiteKey || "";
+  };
+
+  const getTurnstileTheme = () => document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+
+  const resolveTurnstileMode = ({ isSignUpMode = false, isForgotMode = false, isResetMode = false } = {}) => {
+    if (isResetMode) return "reset";
+    if (isForgotMode) return "forgot";
+    if (isSignUpMode) return "signup";
+    return "";
+  };
+
+  const isProtectedTurnstileMode = (mode) => ["signup", "forgot", "reset"].includes(mode);
+
+  const resetTurnstileWidget = (mode) => {
+    const widgetId = root.__turnstile?.widgets?.[mode];
+    if (!widgetId || !window.turnstile?.reset) return;
+    root.__turnstile.tokens[mode] = "";
+    window.turnstile.reset(widgetId);
+  };
+
+  const ensureTurnstileCompleted = (mode) => {
+    if (!isProtectedTurnstileMode(mode)) return true;
+    const siteKey = getTurnstileSiteKey();
+    if (!siteKey) {
+      setUiState({
+        error: "No se pudo validar la verificación. Inténtalo de nuevo.",
+        notice: ""
+      });
+      return false;
+    }
+    const token = String(root.__turnstile?.tokens?.[mode] || "").trim();
+    if (!token) {
+      setUiState({
+        error: "Completa la verificación para continuar.",
+        notice: ""
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const mountTurnstileWidget = (mode) => {
+    if (!isProtectedTurnstileMode(mode)) return;
+    const siteKey = getTurnstileSiteKey();
+    const slot = root.querySelector('[data-turnstile-slot]');
+    if (!slot || !siteKey || !window.turnstile?.render) return;
+
+    slot.innerHTML = "";
+    root.__turnstile.tokens[mode] = "";
+    root.__turnstile.widgets[mode] = window.turnstile.render(slot, {
+      sitekey: siteKey,
+      theme: getTurnstileTheme(),
+      language: "es",
+      appearance: "always",
+      callback: (token) => {
+        root.__turnstile.tokens[mode] = token || "";
+        if (root.__authUiState.error === "Completa la verificación para continuar." || root.__authUiState.error === "No se pudo validar la verificación. Inténtalo de nuevo.") {
+          setUiState({ error: "" });
+        }
+      },
+      "error-callback": () => {
+        root.__turnstile.tokens[mode] = "";
+        setUiState({ error: "No se pudo validar la verificación. Inténtalo de nuevo.", notice: "" });
+      },
+      "expired-callback": () => {
+        root.__turnstile.tokens[mode] = "";
+      }
+    });
+  };
+
+  window.__kmfxTurnstileOnload = () => {
+    root.__turnstile.ready = true;
+    render(store.getState());
   };
 
   const escapeHtml = (value = "") => String(value)
@@ -105,6 +190,7 @@ export function initAuthUI(store) {
   };
 
   const signUpWithPassword = async () => {
+    if (!ensureTurnstileCompleted("signup")) return;
     const name = String(root.__authUiState.name || "").trim();
     const email = String(root.__authUiState.email || "").trim();
     const password = String(root.__authUiState.password || "");
@@ -116,6 +202,7 @@ export function initAuthUI(store) {
     setUiState({ loading: true, error: "", notice: "", providerLoading: "signup" });
     const result = await window.kmfxAuth?.signUpWithPassword?.({ name, email, password });
     if (!result?.ok) {
+      resetTurnstileWidget("signup");
       setUiState({
         loading: false,
         providerLoading: "",
@@ -157,10 +244,12 @@ export function initAuthUI(store) {
   };
 
   const requestPasswordReset = async () => {
+    if (!ensureTurnstileCompleted("forgot")) return;
     const email = String(root.__authUiState.email || "").trim();
     setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-request" });
     const result = await window.kmfxAuth?.requestPasswordReset?.({ email });
     if (!result?.ok) {
+      resetTurnstileWidget("forgot");
       setUiState({
         loading: false,
         providerLoading: "",
@@ -179,6 +268,7 @@ export function initAuthUI(store) {
   };
 
   const updatePassword = async () => {
+    if (!ensureTurnstileCompleted("reset")) return;
     const password = String(root.__authUiState.password || "");
     const confirmPassword = String(root.__authUiState.confirmPassword || "");
     if (password !== confirmPassword) {
@@ -188,6 +278,7 @@ export function initAuthUI(store) {
     setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-password" });
     const result = await window.kmfxAuth?.updatePassword?.({ password });
     if (!result?.ok) {
+      resetTurnstileWidget("reset");
       setUiState({
         loading: false,
         providerLoading: "",
@@ -242,6 +333,8 @@ export function initAuthUI(store) {
     const isSignUpMode = uiState.mode === "signup";
     const isForgotMode = uiState.mode === "forgot";
     const isResetMode = isRecoveryMode;
+    const turnstileMode = resolveTurnstileMode({ isSignUpMode, isForgotMode, isResetMode });
+    const needsTurnstile = isProtectedTurnstileMode(turnstileMode);
     const authTitle = isResetMode
       ? "Restablecer contraseña"
       : isSignUpMode
@@ -415,6 +508,12 @@ export function initAuthUI(store) {
                   ? `<div class="auth-feedback auth-feedback--success">${escapeHtml(uiState.notice)}</div>`
                   : ``}
 
+              ${needsTurnstile ? `
+                <div class="auth-turnstile-wrap">
+                  <div class="auth-turnstile-slot" data-turnstile-slot></div>
+                </div>
+              ` : ``}
+
               <div class="auth-actions">
                 <button class="btn-primary auth-action" type="button" data-auth-submit ${uiState.loading ? "disabled" : ""}>
                   ${isResetMode
@@ -546,6 +645,10 @@ export function initAuthUI(store) {
           nextActiveField.setSelectionRange(activeSelectionStart, activeSelectionEnd);
         }
       }
+    }
+
+    if (needsTurnstile) {
+      mountTurnstileWidget(turnstileMode);
     }
 
     startAuthCarousel();
