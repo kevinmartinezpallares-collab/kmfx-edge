@@ -9224,7 +9224,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-screen {
-    padding: 10px 12px 14px;
+    padding: 8px 12px 12px;
     align-items: start;
     place-items: start center;
     overflow-y: auto;
@@ -9233,14 +9233,14 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
+    gap: 6px;
     width: min(100%, 480px);
     min-height: auto;
   }
 
   .auth-showcase {
     min-height: 0;
-    gap: 8px;
+    gap: 4px;
     padding: 0;
     border-radius: 0;
     justify-items: center;
@@ -9252,46 +9252,45 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-showcase-brand-mark {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
   }
 
   .auth-showcase-brand-mark .brand-logo {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .auth-showcase-brand-name {
-    font-size: 16px;
+    display: none;
   }
 
   .auth-showcase-copyblock {
-    gap: 8px;
+    gap: 6px;
     max-width: 100%;
   }
 
   .auth-showcase-title {
-    font-size: clamp(21px, 6.8vw, 28px);
-    max-width: 12.5ch;
+    font-size: clamp(16px, 5.8vw, 24px);
+    max-width: 11ch;
+    line-height: 0.96;
   }
 
   .auth-showcase-copy {
-    max-width: 28ch;
-    font-size: 13px;
-    line-height: 1.38;
+    max-width: 24ch;
+    font-size: 12px;
+    line-height: 1.32;
   }
 
   .auth-showcase-value {
-    min-height: 28px;
-    padding: 0 10px;
-    font-size: 10px;
+    display: none;
   }
 
   .auth-card {
     width: 100%;
-    gap: 9px;
-    padding: 15px;
-    border-radius: 18px;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 16px;
   }
 
   .auth-form-grid,
@@ -9300,12 +9299,14 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-title {
-    font-size: 21px;
+    font-size: 18px;
+    line-height: 1.05;
   }
 
   .auth-copy {
-    font-size: 12px;
-    max-width: 28ch;
+    font-size: 11px;
+    max-width: 26ch;
+    line-height: 1.32;
   }
 
   .auth-showcase-footnote {
@@ -9318,15 +9319,13 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-panel {
-    gap: 6px;
+    gap: 4px;
     justify-items: center;
     width: 100%;
   }
 
   .auth-panel-cta {
-    padding-left: 0;
-    font-size: 9px;
-    text-align: center;
+    display: none;
   }
 
   .auth-brand {
@@ -9334,13 +9333,13 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-mode-switch {
-    gap: 6px;
+    gap: 4px;
     padding: 4px;
   }
 
   .auth-mode-btn {
-    min-height: 38px;
-    font-size: 13px;
+    min-height: 36px;
+    font-size: 12px;
   }
 
   .auth-card .form-stack {
@@ -9348,15 +9347,19 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-card .form-stack span {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .auth-card .form-stack input {
-    min-height: 46px;
+    min-height: 44px;
+    padding-inline: 14px;
+    font-size: 15px;
   }
 
   .auth-action {
-    min-height: 46px;
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 14px;
   }
 
   .auth-action--google {
@@ -9373,7 +9376,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-trust-line {
     font-size: 10px;
-    max-width: 28ch;
+    max-width: 25ch;
     justify-self: center;
   }
 
@@ -9384,7 +9387,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-legal-links {
     margin-top: 0;
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1.35;
   }
 
   .auth-card .form-stack input,
