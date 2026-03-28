@@ -739,12 +739,15 @@ body[data-theme="dark"] .auth-screen {
 }
 
 .auth-panel-cta {
-  padding-left: 2px;
+  width: min(100%, 440px);
+  padding-left: 0;
   font-size: 10px;
   font-weight: 680;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(243, 242, 238, 0.48);
+  text-align: center;
+  justify-self: end;
 }
 
 .auth-card {
