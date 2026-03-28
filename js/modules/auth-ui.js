@@ -266,7 +266,7 @@ export function initAuthUI(store) {
               <div class="auth-showcase-brand-mark">
                 <img class="brand-logo auth-brand-logo" src="./assets/logos/logo-gris-claro-2048.svg" alt="KMFX Edge">
               </div>
-              <div class="auth-showcase-brand-name">KMFX Edge</div>
+              <div class="auth-showcase-brand-name"><span>KMFX</span> <em>Edge</em></div>
             </div>
 
             <div class="auth-showcase-copyblock">

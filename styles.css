@@ -379,6 +379,11 @@ body[data-theme="dark"] .auth-screen {
   color: rgba(243, 242, 238, 0.94);
 }
 
+.auth-showcase-brand-name em {
+  font-style: normal;
+  font-weight: 500;
+}
+
 .auth-showcase-copyblock {
   display: grid;
   gap: 10px;
@@ -397,6 +402,7 @@ body[data-theme="dark"] .auth-screen {
 
 .auth-showcase-title span {
   display: block;
+  white-space: nowrap;
 }
 
 .auth-showcase-copy {
@@ -9352,7 +9358,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-showcase-title {
     font-size: clamp(16px, 5.8vw, 24px);
-    max-width: 12.2ch;
+    max-width: none;
     line-height: 0.96;
     text-align: center;
   }
