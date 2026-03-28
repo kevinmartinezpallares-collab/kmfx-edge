@@ -489,7 +489,7 @@ export function renderRisk(root, state) {
     lineAreaSpec("risk-drawdown-curve", model.drawdownCurve, {
       tone: "red",
       showAxisBorder: true,
-      axisColor: axisLine,
+      axisBorderColor: axisLine,
       axisBorderWidth: 1,
       borderWidth: 2.2,
       pointHoverRadius: 3,

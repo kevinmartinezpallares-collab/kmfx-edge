@@ -233,7 +233,7 @@ export function renderCalendar(root, state) {
     lineAreaSpec("calendar-cumulative-return", cumulativeView.curve, {
       tone: "blue",
       showAxisBorder: true,
-      axisColor: axisLine,
+      axisBorderColor: axisLine,
       axisBorderWidth: 1,
       formatter: (value, context) => {
         const point = cumulativeView.curve[context.dataIndex];

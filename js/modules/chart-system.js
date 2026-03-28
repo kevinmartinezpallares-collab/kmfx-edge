@@ -899,7 +899,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
           display: spec.showXAxis ?? (spec.showAxes ?? true),
           border: {
             display: spec.showAxisBorder ?? false,
-            color: getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
             width: spec.axisBorderWidth ?? 1
           },
           ticks: {
@@ -922,7 +922,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
           ...computeYHeadroom(spec),
           border: {
             display: spec.showAxisBorder ?? false,
-            color: getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
             width: spec.axisBorderWidth ?? 1
           },
           ticks: {
