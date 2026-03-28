@@ -264,13 +264,14 @@ export function initAuthUI(store) {
           <section class="auth-showcase" aria-label="KMFX Edge overview">
             <div class="auth-showcase-brand">
               <div class="auth-showcase-brand-mark">
-                <img class="brand-logo auth-brand-logo" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+                <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
+                <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
               </div>
               <div class="auth-showcase-brand-name">KMFX Edge</div>
             </div>
 
             <div class="auth-showcase-copyblock">
-              <h1 class="auth-showcase-title"><span>Controla tu trading</span><span>como un profesional</span></h1>
+              <h1 class="auth-showcase-title">Controla tu trading como un profesional</h1>
               <p class="auth-showcase-copy">Todas tus métricas, riesgo y rendimiento en un solo lugar.</p>
               <div class="auth-showcase-value">Usado por traders para medir rendimiento, riesgo y consistencia.</div>
             </div>
@@ -395,11 +396,11 @@ export function initAuthUI(store) {
                 ` : ""}
                 <label class="form-stack">
                   <span>Correo electrónico</span>
-                  <input type="email" data-auth-field="email" placeholder="tu@correo.com" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
+                  <input type="email" data-auth-field="email" placeholder="kevin@kmfxedge.local" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
                 </label>
                 ${!isForgotMode ? `<label class="form-stack">
                   <span>Contraseña</span>
-                  <input type="password" data-auth-field="password" placeholder="${isResetMode ? "Nueva contraseña" : isSignUpMode ? "Crea una contraseña" : "Introduce tu contraseña"}" value="${escapeHtml(uiState.password)}">
+                  <input type="password" data-auth-field="password" placeholder="${isResetMode ? "Nueva contraseña" : "Mínimo 6 caracteres"}" value="${escapeHtml(uiState.password)}">
                 </label>` : ""}
                 ${(isSignUpMode || isResetMode) ? `
                   <label class="form-stack">
