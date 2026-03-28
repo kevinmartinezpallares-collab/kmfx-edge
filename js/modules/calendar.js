@@ -41,6 +41,7 @@ export function renderCalendar(root, state) {
   const winDays = model.calendar.cells.filter((cell) => cell.pnl > 0).length;
   const monthReturn = month.returnPct || 0;
   const cumulativeView = getCumulativeView(model, range);
+  const axisStrong = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-strong").trim() || undefined;
   const totalReturnColor = cumulativeView.totalPct >= 0 ? "metric-positive" : "metric-negative";
   const weeklySummary = [];
 
@@ -231,6 +232,10 @@ export function renderCalendar(root, state) {
   mountCharts(root, [
     lineAreaSpec("calendar-cumulative-return", cumulativeView.curve, {
       tone: "blue",
+      showAxisBorder: true,
+      axisColor: axisStrong,
+      axisFontSize: 10,
+      axisFontWeight: "600",
       formatter: (value, context) => {
         const point = cumulativeView.curve[context.dataIndex];
         return `${formatPercent(value)} · ${formatCurrency(point.pnl)}`;
