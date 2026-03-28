@@ -214,7 +214,6 @@ export function renderStrategies(root, state) {
       <div class="tl-page-title">Estrategias</div>
       <div class="tl-page-sub">Catálogo de setups, rendimiento derivado del diario y edición modular en modal.</div>
       <div class="page-actions">
-        <div class="pill">Setup engine</div>
         <button class="btn-primary" data-strategy-action="new">Nueva estrategia</button>
       </div>
     </div>
