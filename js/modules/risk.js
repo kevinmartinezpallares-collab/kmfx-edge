@@ -484,14 +484,9 @@ export function renderRisk(root, state) {
   });
 
   attachArcInteractions(root);
-  const axisStrong = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-strong").trim() || undefined;
   mountCharts(root, [
     lineAreaSpec("risk-drawdown-curve", model.drawdownCurve, {
       tone: "red",
-      showAxisBorder: true,
-      axisColor: axisStrong,
-      axisFontSize: 10,
-      axisFontWeight: "600",
       borderWidth: 2.2,
       pointHoverRadius: 3,
       minimalTooltip: true,
