@@ -3713,6 +3713,12 @@ body[data-theme="dark"] .account-banner--premium {
   min-height: 220px;
 }
 
+html:not([data-theme="dark"]) .kmfx-chart-shell--blended-card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 .kmfx-chart-shell--compact {
   min-height: 128px;
 }

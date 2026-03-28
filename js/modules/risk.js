@@ -275,7 +275,7 @@ export function renderRisk(root, state) {
         </article>
       </div>
       <div class="widget-feature-chart">
-        ${chartCanvas("risk-drawdown-curve", 240, "kmfx-chart-shell--feature")}
+        ${chartCanvas("risk-drawdown-curve", 240, "kmfx-chart-shell--feature kmfx-chart-shell--blended-card")}
       </div>
       <div class="risk-overview-meta">
         <span>Límite DD total ${formatPercent(account.maxDrawdownLimit || 0)}</span>

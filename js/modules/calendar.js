@@ -172,7 +172,7 @@ export function renderCalendar(root, state) {
         <div><div class="tl-kpi-label">Última act.</div><div class="metric-large" style="font-size:16px">${cumulativeView.lastUpdate ? cumulativeView.lastUpdate.toLocaleDateString("es-ES") : "—"}</div></div>
         <div><div class="tl-kpi-label">Rango</div><div class="metric-large" style="font-size:16px">${range}</div></div>
       </div>
-      ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature")}
+      ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature kmfx-chart-shell--blended-card")}
     </div>
   `;
 
