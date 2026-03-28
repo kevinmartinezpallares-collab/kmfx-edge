@@ -9272,7 +9272,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .auth-showcase-brand-mark {
     width: 38px;
     height: 38px;
-    border-radius: 12px;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .auth-showcase-brand-mark .brand-logo {
@@ -9292,16 +9295,17 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 
   .auth-showcase-title {
     font-size: clamp(16px, 5.8vw, 24px);
-    max-width: 12ch;
+    max-width: 12.2ch;
     line-height: 0.96;
     text-align: center;
   }
 
   .auth-showcase-copy {
-    max-width: 24ch;
-    font-size: 12px;
-    line-height: 1.32;
+    max-width: none;
+    font-size: 11px;
+    line-height: 1.2;
     text-align: center;
+    white-space: nowrap;
   }
 
   .auth-showcase-value {
@@ -9326,9 +9330,11 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-copy {
-    font-size: 11px;
-    max-width: 26ch;
-    line-height: 1.32;
+    font-size: 10px;
+    max-width: none;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .auth-showcase-footnote {
@@ -9397,9 +9403,11 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-trust-line {
-    font-size: 10px;
-    max-width: 25ch;
+    font-size: 9px;
+    max-width: none;
     justify-self: center;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .auth-trust-indicators,
