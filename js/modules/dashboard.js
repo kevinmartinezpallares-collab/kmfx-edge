@@ -182,6 +182,7 @@ export function renderDashboard(root, state) {
       borderWidth: 2.35,
       pointHoverRadius: 2.5,
       pointHitRadius: 18,
+      fill: isDarkTheme,
       fillAlphaStart: isDarkTheme ? 0.14 : 0.035,
       fillAlphaEnd: isDarkTheme ? 0.01 : 0,
       glowAlpha: 0.07,
