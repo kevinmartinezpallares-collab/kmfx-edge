@@ -10545,6 +10545,27 @@ body[data-theme="dark"] .brand-logo-dark {
 }
 
 @media (max-width: 768px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .main-panel {
+    overflow: visible;
+  }
+
+  .content {
+    overflow: visible;
+    min-height: auto;
+    flex: initial;
+  }
+
   .account-switcher {
     padding: 12px !important;
     gap: 10px;
