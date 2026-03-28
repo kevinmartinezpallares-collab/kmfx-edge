@@ -2404,6 +2404,13 @@ body[data-theme="dark"] .widget-card::before {
   z-index: 1;
 }
 
+html[data-theme="dark"] .account-hero-card .metric-label,
+html[data-theme="dark"] .account-hero-card .tl-kpi-label,
+body[data-theme="dark"] .account-hero-card .metric-label,
+body[data-theme="dark"] .account-hero-card .tl-kpi-label {
+  color: rgba(255, 255, 255, 0.78);
+}
+
 html:not([data-theme="dark"]) .account-hero-card {
   border-color: rgba(66, 77, 112, 0.42);
   background: #04081a;
@@ -4255,8 +4262,9 @@ html:not([data-theme="dark"]) .account-hero-card .account-hero-card__value {
 }
 
 html:not([data-theme="dark"]) .account-hero-card .account-hero-card__meta,
-html:not([data-theme="dark"]) .account-hero-card .metric-label {
-  color: rgba(220, 227, 241, 0.68);
+html:not([data-theme="dark"]) .account-hero-card .metric-label,
+html:not([data-theme="dark"]) .account-hero-card .tl-kpi-label {
+  color: rgba(236, 241, 250, 0.82);
 }
 
 html:not([data-theme="dark"]) .account-hero-card .ui-badge,
