@@ -8577,12 +8577,12 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px;
-  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  gap: 6px;
+  padding: 6px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   border: 0;
   border-top: 0.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(18, 18, 18, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -8594,10 +8594,10 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 .bnav-item {
   display: grid;
   justify-items: center;
-  gap: 6px;
-  padding: 10px 6px 8px;
-  border-radius: 12px;
-  font-size: 10px;
+  gap: 4px;
+  padding: 8px 4px 6px;
+  border-radius: 10px;
+  font-size: 9px;
   font-weight: 800;
   background: transparent;
   border-color: transparent;
@@ -8610,8 +8610,8 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
 }
 
 .bnav-item svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
