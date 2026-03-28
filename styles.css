@@ -1777,7 +1777,11 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-item:hover {
 }
 
 .sidebar-profile-menu-item.danger {
-  color: color-mix(in srgb, var(--red) 84%, var(--text2));
+  color: #ef4444 !important;
+}
+
+.sidebar-profile-menu-item.danger:hover {
+  color: #ef4444 !important;
 }
 
 html[data-theme="dark"] .sidebar {
@@ -2315,7 +2319,7 @@ html:not([data-theme="dark"]) .account-hero-card {
   background:
     radial-gradient(118% 118% at 16% 82%, rgba(74, 112, 218, 0.48) 0%, rgba(74, 112, 218, 0.18) 18%, transparent 44%),
     radial-gradient(84% 88% at 88% 16%, rgba(193, 171, 255, 0.42) 0%, rgba(193, 171, 255, 0.16) 24%, transparent 48%),
-    radial-gradient(54% 54% at 28% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 52%),
+    radial-gradient(54% 54% at 28% 70%, rgba(255, 255, 255, 0.045) 0%, transparent 52%),
     linear-gradient(145deg, rgba(4, 8, 24, 0.985) 0%, rgba(8, 12, 34, 0.975) 44%, rgba(12, 38, 104, 0.94) 100%);
   color: rgba(245, 247, 252, 0.95);
   box-shadow:
@@ -2325,9 +2329,9 @@ html:not([data-theme="dark"]) .account-hero-card {
 
 html:not([data-theme="dark"]) .account-hero-card::before {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 28%),
-    radial-gradient(58% 64% at 24% 72%, rgba(255, 255, 255, 0.08), transparent 54%);
-  opacity: 1;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 26%),
+    radial-gradient(58% 64% at 24% 72%, rgba(255, 255, 255, 0.038), transparent 54%);
+  opacity: 0.82;
 }
 
 html[data-theme="dark"] .account-hero-card,
@@ -2365,7 +2369,7 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   background:
     radial-gradient(118% 118% at 16% 82%, rgba(86, 124, 226, 0.56) 0%, rgba(86, 124, 226, 0.22) 18%, transparent 44%),
     radial-gradient(84% 88% at 88% 16%, rgba(203, 182, 255, 0.46) 0%, rgba(203, 182, 255, 0.18) 24%, transparent 48%),
-    radial-gradient(54% 54% at 28% 70%, rgba(255, 255, 255, 0.12) 0%, transparent 52%),
+    radial-gradient(54% 54% at 28% 70%, rgba(255, 255, 255, 0.055) 0%, transparent 52%),
     linear-gradient(145deg, rgba(5, 10, 26, 0.99) 0%, rgba(9, 14, 38, 0.985) 44%, rgba(16, 44, 116, 0.95) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
@@ -9409,9 +9413,9 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   }
 
   .auth-screen {
-    padding: 8px 12px 12px;
-    align-items: start;
-    place-items: start center;
+    padding: 18px 12px 22px;
+    align-items: center;
+    place-items: center;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -9421,6 +9425,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     gap: 6px;
     width: min(100%, 480px);
     min-height: auto;
+    margin-block: auto;
   }
 
   .auth-showcase {
@@ -10068,11 +10073,11 @@ body[data-theme="dark"] .legal-page__section {
 
   html[data-theme="dark"] .bnav-more-item--danger,
   body[data-theme="dark"] .bnav-more-item--danger {
-    color: #ff8d8d;
+    color: #ef4444 !important;
   }
 
   html:not([data-theme="dark"]) .bnav-more-item--danger {
-    color: #c24141;
+    color: #ef4444 !important;
   }
 }
 
