@@ -42,10 +42,43 @@ export function initNavigation(store) {
   const topbarTitle = document.getElementById("topbarTitle");
   const topbarContext = document.getElementById("topbarContext");
   const analyticsTabs = document.getElementById("analyticsTabs");
+  let previousActivePage = store.getState().ui.activePage;
+  let pageTransitionTimeout = null;
+
+  const resetPageTransitionClasses = () => {
+    pages.forEach((panel) => panel.classList.remove("page-enter", "page-exit"));
+  };
+
   const syncNavigation = (state) => {
     const { activePage, analyticsTab } = state.ui;
     navButtons.forEach((item) => item.classList.toggle("active", item.dataset.page === activePage));
-    pages.forEach((panel) => panel.classList.toggle("active", panel.id === `page-${activePage}`));
+
+    const nextPanel = document.getElementById(`page-${activePage}`);
+    const previousPanel = document.getElementById(`page-${previousActivePage}`);
+    const pageChanged = previousActivePage !== activePage;
+
+    if (pageTransitionTimeout) {
+      clearTimeout(pageTransitionTimeout);
+      pageTransitionTimeout = null;
+    }
+
+    if (pageChanged && previousPanel && nextPanel && previousPanel !== nextPanel) {
+      resetPageTransitionClasses();
+      pages.forEach((panel) => panel.classList.remove("active"));
+      previousPanel.classList.add("active", "page-exit");
+      nextPanel.classList.add("active", "page-enter");
+
+      pageTransitionTimeout = setTimeout(() => {
+        previousPanel.classList.remove("active", "page-exit");
+        nextPanel.classList.remove("page-enter");
+        nextPanel.classList.add("active");
+        pageTransitionTimeout = null;
+      }, 220);
+    } else {
+      resetPageTransitionClasses();
+      pages.forEach((panel) => panel.classList.toggle("active", panel.id === `page-${activePage}`));
+    }
+
     if (topbarTitle) topbarTitle.textContent = pageTitle[activePage] || "Panel";
     if (topbarContext) topbarContext.textContent = pageContext[activePage] || "";
 
@@ -58,6 +91,8 @@ export function initNavigation(store) {
     window.dispatchEvent(new CustomEvent("kmfx:layout-change", {
       detail: { activePage, analyticsTab }
     }));
+
+    previousActivePage = activePage;
   };
 
   navButtons.forEach((button) => {
