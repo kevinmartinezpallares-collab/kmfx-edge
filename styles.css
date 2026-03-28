@@ -7801,47 +7801,47 @@ tfoot td {
 .calc-advisory-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.88;
+  filter: blur(52px);
+  opacity: 0.98;
   pointer-events: none;
   will-change: transform;
 }
 
 .calc-advisory-blob.blob-1 {
-  width: 210px;
-  height: 210px;
-  left: -42px;
-  bottom: -72px;
+  width: 260px;
+  height: 260px;
+  left: -58px;
+  bottom: -92px;
   background: rgba(26, 58, 143, 0.92);
   animation: accountBlobFloatA 10.5s ease-in-out infinite;
   animation-delay: 0s;
 }
 
 .calc-advisory-blob.blob-2 {
-  width: 190px;
-  height: 190px;
-  right: -28px;
-  top: -40px;
+  width: 230px;
+  height: 230px;
+  right: -40px;
+  top: -54px;
   background: rgba(107, 63, 160, 0.9);
   animation: accountBlobFloatB 11.5s ease-in-out infinite;
   animation-delay: -3s;
 }
 
 .calc-advisory-blob.blob-3 {
-  width: 240px;
-  height: 240px;
-  right: 8%;
-  bottom: -108px;
+  width: 300px;
+  height: 300px;
+  right: 4%;
+  bottom: -138px;
   background: rgba(13, 42, 122, 0.95);
   animation: accountBlobFloatC 8.8s ease-in-out infinite;
   animation-delay: -6s;
 }
 
 .calc-advisory-blob.blob-4 {
-  width: 150px;
-  height: 150px;
-  left: 18%;
-  bottom: -26px;
+  width: 190px;
+  height: 190px;
+  left: 14%;
+  bottom: -42px;
   background: rgba(128, 128, 192, 0.7);
   animation: accountBlobFloatD 9.8s ease-in-out infinite;
   animation-delay: -1.5s;
@@ -7853,13 +7853,10 @@ tfoot td {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(58% 58% at 18% 78%, rgba(26, 58, 143, 0.9) 0%, rgba(26, 58, 143, 0.42) 20%, transparent 52%),
-    radial-gradient(52% 52% at 88% 16%, rgba(107, 63, 160, 0.88) 0%, rgba(107, 63, 160, 0.34) 18%, transparent 48%),
-    radial-gradient(72% 72% at 72% 96%, rgba(13, 42, 122, 0.92) 0%, rgba(13, 42, 122, 0.4) 24%, transparent 54%),
-    radial-gradient(34% 34% at 28% 88%, rgba(128, 128, 192, 0.56) 0%, rgba(128, 128, 192, 0.22) 16%, transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 22%),
+    radial-gradient(110% 94% at 50% 110%, rgba(35, 80, 205, 0.18) 0%, transparent 56%);
   mix-blend-mode: screen;
-  opacity: 0.88;
+  opacity: 0.76;
 }
 
 .calc-advisory-block::after {
@@ -7869,7 +7866,7 @@ tfoot td {
   border-radius: calc(16px - 1px);
   pointer-events: none;
   background:
-    radial-gradient(110% 92% at 50% 110%, rgba(36, 86, 212, 0.14) 0%, transparent 58%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.01));
   z-index: 0;
 }
 
@@ -7943,13 +7940,10 @@ html:not([data-theme="dark"]) .calc-advisory-block {
 
 html:not([data-theme="dark"]) .calc-advisory-block::before {
   background:
-    radial-gradient(58% 58% at 18% 78%, rgba(26, 58, 143, 0.9) 0%, rgba(26, 58, 143, 0.42) 20%, transparent 52%),
-    radial-gradient(52% 52% at 88% 16%, rgba(107, 63, 160, 0.88) 0%, rgba(107, 63, 160, 0.34) 18%, transparent 48%),
-    radial-gradient(72% 72% at 72% 96%, rgba(13, 42, 122, 0.92) 0%, rgba(13, 42, 122, 0.4) 24%, transparent 54%),
-    radial-gradient(34% 34% at 28% 88%, rgba(128, 128, 192, 0.56) 0%, rgba(128, 128, 192, 0.22) 16%, transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 22%),
+    radial-gradient(110% 94% at 50% 110%, rgba(35, 80, 205, 0.18) 0%, transparent 56%);
   mix-blend-mode: screen;
-  opacity: 0.88;
+  opacity: 0.76;
 }
 
 html:not([data-theme="dark"]) .calc-advisory-title,
