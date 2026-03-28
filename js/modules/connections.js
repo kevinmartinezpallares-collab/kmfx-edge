@@ -1,6 +1,7 @@
 import { connectAccount, disconnectAccount, reconnectAccount } from "./account-runtime.js";
 import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js";
 import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js";
+import { showToast } from "./toast.js";
 
 function connectionCatalogStatusMeta(status) {
   if (status === "ready") return { label: "Lista", tone: "ok" };
@@ -19,8 +20,14 @@ export function initConnections(store) {
     const id = button.dataset.connectionId;
     const action = button.dataset.connectionAction;
 
-    if (action === "connect") connectAccount(store, id);
-    if (action === "disconnect") disconnectAccount(store, id);
+    if (action === "connect") {
+      connectAccount(store, id);
+      showToast("MT5 conectado", "success");
+    }
+    if (action === "disconnect") {
+      disconnectAccount(store, id);
+      showToast("Bridge desconectado", "error");
+    }
     if (action === "reconnect") reconnectAccount(store, id);
 
     const addButton = event.target.closest("[data-connection-add='true']");
