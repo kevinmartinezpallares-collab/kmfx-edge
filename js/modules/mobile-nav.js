@@ -73,11 +73,7 @@ export function initMobileNav(store) {
               <div class="bnav-more-grid">
                 ${section.items.map((item) => `
                   <button class="bnav-more-item ${activePage === item.page ? "active" : ""}" type="button" data-bnav-page="${item.page}">
-                    <span class="bnav-more-item-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${item.icon}</svg>
-                    </span>
-                    <span class="bnav-more-item-label">${item.label}</span>
-                    <span class="bnav-more-item-arrow" aria-hidden="true">›</span>
+                    ${item.label}
                   </button>
                 `).join("")}
               </div>
