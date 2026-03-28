@@ -10611,7 +10611,7 @@ body[data-theme="dark"] .brand-logo-dark {
   body {
     overflow-x: hidden;
     overflow-y: auto;
-    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
   }
 
   .main-panel {
@@ -10622,6 +10622,7 @@ body[data-theme="dark"] .brand-logo-dark {
     overflow: visible;
     min-height: auto;
     flex: initial;
+    padding-bottom: calc(152px + env(safe-area-inset-bottom));
   }
 
   .account-switcher {
