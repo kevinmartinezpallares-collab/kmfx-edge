@@ -356,6 +356,7 @@ export function renderRisk(root, state) {
       title: "Horarios Permitidos",
       description: "Ventanas operativas UTC",
       value: selectedSessionsLabel,
+      menuOpen: riskUi.openMenu === "sessions",
       checked: true,
       key: "__alwaysOnSessions",
       statusLabel: "Editable",
@@ -395,6 +396,7 @@ export function renderRisk(root, state) {
       title: "Símbolos Permitidos",
       description: "Universo habilitado",
       value: selectedSymbolsLabel,
+      menuOpen: riskUi.openMenu === "symbols",
       checked: true,
       key: "__alwaysOnSymbols",
       statusLabel: "Editable",
@@ -583,7 +585,7 @@ export function renderRisk(root, state) {
       <div class="tl-section-header"><div class="tl-section-title">Reglas Configurables</div></div>
       <div class="risk-config-grid">
         ${riskConfigCards.map((rule) => `
-          <article class="risk-config-card risk-config-card--editable">
+          <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""}">
             <div class="risk-config-card-head">
               <div>
                 <div class="risk-config-title">${rule.title}</div>

@@ -6921,7 +6921,7 @@ body[data-theme="dark"] .settings-profile-card {
   display: grid;
   gap: 12px;
   cursor: pointer;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.005)),
@@ -6936,7 +6936,7 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-config-card--editable::after {
   content: "";
   position: absolute;
-  inset: -18%;
+  inset: 0;
   border-radius: inherit;
   pointer-events: none;
   z-index: 0;
@@ -6964,6 +6964,10 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-config-card--editable > * {
   position: relative;
   z-index: 1;
+}
+
+.risk-config-card--menu-open {
+  z-index: 18;
 }
 
 .risk-config-card-head {
@@ -7119,12 +7123,21 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-select-menu {
   display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
   gap: 10px;
   padding: 12px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 94%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--surface2) 98%, transparent);
+  box-shadow:
+    0 22px 48px rgba(5, 9, 20, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 12;
 }
 
 .risk-select.open .risk-select-menu {
@@ -7404,6 +7417,14 @@ html:not([data-theme="dark"]) .risk-symbol-favorite {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(245, 247, 252, 0.96);
+}
+
+html:not([data-theme="dark"]) .risk-select-menu {
+  background: rgba(11, 17, 33, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 52px rgba(5, 9, 20, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 html:not([data-theme="dark"]) .risk-select-trigger strong,
