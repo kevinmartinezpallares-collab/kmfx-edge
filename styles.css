@@ -6916,6 +6916,18 @@ body[data-theme="dark"] .settings-profile-card {
   box-shadow: var(--shadow);
 }
 
+.risk-config-card--editable {
+  display: grid;
+  gap: 12px;
+}
+
+.risk-config-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
 .risk-config-title {
   font-size: 13px;
   font-weight: 650;
@@ -6934,6 +6946,61 @@ body[data-theme="dark"] .settings-profile-card {
   font-size: 18px;
   font-weight: 680;
   letter-spacing: -0.02em;
+}
+
+.risk-config-card--editable .risk-config-value {
+  margin-top: 0;
+}
+
+.risk-config-footer {
+  margin-top: auto;
+}
+
+.risk-config-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.risk-config-toggle input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.risk-config-toggle-ui {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface3) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.risk-config-toggle-ui::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  transition: transform 0.18s ease;
+}
+
+.risk-config-toggle input:checked + .risk-config-toggle-ui {
+  background: color-mix(in srgb, var(--accent) 72%, var(--surface3));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.risk-config-toggle input:checked + .risk-config-toggle-ui::after {
+  transform: translateX(20px);
 }
 
 .risk-limit-form {

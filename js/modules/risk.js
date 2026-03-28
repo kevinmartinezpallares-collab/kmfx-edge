@@ -3,6 +3,8 @@ import { badgeMarkup, getRiskStatusMeta } from "./status-badges.js";
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js";
 import { computeRecommendedRiskFromModel } from "./risk-engine.js";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js";
+import { selectVisibleUserProfile } from "./auth-session.js";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js";
 
 function ladderRows(risk) {
   return risk.ladder.map((row) => ({
@@ -55,15 +57,43 @@ function renderLadderProgress(ladder, currentLevel) {
   `;
 }
 
-function getRiskDraft(root, model) {
-  if (!root.__riskDraft) {
-    root.__riskDraft = {
-      capital: Number(model.account.balance || 0),
-      maxDd: Number(model.account.maxDrawdownLimit || 0),
-      riskTrade: Number(model.riskProfile.maxTradeRiskPct || 0)
+function getRiskPreferencesDraft(root) {
+  if (!root.__riskPrefsDraft) {
+    const preferences = readLocalPreferences();
+    root.__riskPrefsDraft = {
+      defaultRisk: String(preferences.defaultRisk ?? "0.45"),
+      dailyDrawdownLimit: String(preferences.dailyDrawdownLimit ?? "1.2"),
+      maxDrawdownLimit: String(preferences.maxDrawdownLimit ?? "10"),
+      alertDrawdown: Boolean(preferences.alertDrawdown),
+      alertStreaks: Boolean(preferences.alertStreaks),
+      alertWinRate: Boolean(preferences.alertWinRate),
+      alertOvertrading: Boolean(preferences.alertOvertrading),
+      riskGuidanceEnabled: Boolean(preferences.riskGuidanceEnabled),
+      autoBlockOptIn: Boolean(preferences.autoBlockOptIn)
     };
   }
-  return root.__riskDraft;
+  return root.__riskPrefsDraft;
+}
+
+function persistRiskPreferencesDraft(root, patch = {}) {
+  root.__riskPrefsDraft = {
+    ...getRiskPreferencesDraft(root),
+    ...patch
+  };
+  root.__riskPrefsStatus = "pending";
+  return root.__riskPrefsDraft;
+}
+
+function riskConfigStatusLabel(status) {
+  if (status === "saved") return "Configuración de riesgo guardada.";
+  if (status === "error") return "No se pudo guardar la configuración. Inténtalo de nuevo.";
+  if (status === "saving") return "Guardando configuración de riesgo...";
+  if (status === "pending") return "Cambios pendientes de guardar.";
+  return "Estos controles sí se guardan en tus preferencias del panel.";
+}
+
+function toggleStatusLabel(active, enabledLabel = "Activo", disabledLabel = "Off") {
+  return active ? enabledLabel : disabledLabel;
 }
 
 function polar(cx, cy, radius, deg) {
@@ -181,7 +211,7 @@ export function renderRisk(root, state) {
   const runtimeTone = isBlocked ? "danger" : account.compliance.riskStatus === "warning" ? "warn" : "ok";
   const securityScore = isBlocked ? 8 : account.compliance.riskStatus === "warning" ? Math.min(risk.securityProgress, 52) : risk.securityProgress;
   const ladder = ladderRows(risk);
-  const draft = getRiskDraft(root, model);
+  const prefsDraft = getRiskPreferencesDraft(root);
   const securityArc = renderSecurityArc(securitySegments({ account, model, risk, score: securityScore }), securityScore);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
@@ -204,6 +234,56 @@ export function renderRisk(root, state) {
   })();
   const avgLoss = Number(model.totals.avgLoss || 0);
   const ladderLevel = currentLadderLevel(ladder, risk);
+  const riskConfigCards = [
+    {
+      title: "Control de Drawdown",
+      description: "Activa avisos y define los límites diario / total.",
+      value: `${Number(prefsDraft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(prefsDraft.maxDrawdownLimit || 0).toFixed(1)}%`,
+      checked: prefsDraft.alertDrawdown,
+      key: "alertDrawdown",
+      statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off")
+    },
+    {
+      title: "Riesgo por Trade",
+      description: "Usa la guía automática con tu riesgo base.",
+      value: `${Number(prefsDraft.defaultRisk || 0).toFixed(2)}%`,
+      checked: prefsDraft.riskGuidanceEnabled,
+      key: "riskGuidanceEnabled",
+      statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off")
+    },
+    {
+      title: "Alertas por Rachas",
+      description: "Advierte cuando la secuencia de pérdidas empeora.",
+      value: "Protección de disciplina",
+      checked: prefsDraft.alertStreaks,
+      key: "alertStreaks",
+      statusLabel: toggleStatusLabel(prefsDraft.alertStreaks, "Activo", "Off")
+    },
+    {
+      title: "Alertas de Win Rate",
+      description: "Detecta caída de calidad antes de sobreoperar.",
+      value: "Seguimiento estadístico",
+      checked: prefsDraft.alertWinRate,
+      key: "alertWinRate",
+      statusLabel: toggleStatusLabel(prefsDraft.alertWinRate, "Activo", "Off")
+    },
+    {
+      title: "Alertas de Overtrading",
+      description: "Marca exceso de operaciones y calor operativo.",
+      value: "Control de frecuencia",
+      checked: prefsDraft.alertOvertrading,
+      key: "alertOvertrading",
+      statusLabel: toggleStatusLabel(prefsDraft.alertOvertrading, "Activo", "Off")
+    },
+    {
+      title: "Bloqueo Automático",
+      description: "Permite bloquear el flujo cuando el riesgo se dispara.",
+      value: prefsDraft.autoBlockOptIn ? "ON" : "OFF",
+      checked: prefsDraft.autoBlockOptIn,
+      key: "autoBlockOptIn",
+      statusLabel: toggleStatusLabel(prefsDraft.autoBlockOptIn, "Activo", "Off")
+    }
+  ];
   const riskStateTone = riskGuidance.risk_state === "LOCKED" || riskGuidance.risk_state === "DANGER"
     ? "error"
     : riskGuidance.risk_state === "CAUTION"
@@ -351,12 +431,22 @@ export function renderRisk(root, state) {
     <article class="tl-section-card risk-config-surface">
       <div class="tl-section-header"><div class="tl-section-title">Reglas Configurables</div></div>
       <div class="risk-config-grid">
-        ${risk.guardrails.map((rule) => `
-          <article class="risk-config-card">
-            <div class="risk-config-title">${rule.title}</div>
-            <div class="risk-config-meta">${rule.description}</div>
+        ${riskConfigCards.map((rule) => `
+          <article class="risk-config-card risk-config-card--editable">
+            <div class="risk-config-card-head">
+              <div>
+                <div class="risk-config-title">${rule.title}</div>
+                <div class="risk-config-meta">${rule.description}</div>
+              </div>
+              <label class="risk-config-toggle" aria-label="${rule.title}">
+                <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
+                <span class="risk-config-toggle-ui"></span>
+              </label>
+            </div>
             <div class="risk-config-value">${rule.value}</div>
-            <div style="margin-top:10px;">${badgeMarkup({ label: rule.status, tone: rule.status === "Activo" ? "ok" : rule.status === "Alerta" ? "warn" : "neutral" }, "ui-badge--compact")}</div>
+            <div class="risk-config-footer">
+              ${badgeMarkup({ label: rule.statusLabel, tone: rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
+            </div>
           </article>
         `).join("")}
       </div>
@@ -367,23 +457,23 @@ export function renderRisk(root, state) {
         <div class="tl-section-header"><div class="tl-section-title">Configurar Límites</div></div>
         <div class="risk-limit-form">
           <label class="risk-input-field">
-            <span>Capital inicial</span>
-            <input type="number" step="100" value="${draft.capital}">
+            <span>Riesgo por defecto</span>
+            <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
           </label>
           <label class="risk-input-field">
-            <span>Max DD</span>
-            <input type="number" step="0.1" value="${draft.maxDd}">
+            <span>Límite Daily DD</span>
+            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
           </label>
           <label class="risk-input-field">
-            <span>Riesgo / trade</span>
-            <input type="number" step="0.05" value="${draft.riskTrade}">
+            <span>Límite Max DD</span>
+            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
           </label>
         </div>
         <div class="risk-limit-actions">
           <button class="btn btn-secondary" type="button" data-risk-reset>Reset</button>
-          <button class="btn btn-primary" type="button" data-risk-save>Guardar local</button>
+          <button class="btn btn-primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar configuración"}</button>
         </div>
-        <div class="risk-limit-note">Ajuste local del panel. La persistencia real llegará con la siguiente fase de configuración.</div>
+        <div class="risk-limit-note">${riskConfigStatusLabel(root.__riskPrefsStatus)}</div>
       </article>
 
       <article class="tl-section-card">
@@ -451,36 +541,68 @@ export function renderRisk(root, state) {
     </div>
   `;
 
-  const formInputs = root.querySelectorAll(".risk-limit-form input");
-  formInputs.forEach((input) => {
+  root.querySelectorAll("[data-risk-pref-number]").forEach((input) => {
     input.addEventListener("input", () => {
-      const [capitalInput, maxDdInput, riskTradeInput] = root.querySelectorAll(".risk-limit-form input");
-      root.__riskDraft = {
-        capital: Number(capitalInput.value || 0),
-        maxDd: Number(maxDdInput.value || 0),
-        riskTrade: Number(riskTradeInput.value || 0)
-      };
+      persistRiskPreferencesDraft(root, {
+        [input.dataset.riskPrefNumber]: input.value
+      });
+      const note = root.querySelector(".risk-limit-note");
+      if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
+    });
+  });
+
+  root.querySelectorAll("[data-risk-pref-bool]").forEach((input) => {
+    input.addEventListener("change", () => {
+      persistRiskPreferencesDraft(root, {
+        [input.dataset.riskPrefBool]: input.checked
+      });
+      renderRisk(root, state);
     });
   });
 
   root.querySelector("[data-risk-reset]")?.addEventListener("click", () => {
-    root.__riskDraft = {
-      capital: Number(model.account.balance || 0),
-      maxDd: Number(model.account.maxDrawdownLimit || 0),
-      riskTrade: Number(model.riskProfile.maxTradeRiskPct || 0)
-    };
+    root.__riskPrefsDraft = null;
+    root.__riskPrefsStatus = null;
     renderRisk(root, state);
   });
 
-  root.querySelector("[data-risk-save]")?.addEventListener("click", () => {
-    const [capitalInput, maxDdInput, riskTradeInput] = root.querySelectorAll(".risk-limit-form input");
-    root.__riskDraft = {
-      capital: Number(capitalInput.value || 0),
-      maxDd: Number(maxDdInput.value || 0),
-      riskTrade: Number(riskTradeInput.value || 0)
+  root.querySelector("[data-risk-save]")?.addEventListener("click", async () => {
+    const nextPreferences = {
+      ...readLocalPreferences(),
+      ...getRiskPreferencesDraft(root)
     };
-    const note = root.querySelector(".risk-limit-note");
-    if (note) note.textContent = "Ajuste local guardado en la sesión actual del panel.";
+
+    root.__riskSaving = true;
+    root.__riskPrefsStatus = "saving";
+    renderRisk(root, state);
+
+    if (state.auth?.status === "authenticated" && state.auth?.user?.id) {
+      const profile = selectVisibleUserProfile(state);
+      const remoteSave = await saveSupabaseUserConfig({
+        auth: state.auth,
+        profile: {
+          name: profile.name,
+          email: profile.email,
+          avatar: profile.avatar,
+          initials: profile.initials,
+          discord: profile.discord,
+          defaultAccount: profile.defaultAccount || state.currentAccount
+        },
+        preferences: nextPreferences
+      });
+
+      if (!remoteSave.ok) {
+        root.__riskSaving = false;
+        root.__riskPrefsStatus = "error";
+        renderRisk(root, state);
+        return;
+      }
+    }
+
+    persistLocalPreferences(nextPreferences);
+    root.__riskSaving = false;
+    root.__riskPrefsStatus = "saved";
+    renderRisk(root, state);
   });
 
   attachArcInteractions(root);
