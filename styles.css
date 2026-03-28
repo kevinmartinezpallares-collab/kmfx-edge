@@ -2311,14 +2311,14 @@ body[data-theme="dark"] .widget-card::before {
 }
 
 html:not([data-theme="dark"]) .account-hero-card {
-  border-color: rgba(20, 24, 36, 0.07);
+  border-color: rgba(20, 24, 36, 0.12);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(87, 128, 224, 0.12) 0%, rgba(87, 128, 224, 0.05) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(188, 176, 255, 0.12) 0%, rgba(188, 176, 255, 0.04) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.97) 44%, rgba(237, 244, 255, 0.94) 100%);
+    radial-gradient(120% 122% at 8% 84%, rgba(87, 128, 224, 0.18) 0%, rgba(87, 128, 224, 0.08) 20%, transparent 46%),
+    radial-gradient(92% 92% at 88% 16%, rgba(188, 176, 255, 0.16) 0%, rgba(188, 176, 255, 0.06) 22%, transparent 46%),
+    linear-gradient(145deg, rgba(246, 249, 255, 0.99) 0%, rgba(237, 243, 252, 0.98) 44%, rgba(224, 234, 248, 0.96) 100%);
   box-shadow:
-    0 12px 24px rgba(24, 36, 60, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 12px 24px rgba(24, 36, 60, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 html:not([data-theme="dark"]) .account-hero-card::before {
@@ -2359,13 +2359,13 @@ body[data-theme="dark"] .account-hero-card {
 
 html:not([data-theme="dark"]) .account-hero-card:hover,
 html:not([data-theme="dark"]) .account-hero-card.active {
-  border-color: rgba(47, 107, 255, 0.22);
+  border-color: rgba(47, 107, 255, 0.26);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(97, 136, 226, 0.16) 0%, rgba(97, 136, 226, 0.08) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(194, 182, 255, 0.16) 0%, rgba(194, 182, 255, 0.06) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(246, 250, 255, 0.99) 0%, rgba(238, 245, 255, 0.97) 44%, rgba(228, 239, 255, 0.95) 100%);
+    radial-gradient(120% 122% at 8% 84%, rgba(97, 136, 226, 0.22) 0%, rgba(97, 136, 226, 0.1) 20%, transparent 46%),
+    radial-gradient(92% 92% at 88% 16%, rgba(194, 182, 255, 0.18) 0%, rgba(194, 182, 255, 0.07) 22%, transparent 46%),
+    linear-gradient(145deg, rgba(240, 247, 255, 0.99) 0%, rgba(231, 241, 255, 0.98) 44%, rgba(220, 233, 252, 0.96) 100%);
   box-shadow:
-    0 14px 28px rgba(24, 36, 60, 0.07),
+    0 14px 28px rgba(24, 36, 60, 0.09),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
@@ -4001,9 +4001,9 @@ html:not([data-theme="dark"]) .widget-card,
 html:not([data-theme="dark"]) .account-banner,
 html:not([data-theme="dark"]) .account-switcher {
   background: var(--card-surface);
-  border-color: var(--card-border);
+  border-color: rgba(20, 24, 36, 0.12);
   box-shadow:
-    0 14px 30px rgba(25, 37, 59, 0.075),
+    0 14px 30px rgba(25, 37, 59, 0.07),
     var(--card-inner-glow);
 }
 
@@ -4069,8 +4069,7 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-btn:hover {
 html:not([data-theme="dark"]) .theme-badge-option.is-active,
 html:not([data-theme="dark"]) .widget-segmented-btn.active,
 html:not([data-theme="dark"]) .tl-tab.active,
-html:not([data-theme="dark"]) .nav-item.active,
-html:not([data-theme="dark"]) .account-hero-card.active {
+html:not([data-theme="dark"]) .nav-item.active {
   background: var(--active-surface);
   border-color: var(--active-border);
   color: var(--active-text);
@@ -4092,8 +4091,10 @@ html:not([data-theme="dark"]) .chart-shell,
 html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .weekly-chart-shell {
   background: var(--bg-card);
-  border-color: var(--border-subtle);
-  box-shadow: none;
+  border-color: rgba(20, 24, 36, 0.12);
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
 html:not([data-theme="dark"]) .account-switcher::before,
@@ -4109,22 +4110,22 @@ html:not([data-theme="dark"]) .widget-card::before {
 }
 
 html:not([data-theme="dark"]) .account-hero-card {
-  border-color: rgba(20, 24, 36, 0.07);
+  border-color: rgba(20, 24, 36, 0.12);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(87, 128, 224, 0.12) 0%, rgba(87, 128, 224, 0.05) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(188, 176, 255, 0.12) 0%, rgba(188, 176, 255, 0.04) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 250, 255, 0.97) 44%, rgba(237, 244, 255, 0.94) 100%);
+    radial-gradient(120% 122% at 8% 84%, rgba(87, 128, 224, 0.18) 0%, rgba(87, 128, 224, 0.08) 20%, transparent 46%),
+    radial-gradient(92% 92% at 88% 16%, rgba(188, 176, 255, 0.16) 0%, rgba(188, 176, 255, 0.06) 22%, transparent 46%),
+    linear-gradient(145deg, rgba(246, 249, 255, 0.99) 0%, rgba(237, 243, 252, 0.98) 44%, rgba(224, 234, 248, 0.96) 100%);
   box-shadow:
-    0 12px 24px rgba(24, 36, 60, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 12px 24px rgba(24, 36, 60, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 html:not([data-theme="dark"]) .account-hero-card:hover {
-  border-color: rgba(47, 107, 255, 0.22);
+  border-color: rgba(47, 107, 255, 0.26);
   background:
-    radial-gradient(120% 122% at 8% 84%, rgba(97, 136, 226, 0.16) 0%, rgba(97, 136, 226, 0.08) 20%, transparent 46%),
-    radial-gradient(92% 92% at 88% 16%, rgba(194, 182, 255, 0.16) 0%, rgba(194, 182, 255, 0.06) 22%, transparent 46%),
-    linear-gradient(145deg, rgba(246, 250, 255, 0.99) 0%, rgba(238, 245, 255, 0.97) 44%, rgba(228, 239, 255, 0.95) 100%);
+    radial-gradient(120% 122% at 8% 84%, rgba(97, 136, 226, 0.22) 0%, rgba(97, 136, 226, 0.1) 20%, transparent 46%),
+    radial-gradient(92% 92% at 88% 16%, rgba(194, 182, 255, 0.18) 0%, rgba(194, 182, 255, 0.07) 22%, transparent 46%),
+    linear-gradient(145deg, rgba(240, 247, 255, 0.99) 0%, rgba(231, 241, 255, 0.98) 44%, rgba(220, 233, 252, 0.96) 100%);
 }
 
 html:not([data-theme="dark"]) .account-hero-card.active {
