@@ -118,6 +118,35 @@ function toggleStatusLabel(active, enabledLabel = "Activo", disabledLabel = "Off
   return active ? enabledLabel : disabledLabel;
 }
 
+function renderStepperInput({
+  label,
+  key,
+  value,
+  step = "0.1",
+  min = "0",
+  max = "",
+  dataset = "number"
+}) {
+  const maxAttr = max !== "" ? ` max="${max}"` : "";
+  const dataAttr = dataset === "text"
+    ? `data-risk-pref-text="${key}"`
+    : `data-risk-pref-number="${key}"`;
+  const stepperAttr = dataset === "text"
+    ? `data-risk-step-text="${key}"`
+    : `data-risk-step="${key}"`;
+
+  return `
+    <label class="risk-config-control">
+      <span>${label}</span>
+      <div class="risk-stepper">
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}">−</button>
+        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}>
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}">+</button>
+      </div>
+    </label>
+  `;
+}
+
 function focusCardControl(card) {
   const control = card?.querySelector("input, textarea");
   control?.focus();
@@ -271,14 +300,8 @@ export function renderRisk(root, state) {
       statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off"),
       controls: `
         <div class="risk-config-edit-grid risk-config-edit-grid--two">
-          <label class="risk-config-control">
-            <span>Daily DD</span>
-            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
-          </label>
-          <label class="risk-config-control">
-            <span>Max DD</span>
-            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
-          </label>
+          ${renderStepperInput({ label: "Daily DD", key: "dailyDrawdownLimit", value: prefsDraft.dailyDrawdownLimit, step: "0.1", min: "0" })}
+          ${renderStepperInput({ label: "Max DD", key: "maxDrawdownLimit", value: prefsDraft.maxDrawdownLimit, step: "0.1", min: "0" })}
         </div>
       `
     },
@@ -289,12 +312,7 @@ export function renderRisk(root, state) {
       checked: prefsDraft.riskGuidanceEnabled,
       key: "riskGuidanceEnabled",
       statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off"),
-      controls: `
-        <label class="risk-config-control">
-          <span>Riesgo máximo</span>
-          <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
-        </label>
-      `
+      controls: renderStepperInput({ label: "Riesgo máximo", key: "defaultRisk", value: prefsDraft.defaultRisk, step: "0.05", min: "0", max: "5" })
     },
     {
       title: "Horarios Permitidos",
@@ -317,12 +335,7 @@ export function renderRisk(root, state) {
       checked: true,
       key: "__alwaysOnVolume",
       statusLabel: "Editable",
-      controls: `
-        <label class="risk-config-control">
-          <span>Lote máximo</span>
-          <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5)}" data-risk-pref-text="maxVolume">
-        </label>
-      `
+      controls: renderStepperInput({ label: "Lote máximo", key: "maxVolume", value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5), step: "0.01", min: "0", dataset: "text" })
     },
     {
       title: "Símbolos Permitidos",
@@ -635,6 +648,36 @@ export function renderRisk(root, state) {
         [input.dataset.riskPrefBool]: input.checked
       });
       renderRisk(root, state);
+    });
+  });
+
+  const stepInputValue = (input, direction, stepValue) => {
+    const step = Number(stepValue || input.step || "1");
+    const min = input.min !== "" ? Number(input.min) : -Infinity;
+    const max = input.max !== "" ? Number(input.max) : Infinity;
+    const current = Number(input.value || "0");
+    const precision = step.toString().includes(".") ? step.toString().split(".")[1].length : 0;
+    const next = Math.min(max, Math.max(min, current + step * direction));
+    input.value = String(next.toFixed(precision));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus();
+  };
+
+  root.querySelectorAll("[data-risk-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.riskStep;
+      const input = root.querySelector(`[data-risk-pref-number="${key}"]`);
+      if (!input) return;
+      stepInputValue(input, Number(button.dataset.stepDir || "1"), button.dataset.stepValue);
+    });
+  });
+
+  root.querySelectorAll("[data-risk-step-text]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.riskStepText;
+      const input = root.querySelector(`[data-risk-pref-text="${key}"]`);
+      if (!input) return;
+      stepInputValue(input, Number(button.dataset.stepDir || "1"), button.dataset.stepValue);
     });
   });
 
