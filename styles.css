@@ -10543,3 +10543,193 @@ body[data-theme="dark"] .brand-logo-dark {
     box-shadow: none !important;
   }
 }
+
+@media (max-width: 768px) {
+  .account-switcher {
+    padding: 12px !important;
+    gap: 10px;
+  }
+
+  .account-switcher-header {
+    gap: 8px;
+  }
+
+  .account-hero-card {
+    padding: 12px !important;
+    border-radius: 16px;
+  }
+
+  .account-hero-card__top {
+    gap: 8px;
+  }
+
+  .account-hero-card__name {
+    font-size: 17px;
+    line-height: 1.02;
+  }
+
+  .account-hero-card__meta {
+    font-size: 11px;
+  }
+
+  .account-hero-card__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .account-hero-card__value {
+    font-size: clamp(18px, 5vw, 24px);
+    line-height: 1;
+  }
+
+  .dashboard-kpi-premium-grid {
+    gap: 10px !important;
+  }
+
+  .widget-card--kpi {
+    min-height: 0;
+    padding: 12px !important;
+    gap: 6px;
+  }
+
+  .widget-card--kpi .tl-kpi-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .widget-card--kpi .tl-kpi-val {
+    font-size: clamp(21px, 6vw, 28px);
+    line-height: 0.96;
+  }
+
+  .widget-card--kpi .widget-card-meta,
+  .widget-card--kpi .widget-kpi-trend {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .tl-tab-bar {
+    padding: 4px 0 8px;
+    gap: 6px;
+  }
+
+  #analyticsTabs {
+    gap: 6px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  #analyticsTabs .tl-tab {
+    min-height: 38px;
+    padding: 0 6px;
+    border-radius: 11px;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  #analyticsTabs .tl-tab.active {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .pnlcal-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .pnlcal-kpi {
+    min-height: 0;
+    padding: 11px !important;
+    border-radius: 14px;
+  }
+
+  .pnlcal-kpi-label {
+    font-size: 10px;
+  }
+
+  .pnlcal-kpi-val {
+    margin-top: 6px;
+    font-size: clamp(17px, 5.2vw, 21px);
+    line-height: 0.98;
+  }
+
+  .calendar-grid {
+    gap: 3px;
+  }
+
+  .calendar-cell,
+  .calendar-week-summary {
+    min-height: 58px;
+    border-radius: 10px;
+  }
+
+  .discipline-page-stack {
+    gap: 12px;
+  }
+
+  .discipline-hourly-card {
+    gap: 12px;
+    padding: 14px !important;
+  }
+
+  .discipline-hourly-card .kmfx-chart-shell--feature {
+    min-height: 360px;
+    padding: 12px 4px 6px;
+  }
+
+  #discipline-hourly-behavior {
+    min-height: 320px;
+  }
+
+  .funded-page-stack {
+    gap: 12px;
+  }
+
+  .funded-hero-card,
+  .funded-progress-card,
+  .funded-alerts-card {
+    gap: 10px;
+    padding: 14px !important;
+  }
+
+  .funded-account-switch {
+    gap: 5px;
+  }
+
+  .funded-account-pill {
+    min-height: 32px;
+    padding: 6px 9px;
+    font-size: 10.5px;
+  }
+
+  .funded-hero-kpis,
+  .funded-config-grid,
+  .funded-rules-grid,
+  .funded-secondary-kpis {
+    gap: 8px;
+  }
+
+  .funded-hero-config {
+    padding: 12px;
+  }
+
+  .funded-progress-layout {
+    gap: 12px;
+  }
+
+  .funded-progress-value {
+    font-size: clamp(26px, 9vw, 36px);
+  }
+
+  .funded-progress-meta {
+    gap: 8px;
+  }
+
+  html:not([data-theme="dark"]) .topbar-user-card,
+  html:not([data-theme="dark"]) .topbar-time-stack,
+  html:not([data-theme="dark"]) .theme-toggle-badge,
+  html:not([data-theme="dark"]) .bnav-more-menu {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
