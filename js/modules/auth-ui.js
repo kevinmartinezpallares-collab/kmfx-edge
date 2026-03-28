@@ -345,7 +345,7 @@ export function initAuthUI(store) {
     const authCopy = isResetMode
       ? "Define una nueva contraseña para volver a entrar con normalidad."
       : isSignUpMode
-        ? "Crea tu cuenta con correo y contraseña o continúa con Google."
+        ? "Crea tu cuenta o continúa con Google."
         : isForgotMode
           ? "Introduce tu email y te enviaremos un enlace seguro para restablecer la contraseña."
           : "Visualiza tu rendimiento, riesgo y disciplina en tiempo real.";

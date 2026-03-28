@@ -774,8 +774,8 @@ body[data-theme="dark"] .auth-screen {
 }
 
 .auth-card--signup {
-  gap: 9px;
-  padding: 18px 20px;
+  gap: 6px;
+  padding: 14px 18px;
 }
 
 .auth-brand {
@@ -929,25 +929,62 @@ body[data-theme="dark"] .auth-screen {
 }
 
 .auth-card--signup .auth-actions {
-  gap: 8px;
+  gap: 6px;
 }
 
 .auth-card--signup .auth-copy {
-  margin-top: 5px;
-  max-width: 24ch;
+  margin-top: 3px;
+  max-width: none;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .auth-card--signup .auth-turnstile-wrap {
-  margin-top: 0;
+  margin-top: -2px;
 }
 
 .auth-card--signup .auth-turnstile-slot {
-  min-height: 58px;
+  min-height: 52px;
 }
 
 .auth-card--signup .auth-trust-line {
+  display: none;
+}
+
+.auth-card--signup .auth-title {
+  margin-top: 3px;
+  font-size: 18px;
+}
+
+.auth-card--signup .auth-kicker {
+  font-size: 9px;
+}
+
+.auth-card--signup .auth-mode-switch {
+  gap: 4px;
+  padding: 4px;
+}
+
+.auth-card--signup .auth-mode-btn {
+  min-height: 36px;
+}
+
+.auth-card--signup .form-stack span {
   font-size: 11px;
-  line-height: 1.35;
+}
+
+.auth-card--signup .form-stack input {
+  min-height: 44px;
+  padding-inline: 14px;
+}
+
+.auth-card--signup .auth-action {
+  min-height: 46px;
+}
+
+.auth-card--signup .auth-action--google {
+  min-height: 48px;
 }
 
 .auth-action {
