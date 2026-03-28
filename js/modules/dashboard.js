@@ -185,16 +185,17 @@ export function renderDashboard(root, state) {
       fillAlphaStart: isDarkTheme ? 0.14 : 0.1,
       fillAlphaEnd: 0.01,
       glowAlpha: 0.07,
-      tension: 0.36,
+      tension: 0.5,
       axisColor: axisStrong,
       axisFontSize: 10,
       axisFontWeight: isDarkTheme ? "500" : "600",
       yTickPadding: 14,
       xTickPadding: 12,
+      maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.045 : 0.06,
       crosshairAlpha: isDarkTheme ? 0.16 : 0.12,
-      yHeadroomRatio: 0.065,
-      yBottomPaddingRatio: 0.018,
+      yHeadroomRatio: 0.03,
+      yBottomPaddingRatio: 0.004,
       showAxisBorder: true,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
@@ -243,7 +244,7 @@ export function renderDashboard(root, state) {
           </div>
           <div class="account-banner-chart">
             <div class="account-banner-viz">
-              ${chartCanvas("dashboard-hero-equity-chart", 164, "kmfx-chart-shell--hero")}
+              ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
             </div>
           </div>
         </article>
