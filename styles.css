@@ -2682,12 +2682,43 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   to   { opacity: 0; transform: translateX(-18px); }
 }
 
+@keyframes pullRefreshSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 .page-enter {
   animation: slideInRight 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .page-exit {
   animation: slideOutLeft 0.18s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.kmfx-pull-indicator {
+  position: fixed;
+  top: -48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(44,44,46,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: top 0.2s ease;
+  z-index: 999;
+  color: #007AFF;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.kmfx-pull-indicator.is-refreshing {
+  animation: pullRefreshSpin 0.85s linear infinite;
 }
 
 @keyframes pageFade {

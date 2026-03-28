@@ -17,6 +17,7 @@ import { renderPortfolio } from "./js/modules/portfolio.js";
 import { renderGlossary } from "./js/modules/glossary.js";
 import { renderDebug } from "./js/modules/debug.js";
 import { initMobileNav } from "./js/modules/mobile-nav.js";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js";
 import "./js/modules/modal-system.js";
 import { initAccountRuntime } from "./js/modules/account-runtime.js";
 import { initTopbarStatus } from "./js/modules/topbar-status.js";
@@ -518,6 +519,9 @@ initJournal(store);
 initStrategies(store);
 initFunded(store);
 initMobileNav(store);
+initPullToRefresh(() => {
+  return window.kmfxBridge?.refresh?.();
+});
 initAccountRuntime(store);
 initAuthSession(store);
 initAuthUI(store);
