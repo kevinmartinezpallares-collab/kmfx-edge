@@ -71,6 +71,23 @@ export function initMobileNav(store) {
     moreOpen: false
   };
 
+  function haptic(style = "light") {
+    if (navigator.vibrate) {
+      const patterns = { light: 8, medium: 15, heavy: 25 };
+      navigator.vibrate(patterns[style] || 8);
+    }
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.00001, ctx.currentTime);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.01);
+    } catch (e) {}
+  }
+
   const setMobileNavState = (patch = {}) => {
     root.__mobileNavState = {
       ...root.__mobileNavState,
@@ -145,16 +162,19 @@ export function initMobileNav(store) {
     const actionButton = event.target.closest("[data-bnav-action]");
 
     if (closeOverlay) {
+      haptic();
       setMobileNavState({ moreOpen: false });
       return;
     }
 
     if (moreButton) {
+      haptic();
       setMobileNavState({ moreOpen: !root.__mobileNavState.moreOpen });
       return;
     }
 
     if (pageButton) {
+      haptic();
       setMobileNavState({ moreOpen: false });
       store.setState((state) => ({
         ...state,
