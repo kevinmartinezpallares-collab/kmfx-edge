@@ -264,14 +264,13 @@ export function initAuthUI(store) {
           <section class="auth-showcase" aria-label="KMFX Edge overview">
             <div class="auth-showcase-brand">
               <div class="auth-showcase-brand-mark">
-                <img class="brand-logo brand-logo-light" src="./assets/logos/logo-azul-violeta-oscuro-512.svg" alt="KMFX Edge">
-                <img class="brand-logo brand-logo-dark" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
+                <img class="brand-logo auth-brand-logo" src="./assets/logos/logo-blanco-oscuro-512.svg" alt="KMFX Edge">
               </div>
               <div class="auth-showcase-brand-name">KMFX Edge</div>
             </div>
 
             <div class="auth-showcase-copyblock">
-              <h1 class="auth-showcase-title">Controla tu trading como un profesional</h1>
+              <h1 class="auth-showcase-title"><span>Controla tu trading</span><span>como un profesional</span></h1>
               <p class="auth-showcase-copy">Todas tus métricas, riesgo y rendimiento en un solo lugar.</p>
               <div class="auth-showcase-value">Usado por traders para medir rendimiento, riesgo y consistencia.</div>
             </div>
@@ -300,27 +299,52 @@ export function initAuthUI(store) {
                               <span></span><span></span><span></span>
                             </div>
                             ${slide.tone === "panel" ? `
-                              <div class="auth-carousel-visual-panel-kpis">
-                                <div><label>Equity</label><strong>$129,180</strong></div>
-                                <div><label>Return</label><strong>+3.0%</strong></div>
-                                <div><label>Trades</label><strong>142</strong></div>
-                              </div>
-                              <div class="auth-carousel-visual-bars">
-                                <span style="height: 36%"></span>
-                                <span style="height: 54%"></span>
-                                <span style="height: 66%"></span>
-                                <span style="height: 48%"></span>
-                                <span style="height: 78%"></span>
-                                <span style="height: 62%"></span>
+                              <div class="auth-carousel-visual-hero">
+                                <div class="auth-carousel-visual-hero-top">
+                                  <strong>Resumen</strong>
+                                  <span>En vivo</span>
+                                </div>
+                                <div class="auth-carousel-visual-hero-tabs">
+                                  <span class="is-active">Diario</span>
+                                  <span>Riesgo</span>
+                                  <span>Disciplina</span>
+                                </div>
+                                <div class="auth-carousel-visual-chart">
+                                  <div class="auth-carousel-visual-chart-line"></div>
+                                  <div class="auth-carousel-visual-chart-bars">
+                                    <span style="height: 24%"></span>
+                                    <span style="height: 44%"></span>
+                                    <span style="height: 58%"></span>
+                                    <span style="height: 38%"></span>
+                                    <span style="height: 74%"></span>
+                                    <span style="height: 56%"></span>
+                                  </div>
+                                </div>
+                                <div class="auth-carousel-visual-panel-kpis">
+                                  <div><label>Win rate</label><strong>72.2%</strong></div>
+                                  <div><label>Profit factor</label><strong>5.16</strong></div>
+                                  <div><label>Best trade</label><strong>$605</strong></div>
+                                </div>
                               </div>
                             ` : ""}
                             ${slide.tone === "risk" ? `
-                              <div class="auth-carousel-visual-risk">
-                                <div class="auth-carousel-visual-risk-row"><label>Drawdown</label><strong>2.4%</strong></div>
-                                <div class="auth-carousel-visual-risk-track"><span style="width: 38%"></span></div>
-                                <div class="auth-carousel-visual-risk-row"><label>Exposure</label><strong>31%</strong></div>
-                                <div class="auth-carousel-visual-risk-track auth-carousel-visual-risk-track--warning"><span style="width: 54%"></span></div>
-                                <div class="auth-carousel-visual-risk-row"><label>Risk Pressure</label><strong>Low</strong></div>
+                              <div class="auth-carousel-visual-risk auth-carousel-visual-risk--card">
+                                <div class="auth-carousel-visual-hero-top">
+                                  <strong>Control de riesgo</strong>
+                                  <span>En vivo</span>
+                                </div>
+                                <div class="auth-carousel-visual-risk-gauges">
+                                  <div><em>32%</em><label>Riesgo diario</label></div>
+                                  <div><em>68%</em><label>Capital usado</label></div>
+                                  <div><em>15%</em><label>Drawdown</label></div>
+                                </div>
+                                <div class="auth-carousel-visual-risk">
+                                  <div class="auth-carousel-visual-risk-row"><label>Pérdida diaria</label><strong>$500</strong></div>
+                                  <div class="auth-carousel-visual-risk-track"><span style="width: 34%"></span></div>
+                                  <div class="auth-carousel-visual-risk-row"><label>Posiciones abiertas</label><strong>3 / 5</strong></div>
+                                  <div class="auth-carousel-visual-risk-track auth-carousel-visual-risk-track--warning"><span style="width: 58%"></span></div>
+                                  <div class="auth-carousel-visual-risk-row"><label>Tamaño de posición</label><strong>2.0 lotes</strong></div>
+                                </div>
                               </div>
                             ` : ""}
                             ${slide.tone === "discipline" ? `
@@ -396,7 +420,7 @@ export function initAuthUI(store) {
                 ` : ""}
                 <label class="form-stack">
                   <span>Correo electrónico</span>
-                  <input type="email" data-auth-field="email" placeholder="kevin@kmfxedge.local" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
+                  <input type="email" data-auth-field="email" placeholder="Introduce aquí tu correo" value="${escapeHtml(isResetMode ? (recoveryState.email || uiState.email) : uiState.email)}" ${isResetMode ? "disabled" : ""}>
                 </label>
                 ${!isForgotMode ? `<label class="form-stack">
                   <span>Contraseña</span>

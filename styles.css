@@ -333,34 +333,46 @@ body[data-theme="dark"] .auth-screen {
   display: grid;
   gap: 18px;
   align-content: center;
-  justify-items: start;
+  justify-items: center;
   min-height: min(70vh, 640px);
   padding: clamp(8px, 1.4vw, 18px) 0;
   border-radius: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
+  text-align: center;
 }
 
 .auth-showcase-brand {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  justify-self: center;
 }
 
 .auth-showcase-brand-mark {
   width: 58px;
   height: 58px;
-  border-radius: 0;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  border: 0;
-  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
 .auth-showcase-brand-mark .brand-logo {
   width: 42px;
   height: 42px;
+}
+
+.auth-brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .auth-showcase-brand-name {
@@ -375,6 +387,8 @@ body[data-theme="dark"] .auth-screen {
   gap: 10px;
   max-width: 680px;
   width: 100%;
+  justify-items: center;
+  text-align: center;
 }
 
 .auth-showcase-title {
@@ -383,7 +397,12 @@ body[data-theme="dark"] .auth-screen {
   line-height: 0.98;
   letter-spacing: -0.06em;
   color: #f4f2ed;
-  max-width: 14ch;
+  max-width: 12.4ch;
+  text-align: center;
+}
+
+.auth-showcase-title span {
+  display: block;
 }
 
 .auth-showcase-copy {
@@ -392,6 +411,7 @@ body[data-theme="dark"] .auth-screen {
   font-size: clamp(16px, 1.55vw, 18px);
   line-height: 1.38;
   color: rgba(243, 242, 238, 0.68);
+  text-align: center;
 }
 
 .auth-showcase-value {
@@ -408,6 +428,7 @@ body[data-theme="dark"] .auth-screen {
   font-weight: 580;
   line-height: 1.4;
   color: rgba(243, 242, 238, 0.72);
+  justify-self: center;
 }
 
 .auth-benefits {
@@ -419,6 +440,7 @@ body[data-theme="dark"] .auth-screen {
   gap: 8px 20px;
   max-width: 620px;
   width: 100%;
+  justify-self: center;
 }
 
 .auth-benefit {
@@ -453,6 +475,7 @@ body[data-theme="dark"] .auth-screen {
   font-size: 11px;
   line-height: 1.55;
   color: rgba(243, 242, 238, 0.42);
+  text-align: center;
 }
 
 .auth-preview {
@@ -564,6 +587,86 @@ body[data-theme="dark"] .auth-screen {
   gap: 8px;
 }
 
+.auth-carousel-visual-hero {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-carousel-visual-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-carousel-visual-hero-top strong {
+  font-size: 14px;
+  letter-spacing: -0.03em;
+  color: #f4f2ed;
+}
+
+.auth-carousel-visual-hero-top span {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(243, 242, 238, 0.62);
+}
+
+.auth-carousel-visual-hero-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-carousel-visual-hero-tabs span {
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  font-weight: 650;
+  color: rgba(243, 242, 238, 0.68);
+}
+
+.auth-carousel-visual-hero-tabs span.is-active {
+  background: rgba(178, 230, 0, 0.12);
+  border-color: rgba(178, 230, 0, 0.24);
+  color: #dff78c;
+}
+
+.auth-carousel-visual-chart {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.auth-carousel-visual-chart-line {
+  height: 44px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, transparent 0 100%),
+    radial-gradient(circle at 12% 80%, rgba(98, 164, 255, 0.2), transparent 26%),
+    linear-gradient(130deg, transparent 0 16%, rgba(111, 165, 255, 0.2) 16% 20%, transparent 20% 34%, rgba(111, 165, 255, 0.24) 34% 39%, transparent 39% 53%, rgba(111, 165, 255, 0.28) 53% 58%, transparent 58% 100%);
+}
+
+.auth-carousel-visual-chart-bars {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: end;
+  gap: 5px;
+  height: 58px;
+}
+
+.auth-carousel-visual-chart-bars span {
+  width: 100%;
+  border-radius: 9px 9px 0 0;
+  background: linear-gradient(180deg, rgba(178, 230, 0, 0.94), rgba(150, 194, 0, 0.88));
+}
+
 .auth-carousel-visual-panel-kpis div,
 .auth-carousel-visual-discipline-metrics div {
   display: grid;
@@ -603,6 +706,38 @@ body[data-theme="dark"] .auth-screen {
   display: grid;
   gap: 8px;
   align-content: start;
+}
+
+.auth-carousel-visual-risk--card {
+  gap: 10px;
+}
+
+.auth-carousel-visual-risk-gauges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auth-carousel-visual-risk-gauges div {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 8px 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.auth-carousel-visual-risk-gauges em {
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+  color: #f4f2ed;
+}
+
+.auth-carousel-visual-risk-gauges label {
+  text-align: center;
 }
 
 .auth-carousel-visual-risk-row {
@@ -726,12 +861,15 @@ body[data-theme="dark"] .auth-screen {
 }
 
 .auth-panel-cta {
-  padding-left: 2px;
+  width: min(100%, 440px);
+  padding-left: 0;
   font-size: 10px;
   font-weight: 680;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(243, 242, 238, 0.48);
+  text-align: center;
+  justify-self: end;
 }
 
 .auth-card {
@@ -1079,8 +1217,11 @@ html:not([data-theme="dark"]) .auth-showcase-brand-name {
 }
 
 html:not([data-theme="dark"]) .auth-showcase-brand-mark {
-  background: transparent;
-  border-color: transparent;
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 12px 24px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 html:not([data-theme="dark"]) .auth-showcase-copy,
@@ -1133,6 +1274,30 @@ html:not([data-theme="dark"]) .auth-carousel-visual-risk-track {
   border-color: rgba(15, 23, 42, 0.05);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(248, 250, 252, 0.74));
+}
+
+html:not([data-theme="dark"]) .auth-carousel-visual-chart,
+html:not([data-theme="dark"]) .auth-carousel-visual-risk-gauges div,
+html:not([data-theme="dark"]) .auth-carousel-visual-hero-tabs span,
+html:not([data-theme="dark"]) .auth-carousel-visual-discipline-head div {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html:not([data-theme="dark"]) .auth-carousel-visual-hero-top strong,
+html:not([data-theme="dark"]) .auth-carousel-visual-risk-gauges em {
+  color: #0f172a;
+}
+
+html:not([data-theme="dark"]) .auth-carousel-visual-hero-top span,
+html:not([data-theme="dark"]) .auth-carousel-visual-hero-tabs span {
+  color: rgba(71, 85, 105, 0.78);
+}
+
+html:not([data-theme="dark"]) .auth-carousel-visual-hero-tabs span.is-active {
+  background: rgba(178, 230, 0, 0.16);
+  border-color: rgba(178, 230, 0, 0.3);
+  color: #425b00;
 }
 
 html:not([data-theme="dark"]) .auth-carousel-visual-ring {
@@ -9254,6 +9419,7 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .auth-showcase-brand-mark {
     width: 38px;
     height: 38px;
+    border-radius: 12px;
   }
 
   .auth-showcase-brand-mark .brand-logo {
@@ -9268,18 +9434,21 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
   .auth-showcase-copyblock {
     gap: 6px;
     max-width: 100%;
+    justify-items: center;
   }
 
   .auth-showcase-title {
     font-size: clamp(16px, 5.8vw, 24px);
-    max-width: 11ch;
+    max-width: 12ch;
     line-height: 0.96;
+    text-align: center;
   }
 
   .auth-showcase-copy {
     max-width: 24ch;
     font-size: 12px;
     line-height: 1.32;
+    text-align: center;
   }
 
   .auth-showcase-value {
@@ -9389,6 +9558,12 @@ body[data-theme="dark"] .pnlcal-nav-btn:hover {
     margin-top: 0;
     font-size: 10px;
     line-height: 1.35;
+  }
+
+  html[data-theme="dark"] .bnav-more-item--danger,
+  body[data-theme="dark"] .bnav-more-item--danger,
+  html:not([data-theme="dark"]) .bnav-more-item--danger {
+    color: #ef4444 !important;
   }
 
   .auth-card .form-stack input,
