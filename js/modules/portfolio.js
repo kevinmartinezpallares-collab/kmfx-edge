@@ -1,5 +1,4 @@
 import { formatCurrency, formatDateTime, getAccountTypeLabel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta } from "./status-badges.js?v=status-badges-1";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">
@@ -9,6 +8,87 @@ const accountMeshMarkup = () => `
     <div class="account-card-blob blob-4"></div>
   </div>
 `;
+
+function accountStatusBadge(account) {
+  const isConnected = Boolean(account?.connection?.connected);
+  return `
+    <span class="status-badge">
+      <span class="status-dot ${isConnected ? "connected" : ""}"></span>
+      ${isConnected ? "Conectada" : "Desconectada"}
+    </span>
+  `;
+}
+
+function renderPortfolioAccountCard(account, isMain, isActive) {
+  const pnl = Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
+  const trades = Number(account?.model?.totals?.totalTrades || 0);
+  const winRate = Number(account?.model?.totals?.winRate || 0);
+  const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
+  const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
+  const cardInlineStyle = "min-height:240px;";
+  const topInlineStyle = isMain
+    ? "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;"
+    : "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px;";
+  const nameInlineStyle = isMain
+    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
+    : "font-size:14px;font-weight:700;letter-spacing:-0.01em;";
+  const metaInlineStyle = isMain
+    ? "font-size:12px;color:rgba(255,255,255,0.45);margin-top:3px;"
+    : "font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;";
+  const equityInlineStyle = isMain
+    ? "font-size:34px;font-weight:700;letter-spacing:-0.04em;line-height:1;margin-bottom:4px;"
+    : "font-size:22px;font-weight:700;letter-spacing:-0.03em;line-height:1;margin-bottom:3px;";
+  const equityLabelInlineStyle = isMain
+    ? "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:18px;"
+    : "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:14px;";
+  const statsInlineStyle = isMain
+    ? "display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;"
+    : "display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;";
+  const statLabelInlineStyle = isMain
+    ? "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:4px;"
+    : "font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:3px;";
+  const statValueInlineStyle = isMain
+    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
+    : "font-size:15px;font-weight:700;letter-spacing:-0.01em;";
+
+  return `
+    <button
+      class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""}"
+      data-portfolio-account-id="${account.id}"
+      type="button"
+      style="${cardInlineStyle}"
+    >
+      ${accountMeshMarkup()}
+      <div class="account-hero-card__content">
+        <div class="account-hero-card__top" style="${topInlineStyle}">
+          <div>
+            <div class="account-hero-card__name" style="${nameInlineStyle}">${account.name}</div>
+            <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
+          </div>
+          ${accountStatusBadge(account)}
+        </div>
+        <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(account.model.account.equity)}</div>
+        <div class="account-hero-card__equity-label" style="${equityLabelInlineStyle}">Equity actual</div>
+        <div class="account-hero-card__stats" style="${statsInlineStyle}">
+          <div>
+            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">P&amp;L</div>
+            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">${formatCurrency(pnl)}</div>
+          </div>
+          <div>
+            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
+            <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${winRate.toFixed(1)}%</div>
+          </div>
+          ${isMain ? `
+            <div>
+              <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Trades</div>
+              <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${trades}</div>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    </button>
+  `;
+}
 
 export function renderPortfolio(root, state) {
   const accounts = Object.values(state.accounts);
@@ -22,6 +102,12 @@ export function renderPortfolio(root, state) {
   const totalEquity = accounts.reduce((sum, account) => sum + (account.model?.account?.equity || 0), 0);
   const floatingPnl = accounts.reduce((sum, account) => sum + (account.model?.account?.openPnl || 0), 0);
   const globalPositions = accounts.flatMap((account) => buildPortfolioPositions(account));
+  const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
+  const orderedAccounts = [...accounts].sort((left, right) => {
+    if (left.id === activeAccountId) return -1;
+    if (right.id === activeAccountId) return 1;
+    return 0;
+  });
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -39,37 +125,10 @@ export function renderPortfolio(root, state) {
 
     <article class="tl-section-card">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
-      <div class="portfolio-account-grid">
-        ${accounts.map((account) => {
-          const model = account.model;
-          const status = getConnectionStatusMeta(account.connection);
-          const accountTypeLabel = getAccountTypeLabel(model.profile?.mode, account.name);
-          return `
-            <article class="account-card account-hero-card portfolio-account-card ${account.id === state.currentAccount ? "active" : ""}">
-              ${accountMeshMarkup()}
-              <div class="account-hero-card__top">
-                <div>
-                  <div class="account-hero-card__name">${account.name}</div>
-                  <div class="account-hero-card__meta">${accountTypeLabel}</div>
-                </div>
-                ${badgeMarkup(status, "ui-badge--compact")}
-              </div>
-              <div class="account-hero-card__metrics">
-                <div>
-                  <div class="tl-kpi-label">Balance</div>
-                  <div class="account-hero-card__value">${formatCurrency(model.account.balance)}</div>
-                </div>
-                <div>
-                  <div class="tl-kpi-label">Equity</div>
-                  <div class="account-hero-card__value">${formatCurrency(model.account.equity)}</div>
-                </div>
-                <div>
-                  <div class="tl-kpi-label">P&L</div>
-                  <div class="account-hero-card__value ${model.account.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.account.openPnl)}</div>
-                </div>
-              </div>
-            </article>
-          `;
+      <div class="account-cards-grid">
+        ${orderedAccounts.map((account) => {
+          const isActive = account.id === activeAccountId;
+          return renderPortfolioAccountCard(account, isActive, isActive);
         }).join("")}
       </div>
     </article>
