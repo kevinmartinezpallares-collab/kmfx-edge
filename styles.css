@@ -2713,6 +2713,7 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.024em;
+  color: var(--accent);
 }
 
 .tl-page-title::before {
