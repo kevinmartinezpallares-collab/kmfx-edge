@@ -6340,6 +6340,15 @@ body[data-theme="dark"] .settings-profile-card {
   box-shadow: var(--shadow);
 }
 
+html:not([data-theme="dark"]) .analytics-panel .list-row:hover,
+html:not([data-theme="dark"]) .analytics-panel .heat-cell:hover,
+html:not([data-theme="dark"]) .analytics-panel .weekday-inline-card:hover,
+html:not([data-theme="dark"]) .analytics-panel .session-card:hover,
+html:not([data-theme="dark"]) .analytics-panel .hhc-card:hover,
+html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
+  box-shadow: none !important;
+}
+
 .analytics-panel .kmfx-chart-shell--feature {
   min-height: 232px;
 }
@@ -12627,6 +12636,24 @@ html:not([data-theme="dark"]) .funded-account-pill.is-active {
   border-color: rgba(12, 18, 32, 0.82) !important;
   box-shadow: none !important;
   color: var(--text) !important;
+}
+
+html:not([data-theme="dark"]) .hhc-card,
+html:not([data-theme="dark"]) .session-card,
+html:not([data-theme="dark"]) .goal-card,
+html:not([data-theme="dark"]) .settings-grid-clean > .tl-section-card,
+html:not([data-theme="dark"]) .analytics-top-metric,
+html:not([data-theme="dark"]) .analytics-ratio-minimal-card,
+html:not([data-theme="dark"]) .analytics-winloss-stat,
+html:not([data-theme="dark"]) .analytics-winloss-metric,
+html:not([data-theme="dark"]) .analytics-submetric,
+html:not([data-theme="dark"]) .analytics-daily-breakdown-row,
+html:not([data-theme="dark"]) .analytics-daily-summary-item,
+html:not([data-theme="dark"]) .weekday-inline-card,
+html:not([data-theme="dark"]) .analytics-metric-tile,
+html:not([data-theme="dark"]) .analytics-decision-item {
+  box-shadow: none !important;
+  filter: none !important;
 }
 
 /* ── Account Cards — Layout Option 3 ───────────────────────────── */

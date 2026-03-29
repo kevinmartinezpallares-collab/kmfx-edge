@@ -219,12 +219,12 @@ function isLightThemeActive() {
 
 function lightRiskCardAttr() {
   if (!isLightThemeActive()) return "";
-  return ` style="background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)), #0b1020;border-color:rgba(59,89,185,0.22);box-shadow:0 18px 42px rgba(8,12,26,0.14), inset 0 1px 0 rgba(255,255,255,0.05);color:rgba(245,247,252,0.98);"`;
+  return ` style="background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)), #0b1020;border-color:rgba(59,89,185,0.22);box-shadow:none;color:rgba(245,247,252,0.98);"`;
 }
 
 function lightRiskControlAttr() {
   if (!isLightThemeActive()) return "";
-  return ` style="background:rgba(20,24,34,0.52);border-color:rgba(255,255,255,0.12);box-shadow:inset 0 0 0 0.5px rgba(255,255,255,0.05), 0 8px 22px rgba(8,12,24,0.08);color:rgba(245,247,252,0.96);"`;
+  return ` style="background:rgba(20,24,34,0.52);border-color:rgba(255,255,255,0.12);box-shadow:none;color:rgba(245,247,252,0.96);"`;
 }
 
 function lightRiskTextAttr(kind = "primary") {
