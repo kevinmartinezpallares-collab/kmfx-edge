@@ -73,6 +73,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
 export function initAccountsUI(store) {
   const root = document.getElementById("accountSwitcher");
   if (!root) return;
+  let lastViewportMode = window.innerWidth <= 768 ? "mobile" : "desktop";
 
   root.addEventListener("click", (event) => {
     const button = event.target.closest("[data-account-id]");
@@ -107,6 +108,11 @@ export function initAccountsUI(store) {
       return 0;
     });
 
+    const isMobileViewport = window.innerWidth <= 768;
+    const gridInlineStyle = isMobileViewport
+      ? "display:grid;grid-template-columns:1fr;gap:10px;"
+      : "display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;";
+
     root.innerHTML = `
       <div class="account-switcher">
         <div class="account-switcher-header">
@@ -124,7 +130,7 @@ export function initAccountsUI(store) {
           </div>
         </div>
 
-        <div class="account-cards-grid">
+        <div class="account-cards-grid" style="${gridInlineStyle}">
           ${orderedAccounts.map((account) => {
             const isActive = account.id === activeAccountId;
             const isLoading = isBridgeDataPending(account);
@@ -137,5 +143,11 @@ export function initAccountsUI(store) {
 
   render(store.getState());
   store.subscribe(render);
+  window.addEventListener("resize", () => {
+    const nextViewportMode = window.innerWidth <= 768 ? "mobile" : "desktop";
+    if (nextViewportMode === lastViewportMode) return;
+    lastViewportMode = nextViewportMode;
+    render(store.getState());
+  });
   console.log("[KMFX][ACCOUNT] ui ready");
 }
