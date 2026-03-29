@@ -13438,3 +13438,82 @@ html:not([data-theme="dark"]) .custom-select-option:hover {
 html:not([data-theme="dark"]) .custom-select-option.selected {
   color: #0A84FF;
 }
+
+/* Risk dropdowns only — align custom triggers/panels to Funded Phase visual system
+   while keeping the existing custom Risk logic intact. */
+.risk-select-trigger {
+  min-height: 44px;
+  padding: 12px 42px 12px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #2c2c2e;
+  color: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.risk-select-trigger::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23636366' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.risk-select.open .risk-select-trigger {
+  border-color: #0A84FF;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.risk-select-menu {
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(44, 44, 46, 0.92);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+}
+
+.risk-session-row,
+.risk-symbol-row {
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.risk-session-row:hover,
+.risk-symbol-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html:not([data-theme="dark"]) .risk-select-trigger {
+  background: rgba(255, 255, 255, 0.92);
+  color: #182133;
+  border-color: rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+}
+
+html:not([data-theme="dark"]) .risk-select-trigger::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%237b8396' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+html:not([data-theme="dark"]) .risk-select-trigger strong,
+html:not([data-theme="dark"]) .risk-session-utc,
+html:not([data-theme="dark"]) .risk-symbol-summary-count span,
+html:not([data-theme="dark"]) .risk-session-summary-count span {
+  color: #58627a;
+}
+
+html:not([data-theme="dark"]) .risk-select-menu {
+  background: rgba(244, 248, 253, 0.94);
+  border-color: rgba(20, 24, 36, 0.08);
+  box-shadow: 0 8px 32px rgba(20, 36, 80, 0.14);
+}
+
+html:not([data-theme="dark"]) .risk-session-row,
+html:not([data-theme="dark"]) .risk-symbol-row {
+  background: transparent;
+  color: #182133;
+}
+
+html:not([data-theme="dark"]) .risk-session-row:hover,
+html:not([data-theme="dark"]) .risk-symbol-row:hover {
+  background: rgba(20, 24, 36, 0.05);
+}
