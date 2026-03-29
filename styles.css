@@ -8436,6 +8436,16 @@ html:not([data-theme="dark"]) .risk-stepper-btn:last-child {
   transform: translateY(-1px);
 }
 
+[data-portfolio-layout="dashboard"] {
+  display: grid !important;
+  grid-template-columns: 1.6fr 1fr 1fr !important;
+  gap: 10px !important;
+}
+
+[data-portfolio-card-layout="dashboard"] {
+  min-height: 240px !important;
+}
+
 .portfolio-table-wrap table {
   min-width: 1020px;
 }

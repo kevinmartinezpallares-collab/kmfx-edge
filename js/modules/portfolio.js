@@ -55,6 +55,7 @@ function renderPortfolioAccountCard(account, isMain, isActive) {
     <button
       class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""}"
       data-portfolio-account-id="${account.id}"
+      data-portfolio-card-layout="dashboard"
       type="button"
       style="${cardInlineStyle}"
     >
@@ -129,7 +130,7 @@ export function renderPortfolio(root, state) {
 
     <article class="tl-section-card">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
-      <div class="account-cards-grid" style="${gridInlineStyle}">
+      <div class="account-cards-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
         ${orderedAccounts.map((account) => {
           const isActive = account.id === activeAccountId;
           return renderPortfolioAccountCard(account, isActive, isActive);
