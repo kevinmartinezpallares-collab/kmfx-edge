@@ -223,6 +223,37 @@ function renderStepperInput({
   `;
 }
 
+function riskConfigPreviewMap(inputKey = "") {
+  const map = {
+    dailyDrawdownLimit: "drawdown",
+    maxDrawdownLimit: "drawdown",
+    defaultRisk: "risk",
+    maxVolume: "volume"
+  };
+  return map[inputKey] || "";
+}
+
+function getRiskConfigPreviewValue(root, previewKey) {
+  const draft = getRiskPreferencesDraft(root);
+  if (previewKey === "drawdown") {
+    return `${Number(draft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(draft.maxDrawdownLimit || 0).toFixed(1)}%`;
+  }
+  if (previewKey === "risk") {
+    return `${Number(draft.defaultRisk || 0).toFixed(2)}%`;
+  }
+  if (previewKey === "volume") {
+    return draft.maxVolume || "0";
+  }
+  return "";
+}
+
+function syncRiskConfigPreview(root, previewKey) {
+  if (!previewKey) return;
+  const valueNode = root.querySelector(`[data-risk-config-value="${previewKey}"]`);
+  if (!valueNode) return;
+  valueNode.textContent = getRiskConfigPreviewValue(root, previewKey);
+}
+
 function focusCardControl(card) {
   const control = card?.querySelector("input, textarea, [data-risk-menu-trigger]");
   control?.focus();
@@ -431,6 +462,7 @@ export function renderRisk(root, state) {
       title: "Control de Drawdown",
       description: "Activa avisos y define los límites diario / total.",
       value: `${Number(prefsDraft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(prefsDraft.maxDrawdownLimit || 0).toFixed(1)}%`,
+      previewKey: "drawdown",
       checked: prefsDraft.alertDrawdown,
       key: "alertDrawdown",
       statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off"),
@@ -445,6 +477,7 @@ export function renderRisk(root, state) {
       title: "Riesgo por Trade",
       description: "Usa la guía automática con tu riesgo base.",
       value: `${Number(prefsDraft.defaultRisk || 0).toFixed(2)}%`,
+      previewKey: "risk",
       checked: prefsDraft.riskGuidanceEnabled,
       key: "riskGuidanceEnabled",
       statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off"),
@@ -485,6 +518,7 @@ export function renderRisk(root, state) {
       title: "Control de Volumen",
       description: "Lote máximo por trade",
       value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5),
+      previewKey: "volume",
       checked: true,
       key: "__alwaysOnVolume",
       statusLabel: "Editable",
@@ -707,7 +741,7 @@ export function renderRisk(root, state) {
       <div class="tl-section-header"><div class="tl-section-title">Reglas Configurables</div></div>
       <div class="risk-config-grid">
         ${riskConfigCards.map((rule) => `
-          <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""}">
+          <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""}" data-risk-config-card="${rule.previewKey || rule.key}">
             <div class="risk-config-card-head">
               <div>
                 <div class="risk-config-title">${rule.title}</div>
@@ -722,7 +756,7 @@ export function renderRisk(root, state) {
                   </label>
                 `}
             </div>
-            <div class="risk-config-value">${rule.value}</div>
+            <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
             ${rule.controls || ""}
             ${rule.hideFooterBadge ? "" : `
               <div class="risk-config-footer">
@@ -825,9 +859,11 @@ export function renderRisk(root, state) {
 
   root.querySelectorAll("[data-risk-pref-number]").forEach((input) => {
     input.addEventListener("input", () => {
+      const inputKey = input.dataset.riskPrefNumber;
       persistRiskPreferencesDraft(root, {
-        [input.dataset.riskPrefNumber]: input.value
+        [inputKey]: input.value
       });
+      syncRiskConfigPreview(root, riskConfigPreviewMap(inputKey));
       const note = root.querySelector(".risk-limit-note");
       if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
     });
@@ -835,9 +871,11 @@ export function renderRisk(root, state) {
 
   root.querySelectorAll("[data-risk-pref-text]").forEach((input) => {
     input.addEventListener("input", () => {
+      const inputKey = input.dataset.riskPrefText;
       persistRiskPreferencesDraft(root, {
-        [input.dataset.riskPrefText]: input.value
+        [inputKey]: input.value
       });
+      syncRiskConfigPreview(root, riskConfigPreviewMap(inputKey));
       const note = root.querySelector(".risk-limit-note");
       if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
     });
