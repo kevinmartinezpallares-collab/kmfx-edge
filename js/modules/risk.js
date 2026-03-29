@@ -178,7 +178,20 @@ function symbolCategoryTone(category = "") {
 }
 
 function categoryPillMarkup(symbol) {
-  return `<span class="risk-symbol-cat risk-symbol-cat--${symbolCategoryTone(symbol.cat)}">${symbol.cat}</span>`;
+  const tone = symbolCategoryTone(symbol.cat);
+  const icons = {
+    forex: "↔",
+    indice: "▦",
+    commodity: "◈",
+    crypto: "◌",
+    custom: "+"
+  };
+  return `
+    <span class="risk-symbol-cat risk-symbol-cat--${tone}">
+      <span class="risk-symbol-cat-icon" aria-hidden="true">${icons[tone] || "+"}</span>
+      <span>${symbol.cat}</span>
+    </span>
+  `;
 }
 
 function renderStepperInput({
@@ -886,7 +899,12 @@ export function renderRisk(root, state) {
       const symbol = button.dataset.riskSymbolFavorite;
       if (nextFavorites.has(symbol)) nextFavorites.delete(symbol);
       else nextFavorites.add(symbol);
-      persistRiskPreferencesDraft(root, { favoriteSymbols: serializeTokenList([...nextFavorites]) });
+      const serializedFavorites = serializeTokenList([...nextFavorites]);
+      persistRiskPreferencesDraft(root, { favoriteSymbols: serializedFavorites });
+      persistRiskPanelStorage({
+        ...readRiskPanelStorage(),
+        favoriteSymbols: serializedFavorites
+      });
       ensureRiskUiState(root).openMenu = "symbols";
       renderRisk(root, state);
     });

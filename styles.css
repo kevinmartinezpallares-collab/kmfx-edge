@@ -7153,13 +7153,15 @@ body[data-theme="dark"] .settings-profile-card {
   gap: 10px;
   padding: 10px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(44, 44, 46, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(36, 38, 44, 0.62);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+    0 18px 44px rgba(0, 0, 0, 0.36),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
+  -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
   z-index: 24;
   opacity: 0;
   pointer-events: none;
@@ -7211,7 +7213,7 @@ body[data-theme="dark"] .settings-profile-card {
   padding: 10px 14px;
   border-radius: 10px;
   border: 0;
-  background: #2c2c2e;
+  background: rgba(18, 20, 26, 0.72);
   color: #fff;
   font: inherit;
   box-shadow: none;
@@ -7228,7 +7230,8 @@ body[data-theme="dark"] .settings-profile-card {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: #2c2c2e;
+  background: rgba(23, 25, 30, 0.62);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
 }
 
 .risk-symbol-summary-count {
@@ -7348,7 +7351,9 @@ body[data-theme="dark"] .settings-profile-card {
   align-items: center;
   gap: 12px;
   padding: 13px 14px;
-  background: #2c2c2e;
+  background: rgba(28, 30, 36, 0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .risk-symbol-row.first {
@@ -7408,6 +7413,21 @@ body[data-theme="dark"] .settings-profile-card {
   font-size: 15px;
   font-weight: 600;
   color: #fff;
+}
+
+.risk-symbol-cat {
+  gap: 6px;
+}
+
+.risk-symbol-cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.92;
 }
 
 .risk-symbol-favorite.active {
@@ -7621,17 +7641,19 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
 }
 
 html:not([data-theme="dark"]) .risk-select-menu {
-  background: rgba(242, 242, 247, 0.92);
-  border-color: rgba(28, 28, 30, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.12)),
+    rgba(226, 232, 244, 0.68);
+  border-color: rgba(148, 163, 184, 0.18);
   box-shadow:
-    0 10px 28px rgba(15, 23, 42, 0.16),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+    0 18px 38px rgba(15, 23, 42, 0.16),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.46);
 }
 
 html:not([data-theme="dark"]) .risk-select-search input,
 html:not([data-theme="dark"]) .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-symbol-row {
-  background: #f2f2f7;
+  background: rgba(255, 255, 255, 0.52);
 }
 
 html:not([data-theme="dark"]) .risk-select-search input,
@@ -7646,7 +7668,7 @@ html:not([data-theme="dark"]) .risk-symbol-empty {
 }
 
 html:not([data-theme="dark"]) .risk-symbol-favorite {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.42);
   color: #8e8e93;
 }
 
