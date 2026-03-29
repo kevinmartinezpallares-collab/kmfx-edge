@@ -9069,7 +9069,7 @@ body[data-theme="dark"] .pnlcal-range-btn {
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  background: #2c2c2e;
+  background: rgba(44, 44, 46, 0.92);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   backdrop-filter: blur(40px) saturate(180%);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
@@ -9085,9 +9085,9 @@ body[data-theme="dark"] .pnlcal-range-btn {
   justify-content: space-between;
   gap: 14px;
   padding: 18px 20px 14px;
-  background: #2c2c2e;
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: rgba(44, 44, 46, 0.92);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -9167,9 +9167,9 @@ body[data-theme="dark"] .pnlcal-range-btn {
   width: 100%;
   min-height: 44px;
   padding: 12px 14px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 10px;
-  background: #2c2c2e;
+  background: rgba(28, 28, 30, 0.82);
   color: #fff;
   font-size: 15px;
   outline: none;
@@ -9200,6 +9200,11 @@ body[data-theme="dark"] .pnlcal-range-btn {
   -webkit-appearance: none;
   padding-right: 40px;
   color-scheme: dark;
+}
+
+.modal-card select option {
+  background: #2c2c2e;
+  color: #fff;
 }
 
 .modal-select-wrap {
