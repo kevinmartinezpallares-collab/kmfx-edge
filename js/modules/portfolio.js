@@ -107,7 +107,7 @@ export function renderPortfolio(root, state) {
   const isMobileViewport = window.innerWidth <= 768;
   const gridInlineStyle = isMobileViewport
     ? "display:grid;grid-template-columns:1fr;gap:10px;"
-    : "display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;";
+    : "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;";
   const orderedAccounts = [...accounts].sort((left, right) => {
     if (left.id === activeAccountId) return -1;
     if (right.id === activeAccountId) return 1;
@@ -133,7 +133,7 @@ export function renderPortfolio(root, state) {
       <div class="account-cards-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
         ${orderedAccounts.map((account) => {
           const isActive = account.id === activeAccountId;
-          return renderPortfolioAccountCard(account, isActive, isActive);
+          return renderPortfolioAccountCard(account, false, isActive);
         }).join("")}
       </div>
     </article>
