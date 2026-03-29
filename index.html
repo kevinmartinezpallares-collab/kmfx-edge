@@ -11,7 +11,29 @@
   <meta name="kmfx-turnstile-secret-key-placeholder" content="SERVER_SIDE_REQUIRED">
   <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
   <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
-  <link rel="stylesheet" href="./styles.css?v=portfolio-cards-7">
+  <link rel="stylesheet" href="./styles.css?v=portfolio-cards-8">
+  <style id="light-card-flatten-bootstrap">
+    html:not([data-theme="dark"]) .account-hero-card,
+    html:not([data-theme="dark"]) .account-hero-card:hover,
+    html:not([data-theme="dark"]) .account-hero-card.active,
+    html:not([data-theme="dark"]) .portfolio-account-card,
+    html:not([data-theme="dark"]) .portfolio-account-card:hover,
+    html:not([data-theme="dark"]) .portfolio-account-card.active {
+      box-shadow: none !important;
+      filter: none !important;
+    }
+
+    html:not([data-theme="dark"]) .calendar-cell,
+    html:not([data-theme="dark"]) .calendar-week-summary,
+    html:not([data-theme="dark"]) .calendar-cell:hover,
+    html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
+    html:not([data-theme="dark"]) .calendar-week-summary:hover {
+      background: #ffffff !important;
+      background-image: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__kmfxTurnstileOnload" async defer></script>
 </head>
@@ -394,6 +416,6 @@
   <div id="modalRoot"></div>
   <div id="mobileNavRoot"></div>
 
-  <script type="module" src="./app.js?v=portfolio-cards-7"></script>
+  <script type="module" src="./app.js?v=portfolio-cards-8"></script>
 </body>
 </html>

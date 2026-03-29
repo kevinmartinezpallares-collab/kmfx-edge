@@ -32,8 +32,8 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
   const cardInlineStyle = isMain
-    ? "min-height:240px;"
-    : "min-height:240px;";
+    ? "min-height:240px;box-shadow:none;filter:none;"
+    : "min-height:240px;box-shadow:none;filter:none;";
   const topInlineStyle = isMain
     ? "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;"
     : "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px;";

@@ -25,7 +25,7 @@ function renderPortfolioAccountCard(account, isMain, isActive) {
   const winRate = Number(account?.model?.totals?.winRate || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
   const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
-  const cardInlineStyle = "min-height:240px;";
+  const cardInlineStyle = "min-height:240px;box-shadow:none;filter:none;";
   const topInlineStyle = isMain
     ? "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;"
     : "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px;";

@@ -6,14 +6,14 @@ import { renderDiscipline } from "./js/modules/discipline.js?v=ui-cache-20260329
 import { renderRisk } from "./js/modules/risk.js?v=ui-cache-20260329-2";
 import { renderTrades } from "./js/modules/trades.js?v=ui-cache-20260329-2";
 import { renderCalendar } from "./js/modules/calendar.js?v=ui-cache-20260329-2";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=account-layout-3";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=account-layout-5";
 import { initConnections, renderConnections } from "./js/modules/connections.js?v=ui-cache-20260329-2";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=ui-cache-20260329-2";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=ui-cache-20260329-2";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=ui-cache-20260329-2";
 import { initFunded, renderFunded } from "./js/modules/funded.js?v=ui-cache-20260329-2";
 import { renderMarket } from "./js/modules/market.js?v=ui-cache-20260329-2";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=portfolio-cards-7";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=portfolio-cards-8";
 import { renderGlossary } from "./js/modules/glossary.js?v=ui-cache-20260329-2";
 import { renderDebug } from "./js/modules/debug.js?v=ui-cache-20260329-2";
 import { initMobileNav } from "./js/modules/mobile-nav.js?v=ui-cache-20260329-2";
@@ -44,6 +44,38 @@ import {
 } from "./js/modules/supabase-user-config.js?v=ui-cache-20260329-2";
 
 const store = createStore();
+
+function ensureLightCardFlattening() {
+  const styleId = "light-card-flatten-runtime";
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement("style");
+    style.id = styleId;
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+    html:not([data-theme="dark"]) .account-hero-card,
+    html:not([data-theme="dark"]) .account-hero-card:hover,
+    html:not([data-theme="dark"]) .account-hero-card.active,
+    html:not([data-theme="dark"]) .portfolio-account-card,
+    html:not([data-theme="dark"]) .portfolio-account-card:hover,
+    html:not([data-theme="dark"]) .portfolio-account-card.active {
+      box-shadow: none !important;
+      filter: none !important;
+    }
+
+    html:not([data-theme="dark"]) .calendar-cell,
+    html:not([data-theme="dark"]) .calendar-week-summary,
+    html:not([data-theme="dark"]) .calendar-cell:hover,
+    html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
+    html:not([data-theme="dark"]) .calendar-week-summary:hover {
+      background: #ffffff !important;
+      background-image: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+  `;
+}
 const pageRenderers = {
   dashboard: (state) => renderDashboard(document.getElementById("dashboardRoot"), state),
   analytics: (state) => renderAnalytics(document.getElementById("analyticsRoot"), state),
@@ -249,6 +281,7 @@ function initSettings() {
   const applyTheme = (theme) => {
     root.setAttribute("data-theme", theme);
     document.body?.setAttribute("data-theme", theme);
+    ensureLightCardFlattening();
     if (themeBadge) {
       themeBadge.textContent = theme === "dark" ? "Tema oscuro" : "Tema claro";
     }
@@ -542,6 +575,7 @@ function initSettings() {
   }
 }
 
+ensureLightCardFlattening();
 renderActivePage();
 initNavigation(store);
 initAccountsUI(store);
