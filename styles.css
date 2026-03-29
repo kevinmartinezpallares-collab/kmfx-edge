@@ -2039,6 +2039,7 @@ html:not([data-theme="dark"]) .main-panel {
   font-size: 18px;
   font-weight: 680;
   letter-spacing: -0.03em;
+  color: red;
 }
 
 .topbar-sub {
@@ -2713,11 +2714,12 @@ html:not([data-theme="dark"]) .account-hero-card.active {
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.024em;
-  color: var(--accent);
+  color: red;
 }
 
 .tl-page-title::before {
   content: "";
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 999px;
