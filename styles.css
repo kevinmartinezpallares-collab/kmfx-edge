@@ -12708,6 +12708,27 @@ html:not([data-theme="dark"]) .heat-cell:hover {
   filter: none !important;
 }
 
+html:not([data-theme="dark"]) .account-hero-card,
+html:not([data-theme="dark"]) .account-hero-card:hover,
+html:not([data-theme="dark"]) .account-hero-card.active,
+html:not([data-theme="dark"]) .portfolio-account-card,
+html:not([data-theme="dark"]) .portfolio-account-card:hover,
+html:not([data-theme="dark"]) .portfolio-account-card.active {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) .calendar-cell,
+html:not([data-theme="dark"]) .calendar-week-summary,
+html:not([data-theme="dark"]) .calendar-cell:hover,
+html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
+html:not([data-theme="dark"]) .calendar-week-summary:hover {
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 /* ── Account Cards — Layout Option 3 ───────────────────────────── */
 .account-cards-grid {
   display: grid;
