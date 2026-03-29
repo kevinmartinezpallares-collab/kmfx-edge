@@ -56,16 +56,27 @@ export function openModal({ title, subtitle = "", maxWidth = 560, content = "", 
   document.body.classList.add("modal-open");
   enhanceModalSelects(root);
 
-  root.onclick = (event) => {
-    if (event.target.closest(".modal-card")) {
-      if (event.target.closest(".modal-close, [data-modal-dismiss='true']")) {
-        closeModal();
-      }
-      return;
-    }
-    closeModal();
-  };
-
+  const overlay = root.querySelector(".modal-overlay");
   const card = root.querySelector(".modal-card");
+  const dismissButtons = root.querySelectorAll(".modal-close, [data-modal-dismiss='true']");
+
+  overlay?.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      closeModal();
+    }
+  });
+
+  card?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  dismissButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeModal();
+    });
+  });
+
   if (typeof onMount === "function") onMount(card);
 }

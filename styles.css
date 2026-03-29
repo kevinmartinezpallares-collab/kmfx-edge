@@ -9069,7 +9069,7 @@ body[data-theme="dark"] .pnlcal-range-btn {
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  background: rgba(28, 28, 30, 0.82);
+  background: #2c2c2e;
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   backdrop-filter: blur(40px) saturate(180%);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
@@ -9085,7 +9085,7 @@ body[data-theme="dark"] .pnlcal-range-btn {
   justify-content: space-between;
   gap: 14px;
   padding: 18px 20px 14px;
-  background: rgba(28, 28, 30, 0.72);
+  background: #2c2c2e;
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
