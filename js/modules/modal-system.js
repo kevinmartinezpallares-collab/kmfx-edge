@@ -46,7 +46,7 @@ export function openModal({ title, subtitle = "", maxWidth = 560, content = "", 
             <div class="modal-title">${title || "KMFX Edge"}</div>
             ${subtitle ? `<div class="modal-subtitle">${subtitle}</div>` : ""}
           </div>
-          <button class="modal-close" type="button" onclick="event.stopPropagation()" aria-label="Cerrar">✕</button>
+          <button class="modal-close" type="button" aria-label="Cerrar">✕</button>
         </div>
         <div class="modal-body">${content}</div>
       </div>
@@ -58,7 +58,7 @@ export function openModal({ title, subtitle = "", maxWidth = 560, content = "", 
 
   root.onclick = (event) => {
     if (event.target.closest(".modal-card")) {
-      if (event.target.closest(".modal-close")) {
+      if (event.target.closest(".modal-close, [data-modal-dismiss='true']")) {
         closeModal();
       }
       return;
