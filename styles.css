@@ -8928,6 +8928,14 @@ tbody tr:hover {
   box-shadow: var(--shadow);
 }
 
+html:not([data-theme="dark"]) .pnlcal-kpi {
+  background: #ffffff;
+  background-image: none;
+  border-color: var(--border-subtle);
+  box-shadow: none;
+  filter: none;
+}
+
 .pnlcal-kpi-label {
   font-size: 11px;
   color: var(--text3);
