@@ -12652,6 +12652,48 @@ html:not([data-theme="dark"]) .analytics-daily-summary-item,
 html:not([data-theme="dark"]) .weekday-inline-card,
 html:not([data-theme="dark"]) .analytics-metric-tile,
 html:not([data-theme="dark"]) .analytics-decision-item {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) .calendar-cell,
+html:not([data-theme="dark"]) .calendar-week-summary,
+html:not([data-theme="dark"]) .calendar-grid + .calendar-week-summary,
+html:not([data-theme="dark"]) .calendar-head,
+html:not([data-theme="dark"]) .calendar-head--summary {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--border-subtle) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
+html:not([data-theme="dark"]) .calendar-cell:hover,
+html:not([data-theme="dark"]) .calendar-week-summary:hover,
+html:not([data-theme="dark"]) .tl-section-card:hover,
+html:not([data-theme="dark"]) .tl-kpi-card:hover,
+html:not([data-theme="dark"]) .rm4-card:hover,
+html:not([data-theme="dark"]) .widget-card:hover,
+html:not([data-theme="dark"]) .hhc-card:hover,
+html:not([data-theme="dark"]) .session-card:hover,
+html:not([data-theme="dark"]) .goal-card:hover,
+html:not([data-theme="dark"]) .pnlcal-kpi:hover,
+html:not([data-theme="dark"]) .account-banner:hover,
+html:not([data-theme="dark"]) .account-switcher:hover,
+html:not([data-theme="dark"]) .analytics-submetric:hover,
+html:not([data-theme="dark"]) .weekday-inline-card:hover,
+html:not([data-theme="dark"]) .analytics-daily-breakdown-row:hover,
+html:not([data-theme="dark"]) .list-row:hover,
+html:not([data-theme="dark"]) .week-day-cell:hover,
+html:not([data-theme="dark"]) .heat-cell:hover {
+  transform: none !important;
+  border-color: var(--border-subtle) !important;
+  background: #ffffff !important;
+  background-image: none !important;
   box-shadow: none !important;
   filter: none !important;
 }
