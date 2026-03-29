@@ -6,14 +6,14 @@ import { renderDiscipline } from "./js/modules/discipline.js?v=ui-cache-20260329
 import { renderRisk } from "./js/modules/risk.js?v=ui-cache-20260329-2";
 import { renderTrades } from "./js/modules/trades.js?v=ui-cache-20260329-2";
 import { renderCalendar } from "./js/modules/calendar.js?v=ui-cache-20260329-2";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=account-layout-5";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=account-layout-6";
 import { initConnections, renderConnections } from "./js/modules/connections.js?v=ui-cache-20260329-2";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=ui-cache-20260329-2";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=ui-cache-20260329-2";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=ui-cache-20260329-2";
 import { initFunded, renderFunded } from "./js/modules/funded.js?v=ui-cache-20260329-2";
 import { renderMarket } from "./js/modules/market.js?v=ui-cache-20260329-2";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=portfolio-cards-9";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=portfolio-cards-11";
 import { renderGlossary } from "./js/modules/glossary.js?v=ui-cache-20260329-2";
 import { renderDebug } from "./js/modules/debug.js?v=ui-cache-20260329-2";
 import { initMobileNav } from "./js/modules/mobile-nav.js?v=ui-cache-20260329-2";
@@ -54,6 +54,16 @@ function ensureLightCardFlattening() {
     document.head.appendChild(style);
   }
   style.textContent = `
+    html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
+    html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
+    html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
+    html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
+      background: #ffffff !important;
+      background-image: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+
     html:not([data-theme="dark"]) .account-hero-card,
     html:not([data-theme="dark"]) .account-hero-card:hover,
     html:not([data-theme="dark"]) .account-hero-card.active,

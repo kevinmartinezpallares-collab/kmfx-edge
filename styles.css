@@ -13162,6 +13162,7 @@ html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
    and remove all residual gray surfaces or shadows. */
 html:not([data-theme="dark"]) .account-switcher,
 html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
+html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary),
 html:not([data-theme="dark"]) .account-hero-card,
@@ -13190,6 +13191,7 @@ html:not([data-theme="dark"]) .portfolio-account-card::after {
 
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-week-summary,
+html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
   background: #ffffff !important;
