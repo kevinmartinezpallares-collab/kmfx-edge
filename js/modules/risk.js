@@ -203,6 +203,13 @@ function categoryPillMarkup(symbol) {
   `;
 }
 
+function sessionUtcLabel(session = "") {
+  if (session === "Asia") return "00:00 · 08:00 UTC";
+  if (session === "London") return "07:00 · 16:00 UTC";
+  if (session === "New York") return "12:00 · 21:00 UTC";
+  return "UTC";
+}
+
 function renderStepperInput({
   label,
   key,
@@ -467,6 +474,21 @@ export function renderRisk(root, state) {
       </div>
     </div>
   `;
+  const allSessionsSelected = selectedSessions.length === sessionOptions.length;
+  const sessionsPartial = selectedSessions.length > 0 && !allSessionsSelected;
+  const sessionSummaryMarkup = `
+    <div class="risk-session-summary">
+      <div class="risk-session-summary-count">
+        <strong>${selectedSessions.length}</strong>
+        <span>sesiones activas</span>
+      </div>
+      <div class="risk-session-summary-dots" aria-hidden="true">
+        ${sessionOptions.map((session) => `
+          <span class="risk-session-summary-dot ${selectedSessions.includes(session) ? "active" : ""}"></span>
+        `).join("")}
+      </div>
+    </div>
+  `;
   const securityArc = renderSecurityArc(securitySegments({ account, model, risk, score: securityScore }), securityScore);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
@@ -520,25 +542,36 @@ export function renderRisk(root, state) {
       description: "Ventanas operativas UTC",
       value: selectedSessionsLabel,
       menuOpen: riskUi.openMenu === "sessions",
-      checked: prefsDraft.allowedSessionsEnabled,
-      key: "allowedSessionsEnabled",
-      statusLabel: toggleStatusLabel(prefsDraft.allowedSessionsEnabled, "Activo", "Off"),
+      checked: true,
+      key: "__sessionsMenu",
+      headBadge: "Editable",
+      hideFooterBadge: true,
       controls: `
+        ${sessionSummaryMarkup}
         <div class="risk-config-control">
           <span>Sesiones</span>
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}">
               <span>${selectedSessionsLabel}</span>
               <strong>${selectedSessions.length}/3</strong>
             </button>
             <div class="risk-select-menu">
-              <button class="risk-select-bulk" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>Marcar las 3</button>
-              <div class="risk-select-options">
-                ${sessionOptions.map((session) => `
-                  <label class="risk-select-option">
-                    <input type="checkbox" data-risk-session-option="${session}" ${selectedSessions.includes(session) ? "checked" : ""} ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-                    <span>${session}</span>
-                  </label>
+              <div class="risk-session-group">
+                <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all>
+                  <span class="ccheck ${allSessionsSelected ? "is-checked" : ""} ${sessionsPartial ? "is-partial" : ""}" aria-hidden="true">
+                    ${allSessionsSelected ? iconCheckMarkup() : ""}
+                    ${sessionsPartial ? `<span class="ccheck-dash"></span>` : ""}
+                  </span>
+                  <span class="risk-session-name">Seleccionar todas</span>
+                  <span class="risk-session-utc">${selectedSessions.length}/3</span>
+                </button>
+                ${sessionOptions.map((session, index) => `
+                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}">
+                    <span class="risk-session-dot ${selectedSessions.includes(session) ? "active" : ""}" aria-hidden="true"></span>
+                    <span class="ccheck ${selectedSessions.includes(session) ? "is-checked" : ""}" aria-hidden="true">${selectedSessions.includes(session) ? iconCheckMarkup() : ""}</span>
+                    <span class="risk-session-name">${session}</span>
+                    <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
+                  </button>
                 `).join("")}
               </div>
             </div>
@@ -779,10 +812,14 @@ export function renderRisk(root, state) {
                 <div class="risk-config-title">${rule.title}</div>
                 <div class="risk-config-meta">${rule.description}</div>
               </div>
-              <label class="risk-config-toggle" aria-label="${rule.title}">
-                <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
-                <span class="risk-config-toggle-ui"></span>
-              </label>
+              ${rule.headBadge
+                ? `<div class="risk-config-state-pill risk-config-state-pill--header">${rule.headBadge}</div>`
+                : `
+                  <label class="risk-config-toggle" aria-label="${rule.title}">
+                    <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
+                    <span class="risk-config-toggle-ui"></span>
+                  </label>
+                `}
             </div>
             <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
             ${rule.controls || ""}
@@ -934,11 +971,13 @@ export function renderRisk(root, state) {
     });
   });
 
-  root.querySelectorAll("[data-risk-session-option]").forEach((input) => {
-    input.addEventListener("change", () => {
+  root.querySelectorAll("[data-risk-session-option]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
       const next = new Set(selectedSessions);
-      if (input.checked) next.add(input.dataset.riskSessionOption);
-      else next.delete(input.dataset.riskSessionOption);
+      const session = button.dataset.riskSessionOption;
+      if (next.has(session)) next.delete(session);
+      else next.add(session);
       persistRiskPreferencesDraft(root, { allowedSessions: serializeTokenList([...next]) });
       ensureRiskUiState(root).openMenu = "sessions";
       renderRisk(root, state);
@@ -947,7 +986,8 @@ export function renderRisk(root, state) {
 
   root.querySelector("[data-risk-sessions-all]")?.addEventListener("click", (event) => {
     event.stopPropagation();
-    persistRiskPreferencesDraft(root, { allowedSessions: serializeTokenList(sessionOptions) });
+    const next = selectedSessions.length === sessionOptions.length ? [] : sessionOptions;
+    persistRiskPreferencesDraft(root, { allowedSessions: serializeTokenList(next) });
     ensureRiskUiState(root).openMenu = "sessions";
     renderRisk(root, state);
   });

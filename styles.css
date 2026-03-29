@@ -7034,6 +7034,12 @@ body[data-theme="dark"] .settings-profile-card {
   color: var(--text3);
 }
 
+.risk-config-state-pill--header {
+  background: rgba(10, 132, 255, 0.14);
+  border-color: rgba(10, 132, 255, 0.22);
+  color: #0A84FF;
+}
+
 .risk-config-toggle {
   position: relative;
   display: inline-flex;
@@ -7205,6 +7211,124 @@ body[data-theme="dark"] .settings-profile-card {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.risk-session-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(23, 25, 30, 0.62);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+}
+
+.risk-session-summary-count {
+  display: grid;
+  gap: 2px;
+}
+
+.risk-session-summary-count strong {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+
+.risk-session-summary-count span {
+  font-size: 12px;
+  color: #636366;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.risk-session-summary-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.risk-session-summary-dot,
+.risk-session-dot {
+  border-radius: 999px;
+  background: #3a3a3c;
+}
+
+.risk-session-summary-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.risk-session-summary-dot.active {
+  background: #0A84FF;
+}
+
+.risk-session-group {
+  display: grid;
+  gap: 2px;
+}
+
+.risk-session-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 0;
+  background: #2c2c2e;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.risk-session-row.first {
+  border-radius: 10px 10px 4px 4px;
+}
+
+.risk-session-row.last {
+  border-radius: 4px 4px 10px 10px;
+}
+
+.risk-session-row--all {
+  border-radius: 10px 10px 4px 4px;
+}
+
+.risk-session-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+}
+
+.risk-session-dot.active {
+  background: #30d158;
+}
+
+.ccheck-dash {
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.ccheck.is-partial {
+  background: #0A84FF;
+  border-color: #0A84FF;
+}
+
+.risk-session-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.risk-session-utc {
+  font-size: 12px;
+  color: #636366;
+  white-space: nowrap;
 }
 
 .risk-select-options {
@@ -7663,14 +7787,23 @@ html:not([data-theme="dark"]) .risk-select-menu {
 
 html:not([data-theme="dark"]) .risk-select-search input,
 html:not([data-theme="dark"]) .risk-symbol-summary,
-html:not([data-theme="dark"]) .risk-symbol-row {
+html:not([data-theme="dark"]) .risk-symbol-row,
+html:not([data-theme="dark"]) .risk-session-summary,
+html:not([data-theme="dark"]) .risk-session-row {
   background: rgba(255, 255, 255, 0.52);
 }
 
 html:not([data-theme="dark"]) .risk-select-search input,
 html:not([data-theme="dark"]) .risk-symbol-name,
-html:not([data-theme="dark"]) .risk-symbol-summary-count strong {
+html:not([data-theme="dark"]) .risk-symbol-summary-count strong,
+html:not([data-theme="dark"]) .risk-session-name,
+html:not([data-theme="dark"]) .risk-session-summary-count strong {
   color: #1c1c1e;
+}
+
+html:not([data-theme="dark"]) .risk-session-utc,
+html:not([data-theme="dark"]) .risk-session-summary-count span {
+  color: #636366;
 }
 
 html:not([data-theme="dark"]) .risk-symbol-empty {
