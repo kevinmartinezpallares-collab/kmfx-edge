@@ -1491,6 +1491,15 @@ select {
   font: inherit;
 }
 
+select {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] select,
+html:not([data-theme="dark"]) select {
+  color-scheme: light;
+}
+
 button {
   -webkit-tap-highlight-color: transparent;
 }
@@ -9190,6 +9199,7 @@ body[data-theme="dark"] .pnlcal-range-btn {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 40px;
+  color-scheme: dark;
 }
 
 .modal-select-wrap {
