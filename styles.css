@@ -9217,6 +9217,95 @@ body[data-theme="dark"] .pnlcal-range-btn {
   pointer-events: none;
 }
 
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 12px 14px;
+  background: #2c2c2e;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  user-select: none;
+}
+
+.custom-select.open .custom-select-trigger {
+  border-color: #0A84FF;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: rgba(44, 44, 46, 0.92);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.custom-select.open .custom-select-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  user-select: none;
+}
+
+.custom-select-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.custom-select-option.selected {
+  color: #0A84FF;
+  font-weight: 600;
+}
+
+html:not([data-theme="dark"]) .custom-select-trigger {
+  background: #f2f2f7;
+  color: #1c1c1e;
+}
+
+html:not([data-theme="dark"]) .custom-select-dropdown {
+  background: rgba(242, 242, 247, 0.92);
+}
+
+html:not([data-theme="dark"]) .custom-select-option {
+  color: #1c1c1e;
+}
+
 .modal-actions .btn-primary,
 .modal-actions .btn-secondary {
   min-height: 50px;
