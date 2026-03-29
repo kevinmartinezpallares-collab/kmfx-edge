@@ -76,6 +76,7 @@ function ensureLightCardFlattening() {
     }
 
     html:not([data-theme="dark"]) .calendar-cell,
+    html:not([data-theme="dark"]) .calendar-cell:not(.win):not(.loss),
     html:not([data-theme="dark"]) .calendar-week-summary,
     html:not([data-theme="dark"]) .calendar-cell:hover,
     html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
@@ -83,6 +84,26 @@ function ensureLightCardFlattening() {
       transform: none !important;
       background: #ffffff !important;
       background-image: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+
+    html:not([data-theme="dark"]) .calendar-cell.win,
+    html:not([data-theme="dark"]) .calendar-cell.win:hover,
+    html:not([data-theme="dark"]) .calendar-cell.win:hover:not(:disabled) {
+      transform: none !important;
+      background: var(--green-bg) !important;
+      border-color: var(--green-border) !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
+
+    html:not([data-theme="dark"]) .calendar-cell.loss,
+    html:not([data-theme="dark"]) .calendar-cell.loss:hover,
+    html:not([data-theme="dark"]) .calendar-cell.loss:hover:not(:disabled) {
+      transform: none !important;
+      background: var(--red-bg) !important;
+      border-color: var(--red-border) !important;
       box-shadow: none !important;
       filter: none !important;
     }

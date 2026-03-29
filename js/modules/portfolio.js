@@ -19,7 +19,7 @@ function accountStatusBadge(account) {
   `;
 }
 
-function renderPortfolioAccountCard(account, isMain, isActive) {
+function renderPortfolioAccountCard(account, isMain) {
   const pnl = Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const winRate = Number(account?.model?.totals?.winRate || 0);
@@ -53,7 +53,7 @@ function renderPortfolioAccountCard(account, isMain, isActive) {
 
   return `
     <button
-      class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""}"
+      class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"}"
       data-portfolio-account-id="${account.id}"
       data-portfolio-card-layout="dashboard"
       type="button"
@@ -103,16 +103,10 @@ export function renderPortfolio(root, state) {
   const totalEquity = accounts.reduce((sum, account) => sum + (account.model?.account?.equity || 0), 0);
   const floatingPnl = accounts.reduce((sum, account) => sum + (account.model?.account?.openPnl || 0), 0);
   const globalPositions = accounts.flatMap((account) => buildPortfolioPositions(account));
-  const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
   const isMobileViewport = window.innerWidth <= 768;
   const gridInlineStyle = isMobileViewport
     ? "display:grid;grid-template-columns:1fr;gap:10px;"
     : "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;";
-  const orderedAccounts = [...accounts].sort((left, right) => {
-    if (left.id === activeAccountId) return -1;
-    if (right.id === activeAccountId) return 1;
-    return 0;
-  });
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -131,10 +125,7 @@ export function renderPortfolio(root, state) {
     <article class="tl-section-card">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
       <div class="account-cards-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
-        ${orderedAccounts.map((account) => {
-          const isActive = account.id === activeAccountId;
-          return renderPortfolioAccountCard(account, false, isActive);
-        }).join("")}
+        ${accounts.map((account) => renderPortfolioAccountCard(account, false)).join("")}
       </div>
     </article>
 
