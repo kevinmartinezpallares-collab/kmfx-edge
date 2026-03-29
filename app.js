@@ -60,6 +60,7 @@ function ensureLightCardFlattening() {
     html:not([data-theme="dark"]) .portfolio-account-card,
     html:not([data-theme="dark"]) .portfolio-account-card:hover,
     html:not([data-theme="dark"]) .portfolio-account-card.active {
+      transform: none !important;
       box-shadow: none !important;
       filter: none !important;
     }
@@ -69,6 +70,7 @@ function ensureLightCardFlattening() {
     html:not([data-theme="dark"]) .calendar-cell:hover,
     html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
     html:not([data-theme="dark"]) .calendar-week-summary:hover {
+      transform: none !important;
       background: #ffffff !important;
       background-image: none !important;
       box-shadow: none !important;

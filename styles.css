@@ -12773,9 +12773,7 @@ body[data-theme="dark"] .account-hero-card {
 html:not([data-theme="dark"]) .account-hero-card {
   background: #0a0f2e;
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 4px 24px rgba(10, 15, 60, 0.18),
-    0 1px 4px rgba(10, 15, 60, 0.12);
+  box-shadow: none;
 }
 
 .account-card-blobs {
@@ -13177,6 +13175,7 @@ html:not([data-theme="dark"]) .calendar-cell:hover,
 html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .calendar-week-summary:hover {
+  transform: none !important;
   box-shadow: none !important;
   filter: none !important;
 }
@@ -13186,11 +13185,13 @@ html:not([data-theme="dark"]) .account-hero-card::after,
 html:not([data-theme="dark"]) .portfolio-account-card::before,
 html:not([data-theme="dark"]) .portfolio-account-card::after {
   box-shadow: none !important;
+  filter: none !important;
 }
 
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
+  background: #ffffff !important;
   background-image: none !important;
 }
