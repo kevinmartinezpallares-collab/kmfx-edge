@@ -14,7 +14,7 @@ export const DEFAULT_AUTH_USER = {
   avatar: null,
   initials: "KC",
   provider: "local",
-  role: null
+  role: "user"
 };
 
 export const DEFAULT_AUTH_PROFILE = {
@@ -135,6 +135,7 @@ function sanitizeAuthUser(user = {}) {
   const email = String(user.email || "").trim();
   const fallbackName = email ? formatNameFromEmail(email) : DEFAULT_AUTH_USER.name;
   const name = String(user.name || fallbackName).trim() || fallbackName;
+  const role = user.role === "admin" ? "admin" : "user";
   return {
     id: String(user.id || DEFAULT_AUTH_USER.id),
     name,
@@ -142,7 +143,7 @@ function sanitizeAuthUser(user = {}) {
     avatar: user.avatar || null,
     initials: String(user.initials || getInitialsFromAuthName(name) || DEFAULT_AUTH_USER.initials).slice(0, 3).toUpperCase(),
     provider: AUTH_PROVIDER_IDS.includes(user.provider) ? user.provider : DEFAULT_AUTH_USER.provider,
-    role: user.role === "admin" ? "admin" : null
+    role
   };
 }
 
@@ -222,7 +223,7 @@ function buildAuthStateFromSupabaseSession(session, currentAuth = DEFAULT_AUTH_S
       avatar: avatarUrl,
       initials: getInitialsFromAuthName(fullName),
       provider,
-      role: metadata.role || user.app_metadata?.role || currentAuth.user?.role || null
+      role: metadata.role || user.app_metadata?.role || currentAuth.user?.role || "user"
     },
     profile: {
       ...(currentAuth.profile || {})

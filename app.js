@@ -31,7 +31,7 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=auth-role-1";
+} from "./js/modules/auth-session.js?v=auth-role-2";
 import { applyAvatarContent } from "./js/modules/avatar-utils.js";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
