@@ -12516,12 +12516,43 @@ body[data-theme="dark"] .brand-logo-dark {
 
 /* Light Mode Final Normalization
    Keep dark mode untouched. Force a single white shell and flat white cards. */
+html[data-theme="light"],
+body[data-theme="light"] {
+  --bg-app: #ffffff !important;
+  --bg-shell: #ffffff !important;
+  --bg-sidebar: #ffffff !important;
+  --bg-topbar: #ffffff !important;
+  --bg-panel: #ffffff !important;
+  --bg-card: #ffffff !important;
+  --bg-card-alt: #ffffff !important;
+  --bg3: #ffffff !important;
+  --surface: #ffffff !important;
+  --surface2: #ffffff !important;
+  --card-surface: #ffffff !important;
+  --shell-surface: #ffffff !important;
+}
+
 html:not([data-theme="dark"]) body,
 html:not([data-theme="dark"]) .app-shell,
 html:not([data-theme="dark"]) .sidebar,
 html:not([data-theme="dark"]) .topbar,
 html:not([data-theme="dark"]) .main-panel,
 html:not([data-theme="dark"]) .content {
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] body,
+html[data-theme="light"] .app-shell,
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .main-panel,
+html[data-theme="light"] .content,
+body[data-theme="light"] .app-shell,
+body[data-theme="light"] .sidebar,
+body[data-theme="light"] .topbar,
+body[data-theme="light"] .main-panel,
+body[data-theme="light"] .content {
   background: #ffffff !important;
   box-shadow: none !important;
 }
@@ -12540,6 +12571,42 @@ html:not([data-theme="dark"]) .widget-table-wrap,
 html:not([data-theme="dark"]) .chart-shell,
 html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .weekly-chart-shell {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="light"] .tl-kpi-card,
+html[data-theme="light"] .rm4-card,
+html[data-theme="light"] .tl-section-card,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .pnlcal-card,
+html[data-theme="light"] .widget-card,
+html[data-theme="light"] .account-switcher,
+html[data-theme="light"] .account-banner,
+html[data-theme="light"] .account-banner--premium,
+html[data-theme="light"] .table-wrap,
+html[data-theme="light"] .widget-table-wrap,
+html[data-theme="light"] .chart-shell,
+html[data-theme="light"] .kmfx-chart-shell,
+html[data-theme="light"] .weekly-chart-shell,
+body[data-theme="light"] .tl-kpi-card,
+body[data-theme="light"] .rm4-card,
+body[data-theme="light"] .tl-section-card,
+body[data-theme="light"] .chart-card,
+body[data-theme="light"] .pnlcal-card,
+body[data-theme="light"] .widget-card,
+body[data-theme="light"] .account-switcher,
+body[data-theme="light"] .account-banner,
+body[data-theme="light"] .account-banner--premium,
+body[data-theme="light"] .table-wrap,
+body[data-theme="light"] .widget-table-wrap,
+body[data-theme="light"] .chart-shell,
+body[data-theme="light"] .kmfx-chart-shell,
+body[data-theme="light"] .weekly-chart-shell {
   background: #ffffff !important;
   background-image: none !important;
   border-color: rgba(15, 23, 42, 0.08) !important;
