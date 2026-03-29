@@ -103,6 +103,10 @@ export function renderPortfolio(root, state) {
   const floatingPnl = accounts.reduce((sum, account) => sum + (account.model?.account?.openPnl || 0), 0);
   const globalPositions = accounts.flatMap((account) => buildPortfolioPositions(account));
   const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
+  const isMobileViewport = window.innerWidth <= 768;
+  const gridInlineStyle = isMobileViewport
+    ? "display:grid;grid-template-columns:1fr;gap:10px;"
+    : "display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;";
   const orderedAccounts = [...accounts].sort((left, right) => {
     if (left.id === activeAccountId) return -1;
     if (right.id === activeAccountId) return 1;
@@ -125,7 +129,7 @@ export function renderPortfolio(root, state) {
 
     <article class="tl-section-card">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
-      <div class="account-cards-grid">
+      <div class="account-cards-grid" style="${gridInlineStyle}">
         ${orderedAccounts.map((account) => {
           const isActive = account.id === activeAccountId;
           return renderPortfolioAccountCard(account, isActive, isActive);
