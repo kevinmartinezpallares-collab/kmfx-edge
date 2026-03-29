@@ -7107,136 +7107,315 @@ body[data-theme="dark"] .settings-profile-card {
   justify-content: space-between;
   gap: 10px;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 92%, transparent);
+  border: 1px solid transparent;
+  background: #2c2c2e;
   color: var(--text1);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .risk-select-trigger span {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: -0.01em;
   text-transform: none;
   color: inherit;
 }
 
 .risk-select-trigger strong {
-  font-size: 12px;
-  color: var(--text3);
+  font-size: 13px;
+  color: #8e8e93;
+}
+
+.risk-select.open .risk-select-trigger {
+  border-color: #0A84FF;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
 }
 
 .risk-select-menu {
   display: none;
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   gap: 10px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 98%, transparent);
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(44, 44, 46, 0.92);
   box-shadow:
-    0 22px 48px rgba(5, 9, 20, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  z-index: 12;
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  z-index: 24;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .risk-select.open .risk-select-menu {
   display: grid;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
 }
 
 .risk-select-bulk {
   justify-self: start;
   border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--text1);
-  padding: 8px 12px;
+  background: rgba(10, 132, 255, 0.18);
+  color: #fff;
+  padding: 10px 16px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .risk-select-options {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .risk-select-options--symbols {
-  max-height: 220px;
+  max-height: 320px;
   overflow: auto;
   padding-right: 2px;
 }
 
-.risk-select-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-  background: color-mix(in srgb, var(--surface3) 72%, transparent);
-  cursor: pointer;
-}
-
-.risk-select-option input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-}
-
-.risk-select-option span {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: var(--text1);
-}
-
 .risk-select-search input {
   width: 100%;
-  min-height: 40px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-  background: color-mix(in srgb, var(--surface3) 72%, transparent);
-  color: var(--text1);
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 0;
+  background: #2c2c2e;
+  color: #fff;
   font: inherit;
+  box-shadow: none;
 }
 
-.risk-symbol-option {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+.risk-select-search input::placeholder {
+  color: #636366;
+}
+
+.risk-symbol-summary {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #2c2c2e;
 }
 
-.risk-symbol-favorite {
-  width: 38px;
-  height: 38px;
-  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface3) 72%, transparent);
-  color: var(--text4);
-  font-size: 16px;
+.risk-symbol-summary-count {
+  display: grid;
+  gap: 2px;
+}
+
+.risk-symbol-summary-count strong {
+  font-size: 28px;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+
+.risk-symbol-summary-count span {
+  font-size: 12px;
+  color: #636366;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.risk-symbol-summary-pills {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 62%;
+}
+
+.risk-symbol-summary-pill,
+.risk-symbol-cat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.risk-symbol-summary-pill--forex,
+.risk-symbol-cat--forex {
+  background: rgba(10, 132, 255, 0.12);
+  color: #0A84FF;
+}
+
+.risk-symbol-summary-pill--indice,
+.risk-symbol-cat--indice {
+  background: rgba(48, 209, 88, 0.12);
+  color: #30d158;
+}
+
+.risk-symbol-summary-pill--commodity,
+.risk-symbol-cat--commodity {
+  background: rgba(255, 214, 10, 0.12);
+  color: #FFD60A;
+}
+
+.risk-symbol-summary-pill--crypto,
+.risk-symbol-cat--crypto {
+  background: rgba(191, 90, 242, 0.12);
+  color: #bf5af2;
+}
+
+.risk-symbol-summary-pill--custom,
+.risk-symbol-summary-pill--more,
+.risk-symbol-cat--custom {
+  background: rgba(255, 255, 255, 0.08);
+  color: #8e8e93;
+}
+
+.risk-symbol-add-custom {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(10, 132, 255, 0.12);
+  color: #0A84FF;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.risk-symbol-section-label {
+  padding-inline: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #636366;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.risk-symbol-group {
+  display: grid;
+  gap: 2px;
+}
+
+.risk-symbol-empty {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #8e8e93;
+  font-size: 13px;
+}
+
+.risk-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: #2c2c2e;
+}
+
+.risk-symbol-row.first {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.risk-symbol-row.last {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.risk-symbol-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ccheck {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1.5px solid #3a3a3c;
+  background: transparent;
+}
+
+.ccheck svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0;
+}
+
+.ccheck.is-checked {
+  background: #0A84FF;
+  border-color: #0A84FF;
+}
+
+.ccheck.is-checked svg {
+  opacity: 1;
+}
+
+.risk-symbol-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .risk-symbol-favorite.active {
-  color: #ffcc4d;
-  border-color: color-mix(in srgb, #ffcc4d 38%, var(--border));
-  background: color-mix(in srgb, #ffcc4d 10%, var(--surface3));
+  color: #FFD60A;
+}
+
+.risk-symbol-favorite {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #3a3a3c;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .risk-config-control input,
@@ -7418,33 +7597,50 @@ html:not([data-theme="dark"]) .risk-stepper {
   color: rgba(245, 247, 252, 0.96);
 }
 
-html:not([data-theme="dark"]) .risk-select-trigger,
-html:not([data-theme="dark"]) .risk-select-menu,
-html:not([data-theme="dark"]) .risk-select-option,
-html:not([data-theme="dark"]) .risk-select-search input,
-html:not([data-theme="dark"]) .risk-symbol-favorite {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(245, 247, 252, 0.96);
-}
-
-html:not([data-theme="dark"]) .risk-select-menu {
-  background: rgba(11, 17, 33, 0.94);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 24px 52px rgba(5, 9, 20, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+html:not([data-theme="dark"]) .risk-select-trigger {
+  background: #f2f2f7;
+  color: #1c1c1e;
 }
 
 html:not([data-theme="dark"]) .risk-select-trigger strong,
+html:not([data-theme="dark"]) .risk-symbol-section-label,
+html:not([data-theme="dark"]) .risk-symbol-summary-count span {
+  color: #636366;
+}
+
+html:not([data-theme="dark"]) .risk-select-menu {
+  background: rgba(242, 242, 247, 0.92);
+  border-color: rgba(28, 28, 30, 0.08);
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.16),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+}
+
+html:not([data-theme="dark"]) .risk-select-search input,
+html:not([data-theme="dark"]) .risk-symbol-summary,
+html:not([data-theme="dark"]) .risk-symbol-row {
+  background: #f2f2f7;
+}
+
+html:not([data-theme="dark"]) .risk-select-search input,
+html:not([data-theme="dark"]) .risk-symbol-name,
+html:not([data-theme="dark"]) .risk-symbol-summary-count strong {
+  color: #1c1c1e;
+}
+
+html:not([data-theme="dark"]) .risk-symbol-empty {
+  background: rgba(28, 28, 30, 0.04);
+  color: #636366;
+}
+
 html:not([data-theme="dark"]) .risk-symbol-favorite {
-  color: rgba(236, 241, 250, 0.78);
+  background: rgba(0, 0, 0, 0.04);
+  color: #8e8e93;
 }
 
 html:not([data-theme="dark"]) .risk-symbol-favorite.active {
-  color: #ffd45d;
-  border-color: rgba(255, 212, 93, 0.24);
-  background: rgba(255, 212, 93, 0.1);
+  color: #FFD60A;
+  background: rgba(255, 214, 10, 0.16);
 }
 
 html:not([data-theme="dark"]) .risk-stepper {

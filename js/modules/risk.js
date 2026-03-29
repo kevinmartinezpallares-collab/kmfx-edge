@@ -7,6 +7,28 @@ import { selectVisibleUserProfile } from "./auth-session.js";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js";
 
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
+const ALL_SYMBOLS = [
+  { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
+  { id: "GBPUSD", cat: "Forex", color: "#0A84FF" },
+  { id: "USDJPY", cat: "Forex", color: "#0A84FF" },
+  { id: "USDCHF", cat: "Forex", color: "#0A84FF" },
+  { id: "AUDUSD", cat: "Forex", color: "#0A84FF" },
+  { id: "USDCAD", cat: "Forex", color: "#0A84FF" },
+  { id: "NZDUSD", cat: "Forex", color: "#0A84FF" },
+  { id: "EURGBP", cat: "Forex", color: "#0A84FF" },
+  { id: "EURJPY", cat: "Forex", color: "#0A84FF" },
+  { id: "GBPJPY", cat: "Forex", color: "#0A84FF" },
+  { id: "NAS100", cat: "Índice", color: "#30d158" },
+  { id: "US30", cat: "Índice", color: "#30d158" },
+  { id: "SPX500", cat: "Índice", color: "#30d158" },
+  { id: "GER40", cat: "Índice", color: "#30d158" },
+  { id: "UK100", cat: "Índice", color: "#30d158" },
+  { id: "XAUUSD", cat: "Commodity", color: "#FFD60A" },
+  { id: "XAGUSD", cat: "Commodity", color: "#FFD60A" },
+  { id: "USOIL", cat: "Commodity", color: "#FFD60A" },
+  { id: "BTCUSD", cat: "Crypto", color: "#bf5af2" },
+  { id: "ETHUSD", cat: "Crypto", color: "#bf5af2" }
+];
 
 function readRiskPanelStorage() {
   try {
@@ -92,7 +114,8 @@ function getRiskPreferencesDraft(root) {
       allowedSessions: String(panelConfig.allowedSessions ?? ""),
       maxVolume: String(panelConfig.maxVolume ?? ""),
       allowedSymbols: String(panelConfig.allowedSymbols ?? ""),
-      favoriteSymbols: String(panelConfig.favoriteSymbols ?? "")
+      favoriteSymbols: String(panelConfig.favoriteSymbols ?? ""),
+      customSymbols: String(panelConfig.customSymbols ?? "")
     };
   }
   return root.__riskPrefsDraft;
@@ -132,9 +155,30 @@ function serializeTokenList(values = []) {
 
 function ensureRiskUiState(root) {
   if (!root.__riskUiState) {
-    root.__riskUiState = { openMenu: null };
+    root.__riskUiState = { openMenu: null, symbolQuery: "" };
   }
   return root.__riskUiState;
+}
+
+function iconCheckMarkup() {
+  return `
+    <svg viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <path d="M2.5 6.5L5.5 9.5L10.5 3.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  `;
+}
+
+function symbolCategoryTone(category = "") {
+  const normalized = String(category).toLowerCase();
+  if (normalized === "forex") return "forex";
+  if (normalized === "índice" || normalized === "indice") return "indice";
+  if (normalized === "commodity") return "commodity";
+  if (normalized === "crypto") return "crypto";
+  return "custom";
+}
+
+function categoryPillMarkup(symbol) {
+  return `<span class="risk-symbol-cat risk-symbol-cat--${symbolCategoryTone(symbol.cat)}">${symbol.cat}</span>`;
 }
 
 function renderStepperInput({
@@ -289,23 +333,64 @@ export function renderRisk(root, state) {
   const prefsDraft = getRiskPreferencesDraft(root);
   const riskUi = ensureRiskUiState(root);
   const sessionOptions = ["Asia", "London", "New York"];
-  const availableSymbols = [...new Set((model.symbols || []).map((item) => item.key).filter(Boolean))];
-  const selectedSessions = parseTokenList(prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "));
-  const selectedSymbols = parseTokenList(prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || availableSymbols).join(" · "));
-  const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
-  const sortedSymbols = [...availableSymbols].sort((a, b) => {
-    const favDelta = Number(favoriteSymbols.has(b)) - Number(favoriteSymbols.has(a));
-    if (favDelta !== 0) return favDelta;
-    const selectedDelta = Number(selectedSymbols.includes(b)) - Number(selectedSymbols.includes(a));
-    if (selectedDelta !== 0) return selectedDelta;
-    return a.localeCompare(b);
+  const customSymbols = parseTokenList(prefsDraft.customSymbols).map((id) => ({
+    id,
+    cat: "Custom",
+    color: "#8e8e93"
+  }));
+  const symbolUniverseMap = new Map(
+    [...ALL_SYMBOLS, ...customSymbols].map((symbol) => [symbol.id.toUpperCase(), { ...symbol, id: symbol.id.toUpperCase() }])
+  );
+  (model.symbols || []).forEach((item) => {
+    const id = String(item.key || "").toUpperCase().trim();
+    if (!id || symbolUniverseMap.has(id)) return;
+    symbolUniverseMap.set(id, { id, cat: "Custom", color: "#8e8e93" });
   });
+  const symbolUniverse = [...symbolUniverseMap.values()];
+  const selectedSessions = parseTokenList(prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "));
+  const selectedSymbols = parseTokenList(prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || symbolUniverse.map((item) => item.id)).join(" · "));
+  const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
+  const selectedSymbolSet = new Set(selectedSymbols);
+  const normalizedQuery = riskUi.symbolQuery.trim().toUpperCase();
+  const filteredSymbols = symbolUniverse.filter((symbol) => !normalizedQuery || symbol.id.includes(normalizedQuery));
+  const selectedSymbolItems = symbolUniverse
+    .filter((symbol) => selectedSymbolSet.has(symbol.id))
+    .sort((a, b) => {
+      const favDelta = Number(favoriteSymbols.has(b.id)) - Number(favoriteSymbols.has(a.id));
+      if (favDelta !== 0) return favDelta;
+      return a.id.localeCompare(b.id);
+    });
+  const availableSymbolItems = filteredSymbols
+    .filter((symbol) => !selectedSymbolSet.has(symbol.id))
+    .sort((a, b) => {
+      const favDelta = Number(favoriteSymbols.has(b.id)) - Number(favoriteSymbols.has(a.id));
+      if (favDelta !== 0) return favDelta;
+      return a.id.localeCompare(b.id);
+    });
+  const canCreateCustomSymbol = Boolean(normalizedQuery) && filteredSymbols.length === 0 && !symbolUniverse.some((symbol) => symbol.id === normalizedQuery);
   const selectedSessionsLabel = selectedSessions.length ? serializeTokenList(selectedSessions) : "Sin sesiones";
   const selectedSymbolsLabel = selectedSymbols.length
     ? selectedSymbols.length <= 4
       ? serializeTokenList(selectedSymbols)
       : `${selectedSymbols.length} símbolos seleccionados`
     : "Sin símbolos";
+  const summaryPills = selectedSymbols.slice(0, 4);
+  const summaryOverflow = Math.max(0, selectedSymbols.length - summaryPills.length);
+  const summaryCardMarkup = `
+    <div class="risk-symbol-summary">
+      <div class="risk-symbol-summary-count">
+        <strong>${selectedSymbols.length}</strong>
+        <span>símbolos activos</span>
+      </div>
+      <div class="risk-symbol-summary-pills">
+        ${summaryPills.map((symbol) => {
+          const meta = symbolUniverseMap.get(symbol) || { cat: "Custom" };
+          return `<span class="risk-symbol-summary-pill risk-symbol-summary-pill--${symbolCategoryTone(meta.cat)}">${symbol}</span>`;
+        }).join("")}
+        ${summaryOverflow ? `<span class="risk-symbol-summary-pill risk-symbol-summary-pill--more">+${summaryOverflow} más</span>` : ""}
+      </div>
+    </div>
+  `;
   const securityArc = renderSecurityArc(securitySegments({ account, model, risk, score: securityScore }), securityScore);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
@@ -412,21 +497,45 @@ export function renderRisk(root, state) {
               <label class="risk-select-search">
                 <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search>
               </label>
+              ${summaryCardMarkup}
+              ${canCreateCustomSymbol ? `
+                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}">
+                  + Añadir '${normalizedQuery}' como símbolo personalizado
+                </button>
+              ` : ""}
               <div class="risk-select-options risk-select-options--symbols">
-                ${sortedSymbols.map((symbol) => `
-                  <div class="risk-symbol-option" data-risk-symbol-row="${symbol}">
-                    <label class="risk-select-option">
-                      <input type="checkbox" data-risk-symbol-option="${symbol}" ${selectedSymbols.includes(symbol) ? "checked" : ""}>
-                      <span>${symbol}</span>
-                    </label>
-                    <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol}" aria-label="Marcar ${symbol} como favorito">★</button>
-                  </div>
-                `).join("")}
+                <div class="risk-symbol-section-label">Seleccionados</div>
+                <div class="risk-symbol-group">
+                  ${selectedSymbolItems.length ? selectedSymbolItems.map((symbol, index, list) => `
+                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true">
+                        <div class="ccheck is-checked" aria-hidden="true">${iconCheckMarkup()}</div>
+                        <span class="risk-symbol-name">${symbol.id}</span>
+                        ${categoryPillMarkup(symbol)}
+                      </button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito">★</button>
+                    </div>
+                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos activos.</div>`}
+                </div>
+                <div class="risk-symbol-section-label">Disponibles</div>
+                <div class="risk-symbol-group">
+                  ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
+                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false">
+                        <div class="ccheck" aria-hidden="true"></div>
+                        <span class="risk-symbol-name">${symbol.id}</span>
+                        ${categoryPillMarkup(symbol)}
+                      </button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito">★</button>
+                    </div>
+                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      `
+      `,
+      hideFooterBadge: true
     },
     {
       title: "Bloqueo Automático",
@@ -602,9 +711,11 @@ export function renderRisk(root, state) {
             </div>
             <div class="risk-config-value">${rule.value}</div>
             ${rule.controls || ""}
-            <div class="risk-config-footer">
-              ${badgeMarkup({ label: rule.statusLabel, tone: rule.key.startsWith("__alwaysOn") ? "info" : rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
-            </div>
+            ${rule.hideFooterBadge ? "" : `
+              <div class="risk-config-footer">
+                ${badgeMarkup({ label: rule.statusLabel, tone: rule.key.startsWith("__alwaysOn") ? "info" : rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
+              </div>
+            `}
           </article>
         `).join("")}
       </div>
@@ -755,11 +866,13 @@ export function renderRisk(root, state) {
     renderRisk(root, state);
   });
 
-  root.querySelectorAll("[data-risk-symbol-option]").forEach((input) => {
-    input.addEventListener("change", () => {
+  root.querySelectorAll("[data-risk-symbol-option]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
       const next = new Set(selectedSymbols);
-      if (input.checked) next.add(input.dataset.riskSymbolOption);
-      else next.delete(input.dataset.riskSymbolOption);
+      const symbol = button.dataset.riskSymbolOption;
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
       persistRiskPreferencesDraft(root, { allowedSymbols: serializeTokenList([...next]) });
       ensureRiskUiState(root).openMenu = "symbols";
       renderRisk(root, state);
@@ -780,10 +893,27 @@ export function renderRisk(root, state) {
   });
 
   root.querySelector("[data-risk-symbol-search]")?.addEventListener("input", (event) => {
-    const query = event.target.value.trim().toLowerCase();
-    root.querySelectorAll("[data-risk-symbol-row]").forEach((row) => {
-      row.hidden = query ? !row.dataset.riskSymbolRow.toLowerCase().includes(query) : false;
+    ensureRiskUiState(root).symbolQuery = event.target.value;
+    ensureRiskUiState(root).openMenu = "symbols";
+    renderRisk(root, state);
+  });
+
+  root.querySelector("[data-risk-symbol-add]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const symbol = String(event.currentTarget.dataset.riskSymbolAdd || "").toUpperCase().trim();
+    if (!symbol) return;
+    const nextCustom = new Set(parseTokenList(getRiskPreferencesDraft(root).customSymbols));
+    nextCustom.add(symbol);
+    const nextSelected = new Set(selectedSymbols);
+    nextSelected.add(symbol);
+    persistRiskPreferencesDraft(root, {
+      customSymbols: serializeTokenList([...nextCustom]),
+      allowedSymbols: serializeTokenList([...nextSelected])
     });
+    const ui = ensureRiskUiState(root);
+    ui.symbolQuery = "";
+    ui.openMenu = "symbols";
+    renderRisk(root, state);
   });
 
   const stepInputValue = (input, direction, stepValue) => {
@@ -878,7 +1008,8 @@ export function renderRisk(root, state) {
       allowedSessions: getRiskPreferencesDraft(root).allowedSessions,
       maxVolume: getRiskPreferencesDraft(root).maxVolume,
       allowedSymbols: getRiskPreferencesDraft(root).allowedSymbols,
-      favoriteSymbols: getRiskPreferencesDraft(root).favoriteSymbols
+      favoriteSymbols: getRiskPreferencesDraft(root).favoriteSymbols,
+      customSymbols: getRiskPreferencesDraft(root).customSymbols
     });
     root.__riskSaving = false;
     root.__riskPrefsStatus = "saved";
