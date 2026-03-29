@@ -12751,6 +12751,345 @@ body[data-theme="light"] .account-hero-card .ui-badge--compact {
   box-shadow: none !important;
 }
 
+/* ── Account Cards — Layout Option 3 ───────────────────────────── */
+.account-cards-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 10px;
+}
+
+.account-hero-card {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 0.18s ease;
+  text-align: left;
+}
+
+.account-hero-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.account-hero-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.account-hero-card__content {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+
+html[data-theme="dark"] .account-hero-card,
+body[data-theme="dark"] .account-hero-card {
+  background: #04081a;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+html:not([data-theme="dark"]) .account-hero-card,
+html[data-theme="light"] .account-hero-card,
+body[data-theme="light"] .account-hero-card {
+  background: #0a0f2e;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 24px rgba(10, 15, 60, 0.18),
+    0 1px 4px rgba(10, 15, 60, 0.12);
+}
+
+.account-card-blobs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.account-card-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  will-change: transform;
+}
+
+html[data-theme="dark"] .account-card-blob.blob-1,
+body[data-theme="dark"] .account-card-blob.blob-1 {
+  width: 55%;
+  height: 65%;
+  left: -8%;
+  top: 10%;
+  background: radial-gradient(ellipse, #1a3a8f, transparent 70%);
+  opacity: 0.65;
+  animation: accountBlobFloatA 10.5s ease-in-out infinite;
+}
+
+html[data-theme="dark"] .account-card-blob.blob-2,
+body[data-theme="dark"] .account-card-blob.blob-2 {
+  width: 48%;
+  height: 55%;
+  right: -5%;
+  top: -15%;
+  background: radial-gradient(ellipse, #6b3fa0, transparent 70%);
+  opacity: 0.45;
+  animation: accountBlobFloatB 12s ease-in-out infinite;
+}
+
+html[data-theme="dark"] .account-card-blob.blob-3,
+body[data-theme="dark"] .account-card-blob.blob-3 {
+  width: 42%;
+  height: 50%;
+  right: 5%;
+  bottom: -8%;
+  background: radial-gradient(ellipse, #0d2a7a, transparent 70%);
+  opacity: 0.55;
+  animation: accountBlobFloatC 9s ease-in-out infinite;
+}
+
+html[data-theme="dark"] .account-card-blob.blob-4,
+body[data-theme="dark"] .account-card-blob.blob-4 {
+  width: 32%;
+  height: 38%;
+  left: 22%;
+  top: 8%;
+  background: radial-gradient(ellipse, #8080c0, transparent 70%);
+  opacity: 0.22;
+  animation: accountBlobFloatD 11s ease-in-out infinite;
+}
+
+html:not([data-theme="dark"]) .account-card-blob.blob-1,
+html[data-theme="light"] .account-card-blob.blob-1,
+body[data-theme="light"] .account-card-blob.blob-1 {
+  width: 55%;
+  height: 65%;
+  left: -8%;
+  top: 10%;
+  background: radial-gradient(ellipse, #2952cc, transparent 70%);
+  opacity: 0.55;
+  animation: accountBlobFloatA 10.5s ease-in-out infinite;
+}
+
+html:not([data-theme="dark"]) .account-card-blob.blob-2,
+html[data-theme="light"] .account-card-blob.blob-2,
+body[data-theme="light"] .account-card-blob.blob-2 {
+  width: 48%;
+  height: 55%;
+  right: -5%;
+  top: -15%;
+  background: radial-gradient(ellipse, #7c4dcc, transparent 70%);
+  opacity: 0.38;
+  animation: accountBlobFloatB 12s ease-in-out infinite;
+}
+
+html:not([data-theme="dark"]) .account-card-blob.blob-3,
+html[data-theme="light"] .account-card-blob.blob-3,
+body[data-theme="light"] .account-card-blob.blob-3 {
+  width: 42%;
+  height: 50%;
+  right: 5%;
+  bottom: -8%;
+  background: radial-gradient(ellipse, #1a3fa0, transparent 70%);
+  opacity: 0.45;
+  animation: accountBlobFloatC 9s ease-in-out infinite;
+}
+
+html:not([data-theme="dark"]) .account-card-blob.blob-4,
+html[data-theme="light"] .account-card-blob.blob-4,
+body[data-theme="light"] .account-card-blob.blob-4 {
+  width: 32%;
+  height: 38%;
+  left: 22%;
+  top: 8%;
+  background: radial-gradient(ellipse, #6060aa, transparent 70%);
+  opacity: 0.18;
+  animation: accountBlobFloatD 11s ease-in-out infinite;
+}
+
+.account-hero-card:nth-child(1) .blob-1 { animation-delay: 0s; }
+.account-hero-card:nth-child(2) .blob-1 { animation-delay: -3.5s; }
+.account-hero-card:nth-child(3) .blob-1 { animation-delay: -7s; }
+.account-hero-card:nth-child(1) .blob-2 { animation-delay: -1.5s; }
+.account-hero-card:nth-child(2) .blob-2 { animation-delay: -5s; }
+.account-hero-card:nth-child(3) .blob-2 { animation-delay: -8.5s; }
+.account-hero-card:nth-child(1) .blob-3 { animation-delay: -2.8s; }
+.account-hero-card:nth-child(2) .blob-3 { animation-delay: -6s; }
+.account-hero-card:nth-child(3) .blob-3 { animation-delay: -9.2s; }
+.account-hero-card:nth-child(1) .blob-4 { animation-delay: -0.8s; }
+.account-hero-card:nth-child(2) .blob-4 { animation-delay: -4s; }
+.account-hero-card:nth-child(3) .blob-4 { animation-delay: -7.8s; }
+
+.account-hero-card--main .account-hero-card__content {
+  padding: 20px 20px 18px;
+}
+
+.account-hero-card--main .account-hero-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.account-hero-card--main .account-hero-card__name {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.account-hero-card--main .account-hero-card__meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 3px;
+}
+
+.account-hero-card--main .account-hero-card__equity {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.account-hero-card--main .account-hero-card__equity-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.38);
+  margin-bottom: 18px;
+}
+
+.account-hero-card--main .account-hero-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+.account-hero-card--main .account-hero-card__stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.38);
+  margin-bottom: 4px;
+}
+
+.account-hero-card--main .account-hero-card__stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.account-hero-card--side .account-hero-card__content {
+  padding: 16px;
+}
+
+.account-hero-card--side .account-hero-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.account-hero-card--side .account-hero-card__name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.account-hero-card--side .account-hero-card__meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.account-hero-card--side .account-hero-card__equity {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.account-hero-card--side .account-hero-card__equity-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 14px;
+}
+
+.account-hero-card--side .account-hero-card__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 12px;
+}
+
+.account-hero-card--side .account-hero-card__stat-label {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 3px;
+}
+
+.account-hero-card--side .account-hero-card__stat-val {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.account-hero-card__stat-val.green {
+  color: #34d97b;
+}
+
+.account-hero-card .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.account-hero-card .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.account-hero-card .status-dot.connected {
+  background: #30d158;
+}
+
+@media (max-width: 768px) {
+  .account-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero-card--main .account-hero-card__equity {
+    font-size: 28px;
+  }
+}
+
 html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--ok,
 html[data-theme="light"] .risk-config-card--editable .ui-badge--ok,
 body[data-theme="light"] .risk-config-card--editable .ui-badge--ok {

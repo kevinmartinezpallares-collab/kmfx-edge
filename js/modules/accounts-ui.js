@@ -16,6 +16,60 @@ function isBridgeDataPending(account) {
   return !account.connection?.lastSync;
 }
 
+function accountStatusBadge(account) {
+  const isConnected = Boolean(account?.connection?.connected);
+  return `
+    <span class="status-badge">
+      <span class="status-dot ${isConnected ? "connected" : ""}"></span>
+      ${isConnected ? "Conectada" : "Desconectada"}
+    </span>
+  `;
+}
+
+function renderAccountCard(account, isMain, isActive, isLoading) {
+  const pnl = Number(account?.model?.totals?.pnl || 0);
+  const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
+  const trades = Number(account?.model?.totals?.totalTrades || 0);
+  const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
+
+  return `
+    <button
+      class="account-card account-hero-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""} ${isLoading ? "is-loading" : ""}"
+      data-account-id="${account.id}"
+      type="button"
+    >
+      ${accountMeshMarkup()}
+      <div class="account-hero-card__content">
+        <div class="account-hero-card__top">
+          <div>
+            <div class="account-hero-card__name">${account.name}</div>
+            <div class="account-hero-card__meta">${meta}</div>
+          </div>
+          ${accountStatusBadge(account)}
+        </div>
+        <div class="account-hero-card__equity">${formatCurrency(account.model.account.equity)}</div>
+        <div class="account-hero-card__equity-label">Equity actual</div>
+        <div class="account-hero-card__stats">
+          <div>
+            <div class="account-hero-card__stat-label">P&amp;L</div>
+            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}">${formatCurrency(pnl)}</div>
+          </div>
+          <div>
+            <div class="account-hero-card__stat-label">Win Rate</div>
+            <div class="account-hero-card__stat-val">${formatPercent(account.model.totals.winRate)}</div>
+          </div>
+          ${isMain ? `
+            <div>
+              <div class="account-hero-card__stat-label">Trades</div>
+              <div class="account-hero-card__stat-val">${trades}</div>
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    </button>
+  `;
+}
+
 export function initAccountsUI(store) {
   const root = document.getElementById("accountSwitcher");
   if (!root) return;
@@ -44,8 +98,14 @@ export function initAccountsUI(store) {
 
     const activeAccount = selectCurrentAccount(state);
     const activeModel = selectCurrentModel(state);
-    const accounts = Object.values(state.accounts);
+    const accounts = Object.values(state.accounts).filter((account) => account && typeof account === "object" && "id" in account);
     const activeAccountLabel = getAccountTypeLabel(activeAccount?.model?.profile?.mode, activeAccount?.name);
+    const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
+    const orderedAccounts = [...accounts].sort((left, right) => {
+      if (left.id === activeAccountId) return -1;
+      if (right.id === activeAccountId) return 1;
+      return 0;
+    });
 
     root.innerHTML = `
       <div class="account-switcher">
@@ -65,37 +125,10 @@ export function initAccountsUI(store) {
         </div>
 
         <div class="account-cards-grid">
-          ${accounts.map((account) => {
-            const isActive = account.id === state.currentAccount;
-            const pnl = account.model.totals.pnl;
-            const accountTypeLabel = getAccountTypeLabel(account.model.profile.mode, account.name);
+          ${orderedAccounts.map((account) => {
+            const isActive = account.id === activeAccountId;
             const isLoading = isBridgeDataPending(account);
-            return `
-              <button class="account-card account-hero-card ${isActive ? "active" : ""} ${isLoading ? "is-loading" : ""}" data-account-id="${account.id}">
-                ${accountMeshMarkup()}
-                <div class="account-hero-card__top">
-                  <div>
-                    <div class="account-hero-card__name">${account.name}</div>
-                    <div class="account-hero-card__meta">${accountTypeLabel}</div>
-                  </div>
-                  ${badgeMarkup(getConnectionStatusMeta(account.connection), "ui-badge--compact")}
-                </div>
-                <div class="account-hero-card__metrics">
-                  <div>
-                    <div class="metric-label">Equity</div>
-                    <div class="account-hero-card__value">${formatCurrency(account.model.account.equity)}</div>
-                  </div>
-                  <div>
-                    <div class="metric-label">P&L</div>
-                    <div class="account-hero-card__value ${pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(pnl)}</div>
-                  </div>
-                  <div>
-                    <div class="metric-label">Win rate</div>
-                    <div class="account-hero-card__value">${formatPercent(account.model.totals.winRate)}</div>
-                  </div>
-                </div>
-              </button>
-            `;
+            return renderAccountCard(account, isActive, isActive, isLoading);
           }).join("")}
         </div>
       </div>
