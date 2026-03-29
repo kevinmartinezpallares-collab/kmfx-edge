@@ -276,6 +276,10 @@ function ruleNote(account) {
   return `Preset editable · ${account.propFirm}`;
 }
 
+function currencySymbol(code = "USD") {
+  return code === "EUR" ? "€" : "$";
+}
+
 export function initFunded(store) {
   const root = document.getElementById("fundedRoot");
   if (!root) return;
@@ -381,6 +385,9 @@ export function renderFunded(root, state) {
   const statusMeta = fundedStatusMeta(selected.globalStatus);
   const challengeMeta = challengeStateMeta(selected.challengeState);
   const modelOptions = availableModels(selected.propFirm);
+  const appCurrency = state.workspace?.baseCurrency || state.preferences?.baseCurrency || "USD";
+  const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
+  const accountCurrencySymbol = currencySymbol(accountCurrency);
 
   root.innerHTML = `
     <div class="funded-page-stack">
@@ -428,30 +435,61 @@ export function renderFunded(root, state) {
             <div class="funded-config-grid">
               <label class="form-stack">
                 <span>Prop firm</span>
-                <select data-funded-field="propFirm" data-funded-id="${selected.id}">
-                  ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
-                </select>
+                <div class="funded-select-wrap">
+                  <select data-funded-field="propFirm" data-funded-id="${selected.id}">
+                    ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
+                  </select>
+                  <span class="funded-select-chevron" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                  </span>
+                </div>
               </label>
               <label class="form-stack">
                 <span>Program model</span>
-                <select data-funded-field="programModel" data-funded-id="${selected.id}">
-                  ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
-                </select>
+                <div class="funded-select-wrap">
+                  <select data-funded-field="programModel" data-funded-id="${selected.id}">
+                    ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
+                  </select>
+                  <span class="funded-select-chevron" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                  </span>
+                </div>
               </label>
               <label class="form-stack">
                 <span>Phase</span>
-                <select data-funded-field="phase" data-funded-id="${selected.id}">
-                  ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
-                </select>
+                <div class="funded-select-wrap">
+                  <select data-funded-field="phase" data-funded-id="${selected.id}">
+                    ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
+                  </select>
+                  <span class="funded-select-chevron" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                  </span>
+                </div>
               </label>
               <label class="form-stack">
                 <span>Account size</span>
-                <input type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
+                <div class="funded-size-wrap">
+                  <span class="funded-size-prefix">${accountCurrencySymbol}</span>
+                  <input class="funded-size-input" type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
+                </div>
               </label>
             </div>
-            <div class="goal-card-sub funded-preset-note">${ruleNote(selected)}</div>
-            <div class="settings-actions">
-              <button class="btn-secondary" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
+            <div class="goal-card-sub funded-preset-note">
+              <svg class="funded-preset-note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"></circle>
+                <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+                <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
+              </svg>
+              <span>${ruleNote(selected)}</span>
+            </div>
+            <div class="funded-config-actions">
+              <button class="btn-primary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
             </div>
           </div>
         </div>

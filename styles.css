@@ -8604,6 +8604,106 @@ html:not([data-theme="dark"]) .risk-stepper-btn:last-child {
   margin-top: 0;
 }
 
+.funded-select-wrap,
+.funded-size-wrap {
+  position: relative;
+}
+
+.funded-hero-config .form-stack select,
+.funded-size-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #2c2c2e;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.funded-hero-config .form-stack select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 42px;
+}
+
+.funded-hero-config .form-stack select:focus,
+.funded-size-input:focus {
+  border-color: #0A84FF;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.funded-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.funded-size-prefix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #636366;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.funded-size-input {
+  padding-left: 28px;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.funded-size-input::-webkit-outer-spin-button,
+.funded-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.funded-preset-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #636366;
+  line-height: 1.5;
+}
+
+.funded-preset-note-icon {
+  flex: 0 0 14px;
+  color: #636366;
+  margin-top: 2px;
+}
+
+.funded-config-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.funded-detail-btn {
+  min-height: 44px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.funded-detail-btn:active {
+  transform: scale(0.97);
+}
+
 .funded-progress-layout {
   display: grid;
   grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);

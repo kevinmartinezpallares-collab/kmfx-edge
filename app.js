@@ -11,7 +11,7 @@ import { initConnections, renderConnections } from "./js/modules/connections.js"
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js";
 import { initJournal, renderJournal } from "./js/modules/journal.js";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js";
-import { initFunded, renderFunded } from "./js/modules/funded.js";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=funded-controls-1";
 import { renderMarket } from "./js/modules/market.js";
 import { renderPortfolio } from "./js/modules/portfolio.js";
 import { renderGlossary } from "./js/modules/glossary.js";
