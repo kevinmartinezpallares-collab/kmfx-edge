@@ -44,6 +44,160 @@ import {
 } from "./js/modules/supabase-user-config.js";
 
 const store = createStore();
+const LIGHT_SURFACE_OVERRIDE_ID = "kmfx-light-surface-override";
+const LIGHT_SURFACE_OVERRIDE_CSS = `
+html[data-theme="light"],
+body[data-theme="light"] {
+  --bg-app: #ffffff !important;
+  --bg-shell: #ffffff !important;
+  --bg-sidebar: #ffffff !important;
+  --bg-topbar: #ffffff !important;
+  --bg-panel: #ffffff !important;
+  --bg-card: #ffffff !important;
+  --bg-card-alt: #ffffff !important;
+  --bg3: #ffffff !important;
+  --surface: #ffffff !important;
+  --surface2: #ffffff !important;
+  --card-surface: #ffffff !important;
+  --shell-surface: #ffffff !important;
+}
+html[data-theme="light"] body,
+html[data-theme="light"] .app-shell,
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .main-panel,
+html[data-theme="light"] .content,
+body[data-theme="light"] .app-shell,
+body[data-theme="light"] .sidebar,
+body[data-theme="light"] .topbar,
+body[data-theme="light"] .main-panel,
+body[data-theme="light"] .content {
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .tl-kpi-card,
+html[data-theme="light"] .rm4-card,
+html[data-theme="light"] .tl-section-card,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .pnlcal-card,
+html[data-theme="light"] .widget-card,
+html[data-theme="light"] .account-switcher,
+html[data-theme="light"] .account-banner,
+html[data-theme="light"] .account-banner--premium,
+html[data-theme="light"] .table-wrap,
+html[data-theme="light"] .widget-table-wrap,
+html[data-theme="light"] .chart-shell,
+html[data-theme="light"] .kmfx-chart-shell,
+html[data-theme="light"] .weekly-chart-shell,
+body[data-theme="light"] .tl-kpi-card,
+body[data-theme="light"] .rm4-card,
+body[data-theme="light"] .tl-section-card,
+body[data-theme="light"] .chart-card,
+body[data-theme="light"] .pnlcal-card,
+body[data-theme="light"] .widget-card,
+body[data-theme="light"] .account-switcher,
+body[data-theme="light"] .account-banner,
+body[data-theme="light"] .account-banner--premium,
+body[data-theme="light"] .table-wrap,
+body[data-theme="light"] .widget-table-wrap,
+body[data-theme="light"] .chart-shell,
+body[data-theme="light"] .kmfx-chart-shell,
+body[data-theme="light"] .weekly-chart-shell {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html[data-theme="light"] .tl-kpi-card::before,
+html[data-theme="light"] .rm4-card::before,
+html[data-theme="light"] .tl-section-card::before,
+html[data-theme="light"] .chart-card::before,
+html[data-theme="light"] .pnlcal-card::before,
+html[data-theme="light"] .widget-card::before,
+html[data-theme="light"] .account-switcher::before,
+html[data-theme="light"] .account-banner--premium::before,
+body[data-theme="light"] .tl-kpi-card::before,
+body[data-theme="light"] .rm4-card::before,
+body[data-theme="light"] .tl-section-card::before,
+body[data-theme="light"] .chart-card::before,
+body[data-theme="light"] .pnlcal-card::before,
+body[data-theme="light"] .widget-card::before,
+body[data-theme="light"] .account-switcher::before,
+body[data-theme="light"] .account-banner--premium::before {
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
+}
+html[data-theme="light"] .topbar-user-card,
+html[data-theme="light"] .topbar-time-stack,
+html[data-theme="light"] .sidebar-search,
+html[data-theme="light"] .sidebar-profile,
+html[data-theme="light"] .theme-toggle-badge,
+html[data-theme="light"] .theme-badge-option,
+html[data-theme="light"] .sidebar-profile-menu-btn,
+html[data-theme="light"] .sidebar-profile-menu,
+html[data-theme="light"] .ui-badge,
+html[data-theme="light"] .widget-segmented,
+html[data-theme="light"] .row-chip,
+html[data-theme="light"] .pill,
+html[data-theme="light"] .calc-chip,
+html[data-theme="light"] .calc-pill,
+html[data-theme="light"] .widget-pill,
+html[data-theme="light"] .footer-chip,
+html[data-theme="light"] .tl-tab-bar,
+body[data-theme="light"] .topbar-user-card,
+body[data-theme="light"] .topbar-time-stack,
+body[data-theme="light"] .sidebar-search,
+body[data-theme="light"] .sidebar-profile,
+body[data-theme="light"] .theme-toggle-badge,
+body[data-theme="light"] .theme-badge-option,
+body[data-theme="light"] .sidebar-profile-menu-btn,
+body[data-theme="light"] .sidebar-profile-menu,
+body[data-theme="light"] .ui-badge,
+body[data-theme="light"] .widget-segmented,
+body[data-theme="light"] .row-chip,
+body[data-theme="light"] .pill,
+body[data-theme="light"] .calc-chip,
+body[data-theme="light"] .calc-pill,
+body[data-theme="light"] .widget-pill,
+body[data-theme="light"] .footer-chip,
+body[data-theme="light"] .tl-tab-bar {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .funded-hero-config,
+body[data-theme="light"] .funded-hero-config {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+}
+html[data-theme="light"] .funded-hero-config .funded-select-wrap select,
+html[data-theme="light"] .funded-hero-config .funded-size-wrap .funded-size-input,
+body[data-theme="light"] .funded-hero-config .funded-select-wrap select,
+body[data-theme="light"] .funded-hero-config .funded-size-wrap .funded-size-input {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  color: #182133 !important;
+}`;
+
+function syncForcedLightSurface(theme) {
+  let styleEl = document.getElementById(LIGHT_SURFACE_OVERRIDE_ID);
+  if (theme === "light") {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = LIGHT_SURFACE_OVERRIDE_ID;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = LIGHT_SURFACE_OVERRIDE_CSS;
+    return;
+  }
+  styleEl?.remove();
+}
 
 const pageRenderers = {
   dashboard: (state) => renderDashboard(document.getElementById("dashboardRoot"), state),
@@ -249,6 +403,8 @@ function initSettings() {
 
   const applyTheme = (theme) => {
     root.setAttribute("data-theme", theme);
+    document.body?.setAttribute("data-theme", theme);
+    syncForcedLightSurface(theme);
     if (themeBadge) {
       themeBadge.textContent = theme === "dark" ? "Tema oscuro" : "Tema claro";
     }
