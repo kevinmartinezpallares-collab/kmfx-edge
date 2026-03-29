@@ -193,11 +193,7 @@ html[data-theme="light"] .account-hero-card:hover,
 html[data-theme="light"] .account-hero-card.active,
 body[data-theme="light"] .account-hero-card,
 body[data-theme="light"] .account-hero-card:hover,
-body[data-theme="light"] .account-hero-card.active,
-html[data-theme="light"] .risk-config-card--editable,
-html[data-theme="light"] .risk-config-card--off,
-body[data-theme="light"] .risk-config-card--editable,
-body[data-theme="light"] .risk-config-card--off {
+body[data-theme="light"] .account-hero-card.active {
   background: #ffffff !important;
   background-image: none !important;
   border-color: rgba(15, 23, 42, 0.08) !important;
@@ -206,14 +202,8 @@ body[data-theme="light"] .risk-config-card--off {
 }
 html[data-theme="light"] .account-hero-card::before,
 html[data-theme="light"] .account-hero-card::after,
-html[data-theme="light"] .risk-config-card--editable::before,
-html[data-theme="light"] .risk-config-card--editable::after,
-html[data-theme="light"] .risk-config-card--off::after,
 body[data-theme="light"] .account-hero-card::before,
-body[data-theme="light"] .account-hero-card::after,
-body[data-theme="light"] .risk-config-card--editable::before,
-body[data-theme="light"] .risk-config-card--editable::after,
-body[data-theme="light"] .risk-config-card--off::after {
+body[data-theme="light"] .account-hero-card::after {
   content: none !important;
   background: none !important;
   opacity: 0 !important;
@@ -225,46 +215,16 @@ html[data-theme="light"] .account-hero-card .metric-label,
 html[data-theme="light"] .account-hero-card .tl-kpi-label,
 html[data-theme="light"] .account-hero-card .ui-badge,
 html[data-theme="light"] .account-hero-card .ui-badge--compact,
-html[data-theme="light"] .risk-config-card--editable .risk-config-title,
-html[data-theme="light"] .risk-config-card--editable .risk-config-value,
-html[data-theme="light"] .risk-config-card--editable .risk-config-toggle,
-html[data-theme="light"] .risk-config-card--editable .risk-config-meta,
-html[data-theme="light"] .risk-config-card--editable .risk-config-control span,
-html[data-theme="light"] .risk-config-card--editable .risk-config-state-pill,
-html[data-theme="light"] .risk-config-card--editable .ui-badge,
-html[data-theme="light"] .risk-config-card--editable .risk-select-trigger span,
-html[data-theme="light"] .risk-config-card--editable .risk-select-trigger strong,
 body[data-theme="light"] .account-hero-card .account-hero-card__name,
 body[data-theme="light"] .account-hero-card .account-hero-card__value,
 body[data-theme="light"] .account-hero-card .account-hero-card__meta,
 body[data-theme="light"] .account-hero-card .metric-label,
 body[data-theme="light"] .account-hero-card .tl-kpi-label,
 body[data-theme="light"] .account-hero-card .ui-badge,
-body[data-theme="light"] .account-hero-card .ui-badge--compact,
-body[data-theme="light"] .risk-config-card--editable .risk-config-title,
-body[data-theme="light"] .risk-config-card--editable .risk-config-value,
-body[data-theme="light"] .risk-config-card--editable .risk-config-toggle,
-body[data-theme="light"] .risk-config-card--editable .risk-config-meta,
-body[data-theme="light"] .risk-config-card--editable .risk-config-control span,
-body[data-theme="light"] .risk-config-card--editable .risk-config-state-pill,
-body[data-theme="light"] .risk-config-card--editable .ui-badge,
-body[data-theme="light"] .risk-config-card--editable .risk-select-trigger span,
-body[data-theme="light"] .risk-config-card--editable .risk-select-trigger strong {
+body[data-theme="light"] .account-hero-card .ui-badge--compact {
   color: #182133 !important;
 }
-html[data-theme="light"] .risk-config-card--editable .risk-config-control input,
-html[data-theme="light"] .risk-config-card--editable .risk-config-control textarea,
-html[data-theme="light"] .risk-stepper,
-html[data-theme="light"] .risk-config-card--editable .risk-select-trigger,
-body[data-theme="light"] .risk-config-card--editable .risk-config-control input,
-body[data-theme="light"] .risk-config-card--editable .risk-config-control textarea,
-body[data-theme="light"] .risk-stepper,
-body[data-theme="light"] .risk-config-card--editable .risk-select-trigger {
-  background: #ffffff !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-  box-shadow: none !important;
-  color: #182133 !important;
-}`;
+`;
 
 function syncForcedLightSurface(theme) {
   let styleEl = document.getElementById(LIGHT_SURFACE_OVERRIDE_ID);
