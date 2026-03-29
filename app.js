@@ -1,28 +1,28 @@
-import { createStore } from "./js/modules/store.js";
-import { initNavigation } from "./js/modules/navigation.js";
-import { renderDashboard } from "./js/modules/dashboard.js";
-import { renderAnalytics } from "./js/modules/analytics.js";
-import { renderDiscipline } from "./js/modules/discipline.js";
-import { renderRisk } from "./js/modules/risk.js?v=risk-admin-1";
-import { renderTrades } from "./js/modules/trades.js";
-import { renderCalendar } from "./js/modules/calendar.js";
-import { initAccountsUI } from "./js/modules/accounts-ui.js";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=connections-admin-1";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js";
-import { initJournal, renderJournal } from "./js/modules/journal.js";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=funded-admin-1";
-import { renderMarket } from "./js/modules/market.js";
-import { renderPortfolio } from "./js/modules/portfolio.js";
-import { renderGlossary } from "./js/modules/glossary.js";
-import { renderDebug } from "./js/modules/debug.js?v=debug-admin-1";
-import { initMobileNav } from "./js/modules/mobile-nav.js?v=mobile-nav-admin-1";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js";
-import "./js/modules/modal-system.js?v=modal-redesign-2";
-import { initAccountRuntime } from "./js/modules/account-runtime.js";
-import { initTopbarStatus } from "./js/modules/topbar-status.js";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js";
-import { initAuthUI } from "./js/modules/auth-ui.js";
+import { createStore } from "./js/modules/store.js?v=ui-cache-20260329-2";
+import { initNavigation } from "./js/modules/navigation.js?v=ui-cache-20260329-2";
+import { renderDashboard } from "./js/modules/dashboard.js?v=ui-cache-20260329-2";
+import { renderAnalytics } from "./js/modules/analytics.js?v=ui-cache-20260329-2";
+import { renderDiscipline } from "./js/modules/discipline.js?v=ui-cache-20260329-2";
+import { renderRisk } from "./js/modules/risk.js?v=ui-cache-20260329-2";
+import { renderTrades } from "./js/modules/trades.js?v=ui-cache-20260329-2";
+import { renderCalendar } from "./js/modules/calendar.js?v=ui-cache-20260329-2";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=ui-cache-20260329-2";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=ui-cache-20260329-2";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=ui-cache-20260329-2";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=ui-cache-20260329-2";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=ui-cache-20260329-2";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=ui-cache-20260329-2";
+import { renderMarket } from "./js/modules/market.js?v=ui-cache-20260329-2";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=ui-cache-20260329-2";
+import { renderGlossary } from "./js/modules/glossary.js?v=ui-cache-20260329-2";
+import { renderDebug } from "./js/modules/debug.js?v=ui-cache-20260329-2";
+import { initMobileNav } from "./js/modules/mobile-nav.js?v=ui-cache-20260329-2";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=ui-cache-20260329-2";
+import "./js/modules/modal-system.js?v=ui-cache-20260329-2";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=ui-cache-20260329-2";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=ui-cache-20260329-2";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=ui-cache-20260329-2";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=ui-cache-20260329-2";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -31,8 +31,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=auth-role-2";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js";
+} from "./js/modules/auth-session.js?v=ui-cache-20260329-2";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=ui-cache-20260329-2";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -41,7 +41,7 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js";
+} from "./js/modules/supabase-user-config.js?v=ui-cache-20260329-2";
 
 const store = createStore();
 const LIGHT_SURFACE_OVERRIDE_ID = "kmfx-light-surface-override";
