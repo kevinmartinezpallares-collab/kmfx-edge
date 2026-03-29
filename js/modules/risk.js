@@ -101,6 +101,10 @@ function getRiskPreferencesDraft(root) {
   if (!root.__riskPrefsDraft) {
     const preferences = readLocalPreferences();
     const panelConfig = readRiskPanelStorage();
+    const hasAllowedSessions = Object.prototype.hasOwnProperty.call(panelConfig, "allowedSessions");
+    const hasAllowedSymbols = Object.prototype.hasOwnProperty.call(panelConfig, "allowedSymbols");
+    const hasFavoriteSymbols = Object.prototype.hasOwnProperty.call(panelConfig, "favoriteSymbols");
+    const hasCustomSymbols = Object.prototype.hasOwnProperty.call(panelConfig, "customSymbols");
     root.__riskPrefsDraft = {
       defaultRisk: String(preferences.defaultRisk ?? "0.45"),
       dailyDrawdownLimit: String(preferences.dailyDrawdownLimit ?? "1.2"),
@@ -111,11 +115,16 @@ function getRiskPreferencesDraft(root) {
       alertOvertrading: Boolean(preferences.alertOvertrading),
       riskGuidanceEnabled: Boolean(preferences.riskGuidanceEnabled),
       autoBlockOptIn: Boolean(preferences.autoBlockOptIn),
-      allowedSessions: String(panelConfig.allowedSessions ?? ""),
+      allowedSessionsEnabled: panelConfig.allowedSessionsEnabled ?? true,
+      maxVolumeEnabled: panelConfig.maxVolumeEnabled ?? true,
+      allowedSymbolsEnabled: panelConfig.allowedSymbolsEnabled ?? true,
+      allowedSessions: String(hasAllowedSessions ? (panelConfig.allowedSessions ?? "") : ""),
       maxVolume: String(panelConfig.maxVolume ?? ""),
-      allowedSymbols: String(panelConfig.allowedSymbols ?? ""),
-      favoriteSymbols: String(panelConfig.favoriteSymbols ?? ""),
-      customSymbols: String(panelConfig.customSymbols ?? "")
+      allowedSymbols: String(hasAllowedSymbols ? (panelConfig.allowedSymbols ?? "") : ""),
+      favoriteSymbols: String(hasFavoriteSymbols ? (panelConfig.favoriteSymbols ?? "") : ""),
+      customSymbols: String(hasCustomSymbols ? (panelConfig.customSymbols ?? "") : ""),
+      __hasAllowedSessions: hasAllowedSessions,
+      __hasAllowedSymbols: hasAllowedSymbols
     };
   }
   return root.__riskPrefsDraft;
@@ -201,9 +210,11 @@ function renderStepperInput({
   step = "0.1",
   min = "0",
   max = "",
-  dataset = "number"
+  dataset = "number",
+  disabled = false
 }) {
   const maxAttr = max !== "" ? ` max="${max}"` : "";
+  const disabledAttr = disabled ? " disabled" : "";
   const dataAttr = dataset === "text"
     ? `data-risk-pref-text="${key}"`
     : `data-risk-pref-number="${key}"`;
@@ -215,9 +226,9 @@ function renderStepperInput({
     <label class="risk-config-control">
       <span>${label}</span>
       <div class="risk-stepper">
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}">−</button>
-        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}>
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}">+</button>
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}"${disabledAttr}>−</button>
+        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}${disabledAttr}>
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}"${disabledAttr}>+</button>
       </div>
     </label>
   `;
@@ -252,6 +263,19 @@ function syncRiskConfigPreview(root, previewKey) {
   const valueNode = root.querySelector(`[data-risk-config-value="${previewKey}"]`);
   if (!valueNode) return;
   valueNode.textContent = getRiskConfigPreviewValue(root, previewKey);
+}
+
+function rerenderRiskKeepingSymbolSearch(root, state) {
+  const ui = ensureRiskUiState(root);
+  const query = ui.symbolQuery;
+  renderRisk(root, state);
+  window.requestAnimationFrame(() => {
+    const search = root.querySelector("[data-risk-symbol-search]");
+    if (!search) return;
+    search.focus();
+    search.value = query;
+    search.setSelectionRange(query.length, query.length);
+  });
 }
 
 function focusCardControl(card) {
@@ -391,8 +415,16 @@ export function renderRisk(root, state) {
     symbolUniverseMap.set(id, { id, cat: "Custom", color: "#8e8e93" });
   });
   const symbolUniverse = [...symbolUniverseMap.values()];
-  const selectedSessions = parseTokenList(prefsDraft.allowedSessions || (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · "));
-  const selectedSymbols = parseTokenList(prefsDraft.allowedSymbols || (model.riskProfile.allowedSymbols || symbolUniverse.map((item) => item.id)).join(" · "));
+  const selectedSessions = parseTokenList(
+    prefsDraft.__hasAllowedSessions
+      ? prefsDraft.allowedSessions
+      : (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · ")
+  );
+  const selectedSymbols = parseTokenList(
+    prefsDraft.__hasAllowedSymbols
+      ? prefsDraft.allowedSymbols
+      : (model.riskProfile.allowedSymbols || symbolUniverse.map((item) => item.id)).join(" · ")
+  );
   const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
   const selectedSymbolSet = new Set(selectedSymbols);
   const normalizedQuery = riskUi.symbolQuery.trim().toUpperCase();
@@ -488,23 +520,23 @@ export function renderRisk(root, state) {
       description: "Ventanas operativas UTC",
       value: selectedSessionsLabel,
       menuOpen: riskUi.openMenu === "sessions",
-      checked: true,
-      key: "__alwaysOnSessions",
-      statusLabel: "Editable",
+      checked: prefsDraft.allowedSessionsEnabled,
+      key: "allowedSessionsEnabled",
+      statusLabel: toggleStatusLabel(prefsDraft.allowedSessionsEnabled, "Activo", "Off"),
       controls: `
         <div class="risk-config-control">
           <span>Sesiones</span>
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
               <span>${selectedSessionsLabel}</span>
               <strong>${selectedSessions.length}/3</strong>
             </button>
             <div class="risk-select-menu">
-              <button class="risk-select-bulk" type="button" data-risk-sessions-all>Marcar las 3</button>
+              <button class="risk-select-bulk" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>Marcar las 3</button>
               <div class="risk-select-options">
                 ${sessionOptions.map((session) => `
                   <label class="risk-select-option">
-                    <input type="checkbox" data-risk-session-option="${session}" ${selectedSessions.includes(session) ? "checked" : ""}>
+                    <input type="checkbox" data-risk-session-option="${session}" ${selectedSessions.includes(session) ? "checked" : ""} ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
                     <span>${session}</span>
                   </label>
                 `).join("")}
@@ -519,34 +551,34 @@ export function renderRisk(root, state) {
       description: "Lote máximo por trade",
       value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5),
       previewKey: "volume",
-      checked: true,
-      key: "__alwaysOnVolume",
-      statusLabel: "Editable",
-      controls: renderStepperInput({ label: "Lote máximo", key: "maxVolume", value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5), step: "0.01", min: "0", dataset: "text" })
+      checked: prefsDraft.maxVolumeEnabled,
+      key: "maxVolumeEnabled",
+      statusLabel: toggleStatusLabel(prefsDraft.maxVolumeEnabled, "Activo", "Off"),
+      controls: renderStepperInput({ label: "Lote máximo", key: "maxVolume", value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5), step: "0.01", min: "0", dataset: "text", disabled: !prefsDraft.maxVolumeEnabled })
     },
     {
       title: "Símbolos Permitidos",
       description: "Universo habilitado",
       value: selectedSymbolsLabel,
       menuOpen: riskUi.openMenu === "symbols",
-      checked: true,
-      key: "__alwaysOnSymbols",
-      statusLabel: "Editable",
+      checked: prefsDraft.allowedSymbolsEnabled,
+      key: "allowedSymbolsEnabled",
+      statusLabel: toggleStatusLabel(prefsDraft.allowedSymbolsEnabled, "Activo", "Off"),
       controls: `
         <div class="risk-config-control">
           <span>Símbolos</span>
           <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
               <span>${selectedSymbolsLabel}</span>
               <strong>${selectedSymbols.length}</strong>
             </button>
             <div class="risk-select-menu risk-select-menu--symbols">
               <label class="risk-select-search">
-                <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search>
+                <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
               </label>
               ${summaryCardMarkup}
               ${canCreateCustomSymbol ? `
-                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}">
+                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
                   + Añadir '${normalizedQuery}' como símbolo personalizado
                 </button>
               ` : ""}
@@ -555,12 +587,12 @@ export function renderRisk(root, state) {
                 <div class="risk-symbol-group">
                   ${selectedSymbolItems.length ? selectedSymbolItems.map((symbol, index, list) => `
                     <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
                         <div class="ccheck is-checked" aria-hidden="true">${iconCheckMarkup()}</div>
                         <span class="risk-symbol-name">${symbol.id}</span>
                         ${categoryPillMarkup(symbol)}
                       </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito">★</button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
                     </div>
                   `).join("") : `<div class="risk-symbol-empty">No hay símbolos activos.</div>`}
                 </div>
@@ -568,12 +600,12 @@ export function renderRisk(root, state) {
                 <div class="risk-symbol-group">
                   ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
                     <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
                         <div class="ccheck" aria-hidden="true"></div>
                         <span class="risk-symbol-name">${symbol.id}</span>
                         ${categoryPillMarkup(symbol)}
                       </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito">★</button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
                     </div>
                   `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
                 </div>
@@ -747,20 +779,16 @@ export function renderRisk(root, state) {
                 <div class="risk-config-title">${rule.title}</div>
                 <div class="risk-config-meta">${rule.description}</div>
               </div>
-              ${rule.key.startsWith("__alwaysOn")
-                ? `<div class="risk-config-state-pill">${rule.statusLabel}</div>`
-                : `
-                  <label class="risk-config-toggle" aria-label="${rule.title}">
-                    <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
-                    <span class="risk-config-toggle-ui"></span>
-                  </label>
-                `}
+              <label class="risk-config-toggle" aria-label="${rule.title}">
+                <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
+                <span class="risk-config-toggle-ui"></span>
+              </label>
             </div>
             <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
             ${rule.controls || ""}
             ${rule.hideFooterBadge ? "" : `
               <div class="risk-config-footer">
-                ${badgeMarkup({ label: rule.statusLabel, tone: rule.key.startsWith("__alwaysOn") ? "info" : rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
+                ${badgeMarkup({ label: rule.statusLabel, tone: rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
               </div>
             `}
           </article>
@@ -886,6 +914,13 @@ export function renderRisk(root, state) {
       persistRiskPreferencesDraft(root, {
         [input.dataset.riskPrefBool]: input.checked
       });
+      const ui = ensureRiskUiState(root);
+      if (!input.checked && input.dataset.riskPrefBool === "allowedSessionsEnabled" && ui.openMenu === "sessions") {
+        ui.openMenu = null;
+      }
+      if (!input.checked && input.dataset.riskPrefBool === "allowedSymbolsEnabled" && ui.openMenu === "symbols") {
+        ui.openMenu = null;
+      }
       renderRisk(root, state);
     });
   });
@@ -951,7 +986,7 @@ export function renderRisk(root, state) {
   root.querySelector("[data-risk-symbol-search]")?.addEventListener("input", (event) => {
     ensureRiskUiState(root).symbolQuery = event.target.value;
     ensureRiskUiState(root).openMenu = "symbols";
-    renderRisk(root, state);
+    rerenderRiskKeepingSymbolSearch(root, state);
   });
 
   root.querySelector("[data-risk-symbol-add]")?.addEventListener("click", (event) => {
@@ -1061,6 +1096,9 @@ export function renderRisk(root, state) {
 
     persistLocalPreferences(nextPreferences);
     persistRiskPanelStorage({
+      allowedSessionsEnabled: getRiskPreferencesDraft(root).allowedSessionsEnabled,
+      maxVolumeEnabled: getRiskPreferencesDraft(root).maxVolumeEnabled,
+      allowedSymbolsEnabled: getRiskPreferencesDraft(root).allowedSymbolsEnabled,
       allowedSessions: getRiskPreferencesDraft(root).allowedSessions,
       maxVolume: getRiskPreferencesDraft(root).maxVolume,
       allowedSymbols: getRiskPreferencesDraft(root).allowedSymbols,

@@ -7144,6 +7144,17 @@ body[data-theme="dark"] .settings-profile-card {
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
 }
 
+.risk-select-trigger:disabled,
+.risk-stepper-btn:disabled,
+.risk-symbol-main:disabled,
+.risk-symbol-favorite:disabled,
+.risk-symbol-add-custom:disabled,
+.risk-select-bulk:disabled,
+.risk-select-search input:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .risk-select-menu {
   display: none;
   position: absolute;
