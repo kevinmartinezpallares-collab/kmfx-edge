@@ -100,14 +100,30 @@
 
 /* KMFX dark palette locked: do not change bg/shell/canvas/card tones without an explicit dark-mode redesign decision. */
 [data-theme="dark"] {
-  --bg-app: #0D0E12;
-  --bg-shell: #0D0E12;
-  --bg-sidebar: #0D0E12;
-  --bg-topbar: #0D0E12;
-  --bg-panel: #0D0E12;
-  --bg-card: #111317;
-  --bg-card-alt: #111317;
-  --border-subtle: rgba(255,255,255,0.06);
+  /* ── Fondos base ── */
+  --bg-app: #121212;
+  --bg-shell: #121212;
+  --bg-sidebar: #121212;
+  --bg-topbar: #121212;
+  --bg-panel: #121212;
+  --bg: #121212;
+  --bg2: #1c1c1c;
+  --bg3: #1c1c1c;
+
+  /* ── Superficies (cards, modales) ── */
+  --bg-card: #1c1c1c;
+  --bg-card-alt: #1c1c1c;
+  --surface: #1c1c1c;
+  --surface2: #1c1c1c;
+  --shell-surface: #1c1c1c;
+
+  /* ── Bordes ── */
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.12);
+  --border-subtle: rgba(255,255,255,0.05);
+  --card-border: rgba(255,255,255,0.08);
+  --shell-border: rgba(255,255,255,0.06);
+
   --text-primary: #FFFFFF;
   --text-secondary: #8E9196;
   --text-muted: #6F7782;
@@ -115,13 +131,6 @@
   --accent-green: #22C55E;
   --accent-violet: #B9A7FF;
   --positive: #4ADE80;
-  --bg: #0D0E12;
-  --bg2: #111317;
-  --bg3: #111317;
-  --surface: #111317;
-  --surface2: #111317;
-  --border: #34373D;
-  --border2: #34373D;
   --text: #FFFFFF;
   --text1: #FFFFFF;
   --text2: #FFFFFF;
@@ -150,17 +159,16 @@
   --neutral-strong: #FFFFFF;
   --neutral: #8E9196;
   --neutral-soft: #6F7782;
+
+  /* ── Sombras — ninguna en dark ── */
   --shadow: none;
   --shadow-md: none;
   --shadow-lg: none;
-  --card-surface: #111317;
-  --card-border: #34373D;
+  --card-surface: #1c1c1c;
   --card-inner-glow: none;
   --card-sheen: none;
   --card-shadow: none;
-  --card-hover-border: #34373D;
-  --shell-surface: #111317;
-  --shell-border: transparent;
+  --card-hover-border: rgba(255,255,255,0.12);
   --shell-shadow: none;
   --active-surface: rgba(255,255,255,0.055);
   --active-border: rgba(255,255,255,0.08);
@@ -13540,4 +13548,130 @@ html:not([data-theme="dark"]) .risk-session-utc,
 html:not([data-theme="dark"]) .risk-session-summary-count span,
 html:not([data-theme="dark"]) .risk-symbol-summary-count span {
   color: #667085;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .app-shell,
+[data-theme="dark"] .sidebar,
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .main-panel,
+[data-theme="dark"] .content {
+  background: #121212 !important;
+}
+
+[data-theme="dark"] .sidebar {
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+[data-theme="dark"] .topbar {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+[data-theme="dark"] .nav-item.active {
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 8px;
+}
+
+[data-theme="dark"] .nav-item.active .nav-label,
+[data-theme="dark"] .nav-item.active svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+[data-theme="dark"] .tl-kpi-card,
+[data-theme="dark"] .rm4-card,
+[data-theme="dark"] .tl-section-card,
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .pnlcal-card,
+[data-theme="dark"] .widget-card,
+[data-theme="dark"] .account-switcher,
+[data-theme="dark"] .account-banner,
+[data-theme="dark"] .table-wrap,
+[data-theme="dark"] .widget-table-wrap,
+[data-theme="dark"] .kmfx-chart-shell,
+[data-theme="dark"] .modal-card {
+  background: #1c1c1c !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .risk-config-card,
+[data-theme="dark"] .risk-config-card--editable,
+[data-theme="dark"] .risk-config-card--off {
+  background: #1c1c1c !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .risk-config-card--editable::before,
+[data-theme="dark"] .risk-config-card--editable::after,
+[data-theme="dark"] .risk-config-card--off::before,
+[data-theme="dark"] .risk-config-card--off::after {
+  display: none !important;
+}
+
+[data-theme="dark"] .account-hero-card {
+  background: #1c1c1c !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .account-card-blob {
+  opacity: 0 !important;
+}
+
+[data-theme="dark"] .account-hero-card.active .account-card-blob,
+[data-theme="dark"] .account-hero-card--main .account-card-blob {
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .account-hero-card.active,
+[data-theme="dark"] .account-hero-card--main {
+  background: #04081a !important;
+  border: 1px solid rgba(61,123,255,0.20) !important;
+}
+
+[data-theme="dark"] .bottom-nav {
+  background: rgba(18,18,18,0.92) !important;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-top: 0.5px solid rgba(255,255,255,0.07) !important;
+}
+
+[data-theme="dark"] .bnav-more-menu {
+  background: rgba(28,28,28,0.96) !important;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .modal-card {
+  background: rgba(28,28,28,0.85) !important;
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+[data-theme="dark"] .modal-head {
+  background: rgba(28,28,28,0.70) !important;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+[data-theme="dark"] .modal-card input,
+[data-theme="dark"] .modal-card textarea,
+[data-theme="dark"] .modal-card select {
+  background: #252525 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: rgba(255,255,255,0.30) !important;
 }
