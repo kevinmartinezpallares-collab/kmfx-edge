@@ -778,7 +778,7 @@ export function renderRisk(root, state) {
           <strong>EA bloqueado por protección de capital</strong>
           <span>${account.compliance.messages[0] || "Se activó el bloqueo automático por incumplimiento de límites."}</span>
         </div>
-        <div class="risk-lock-meta">Último sync: ${formatDateTime(account.connection.lastSync)}</div>
+        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último sync: ${formatDateTime(account.connection.lastSync)}</div>` : ""}
       </article>
     ` : ""}
 

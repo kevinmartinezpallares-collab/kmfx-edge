@@ -1,6 +1,6 @@
 import { connectAccount, disconnectAccount, reconnectAccount } from "./account-runtime.js";
 import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js";
+import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=status-badges-1";
 import { showToast } from "./toast.js";
 
 function connectionCatalogStatusMeta(status) {
@@ -10,26 +10,22 @@ function connectionCatalogStatusMeta(status) {
   return { label: status, tone: "neutral" };
 }
 
+function isAdminView(state) {
+  return state?.auth?.user?.role === "admin";
+}
+
+function userConnectionMeta(connection = {}) {
+  if (connection.isSyncing || connection.state === "connecting") return { label: "Sincronizando...", tone: "info" };
+  if (connection.state === "connected") return { label: "Conectado", tone: "ok" };
+  if (connection.state === "error") return { label: "Error de conexión", tone: "error" };
+  return { label: "Sin conexión", tone: "neutral" };
+}
+
 export function initConnections(store) {
   const root = document.getElementById("connectionsRoot");
   if (!root) return;
 
   root.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-connection-action]");
-    if (!button) return;
-    const id = button.dataset.connectionId;
-    const action = button.dataset.connectionAction;
-
-    if (action === "connect") {
-      connectAccount(store, id);
-      showToast("MT5 conectado", "success");
-    }
-    if (action === "disconnect") {
-      disconnectAccount(store, id);
-      showToast("Bridge desconectado", "error");
-    }
-    if (action === "reconnect") reconnectAccount(store, id);
-
     const addButton = event.target.closest("[data-connection-add='true']");
     if (addButton) {
       const nameInput = root.querySelector("[data-connection-field='name']");
@@ -57,6 +53,25 @@ export function initConnections(store) {
           ]
         }
       }));
+      return;
+    }
+
+    const button = event.target.closest("[data-connection-action]");
+    if (!button) return;
+    const id = button.dataset.connectionId;
+    const action = button.dataset.connectionAction;
+
+    if (action === "connect") {
+      connectAccount(store, id);
+      showToast("Conectado", "success");
+    }
+    if (action === "disconnect") {
+      disconnectAccount(store, id);
+      showToast("Sin conexión", "error");
+    }
+    if (action === "reconnect") {
+      reconnectAccount(store, id);
+      showToast("Sincronizando...", "default");
     }
   });
 }
@@ -71,6 +86,55 @@ export function renderConnections(root, state) {
 
   const connectedCount = Object.values(state.accounts).filter((account) => account.connection.state === "connected").length;
   const syncingCount = Object.values(state.accounts).filter((account) => account.connection.isSyncing).length;
+  const adminView = isAdminView(state);
+
+  if (!adminView) {
+    const currentConnectionMeta = userConnectionMeta(currentAccount.connection);
+    root.innerHTML = `
+      <div class="tl-page-header">
+        <div class="tl-page-title">Conexiones</div>
+        <div class="tl-page-sub">Consulta el estado de sincronización de tus cuentas y reintenta la conexión si hace falta.</div>
+      </div>
+
+      <div class="tl-kpi-row four">
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Cuenta activa</div><div class="tl-kpi-val">${currentAccount.name}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Conectadas</div><div class="tl-kpi-val green">${connectedCount}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Sincronizando</div><div class="tl-kpi-val">${syncingCount}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Estado general</div><div class="tl-kpi-val">${currentConnectionMeta.label}</div></article>
+      </div>
+
+      <article class="tl-section-card">
+        <div class="tl-section-header"><div class="tl-section-title">Tus cuentas</div></div>
+        <div class="connections-grid">
+          ${Object.values(state.accounts).map((account) => {
+            const connectionMeta = userConnectionMeta(account.connection);
+            return `
+              <article class="tl-section-card">
+                <div class="tl-section-header">
+                  <div>
+                    <div class="tl-section-title">${account.name}</div>
+                    <div class="row-sub">${account.broker}</div>
+                  </div>
+                  ${badgeMarkup(connectionMeta)}
+                </div>
+                <div class="info-list compact">
+                  <div><strong>Estado</strong><span>${connectionMeta.label}</span></div>
+                  <div><strong>Última actualización</strong><span>${formatDateTime(account.connection.lastSync)}</span></div>
+                </div>
+                <div class="settings-actions">
+                  ${account.connection.state === "disconnected" ? `<button class="btn-primary" data-connection-action="connect" data-connection-id="${account.id}">Conectar</button>` : ""}
+                  ${account.connection.state === "connecting" || account.connection.isSyncing ? `<button class="btn-secondary" disabled>Sincronizando...</button>` : ""}
+                  ${account.connection.state === "connected" ? `<button class="btn-secondary" data-connection-action="disconnect" data-connection-id="${account.id}">Desconectar</button>` : ""}
+                  ${account.connection.state === "error" ? `<button class="btn-primary" data-connection-action="reconnect" data-connection-id="${account.id}">Reintentar</button>` : ""}
+                </div>
+              </article>
+            `;
+          }).join("")}
+        </div>
+      </article>
+    `;
+    return;
+  }
 
   root.innerHTML = `
     <div class="tl-page-header">
@@ -128,7 +192,7 @@ export function renderConnections(root, state) {
               ${account.connection.state === "disconnected" ? `<button class="btn-primary" data-connection-action="connect" data-connection-id="${account.id}">Conectar</button>` : ""}
               ${account.connection.state === "connecting" ? `<button class="btn-secondary" disabled>Conectando...</button>` : ""}
               ${account.connection.state === "connected" ? `<button class="btn-secondary" data-connection-action="disconnect" data-connection-id="${account.id}">Desconectar</button>` : ""}
-              ${account.connection.state === "error" ? `<button class="btn-primary" data-connection-action="reconnect" data-connection-id="${account.id}">Reconnect</button>` : ""}
+              ${account.connection.state === "error" ? `<button class="btn-primary" data-connection-action="reconnect" data-connection-id="${account.id}">Reintentar</button>` : ""}
             </div>
           </article>
         `).join("")}

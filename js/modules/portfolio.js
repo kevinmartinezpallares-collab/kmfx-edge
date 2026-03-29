@@ -1,5 +1,5 @@
 import { formatCurrency, formatDateTime, getAccountTypeLabel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta } from "./status-badges.js";
+import { badgeMarkup, getConnectionStatusMeta } from "./status-badges.js?v=status-badges-1";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">

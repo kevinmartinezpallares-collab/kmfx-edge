@@ -13,7 +13,8 @@ export const DEFAULT_AUTH_USER = {
   email: "kevin@kmfxedge.local",
   avatar: null,
   initials: "KC",
-  provider: "local"
+  provider: "local",
+  role: null
 };
 
 export const DEFAULT_AUTH_PROFILE = {
@@ -140,7 +141,8 @@ function sanitizeAuthUser(user = {}) {
     email: email || DEFAULT_AUTH_USER.email,
     avatar: user.avatar || null,
     initials: String(user.initials || getInitialsFromAuthName(name) || DEFAULT_AUTH_USER.initials).slice(0, 3).toUpperCase(),
-    provider: AUTH_PROVIDER_IDS.includes(user.provider) ? user.provider : DEFAULT_AUTH_USER.provider
+    provider: AUTH_PROVIDER_IDS.includes(user.provider) ? user.provider : DEFAULT_AUTH_USER.provider,
+    role: user.role === "admin" ? "admin" : null
   };
 }
 
@@ -219,7 +221,8 @@ function buildAuthStateFromSupabaseSession(session, currentAuth = DEFAULT_AUTH_S
       email: user.email || currentAuth.user?.email || DEFAULT_AUTH_USER.email,
       avatar: avatarUrl,
       initials: getInitialsFromAuthName(fullName),
-      provider
+      provider,
+      role: metadata.role || user.app_metadata?.role || currentAuth.user?.role || null
     },
     profile: {
       ...(currentAuth.profile || {})
@@ -332,9 +335,15 @@ export function selectVisibleUserProfile(state) {
     avatar: auth.user.avatar,
     initials: auth.user.initials,
     provider: auth.user.provider,
+    role: auth.user.role,
     discord: auth.profile.discord,
     defaultAccount: auth.profile.defaultAccount
   };
+}
+
+export function isAdminUser(state) {
+  const auth = sanitizeAuthState(state?.auth || DEFAULT_AUTH_STATE);
+  return auth.user.role === "admin";
 }
 
 export function initAuthSession(store) {

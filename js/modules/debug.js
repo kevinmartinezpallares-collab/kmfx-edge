@@ -1,7 +1,11 @@
 import { formatDateTime } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=status-badges-1";
 
 export function renderDebug(root, state) {
+  if (state?.auth?.user?.role !== "admin") {
+    root.innerHTML = "";
+    return;
+  }
   root.innerHTML = `
     <div class="debug-page-stack">
     <div class="tl-page-header">

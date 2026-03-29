@@ -98,7 +98,17 @@ export function initMobileNav(store) {
 
   const render = (state) => {
     const activePage = state.ui.activePage;
-    const moreActive = secondaryPages.has(activePage);
+    const isAdmin = state.auth?.user?.role === "admin";
+    const visibleSecondarySections = secondarySections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isAdmin || item.page !== "debug")
+    })).filter((section) => section.items.length);
+    const visibleMoreListSections = moreListSections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isAdmin || item.page !== "debug")
+    })).filter((section) => section.items.length);
+    const moreActivePages = new Set(visibleSecondarySections.flatMap((section) => section.items.map((item) => item.page)));
+    const moreActive = moreActivePages.has(activePage);
     const moreOpen = Boolean(root.__mobileNavState.moreOpen);
     const isAuthenticated = state.auth?.status === "authenticated";
 
@@ -115,7 +125,7 @@ export function initMobileNav(store) {
           `).join("")}
         </div>
         <div class="bnav-more-sections">
-          ${moreListSections.map((section) => `
+          ${visibleMoreListSections.map((section) => `
             <div class="bnav-more-section">
               <div class="bnav-more-section-label">${section.label}</div>
               <div class="bnav-more-list">

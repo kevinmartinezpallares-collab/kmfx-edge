@@ -1,14 +1,14 @@
 export function getConnectionStatusMeta(connection = {}) {
-  if (connection.isSyncing) return { label: "Sincronizando", tone: "info" };
+  if (connection.isSyncing) return { label: "Sincronizando...", tone: "info" };
   switch (connection.state) {
     case "connected":
-      return { label: "Conectada", tone: "ok" };
+      return { label: "Conectado", tone: "ok" };
     case "connecting":
-      return { label: "Conectando", tone: "warn" };
+      return { label: "Sincronizando...", tone: "warn" };
     case "error":
-      return { label: "Error", tone: "error" };
+      return { label: "Error de conexión", tone: "error" };
     default:
-      return { label: "Desconectada", tone: "neutral" };
+      return { label: "Sin conexión", tone: "neutral" };
   }
 }
 

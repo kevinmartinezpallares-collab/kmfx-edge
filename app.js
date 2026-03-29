@@ -3,20 +3,20 @@ import { initNavigation } from "./js/modules/navigation.js";
 import { renderDashboard } from "./js/modules/dashboard.js";
 import { renderAnalytics } from "./js/modules/analytics.js";
 import { renderDiscipline } from "./js/modules/discipline.js";
-import { renderRisk } from "./js/modules/risk.js?v=risk-configurable-17";
+import { renderRisk } from "./js/modules/risk.js?v=risk-admin-1";
 import { renderTrades } from "./js/modules/trades.js";
 import { renderCalendar } from "./js/modules/calendar.js";
 import { initAccountsUI } from "./js/modules/accounts-ui.js";
-import { initConnections, renderConnections } from "./js/modules/connections.js";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=connections-admin-1";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js";
 import { initJournal, renderJournal } from "./js/modules/journal.js";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=funded-controls-1";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=funded-admin-1";
 import { renderMarket } from "./js/modules/market.js";
 import { renderPortfolio } from "./js/modules/portfolio.js";
 import { renderGlossary } from "./js/modules/glossary.js";
-import { renderDebug } from "./js/modules/debug.js";
-import { initMobileNav } from "./js/modules/mobile-nav.js";
+import { renderDebug } from "./js/modules/debug.js?v=debug-admin-1";
+import { initMobileNav } from "./js/modules/mobile-nav.js?v=mobile-nav-admin-1";
 import { initPullToRefresh } from "./js/modules/pull-to-refresh.js";
 import "./js/modules/modal-system.js?v=modal-redesign-2";
 import { initAccountRuntime } from "./js/modules/account-runtime.js";
@@ -27,10 +27,11 @@ import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
   initAuthSession,
+  isAdminUser,
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js";
+} from "./js/modules/auth-session.js?v=auth-role-1";
 import { applyAvatarContent } from "./js/modules/avatar-utils.js";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
@@ -65,6 +66,16 @@ const pageRenderers = {
 
 function renderActivePage() {
   const state = store.getState();
+  if (state.ui.activePage === "debug" && !isAdminUser(state)) {
+    store.setState((current) => ({
+      ...current,
+      ui: {
+        ...current.ui,
+        activePage: "dashboard"
+      }
+    }));
+    return;
+  }
   const renderer = pageRenderers[state.ui.activePage];
   renderer?.(state);
 }
@@ -137,8 +148,16 @@ function initSettings() {
   const connectionSource = document.querySelector("[data-settings-connection-source]");
   const connectionLastSync = document.querySelector("[data-settings-last-sync]");
   const connectionLastAccount = document.querySelector("[data-settings-last-account]");
+  const adminOnlyNodes = [...document.querySelectorAll("[data-admin-only]")];
   const themeSelect = document.querySelector('[data-settings-field="theme"]');
   const densitySelect = document.querySelector('[data-settings-field="density"]');
+
+  const syncAdminUI = (state = store.getState()) => {
+    const isAdmin = isAdminUser(state);
+    adminOnlyNodes.forEach((node) => {
+      node.hidden = !isAdmin;
+    });
+  };
 
   const readStoredProfile = () => {
     const visibleProfile = selectVisibleUserProfile(store.getState());
@@ -249,8 +268,19 @@ function initSettings() {
     const accountId = accountIdOverride || profile.defaultAccount || state.currentAccount;
     const account = state.accounts[accountId] || state.accounts[state.currentAccount];
     if (!account) return;
-    if (connectionStatus) connectionStatus.textContent = account.connection.state === "connected" ? "Conectada" : account.connection.state === "connecting" ? "Conectando" : account.connection.state === "error" ? "Error" : "Desconectada";
-    if (connectionSource) connectionSource.textContent = account.connection.source || "Bridge local";
+    const friendlyStatus = account.connection.isSyncing || account.connection.state === "connecting"
+      ? "Sincronizando..."
+      : account.connection.state === "connected"
+        ? "Conectado"
+        : account.connection.state === "error"
+          ? "Error de conexión"
+          : "Sin conexión";
+    if (connectionStatus) connectionStatus.textContent = friendlyStatus;
+    if (connectionSource) {
+      connectionSource.textContent = isAdminUser(state)
+        ? (account.connection.source || "Bridge local")
+        : "Estado general de sincronización";
+    }
     if (connectionLastSync) {
       connectionLastSync.textContent = account.connection.lastSync
         ? new Date(account.connection.lastSync).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
@@ -276,6 +306,7 @@ function initSettings() {
     applyPreferences({ ...preferences, dashboardAccount: profile.defaultAccount, theme: store.getState().ui.theme });
     syncAccountSelectors(profile.defaultAccount);
     syncConnectionReadout(store.getState());
+    syncAdminUI(store.getState());
   };
 
   syncSettingsUI();
@@ -490,6 +521,7 @@ function initSettings() {
   store.subscribe((state) => {
     applyTheme(state.ui.theme);
     syncConnectionReadout(state);
+    syncAdminUI(state);
     const nextAuthSignature = JSON.stringify(state.auth || {});
     if (nextAuthSignature !== lastAuthSignature) {
       lastAuthSignature = nextAuthSignature;

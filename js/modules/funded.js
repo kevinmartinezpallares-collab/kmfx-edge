@@ -1,6 +1,6 @@
 import { openModal } from "./modal-system.js?v=modal-redesign-2";
 import { formatCurrency, formatDateTime, formatPercent } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=status-badges-1";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 
@@ -298,6 +298,7 @@ export function initFunded(store) {
     if (!account) return;
     const linked = store.getState().accounts[account.accountId];
     const enriched = deriveFundedAccount(account, linked);
+    const adminView = store.getState().auth?.user?.role === "admin";
 
     openModal({
       title: `${enriched.propFirm} · ${linked?.name || account.label}`,
@@ -317,7 +318,7 @@ export function initFunded(store) {
           <div><strong>Días</strong><span>${enriched.completedDaysVsRule}</span></div>
           <div><strong>Estado</strong><span>${enriched.globalStatus}</span></div>
           <div><strong>Preset</strong><span>${ruleNote(enriched)}</span></div>
-          <div><strong>Última sync</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>
+          ${adminView ? `<div><strong>Última sync</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
         </div>
       `
     });
