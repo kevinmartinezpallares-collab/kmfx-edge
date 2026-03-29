@@ -56,6 +56,7 @@ function renderPortfolioAccountCard(account, isMain) {
       class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"}"
       data-portfolio-account-id="${account.id}"
       data-portfolio-card-layout="dashboard"
+      data-portfolio-card-variant="uniform"
       type="button"
       style="${cardInlineStyle}"
     >
@@ -124,7 +125,7 @@ export function renderPortfolio(root, state) {
 
     <article class="tl-section-card" data-portfolio-render="equal-cards">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
-      <div class="account-cards-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
+      <div class="portfolio-account-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
         ${accounts.map((account) => renderPortfolioAccountCard(account, false)).join("")}
       </div>
     </article>

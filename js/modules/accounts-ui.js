@@ -1,5 +1,5 @@
 import { formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccount, selectCurrentModel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260329-193532";
+import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260329-193838";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `

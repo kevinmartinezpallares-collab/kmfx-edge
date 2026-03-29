@@ -12669,7 +12669,6 @@ html:not([data-theme="dark"]) .analytics-decision-item {
   filter: none !important;
 }
 
-html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .calendar-grid + .calendar-week-summary,
 html:not([data-theme="dark"]) .calendar-head,
@@ -12718,7 +12717,6 @@ html:not([data-theme="dark"]) .portfolio-account-card.active {
   filter: none !important;
 }
 
-html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .calendar-cell:hover,
 html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
@@ -13189,7 +13187,6 @@ html:not([data-theme="dark"]) .portfolio-account-card::after {
   filter: none !important;
 }
 
-html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
