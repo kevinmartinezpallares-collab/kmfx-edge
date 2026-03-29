@@ -7921,6 +7921,93 @@ html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-dot.acti
   background: #30d158;
 }
 
+/* En light mode, los menús flotantes de reglas deben conservar el material oscuro premium
+   igual que en dark, para no romper la coherencia visual de las cards editables. */
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-menu,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-menu--symbols {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(36, 38, 44, 0.62);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.36),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
+  -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-search input {
+  background: rgba(18, 20, 26, 0.72);
+  color: #fff;
+  box-shadow: none;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-search input::placeholder {
+  color: #636366;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary {
+  background: rgba(23, 25, 30, 0.62);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-row,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-row {
+  background: rgba(28, 30, 36, 0.58);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-name,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary-count strong,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-name,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary-count strong,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-section-label {
+  color: #fff;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary-count span,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary-count span,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-utc,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-empty {
+  color: #636366;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-empty {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-favorite {
+  background: rgba(255, 255, 255, 0.06);
+  color: #3a3a3c;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-favorite.active {
+  background: rgba(255, 214, 10, 0.16);
+  color: #FFD60A;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck {
+  border-color: #3a3a3c;
+  background: transparent;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck.is-checked,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck.is-partial {
+  background: #0A84FF;
+  border-color: #0A84FF;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-dot {
+  background: #3a3a3c;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-dot.active {
+  background: #30d158;
+}
+
 html:not([data-theme="dark"]) .risk-config-card--off::after {
   background:
     linear-gradient(180deg, rgba(13, 18, 34, 0.54), rgba(13, 18, 34, 0.3)),
