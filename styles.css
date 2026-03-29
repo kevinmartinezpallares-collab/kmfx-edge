@@ -1,26 +1,26 @@
 :root {
   /* ── Fondos ── */
-  --bg-app: #edf2f8;
-  --bg-shell: #e7eef8;
-  --bg-sidebar: rgba(244, 248, 253, 0.96);
-  --bg-topbar: rgba(244, 248, 253, 0.96);
-  --bg-panel: rgba(248, 251, 255, 0.95);
-  --bg-card: rgba(251, 253, 255, 0.97);
-  --bg-card-alt: rgba(251, 253, 255, 0.97);
+  --bg-app: #ffffff;
+  --bg-shell: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-topbar: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-card: #f5f5f7;
+  --bg-card-alt: #f5f5f7;
 
   /* ── Superficies ── */
-  --bg: #edf2f8;
-  --bg2: rgba(239, 244, 251, 0.98);
-  --bg3: #e3ebf4;
-  --surface: rgba(248, 251, 255, 0.97);
-  --surface2: rgba(242, 247, 253, 0.98);
-  --shell-surface: linear-gradient(180deg, rgba(243, 247, 252, 0.94), rgba(236, 242, 249, 0.9));
+  --bg: #ffffff;
+  --bg2: #ffffff;
+  --bg3: #f5f5f7;
+  --surface: #f5f5f7;
+  --surface2: #f5f5f7;
+  --shell-surface: #ffffff;
 
   /* ── Bordes ── */
-  --border: rgba(20, 24, 36, 0.11);
-  --border2: rgba(20, 24, 36, 0.16);
-  --border-subtle: rgba(20, 24, 36, 0.08);
-  --shell-border: rgba(20, 24, 36, 0.082);
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.12);
+  --border-subtle: rgba(0,0,0,0.05);
+  --shell-border: rgba(0,0,0,0.07);
 
   /* ── Texto ── */
   --text: #141824;
@@ -80,17 +80,18 @@
   --radius: 16px;
   --card-radius: 16px;
   --card-padding: 18px;
-  --card-surface: linear-gradient(180deg, rgba(251, 253, 255, 0.97), rgba(244, 248, 253, 0.95));
-  --card-border: rgba(20, 24, 36, 0.08);
+  --card-surface: #f5f5f7;
+  --card-border: rgba(0,0,0,0.08);
   --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   --card-sheen:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 34%, transparent 72%);
-  --card-shadow: 0 18px 38px rgba(25, 37, 59, 0.11);
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.06),
+    0 0 0 0.5px rgba(0,0,0,0.05);
   --card-hover-border: color-mix(in srgb, var(--accent) 18%, var(--border));
-  --shadow: 0 12px 28px rgba(24, 36, 60, 0.09);
-  --shadow-md: 0 18px 38px rgba(24, 36, 60, 0.13);
-  --shadow-lg: 0 24px 50px rgba(24, 36, 60, 0.16);
-  --shell-shadow: 0 12px 26px rgba(24, 36, 60, 0.07);
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shell-shadow: none;
 
   /* ── Motion ── */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
@@ -13674,4 +13675,237 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
   color: rgba(255,255,255,0.30) !important;
+}
+
+html:not([data-theme="dark"]) body,
+html:not([data-theme="dark"]) .app-shell,
+html:not([data-theme="dark"]) .sidebar,
+html:not([data-theme="dark"]) .topbar,
+html:not([data-theme="dark"]) .main-panel,
+html:not([data-theme="dark"]) .content {
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .sidebar {
+  border-right: 1px solid rgba(0,0,0,0.07) !important;
+}
+
+html:not([data-theme="dark"]) .topbar {
+  border-bottom: 1px solid rgba(0,0,0,0.07) !important;
+}
+
+html:not([data-theme="dark"]) .tl-kpi-card,
+html:not([data-theme="dark"]) .rm4-card,
+html:not([data-theme="dark"]) .tl-section-card,
+html:not([data-theme="dark"]) .chart-card,
+html:not([data-theme="dark"]) .pnlcal-card,
+html:not([data-theme="dark"]) .widget-card,
+html:not([data-theme="dark"]) .account-switcher,
+html:not([data-theme="dark"]) .account-banner,
+html:not([data-theme="dark"]) .table-wrap,
+html:not([data-theme="dark"]) .widget-table-wrap,
+html:not([data-theme="dark"]) .kmfx-chart-shell,
+html:not([data-theme="dark"]) .analytics-bento-card {
+  background: #f5f5f7 !important;
+  border: 1px solid rgba(0,0,0,0.07) !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .tl-kpi-card::before,
+html:not([data-theme="dark"]) .rm4-card::before,
+html:not([data-theme="dark"]) .tl-section-card::before,
+html:not([data-theme="dark"]) .chart-card::before,
+html:not([data-theme="dark"]) .pnlcal-card::before,
+html:not([data-theme="dark"]) .widget-card::before,
+html:not([data-theme="dark"]) .account-switcher::before,
+html:not([data-theme="dark"]) .tl-kpi-card::after,
+html:not([data-theme="dark"]) .rm4-card::after,
+html:not([data-theme="dark"]) .tl-section-card::after,
+html:not([data-theme="dark"]) .chart-card::after,
+html:not([data-theme="dark"]) .pnlcal-card::after,
+html:not([data-theme="dark"]) .widget-card::after,
+html:not([data-theme="dark"]) .account-switcher::after {
+  display: none !important;
+}
+
+html:not([data-theme="dark"]) .tl-kpi-card:hover,
+html:not([data-theme="dark"]) .rm4-card:hover,
+html:not([data-theme="dark"]) .tl-section-card:hover,
+html:not([data-theme="dark"]) .chart-card:hover,
+html:not([data-theme="dark"]) .widget-card:hover {
+  background: #f5f5f7 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card,
+html:not([data-theme="dark"]) .risk-config-card--editable,
+html:not([data-theme="dark"]) .risk-config-card--off {
+  background: #f5f5f7 !important;
+  border: 1px solid rgba(0,0,0,0.07) !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable::before,
+html:not([data-theme="dark"]) .risk-config-card--editable::after,
+html:not([data-theme="dark"]) .risk-config-card--off::before,
+html:not([data-theme="dark"]) .risk-config-card--off::after {
+  display: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-title,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-value,
+html:not([data-theme="dark"]) .risk-config-card--off .risk-config-title,
+html:not([data-theme="dark"]) .risk-config-card--off .risk-config-value {
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-meta,
+html:not([data-theme="dark"]) .risk-config-card--off .risk-config-meta {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card {
+  background: #f5f5f7 !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  color: #1c1c1e !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .account-card-blob {
+  opacity: 0 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card.active .account-card-blob,
+html:not([data-theme="dark"]) .account-hero-card--main .account-card-blob {
+  opacity: 0.5 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card.active,
+html:not([data-theme="dark"]) .account-hero-card--main {
+  background: #0a0f2e !important;
+  border: 1px solid rgba(47,107,255,0.20) !important;
+  color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__name,
+html:not([data-theme="dark"]) .account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__equity {
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__meta,
+html:not([data-theme="dark"]) .account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__equity-label,
+html:not([data-theme="dark"]) .account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__stat-label {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+html:not([data-theme="dark"]) .nav-item {
+  color: rgba(0,0,0,0.55) !important;
+}
+
+html:not([data-theme="dark"]) .nav-item.active {
+  background: rgba(0,0,0,0.06) !important;
+  border-radius: 8px;
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .nav-item.active .nav-label,
+html:not([data-theme="dark"]) .nav-item.active svg {
+  color: var(--accent) !important;
+  stroke: var(--accent) !important;
+}
+
+html:not([data-theme="dark"]) .bottom-nav {
+  background: rgba(255,255,255,0.88) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 0.5px solid rgba(0,0,0,0.08) !important;
+}
+
+html:not([data-theme="dark"]) .bnav-item span,
+html:not([data-theme="dark"]) .bnav-item svg {
+  color: rgba(0,0,0,0.45) !important;
+  stroke: rgba(0,0,0,0.45) !important;
+}
+
+html:not([data-theme="dark"]) .bnav-item.active span,
+html:not([data-theme="dark"]) .bnav-item.active svg {
+  color: var(--accent) !important;
+  stroke: var(--accent) !important;
+}
+
+html:not([data-theme="dark"]) .bnav-more-menu {
+  background: rgba(255,255,255,0.94) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10) !important;
+}
+
+html:not([data-theme="dark"]) .bnav-more-title,
+html:not([data-theme="dark"]) .bnav-more-item {
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .bnav-more-section-label {
+  color: rgba(0,0,0,0.40) !important;
+}
+
+html:not([data-theme="dark"]) .modal-overlay {
+  background: rgba(0,0,0,0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+html:not([data-theme="dark"]) .modal-card {
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(48px) saturate(180%);
+  -webkit-backdrop-filter: blur(48px) saturate(180%);
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.14) !important;
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .modal-head {
+  background: rgba(248,248,250,0.80) !important;
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+
+html:not([data-theme="dark"]) .modal-title {
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) .modal-subtitle {
+  color: rgba(0,0,0,0.50) !important;
+}
+
+html:not([data-theme="dark"]) .modal-close {
+  background: rgba(0,0,0,0.06) !important;
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) input:not([type="checkbox"]):not([type="radio"]),
+html:not([data-theme="dark"]) textarea,
+html:not([data-theme="dark"]) select,
+html:not([data-theme="dark"]) .modal-card input,
+html:not([data-theme="dark"]) .modal-card textarea,
+html:not([data-theme="dark"]) .modal-card select {
+  background: rgba(0,0,0,0.04) !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+  color: #1c1c1e !important;
+}
+
+html:not([data-theme="dark"]) input::placeholder,
+html:not([data-theme="dark"]) textarea::placeholder {
+  color: rgba(0,0,0,0.30) !important;
+}
+
+html:not([data-theme="dark"]) input:focus,
+html:not([data-theme="dark"]) textarea:focus,
+html:not([data-theme="dark"]) select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(47,107,255,0.14) !important;
+  background: #ffffff !important;
 }
