@@ -13158,3 +13158,39 @@ html:not([data-theme="dark"]) .risk-config-card--off .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
   opacity: 0.34 !important;
 }
+
+/* Light Mode Absolute Final Override
+   Keep account / portfolio dark cards flat like dark mode
+   and remove all residual gray surfaces or shadows. */
+html:not([data-theme="dark"]) .account-switcher,
+html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
+html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
+html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary),
+html:not([data-theme="dark"]) .account-hero-card,
+html:not([data-theme="dark"]) .account-hero-card:hover,
+html:not([data-theme="dark"]) .account-hero-card.active,
+html:not([data-theme="dark"]) .portfolio-account-card,
+html:not([data-theme="dark"]) .portfolio-account-card:hover,
+html:not([data-theme="dark"]) .portfolio-account-card.active,
+html:not([data-theme="dark"]) .calendar-cell,
+html:not([data-theme="dark"]) .calendar-cell:hover,
+html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
+html:not([data-theme="dark"]) .calendar-week-summary,
+html:not([data-theme="dark"]) .calendar-week-summary:hover {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card::before,
+html:not([data-theme="dark"]) .account-hero-card::after,
+html:not([data-theme="dark"]) .portfolio-account-card::before,
+html:not([data-theme="dark"]) .portfolio-account-card::after {
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .calendar-cell,
+html:not([data-theme="dark"]) .calendar-week-summary,
+html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
+html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
+  background-image: none !important;
+}
