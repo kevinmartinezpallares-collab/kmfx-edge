@@ -12676,7 +12676,7 @@ body[data-theme="light"] .funded-account-pill,
 body[data-theme="light"] .funded-account-pill.is-active {
   background: #ffffff !important;
   background-image: none !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(12, 18, 32, 0.82) !important;
   box-shadow: none !important;
   color: #182133 !important;
 }
@@ -12690,11 +12690,13 @@ html[data-theme="light"] .account-hero-card.active,
 body[data-theme="light"] .account-hero-card,
 body[data-theme="light"] .account-hero-card:hover,
 body[data-theme="light"] .account-hero-card.active {
-  background: #ffffff !important;
+  background: #04081a !important;
   background-image: none !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
-  box-shadow: none !important;
-  color: #182133 !important;
+  border-color: rgba(12, 18, 32, 0.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 14px 28px rgba(15, 23, 42, 0.12) !important;
+  color: rgba(245, 247, 252, 0.97) !important;
 }
 
 html:not([data-theme="dark"]) .account-hero-card::before,
@@ -12703,9 +12705,24 @@ html[data-theme="light"] .account-hero-card::before,
 html[data-theme="light"] .account-hero-card::after,
 body[data-theme="light"] .account-hero-card::before,
 body[data-theme="light"] .account-hero-card::after {
-  content: none !important;
-  background: none !important;
-  opacity: 0 !important;
+  content: "" !important;
+  opacity: 1 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card::before,
+html[data-theme="light"] .account-hero-card::before,
+body[data-theme="light"] .account-hero-card::before {
+  background:
+    radial-gradient(112% 96% at 52% 112%, rgba(51, 103, 224, 0.16) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%) !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card::after,
+html[data-theme="light"] .account-hero-card::after,
+body[data-theme="light"] .account-hero-card::after {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(61, 123, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 84% 82%, rgba(61, 123, 255, 0.08), transparent 38%) !important;
 }
 
 html:not([data-theme="dark"]) .account-hero-card .account-hero-card__name,
@@ -12729,9 +12746,28 @@ body[data-theme="light"] .account-hero-card .metric-label,
 body[data-theme="light"] .account-hero-card .tl-kpi-label,
 body[data-theme="light"] .account-hero-card .ui-badge,
 body[data-theme="light"] .account-hero-card .ui-badge--compact {
-  color: #182133 !important;
+  color: rgba(245, 247, 252, 0.94) !important;
   background-image: none !important;
   box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--ok,
+html[data-theme="light"] .risk-config-card--editable .ui-badge--ok,
+body[data-theme="light"] .risk-config-card--editable .ui-badge--ok {
+  background: rgba(74, 222, 128, 0.18) !important;
+  border-color: rgba(74, 222, 128, 0.34) !important;
+  color: #7ff0ac !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--off .ui-badge--neutral,
+html:not([data-theme="dark"]) .risk-config-card--off .risk-config-state-pill,
+html[data-theme="light"] .risk-config-card--off .ui-badge--neutral,
+html[data-theme="light"] .risk-config-card--off .risk-config-state-pill,
+body[data-theme="light"] .risk-config-card--off .ui-badge--neutral,
+body[data-theme="light"] .risk-config-card--off .risk-config-state-pill {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: rgba(245, 247, 252, 0.92) !important;
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable,
