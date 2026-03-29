@@ -18,7 +18,7 @@ import { renderGlossary } from "./js/modules/glossary.js";
 import { renderDebug } from "./js/modules/debug.js";
 import { initMobileNav } from "./js/modules/mobile-nav.js";
 import { initPullToRefresh } from "./js/modules/pull-to-refresh.js";
-import "./js/modules/modal-system.js";
+import "./js/modules/modal-system.js?v=modal-redesign-2";
 import { initAccountRuntime } from "./js/modules/account-runtime.js";
 import { initTopbarStatus } from "./js/modules/topbar-status.js";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js";

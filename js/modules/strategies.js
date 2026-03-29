@@ -1,4 +1,4 @@
-import { closeModal, openModal } from "./modal-system.js";
+import { closeModal, openModal } from "./modal-system.js?v=modal-redesign-2";
 import { formatCurrency } from "./utils.js";
 
 function emptyForm() {

@@ -1,4 +1,4 @@
-import { openModal } from "./modal-system.js";
+import { openModal } from "./modal-system.js?v=modal-redesign-2";
 import { formatCurrency, formatDateTime, formatPercent } from "./utils.js";
 import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js";
 
