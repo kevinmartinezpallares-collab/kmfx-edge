@@ -8439,12 +8439,29 @@ html:not([data-theme="dark"]) .risk-stepper-btn:last-child {
 
 [data-portfolio-layout="dashboard"] {
   display: grid !important;
-  grid-template-columns: 1.6fr 1fr 1fr !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 10px !important;
+  align-items: stretch !important;
 }
 
 [data-portfolio-card-layout="dashboard"] {
   min-height: 240px !important;
+  height: 100% !important;
+}
+
+.portfolio-account-card {
+  display: flex;
+}
+
+.portfolio-account-card .account-hero-card__content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.portfolio-account-card .account-hero-card__stats {
+  margin-top: auto;
 }
 
 .portfolio-table-wrap table {
