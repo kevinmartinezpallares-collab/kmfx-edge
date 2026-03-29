@@ -31,37 +31,65 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
+  const cardInlineStyle = isMain
+    ? "min-height:240px;"
+    : "min-height:240px;";
+  const topInlineStyle = isMain
+    ? "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;"
+    : "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px;";
+  const nameInlineStyle = isMain
+    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
+    : "font-size:14px;font-weight:700;letter-spacing:-0.01em;";
+  const metaInlineStyle = isMain
+    ? "font-size:12px;color:rgba(255,255,255,0.45);margin-top:3px;"
+    : "font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;";
+  const equityInlineStyle = isMain
+    ? "font-size:34px;font-weight:700;letter-spacing:-0.04em;line-height:1;margin-bottom:4px;"
+    : "font-size:22px;font-weight:700;letter-spacing:-0.03em;line-height:1;margin-bottom:3px;";
+  const equityLabelInlineStyle = isMain
+    ? "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:18px;"
+    : "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:14px;";
+  const statsInlineStyle = isMain
+    ? "display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;"
+    : "display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;";
+  const statLabelInlineStyle = isMain
+    ? "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:4px;"
+    : "font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:3px;";
+  const statValueInlineStyle = isMain
+    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
+    : "font-size:15px;font-weight:700;letter-spacing:-0.01em;";
 
   return `
     <button
       class="account-card account-hero-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""} ${isLoading ? "is-loading" : ""}"
       data-account-id="${account.id}"
       type="button"
+      style="${cardInlineStyle}"
     >
       ${accountMeshMarkup()}
       <div class="account-hero-card__content">
-        <div class="account-hero-card__top">
+        <div class="account-hero-card__top" style="${topInlineStyle}">
           <div>
-            <div class="account-hero-card__name">${account.name}</div>
-            <div class="account-hero-card__meta">${meta}</div>
+            <div class="account-hero-card__name" style="${nameInlineStyle}">${account.name}</div>
+            <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
           </div>
           ${accountStatusBadge(account)}
         </div>
-        <div class="account-hero-card__equity">${formatCurrency(account.model.account.equity)}</div>
-        <div class="account-hero-card__equity-label">Equity actual</div>
-        <div class="account-hero-card__stats">
+        <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(account.model.account.equity)}</div>
+        <div class="account-hero-card__equity-label" style="${equityLabelInlineStyle}">Equity actual</div>
+        <div class="account-hero-card__stats" style="${statsInlineStyle}">
           <div>
-            <div class="account-hero-card__stat-label">P&amp;L</div>
-            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}">${formatCurrency(pnl)}</div>
+            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">P&amp;L</div>
+            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">${formatCurrency(pnl)}</div>
           </div>
           <div>
-            <div class="account-hero-card__stat-label">Win Rate</div>
-            <div class="account-hero-card__stat-val">${formatPercent(account.model.totals.winRate)}</div>
+            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
+            <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${formatPercent(account.model.totals.winRate)}</div>
           </div>
           ${isMain ? `
             <div>
-              <div class="account-hero-card__stat-label">Trades</div>
-              <div class="account-hero-card__stat-val">${trades}</div>
+              <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Trades</div>
+              <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${trades}</div>
             </div>
           ` : ""}
         </div>
