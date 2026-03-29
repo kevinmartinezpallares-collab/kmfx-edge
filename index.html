@@ -8,7 +8,25 @@
   <meta name="kmfx-turnstile-secret-key-placeholder" content="SERVER_SIDE_REQUIRED">
   <link rel="icon" type="image/svg+xml" href="./assets/logos/logo-azul-violeta-oscuro-192.svg">
   <link rel="apple-touch-icon" href="./assets/logos/logo-azul-violeta-claro-192.svg">
-  <link rel="stylesheet" href="./styles.css?v=light-unified-7">
+  <link rel="stylesheet" href="./styles.css?v=light-unified-8">
+  <style>
+    html[data-theme="light"] .risk-config-card--editable,
+    html[data-theme="light"] .risk-config-card--off,
+    body[data-theme="light"] .risk-config-card--editable,
+    body[data-theme="light"] .risk-config-card--off {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.006)),
+        #0b1020 !important;
+      background-image:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.006)),
+        linear-gradient(135deg, rgba(88, 110, 255, 0.08), rgba(164, 112, 255, 0.06) 58%, transparent 100%) !important;
+      border-color: rgba(59, 89, 185, 0.22) !important;
+      box-shadow:
+        0 18px 42px rgba(8, 12, 26, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+      color: rgba(245, 247, 252, 0.98) !important;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__kmfxTurnstileOnload" async defer></script>
 </head>
@@ -391,6 +409,6 @@
   <div id="modalRoot"></div>
   <div id="mobileNavRoot"></div>
 
-  <script type="module" src="./app.js?v=light-unified-7"></script>
+  <script type="module" src="./app.js?v=light-unified-8"></script>
 </body>
 </html>
