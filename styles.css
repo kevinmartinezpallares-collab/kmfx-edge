@@ -4369,9 +4369,7 @@ html:not([data-theme="dark"]) .account-banner,
 html:not([data-theme="dark"]) .account-switcher {
   background: var(--card-surface);
   border-color: rgba(20, 24, 36, 0.12);
-  box-shadow:
-    0 14px 30px rgba(25, 37, 59, 0.07),
-    var(--card-inner-glow);
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .widget-segmented-btn.active,
@@ -4459,9 +4457,7 @@ html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .weekly-chart-shell {
   background: var(--bg-card);
   border-color: rgba(20, 24, 36, 0.12);
-  box-shadow:
-    0 8px 18px rgba(15, 23, 42, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .account-switcher::before,
