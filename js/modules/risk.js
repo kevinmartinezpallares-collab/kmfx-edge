@@ -545,6 +545,7 @@ export function renderRisk(root, state) {
       checked: prefsDraft.allowedSessionsEnabled,
       key: "allowedSessionsEnabled",
       headBadge: "Editable",
+      showToggle: true,
       hideFooterBadge: true,
       controls: `
         ${sessionSummaryMarkup}
@@ -596,6 +597,8 @@ export function renderRisk(root, state) {
       menuOpen: riskUi.openMenu === "symbols",
       checked: prefsDraft.allowedSymbolsEnabled,
       key: "allowedSymbolsEnabled",
+      headBadge: "Editable",
+      showToggle: true,
       statusLabel: toggleStatusLabel(prefsDraft.allowedSymbolsEnabled, "Activo", "Off"),
       controls: `
         <div class="risk-config-control">
@@ -812,14 +815,15 @@ export function renderRisk(root, state) {
                 <div class="risk-config-title">${rule.title}</div>
                 <div class="risk-config-meta">${rule.description}</div>
               </div>
-              ${rule.headBadge
-                ? `<div class="risk-config-state-pill risk-config-state-pill--header">${rule.headBadge}</div>`
-                : `
+              <div class="risk-config-card-actions">
+                ${rule.headBadge ? `<div class="risk-config-state-pill risk-config-state-pill--header">${rule.headBadge}</div>` : ""}
+                ${rule.showToggle === false ? "" : `
                   <label class="risk-config-toggle" aria-label="${rule.title}">
                     <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
                     <span class="risk-config-toggle-ui"></span>
                   </label>
                 `}
+              </div>
             </div>
             <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
             ${rule.controls || ""}
