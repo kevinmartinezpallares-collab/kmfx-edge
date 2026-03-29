@@ -16,6 +16,16 @@ function isBridgeDataPending(account) {
   return !account.connection?.lastSync;
 }
 
+function accountStatusBadge(account) {
+  const isConnected = Boolean(account?.connection?.connected);
+  return `
+    <span class="status-badge">
+      <span class="status-dot ${isConnected ? "connected" : ""}"></span>
+      ${isConnected ? "Conectada" : "Desconectada"}
+    </span>
+  `;
+}
+
 function renderAccountCard(account, isMain, isActive, isLoading) {
   const pnl = Number(account?.model?.totals?.pnl || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
@@ -63,7 +73,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
             <div class="account-hero-card__name" style="${nameInlineStyle}">${account.name}</div>
             <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
           </div>
-          ${badgeMarkup(getConnectionStatusMeta(account.connection), "ui-badge--compact")}
+          ${accountStatusBadge(account)}
         </div>
         <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(account.model.account.equity)}</div>
         <div class="account-hero-card__equity-label" style="${equityLabelInlineStyle}">Equity actual</div>
