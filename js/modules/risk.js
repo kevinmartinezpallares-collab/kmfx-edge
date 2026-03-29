@@ -542,8 +542,8 @@ export function renderRisk(root, state) {
       description: "Ventanas operativas UTC",
       value: selectedSessionsLabel,
       menuOpen: riskUi.openMenu === "sessions",
-      checked: true,
-      key: "__sessionsMenu",
+      checked: prefsDraft.allowedSessionsEnabled,
+      key: "allowedSessionsEnabled",
       headBadge: "Editable",
       hideFooterBadge: true,
       controls: `
@@ -551,13 +551,13 @@ export function renderRisk(root, state) {
         <div class="risk-config-control">
           <span>Sesiones</span>
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
               <span>${selectedSessionsLabel}</span>
               <strong>${selectedSessions.length}/3</strong>
             </button>
             <div class="risk-select-menu">
               <div class="risk-session-group">
-                <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all>
+                <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
                   <span class="ccheck ${allSessionsSelected ? "is-checked" : ""} ${sessionsPartial ? "is-partial" : ""}" aria-hidden="true">
                     ${allSessionsSelected ? iconCheckMarkup() : ""}
                     ${sessionsPartial ? `<span class="ccheck-dash"></span>` : ""}
@@ -566,7 +566,7 @@ export function renderRisk(root, state) {
                   <span class="risk-session-utc">${selectedSessions.length}/3</span>
                 </button>
                 ${sessionOptions.map((session, index) => `
-                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}">
+                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
                     <span class="risk-session-dot ${selectedSessions.includes(session) ? "active" : ""}" aria-hidden="true"></span>
                     <span class="ccheck ${selectedSessions.includes(session) ? "is-checked" : ""}" aria-hidden="true">${selectedSessions.includes(session) ? iconCheckMarkup() : ""}</span>
                     <span class="risk-session-name">${session}</span>
@@ -806,7 +806,7 @@ export function renderRisk(root, state) {
       <div class="tl-section-header"><div class="tl-section-title">Reglas Configurables</div></div>
       <div class="risk-config-grid">
         ${riskConfigCards.map((rule) => `
-          <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""}" data-risk-config-card="${rule.previewKey || rule.key}">
+          <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""} ${rule.checked ? "" : "risk-config-card--off"}" data-risk-config-card="${rule.previewKey || rule.key}">
             <div class="risk-config-card-head">
               <div>
                 <div class="risk-config-title">${rule.title}</div>

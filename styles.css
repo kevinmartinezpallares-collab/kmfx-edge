@@ -6983,6 +6983,29 @@ body[data-theme="dark"] .settings-profile-card {
   z-index: 1;
 }
 
+.risk-config-card--off::before {
+  opacity: 0.34;
+}
+
+.risk-config-card--off::after {
+  background:
+    linear-gradient(180deg, rgba(15, 18, 24, 0.34), rgba(15, 18, 24, 0.22)),
+    linear-gradient(135deg, rgba(12, 14, 20, 0.18), rgba(12, 14, 20, 0.1));
+}
+
+.risk-config-card--off .risk-config-value,
+.risk-config-card--off .risk-config-meta,
+.risk-config-card--off .risk-config-control,
+.risk-config-card--off .risk-session-summary,
+.risk-config-card--off .risk-symbol-summary,
+.risk-config-card--off .risk-select {
+  opacity: 0.54;
+}
+
+.risk-config-card--off .risk-config-toggle {
+  opacity: 1;
+}
+
 .risk-config-card--menu-open {
   z-index: 18;
 }
@@ -7777,12 +7800,12 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
 
 html:not([data-theme="dark"]) .risk-select-menu {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.12)),
-    rgba(226, 232, 244, 0.68);
-  border-color: rgba(148, 163, 184, 0.18);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)),
+    rgba(218, 227, 242, 0.78);
+  border-color: rgba(124, 144, 178, 0.18);
   box-shadow:
-    0 18px 38px rgba(15, 23, 42, 0.16),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.46);
+    0 18px 38px rgba(15, 23, 42, 0.14),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.62);
 }
 
 html:not([data-theme="dark"]) .risk-select-search input,
@@ -7790,7 +7813,7 @@ html:not([data-theme="dark"]) .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-symbol-row,
 html:not([data-theme="dark"]) .risk-session-summary,
 html:not([data-theme="dark"]) .risk-session-row {
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 html:not([data-theme="dark"]) .risk-select-search input,
@@ -7804,6 +7827,12 @@ html:not([data-theme="dark"]) .risk-session-summary-count strong {
 html:not([data-theme="dark"]) .risk-session-utc,
 html:not([data-theme="dark"]) .risk-session-summary-count span {
   color: #636366;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--off::after {
+  background:
+    linear-gradient(180deg, rgba(219, 226, 238, 0.46), rgba(219, 226, 238, 0.24)),
+    linear-gradient(135deg, rgba(226, 232, 244, 0.18), rgba(226, 232, 244, 0.08));
 }
 
 html:not([data-theme="dark"]) .risk-symbol-empty {
