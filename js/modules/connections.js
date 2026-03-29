@@ -1,6 +1,6 @@
 import { connectAccount, disconnectAccount, reconnectAccount } from "./account-runtime.js";
 import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=status-badges-1";
+import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260329-193532";
 import { showToast } from "./toast.js";
 
 function connectionCatalogStatusMeta(status) {

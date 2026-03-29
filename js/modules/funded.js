@@ -1,6 +1,6 @@
-import { openModal } from "./modal-system.js?v=modal-redesign-2";
+import { openModal } from "./modal-system.js?v=build-20260329-193532";
 import { formatCurrency, formatDateTime, formatPercent } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=status-badges-1";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260329-193532";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 

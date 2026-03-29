@@ -1,6 +1,6 @@
 import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js";
-import { openModal } from "./modal-system.js?v=modal-redesign-2";
+import { openModal } from "./modal-system.js?v=build-20260329-193532";
 
 function smoothPath(points, width = 760, height = 190, padding = 24) {
   if (!points.length) return { line: "", area: "" };

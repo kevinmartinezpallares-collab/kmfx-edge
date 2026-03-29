@@ -1,4 +1,4 @@
-import { openModal } from "./modal-system.js?v=modal-redesign-2";
+import { openModal } from "./modal-system.js?v=build-20260329-193532";
 import { formatCurrency, selectCurrentModel } from "./utils.js";
 
 function clampPercent(value) {
