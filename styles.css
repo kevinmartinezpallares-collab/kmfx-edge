@@ -12667,3 +12667,145 @@ html[data-theme="light"] .funded-hero-config .funded-size-wrap .funded-size-inpu
   box-shadow: none !important;
   color: #182133 !important;
 }
+
+html:not([data-theme="dark"]) .funded-account-pill,
+html:not([data-theme="dark"]) .funded-account-pill.is-active,
+html[data-theme="light"] .funded-account-pill,
+html[data-theme="light"] .funded-account-pill.is-active,
+body[data-theme="light"] .funded-account-pill,
+body[data-theme="light"] .funded-account-pill.is-active {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  color: #182133 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card,
+html:not([data-theme="dark"]) .account-hero-card:hover,
+html:not([data-theme="dark"]) .account-hero-card.active,
+html[data-theme="light"] .account-hero-card,
+html[data-theme="light"] .account-hero-card:hover,
+html[data-theme="light"] .account-hero-card.active,
+body[data-theme="light"] .account-hero-card,
+body[data-theme="light"] .account-hero-card:hover,
+body[data-theme="light"] .account-hero-card.active {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  color: #182133 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card::before,
+html:not([data-theme="dark"]) .account-hero-card::after,
+html[data-theme="light"] .account-hero-card::before,
+html[data-theme="light"] .account-hero-card::after,
+body[data-theme="light"] .account-hero-card::before,
+body[data-theme="light"] .account-hero-card::after {
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
+}
+
+html:not([data-theme="dark"]) .account-hero-card .account-hero-card__name,
+html:not([data-theme="dark"]) .account-hero-card .account-hero-card__value,
+html:not([data-theme="dark"]) .account-hero-card .account-hero-card__meta,
+html:not([data-theme="dark"]) .account-hero-card .metric-label,
+html:not([data-theme="dark"]) .account-hero-card .tl-kpi-label,
+html:not([data-theme="dark"]) .account-hero-card .ui-badge,
+html:not([data-theme="dark"]) .account-hero-card .ui-badge--compact,
+html[data-theme="light"] .account-hero-card .account-hero-card__name,
+html[data-theme="light"] .account-hero-card .account-hero-card__value,
+html[data-theme="light"] .account-hero-card .account-hero-card__meta,
+html[data-theme="light"] .account-hero-card .metric-label,
+html[data-theme="light"] .account-hero-card .tl-kpi-label,
+html[data-theme="light"] .account-hero-card .ui-badge,
+html[data-theme="light"] .account-hero-card .ui-badge--compact,
+body[data-theme="light"] .account-hero-card .account-hero-card__name,
+body[data-theme="light"] .account-hero-card .account-hero-card__value,
+body[data-theme="light"] .account-hero-card .account-hero-card__meta,
+body[data-theme="light"] .account-hero-card .metric-label,
+body[data-theme="light"] .account-hero-card .tl-kpi-label,
+body[data-theme="light"] .account-hero-card .ui-badge,
+body[data-theme="light"] .account-hero-card .ui-badge--compact {
+  color: #182133 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable,
+html:not([data-theme="dark"]) .risk-config-card--off,
+html[data-theme="light"] .risk-config-card--editable,
+html[data-theme="light"] .risk-config-card--off,
+body[data-theme="light"] .risk-config-card--editable,
+body[data-theme="light"] .risk-config-card--off {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  color: #182133 !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable::before,
+html:not([data-theme="dark"]) .risk-config-card--editable::after,
+html:not([data-theme="dark"]) .risk-config-card--off::after,
+html[data-theme="light"] .risk-config-card--editable::before,
+html[data-theme="light"] .risk-config-card--editable::after,
+html[data-theme="light"] .risk-config-card--off::after,
+body[data-theme="light"] .risk-config-card--editable::before,
+body[data-theme="light"] .risk-config-card--editable::after,
+body[data-theme="light"] .risk-config-card--off::after {
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-title,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-value,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-meta,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control span,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-state-pill,
+html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger span,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger strong,
+html[data-theme="light"] .risk-config-card--editable .risk-config-title,
+html[data-theme="light"] .risk-config-card--editable .risk-config-value,
+html[data-theme="light"] .risk-config-card--editable .risk-config-toggle,
+html[data-theme="light"] .risk-config-card--editable .risk-config-meta,
+html[data-theme="light"] .risk-config-card--editable .risk-config-control span,
+html[data-theme="light"] .risk-config-card--editable .risk-config-state-pill,
+html[data-theme="light"] .risk-config-card--editable .ui-badge,
+html[data-theme="light"] .risk-config-card--editable .risk-select-trigger span,
+html[data-theme="light"] .risk-config-card--editable .risk-select-trigger strong,
+body[data-theme="light"] .risk-config-card--editable .risk-config-title,
+body[data-theme="light"] .risk-config-card--editable .risk-config-value,
+body[data-theme="light"] .risk-config-card--editable .risk-config-toggle,
+body[data-theme="light"] .risk-config-card--editable .risk-config-meta,
+body[data-theme="light"] .risk-config-card--editable .risk-config-control span,
+body[data-theme="light"] .risk-config-card--editable .risk-config-state-pill,
+body[data-theme="light"] .risk-config-card--editable .ui-badge,
+body[data-theme="light"] .risk-config-card--editable .risk-select-trigger span,
+body[data-theme="light"] .risk-config-card--editable .risk-select-trigger strong {
+  color: #182133 !important;
+}
+
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control input,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control textarea,
+html:not([data-theme="dark"]) .risk-stepper,
+html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger,
+html[data-theme="light"] .risk-config-card--editable .risk-config-control input,
+html[data-theme="light"] .risk-config-card--editable .risk-config-control textarea,
+html[data-theme="light"] .risk-stepper,
+html[data-theme="light"] .risk-config-card--editable .risk-select-trigger,
+body[data-theme="light"] .risk-config-card--editable .risk-config-control input,
+body[data-theme="light"] .risk-config-card--editable .risk-config-control textarea,
+body[data-theme="light"] .risk-stepper,
+body[data-theme="light"] .risk-config-card--editable .risk-select-trigger {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+  color: #182133 !important;
+}
