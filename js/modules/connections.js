@@ -1,7 +1,7 @@
-import { connectAccount, disconnectAccount, reconnectAccount } from "./account-runtime.js";
-import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js";
-import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260329-193838";
-import { showToast } from "./toast.js";
+import { connectAccount, disconnectAccount, reconnectAccount } from "./account-runtime.js?v=build-20260329-201102";
+import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
+import { badgeMarkup, getConnectionStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260329-201102";
+import { showToast } from "./toast.js?v=build-20260329-201102";
 
 function connectionCatalogStatusMeta(status) {
   if (status === "ready") return { label: "Lista", tone: "ok" };

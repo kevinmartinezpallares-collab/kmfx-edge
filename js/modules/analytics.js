@@ -1,7 +1,7 @@
-import { formatCompact, formatCurrency, formatPercent, selectCurrentModel } from "./utils.js";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts, radarSpec } from "./chart-system.js";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js";
-import { badgeMarkup } from "./status-badges.js";
+import { formatCompact, formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts, radarSpec } from "./chart-system.js?v=build-20260329-201102";
+import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260329-201102";
+import { badgeMarkup } from "./status-badges.js?v=build-20260329-201102";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));

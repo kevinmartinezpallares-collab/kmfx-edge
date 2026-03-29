@@ -1,6 +1,6 @@
-import { formatCurrency, selectCurrentModel } from "./utils.js";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js";
-import { badgeMarkup } from "./status-badges.js";
+import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
+import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260329-201102";
+import { badgeMarkup } from "./status-badges.js?v=build-20260329-201102";
 
 const INSTRUMENTS = [
   { id: "forex", label: "Forex", symbols: ["EURUSD", "GBPUSD", "USDJPY"] },
