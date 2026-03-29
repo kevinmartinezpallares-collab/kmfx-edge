@@ -122,7 +122,7 @@ export function renderPortfolio(root, state) {
       <article class="tl-kpi-card"><div class="tl-kpi-label">Posiciones totales</div><div class="tl-kpi-val">${globalPositions.length}</div></article>
     </div>
 
-    <article class="tl-section-card">
+    <article class="tl-section-card" data-portfolio-render="equal-cards">
       <div class="tl-section-header"><div class="tl-section-title">Detalle por Cuenta</div></div>
       <div class="account-cards-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
         ${accounts.map((account) => renderPortfolioAccountCard(account, false)).join("")}
