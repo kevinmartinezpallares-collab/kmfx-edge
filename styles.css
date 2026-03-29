@@ -264,11 +264,11 @@ body[data-theme="dark"] {
 }
 
 html:not([data-theme="dark"]) {
-  --bg-app: #FFFFFF;
-  --bg-shell: #FFFFFF;
-  --bg-sidebar: #FFFFFF;
-  --bg-topbar: #FFFFFF;
-  --bg-panel: #FFFFFF;
+  --bg-app: #eef3f9;
+  --bg-shell: #eef3f9;
+  --bg-sidebar: #eef3f9;
+  --bg-topbar: #eef3f9;
+  --bg-panel: #eef3f9;
   --bg-card: #FFFFFF;
   --bg-card-alt: #F9FBFD;
   --border-subtle: rgba(15, 23, 42, 0.06);
@@ -1512,6 +1512,15 @@ button {
 }
 
 html:not([data-theme="dark"]) .app-shell {
+  background: var(--bg-shell);
+}
+
+html:not([data-theme="dark"]) body,
+html:not([data-theme="dark"]) .app-shell,
+html:not([data-theme="dark"]) .sidebar,
+html:not([data-theme="dark"]) .topbar,
+html:not([data-theme="dark"]) .main-panel,
+html:not([data-theme="dark"]) .content {
   background: var(--bg-shell);
 }
 
