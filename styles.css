@@ -6537,6 +6537,8 @@ body[data-theme="dark"] .settings-profile-card {
 
 .risk-config-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  position: relative;
+  overflow: visible;
 }
 
 .risk-page-stack {
@@ -6549,6 +6551,12 @@ body[data-theme="dark"] .settings-profile-card {
 .risk-limits-surface,
 .risk-ladder-surface {
   box-shadow: var(--shadow);
+}
+
+.risk-config-surface {
+  overflow: visible;
+  isolation: isolate;
+  z-index: 3;
 }
 
 .risk-status-widget {
@@ -7160,6 +7168,10 @@ body[data-theme="dark"] .settings-profile-card {
   transition:
     opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1),
     transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.risk-select-menu--symbols {
+  min-width: 100%;
 }
 
 .risk-select.open .risk-select-menu {
