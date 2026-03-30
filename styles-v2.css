@@ -1071,6 +1071,53 @@ html .kmfx-chart-tooltip-body {
   opacity: 0.18;
 }
 
+html .account-hero-card,
+html[data-theme="dark"] .account-hero-card,
+body[data-theme="dark"] .account-hero-card,
+html .account-hero-card:not(.active):not(.account-hero-card--main),
+html[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--main),
+body[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--main) {
+  background: var(--layer-2) !important;
+  background-image: none !important;
+  border: 0.5px solid var(--border-0) !important;
+  box-shadow: none !important;
+}
+
+html .account-hero-card.active,
+html .account-hero-card--main,
+html[data-theme="dark"] .account-hero-card.active,
+html[data-theme="dark"] .account-hero-card--main,
+body[data-theme="dark"] .account-hero-card.active,
+body[data-theme="dark"] .account-hero-card--main {
+  background: var(--layer-2) !important;
+  background-image: none !important;
+  border: 0.5px solid var(--border-1) !important;
+  box-shadow: none !important;
+}
+
+html .account-hero-card::before,
+html .account-hero-card::after,
+html[data-theme="dark"] .account-hero-card::before,
+html[data-theme="dark"] .account-hero-card::after,
+body[data-theme="dark"] .account-hero-card::before,
+body[data-theme="dark"] .account-hero-card::after {
+  content: none !important;
+  background: none !important;
+}
+
+html .account-card-blob,
+html[data-theme="dark"] .account-card-blob,
+body[data-theme="dark"] .account-card-blob,
+html .account-hero-card.active .account-card-blob,
+html .account-hero-card--main .account-card-blob,
+html[data-theme="dark"] .account-hero-card.active .account-card-blob,
+html[data-theme="dark"] .account-hero-card--main .account-card-blob,
+body[data-theme="dark"] .account-hero-card.active .account-card-blob,
+body[data-theme="dark"] .account-hero-card--main .account-card-blob {
+  opacity: 0 !important;
+  background: none !important;
+}
+
 .account-hero-card.active .account-hero-card__name,
 .account-hero-card--main .account-hero-card__name,
 .account-hero-card.active .account-hero-card__equity,
