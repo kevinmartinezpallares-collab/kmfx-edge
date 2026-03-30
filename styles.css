@@ -1,39 +1,41 @@
 :root {
   /* ── Layer system ── */
-  --layer-0: #ffffff;
-  --layer-1: #f5f5f7;
-  --layer-2: #ebebed;
-  --layer-3: #e0e0e2;
+  --layer-0: #f2f2f7;
+  --layer-1: #ffffff;
+  --layer-2: #f2f2f7;
+  --layer-3: #e5e5ea;
   --layer-accent: #0a0f2e;
 
-  --border-0: rgba(0,0,0,0.05);
-  --border-1: rgba(0,0,0,0.08);
-  --border-2: rgba(0,0,0,0.12);
+  --border-0: rgba(0,0,0,0.06);
+  --border-1: rgba(0,0,0,0.10);
+  --border-2: rgba(0,0,0,0.14);
   --border-focus: var(--accent);
 
   --text-0: #1c1c1e;
   --text-1: rgba(0,0,0,0.60);
   --text-2: rgba(0,0,0,0.38);
 
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.05);
+  --shadow-card:
+    0 1px 0 rgba(0,0,0,0.04),
+    0 0 0 0.5px rgba(0,0,0,0.06);
   --shadow-none: none;
 
   /* ── Fondos ── */
-  --bg-app: #ffffff;
-  --bg-shell: #ffffff;
-  --bg-sidebar: #ffffff;
-  --bg-topbar: #ffffff;
-  --bg-panel: #ffffff;
-  --bg-card: #f5f5f7;
-  --bg-card-alt: #f5f5f7;
+  --bg-app: #f2f2f7;
+  --bg-shell: #f2f2f7;
+  --bg-sidebar: #f2f2f7;
+  --bg-topbar: #f2f2f7;
+  --bg-panel: #f2f2f7;
+  --bg-card: #ffffff;
+  --bg-card-alt: #ffffff;
 
   /* ── Superficies ── */
-  --bg: #ffffff;
-  --bg2: #ffffff;
-  --bg3: #f5f5f7;
-  --surface: #f5f5f7;
-  --surface2: #f5f5f7;
-  --shell-surface: #ffffff;
+  --bg: #f2f2f7;
+  --bg2: #f2f2f7;
+  --bg3: #e5e5ea;
+  --surface: #ffffff;
+  --surface2: #ffffff;
+  --shell-surface: #f2f2f7;
 
   /* ── Bordes ── */
   --border: rgba(0,0,0,0.08);
@@ -99,13 +101,14 @@
   --radius: 16px;
   --card-radius: 16px;
   --card-padding: 18px;
-  --card-surface: #f5f5f7;
-  --card-border: rgba(0,0,0,0.08);
+  --card-surface: #ffffff;
+  --card-border: rgba(0,0,0,0.10);
   --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   --card-sheen:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 34%, transparent 72%);
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.06),
-    0 0 0 0.5px rgba(0,0,0,0.05);
+  --card-shadow:
+    0 1px 0 rgba(0,0,0,0.04),
+    0 0 0 0.5px rgba(0,0,0,0.06);
   --card-hover-border: color-mix(in srgb, var(--accent) 18%, var(--border));
   --shadow: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -13612,15 +13615,15 @@ html:not([data-theme="dark"]) .sidebar,
 html:not([data-theme="dark"]) .topbar,
 html:not([data-theme="dark"]) .main-panel,
 html:not([data-theme="dark"]) .content {
-  background: #ffffff !important;
+  background: var(--layer-0);
 }
 
 html:not([data-theme="dark"]) .sidebar {
-  border-right: 1px solid rgba(0,0,0,0.07) !important;
+  border-right: 1px solid var(--border-0);
 }
 
 html:not([data-theme="dark"]) .topbar {
-  border-bottom: 1px solid rgba(0,0,0,0.07) !important;
+  border-bottom: 1px solid var(--border-0);
 }
 
 html:not([data-theme="dark"]) .tl-kpi-card,
@@ -13635,9 +13638,9 @@ html:not([data-theme="dark"]) .table-wrap,
 html:not([data-theme="dark"]) .widget-table-wrap,
 html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .analytics-bento-card {
-  background: #f5f5f7 !important;
-  border: 1px solid rgba(0,0,0,0.07) !important;
-  box-shadow: none !important;
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .tl-kpi-card::before,
@@ -13654,7 +13657,7 @@ html:not([data-theme="dark"]) .chart-card::after,
 html:not([data-theme="dark"]) .pnlcal-card::after,
 html:not([data-theme="dark"]) .widget-card::after,
 html:not([data-theme="dark"]) .account-switcher::after {
-  display: none !important;
+  display: none;
 }
 
 html:not([data-theme="dark"]) .tl-kpi-card:hover,
@@ -13662,9 +13665,9 @@ html:not([data-theme="dark"]) .rm4-card:hover,
 html:not([data-theme="dark"]) .tl-section-card:hover,
 html:not([data-theme="dark"]) .chart-card:hover,
 html:not([data-theme="dark"]) .widget-card:hover {
-  background: #f5f5f7 !important;
-  transform: none !important;
-  box-shadow: none !important;
+  background: var(--layer-1);
+  transform: none;
+  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .risk-config-card,
@@ -13870,22 +13873,22 @@ html:not([data-theme="dark"]) .calendar-cell.today {
 
 html:not([data-theme="dark"]) .calendar-cell--empty,
 html:not([data-theme="dark"]) .calendar-cell.empty {
-  background: #f5f5f7 !important;
-  border-color: transparent !important;
+  background: var(--layer-2);
+  border-color: transparent;
 }
 
 html:not([data-theme="dark"]) .portfolio-account-card,
 html:not([data-theme="dark"]) .account-detail-card,
 html:not([data-theme="dark"]) .detalle-cuenta-card {
-  background: #ffffff !important;
-  border: 1px solid rgba(0,0,0,0.08) !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .account-cards-grid .tl-section-card,
 html:not([data-theme="dark"]) .account-cards-grid .widget-card {
-  background: #ffffff !important;
-  border: 1px solid rgba(0,0,0,0.08) !important;
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
 }
 
 html:not([data-theme="dark"]) .risk-stepper {
@@ -13914,21 +13917,21 @@ html:not([data-theme="dark"]) .risk-stepper-value {
 
 html:not([data-theme="dark"]) .tl-section-card,
 html:not([data-theme="dark"]) .widget-card {
-  border: 1px solid rgba(0,0,0,0.07) !important;
+  border: 1px solid var(--border-1);
 }
 
 html:not([data-theme="dark"]) .tl-kpi-card,
 html:not([data-theme="dark"]) .rm4-card {
-  background: #ffffff !important;
-  border: 1px solid rgba(0,0,0,0.08) !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .tl-kpi-card:hover,
 html:not([data-theme="dark"]) .rm4-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-  border-color: rgba(0,0,0,0.12) !important;
-  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-card);
+  border-color: var(--border-2);
+  transform: none;
 }
 
 html:not([data-theme="dark"]) th {
@@ -14064,7 +14067,7 @@ html:not([data-theme="dark"]) .modal-card select:focus {
 
 html:not([data-theme="dark"]) .content,
 html:not([data-theme="dark"]) .main-panel {
-  background: #ffffff !important;
+  background: var(--layer-0);
 }
 
 body,
