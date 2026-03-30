@@ -223,7 +223,7 @@ body::after {
 }
 
 .main-panel {
-  background: var(--layer-1);
+  background: var(--layer-0);
   box-shadow: none;
   margin-left: 242px;
   padding: 14px 18px 18px 0;
@@ -231,7 +231,7 @@ body::after {
 }
 
 .content {
-  background: var(--layer-1);
+  background: var(--layer-0);
   box-shadow: none;
   width: min(100%, 1500px);
   padding: 8px 0 22px;
@@ -332,7 +332,7 @@ body[data-theme="dark"] .topbar {
 html:not([data-theme="dark"]) .main-panel,
 html[data-theme="dark"] .main-panel,
 body[data-theme="dark"] .main-panel {
-  background: var(--layer-1);
+  background: var(--layer-0);
   box-shadow: none;
 }
 
@@ -340,7 +340,7 @@ body[data-theme="dark"] .main-panel {
 html:not([data-theme="dark"]) .content,
 html[data-theme="dark"] .content,
 body[data-theme="dark"] .content {
-  background: var(--layer-1);
+  background: var(--layer-0);
   box-shadow: none;
 }
 
@@ -435,7 +435,7 @@ html[data-theme="dark"] .main-panel,
 html[data-theme="dark"] .content,
 html:not([data-theme="dark"]) .main-panel,
 html:not([data-theme="dark"]) .content {
-  background: var(--layer-1) !important;
+  background: var(--layer-0) !important;
   background-image: none !important;
 }
 
