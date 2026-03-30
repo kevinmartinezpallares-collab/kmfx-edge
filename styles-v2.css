@@ -953,3 +953,139 @@ html .kmfx-chart-tooltip-body {
 .kmfx-chart-shell canvas {
   background: transparent;
 }
+
+/* Account hero / premium cards */
+.account-hero-card {
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
+  color: var(--text-0);
+}
+
+.account-hero-card:hover {
+  border-color: var(--border-1);
+  box-shadow: var(--shadow-card);
+}
+
+.account-hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 28%),
+    radial-gradient(140% 90% at 50% 120%, rgba(255, 255, 255, 0.03), transparent 58%);
+  opacity: 0.5;
+  mix-blend-mode: normal;
+}
+
+.account-hero-card::after {
+  content: none;
+}
+
+.account-card-blobs {
+  inset: 1px;
+}
+
+.account-card-blob {
+  filter: blur(44px);
+  opacity: 0;
+}
+
+.account-card-blob.blob-1 {
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.07), transparent 72%);
+}
+
+.account-card-blob.blob-2 {
+  background: radial-gradient(ellipse, rgba(186, 186, 186, 0.06), transparent 72%);
+}
+
+.account-card-blob.blob-3 {
+  background: radial-gradient(ellipse, rgba(96, 96, 96, 0.08), transparent 72%);
+}
+
+.account-card-blob.blob-4 {
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.04), transparent 72%);
+}
+
+.account-hero-card:not(.active):not(.account-hero-card--main) {
+  background: var(--layer-1);
+  border-color: var(--border-1);
+  box-shadow: var(--shadow-card);
+}
+
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-card-blob {
+  opacity: 0;
+}
+
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__name,
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__equity,
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__stat-val {
+  color: var(--text-0);
+}
+
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__meta,
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__equity-label,
+.account-hero-card:not(.active):not(.account-hero-card--main) .account-hero-card__stat-label {
+  color: var(--text-1);
+}
+
+.account-hero-card.active,
+.account-hero-card--main {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
+    #141414;
+  border: 1px solid rgba(61, 123, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 8px 24px rgba(0, 0, 0, 0.34);
+  color: #ffffff;
+}
+
+.account-hero-card.active::before,
+.account-hero-card--main::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent 28%),
+    radial-gradient(110% 78% at 78% 0%, rgba(61, 123, 255, 0.05), transparent 42%),
+    radial-gradient(140% 90% at 50% 120%, rgba(255, 255, 255, 0.03), transparent 58%);
+  opacity: 0.7;
+}
+
+.account-hero-card.active .account-card-blob,
+.account-hero-card--main .account-card-blob {
+  opacity: 0.18;
+}
+
+.account-hero-card.active .account-hero-card__name,
+.account-hero-card--main .account-hero-card__name,
+.account-hero-card.active .account-hero-card__equity,
+.account-hero-card--main .account-hero-card__equity,
+.account-hero-card.active .account-hero-card__stat-val,
+.account-hero-card--main .account-hero-card__stat-val {
+  color: #ffffff;
+}
+
+.account-hero-card.active .account-hero-card__meta,
+.account-hero-card--main .account-hero-card__meta,
+.account-hero-card.active .account-hero-card__equity-label,
+.account-hero-card--main .account-hero-card__equity-label,
+.account-hero-card.active .account-hero-card__stat-label,
+.account-hero-card--main .account-hero-card__stat-label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.account-hero-card .status-badge {
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.account-hero-card .status-dot {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.account-hero-card .status-dot.connected,
+.account-hero-card__stat-val.green {
+  color: var(--positive);
+  background: var(--positive);
+}
