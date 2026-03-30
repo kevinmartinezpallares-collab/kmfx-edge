@@ -737,3 +737,62 @@ html .btn-ghost:disabled {
   opacity: 0.36;
   cursor: not-allowed;
 }
+
+/* Restrained dark glass system for floating surfaces */
+html .risk-select-menu,
+html .custom-select-dropdown,
+html .bnav-more-menu,
+html .sidebar-profile-menu,
+html .kmfx-chart-tooltip {
+  background: var(--glass-base);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  color: var(--text-0);
+}
+
+html .risk-select-menu,
+html .custom-select-dropdown,
+html .sidebar-profile-menu,
+html .bnav-more-menu {
+  border-radius: 14px;
+}
+
+html .topbar-user-card,
+html .topbar-time-stack,
+html .theme-toggle-badge {
+  background: var(--glass-subtle);
+  border: 1px solid var(--border-0);
+  box-shadow: none;
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+}
+
+html .sidebar-profile-menu-item,
+html .custom-select-option {
+  color: var(--text-1);
+}
+
+html .sidebar-profile-menu-item:hover,
+html .custom-select-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-0);
+}
+
+html .sidebar-profile-menu-item.danger {
+  color: var(--negative);
+}
+
+html .kmfx-chart-tooltip {
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+html .kmfx-chart-tooltip-title {
+  color: var(--text-2);
+}
+
+html .kmfx-chart-tooltip-body {
+  color: var(--text-0);
+}
