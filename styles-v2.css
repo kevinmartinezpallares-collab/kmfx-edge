@@ -1,36 +1,36 @@
 :root {
   /* ACCENT */
-  --accent: #3D7BFF;
+  --accent: #0A84FF;
 
   /* SEMANTIC */
-  --positive: #34d97b;
-  --negative: #ff5c5c;
-  --warning: #ffb020;
+  --positive: #30D158;
+  --negative: #FF453A;
+  --warning: #FF9F0A;
 
   /* LAYERS (Apple-inspired hierarchy) */
   --layer-0: #000000;
   --layer-1: #1C1C1E;
   --layer-2: #2C2C2E;
-  --layer-3: rgba(255,255,255,0.08);
-  --layer-accent: rgba(61, 123, 255, 0.12);
+  --layer-3: #3A3A3C;
+  --layer-accent: rgba(10, 132, 255, 0.12);
 
   /* TEXT */
   --text-0: #ffffff;
-  --text-1: rgba(255, 255, 255, 0.65);
-  --text-2: rgba(255, 255, 255, 0.40);
+  --text-1: #8E8E93;
+  --text-2: rgba(142, 142, 147, 0.72);
 
   /* BORDERS */
   --border-0: #38383A;
   --border-1: rgba(255, 255, 255, 0.08);
   --border-2: rgba(255, 255, 255, 0.14);
-  --border-focus: #3D7BFF;
+  --border-focus: #0A84FF;
 
   /* SHADOWS */
   --shadow-none: none;
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
-  --shadow-elevated: 0 8px 20px rgba(0, 0, 0, 0.42);
-  --shadow-control: 0 1px 0 rgba(255, 255, 255, 0.02), 0 2px 6px rgba(0, 0, 0, 0.18);
-  --shadow-chart-shell: 0 2px 10px rgba(0, 0, 0, 0.24);
+  --shadow-card: none;
+  --shadow-elevated: none;
+  --shadow-control: none;
+  --shadow-chart-shell: none;
 
   /* GLASS (only for later use) */
   --glass-subtle: rgba(255, 255, 255, 0.04);
@@ -43,10 +43,11 @@
 
   /* CONTROLS */
   --control-height: 44px;
-  --control-radius: 12px;
+  --control-radius: 8px;
   --control-radius-pill: 999px;
-  --focus-ring: 0 0 0 3px rgba(61, 123, 255, 0.16);
-  --radius-card: 18px;
+  --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  --radius-section: 16px;
+  --radius-card: 12px;
   --radius-shell: 20px;
 }
 
@@ -54,6 +55,7 @@ html,
 body {
   background: var(--layer-0);
   color: var(--text-0);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -172,7 +174,7 @@ body::after {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-0);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
 }
 
 /* Footer del sidebar */
@@ -403,8 +405,8 @@ html .sidebar,
 html[data-theme="dark"] .sidebar,
 html:not([data-theme="dark"]) .sidebar,
 body[data-theme="dark"] .sidebar {
-  background: #111111 !important;
-  border-right: 1px solid rgba(255,255,255,0.05) !important;
+  background: var(--layer-1) !important;
+  border-right: 1px solid var(--border-0) !important;
   box-shadow: none !important;
 }
 
@@ -413,9 +415,9 @@ html,
 html body,
 html .app-shell,
 html .main-panel {
-  background: var(--layer-1) !important;
+  background: var(--layer-0) !important;
   background-image: none !important;
-  background-color: var(--layer-1) !important;
+  background-color: var(--layer-0) !important;
 }
 
 /* ── TOPBAR — mismo negro que body ── */
@@ -424,6 +426,16 @@ html[data-theme="dark"] .topbar {
   background: var(--layer-0) !important;
   border-bottom: 1px solid var(--border-0) !important;
   box-shadow: none !important;
+}
+
+html .main-panel,
+html .content,
+html[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+html:not([data-theme="dark"]) .main-panel,
+html:not([data-theme="dark"]) .content {
+  background: var(--layer-1) !important;
+  background-image: none !important;
 }
 
 /* ── SECTION LABELS — quitar uppercase pesado ── */
@@ -450,12 +462,12 @@ html[data-theme="dark"] .sidebar-section-label,
 .widget-table-wrap {
   background: var(--layer-2);
   background-image: none;
-  border: 1px solid var(--border-1);
+  border: 0.5px solid var(--border-0);
   box-shadow: var(--shadow-card);
   color: var(--text-0);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-section);
 }
 
 .tl-section-card::before,
@@ -487,7 +499,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .widget-table-wrap:hover {
   background: var(--layer-2);
   background-image: none;
-  border-color: var(--border-1);
+  border-color: var(--border-0);
   box-shadow: var(--shadow-card);
   transform: none;
   backdrop-filter: none;
@@ -499,7 +511,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .rm4-card {
   background: var(--layer-2);
   background-image: none;
-  border: 1px solid var(--border-1);
+  border: 0.5px solid var(--border-0);
   box-shadow: var(--shadow-elevated);
   color: var(--text-0);
   backdrop-filter: none;
@@ -518,7 +530,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .rm4-card:hover {
   background: var(--layer-2);
   background-image: none;
-  border-color: var(--border-2);
+  border-color: var(--border-1);
   box-shadow: var(--shadow-elevated);
   transform: none;
   backdrop-filter: none;
@@ -833,7 +845,7 @@ html .kmfx-chart-tooltip-body {
 .dashboard-kpi-premium-grid,
 .tl-kpi-row,
 .tl-kpi-row.five {
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 16px;
 }
 
@@ -851,8 +863,8 @@ html .kmfx-chart-tooltip-body {
 .account-banner,
 .table-wrap,
 .widget-table-wrap {
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: var(--radius-section);
+  padding: 20px;
 }
 
 .tl-section-header {
@@ -863,22 +875,22 @@ html .kmfx-chart-tooltip-body {
 .tl-section-title {
   font-size: 15px;
   font-weight: 620;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
 }
 
 .tl-section-title::before {
   width: 5px;
   height: 5px;
-  background: rgba(61, 123, 255, 0.72);
+  background: var(--text-2);
 }
 
 .widget-card {
-  padding: 18px;
+  padding: 20px;
 }
 
 .widget-card--kpi {
   min-height: 164px;
-  padding: 18px 18px 16px;
+  padding: 20px;
 }
 
 .widget-card--feature {
@@ -903,8 +915,8 @@ html .kmfx-chart-tooltip-body {
 
 .tl-kpi-card,
 .rm4-card {
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: var(--radius-card);
+  padding: 20px;
 }
 
 .tl-kpi-label,
@@ -926,7 +938,7 @@ html .kmfx-chart-tooltip-body {
 
 .tl-kpi-card:hover,
 .rm4-card:hover {
-  border-color: var(--border-1);
+  border-color: var(--border-0);
   box-shadow: var(--shadow-elevated);
 }
 
@@ -941,7 +953,7 @@ html .kmfx-chart-tooltip-body {
 .weekly-chart-shell {
   background: var(--layer-2);
   background-image: none;
-  border: 1px solid var(--border-1);
+  border: 0.5px solid var(--border-0);
   box-shadow: var(--shadow-chart-shell);
   border-radius: var(--radius-card);
   backdrop-filter: none;
@@ -963,9 +975,10 @@ html .kmfx-chart-tooltip-body {
 /* Account hero / premium cards */
 .account-hero-card {
   background: var(--layer-2);
-  border: 1px solid var(--border-1);
+  border: 0.5px solid var(--border-0);
   box-shadow: var(--shadow-card);
   color: var(--text-0);
+  border-radius: var(--radius-card);
 }
 
 .account-hero-card:hover {
@@ -978,10 +991,8 @@ html .kmfx-chart-tooltip-body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 28%),
-    radial-gradient(140% 90% at 50% 120%, rgba(255, 255, 255, 0.03), transparent 58%);
-  opacity: 0.5;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 30%);
+  opacity: 0.35;
   mix-blend-mode: normal;
 }
 
@@ -1039,22 +1050,19 @@ html .kmfx-chart-tooltip-body {
 .account-hero-card.active,
 .account-hero-card--main {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 34%),
-    #141414;
-  border: 1px solid rgba(61, 123, 255, 0.14);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 8px 24px rgba(0, 0, 0, 0.34);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    var(--layer-2);
+  border: 0.5px solid var(--border-1);
+  box-shadow: none;
   color: #ffffff;
 }
 
 .account-hero-card.active::before,
 .account-hero-card--main::before {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent 28%),
-    radial-gradient(110% 78% at 78% 0%, rgba(61, 123, 255, 0.05), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 28%),
     radial-gradient(140% 90% at 50% 120%, rgba(255, 255, 255, 0.03), transparent 58%);
-  opacity: 0.7;
+  opacity: 0.42;
 }
 
 .account-hero-card.active .account-card-blob,
