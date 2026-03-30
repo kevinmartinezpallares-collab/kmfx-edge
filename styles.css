@@ -1,94 +1,108 @@
 :root {
+  /* ── Semantic ── */
+  --accent: #2f6bff;
+  --accent-dark: #3d7bff;
+  --positive: #21a36a;
+  --negative: #d95b72;
+  --warning: #ff9f0a;
+
   /* ── Layer system ── */
   --layer-0: #f2f2f7;
   --layer-1: #ffffff;
   --layer-2: #f2f2f7;
   --layer-3: #e5e5ea;
-  --layer-accent: #0a0f2e;
+  --layer-accent: rgba(47,107,255,0.08);
 
   --border-0: rgba(0,0,0,0.06);
-  --border-1: rgba(0,0,0,0.10);
-  --border-2: rgba(0,0,0,0.14);
+  --border-1: rgba(0,0,0,0.08);
+  --border-2: rgba(0,0,0,0.12);
   --border-focus: var(--accent);
 
   --text-0: #1c1c1e;
-  --text-1: rgba(0,0,0,0.60);
-  --text-2: rgba(0,0,0,0.38);
+  --text-1: rgba(0,0,0,0.55);
+  --text-2: rgba(0,0,0,0.35);
 
-  --shadow-card:
-    0 1px 0 rgba(0,0,0,0.04),
-    0 0 0 0.5px rgba(0,0,0,0.06);
   --shadow-none: none;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 4px 12px rgba(0,0,0,0.08);
+
+  --glass-subtle: rgba(255,255,255,0.82);
+  --glass-base: rgba(255,255,255,0.90);
+  --glass-strong: rgba(255,255,255,0.94);
+
+  --chart-grid: rgba(0,0,0,0.06);
+  --chart-text: rgba(0,0,0,0.45);
+  --chart-baseline: rgba(0,0,0,0.15);
+
+  --surface-shell: var(--layer-0);
+  --surface-card: var(--layer-1);
+  --surface-control: var(--layer-2);
 
   /* ── Fondos ── */
-  --bg-app: #f2f2f7;
-  --bg-shell: #f2f2f7;
-  --bg-sidebar: #f2f2f7;
-  --bg-topbar: #f2f2f7;
-  --bg-panel: #f2f2f7;
-  --bg-card: #ffffff;
-  --bg-card-alt: #ffffff;
+  --bg-app: var(--layer-0);
+  --bg-shell: var(--layer-0);
+  --bg-sidebar: var(--layer-0);
+  --bg-topbar: var(--layer-0);
+  --bg-panel: var(--layer-0);
+  --bg-card: var(--layer-1);
+  --bg-card-alt: var(--layer-1);
 
   /* ── Superficies ── */
-  --bg: #f2f2f7;
-  --bg2: #f2f2f7;
-  --bg3: #e5e5ea;
-  --surface: #ffffff;
-  --surface2: #ffffff;
-  --shell-surface: #f2f2f7;
+  --bg: var(--layer-0);
+  --bg2: var(--layer-2);
+  --bg3: var(--layer-3);
+  --surface: var(--surface-card);
+  --surface2: var(--surface-card);
+  --shell-surface: var(--surface-shell);
 
   /* ── Bordes ── */
-  --border: rgba(0,0,0,0.08);
-  --border2: rgba(0,0,0,0.12);
-  --border-subtle: rgba(0,0,0,0.05);
-  --shell-border: rgba(0,0,0,0.07);
+  --border: var(--border-1);
+  --border2: var(--border-2);
+  --border-subtle: var(--border-0);
+  --shell-border: var(--border-0);
 
   /* ── Texto ── */
-  --text: #141824;
-  --text1: #141824;
-  --text2: #232a39;
-  --text3: rgba(20, 24, 36, 0.62);
-  --text4: rgba(20, 24, 36, 0.44);
-  --text-primary: #141824;
-  --text-secondary: rgba(20, 24, 36, 0.62);
-  --text-muted: rgba(20, 24, 36, 0.44);
-  --neutral-strong: #141824;
-  --neutral: rgba(20, 24, 36, 0.66);
-  --neutral-soft: rgba(20, 24, 36, 0.48);
+  --text: var(--text-0);
+  --text1: var(--text-0);
+  --text2: var(--text-0);
+  --text3: var(--text-1);
+  --text4: var(--text-2);
+  --text-primary: var(--text-0);
+  --text-secondary: var(--text-1);
+  --text-muted: var(--text-2);
+  --neutral-strong: var(--text-0);
+  --neutral: var(--text-1);
+  --neutral-soft: var(--text-2);
 
-  /* ── Acento ── */
-  --accent: #2f6bff;
+  /* ── Accent aliases ── */
   --accent2: #5d90ff;
   --accent3: #1e3e8a;
-  --accent-blue: #2f6bff;
+  --accent-blue: var(--accent);
   --accent-violet: #7c6bff;
   --accent-bg: rgba(47, 107, 255, 0.1);
   --accent-border: rgba(47, 107, 255, 0.18);
-  --active-surface: rgba(47, 107, 255, 0.1);
+  --active-surface: var(--layer-accent);
   --active-border: rgba(47, 107, 255, 0.18);
-  --active-text: #2f6bff;
-  --primary: #2f6bff;
+  --active-text: var(--accent);
+  --primary: var(--accent);
   --primary-2: #5d90ff;
   --primary-bg: rgba(47, 107, 255, 0.12);
   --primary-border: rgba(47, 107, 255, 0.22);
 
   /* ── Semánticos ── */
-  --green: #21a36a;
+  --green: var(--positive);
   --green-bg: rgba(33, 163, 106, 0.08);
   --green-border: rgba(33, 163, 106, 0.16);
-  --red: #d95b72;
+  --red: var(--negative);
   --red-bg: rgba(217, 91, 114, 0.08);
   --red-border: rgba(217, 91, 114, 0.16);
   --gold: #d6a23d;
   --gold-bg: rgba(214, 162, 61, 0.10);
-  --positive: #21a36a;
 
   /* ── Charts ── */
-  --chart-axis-text: #141824;
-  --chart-axis-strong: #141824;
-  --chart-text: rgba(0,0,0,0.45);
+  --chart-axis-text: var(--chart-text);
+  --chart-axis-strong: var(--text-0);
   --chart-axis-line: rgba(20, 24, 36, 0.14);
-  --chart-grid: rgba(0,0,0,0.06);
   --chart-blue-a: #2f6bff;
   --chart-blue-b: #7eb6ff;
   --chart-violet-a: #7c6bff;
@@ -102,19 +116,17 @@
   --radius: 16px;
   --card-radius: 16px;
   --card-padding: 18px;
-  --card-surface: #ffffff;
-  --card-border: rgba(0,0,0,0.10);
+  --card-surface: var(--surface-card);
+  --card-border: var(--border-1);
   --card-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
   --card-sheen:
     linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 34%, transparent 72%);
-  --card-shadow:
-    0 1px 0 rgba(0,0,0,0.04),
-    0 0 0 0.5px rgba(0,0,0,0.06);
+  --card-shadow: var(--shadow-card);
   --card-hover-border: color-mix(in srgb, var(--accent) 18%, var(--border));
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
-  --shell-shadow: none;
+  --shadow: var(--shadow-card);
+  --shadow-md: var(--shadow-elevated);
+  --shadow-lg: var(--shadow-elevated);
+  --shell-shadow: var(--shadow-none);
 
   /* ── Motion ── */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
@@ -124,98 +136,110 @@
 
 /* KMFX dark palette locked: do not change bg/shell/canvas/card tones without an explicit dark-mode redesign decision. */
 [data-theme="dark"] {
-  --layer-0: #121212;
-  --layer-1: #1c1c1c;
-  --layer-2: #252525;
-  --layer-3: #2e2e2e;
-  --layer-accent: #04081a;
+  --accent: #3d7bff;
+  --accent-dark: #3d7bff;
+  --positive: #21a36a;
+  --negative: #d95b72;
+  --warning: #ff9f0a;
 
-  --border-0: rgba(255,255,255,0.04);
-  --border-1: rgba(255,255,255,0.08);
-  --border-2: rgba(255,255,255,0.12);
+  --layer-0: #0f1115;
+  --layer-1: #151821;
+  --layer-2: #1c212b;
+  --layer-3: #252b36;
+  --layer-accent: rgba(61,123,255,0.12);
+
+  --border-0: rgba(255,255,255,0.06);
+  --border-1: rgba(255,255,255,0.10);
+  --border-2: rgba(255,255,255,0.16);
   --border-focus: var(--accent);
 
   --text-0: #ffffff;
-  --text-1: rgba(255,255,255,0.55);
-  --text-2: rgba(255,255,255,0.30);
+  --text-1: rgba(255,255,255,0.65);
+  --text-2: rgba(255,255,255,0.40);
 
-  --shadow-card: none;
+  --shadow-card: 0 4px 12px rgba(0,0,0,0.22);
+  --shadow-elevated: 0 8px 20px rgba(0,0,0,0.30);
   --shadow-none: none;
+  --glass-subtle: rgba(28,28,28,0.76);
+  --glass-base: rgba(28,28,28,0.88);
+  --glass-strong: rgba(28,28,28,0.94);
+  --chart-grid: rgba(255,255,255,0.06);
+  --chart-text: rgba(255,255,255,0.45);
+  --chart-baseline: rgba(255,255,255,0.15);
+  --surface-shell: var(--layer-0);
+  --surface-card: var(--layer-1);
+  --surface-control: var(--layer-2);
 
   /* ── Fondos base ── */
-  --bg-app: #121212;
-  --bg-shell: #121212;
-  --bg-sidebar: #121212;
-  --bg-topbar: #121212;
-  --bg-panel: #121212;
-  --bg: #121212;
-  --bg2: #1c1c1c;
-  --bg3: #1c1c1c;
+  --bg-app: var(--layer-0);
+  --bg-shell: var(--layer-0);
+  --bg-sidebar: var(--layer-0);
+  --bg-topbar: var(--layer-0);
+  --bg-panel: var(--layer-0);
+  --bg: var(--layer-0);
+  --bg2: var(--layer-2);
+  --bg3: var(--layer-3);
 
   /* ── Superficies (cards, modales) ── */
-  --bg-card: #1c1c1c;
-  --bg-card-alt: #1c1c1c;
-  --surface: #1c1c1c;
-  --surface2: #1c1c1c;
-  --shell-surface: #1c1c1c;
+  --bg-card: var(--layer-1);
+  --bg-card-alt: var(--layer-1);
+  --surface: var(--surface-card);
+  --surface2: var(--surface-card);
+  --shell-surface: var(--surface-shell);
 
   /* ── Bordes ── */
-  --border: rgba(255,255,255,0.08);
-  --border2: rgba(255,255,255,0.12);
-  --border-subtle: rgba(255,255,255,0.05);
-  --card-border: rgba(255,255,255,0.08);
-  --shell-border: rgba(255,255,255,0.06);
+  --border: var(--border-1);
+  --border2: var(--border-2);
+  --border-subtle: var(--border-0);
+  --card-border: var(--border-1);
+  --shell-border: var(--border-0);
 
-  --text-primary: #FFFFFF;
-  --text-secondary: #8E9196;
-  --text-muted: #6F7782;
-  --accent-blue: #3D7BFF;
+  --text-primary: var(--text-0);
+  --text-secondary: var(--text-1);
+  --text-muted: var(--text-2);
+  --accent-blue: var(--accent);
   --accent-green: #22C55E;
   --accent-violet: #B9A7FF;
-  --positive: #4ADE80;
-  --text: #FFFFFF;
-  --text1: #FFFFFF;
-  --text2: #FFFFFF;
-  --text3: #8E9196;
-  --text4: #6F7782;
-  --chart-axis-strong: #FFFFFF;
-  --chart-axis-text: #FFFFFF;
-  --chart-text: rgba(255,255,255,0.45);
+  --text: var(--text-0);
+  --text1: var(--text-0);
+  --text2: var(--text-0);
+  --text3: var(--text-1);
+  --text4: var(--text-2);
+  --chart-axis-strong: var(--text-0);
+  --chart-axis-text: var(--chart-text);
   --chart-axis-line: rgba(255, 255, 255, 0.08);
-  --chart-grid: rgba(255,255,255,0.06);
-  --accent: #3D7BFF;
-  --accent2: #3D7BFF;
+  --accent2: var(--accent);
   --accent3: #FFFFFF;
-  --primary: #3D7BFF;
+  --primary: var(--accent);
   --primary-2: #B9A7FF;
   --primary-bg: rgba(61, 123, 255, 0.16);
   --primary-border: rgba(61, 123, 255, 0.24);
   --accent-bg: rgba(61, 123, 255, 0.16);
   --accent-border: rgba(61, 123, 255, 0.24);
-  --chart-blue-a: #3D7BFF;
-  --chart-blue-b: #3D7BFF;
+  --chart-blue-a: var(--accent);
+  --chart-blue-b: var(--accent);
   --chart-violet-a: #B9A7FF;
   --chart-violet-b: #B9A7FF;
-  --green: #4ADE80;
-  --red: #d95b72;
+  --green: var(--positive);
+  --red: var(--negative);
   --gold: #d6a23d;
-  --neutral-strong: #FFFFFF;
-  --neutral: #8E9196;
-  --neutral-soft: #6F7782;
+  --neutral-strong: var(--text-0);
+  --neutral: var(--text-1);
+  --neutral-soft: var(--text-2);
 
   /* ── Sombras — ninguna en dark ── */
-  --shadow: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-  --card-surface: #1c1c1c;
+  --shadow: var(--shadow-card);
+  --shadow-md: var(--shadow-elevated);
+  --shadow-lg: var(--shadow-elevated);
+  --card-surface: var(--surface-card);
   --card-inner-glow: none;
   --card-sheen: none;
-  --card-shadow: none;
+  --card-shadow: var(--shadow-card);
   --card-hover-border: rgba(255,255,255,0.12);
-  --shell-shadow: none;
-  --active-surface: rgba(255,255,255,0.055);
+  --shell-shadow: var(--shadow-none);
+  --active-surface: var(--layer-accent);
   --active-border: rgba(255,255,255,0.08);
-  --active-text: #FFFFFF;
+  --active-text: var(--accent);
 }
 
 * {
