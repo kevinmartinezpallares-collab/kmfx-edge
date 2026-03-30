@@ -11,7 +11,7 @@
   --layer-0: #000000;
   --layer-1: #1C1C1E;
   --layer-2: #2C2C2E;
-  --layer-3: #3A3A3C;
+  --layer-3: rgba(255,255,255,0.08);
   --layer-accent: rgba(61, 123, 255, 0.12);
 
   /* TEXT */
@@ -20,9 +20,9 @@
   --text-2: rgba(255, 255, 255, 0.40);
 
   /* BORDERS */
-  --border-0: rgba(255, 255, 255, 0.05);
+  --border-0: #38383A;
   --border-1: rgba(255, 255, 255, 0.08);
-  --border-2: rgba(255, 255, 255, 0.12);
+  --border-2: rgba(255, 255, 255, 0.14);
   --border-focus: #3D7BFF;
 
   /* SHADOWS */
@@ -221,7 +221,7 @@ body::after {
 }
 
 .main-panel {
-  background: var(--layer-0);
+  background: var(--layer-1);
   box-shadow: none;
   margin-left: 242px;
   padding: 14px 18px 18px 0;
@@ -229,7 +229,7 @@ body::after {
 }
 
 .content {
-  background: transparent;
+  background: var(--layer-1);
   box-shadow: none;
   width: min(100%, 1500px);
   padding: 8px 0 22px;
@@ -321,7 +321,7 @@ body[data-theme="dark"] .sidebar {
 html:not([data-theme="dark"]) .topbar,
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
-  background: var(--layer-1);
+  background: var(--layer-0);
   border-bottom: 1px solid var(--border-0);
   box-shadow: none;
 }
@@ -330,7 +330,7 @@ body[data-theme="dark"] .topbar {
 html:not([data-theme="dark"]) .main-panel,
 html[data-theme="dark"] .main-panel,
 body[data-theme="dark"] .main-panel {
-  background: var(--layer-0);
+  background: var(--layer-1);
   box-shadow: none;
 }
 
@@ -338,7 +338,7 @@ body[data-theme="dark"] .main-panel {
 html:not([data-theme="dark"]) .content,
 html[data-theme="dark"] .content,
 body[data-theme="dark"] .content {
-  background: transparent;
+  background: var(--layer-1);
   box-shadow: none;
 }
 
@@ -413,16 +413,16 @@ html,
 html body,
 html .app-shell,
 html .main-panel {
-  background: #0a0a0a !important;
+  background: var(--layer-1) !important;
   background-image: none !important;
-  background-color: #0a0a0a !important;
+  background-color: var(--layer-1) !important;
 }
 
 /* ── TOPBAR — mismo negro que body ── */
 html .topbar,
 html[data-theme="dark"] .topbar {
-  background: var(--layer-1) !important;
-  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  background: var(--layer-0) !important;
+  border-bottom: 1px solid var(--border-0) !important;
   box-shadow: none !important;
 }
 
@@ -448,7 +448,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .account-banner,
 .table-wrap,
 .widget-table-wrap {
-  background: var(--layer-1);
+  background: var(--layer-2);
   background-image: none;
   border: 1px solid var(--border-1);
   box-shadow: var(--shadow-card);
@@ -485,7 +485,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .account-banner:hover,
 .table-wrap:hover,
 .widget-table-wrap:hover {
-  background: var(--layer-1);
+  background: var(--layer-2);
   background-image: none;
   border-color: var(--border-1);
   box-shadow: var(--shadow-card);
@@ -962,7 +962,7 @@ html .kmfx-chart-tooltip-body {
 
 /* Account hero / premium cards */
 .account-hero-card {
-  background: var(--layer-1);
+  background: var(--layer-2);
   border: 1px solid var(--border-1);
   box-shadow: var(--shadow-card);
   color: var(--text-0);
@@ -1015,7 +1015,7 @@ html .kmfx-chart-tooltip-body {
 }
 
 .account-hero-card:not(.active):not(.account-hero-card--main) {
-  background: var(--layer-1);
+  background: var(--layer-2);
   border-color: var(--border-1);
   box-shadow: var(--shadow-card);
 }
