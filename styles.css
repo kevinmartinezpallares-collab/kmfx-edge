@@ -3960,9 +3960,9 @@ html:not([data-theme="dark"]) .kmfx-chart-shell--bar canvas {
 .calendar-cell:hover,
 .heat-cell:hover,
 .risk-config-card:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
-  box-shadow: var(--shadow);
+  transform: none;
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-card);
 }
 
 .row-title {
@@ -12184,7 +12184,7 @@ html:not([data-theme="dark"]) .risk-config-card--off .risk-config-control,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-session-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
-  opacity: 0.72;
+  opacity: 0.82;
 }
 
 /* Light Mode Absolute Final Override
