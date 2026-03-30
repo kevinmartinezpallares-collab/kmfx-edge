@@ -28,6 +28,7 @@
   /* SHADOWS */
   --shadow-none: none;
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-elevated: 0 8px 20px rgba(0, 0, 0, 0.42);
 
   /* GLASS (only for later use) */
   --glass-subtle: rgba(255, 255, 255, 0.04);
@@ -424,4 +425,76 @@ html[data-theme="dark"] .sidebar-section-label,
   text-transform: none !important;
   letter-spacing: 0.01em !important;
   padding: 14px 8px 3px !important;
+}
+
+/* Shared section wrappers */
+.tl-section-card,
+.widget-card,
+.chart-card,
+.pnlcal-card,
+.account-switcher,
+.account-banner,
+.table-wrap,
+.widget-table-wrap {
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
+  color: var(--text-0);
+}
+
+.tl-section-card::before,
+.widget-card::before,
+.chart-card::before,
+.pnlcal-card::before,
+.account-switcher::before,
+.account-banner::before,
+.table-wrap::before,
+.widget-table-wrap::before,
+.tl-section-card::after,
+.widget-card::after,
+.chart-card::after,
+.pnlcal-card::after,
+.account-switcher::after,
+.account-banner::after,
+.table-wrap::after,
+.widget-table-wrap::after {
+  display: none;
+}
+
+.tl-section-card:hover,
+.widget-card:hover,
+.chart-card:hover,
+.pnlcal-card:hover,
+.account-switcher:hover,
+.account-banner:hover,
+.table-wrap:hover,
+.widget-table-wrap:hover {
+  background: var(--layer-1);
+  border-color: var(--border-1);
+  box-shadow: var(--shadow-card);
+  transform: none;
+}
+
+/* Elevated KPI cards */
+.tl-kpi-card,
+.rm4-card {
+  background: var(--layer-2);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-elevated);
+  color: var(--text-0);
+}
+
+.tl-kpi-card::before,
+.rm4-card::before,
+.tl-kpi-card::after,
+.rm4-card::after {
+  display: none;
+}
+
+.tl-kpi-card:hover,
+.rm4-card:hover {
+  background: var(--layer-2);
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-elevated);
+  transform: none;
 }
