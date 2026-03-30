@@ -445,9 +445,12 @@ html[data-theme="dark"] .sidebar-section-label,
 .table-wrap,
 .widget-table-wrap {
   background: var(--layer-1);
+  background-image: none;
   border: 1px solid var(--border-1);
   box-shadow: var(--shadow-card);
   color: var(--text-0);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .tl-section-card::before,
@@ -478,18 +481,24 @@ html[data-theme="dark"] .sidebar-section-label,
 .table-wrap:hover,
 .widget-table-wrap:hover {
   background: var(--layer-1);
+  background-image: none;
   border-color: var(--border-1);
   box-shadow: var(--shadow-card);
   transform: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Elevated KPI cards */
 .tl-kpi-card,
 .rm4-card {
   background: var(--layer-2);
+  background-image: none;
   border: 1px solid var(--border-1);
   box-shadow: var(--shadow-elevated);
   color: var(--text-0);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .tl-kpi-card::before,
@@ -502,9 +511,12 @@ html[data-theme="dark"] .sidebar-section-label,
 .tl-kpi-card:hover,
 .rm4-card:hover {
   background: var(--layer-2);
+  background-image: none;
   border-color: var(--border-2);
   box-shadow: var(--shadow-elevated);
   transform: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Shared control family */
@@ -922,9 +934,12 @@ html .kmfx-chart-tooltip-body {
 .chart-shell,
 .weekly-chart-shell {
   background: var(--layer-2);
+  background-image: none;
   border: 1px solid var(--border-1);
   box-shadow: var(--shadow-chart-shell);
   border-radius: 16px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .kmfx-chart-shell--kpi {
