@@ -12163,23 +12163,19 @@ html:not([data-theme="dark"]) .account-card-blob.blob-4 {
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle-ui {
-  background: rgba(20, 24, 36, 0.09) !important;
-  border-color: rgba(20, 24, 36, 0.08) !important;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.55),
-    0 1px 2px rgba(24, 36, 60, 0.06) !important;
+  background: var(--layer-3);
+  border-color: var(--border-1);
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle-ui::after {
-  background: #ffffff !important;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.16),
-    0 0 0 0.5px rgba(20, 24, 36, 0.06) !important;
+  background: var(--layer-1);
+  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle input:checked + .risk-config-toggle-ui {
-  background: #0A84FF !important;
-  border-color: #0A84FF !important;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 html:not([data-theme="dark"]) .risk-config-card--off .risk-config-value,
@@ -12188,7 +12184,7 @@ html:not([data-theme="dark"]) .risk-config-card--off .risk-config-control,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-session-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
-  opacity: 0.34 !important;
+  opacity: 0.54;
 }
 
 /* Light Mode Absolute Final Override
@@ -12413,12 +12409,6 @@ html:not([data-theme="dark"]) .custom-select-option.selected {
 [data-theme="dark"] .nav-item.active svg {
   color: var(--accent);
   stroke: var(--accent);
-}
-
-[data-theme="dark"] .kmfx-chart-shell {
-  background: #1c1c1c !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
-  box-shadow: none !important;
 }
 
 [data-theme="dark"] .risk-config-card,
