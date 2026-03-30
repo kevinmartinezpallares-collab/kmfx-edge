@@ -12163,7 +12163,7 @@ html:not([data-theme="dark"]) .account-card-blob.blob-4 {
 }
 
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle-ui {
-  background: var(--layer-3);
+  background: var(--layer-2);
   border-color: var(--border-1);
   box-shadow: none;
 }
@@ -12184,7 +12184,7 @@ html:not([data-theme="dark"]) .risk-config-card--off .risk-config-control,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-session-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-symbol-summary,
 html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
-  opacity: 0.54;
+  opacity: 0.72;
 }
 
 /* Light Mode Absolute Final Override
