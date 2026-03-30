@@ -1735,7 +1735,7 @@ html:not([data-theme="dark"]) .app-shell {
   border-radius: 14px;
   padding: 11px 12px;
   background: transparent;
-  color: var(--text3);
+  color: var(--text-1);
   cursor: pointer;
   transition:
     transform var(--dur-fast) var(--ease-premium),
@@ -1763,15 +1763,15 @@ html:not([data-theme="dark"]) .app-shell {
 
 .nav-item:hover {
   transform: translateX(1px);
-  color: var(--text2);
-  background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
+  color: var(--text-0);
+  background: var(--layer-2);
 }
 
 .nav-item.active {
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-panel) 96%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 94%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  color: var(--accent);
+  background: var(--layer-2);
+  border: 1px solid var(--border-1);
+  box-shadow: none;
 }
 
 .nav-item.active::before {
@@ -1957,22 +1957,6 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-item:hover {
 
 html[data-theme="dark"] .sidebar::after {
   content: none;
-}
-
-html[data-theme="dark"] .nav-item {
-  color: rgba(243, 242, 238, 0.62);
-}
-
-html[data-theme="dark"] .nav-item:hover {
-  color: #FFFFFF;
-  background: #161A20;
-}
-
-html[data-theme="dark"] .nav-item.active {
-  color: #FFFFFF;
-  background: #161A20;
-  border-color: #1C1F26;
-  box-shadow: none;
 }
 
 html[data-theme="dark"] .sidebar-search,
@@ -3756,11 +3740,10 @@ body[data-theme="dark"] .account-banner--premium {
 
 .week-day-cell,
 .heat-cell,
-.calendar-cell,
-.risk-config-card {
+.calendar-cell {
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg3);
+  border: 1px solid var(--border-0);
+  background: var(--layer-2);
 }
 
 .week-day-cell {
@@ -4158,17 +4141,17 @@ html:not([data-theme="dark"]) .list-row,
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .settings-check,
 html:not([data-theme="dark"]) .settings-status-card {
-  border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  border-color: var(--border-1);
 }
 
 html:not([data-theme="dark"]) th {
-  background: color-mix(in srgb, var(--surface2) 84%, var(--bg3) 16%);
-  color: color-mix(in srgb, var(--text3) 94%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--border) 90%, transparent);
+  background: var(--layer-2);
+  color: var(--text-1);
+  border-bottom-color: var(--border-0);
 }
 
 html:not([data-theme="dark"]) td {
-  border-bottom-color: color-mix(in srgb, var(--border) 82%, transparent);
+  border-bottom-color: var(--border-0);
 }
 
 html:not([data-theme="dark"]) .tl-tab-bar {
@@ -4268,23 +4251,17 @@ html:not([data-theme="dark"]) .tl-tab-bar {
   box-shadow: none;
 }
 
-html:not([data-theme="dark"]) th {
-  background: var(--bg-card-alt);
-  color: var(--text-secondary);
-  border-bottom-color: var(--border-subtle);
-}
-
 html:not([data-theme="dark"]) td,
 html:not([data-theme="dark"]) .list-row,
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .settings-check,
 html:not([data-theme="dark"]) .settings-status-card {
-  border-color: var(--border-subtle);
+  border-color: var(--border-1);
 }
 
 html:not([data-theme="dark"]) .table-wrap tbody tr:hover,
 html:not([data-theme="dark"]) .widget-table-wrap tbody tr:hover {
-  background: color-mix(in srgb, var(--active-surface) 40%, transparent);
+  background: var(--layer-2);
 }
 
 
@@ -5666,12 +5643,9 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   gap: 14px;
   padding: 18px 18px 17px;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface2) 94%, transparent), color-mix(in srgb, var(--surface) 98%, transparent));
-  box-shadow:
-    var(--card-shadow),
-    inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
+  border: 1px solid var(--border-1);
+  background: var(--layer-1);
+  box-shadow: var(--shadow-card);
   margin-bottom: 16px;
 }
 
@@ -5685,21 +5659,12 @@ html:not([data-theme="dark"]) .kmfx-arc-subtitle--risk {
   z-index: 4;
   margin-bottom: 18px;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border: 1px solid var(--border-1);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--surface2) 94%, transparent);
+  background: var(--layer-1);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    var(--shadow),
-    inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
-}
-
-html[data-theme="dark"] .settings-toolbar,
-body[data-theme="dark"] .settings-toolbar {
-  background: #111317;
-  border-color: #1C1F26;
-  box-shadow: none;
+  box-shadow: var(--shadow-card);
 }
 
 .settings-grid-clean--panel {
@@ -5775,22 +5740,11 @@ body[data-theme="dark"] .settings-disclaimer {
   min-height: 50px;
   padding: 12px 13px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
-  background: color-mix(in srgb, var(--surface2) 94%, transparent);
-  color: var(--text2);
+  border: 1px solid var(--border-1);
+  background: var(--layer-1);
+  color: var(--text-0);
   font-size: 12px;
   font-weight: 600;
-}
-
-html[data-theme="dark"] .settings-check,
-body[data-theme="dark"] .settings-check,
-html[data-theme="dark"] .settings-status-card,
-body[data-theme="dark"] .settings-status-card,
-html[data-theme="dark"] .settings-profile-card,
-body[data-theme="dark"] .settings-profile-card {
-  border-color: #1C1F26;
-  background: #111317;
-  box-shadow: none;
 }
 
 .settings-check:hover {
@@ -6614,9 +6568,10 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 
 .risk-config-card {
   padding: 16px;
-  background: color-mix(in srgb, var(--surface2) 92%, transparent);
-  border-color: color-mix(in srgb, var(--border) 74%, transparent);
-  box-shadow: var(--shadow);
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
+  color: var(--text-0);
 }
 
 .risk-config-card--editable {
@@ -6626,57 +6581,19 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   cursor: pointer;
   overflow: visible;
   isolation: isolate;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.005)),
-    #0f1218;
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
-  box-shadow:
-    0 14px 36px rgba(6, 10, 22, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
 }
 
 .risk-config-card--editable::before,
 .risk-config-card--editable::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.risk-config-card--editable::before {
-  background:
-    radial-gradient(44% 50% at 18% 82%, rgba(66, 111, 255, 0.26), transparent 70%),
-    radial-gradient(38% 44% at 88% 16%, rgba(147, 102, 255, 0.24), transparent 68%),
-    radial-gradient(32% 38% at 54% 56%, rgba(72, 112, 242, 0.18), transparent 66%),
-    radial-gradient(24% 28% at 72% 72%, rgba(55, 90, 214, 0.12), transparent 72%);
-  filter: blur(16px);
-  opacity: 1;
-  animation: riskConfigMeshShift 7.2s ease-in-out infinite alternate;
-}
-
-.risk-config-card--editable::after {
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
-  z-index: 0;
+  display: none;
 }
 
 .risk-config-card--editable > * {
   position: relative;
   z-index: 1;
-}
-
-.risk-config-card--off::before {
-  opacity: 0.34;
-}
-
-.risk-config-card--off::after {
-  background:
-    linear-gradient(180deg, rgba(15, 18, 24, 0.34), rgba(15, 18, 24, 0.22)),
-    linear-gradient(135deg, rgba(12, 14, 20, 0.18), rgba(12, 14, 20, 0.1));
 }
 
 .risk-config-card--off .risk-config-value,
@@ -6713,11 +6630,12 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-config-title {
   font-size: 13px;
   font-weight: 650;
+  color: var(--text-0);
 }
 
 .risk-config-meta {
   margin-top: 6px;
-  color: var(--text3);
+  color: var(--text-1);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -6728,6 +6646,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   font-size: 18px;
   font-weight: 680;
   letter-spacing: -0.02em;
+  color: var(--text-0);
 }
 
 .risk-config-card--editable .risk-config-value {
@@ -6839,9 +6758,9 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   min-height: 44px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid transparent;
-  background: #2c2c2e;
-  color: var(--text1);
+  border: 1px solid var(--border-1);
+  background: var(--layer-2);
+  color: var(--text-0);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -6858,12 +6777,12 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 
 .risk-select-trigger strong {
   font-size: 13px;
-  color: #8e8e93;
+  color: var(--text-1);
 }
 
 .risk-select.open .risk-select-trigger {
-  border-color: #0A84FF;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 .risk-select-trigger:disabled,
@@ -6886,15 +6805,11 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   gap: 10px;
   padding: 10px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(36, 38, 44, 0.62);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.36),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
-  -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
+  border: 1px solid var(--border-1);
+  background: var(--glass-base);
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   z-index: 24;
   opacity: 0;
   pointer-events: none;
@@ -6936,8 +6851,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgba(23, 25, 30, 0.62);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  background: var(--glass-subtle);
+  border: 1px solid var(--border-0);
 }
 
 .risk-session-summary-count {
@@ -6950,12 +6865,12 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: #fff;
+  color: var(--text-0);
 }
 
 .risk-session-summary-count span {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-2);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -6969,7 +6884,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-session-summary-dot,
 .risk-session-dot {
   border-radius: 999px;
-  background: #3a3a3c;
+  background: var(--border-2);
 }
 
 .risk-session-summary-dot {
@@ -6978,7 +6893,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 }
 
 .risk-session-summary-dot.active {
-  background: #0A84FF;
+  background: var(--accent);
 }
 
 .risk-session-group {
@@ -6993,8 +6908,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   gap: 12px;
   padding: 13px 14px;
   border: 0;
-  background: #2c2c2e;
-  color: #fff;
+  background: transparent;
+  color: var(--text-0);
   cursor: pointer;
   text-align: left;
 }
@@ -7018,19 +6933,19 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 }
 
 .risk-session-dot.active {
-  background: #30d158;
+  background: var(--positive);
 }
 
 .ccheck-dash {
   width: 10px;
   height: 2px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--text-0);
 }
 
 .ccheck.is-partial {
-  background: #0A84FF;
-  border-color: #0A84FF;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .risk-session-name {
@@ -7038,12 +6953,12 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   min-width: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-0);
 }
 
 .risk-session-utc {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-2);
   white-space: nowrap;
 }
 
@@ -7063,15 +6978,15 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   min-height: 44px;
   padding: 10px 14px;
   border-radius: 10px;
-  border: 0;
-  background: rgba(18, 20, 26, 0.72);
-  color: #fff;
+  border: 1px solid var(--border-1);
+  background: var(--layer-2);
+  color: var(--text-0);
   font: inherit;
   box-shadow: none;
 }
 
 .risk-select-search input::placeholder {
-  color: #636366;
+  color: var(--text-2);
 }
 
 .risk-symbol-summary {
@@ -7081,8 +6996,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgba(23, 25, 30, 0.62);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  background: var(--glass-subtle);
+  border: 1px solid var(--border-0);
 }
 
 .risk-symbol-summary-count {
@@ -7095,12 +7010,12 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: #fff;
+  color: var(--text-0);
 }
 
 .risk-symbol-summary-count span {
   font-size: 12px;
-  color: #636366;
+  color: var(--text-2);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -7156,7 +7071,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-symbol-summary-pill--more,
 .risk-symbol-cat--custom {
   background: rgba(255, 255, 255, 0.08);
-  color: #8e8e93;
+  color: var(--text-1);
 }
 
 .risk-symbol-add-custom {
@@ -7179,7 +7094,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   padding-inline: 2px;
   font-size: 11px;
   font-weight: 700;
-  color: #636366;
+  color: var(--text-2);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -7192,8 +7107,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-symbol-empty {
   padding: 12px 14px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #8e8e93;
+  background: var(--layer-2);
+  color: var(--text-2);
   font-size: 13px;
 }
 
@@ -7202,9 +7117,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   align-items: center;
   gap: 12px;
   padding: 13px 14px;
-  background: rgba(28, 30, 36, 0.58);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: transparent;
 }
 
 .risk-symbol-row.first {
@@ -7239,7 +7152,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  border: 1.5px solid #3a3a3c;
+  border: 1.5px solid var(--border-2);
   background: transparent;
 }
 
@@ -7250,8 +7163,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 }
 
 .ccheck.is-checked {
-  background: #0A84FF;
-  border-color: #0A84FF;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .ccheck.is-checked svg {
@@ -7263,7 +7176,7 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   min-width: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-0);
 }
 
 .risk-symbol-cat {
@@ -7291,8 +7204,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   flex: 0 0 32px;
   border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #3a3a3c;
+  background: var(--layer-2);
+  color: var(--text-1);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -7304,9 +7217,9 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-config-control input,
 .risk-config-control textarea {
   width: 100%;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 92%, transparent);
-  color: var(--text1);
+  border: 1px solid var(--border-1);
+  background: var(--layer-2);
+  color: var(--text-0);
   border-radius: 12px;
   padding: 10px 12px;
   font: inherit;
@@ -7323,9 +7236,9 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
   align-items: stretch;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface2) 92%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-1);
+  background: var(--layer-2);
+  box-shadow: none;
 }
 
 .risk-stepper input {
@@ -7343,8 +7256,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 
 .risk-stepper-btn {
   border: 0;
-  background: color-mix(in srgb, var(--surface3) 86%, transparent);
-  color: var(--text2);
+  background: var(--layer-2);
+  color: var(--text-1);
   font: inherit;
   font-size: 20px;
   font-weight: 500;
@@ -7355,16 +7268,16 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 }
 
 .risk-stepper-btn:first-child {
-  border-right: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-right: 1px solid var(--border-1);
 }
 
 .risk-stepper-btn:last-child {
-  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-left: 1px solid var(--border-1);
 }
 
 .risk-stepper-btn:hover {
-  background: color-mix(in srgb, var(--surface3) 94%, var(--accent) 6%);
-  color: var(--text1);
+  background: var(--layer-3);
+  color: var(--text-0);
 }
 
 .risk-stepper-btn:active {
@@ -7379,8 +7292,8 @@ html:not([data-theme="dark"]) .analytics-panel .analytics-submetric:hover {
 .risk-config-control input:focus,
 .risk-config-control textarea:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -7400,247 +7313,6 @@ input[type="number"]::-webkit-inner-spin-button {
   100% {
     transform: translate3d(3%, 2%, 0) scale(1.02);
   }
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger {
-  background: rgba(23, 25, 30, 0.62);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(245, 247, 252, 0.96);
-  box-shadow:
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05),
-    0 10px 24px rgba(8, 12, 24, 0.14);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger span {
-  color: rgba(245, 247, 252, 0.96);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger strong {
-  color: rgba(233, 239, 251, 0.72);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-menu {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(36, 38, 44, 0.62);
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.36),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
-  -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-search input {
-  background: rgba(18, 20, 26, 0.72);
-  color: #fff;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-search input::placeholder {
-  color: #636366;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary {
-  background: rgba(23, 25, 30, 0.62);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-row,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-row {
-  background: rgba(28, 30, 36, 0.58);
-  box-shadow: none;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-name,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary-count strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-name,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary-count strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-section-label {
-  color: #fff;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-utc,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-empty {
-  color: #636366;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-empty {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-favorite {
-  background: rgba(255, 255, 255, 0.06);
-  color: #3a3a3c;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-favorite.active {
-  background: rgba(255, 214, 10, 0.16);
-  color: #FFD60A;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-section-label {
-  color: #636366;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-add-custom {
-  background: rgba(10, 132, 255, 0.12);
-  color: #0A84FF;
-  box-shadow: inset 0 0 0 0.5px rgba(10, 132, 255, 0.12);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .ccheck {
-  border-color: #3a3a3c;
-  background: transparent;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .ccheck.is-checked,
-html:not([data-theme="dark"]) .risk-config-card--editable .ccheck.is-partial {
-  background: #0A84FF;
-  border-color: #0A84FF;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-dot {
-  background: #3a3a3c;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-dot.active {
-  background: #30d158;
-}
-
-/* En light mode, los menús flotantes de reglas deben conservar el material oscuro premium
-   igual que en dark, para no romper la coherencia visual de las cards editables. */
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-menu,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-menu--symbols {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(36, 38, 44, 0.62);
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.36),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
-  -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.14);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-search input {
-  background: rgba(18, 20, 26, 0.72);
-  color: #fff;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-select-search input::placeholder {
-  color: #636366;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary {
-  background: rgba(23, 25, 30, 0.62);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-row,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-row {
-  background: rgba(28, 30, 36, 0.58);
-  box-shadow: none;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-name,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary-count strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-name,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary-count strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-section-label {
-  color: #fff;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-utc,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-empty {
-  color: #636366;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-empty {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-favorite {
-  background: rgba(255, 255, 255, 0.06);
-  color: #3a3a3c;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-symbol-favorite.active {
-  background: rgba(255, 214, 10, 0.16);
-  color: #FFD60A;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck {
-  border-color: #3a3a3c;
-  background: transparent;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck.is-checked,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .ccheck.is-partial {
-  background: #0A84FF;
-  border-color: #0A84FF;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-dot {
-  background: #3a3a3c;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select.open .risk-session-dot.active {
-  background: #30d158;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-state-pill {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: rgba(245, 247, 252, 0.92);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--off::after {
-  background:
-    linear-gradient(180deg, rgba(13, 18, 34, 0.54), rgba(13, 18, 34, 0.3)),
-    linear-gradient(135deg, rgba(21, 28, 48, 0.28), rgba(21, 28, 48, 0.1));
-}
-
-html:not([data-theme="dark"]) .risk-stepper {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(8, 12, 24, 0.08);
-}
-
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-value,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-meta,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-control,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-session-summary,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-symbol-summary,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-select {
-  opacity: 0.32;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-toggle {
-  opacity: 1;
-}
-
-html:not([data-theme="dark"]) .risk-stepper-btn {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(245, 247, 252, 0.9);
-}
-
-html:not([data-theme="dark"]) .risk-stepper-btn:first-child,
-html:not([data-theme="dark"]) .risk-stepper-btn:last-child {
-  border-color: rgba(255, 255, 255, 0.09);
 }
 
 .risk-limit-form {
@@ -8521,22 +8193,23 @@ th {
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text3);
+  color: var(--text-1);
   padding: 12px 12px;
-  background: color-mix(in srgb, var(--surface2) 82%, var(--bg3) 18%);
-  border-bottom: 1px solid var(--border);
+  background: var(--layer-2);
+  border-bottom: 1px solid var(--border-0);
 }
 
 td {
   padding: 12px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-bottom: 1px solid var(--border-0);
   font-size: 12px;
-  color: var(--text2);
+  color: var(--text-0);
   font-weight: 500;
+  background: transparent;
 }
 
 tbody tr:hover {
-  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  background: var(--layer-2);
 }
 
 .table-wrap table {
@@ -8627,12 +8300,13 @@ html:not([data-theme="dark"]) .pnlcal-kpi {
 .calendar-cell {
   min-height: 120px;
   padding: 12px;
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  background: var(--layer-2);
+  border: 1px solid var(--border-0);
   border-radius: 14px;
   text-align: left;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  color: var(--text-0);
 }
 
 .calendar-cell:disabled {
@@ -8645,12 +8319,14 @@ html:not([data-theme="dark"]) .pnlcal-kpi {
 
 .calendar-cell.win {
   border-color: var(--green-border);
-  background: var(--green-bg);
+  background: color-mix(in srgb, var(--green) 12%, var(--layer-2));
+  color: var(--green);
 }
 
 .calendar-cell.loss {
   border-color: var(--red-border);
-  background: var(--red-bg);
+  background: color-mix(in srgb, var(--red) 12%, var(--layer-2));
+  color: var(--red);
 }
 
 .calendar-date {
@@ -8660,8 +8336,8 @@ html:not([data-theme="dark"]) .pnlcal-kpi {
 }
 
 .calendar-cell:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  transform: none;
+  border-color: var(--border-2);
 }
 
 .calendar-pnl {
@@ -9545,10 +9221,10 @@ body[data-theme="dark"] .pnlcal-range-btn {
   width: 100%;
   min-height: 44px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
-  background: rgba(28, 28, 30, 0.82);
-  color: #fff;
+  background: var(--layer-2);
+  color: var(--text-0);
   font-size: 15px;
   outline: none;
   box-shadow: none;
@@ -9562,15 +9238,15 @@ body[data-theme="dark"] .pnlcal-range-btn {
 
 .modal-card input:not([type="checkbox"]):not([type="radio"])::placeholder,
 .modal-card textarea::placeholder {
-  color: #636366;
+  color: var(--text-2);
 }
 
 .modal-card input:not([type="checkbox"]):not([type="radio"]):focus,
 .modal-card textarea:focus,
 .modal-card select:focus {
   outline: none;
-  border-color: #0A84FF;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 .modal-card select {
@@ -9581,8 +9257,8 @@ body[data-theme="dark"] .pnlcal-range-btn {
 }
 
 .modal-card select option {
-  background: #2c2c2e;
-  color: #fff;
+  background: var(--layer-2);
+  color: var(--text-0);
 }
 
 .modal-select-wrap {
@@ -9611,10 +9287,10 @@ body[data-theme="dark"] .pnlcal-range-btn {
   justify-content: space-between;
   min-height: 44px;
   padding: 12px 14px;
-  background: #2c2c2e;
-  border: 1px solid transparent;
+  background: var(--layer-2);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
-  color: #fff;
+  color: var(--text-0);
   font-size: 15px;
   cursor: pointer;
   transition: border-color 0.15s ease;
@@ -9622,8 +9298,8 @@ body[data-theme="dark"] .pnlcal-range-btn {
 }
 
 .custom-select.open .custom-select-trigger {
-  border-color: #0A84FF;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 .custom-select-dropdown {
@@ -9632,13 +9308,13 @@ body[data-theme="dark"] .pnlcal-range-btn {
   left: 0;
   right: 0;
   z-index: 999;
-  background: rgba(44, 44, 46, 0.92);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: var(--glass-base);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border-1);
   border-radius: 12px;
   padding: 6px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-elevated);
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px) scale(0.98);
@@ -9661,32 +9337,19 @@ body[data-theme="dark"] .pnlcal-range-btn {
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 15px;
-  color: #fff;
+  color: var(--text-0);
   cursor: pointer;
   transition: background 0.12s ease;
   user-select: none;
 }
 
 .custom-select-option:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--layer-3);
 }
 
 .custom-select-option.selected {
-  color: #0A84FF;
+  color: var(--accent);
   font-weight: 600;
-}
-
-html:not([data-theme="dark"]) .custom-select-trigger {
-  background: #f2f2f7;
-  color: #1c1c1e;
-}
-
-html:not([data-theme="dark"]) .custom-select-dropdown {
-  background: rgba(242, 242, 247, 0.92);
-}
-
-html:not([data-theme="dark"]) .custom-select-option {
-  color: #1c1c1e;
 }
 
 .modal-actions .btn-primary,
@@ -9757,19 +9420,6 @@ html:not([data-theme="dark"]) .modal-close {
   color: var(--text-0);
 }
 
-html:not([data-theme="dark"]) .modal-card input:not([type="checkbox"]):not([type="radio"]),
-html:not([data-theme="dark"]) .modal-card textarea,
-html:not([data-theme="dark"]) .modal-card select {
-  background: rgba(20, 24, 36, 0.05);
-  border-color: rgba(20, 24, 36, 0.10);
-  color: var(--text);
-}
-
-html:not([data-theme="dark"]) .modal-card input:not([type="checkbox"]):not([type="radio"])::placeholder,
-html:not([data-theme="dark"]) .modal-card textarea::placeholder {
-  color: var(--text4);
-}
-
 @keyframes modalCardEnter {
   from {
     opacity: 0;
@@ -9809,14 +9459,12 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
   max-height: min(76vh, 560px);
   overflow: auto;
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-1);
   border-radius: 16px;
-  background: rgba(44, 44, 46, 0.97);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow:
-    0 24px 54px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: var(--glass-strong);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  box-shadow: var(--shadow-elevated);
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
@@ -9949,7 +9597,7 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
 
 .bnav-more-item.active,
 .bnav-more-item:hover {
-  color: #ffffff;
+  color: var(--accent);
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -9983,14 +9631,12 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
   padding: 6px;
   padding-bottom: env(safe-area-inset-bottom);
   border: 0;
-  border-top: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--border-0);
   border-radius: 16px;
-  background: rgba(18, 18, 18, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow:
-    0 18px 36px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: rgba(18, 18, 18, 0.92);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: var(--shadow-elevated);
 }
 
 .bnav-item {
@@ -10022,13 +9668,10 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
 .bnav-item.active,
 .bnav-item:hover,
 .bnav-more-top-item:hover {
-  color: color-mix(in srgb, white 88%, var(--text));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
-  border-color: color-mix(in srgb, var(--border) 92%, rgba(255, 255, 255, 0.12));
-  box-shadow:
-    0 10px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  color: var(--text-0);
+  background: var(--layer-2);
+  border-color: var(--border-1);
+  box-shadow: none;
 }
 
 .bnav-item.active {
@@ -10040,7 +9683,7 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
 
 .bnav-item.active svg,
 .bnav-item.active span {
-  color: #007AFF;
+  color: var(--accent);
 }
 
 .bnav-item.active svg,
@@ -10955,24 +10598,19 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
     overflow: visible;
     isolation: isolate;
     border: 0;
-    border-top: 0.5px solid rgba(255, 255, 255, 0.12);
-    background: rgba(18, 18, 18, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow:
-      0 18px 40px rgba(1, 5, 16, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--border-0);
+    background: rgba(18, 18, 18, 0.92);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: var(--shadow-elevated);
   }
 
   html:not([data-theme="dark"]) .bottom-nav {
-    border: 0;
-    border-top: 0.5px solid rgba(15, 23, 42, 0.08);
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow:
-      0 16px 30px rgba(20, 30, 48, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    border-top: 1px solid var(--border-0);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-card);
   }
 
   .bottom-nav::before,
@@ -11041,22 +10679,22 @@ html:not([data-theme="dark"]) .modal-card textarea::placeholder {
 
   .bnav-item.active,
   .bnav-item:hover {
-    background: none;
-    border-color: transparent;
+    background: var(--layer-2);
+    border-color: var(--border-1);
     box-shadow: none;
   }
 
   html:not([data-theme="dark"]) .bnav-item.active,
   html:not([data-theme="dark"]) .bnav-item:hover {
-    color: inherit;
-    background: none;
-    border-color: transparent;
+    color: var(--text-0);
+    background: var(--layer-2);
+    border-color: var(--border-1);
     box-shadow: none;
   }
 
   .bnav-item.active svg,
   .bnav-item.active span {
-    color: #007AFF;
+    color: var(--accent);
   }
 
   .pnlcal-month-card {
@@ -11761,40 +11399,6 @@ body[data-theme="dark"] .legal-page__section {
     color: var(--text-primary);
   }
 
-  html:not([data-theme="dark"]) .bnav-more-top-item.active {
-    color: #007aff;
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-item {
-    background: transparent;
-    color: var(--text-primary);
-    box-shadow: none;
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-item.active,
-  html:not([data-theme="dark"]) .bnav-more-item:hover {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-  }
-
-  html:not([data-theme="dark"]) .bottom-nav {
-    background: rgba(244, 248, 253, 0.88);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-top: 0.5px solid rgba(20, 24, 36, 0.10);
-    border-color: rgba(20, 24, 36, 0.10);
-    box-shadow: 0 8px 32px rgba(20, 36, 80, 0.14);
-  }
-
-  html:not([data-theme="dark"]) .bottom-nav::before {
-    content: none;
-  }
-
-  html:not([data-theme="dark"]) .bottom-nav::after {
-    content: none;
-  }
-
   html:not([data-theme="dark"]) .topbar-user-card,
   html:not([data-theme="dark"]) .topbar-time-stack,
   html:not([data-theme="dark"]) .theme-toggle-badge {
@@ -11816,61 +11420,6 @@ body[data-theme="dark"] .legal-page__section {
       linear-gradient(180deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.08));
     border-color: rgba(59, 130, 246, 0.18);
     color: var(--accent-blue);
-  }
-
-  html:not([data-theme="dark"]) .bnav-item span {
-    color: var(--text3);
-  }
-
-  html:not([data-theme="dark"]) .bnav-item svg {
-    stroke: var(--text3);
-  }
-
-  html:not([data-theme="dark"]) .bnav-item.active span,
-  html:not([data-theme="dark"]) .bnav-item.active svg {
-    color: var(--accent);
-    stroke: var(--accent);
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-menu {
-    background: rgba(244, 248, 253, 0.94);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(20, 24, 36, 0.08);
-    box-shadow: 0 8px 32px rgba(20, 36, 80, 0.14);
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-title {
-    color: var(--text);
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-section-label {
-    color: var(--text4);
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-item {
-    color: var(--text2);
-  }
-
-  html:not([data-theme="dark"]) .bnav-more-item.active {
-    color: var(--accent);
-  }
-
-  html[data-theme="dark"] .bnav-more-menu,
-  body[data-theme="dark"] .bnav-more-menu {
-    border-color: var(--card-border);
-    background: rgba(17, 19, 23, 0.84);
-    box-shadow:
-      0 20px 42px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }
-
-  html[data-theme="dark"] .bnav-more-item,
-  body[data-theme="dark"] .bnav-more-item {
-    border-color: transparent !important;
-    background: rgba(17, 19, 23, 0.72) !important;
-    color: var(--text1) !important;
-    box-shadow: none !important;
   }
 
   html[data-theme="dark"] .bnav-more-item--danger,
@@ -11934,35 +11483,6 @@ body[data-theme="dark"] .brand-logo-dark {
     background: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
-  }
-
-  html:not([data-theme="dark"]) .bnav-item[data-bnav-more],
-  html:not([data-theme="dark"]) .bnav-item[data-bnav-more].active,
-  html:not([data-theme="dark"]) .bnav-item[data-bnav-more]:hover {
-    color: var(--text-primary) !important;
-    background: none !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-  }
-
-  html[data-theme="dark"] .bnav-item.active,
-  body[data-theme="dark"] .bnav-item.active,
-  html[data-theme="dark"] .bnav-item.active:hover,
-  body[data-theme="dark"] .bnav-item.active:hover,
-  html:not([data-theme="dark"]) .bnav-item.active,
-  html:not([data-theme="dark"]) .bnav-item.active:hover {
-    background: none !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-  }
-
-  html[data-theme="dark"] .bnav-item.active svg,
-  body[data-theme="dark"] .bnav-item.active svg,
-  html[data-theme="dark"] .bnav-item.active span,
-  body[data-theme="dark"] .bnav-item.active span,
-  html:not([data-theme="dark"]) .bnav-item.active svg,
-  html:not([data-theme="dark"]) .bnav-item.active span {
-    color: #007AFF !important;
   }
 
   .bnav-more-menu,
@@ -12642,101 +12162,6 @@ html:not([data-theme="dark"]) .account-card-blob.blob-4 {
   }
 }
 
-html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge--ok {
-  background: rgba(74, 222, 128, 0.18) !important;
-  border-color: rgba(74, 222, 128, 0.34) !important;
-  color: #7ff0ac !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--off .ui-badge--neutral,
-html:not([data-theme="dark"]) .risk-config-card--off .risk-config-state-pill {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  color: rgba(245, 247, 252, 0.92) !important;
-}
-
-html:not([data-theme="dark"]) .risk-security-card,
-html:not([data-theme="dark"]) .risk-security-card--premium {
-  background: rgba(255, 255, 255, 0.88) !important;
-  background-image: none !important;
-  border-color: var(--border-subtle) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(18px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
-}
-
-html:not([data-theme="dark"]) .risk-security-gauge {
-  background: rgba(255, 255, 255, 0.72) !important;
-  background-image: none !important;
-  border-color: color-mix(in srgb, var(--border) 72%, transparent) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(18px) saturate(145%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable,
-html:not([data-theme="dark"]) .risk-config-card--off {
-  background: rgba(255, 255, 255, 0.86) !important;
-  background-image: none !important;
-  border-color: color-mix(in srgb, var(--border) 76%, transparent) !important;
-  box-shadow: 0 6px 18px rgba(24, 36, 60, 0.05) !important;
-  backdrop-filter: blur(18px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
-  color: var(--text) !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable::before,
-html:not([data-theme="dark"]) .risk-config-card--editable::after,
-html:not([data-theme="dark"]) .risk-config-card--off::before,
-html:not([data-theme="dark"]) .risk-config-card--off::after {
-  content: none !important;
-  opacity: 0 !important;
-  background: none !important;
-  filter: none !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-title,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-value,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-state-pill,
-html:not([data-theme="dark"]) .risk-config-card--editable .ui-badge,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary-count strong,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary-count strong {
-  color: var(--text) !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-meta,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary-count span,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-utc {
-  color: var(--text3) !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-stepper,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control input,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-control textarea,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-select-trigger,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-session-summary,
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-symbol-summary {
-  background: rgba(255, 255, 255, 0.6) !important;
-  background-image: none !important;
-  border-color: color-mix(in srgb, var(--border) 72%, transparent) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    0 4px 12px rgba(24, 36, 60, 0.04) !important;
-  backdrop-filter: blur(14px) saturate(145%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
-  color: var(--text) !important;
-}
-
-html:not([data-theme="dark"]) .risk-config-card--editable .risk-stepper-btn {
-  background: rgba(255, 255, 255, 0.46) !important;
-  color: var(--text2) !important;
-}
-
 html:not([data-theme="dark"]) .risk-config-card--editable .risk-config-toggle-ui {
   background: rgba(20, 24, 36, 0.09) !important;
   border-color: rgba(20, 24, 36, 0.08) !important;
@@ -12785,9 +12210,9 @@ html:not([data-theme="dark"]) .calendar-cell:hover,
 html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
 html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .calendar-week-summary:hover {
-  transform: none !important;
-  box-shadow: none !important;
-  filter: none !important;
+  transform: none;
+  box-shadow: none;
+  filter: none;
 }
 
 html:not([data-theme="dark"]) .account-hero-card::before,
@@ -12802,30 +12227,8 @@ html:not([data-theme="dark"]) .calendar-week-summary,
 html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
-  background: #ffffff !important;
-  background-image: none !important;
-}
-
-html:not([data-theme="dark"]) .calendar-cell.win,
-html:not([data-theme="dark"]) .calendar-cell.win:hover,
-html:not([data-theme="dark"]) .calendar-cell.win:hover:not(:disabled) {
-  transform: none !important;
-  background: var(--green-bg) !important;
-  background-image: none !important;
-  border-color: var(--green-border) !important;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-html:not([data-theme="dark"]) .calendar-cell.loss,
-html:not([data-theme="dark"]) .calendar-cell.loss:hover,
-html:not([data-theme="dark"]) .calendar-cell.loss:hover:not(:disabled) {
-  transform: none !important;
-  background: var(--red-bg) !important;
-  background-image: none !important;
-  border-color: var(--red-border) !important;
-  box-shadow: none !important;
-  filter: none !important;
+  background: var(--layer-1);
+  background-image: none;
 }
 
 /* Unified Dashboard Select System
@@ -12850,18 +12253,18 @@ html:not([data-theme="dark"]) .calendar-cell.loss:hover:not(:disabled) {
 
 :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select) {
   background-color: #2c2c2e;
-  color: #fff;
+  color: var(--text-0);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23636366' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select):focus {
-  border-color: #0A84FF;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select) option {
-  background: #2c2c2e;
-  color: #fff;
+  background: var(--layer-2);
+  color: var(--text-0);
 }
 
 .risk-select-trigger,
@@ -12894,29 +12297,29 @@ html:not([data-theme="dark"]) .calendar-cell.loss:hover:not(:disabled) {
 .custom-select-trigger,
 .risk-select-menu,
 .custom-select-dropdown {
-  color: #fff;
+  color: var(--text-0);
 }
 
 .risk-select-trigger,
 .custom-select-trigger {
-  background: #2c2c2e;
+  background: var(--layer-2);
 }
 
 .risk-select.open .risk-select-trigger,
 .custom-select.open .custom-select-trigger {
-  border-color: #0A84FF;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(61, 123, 255, 0.14);
 }
 
 .risk-select-menu,
 .custom-select-dropdown {
   border-radius: 12px;
   padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(44, 44, 46, 0.92);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--border-1);
+  background: var(--glass-base);
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 
 .risk-select.open .risk-select-menu,
@@ -12937,7 +12340,7 @@ html:not([data-theme="dark"]) .calendar-cell.loss:hover:not(:disabled) {
 .risk-session-row:hover,
 .risk-symbol-row:hover,
 .custom-select-option:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--layer-3);
 }
 
 html:not([data-theme="dark"]) :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select) {
@@ -12951,15 +12354,15 @@ html:not([data-theme="dark"]) :where(.form-stack select, .trades-filter-field se
 }
 
 html:not([data-theme="dark"]) :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select) option {
-  background: #ffffff;
-  color: #182133;
+  background: var(--layer-2);
+  color: var(--text-0);
 }
 
 html:not([data-theme="dark"]) .risk-select-trigger,
 html:not([data-theme="dark"]) .custom-select-trigger {
-  background: rgba(255, 255, 255, 0.92);
-  color: #182133;
-  border-color: rgba(148, 163, 184, 0.18);
+  background: var(--layer-2);
+  color: var(--text-0);
+  border-color: var(--border-1);
   backdrop-filter: blur(22px) saturate(170%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
 }
@@ -12974,134 +12377,31 @@ html:not([data-theme="dark"]) .custom-select-option,
 html:not([data-theme="dark"]) .risk-session-utc,
 html:not([data-theme="dark"]) .risk-symbol-summary-count span,
 html:not([data-theme="dark"]) .risk-session-summary-count span {
-  color: #58627a;
+  color: var(--text-1);
 }
 
 html:not([data-theme="dark"]) .risk-select-menu,
 html:not([data-theme="dark"]) .custom-select-dropdown {
-  background: rgba(244, 248, 253, 0.94);
-  border-color: rgba(20, 24, 36, 0.08);
-  box-shadow: 0 8px 32px rgba(20, 36, 80, 0.14);
+  background: var(--glass-base);
+  border-color: var(--border-1);
+  box-shadow: var(--shadow-elevated);
 }
 
 html:not([data-theme="dark"]) .risk-session-row,
 html:not([data-theme="dark"]) .risk-symbol-row,
 html:not([data-theme="dark"]) .custom-select-option {
   background: transparent;
-  color: #182133;
+  color: var(--text-0);
 }
 
 html:not([data-theme="dark"]) .risk-session-row:hover,
 html:not([data-theme="dark"]) .risk-symbol-row:hover,
 html:not([data-theme="dark"]) .custom-select-option:hover {
-  background: rgba(20, 24, 36, 0.05);
+  background: var(--layer-3);
 }
 
 html:not([data-theme="dark"]) .custom-select-option.selected {
-  color: #0A84FF;
-}
-
-/* Risk dropdowns only — align custom triggers/panels to Funded Phase visual system
-   while keeping the existing custom Risk logic intact. */
-.risk-select-trigger {
-  min-height: 44px;
-  padding: 12px 42px 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(44, 44, 46, 0.82);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(22px) saturate(155%);
-  -webkit-backdrop-filter: blur(22px) saturate(155%);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-.risk-select-trigger::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23949aa6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-.risk-select.open .risk-select-trigger {
-  border-color: #0A84FF;
-  box-shadow:
-    0 0 0 3px rgba(10, 132, 255, 0.16),
-    0 6px 18px rgba(10, 132, 255, 0.08);
-}
-
-.risk-select-menu {
-  border-radius: 12px;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  background: rgba(38, 40, 46, 0.84);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(24px) saturate(165%);
-  -webkit-backdrop-filter: blur(24px) saturate(165%);
-}
-
-.risk-session-row,
-.risk-symbol-row {
-  padding: 10px 12px;
-  border-radius: 8px;
-  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
-}
-
-.risk-session-row:hover,
-.risk-symbol-row:hover {
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
-}
-
-html:not([data-theme="dark"]) .risk-select-trigger {
-  background: rgba(255, 255, 255, 0.84);
-  color: #182133;
-  border-color: rgba(148, 163, 184, 0.24);
-  box-shadow: 0 4px 14px rgba(20, 36, 80, 0.06);
-  backdrop-filter: blur(18px) saturate(155%);
-  -webkit-backdrop-filter: blur(18px) saturate(155%);
-}
-
-html:not([data-theme="dark"]) .risk-select-trigger::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23636b7a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-html:not([data-theme="dark"]) .risk-select-trigger strong,
-html:not([data-theme="dark"]) .risk-session-utc,
-html:not([data-theme="dark"]) .risk-symbol-summary-count span,
-html:not([data-theme="dark"]) .risk-session-summary-count span {
-  color: #58627a;
-}
-
-html:not([data-theme="dark"]) .risk-select-menu {
-  background: rgba(244, 248, 253, 0.88);
-  border-color: rgba(20, 24, 36, 0.1);
-  box-shadow: 0 12px 28px rgba(20, 36, 80, 0.1);
-  backdrop-filter: blur(20px) saturate(155%);
-  -webkit-backdrop-filter: blur(20px) saturate(155%);
-}
-
-html:not([data-theme="dark"]) .risk-session-row,
-html:not([data-theme="dark"]) .risk-symbol-row {
-  background: rgba(255, 255, 255, 0);
-  color: #182133;
-}
-
-html:not([data-theme="dark"]) .risk-session-row:hover,
-html:not([data-theme="dark"]) .risk-symbol-row:hover {
-  background: rgba(20, 24, 36, 0.04);
-}
-
-html:not([data-theme="dark"]) .risk-session-summary,
-html:not([data-theme="dark"]) .risk-symbol-summary {
-  background: rgba(255, 255, 255, 0.56);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(14px) saturate(145%);
-  -webkit-backdrop-filter: blur(14px) saturate(145%);
-}
-
-html:not([data-theme="dark"]) .risk-session-utc,
-html:not([data-theme="dark"]) .risk-session-summary-count span,
-html:not([data-theme="dark"]) .risk-symbol-summary-count span {
-  color: #667085;
+  color: var(--accent);
 }
 
 [data-theme="dark"] .nav-item.active {
@@ -13352,40 +12652,6 @@ html:not([data-theme="dark"]) .kmfx-chart-shell--blended-card {
   box-shadow: none;
 }
 
-html:not([data-theme="dark"]) .calendar-cell {
-  background: var(--layer-2);
-  border: 1px solid var(--border-0);
-  border-radius: 12px;
-  color: var(--text-0);
-}
-
-html:not([data-theme="dark"]) .calendar-cell--win,
-html:not([data-theme="dark"]) .calendar-cell.win,
-html:not([data-theme="dark"]) [class*="calendar"][class*="win"] {
-  background: color-mix(in srgb, var(--green) 12%, var(--layer-2));
-  border-color: var(--green-border);
-  color: var(--green);
-}
-
-html:not([data-theme="dark"]) .calendar-cell--loss,
-html:not([data-theme="dark"]) .calendar-cell.loss,
-html:not([data-theme="dark"]) [class*="calendar"][class*="loss"] {
-  background: color-mix(in srgb, var(--red) 12%, var(--layer-2));
-  border-color: var(--red-border);
-  color: var(--red);
-}
-
-html:not([data-theme="dark"]) .calendar-cell.today {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-html:not([data-theme="dark"]) .calendar-cell--empty,
-html:not([data-theme="dark"]) .calendar-cell.empty {
-  background: var(--layer-2);
-  border-color: transparent;
-}
-
 html:not([data-theme="dark"]) .portfolio-account-card,
 html:not([data-theme="dark"]) .account-detail-card,
 html:not([data-theme="dark"]) .detalle-cuenta-card {
@@ -13441,26 +12707,6 @@ html:not([data-theme="dark"]) .rm4-card:hover {
   box-shadow: var(--shadow-card);
   border-color: var(--border-2);
   transform: none;
-}
-
-html:not([data-theme="dark"]) th {
-  background: var(--layer-2);
-  color: var(--text-1);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-0);
-}
-
-html:not([data-theme="dark"]) td {
-  background: transparent;
-  color: var(--text-0);
-  border-bottom: 1px solid var(--border-0);
-}
-
-html:not([data-theme="dark"]) tbody tr:hover td {
-  background: var(--layer-2);
 }
 
 input:not([type="checkbox"]):not([type="radio"]),
