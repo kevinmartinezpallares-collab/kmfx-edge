@@ -1,0 +1,48 @@
+:root {
+  /* ACCENT */
+  --accent: #3D7BFF;
+
+  /* SEMANTIC */
+  --positive: #34d97b;
+  --negative: #ff5c5c;
+  --warning: #ffb020;
+
+  /* LAYERS (Apple-inspired hierarchy) */
+  --layer-0: #0f1115;
+  --layer-1: #151821;
+  --layer-2: #1c212b;
+  --layer-3: #252b36;
+  --layer-accent: rgba(61, 123, 255, 0.12);
+
+  /* TEXT */
+  --text-0: #ffffff;
+  --text-1: rgba(255, 255, 255, 0.65);
+  --text-2: rgba(255, 255, 255, 0.40);
+
+  /* BORDERS */
+  --border-0: rgba(255, 255, 255, 0.06);
+  --border-1: rgba(255, 255, 255, 0.10);
+  --border-2: rgba(255, 255, 255, 0.16);
+  --border-focus: #3D7BFF;
+
+  /* SHADOWS */
+  --shadow-none: none;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  /* GLASS (only for later use) */
+  --glass-subtle: rgba(255, 255, 255, 0.04);
+  --glass-base: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.12);
+
+  /* CHART */
+  --chart-text: rgba(255, 255, 255, 0.45);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+}
+
+html,
+body {
+  background: var(--layer-0);
+  color: var(--text-0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
