@@ -8,20 +8,20 @@
   --warning: #FF9F0A;
 
   /* LAYERS (Apple-inspired hierarchy) */
-  --layer-0: #121212;
+  --layer-0: #000000;
   --layer-1: #444444;
-  --layer-2: #2C2C2E;
-  --layer-3: #3A3A3C;
+  --layer-2: #1C1C1E;
+  --layer-3: #2C2C2E;
   --layer-accent: rgba(10, 132, 255, 0.12);
 
   /* TEXT */
   --text-0: #ffffff;
-  --text-1: #8E8E93;
-  --text-2: rgba(142, 142, 147, 0.72);
+  --text-1: rgba(255, 255, 255, 0.6);
+  --text-2: #8E8E93;
 
   /* BORDERS */
-  --border-0: #38383A;
-  --border-1: rgba(255, 255, 255, 0.08);
+  --border-0: rgba(255, 255, 255, 0.1);
+  --border-1: #38383A;
   --border-2: rgba(255, 255, 255, 0.14);
   --border-focus: #0A84FF;
 
@@ -48,7 +48,7 @@
   --focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.18);
   --radius-section: 16px;
   --radius-card: 12px;
-  --radius-shell: 20px;
+  --radius-shell: 18px;
 }
 
 html,
@@ -212,8 +212,8 @@ body::after {
 }
 
 .topbar {
-  background: var(--layer-1);
-  border-bottom: 1px solid var(--border-0);
+  background: var(--layer-0);
+  border-bottom: 1px solid #1C1C1E;
   box-shadow: none;
   height: 52px;
   padding: 0 20px;
@@ -226,16 +226,16 @@ body::after {
   background: var(--layer-0);
   box-shadow: none;
   margin-left: 242px;
-  padding: 14px 18px 18px 0;
-  gap: 8px;
+  padding: 20px 20px 20px 0;
+  gap: 16px;
 }
 
 .content {
   background: var(--layer-0);
   box-shadow: none;
   width: min(100%, 1500px);
-  padding: 8px 0 22px;
-  gap: 14px;
+  padding: 0 0 22px;
+  gap: 20px;
 }
 
 .sidebar-header {
@@ -324,7 +324,7 @@ html:not([data-theme="dark"]) .topbar,
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
   background: var(--layer-0);
-  border-bottom: 1px solid var(--border-0);
+  border-bottom: 1px solid #1C1C1E;
   box-shadow: none;
 }
 
@@ -425,7 +425,7 @@ html .main-panel {
 html .topbar,
 html[data-theme="dark"] .topbar {
   background: var(--layer-0) !important;
-  border-bottom: 1px solid var(--border-0) !important;
+  border-bottom: 1px solid #1C1C1E !important;
   box-shadow: none !important;
 }
 
@@ -461,7 +461,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .account-banner,
 .table-wrap,
 .widget-table-wrap {
-  background: var(--layer-2);
+  background: var(--layer-1);
   background-image: none;
   border: 0.5px solid var(--border-0);
   box-shadow: var(--shadow-card);
@@ -498,7 +498,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .account-banner:hover,
 .table-wrap:hover,
 .widget-table-wrap:hover {
-  background: var(--layer-2);
+  background: var(--layer-1);
   background-image: none;
   border-color: var(--border-0);
   box-shadow: var(--shadow-card);
@@ -512,7 +512,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .rm4-card {
   background: var(--layer-2);
   background-image: none;
-  border: 0.5px solid var(--border-0);
+  border: 1px solid var(--border-1);
   box-shadow: var(--shadow-elevated);
   color: var(--text-0);
   backdrop-filter: none;
@@ -832,7 +832,7 @@ html .kmfx-chart-tooltip-body {
 /* Dashboard / Summary hierarchy */
 .dashboard-page-flow,
 .dashboard-premium-grid {
-  gap: 18px;
+  gap: 20px;
 }
 
 .dashboard-hero-shell,
@@ -840,7 +840,7 @@ html .kmfx-chart-tooltip-body {
 .dashboard-secondary-grid,
 .dashboard-tertiary-grid,
 .dashboard-bottom-grid {
-  gap: 16px;
+  gap: 20px;
 }
 
 .dashboard-kpi-premium-grid,
@@ -853,7 +853,7 @@ html .kmfx-chart-tooltip-body {
 .grid-2,
 .grid-2.equal {
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .tl-section-card,
@@ -886,12 +886,20 @@ html .kmfx-chart-tooltip-body {
 }
 
 .widget-card {
+  background: var(--layer-2);
+  border: 1px solid var(--border-1);
   padding: 20px;
 }
 
 .widget-card--kpi {
   min-height: 164px;
   padding: 20px;
+}
+
+.widget-card:hover {
+  background: var(--layer-2);
+  border-color: var(--border-1);
+  box-shadow: none;
 }
 
 .widget-card--feature {
@@ -926,7 +934,7 @@ html .kmfx-chart-tooltip-body {
   margin-bottom: 8px;
   color: var(--text-2);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 
 .tl-kpi-val,
@@ -939,7 +947,7 @@ html .kmfx-chart-tooltip-body {
 
 .tl-kpi-card:hover,
 .rm4-card:hover {
-  border-color: var(--border-0);
+  border-color: var(--border-1);
   box-shadow: var(--shadow-elevated);
 }
 
@@ -954,7 +962,7 @@ html .kmfx-chart-tooltip-body {
 .weekly-chart-shell {
   background: var(--layer-2);
   background-image: none;
-  border: 0.5px solid var(--border-0);
+  border: 1px solid var(--border-1);
   box-shadow: var(--shadow-chart-shell);
   border-radius: var(--radius-card);
   backdrop-filter: none;
@@ -976,7 +984,7 @@ html .kmfx-chart-tooltip-body {
 /* Account hero / premium cards */
 .account-hero-card {
   background: var(--layer-2);
-  border: 0.5px solid var(--border-0);
+  border: 1px solid var(--border-1);
   box-shadow: var(--shadow-card);
   color: var(--text-0);
   border-radius: var(--radius-card);
@@ -1079,7 +1087,7 @@ html[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--
 body[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--main) {
   background: var(--layer-2) !important;
   background-image: none !important;
-  border: 0.5px solid var(--border-0) !important;
+  border: 1px solid var(--border-1) !important;
   box-shadow: none !important;
 }
 
@@ -1091,8 +1099,8 @@ body[data-theme="dark"] .account-hero-card.active,
 body[data-theme="dark"] .account-hero-card--main {
   background: #FF453A !important;
   background-image: none !important;
-  border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
 }
 
 html .account-hero-card::before,
