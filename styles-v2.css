@@ -352,3 +352,76 @@ html[data-theme="dark"] .topbar-time-stack {
   background: transparent;
   box-shadow: none;
 }
+
+/* ── NAV ITEM ACTIVE — eliminar pill azul de styles.css ── */
+html .nav-item.active,
+html[data-theme="dark"] .nav-item.active,
+html:not([data-theme="dark"]) .nav-item.active {
+  background: rgba(255,255,255,0.07) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+}
+
+html .nav-item.active svg,
+html[data-theme="dark"] .nav-item.active svg,
+html:not([data-theme="dark"]) .nav-item.active svg {
+  stroke: var(--accent) !important;
+  color: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+html .nav-item.active span,
+html[data-theme="dark"] .nav-item.active span {
+  color: #ffffff !important;
+}
+
+/* ── NAV ITEM BASE — quitar cualquier background heredado ── */
+html .nav-item,
+html[data-theme="dark"] .nav-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ── SIDEBAR — negro puro sin tinte azul ── */
+html .sidebar,
+html[data-theme="dark"] .sidebar,
+html:not([data-theme="dark"]) .sidebar,
+body[data-theme="dark"] .sidebar {
+  background: #111111 !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: none !important;
+}
+
+/* ── APP SHELL Y BODY — negro puro ── */
+html,
+html body,
+html .app-shell,
+html .main-panel {
+  background: #0a0a0a !important;
+  background-image: none !important;
+  background-color: #0a0a0a !important;
+}
+
+/* ── TOPBAR — mismo negro que body ── */
+html .topbar,
+html[data-theme="dark"] .topbar {
+  background: #0a0a0a !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: none !important;
+}
+
+/* ── SECTION LABELS — quitar uppercase pesado ── */
+html .sidebar-section-label,
+html[data-theme="dark"] .sidebar-section-label,
+.nav-section-label,
+.sidebar-nav-group-label {
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.30) !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  padding: 14px 8px 3px !important;
+}
