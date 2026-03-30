@@ -253,3 +253,102 @@ body::after {
   box-shadow: none;
   border-color: var(--border-0);
 }
+
+/* Temporary dark-only migration: hide theme switching UI entry points */
+.theme-toggle-badge,
+[data-theme-toggle],
+label.form-stack:has(select[data-settings-field="theme"]) {
+  display: none;
+}
+
+/* Temporary dark-only migration: make v2 the source of truth for the shell */
+html,
+html:not([data-theme="dark"]),
+html[data-theme="dark"] {
+  background: var(--layer-0);
+  color: var(--text-0);
+  color-scheme: dark;
+}
+
+body,
+html:not([data-theme="dark"]) body,
+html[data-theme="dark"] body,
+body[data-theme="dark"] {
+  background: var(--layer-0);
+  color: var(--text-0);
+  background-image: none;
+}
+
+html body::before,
+html body::after,
+html .content::before {
+  content: none;
+  display: none;
+}
+
+.app-shell,
+html:not([data-theme="dark"]) .app-shell,
+html[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .app-shell {
+  background: var(--layer-0);
+  border: 0;
+  box-shadow: none;
+}
+
+.sidebar,
+html:not([data-theme="dark"]) .sidebar,
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar {
+  background: var(--layer-1);
+  border-right: 1px solid var(--border-0);
+  box-shadow: none;
+}
+
+.topbar,
+html:not([data-theme="dark"]) .topbar,
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar {
+  background: var(--layer-0);
+  border-bottom: 1px solid var(--border-0);
+  box-shadow: none;
+}
+
+.main-panel,
+html:not([data-theme="dark"]) .main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel {
+  background: var(--layer-0);
+  box-shadow: none;
+}
+
+.content,
+html:not([data-theme="dark"]) .content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content {
+  background: transparent;
+  box-shadow: none;
+}
+
+.brand-lockup,
+html:not([data-theme="dark"]) .brand-lockup,
+html[data-theme="dark"] .brand-lockup {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.sidebar-search,
+.sidebar-profile,
+.topbar-user-card,
+.topbar-time-stack,
+html:not([data-theme="dark"]) .sidebar-search,
+html:not([data-theme="dark"]) .sidebar-profile,
+html:not([data-theme="dark"]) .topbar-user-card,
+html:not([data-theme="dark"]) .topbar-time-stack,
+html[data-theme="dark"] .sidebar-search,
+html[data-theme="dark"] .sidebar-profile,
+html[data-theme="dark"] .topbar-user-card,
+html[data-theme="dark"] .topbar-time-stack {
+  background: transparent;
+  box-shadow: none;
+}
