@@ -3,6 +3,22 @@ const chartRoots = new Set();
 const rootResizeObservers = new WeakMap();
 let lifecycleHooksBound = false;
 
+const CHART_COLORS_LIGHT = {
+  primary: "#2f6bff",
+  primaryFill: "rgba(47,107,255,0.08)",
+  positive: "#21a36a",
+  negative: "#d95b72",
+  neutral: "rgba(0,0,0,0.12)",
+  gridLine: "rgba(0,0,0,0.06)",
+  axisText: "rgba(0,0,0,0.40)",
+  baseline: "rgba(0,0,0,0.15)"
+};
+
+function isDarkThemeActive() {
+  return document.documentElement.matches("[data-theme=\"dark\"]")
+    || document.body?.matches?.("[data-theme=\"dark\"]");
+}
+
 function isRenderable(element) {
   if (!element || !element.isConnected) return false;
   const rect = element.getBoundingClientRect?.();
@@ -180,19 +196,26 @@ function withAlpha(hex, alpha) {
 }
 
 function toneColors(tone) {
+  const isDarkTheme = isDarkThemeActive();
   if (tone === "violet") {
     return { start: getCssVar("--chart-violet-a"), end: getCssVar("--chart-violet-b") };
   }
   if (tone === "green") {
-    return { start: getCssVar("--green"), end: "#7ef0b0" };
+    return isDarkTheme
+      ? { start: getCssVar("--green"), end: "#7ef0b0" }
+      : { start: CHART_COLORS_LIGHT.positive, end: CHART_COLORS_LIGHT.positive };
   }
   if (tone === "red") {
-    return { start: getCssVar("--red"), end: "#ff8ca7" };
+    return isDarkTheme
+      ? { start: getCssVar("--red"), end: "#ff8ca7" }
+      : { start: CHART_COLORS_LIGHT.negative, end: CHART_COLORS_LIGHT.negative };
   }
   if (tone === "gold") {
     return { start: getCssVar("--gold"), end: "#f8dd78" };
   }
-  return { start: getCssVar("--chart-blue-a"), end: getCssVar("--chart-blue-b") };
+  return isDarkTheme
+    ? { start: getCssVar("--chart-blue-a"), end: getCssVar("--chart-blue-b") }
+    : { start: CHART_COLORS_LIGHT.primary, end: CHART_COLORS_LIGHT.primary };
 }
 
 function createGradient(context, area, tone, alphaStart = 0.16, alphaEnd = 0.01, horizontal = false) {
@@ -216,17 +239,21 @@ function createBarSurfaceGradient(context, area, tone, hover = false) {
 }
 
 function solidToneColor(tone, value = null) {
+  const isDarkTheme = isDarkThemeActive();
   if (tone === "red") return "#B23030";
-  if (tone === "green" || tone === "blue" || tone === "violet") return "#B2E600";
-  if (value != null) return value >= 0 ? "#B2E600" : "#B23030";
-  return "#B2E600";
+  if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
+  if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
+  if (value != null) return value >= 0 ? (isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive) : "#B23030";
+  return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
 }
 
 function solidToneHoverColor(tone, value = null) {
+  const isDarkTheme = isDarkThemeActive();
   if (tone === "red") return "#B23030";
-  if (tone === "green" || tone === "blue" || tone === "violet") return "#B2E600";
-  if (value != null) return value >= 0 ? "#B2E600" : "#B23030";
-  return "#B2E600";
+  if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
+  if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
+  if (value != null) return value >= 0 ? (isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive) : "#B23030";
+  return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
 }
 
 function resolveBarTone(spec, point, index, value) {
@@ -257,11 +284,10 @@ function createProofTrackGradient(ctx, rect, active = false) {
 }
 
 function createInactiveTrackGradient(ctx, rect, pluginOptions) {
-  const isDarkTheme = document.documentElement.matches("[data-theme=\"dark\"]")
-    || document.body?.matches?.("[data-theme=\"dark\"]");
+  const isDarkTheme = isDarkThemeActive();
   const gradient = ctx.createLinearGradient(rect.left, rect.top, rect.left, rect.bottom);
-  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "rgba(255,255,255,0.028)" : "rgba(15,23,42,0.015)"));
-  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "rgba(255,255,255,0.016)" : "rgba(15,23,42,0.008)"));
+  gradient.addColorStop(0, pluginOptions?.inactiveTop || (isDarkTheme ? "rgba(255,255,255,0.028)" : CHART_COLORS_LIGHT.neutral));
+  gradient.addColorStop(1, pluginOptions?.inactiveBottom || (isDarkTheme ? "rgba(255,255,255,0.016)" : "rgba(0,0,0,0.06)"));
   return gradient;
 }
 
