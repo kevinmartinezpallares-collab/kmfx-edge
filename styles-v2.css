@@ -8,10 +8,10 @@
   --warning: #ffb020;
 
   /* LAYERS (Apple-inspired hierarchy) */
-  --layer-0: #0a0a0a;
-  --layer-1: #141414;
-  --layer-2: #141414;
-  --layer-3: #1f1f1f;
+  --layer-0: #000000;
+  --layer-1: #1C1C1E;
+  --layer-2: #2C2C2E;
+  --layer-3: #3A3A3C;
   --layer-accent: rgba(61, 123, 255, 0.12);
 
   /* TEXT */
