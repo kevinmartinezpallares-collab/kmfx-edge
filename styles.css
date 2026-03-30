@@ -12195,12 +12195,6 @@ html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-grid),
 html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary),
-html:not([data-theme="dark"]) .account-hero-card,
-html:not([data-theme="dark"]) .account-hero-card:hover,
-html:not([data-theme="dark"]) .account-hero-card.active,
-html:not([data-theme="dark"]) .portfolio-account-card,
-html:not([data-theme="dark"]) .portfolio-account-card:hover,
-html:not([data-theme="dark"]) .portfolio-account-card.active,
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .calendar-cell:hover,
 html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
@@ -12217,6 +12211,16 @@ html:not([data-theme="dark"]) .portfolio-account-card::before,
 html:not([data-theme="dark"]) .portfolio-account-card::after {
   box-shadow: none !important;
   filter: none !important;
+}
+
+[data-theme="dark"] .kmfx-chart-shell,
+[data-theme="dark"] .chart-shell,
+[data-theme="dark"] .weekly-chart-shell,
+[data-theme="dark"] .kmfx-chart-shell--feature,
+[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature {
+  background: var(--layer-1);
+  border: none;
+  box-shadow: none;
 }
 
 html:not([data-theme="dark"]) .calendar-week-summary,
@@ -12241,10 +12245,19 @@ html:not([data-theme="dark"]) .tl-section-card:has(.calendar-week-summary) {
   border: 1px solid transparent;
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px 16px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+:where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select)::-ms-expand {
+  display: none;
+}
+
+:where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select)::-ms-expand {
+  display: none;
 }
 
 :where(.form-stack select, .trades-filter-field select, .funded-hero-config .form-stack select, .modal-card select) {
