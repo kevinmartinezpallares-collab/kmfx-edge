@@ -12391,9 +12391,15 @@ html:not([data-theme="dark"]) .risk-session-summary-count span {
 
 html:not([data-theme="dark"]) .risk-select-menu,
 html:not([data-theme="dark"]) .custom-select-dropdown {
-  background: var(--glass-base);
+  background: var(--layer-2);
   border-color: var(--border-1);
   box-shadow: var(--shadow-elevated);
+}
+
+html:not([data-theme="dark"]) .risk-session-summary,
+html:not([data-theme="dark"]) .risk-symbol-summary {
+  background: var(--layer-2);
+  border-color: var(--border-1);
 }
 
 html:not([data-theme="dark"]) .risk-session-row,
