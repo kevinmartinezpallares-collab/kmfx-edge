@@ -61,26 +61,70 @@ body::after {
   background: var(--layer-0);
   box-shadow: none;
   border: 0;
+  min-height: 100vh;
 }
 
 .sidebar {
   background: var(--layer-1);
   border-right: 1px solid var(--border-0);
   box-shadow: none;
+  inset: 14px auto 14px 14px;
+  width: 212px;
+  padding: 20px 16px 18px;
+  gap: 20px;
 }
 
 .topbar {
   background: var(--layer-1);
   border-bottom: 1px solid var(--border-0);
   box-shadow: none;
+  width: min(100%, 1500px);
+  padding: 14px 18px 10px;
+  gap: 14px;
 }
 
 .main-panel {
   background: var(--layer-0);
   box-shadow: none;
+  margin-left: 242px;
+  padding: 14px 18px 18px 0;
+  gap: 8px;
 }
 
 .content {
   background: transparent;
   box-shadow: none;
+  width: min(100%, 1500px);
+  padding: 8px 0 22px;
+  gap: 14px;
+}
+
+.sidebar-header {
+  padding: 8px 10px 2px;
+  gap: 14px;
+}
+
+.sidebar-nav {
+  padding-inline: 4px;
+}
+
+.sidebar-footer {
+  padding-top: 14px;
+}
+
+.topbar-brand {
+  display: grid;
+  gap: 2px;
+}
+
+.topbar-meta,
+.topbar-user-shell {
+  gap: 8px;
+}
+
+.topbar-user-card,
+.topbar-time-stack {
+  background: transparent;
+  box-shadow: none;
+  border-color: var(--border-0);
 }
