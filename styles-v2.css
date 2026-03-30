@@ -210,7 +210,7 @@ body::after {
 }
 
 .topbar {
-  background: var(--layer-0);
+  background: var(--layer-1);
   border-bottom: 1px solid var(--border-0);
   box-shadow: none;
   height: 52px;
@@ -321,7 +321,7 @@ body[data-theme="dark"] .sidebar {
 html:not([data-theme="dark"]) .topbar,
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
-  background: var(--layer-0);
+  background: var(--layer-1);
   border-bottom: 1px solid var(--border-0);
   box-shadow: none;
 }
@@ -421,7 +421,7 @@ html .main-panel {
 /* ── TOPBAR — mismo negro que body ── */
 html .topbar,
 html[data-theme="dark"] .topbar {
-  background: #0a0a0a !important;
+  background: var(--layer-1) !important;
   border-bottom: 1px solid rgba(255,255,255,0.05) !important;
   box-shadow: none !important;
 }
