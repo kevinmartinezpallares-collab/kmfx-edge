@@ -263,9 +263,9 @@ body::after {
 
 .topbar-user-card,
 .topbar-time-stack {
-  background: transparent;
+  background: var(--layer-2);
   box-shadow: none;
-  border-color: var(--border-0);
+  border: 0.5px solid var(--border-0);
 }
 
 /* Temporary dark-only migration: hide theme switching UI entry points */
@@ -347,8 +347,8 @@ body[data-theme="dark"] .content {
 .brand-lockup,
 html:not([data-theme="dark"]) .brand-lockup,
 html[data-theme="dark"] .brand-lockup {
-  background: transparent;
-  border-color: transparent;
+  background: var(--layer-1);
+  border-color: var(--border-0);
   box-shadow: none;
 }
 
@@ -364,7 +364,8 @@ html[data-theme="dark"] .sidebar-search,
 html[data-theme="dark"] .sidebar-profile,
 html[data-theme="dark"] .topbar-user-card,
 html[data-theme="dark"] .topbar-time-stack {
-  background: transparent;
+  background: var(--layer-2);
+  border: 0.5px solid var(--border-0);
   box-shadow: none;
 }
 
