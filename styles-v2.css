@@ -30,6 +30,7 @@
   --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
   --shadow-elevated: 0 8px 20px rgba(0, 0, 0, 0.42);
   --shadow-control: 0 1px 0 rgba(255, 255, 255, 0.02), 0 2px 6px rgba(0, 0, 0, 0.18);
+  --shadow-chart-shell: 0 2px 10px rgba(0, 0, 0, 0.24);
 
   /* GLASS (only for later use) */
   --glass-subtle: rgba(255, 255, 255, 0.04);
@@ -795,4 +796,145 @@ html .kmfx-chart-tooltip-title {
 
 html .kmfx-chart-tooltip-body {
   color: var(--text-0);
+}
+
+/* Dashboard / Summary hierarchy */
+.dashboard-page-flow,
+.dashboard-premium-grid {
+  gap: 18px;
+}
+
+.dashboard-hero-shell,
+.dashboard-main-grid,
+.dashboard-secondary-grid,
+.dashboard-tertiary-grid,
+.dashboard-bottom-grid {
+  gap: 16px;
+}
+
+.dashboard-kpi-premium-grid,
+.tl-kpi-row,
+.tl-kpi-row.five {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.grid-2,
+.grid-2.equal {
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tl-section-card,
+.widget-card,
+.chart-card,
+.pnlcal-card,
+.account-switcher,
+.account-banner,
+.table-wrap,
+.widget-table-wrap {
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.tl-section-header {
+  margin-bottom: 14px;
+  gap: 14px;
+}
+
+.tl-section-title {
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+.tl-section-title::before {
+  width: 5px;
+  height: 5px;
+  background: rgba(61, 123, 255, 0.72);
+}
+
+.widget-card {
+  padding: 18px;
+}
+
+.widget-card--kpi {
+  min-height: 164px;
+  padding: 18px 18px 16px;
+}
+
+.widget-card--feature {
+  min-height: 420px;
+}
+
+.widget-card-head {
+  margin-bottom: 14px;
+  gap: 14px;
+}
+
+.widget-card-meta,
+.widget-eyebrow,
+.metric-rail-hint {
+  color: var(--text-2);
+}
+
+.widget-kpi-trend {
+  margin-top: 10px;
+  color: var(--text-2);
+}
+
+.tl-kpi-card,
+.rm4-card {
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.tl-kpi-label,
+.rm4-label,
+.table-subhead {
+  margin-bottom: 8px;
+  color: var(--text-2);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.tl-kpi-val,
+.rm4-val,
+.metric-large {
+  font-size: 30px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.tl-kpi-card:hover,
+.rm4-card:hover {
+  border-color: var(--border-1);
+  box-shadow: var(--shadow-elevated);
+}
+
+.chart-shell,
+.weekly-chart-shell {
+  margin-top: 0;
+  border-radius: 18px;
+}
+
+.kmfx-chart-shell,
+.chart-shell,
+.weekly-chart-shell {
+  background: var(--layer-2);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-chart-shell);
+  border-radius: 16px;
+}
+
+.kmfx-chart-shell--kpi {
+  min-height: 84px;
+}
+
+.kmfx-chart-shell--feature {
+  min-height: 228px;
+}
+
+.kmfx-chart-shell canvas {
+  background: transparent;
 }
