@@ -1089,9 +1089,9 @@ html[data-theme="dark"] .account-hero-card.active,
 html[data-theme="dark"] .account-hero-card--main,
 body[data-theme="dark"] .account-hero-card.active,
 body[data-theme="dark"] .account-hero-card--main {
-  background: var(--layer-2) !important;
+  background: #FF453A !important;
   background-image: none !important;
-  border: 0.5px solid var(--border-1) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
   box-shadow: none !important;
 }
 
