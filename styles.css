@@ -1539,21 +1539,7 @@ html:not([data-theme="dark"]) .app-shell {
   background: var(--bg-shell);
 }
 
-html:not([data-theme="dark"]) body,
-html:not([data-theme="dark"]) .app-shell,
-html:not([data-theme="dark"]) .sidebar,
-html:not([data-theme="dark"]) .topbar,
-html:not([data-theme="dark"]) .main-panel,
-html:not([data-theme="dark"]) .content {
-  background: var(--bg-shell);
-}
-
 /* KMFX dark shell baseline locked: keep sidebar/topbar/main/content in this tonal relationship unless explicitly redefining the shell system. */
-html[data-theme="dark"] .app-shell,
-body[data-theme="dark"] .app-shell {
-  background: #0D0E12;
-}
-
 .sidebar {
   position: fixed;
   inset: 18px auto 18px 18px;
@@ -1969,10 +1955,6 @@ html:not([data-theme="dark"]) .sidebar-profile-menu-item:hover {
   color: #ef4444 !important;
 }
 
-html[data-theme="dark"] .sidebar {
-  background: #0D0E12;
-}
-
 html[data-theme="dark"] .sidebar::after {
   content: none;
 }
@@ -2080,10 +2062,6 @@ html[data-theme="dark"] .brand-lockup {
   overflow: hidden;
   margin-left: 236px;
   padding: 18px 20px 20px 0;
-  background: var(--bg-shell);
-}
-
-html:not([data-theme="dark"]) .main-panel {
   background: var(--bg-shell);
 }
 
@@ -2243,19 +2221,6 @@ html:not([data-theme="dark"]) .main-panel {
   display: none;
 }
 
-html:not([data-theme="dark"]) .content {
-  background: var(--bg-shell);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-html[data-theme="dark"] .content,
-body[data-theme="dark"] .content {
-  background: var(--bg-panel);
-  border-color: transparent;
-  box-shadow: none;
-}
-
 .content > * {
   position: relative;
   z-index: 1;
@@ -2264,35 +2229,6 @@ body[data-theme="dark"] .content {
 html[data-theme="dark"] .content::before,
 body[data-theme="dark"] .content::before {
   content: none;
-}
-
-html[data-theme="dark"] .topbar,
-body[data-theme="dark"] .topbar {
-  box-shadow: none;
-}
-
-html[data-theme="dark"] .sidebar,
-html[data-theme="dark"] .topbar,
-body[data-theme="dark"] .sidebar,
-body[data-theme="dark"] .topbar {
-  border-color: transparent;
-}
-
-html[data-theme="dark"] .sidebar,
-body[data-theme="dark"] .sidebar {
-  background: transparent;
-}
-
-html[data-theme="dark"] .topbar,
-body[data-theme="dark"] .topbar {
-  background: var(--bg-topbar);
-}
-
-html[data-theme="dark"] .main-panel,
-html[data-theme="dark"] .content,
-body[data-theme="dark"] .main-panel,
-body[data-theme="dark"] .content {
-  background: #0D0E12;
 }
 
 .workspace-strip {
@@ -2339,23 +2275,7 @@ body[data-theme="dark"] .content {
   overflow: hidden;
 }
 
-html[data-theme="dark"] .tl-kpi-card,
-html[data-theme="dark"] .rm4-card,
-html[data-theme="dark"] .tl-section-card,
-html[data-theme="dark"] .chart-card,
-html[data-theme="dark"] .pnlcal-card,
-html[data-theme="dark"] .widget-card,
-html[data-theme="dark"] .account-switcher,
-html[data-theme="dark"] .account-banner,
 html[data-theme="dark"] .account-banner--premium,
-body[data-theme="dark"] .tl-kpi-card,
-body[data-theme="dark"] .rm4-card,
-body[data-theme="dark"] .tl-section-card,
-body[data-theme="dark"] .chart-card,
-body[data-theme="dark"] .pnlcal-card,
-body[data-theme="dark"] .widget-card,
-body[data-theme="dark"] .account-switcher,
-body[data-theme="dark"] .account-banner,
 body[data-theme="dark"] .account-banner--premium {
   background: #282828;
 }
@@ -3052,21 +2972,7 @@ html:not([data-theme="dark"]) .widget-pill {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-html[data-theme="dark"] .tl-kpi-card,
-html[data-theme="dark"] .rm4-card,
-html[data-theme="dark"] .tl-section-card,
-html[data-theme="dark"] .chart-card,
-html[data-theme="dark"] .pnlcal-card,
-html[data-theme="dark"] .widget-card,
-html[data-theme="dark"] .account-switcher,
 html[data-theme="dark"] .account-banner--premium,
-body[data-theme="dark"] .tl-kpi-card,
-body[data-theme="dark"] .rm4-card,
-body[data-theme="dark"] .tl-section-card,
-body[data-theme="dark"] .chart-card,
-body[data-theme="dark"] .pnlcal-card,
-body[data-theme="dark"] .widget-card,
-body[data-theme="dark"] .account-switcher,
 body[data-theme="dark"] .account-banner--premium {
   background: var(--card-surface);
   border-color: var(--card-border);
@@ -4167,42 +4073,6 @@ html:not([data-theme="dark"]) .kmfx-chart-shell--bar canvas {
   background: var(--active-surface);
 }
 
-html:not([data-theme="dark"]) .tl-kpi-card,
-html:not([data-theme="dark"]) .rm4-card,
-html:not([data-theme="dark"]) .tl-section-card,
-html:not([data-theme="dark"]) .chart-card,
-html:not([data-theme="dark"]) .pnlcal-card,
-html:not([data-theme="dark"]) .widget-card,
-html:not([data-theme="dark"]) .account-banner,
-html:not([data-theme="dark"]) .account-switcher,
-html:not([data-theme="dark"]) .table-wrap,
-html:not([data-theme="dark"]) .widget-table-wrap {
-  box-shadow:
-    0 14px 30px rgba(25, 37, 59, 0.075),
-    var(--card-inner-glow);
-}
-
-html:not([data-theme="dark"]) .sidebar,
-html:not([data-theme="dark"]) .topbar {
-  background: var(--bg-shell);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .content {
-  background: var(--bg-shell);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .sidebar {
-  background: var(--bg-shell);
-}
-
-html:not([data-theme="dark"]) .topbar {
-  background: var(--bg-shell);
-}
-
 html:not([data-theme="dark"]) .nav-item.active {
   color: var(--accent3);
   background: linear-gradient(180deg, rgba(236, 244, 255, 0.98), rgba(228, 238, 252, 0.94));
@@ -4239,14 +4109,8 @@ html:not([data-theme="dark"]) .account-banner--premium {
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-html:not([data-theme="dark"]) .account-switcher::before,
-html:not([data-theme="dark"]) .tl-kpi-card::before,
-html:not([data-theme="dark"]) .rm4-card::before,
-html:not([data-theme="dark"]) .tl-section-card::before,
-html:not([data-theme="dark"]) .chart-card::before,
-html:not([data-theme="dark"]) .pnlcal-card::before,
 html:not([data-theme="dark"]) .account-banner--premium::before,
-html:not([data-theme="dark"]) .widget-card::before {
+html:not([data-theme="dark"]) .account-banner--premium::before {
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.2), transparent 56%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04) 34%, transparent 72%);
@@ -4290,12 +4154,6 @@ html:not([data-theme="dark"]) .account-banner .account-banner-context strong {
   color: var(--text1);
 }
 
-html:not([data-theme="dark"]) .table-wrap,
-html:not([data-theme="dark"]) .widget-table-wrap {
-  border-color: color-mix(in srgb, var(--border) 94%, transparent);
-  background: linear-gradient(180deg, rgba(249, 252, 255, 0.96), rgba(242, 247, 253, 0.94));
-}
-
 html:not([data-theme="dark"]) .list-row,
 html:not([data-theme="dark"]) .calendar-cell,
 html:not([data-theme="dark"]) .settings-check,
@@ -4332,51 +4190,12 @@ html:not([data-theme="dark"]) .calc-pill {
   border-color: rgba(20, 24, 36, 0.1);
 }
 
-html:not([data-theme="dark"]) .tl-kpi-card,
-html:not([data-theme="dark"]) .rm4-card,
-html:not([data-theme="dark"]) .tl-section-card,
-html:not([data-theme="dark"]) .chart-card,
-html:not([data-theme="dark"]) .pnlcal-card,
-html:not([data-theme="dark"]) .widget-card,
-html:not([data-theme="dark"]) .account-banner,
-html:not([data-theme="dark"]) .account-switcher {
-  background: var(--card-surface);
-  border-color: rgba(20, 24, 36, 0.12);
-  box-shadow: none;
-}
-
 html:not([data-theme="dark"]) .widget-segmented-btn.active,
 html:not([data-theme="dark"]) .tl-tab.active,
 html:not([data-theme="dark"]) .nav-item.active {
   background: linear-gradient(180deg, rgba(236, 244, 255, 0.98), rgba(228, 238, 252, 0.94));
   border-color: rgba(47, 107, 255, 0.16);
   color: var(--accent3);
-}
-
-html:not([data-theme="dark"]) .sidebar,
-html:not([data-theme="dark"]) .topbar,
-html:not([data-theme="dark"]) .main-panel {
-  background: var(--bg-shell);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .content {
-  background: var(--bg-shell);
-  border-color: transparent;
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .app-shell {
-  background: var(--bg-shell);
-}
-
-html:not([data-theme="dark"]) .sidebar {
-  border-right: 0;
-}
-
-html:not([data-theme="dark"]) .topbar {
-  border-bottom: 0;
 }
 
 html:not([data-theme="dark"]) .brand-lockup,
@@ -4412,37 +4231,6 @@ html:not([data-theme="dark"]) .nav-item.active {
   border-color: var(--active-border);
   color: var(--active-text);
   box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .tl-kpi-card,
-html:not([data-theme="dark"]) .rm4-card,
-html:not([data-theme="dark"]) .tl-section-card,
-html:not([data-theme="dark"]) .chart-card,
-html:not([data-theme="dark"]) .pnlcal-card,
-html:not([data-theme="dark"]) .widget-card,
-html:not([data-theme="dark"]) .account-banner,
-html:not([data-theme="dark"]) .account-banner--premium,
-html:not([data-theme="dark"]) .account-switcher,
-html:not([data-theme="dark"]) .table-wrap,
-html:not([data-theme="dark"]) .widget-table-wrap,
-html:not([data-theme="dark"]) .chart-shell,
-html:not([data-theme="dark"]) .kmfx-chart-shell,
-html:not([data-theme="dark"]) .weekly-chart-shell {
-  background: var(--bg-card);
-  border-color: rgba(20, 24, 36, 0.12);
-  box-shadow: none;
-}
-
-html:not([data-theme="dark"]) .account-switcher::before,
-html:not([data-theme="dark"]) .tl-kpi-card::before,
-html:not([data-theme="dark"]) .rm4-card::before,
-html:not([data-theme="dark"]) .tl-section-card::before,
-html:not([data-theme="dark"]) .chart-card::before,
-html:not([data-theme="dark"]) .pnlcal-card::before,
-html:not([data-theme="dark"]) .account-banner--premium::before,
-html:not([data-theme="dark"]) .widget-card::before {
-  background: none;
-  opacity: 0;
 }
 
 html:not([data-theme="dark"]) .kmfx-chart-shell--feature:has(> canvas#calendar-cumulative-return),
@@ -12411,27 +12199,7 @@ body[data-theme="dark"] .brand-logo-dark {
 
 /* Light Mode Final Normalization
    Single source of truth: :root tokens + html:not([data-theme="dark"]). */
-html:not([data-theme="dark"]) body,
-html:not([data-theme="dark"]) .app-shell,
-html:not([data-theme="dark"]) .sidebar,
-html:not([data-theme="dark"]) .topbar,
-html:not([data-theme="dark"]) .main-panel,
-html:not([data-theme="dark"]) .content {
-  background: #ffffff !important;
-  box-shadow: none !important;
-}
-
-html:not([data-theme="dark"]) .tl-kpi-card,
-html:not([data-theme="dark"]) .rm4-card,
-html:not([data-theme="dark"]) .tl-section-card,
-html:not([data-theme="dark"]) .chart-card,
-html:not([data-theme="dark"]) .pnlcal-card,
-html:not([data-theme="dark"]) .widget-card,
-html:not([data-theme="dark"]) .account-switcher,
-html:not([data-theme="dark"]) .account-banner,
 html:not([data-theme="dark"]) .account-banner--premium,
-html:not([data-theme="dark"]) .table-wrap,
-html:not([data-theme="dark"]) .widget-table-wrap,
 html:not([data-theme="dark"]) .chart-shell,
 html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .weekly-chart-shell {
@@ -12443,13 +12211,6 @@ html:not([data-theme="dark"]) .weekly-chart-shell {
   -webkit-backdrop-filter: none !important;
 }
 
-html:not([data-theme="dark"]) .account-switcher::before,
-html:not([data-theme="dark"]) .tl-kpi-card::before,
-html:not([data-theme="dark"]) .rm4-card::before,
-html:not([data-theme="dark"]) .tl-section-card::before,
-html:not([data-theme="dark"]) .chart-card::before,
-html:not([data-theme="dark"]) .pnlcal-card::before,
-html:not([data-theme="dark"]) .widget-card::before,
 html:not([data-theme="dark"]) .account-banner--premium::before {
   content: none !important;
   background: none !important;
@@ -12537,16 +12298,10 @@ html:not([data-theme="dark"]) .calendar-head--summary {
 html:not([data-theme="dark"]) .calendar-cell:hover:not(:disabled),
 html:not([data-theme="dark"]) .calendar-cell:hover,
 html:not([data-theme="dark"]) .calendar-week-summary:hover,
-html:not([data-theme="dark"]) .tl-section-card:hover,
-html:not([data-theme="dark"]) .tl-kpi-card:hover,
-html:not([data-theme="dark"]) .rm4-card:hover,
-html:not([data-theme="dark"]) .widget-card:hover,
 html:not([data-theme="dark"]) .hhc-card:hover,
 html:not([data-theme="dark"]) .session-card:hover,
 html:not([data-theme="dark"]) .goal-card:hover,
 html:not([data-theme="dark"]) .pnlcal-kpi:hover,
-html:not([data-theme="dark"]) .account-banner:hover,
-html:not([data-theme="dark"]) .account-switcher:hover,
 html:not([data-theme="dark"]) .analytics-submetric:hover,
 html:not([data-theme="dark"]) .weekday-inline-card:hover,
 html:not([data-theme="dark"]) .analytics-daily-breakdown-row:hover,
@@ -13349,23 +13104,6 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
   color: #667085;
 }
 
-[data-theme="dark"] body,
-[data-theme="dark"] .app-shell,
-[data-theme="dark"] .sidebar,
-[data-theme="dark"] .topbar,
-[data-theme="dark"] .main-panel,
-[data-theme="dark"] .content {
-  background: #121212 !important;
-}
-
-[data-theme="dark"] .sidebar {
-  border-right: 1px solid rgba(255,255,255,0.06) !important;
-}
-
-[data-theme="dark"] .topbar {
-  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-}
-
 [data-theme="dark"] .nav-item.active {
   background: var(--layer-2);
   border-radius: 8px;
@@ -13377,16 +13115,6 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
   stroke: var(--accent);
 }
 
-[data-theme="dark"] .tl-kpi-card,
-[data-theme="dark"] .rm4-card,
-[data-theme="dark"] .tl-section-card,
-[data-theme="dark"] .chart-card,
-[data-theme="dark"] .pnlcal-card,
-[data-theme="dark"] .widget-card,
-[data-theme="dark"] .account-switcher,
-[data-theme="dark"] .account-banner,
-[data-theme="dark"] .table-wrap,
-[data-theme="dark"] .widget-table-wrap,
 [data-theme="dark"] .kmfx-chart-shell {
   background: #1c1c1c !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
@@ -13423,33 +13151,6 @@ html:not([data-theme="dark"]) .risk-symbol-summary-count span {
   box-shadow: none !important;
 }
 
-html:not([data-theme="dark"]) body,
-html:not([data-theme="dark"]) .app-shell,
-html:not([data-theme="dark"]) .sidebar,
-html:not([data-theme="dark"]) .topbar,
-html:not([data-theme="dark"]) .main-panel,
-html:not([data-theme="dark"]) .content {
-  background: var(--layer-0);
-}
-
-html:not([data-theme="dark"]) .sidebar {
-  border-right: 1px solid var(--border-0);
-}
-
-html:not([data-theme="dark"]) .topbar {
-  border-bottom: 1px solid var(--border-0);
-}
-
-html:not([data-theme="dark"]) .tl-kpi-card,
-html:not([data-theme="dark"]) .rm4-card,
-html:not([data-theme="dark"]) .tl-section-card,
-html:not([data-theme="dark"]) .chart-card,
-html:not([data-theme="dark"]) .pnlcal-card,
-html:not([data-theme="dark"]) .widget-card,
-html:not([data-theme="dark"]) .account-switcher,
-html:not([data-theme="dark"]) .account-banner,
-html:not([data-theme="dark"]) .table-wrap,
-html:not([data-theme="dark"]) .widget-table-wrap,
 html:not([data-theme="dark"]) .kmfx-chart-shell,
 html:not([data-theme="dark"]) .analytics-bento-card {
   background: var(--layer-1);
@@ -13457,31 +13158,20 @@ html:not([data-theme="dark"]) .analytics-bento-card {
   box-shadow: var(--shadow-card);
 }
 
-html:not([data-theme="dark"]) .tl-kpi-card::before,
-html:not([data-theme="dark"]) .rm4-card::before,
-html:not([data-theme="dark"]) .tl-section-card::before,
-html:not([data-theme="dark"]) .chart-card::before,
-html:not([data-theme="dark"]) .pnlcal-card::before,
-html:not([data-theme="dark"]) .widget-card::before,
-html:not([data-theme="dark"]) .account-switcher::before,
 html:not([data-theme="dark"]) .tl-kpi-card::after,
 html:not([data-theme="dark"]) .rm4-card::after,
 html:not([data-theme="dark"]) .tl-section-card::after,
 html:not([data-theme="dark"]) .chart-card::after,
 html:not([data-theme="dark"]) .pnlcal-card::after,
 html:not([data-theme="dark"]) .widget-card::after,
-html:not([data-theme="dark"]) .account-switcher::after {
+html:not([data-theme="dark"]) .account-switcher::after,
+html:not([data-theme="dark"]) .tl-kpi-card::before,
+html:not([data-theme="dark"]) .rm4-card::before,
+html:not([data-theme="dark"]) .tl-section-card::before,
+html:not([data-theme="dark"]) .chart-card::before,
+html:not([data-theme="dark"]) .widget-card::before,
+html:not([data-theme="dark"]) .account-switcher::before {
   display: none;
-}
-
-html:not([data-theme="dark"]) .tl-kpi-card:hover,
-html:not([data-theme="dark"]) .rm4-card:hover,
-html:not([data-theme="dark"]) .tl-section-card:hover,
-html:not([data-theme="dark"]) .chart-card:hover,
-html:not([data-theme="dark"]) .widget-card:hover {
-  background: var(--layer-1);
-  transform: none;
-  box-shadow: var(--shadow-card);
 }
 
 html:not([data-theme="dark"]) .risk-config-card,
@@ -13884,11 +13574,6 @@ html:not([data-theme="dark"]) .modal-card select:focus {
   box-shadow: var(--shadow-card);
 }
 
-html:not([data-theme="dark"]) .content,
-html:not([data-theme="dark"]) .main-panel {
-  background: var(--layer-0);
-}
-
 body,
 .app-shell,
 .sidebar,
@@ -13896,14 +13581,6 @@ body,
 .main-panel,
 .content {
   color: var(--text-0);
-}
-
-body,
-.app-shell,
-.sidebar,
-.topbar,
-.main-panel,
-.content {
   background: var(--layer-0);
 }
 
