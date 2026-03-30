@@ -1,4 +1,23 @@
 :root {
+  /* ── Layer system ── */
+  --layer-0: #ffffff;
+  --layer-1: #f5f5f7;
+  --layer-2: #ebebed;
+  --layer-3: #e0e0e2;
+  --layer-accent: #0a0f2e;
+
+  --border-0: rgba(0,0,0,0.05);
+  --border-1: rgba(0,0,0,0.08);
+  --border-2: rgba(0,0,0,0.12);
+  --border-focus: var(--accent);
+
+  --text-0: #1c1c1e;
+  --text-1: rgba(0,0,0,0.60);
+  --text-2: rgba(0,0,0,0.38);
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.05);
+  --shadow-none: none;
+
   /* ── Fondos ── */
   --bg-app: #ffffff;
   --bg-shell: #ffffff;
@@ -101,6 +120,24 @@
 
 /* KMFX dark palette locked: do not change bg/shell/canvas/card tones without an explicit dark-mode redesign decision. */
 [data-theme="dark"] {
+  --layer-0: #121212;
+  --layer-1: #1c1c1c;
+  --layer-2: #252525;
+  --layer-3: #2e2e2e;
+  --layer-accent: #04081a;
+
+  --border-0: rgba(255,255,255,0.04);
+  --border-1: rgba(255,255,255,0.08);
+  --border-2: rgba(255,255,255,0.12);
+  --border-focus: var(--accent);
+
+  --text-0: #ffffff;
+  --text-1: rgba(255,255,255,0.55);
+  --text-2: rgba(255,255,255,0.30);
+
+  --shadow-card: none;
+  --shadow-none: none;
+
   /* ── Fondos base ── */
   --bg-app: #121212;
   --bg-shell: #121212;
@@ -14028,4 +14065,89 @@ html:not([data-theme="dark"]) tbody tr:hover td {
 html:not([data-theme="dark"]) .content,
 html:not([data-theme="dark"]) .main-panel {
   background: #ffffff !important;
+}
+
+body,
+.app-shell,
+.sidebar,
+.topbar,
+.main-panel,
+.content {
+  color: var(--text-0);
+}
+
+body,
+.app-shell,
+.sidebar,
+.topbar,
+.main-panel,
+.content {
+  background: var(--layer-0);
+}
+
+.sidebar {
+  border-right: 1px solid var(--border-0);
+}
+
+.topbar {
+  border-bottom: 1px solid var(--border-0);
+}
+
+.tl-section-card,
+.widget-card,
+.chart-card,
+.pnlcal-card,
+.tl-kpi-card,
+.rm4-card,
+.account-switcher,
+.account-banner,
+.table-wrap,
+.widget-table-wrap {
+  background: var(--layer-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-card);
+  color: var(--text-0);
+}
+
+.tl-section-card::before,
+.widget-card::before,
+.chart-card::before,
+.pnlcal-card::before,
+.tl-kpi-card::before,
+.rm4-card::before,
+.account-switcher::before,
+.account-banner::before,
+.table-wrap::before,
+.widget-table-wrap::before,
+.tl-section-card::after,
+.widget-card::after,
+.chart-card::after,
+.pnlcal-card::after,
+.tl-kpi-card::after,
+.rm4-card::after,
+.account-switcher::after,
+.account-banner::after,
+.table-wrap::after,
+.widget-table-wrap::after {
+  display: none !important;
+}
+
+.tl-kpi-card:hover,
+.rm4-card:hover,
+.tl-section-card:hover,
+.widget-card:hover,
+.chart-card:hover,
+.pnlcal-card:hover,
+.account-switcher:hover,
+.account-banner:hover,
+.table-wrap:hover,
+.widget-table-wrap:hover {
+  background: var(--layer-1) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.tl-kpi-card:hover,
+.rm4-card:hover {
+  border-color: var(--border-2) !important;
+  transform: none !important;
 }
