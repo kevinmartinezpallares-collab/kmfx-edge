@@ -46,3 +46,41 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+body {
+  background-color: var(--layer-0);
+  background-image: none;
+}
+
+body::before,
+body::after {
+  content: none;
+}
+
+.app-shell {
+  background: var(--layer-0);
+  box-shadow: none;
+  border: 0;
+}
+
+.sidebar {
+  background: var(--layer-1);
+  border-right: 1px solid var(--border-0);
+  box-shadow: none;
+}
+
+.topbar {
+  background: var(--layer-1);
+  border-bottom: 1px solid var(--border-0);
+  box-shadow: none;
+}
+
+.main-panel {
+  background: var(--layer-0);
+  box-shadow: none;
+}
+
+.content {
+  background: transparent;
+  box-shadow: none;
+}
