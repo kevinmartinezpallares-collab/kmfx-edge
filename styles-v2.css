@@ -1638,6 +1638,71 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Phase 5.2 — global visible surface unification */
+
+/* 1. Large wrappers must stay in the canonical base family */
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .analytics-card,
+html[data-theme="dark"] .performance-card,
+html[data-theme="dark"] .distribution-card,
+html[data-theme="dark"] .table-card,
+body[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .analytics-card,
+body[data-theme="dark"] .performance-card,
+body[data-theme="dark"] .distribution-card,
+body[data-theme="dark"] .table-card {
+  background: var(--card-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+}
+
+/* 2. Kill accidental elevated repainting on generic chart/distribution descendants */
+html[data-theme="dark"] .widget-card [class*="chart"],
+html[data-theme="dark"] .widget-card [class*="distribution"],
+body[data-theme="dark"] .widget-card [class*="chart"],
+body[data-theme="dark"] .widget-card [class*="distribution"] {
+  background: transparent !important;
+}
+
+/* 3. Real inner sub-widgets should use the subtle internal surface */
+html[data-theme="dark"] .analytics-winloss-summary,
+html[data-theme="dark"] .analytics-winloss-stat,
+html[data-theme="dark"] .analytics-top-metric,
+html[data-theme="dark"] .analytics-ratio-minimal-card,
+html[data-theme="dark"] .analytics-submetric,
+html[data-theme="dark"] .weekday-inline-card,
+html[data-theme="dark"] .hhc-card,
+body[data-theme="dark"] .analytics-winloss-summary,
+body[data-theme="dark"] .analytics-winloss-stat,
+body[data-theme="dark"] .analytics-top-metric,
+body[data-theme="dark"] .analytics-ratio-minimal-card,
+body[data-theme="dark"] .analytics-submetric,
+body[data-theme="dark"] .weekday-inline-card,
+body[data-theme="dark"] .hhc-card {
+  background: var(--layer-1-subtle) !important;
+  background-image: none !important;
+  border: 1px solid var(--border-0) !important;
+  box-shadow: none !important;
+}
+
+/* 4. Structural wrappers must stop acting like visible cards */
+html[data-theme="dark"] .analytics-panel .table-wrap,
+html[data-theme="dark"] .analytics-panel .list-row,
+html[data-theme="dark"] .analytics-panel .heat-cell,
+html[data-theme="dark"] .kmfx-chart-shell--feature,
+html[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature,
+body[data-theme="dark"] .analytics-panel .table-wrap,
+body[data-theme="dark"] .analytics-panel .list-row,
+body[data-theme="dark"] .analytics-panel .heat-cell,
+body[data-theme="dark"] .kmfx-chart-shell--feature,
+body[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature {
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Phase 4D — Internal surface consistency */
 
 /* 1. Sub-surface token */
