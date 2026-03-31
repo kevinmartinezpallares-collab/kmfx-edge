@@ -2069,6 +2069,74 @@ body[data-theme="dark"] .account-hero-card--side .account-hero-card__stat-val {
   letter-spacing: -0.02em !important;
 }
 
+/* Phase 4A — Hero + Performance emphasis */
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__equity,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__equity,
+html[data-theme="dark"] .metric-large,
+html[data-theme="dark"] .metric-value,
+html[data-theme="dark"] .kpi-value,
+body[data-theme="dark"] .metric-large,
+body[data-theme="dark"] .metric-value,
+body[data-theme="dark"] .kpi-value {
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__equity,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__equity,
+html[data-theme="dark"] .tl-kpi-val,
+html[data-theme="dark"] .tl-kpi-value,
+html[data-theme="dark"] .rm4-val,
+body[data-theme="dark"] .tl-kpi-val,
+body[data-theme="dark"] .tl-kpi-value,
+body[data-theme="dark"] .rm4-val {
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .account-hero-card__equity-label,
+html[data-theme="dark"] .tl-kpi-label,
+html[data-theme="dark"] .rm4-label,
+html[data-theme="dark"] .metric-label,
+body[data-theme="dark"] .account-hero-card__equity-label,
+body[data-theme="dark"] .tl-kpi-label,
+body[data-theme="dark"] .rm4-label,
+body[data-theme="dark"] .metric-label {
+  color: var(--text-2) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+}
+
+html[data-theme="dark"] .account-hero-card__stat-val,
+body[data-theme="dark"] .account-hero-card__stat-val,
+html[data-theme="dark"] .widget-kpi-trend,
+body[data-theme="dark"] .widget-kpi-trend {
+  font-weight: 650 !important;
+}
+
+html[data-theme="dark"] .widget-card-meta,
+html[data-theme="dark"] .metric-rail-hint,
+body[data-theme="dark"] .widget-card-meta,
+body[data-theme="dark"] .metric-rail-hint {
+  color: var(--text-1) !important;
+}
+
+html[data-theme="dark"] .widget-kpi-trend.green,
+body[data-theme="dark"] .widget-kpi-trend.green,
+html[data-theme="dark"] .account-hero-card__stat-val.green,
+body[data-theme="dark"] .account-hero-card__stat-val.green {
+  color: var(--positive) !important;
+}
+
+html[data-theme="dark"] .widget-kpi-trend.red,
+body[data-theme="dark"] .widget-kpi-trend.red {
+  color: var(--negative) !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
