@@ -1643,6 +1643,144 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Phase Hero A — flagship treatment for dashboard performance hero */
+html[data-theme="dark"] .account-banner--premium,
+body[data-theme="dark"] .account-banner--premium {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.008)),
+    var(--card-surface) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+  padding: 24px 26px !important;
+  gap: 30px !important;
+}
+
+html[data-theme="dark"] .account-banner-copy,
+body[data-theme="dark"] .account-banner-copy {
+  gap: 14px !important;
+}
+
+html[data-theme="dark"] .banner-kicker,
+body[data-theme="dark"] .banner-kicker {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  color: var(--text-2) !important;
+  margin-bottom: 10px !important;
+}
+
+html[data-theme="dark"] .banner-title,
+body[data-theme="dark"] .banner-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+
+html[data-theme="dark"] .banner-sub,
+body[data-theme="dark"] .banner-sub {
+  font-size: 12px !important;
+  color: var(--text-2) !important;
+  margin-top: 6px !important;
+}
+
+html[data-theme="dark"] .account-banner-side,
+body[data-theme="dark"] .account-banner-side {
+  gap: 10px !important;
+  padding-right: 10px !important;
+}
+
+html[data-theme="dark"] .account-banner-metric,
+body[data-theme="dark"] .account-banner-metric {
+  font-size: clamp(44px, 4.8vw, 64px) !important;
+  line-height: 0.94 !important;
+  letter-spacing: -0.06em !important;
+  font-weight: 700 !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .account-banner-meta,
+body[data-theme="dark"] .account-banner-meta {
+  margin-top: 2px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.015em !important;
+}
+
+html[data-theme="dark"] .account-banner-context,
+body[data-theme="dark"] .account-banner-context {
+  margin-top: 2px !important;
+  gap: 8px 12px !important;
+  font-size: 11px !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .account-banner-context strong,
+body[data-theme="dark"] .account-banner-context strong {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+
+html[data-theme="dark"] .account-banner-badges,
+body[data-theme="dark"] .account-banner-badges {
+  margin-top: 8px !important;
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] .account-banner-chart,
+body[data-theme="dark"] .account-banner-chart {
+  padding-left: 22px !important;
+}
+
+html[data-theme="dark"] .account-banner-chart::before,
+body[data-theme="dark"] .account-banner-chart::before {
+  left: 0 !important;
+  top: 8px !important;
+  bottom: 8px !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+
+html[data-theme="dark"] .account-banner-viz,
+body[data-theme="dark"] .account-banner-viz {
+  border-radius: 18px !important;
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  padding: 12px 14px 10px !important;
+  min-height: 190px !important;
+}
+
+html[data-theme="dark"] .account-banner-viz .kmfx-chart-shell--hero,
+body[data-theme="dark"] .account-banner-viz .kmfx-chart-shell--hero {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .widget-segmented,
+body[data-theme="dark"] .widget-segmented {
+  padding: 3px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.035) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+html[data-theme="dark"] .widget-segmented-btn,
+body[data-theme="dark"] .widget-segmented-btn {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.08em !important;
+}
+
+html[data-theme="dark"] .widget-segmented-btn.active,
+body[data-theme="dark"] .widget-segmented-btn.active {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+
 
 /* Phase 5.2 — global visible surface unification */
 
