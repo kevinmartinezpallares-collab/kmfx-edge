@@ -1643,6 +1643,95 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Hero F — compact hero composition */
+html[data-theme="dark"] .account-banner--hero-refined,
+body[data-theme="dark"] .account-banner--hero-refined {
+  gap: 10px !important;
+  padding: 18px 22px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-hero,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-hero {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-hero-row,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-hero-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.9fr);
+  align-items: end;
+  gap: 18px;
+}
+
+html[data-theme="dark"] .account-banner-metric,
+body[data-theme="dark"] .account-banner-metric {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 0 !important;
+  line-height: 0.92 !important;
+}
+
+html[data-theme="dark"] .account-banner-currency,
+body[data-theme="dark"] .account-banner-currency {
+  font-size: 0.42em;
+  font-weight: 650;
+  line-height: 1;
+  opacity: 0.9;
+  transform: translateY(0.18em);
+}
+
+html[data-theme="dark"] .account-banner-metric-value,
+body[data-theme="dark"] .account-banner-metric-value {
+  display: inline-block;
+}
+
+html[data-theme="dark"] .account-banner-metrics-block,
+body[data-theme="dark"] .account-banner-metrics-block {
+  gap: 4px !important;
+  margin-top: 0 !important;
+  align-self: center;
+}
+
+html[data-theme="dark"] .metric-line,
+body[data-theme="dark"] .metric-line {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] .metric-line-label,
+body[data-theme="dark"] .metric-line-label {
+  font-size: 10px !important;
+  letter-spacing: 0.035em !important;
+}
+
+html[data-theme="dark"] .metric-line strong,
+body[data-theme="dark"] .metric-line strong {
+  font-size: 13px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-badges,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-badges {
+  margin-top: 2px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-chart,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-chart {
+  margin-top: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz {
+  min-height: 200px !important;
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .account-banner--hero-refined .account-banner-hero-row,
+  body[data-theme="dark"] .account-banner--hero-refined .account-banner-hero-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 /* Phase Hero A — flagship treatment for dashboard performance hero */
 html[data-theme="dark"] .account-banner--premium,
 body[data-theme="dark"] .account-banner--premium {

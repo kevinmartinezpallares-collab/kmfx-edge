@@ -183,10 +183,10 @@ export function renderDashboard(root, state) {
       pointHoverRadius: 3.25,
       pointHitRadius: 20,
       fill: isDarkTheme,
-      fillAlphaStart: isDarkTheme ? 0.28 : 0.05,
+      fillAlphaStart: isDarkTheme ? 0.26 : 0.05,
       fillAlphaEnd: isDarkTheme ? 0.0 : 0,
       glowAlpha: 0.16,
-      tension: 0.65,
+      tension: 0.7,
       axisColor: axisStandard,
       axisFontSize: 9,
       axisFontWeight: "500",
@@ -195,7 +195,7 @@ export function renderDashboard(root, state) {
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.018 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
-      yHeadroomRatio: 0.01,
+      yHeadroomRatio: 0.004,
       yBottomPaddingRatio: 0.0,
       showAxisBorder: false,
       formatter: (value, context) => {
@@ -227,8 +227,12 @@ export function renderDashboard(root, state) {
           </div>
 
           <div class="account-banner-hero">
-            <div class="account-banner-metric">${formatCurrency(model.account.equity)}</div>
-            <div class="account-banner-metrics-block">
+            <div class="account-banner-hero-row">
+              <div class="account-banner-metric">
+                <span class="account-banner-currency">€</span>
+                <span class="account-banner-metric-value">${formatCurrency(model.account.equity).replace(/^€/, "")}</span>
+              </div>
+              <div class="account-banner-metrics-block">
               <div class="metric-line">
                 <span class="metric-line-label">PnL total</span>
                 <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
@@ -242,6 +246,7 @@ export function renderDashboard(root, state) {
                   ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
                 </strong>
               </div>
+            </div>
             </div>
             <div class="account-banner-badges">
               <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
