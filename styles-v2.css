@@ -1602,3 +1602,20 @@ body[data-theme="dark"] .main-panel::after {
   content: none !important;
   display: none !important;
 }
+
+/* Shell continuity override — content alignment */
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  background: #0a0a0a !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .content::before,
+html[data-theme="dark"] .content::after,
+body[data-theme="dark"] .content::before,
+body[data-theme="dark"] .content::after {
+  content: none !important;
+  display: none !important;
+}
