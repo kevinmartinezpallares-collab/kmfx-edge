@@ -2167,6 +2167,53 @@ body[data-theme="dark"] .account-hero-card__stat-label {
   font-size: 9px !important;
 }
 
+/* Phase 4C — Chips / Pills / Badges hierarchy */
+html[data-theme="dark"] .widget-pill,
+html[data-theme="dark"] .pill,
+html[data-theme="dark"] .row-chip,
+html[data-theme="dark"] .calc-chip,
+body[data-theme="dark"] .widget-pill,
+body[data-theme="dark"] .pill,
+body[data-theme="dark"] .row-chip,
+body[data-theme="dark"] .calc-chip {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid var(--border-0) !important;
+  color: var(--text-2) !important;
+  font-weight: 500 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.03em !important;
+  padding: 3px 9px !important;
+}
+
+html[data-theme="dark"] .account-hero-card .status-badge,
+body[data-theme="dark"] .account-hero-card .status-badge {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  font-size: 10px !important;
+  font-weight: 550 !important;
+  letter-spacing: 0.03em !important;
+  padding: 4px 10px !important;
+}
+
+html[data-theme="dark"] .account-hero-card .status-dot,
+body[data-theme="dark"] .account-hero-card .status-dot {
+  opacity: 0.9 !important;
+}
+
+html[data-theme="dark"] .account-hero-card .status-dot.connected,
+body[data-theme="dark"] .account-hero-card .status-dot.connected {
+  background: var(--positive) !important;
+}
+
+html[data-theme="dark"] .account-hero-card .status-badge.is-warning,
+html[data-theme="dark"] .account-hero-card .status-badge.is-disconnected,
+body[data-theme="dark"] .account-hero-card .status-badge.is-warning,
+body[data-theme="dark"] .account-hero-card .status-badge.is-disconnected {
+  color: rgba(255, 255, 255, 0.56) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
