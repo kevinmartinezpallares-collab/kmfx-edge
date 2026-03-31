@@ -1439,3 +1439,37 @@ body[data-theme="dark"] .content,
   background: #0a0a0a !important;
   box-shadow: none !important;
 }
+
+html .sidebar,
+html[data-theme="dark"] .sidebar,
+html:not([data-theme="dark"]) .sidebar,
+body[data-theme="dark"] .sidebar {
+  background: #0a0a0a !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+html .topbar,
+html[data-theme="dark"] .topbar {
+  background: #0a0a0a !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: none !important;
+}
+
+html .main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+html .content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content,
+html body,
+html[data-theme="dark"] body {
+  background: #0a0a0a !important;
+  background-image: none !important;
+}
