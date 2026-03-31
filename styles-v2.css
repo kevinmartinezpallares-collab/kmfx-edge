@@ -1706,6 +1706,22 @@ body[data-theme="dark"] .sidebar-profile-menu-btn {
   box-shadow: none !important;
 }
 
+/* Topbar cleanup — remove duplicated user block */
+html[data-theme="dark"] .topbar-user-card,
+body[data-theme="dark"] .topbar-user-card {
+  display: none !important;
+}
+
+html[data-theme="dark"] .topbar-user-shell,
+body[data-theme="dark"] .topbar-user-shell {
+  gap: 0 !important;
+}
+
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta {
+  gap: 0 !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
