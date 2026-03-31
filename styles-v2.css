@@ -1883,6 +1883,62 @@ body[data-theme="dark"] .section-subtitle {
   margin-bottom: 0 !important;
 }
 
+/* Phase 3B.3 — special KPI widget normalization */
+html[data-theme="dark"] .widget-card--kpi,
+body[data-theme="dark"] .widget-card--kpi,
+html[data-theme="dark"] .widget-card--kpi-pnl,
+html[data-theme="dark"] .widget-card--kpi-wr,
+html[data-theme="dark"] .widget-card--kpi-trades,
+html[data-theme="dark"] .widget-card--kpi-pf,
+html[data-theme="dark"] .widget-card--kpi-best,
+body[data-theme="dark"] .widget-card--kpi-pnl,
+body[data-theme="dark"] .widget-card--kpi-wr,
+body[data-theme="dark"] .widget-card--kpi-trades,
+body[data-theme="dark"] .widget-card--kpi-pf,
+body[data-theme="dark"] .widget-card--kpi-best {
+  background: var(--card-surface) !important;
+  border-color: var(--card-border) !important;
+  min-height: 164px !important;
+  padding: 20px !important;
+}
+
+html[data-theme="dark"] .widget-card--kpi .tl-kpi-label,
+body[data-theme="dark"] .widget-card--kpi .tl-kpi-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .widget-card--kpi .tl-kpi-val,
+body[data-theme="dark"] .widget-card--kpi .tl-kpi-val {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.05 !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .widget-card--kpi .widget-card-meta,
+html[data-theme="dark"] .widget-card--kpi .widget-kpi-trend,
+body[data-theme="dark"] .widget-card--kpi .widget-card-meta,
+body[data-theme="dark"] .widget-card--kpi .widget-kpi-trend {
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .widget-card--kpi .widget-card-meta,
+body[data-theme="dark"] .widget-card--kpi .widget-card-meta {
+  margin-top: 8px !important;
+}
+
+html[data-theme="dark"] .widget-card--kpi .widget-kpi-trend,
+body[data-theme="dark"] .widget-card--kpi .widget-kpi-trend {
+  margin-top: 8px !important;
+  letter-spacing: 0.05em !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
