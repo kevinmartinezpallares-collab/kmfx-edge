@@ -228,14 +228,20 @@ export function renderDashboard(root, state) {
 
           <div class="account-banner-hero">
             <div class="account-banner-metric">${formatCurrency(model.account.equity)}</div>
-            <div class="account-banner-meta ${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-              ${formatCurrency(model.totals.pnl)} / ${formatPercent(cumulativeReturn)}
-            </div>
-            <div class="account-banner-context">
-              <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} / ${formatPercent(heroDeltaPct)}
-              </strong>
-              <span>Rango activo: ${heroRangeLabel}</span>
+            <div class="account-banner-metrics-block">
+              <div class="metric-line">
+                <span class="metric-line-label">PnL total</span>
+                <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+                  ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
+                </strong>
+              </div>
+
+              <div class="metric-line">
+                <span class="metric-line-label">Rango (${heroRangeLabel})</span>
+                <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
+                  ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
+                </strong>
+              </div>
             </div>
             <div class="account-banner-badges">
               <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>

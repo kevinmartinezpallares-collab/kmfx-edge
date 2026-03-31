@@ -1781,6 +1781,80 @@ body[data-theme="dark"] .widget-segmented-btn.active {
   color: #ffffff !important;
 }
 
+/* Phase Hero C — semantic metrics + tighter flagship spacing */
+html[data-theme="dark"] .account-banner--hero-refined,
+
+body[data-theme="dark"] .account-banner--hero-refined {
+  gap: 16px !important;
+  padding: 20px 24px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-head,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-head {
+  gap: 14px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-hero,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-hero {
+  gap: 8px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-metric,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-metric {
+  margin-top: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .banner-sub,
+body[data-theme="dark"] .account-banner--hero-refined .banner-sub {
+  margin-top: 4px !important;
+}
+
+html[data-theme="dark"] .account-banner-metrics-block,
+body[data-theme="dark"] .account-banner-metrics-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px !important;
+  margin-top: 4px !important;
+}
+
+html[data-theme="dark"] .metric-line,
+body[data-theme="dark"] .metric-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px !important;
+  flex-wrap: wrap;
+}
+
+html[data-theme="dark"] .metric-line-label,
+body[data-theme="dark"] .metric-line-label {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--text-2) !important;
+  letter-spacing: 0.04em !important;
+}
+
+html[data-theme="dark"] .metric-line strong,
+body[data-theme="dark"] .metric-line strong {
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.015em !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-badges,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-badges {
+  margin-top: 6px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-chart,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-chart {
+  margin-top: 4px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz {
+  min-height: 200px !important;
+}
+
 /* Phase Hero B — structural flagship layout for dashboard hero */
 html[data-theme="dark"] .account-banner--hero-refined,
 body[data-theme="dark"] .account-banner--hero-refined {
