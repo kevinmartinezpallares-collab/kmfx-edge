@@ -8,21 +8,21 @@
   --warning: #FF9F0A;
 
   /* LAYERS (Apple-inspired hierarchy) */
-  --layer-0: #000000;
-  --layer-1: #444444;
-  --layer-2: #1C1C1E;
-  --layer-3: #2C2C2E;
+  --layer-0: #0a0a0a !important;
+  --layer-1: #111111 !important;
+  --layer-2: #1a1a1a !important;
+  --layer-3: #222222 !important;
   --layer-accent: rgba(10, 132, 255, 0.12);
 
   /* TEXT */
-  --text-0: #ffffff;
-  --text-1: rgba(255, 255, 255, 0.6);
-  --text-2: #8E8E93;
+  --text-0: #ffffff !important;
+  --text-1: rgba(255,255,255,0.65) !important;
+  --text-2: rgba(255,255,255,0.40) !important;
 
   /* BORDERS */
-  --border-0: rgba(255, 255, 255, 0.1);
-  --border-1: #38383A;
-  --border-2: rgba(255, 255, 255, 0.14);
+  --border-0: rgba(255,255,255,0.05) !important;
+  --border-1: rgba(255,255,255,0.08) !important;
+  --border-2: rgba(255,255,255,0.12) !important;
   --border-focus: #0A84FF;
 
   /* SHADOWS */
