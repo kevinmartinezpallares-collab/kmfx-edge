@@ -225,9 +225,7 @@ export function renderDashboard(root, state) {
               </div>
             </div>
             <div class="account-banner-badges">
-              <span class="widget-pill">${accountTypeLabel}</span>
               <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
-              <span class="widget-pill">Recomendado ${riskGuidance.recommendedRiskPct.toFixed(2)}%</span>
               <span class="widget-pill">Riesgo ${model.riskProfile.currentRiskPct?.toFixed(2) || "0.00"}%</span>
               <span class="widget-pill">${model.positions.length} posiciones activas</span>
             </div>
