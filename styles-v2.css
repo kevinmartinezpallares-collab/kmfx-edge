@@ -1766,6 +1766,29 @@ body[data-theme="dark"] .table-card {
   box-shadow: none !important;
 }
 
+/* Phase 5.1 — analytics large-card surface fix */
+html[data-theme="dark"] .analytics-card,
+html[data-theme="dark"] .performance-card,
+html[data-theme="dark"] .distribution-card,
+html[data-theme="dark"] .table-card,
+body[data-theme="dark"] .analytics-card,
+body[data-theme="dark"] .performance-card,
+body[data-theme="dark"] .distribution-card,
+body[data-theme="dark"] .table-card {
+  background: var(--card-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+}
+
+/* Stop inner chart/distribution wrappers from repainting large cards */
+html[data-theme="dark"] .widget-card [class*="chart"],
+html[data-theme="dark"] .widget-card [class*="distribution"],
+body[data-theme="dark"] .widget-card [class*="chart"],
+body[data-theme="dark"] .widget-card [class*="distribution"] {
+  background: transparent !important;
+}
+
 /* 3. Forzar consistencia en charts concretos */
 html[data-theme="dark"] .widget-card canvas,
 body[data-theme="dark"] .widget-card canvas {
