@@ -406,37 +406,35 @@ html .sidebar,
 html[data-theme="dark"] .sidebar,
 html:not([data-theme="dark"]) .sidebar,
 body[data-theme="dark"] .sidebar {
-  background: var(--layer-1) !important;
-  border-right: 1px solid var(--border-0) !important;
+  background: #111111 !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
   box-shadow: none !important;
 }
 
 /* ── APP SHELL Y BODY — negro puro ── */
-html,
-html body,
 html .app-shell,
-html .main-panel {
-  background: var(--layer-0) !important;
+html[data-theme="dark"] .app-shell,
+html:not([data-theme="dark"]) .app-shell,
+body[data-theme="dark"] .app-shell,
+html body,
+html[data-theme="dark"] body {
+  background: #0a0a0a !important;
   background-image: none !important;
-  background-color: var(--layer-0) !important;
+  background-color: #0a0a0a !important;
 }
 
 /* ── TOPBAR — mismo negro que body ── */
 html .topbar,
 html[data-theme="dark"] .topbar {
-  background: var(--layer-0) !important;
-  border-bottom: 1px solid #1C1C1E !important;
+  background: #0a0a0a !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
   box-shadow: none !important;
 }
 
 html .main-panel,
-html .content,
-html[data-theme="dark"] .main-panel,
-html[data-theme="dark"] .content,
-html:not([data-theme="dark"]) .main-panel,
-html:not([data-theme="dark"]) .content {
-  background: var(--layer-0) !important;
-  background-image: none !important;
+html[data-theme="dark"] .main-panel {
+  background: #0a0a0a !important;
+  box-shadow: none !important;
 }
 
 /* ── SECTION LABELS — quitar uppercase pesado ── */
