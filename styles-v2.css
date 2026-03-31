@@ -1396,3 +1396,36 @@ tbody tr:hover td {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.20);
 }
+
+html[data-theme="dark"] .tl-kpi-card,
+html[data-theme="dark"] .rm4-card,
+html[data-theme="dark"] .tl-section-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .pnlcal-card,
+html[data-theme="dark"] .widget-card,
+html[data-theme="dark"] .account-switcher,
+html[data-theme="dark"] .account-banner,
+html[data-theme="dark"] .table-wrap,
+html[data-theme="dark"] .widget-table-wrap,
+html[data-theme="dark"] .kmfx-chart-shell,
+html[data-theme="dark"] .tl-kpi-card,
+html[data-theme="dark"] .rm4-card {
+  background: #111111 !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .tl-kpi-card::before,
+html[data-theme="dark"] .tl-kpi-card::after,
+html[data-theme="dark"] .tl-section-card::before,
+html[data-theme="dark"] .tl-section-card::after,
+html[data-theme="dark"] .widget-card::before,
+html[data-theme="dark"] .widget-card::after,
+html[data-theme="dark"] .chart-card::before,
+html[data-theme="dark"] .chart-card::after,
+html[data-theme="dark"] .pnlcal-card::before,
+html[data-theme="dark"] .pnlcal-card::after,
+html[data-theme="dark"] .rm4-card::before,
+html[data-theme="dark"] .rm4-card::after {
+  display: none !important;
+}
