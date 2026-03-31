@@ -1638,6 +1638,124 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Topbar refinement — dark only */
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta,
+html[data-theme="dark"] .topbar-user-shell,
+body[data-theme="dark"] .topbar-user-shell {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] .topbar-user-card,
+html[data-theme="dark"] .topbar-time-stack,
+body[data-theme="dark"] .topbar-user-card,
+body[data-theme="dark"] .topbar-time-stack {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .topbar-user-avatar,
+body[data-theme="dark"] .topbar-user-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+/* Ocultar copy del topbar si existe en runtime */
+html[data-theme="dark"] .topbar-user-copy,
+html[data-theme="dark"] .topbar-user-name,
+html[data-theme="dark"] .topbar-user-context,
+body[data-theme="dark"] .topbar-user-copy,
+body[data-theme="dark"] .topbar-user-name,
+body[data-theme="dark"] .topbar-user-context {
+  display: none !important;
+}
+
+html[data-theme="dark"] .meta-date,
+body[data-theme="dark"] .meta-date {
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .meta-clock,
+body[data-theme="dark"] .meta-clock {
+  font-size: 13px !important;
+  line-height: 1.1 !important;
+  color: var(--text-0) !important;
+}
+
+/* Sidebar refinement — dark only */
+html[data-theme="dark"] .brand-lockup,
+body[data-theme="dark"] .brand-lockup {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+}
+
+html[data-theme="dark"] .sidebar-profile,
+body[data-theme="dark"] .sidebar-profile {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile:hover,
+body[data-theme="dark"] .sidebar-profile:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-avatar,
+body[data-theme="dark"] .sidebar-profile-avatar {
+  background: rgba(255,255,255,0.04) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-copy,
+body[data-theme="dark"] .sidebar-profile-copy {
+  gap: 2px !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-name,
+body[data-theme="dark"] .sidebar-profile-name {
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-sub,
+body[data-theme="dark"] .sidebar-profile-sub {
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-menu-btn,
+body[data-theme="dark"] .sidebar-profile-menu-btn {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Main content refinement — dark only */
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  background: #101011 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 /* Sidebar flattening override — dark only (v2 refinement) */
 html[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .sidebar {
