@@ -1638,6 +1638,14 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Topbar spacing correction — avatar and time/date */
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta,
+html[data-theme="dark"] .topbar-user-shell,
+body[data-theme="dark"] .topbar-user-shell {
+  gap: 5px !important;
+}
+
 /* Topbar refinement — dark only */
 html[data-theme="dark"] .topbar-meta,
 body[data-theme="dark"] .topbar-meta,
