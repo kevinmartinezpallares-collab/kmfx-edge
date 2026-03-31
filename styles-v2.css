@@ -1722,6 +1722,39 @@ body[data-theme="dark"] .topbar-meta {
   gap: 0 !important;
 }
 
+/* Sidebar profile — align with main widget surface */
+html[data-theme="dark"] .sidebar-profile,
+body[data-theme="dark"] .sidebar-profile {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: var(--card-radius) !important;
+  box-shadow: none !important;
+  padding: 14px !important;
+  gap: 12px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile:hover,
+body[data-theme="dark"] .sidebar-profile:hover {
+  background: var(--card-surface) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-main,
+body[data-theme="dark"] .sidebar-profile-main {
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-copy,
+body[data-theme="dark"] .sidebar-profile-copy {
+  gap: 4px !important;
+  align-content: center !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
