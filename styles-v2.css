@@ -1971,6 +1971,104 @@ body[data-theme="dark"] .account-card-blob {
   filter: none !important;
 }
 
+/* Phase 3C.2 — account hero internal hierarchy */
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__content,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__content {
+  padding: 20px !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__content,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__content {
+  padding: 18px !important;
+}
+
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__top,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__top {
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__top,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__top {
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__name,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__name,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__name {
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-theme="dark"] .account-hero-card__meta,
+body[data-theme="dark"] .account-hero-card__meta {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__equity,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__equity {
+  font-size: 32px !important;
+  line-height: 1 !important;
+  letter-spacing: -0.04em !important;
+  margin-bottom: 4px !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__equity,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__equity {
+  font-size: 24px !important;
+  line-height: 1 !important;
+  letter-spacing: -0.03em !important;
+  margin-bottom: 4px !important;
+}
+
+html[data-theme="dark"] .account-hero-card__equity-label,
+html[data-theme="dark"] .account-hero-card__stat-label,
+body[data-theme="dark"] .account-hero-card__equity-label,
+body[data-theme="dark"] .account-hero-card__stat-label {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__stats,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__stats {
+  gap: 10px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid var(--border-0) !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__stats,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__stats {
+  gap: 10px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid var(--border-0) !important;
+}
+
+html[data-theme="dark"] .account-hero-card--main .account-hero-card__stat-val,
+body[data-theme="dark"] .account-hero-card--main .account-hero-card__stat-val {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-theme="dark"] .account-hero-card--side .account-hero-card__stat-val,
+body[data-theme="dark"] .account-hero-card--side .account-hero-card__stat-val {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
