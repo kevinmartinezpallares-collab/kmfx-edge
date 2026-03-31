@@ -1711,6 +1711,12 @@ body[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature {
   --layer-1-subtle: rgba(255, 255, 255, 0.018);
 }
 
+html[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2),
+body[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2) {
+  background: var(--negative) !important;
+  background-image: none !important;
+}
+
 /* Phase 4D — Internal surface consistency */
 
 /* 1. Sub-surface token */
