@@ -137,14 +137,21 @@ body::after {
 
 /* Activo — solo tinte muy sutil, sin pill azul */
 .nav-item.active {
-  background: rgba(255,255,255,0.07);
-  color: var(--text-0);
-  font-weight: 600;
+  background: rgba(255,255,255,0.06) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 7px !important;
 }
 
 .nav-item.active svg {
-  opacity: 1;
-  stroke: var(--accent);
+  stroke: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+.nav-item.active span {
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 /* Badge numérico en nav items */
@@ -371,26 +378,24 @@ html[data-theme="dark"] .topbar-time-stack {
 
 /* ── NAV ITEM ACTIVE — eliminar pill azul de styles.css ── */
 html .nav-item.active,
-html[data-theme="dark"] .nav-item.active,
-html:not([data-theme="dark"]) .nav-item.active {
-  background: rgba(255,255,255,0.07) !important;
+html[data-theme="dark"] .nav-item.active {
+  background: rgba(255,255,255,0.06) !important;
   color: #ffffff !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  border-radius: 8px !important;
+  border-radius: 7px !important;
 }
 
 html .nav-item.active svg,
-html[data-theme="dark"] .nav-item.active svg,
-html:not([data-theme="dark"]) .nav-item.active svg {
+html[data-theme="dark"] .nav-item.active svg {
   stroke: var(--accent) !important;
-  color: var(--accent) !important;
   opacity: 1 !important;
 }
 
 html .nav-item.active span,
 html[data-theme="dark"] .nav-item.active span {
   color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 /* ── NAV ITEM BASE — quitar cualquier background heredado ── */
