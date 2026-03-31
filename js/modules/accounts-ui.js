@@ -58,6 +58,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
   const statValueInlineStyle = isMain
     ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
     : "font-size:15px;font-weight:700;letter-spacing:-0.01em;";
+  const pnlValueInlineStyle = `font-size:18px;font-weight:700;letter-spacing:-0.02em;color:${pnl >= 0 ? "var(--positive)" : "var(--negative)"};`;
 
   return `
     <button
@@ -80,7 +81,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
         <div class="account-hero-card__stats" style="${statsInlineStyle}">
           <div>
             <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">P&amp;L</div>
-            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">${formatCurrency(pnl)}</div>
+            <div class="account-hero-card__stat-val" style="${pnlValueInlineStyle}">${formatCurrency(pnl)}</div>
           </div>
           <div>
             <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
