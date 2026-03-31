@@ -1686,6 +1686,42 @@ body[data-theme="dark"] .widget-card .group {
   border: none !important;
 }
 
+/* Phase 4D.2 — Surface normalization */
+
+/* 1. Nuevo nivel para panels grandes */
+:root {
+  --layer-1-elevated: rgba(255, 255, 255, 0.035);
+}
+
+/* 2. Normalizar charts y widgets grandes */
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .analytics-card,
+html[data-theme="dark"] .performance-card,
+html[data-theme="dark"] .distribution-card,
+html[data-theme="dark"] .table-card,
+body[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .analytics-card,
+body[data-theme="dark"] .performance-card,
+body[data-theme="dark"] .distribution-card,
+body[data-theme="dark"] .table-card {
+  background: var(--layer-1-elevated) !important;
+  border: 1px solid var(--border-0) !important;
+}
+
+/* 3. Forzar consistencia en charts concretos */
+html[data-theme="dark"] .widget-card canvas,
+body[data-theme="dark"] .widget-card canvas {
+  background: transparent !important;
+}
+
+/* 4. Evitar tonos azulados inconsistentes */
+html[data-theme="dark"] .widget-card [class*="chart"],
+html[data-theme="dark"] .widget-card [class*="distribution"],
+body[data-theme="dark"] .widget-card [class*="chart"],
+body[data-theme="dark"] .widget-card [class*="distribution"] {
+  background: var(--layer-1-elevated) !important;
+}
+
 /* Sidebar profile widget refinement */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
