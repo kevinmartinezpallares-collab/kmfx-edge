@@ -1473,3 +1473,132 @@ html[data-theme="dark"] body {
   background: #0a0a0a !important;
   background-image: none !important;
 }
+
+/* Shell base continuity override */
+:root {
+  --layer-0: #0B0B0C !important;
+  --layer-1: #1C1C1E !important;
+  --layer-2: #2C2C2E !important;
+  --border-0: #38383A !important;
+}
+
+html,
+html[data-theme="dark"],
+body,
+html[data-theme="dark"] body,
+body[data-theme="dark"],
+.app-shell,
+html[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .app-shell,
+.sidebar,
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar,
+.topbar,
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar,
+.main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+.content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  background: var(--layer-0) !important;
+  background-color: var(--layer-0) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.sidebar,
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar,
+.topbar,
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar,
+.main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+.content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  border: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+}
+
+body::before,
+body::after,
+html body::before,
+html body::after,
+.app-shell::before,
+.app-shell::after,
+.sidebar::before,
+.sidebar::after,
+.topbar::before,
+.topbar::after,
+.main-panel::before,
+.main-panel::after,
+.content::before,
+.content::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* Shell continuity override — dark only */
+html[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel {
+  background: #0a0a0a !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar {
+  border-right: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar {
+  border-bottom: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .sidebar::before,
+html[data-theme="dark"] .sidebar::after,
+body[data-theme="dark"] .sidebar::before,
+body[data-theme="dark"] .sidebar::after,
+html[data-theme="dark"] .topbar::before,
+html[data-theme="dark"] .topbar::after,
+body[data-theme="dark"] .topbar::before,
+body[data-theme="dark"] .topbar::after,
+html[data-theme="dark"] .main-panel::before,
+html[data-theme="dark"] .main-panel::after,
+body[data-theme="dark"] .main-panel::before,
+body[data-theme="dark"] .main-panel::after {
+  content: none !important;
+  display: none !important;
+}
