@@ -1708,6 +1708,64 @@ body[data-theme="dark"] .table-card {
   border: 1px solid var(--border-0) !important;
 }
 
+/* Phase 5 — Unified card pattern */
+
+/* 1. Canonical card tokens for v2 */
+:root,
+[data-theme="dark"] {
+  --card-surface: var(--layer-1);
+  --card-border: var(--border-0);
+  --card-radius: 16px;
+}
+
+/* 2. Unified base card family */
+html[data-theme="dark"] .widget-card,
+html[data-theme="dark"] .tl-kpi-card,
+html[data-theme="dark"] .rm4-card,
+html[data-theme="dark"] .tl-section-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .pnlcal-card,
+html[data-theme="dark"] .account-hero-card,
+html[data-theme="dark"] .widget-card--kpi,
+html[data-theme="dark"] .widget-card--kpi-pnl,
+html[data-theme="dark"] .widget-card--kpi-wr,
+html[data-theme="dark"] .widget-card--kpi-trades,
+html[data-theme="dark"] .widget-card--kpi-pf,
+html[data-theme="dark"] .widget-card--kpi-best,
+body[data-theme="dark"] .widget-card,
+body[data-theme="dark"] .tl-kpi-card,
+body[data-theme="dark"] .rm4-card,
+body[data-theme="dark"] .tl-section-card,
+body[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .pnlcal-card,
+body[data-theme="dark"] .account-hero-card,
+body[data-theme="dark"] .widget-card--kpi,
+body[data-theme="dark"] .widget-card--kpi-pnl,
+body[data-theme="dark"] .widget-card--kpi-wr,
+body[data-theme="dark"] .widget-card--kpi-trades,
+body[data-theme="dark"] .widget-card--kpi-pf,
+body[data-theme="dark"] .widget-card--kpi-best {
+  background: var(--card-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: var(--card-radius) !important;
+  box-shadow: none !important;
+}
+
+/* 3. Keep large chart/panel wrappers inside the same family for now */
+html[data-theme="dark"] .analytics-card,
+html[data-theme="dark"] .performance-card,
+html[data-theme="dark"] .distribution-card,
+html[data-theme="dark"] .table-card,
+body[data-theme="dark"] .analytics-card,
+body[data-theme="dark"] .performance-card,
+body[data-theme="dark"] .distribution-card,
+body[data-theme="dark"] .table-card {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+}
+
 /* 3. Forzar consistencia en charts concretos */
 html[data-theme="dark"] .widget-card canvas,
 body[data-theme="dark"] .widget-card canvas {
