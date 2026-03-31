@@ -1638,6 +1638,54 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Phase 4D — Internal surface consistency */
+
+/* 1. Sub-surface token */
+:root {
+  --layer-1-subtle: rgba(255, 255, 255, 0.02);
+}
+
+/* 2. Evitar nested cards */
+html[data-theme="dark"] .widget-card .widget-card,
+html[data-theme="dark"] .widget-card .kpi-card,
+html[data-theme="dark"] .widget-card .mini-widget,
+html[data-theme="dark"] .widget-card .session-card,
+html[data-theme="dark"] .widget-card .inner-card,
+body[data-theme="dark"] .widget-card .widget-card,
+body[data-theme="dark"] .widget-card .kpi-card,
+body[data-theme="dark"] .widget-card .mini-widget,
+body[data-theme="dark"] .widget-card .session-card,
+body[data-theme="dark"] .widget-card .inner-card {
+  background: var(--layer-1-subtle) !important;
+  border: 1px solid var(--border-0) !important;
+  box-shadow: none !important;
+}
+
+/* 3. Widgets sueltos dentro de secciones grandes */
+html[data-theme="dark"] .session-card,
+html[data-theme="dark"] .kpi-card,
+html[data-theme="dark"] .mini-widget,
+body[data-theme="dark"] .session-card,
+body[data-theme="dark"] .kpi-card,
+body[data-theme="dark"] .mini-widget {
+  background: var(--layer-1-subtle) !important;
+  border: 1px solid var(--border-0) !important;
+  box-shadow: none !important;
+}
+
+/* 4. Asegurar que las cards principales mantienen su identidad */
+html[data-theme="dark"] .widget-card,
+body[data-theme="dark"] .widget-card {
+  background: var(--layer-1) !important;
+}
+
+/* 5. Reducir contraste excesivo en agrupaciones internas */
+html[data-theme="dark"] .widget-card .group,
+body[data-theme="dark"] .widget-card .group {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Sidebar profile widget refinement */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
