@@ -1638,6 +1638,23 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Sidebar profile card restoration */
+html[data-theme="dark"] .sidebar-profile,
+body[data-theme="dark"] .sidebar-profile {
+  background: var(--layer-2) !important;
+  border: 1px solid var(--border-0) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile:hover,
+body[data-theme="dark"] .sidebar-profile:hover {
+  background: var(--layer-2) !important;
+  border-color: var(--border-0) !important;
+  box-shadow: none !important;
+}
+
 /* Topbar spacing correction — avatar and time/date */
 html[data-theme="dark"] .topbar-meta,
 body[data-theme="dark"] .topbar-meta,
