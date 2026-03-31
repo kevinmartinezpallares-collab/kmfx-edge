@@ -1939,6 +1939,38 @@ body[data-theme="dark"] .widget-card--kpi .widget-kpi-trend {
   letter-spacing: 0.05em !important;
 }
 
+/* Phase 3C.1 — account hero card family integration */
+html[data-theme="dark"] .account-hero-card,
+body[data-theme="dark"] .account-hero-card,
+html[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--main),
+body[data-theme="dark"] .account-hero-card:not(.active):not(.account-hero-card--main) {
+  background: var(--card-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .account-hero-card.active,
+html[data-theme="dark"] .account-hero-card--main,
+body[data-theme="dark"] .account-hero-card.active,
+body[data-theme="dark"] .account-hero-card--main {
+  background: var(--card-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border-1) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .account-card-blobs,
+html[data-theme="dark"] .account-card-blob,
+body[data-theme="dark"] .account-card-blobs,
+body[data-theme="dark"] .account-card-blob {
+  opacity: 0 !important;
+  background: none !important;
+  filter: none !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
