@@ -1847,6 +1847,42 @@ body[data-theme="dark"] .widget-kpi-trend {
   color: var(--text-2) !important;
 }
 
+/* Phase 3B.2 — section/card header rhythm */
+html[data-theme="dark"] .tl-section-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .pnlcal-card,
+body[data-theme="dark"] .tl-section-card,
+body[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .pnlcal-card {
+  padding: 20px !important;
+}
+
+html[data-theme="dark"] .tl-section-header,
+body[data-theme="dark"] .tl-section-header {
+  margin-bottom: 12px !important;
+  gap: 12px !important;
+}
+
+html[data-theme="dark"] .tl-section-title,
+html[data-theme="dark"] .section-title,
+body[data-theme="dark"] .tl-section-title,
+body[data-theme="dark"] .section-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--text-0) !important;
+  margin-bottom: 4px !important;
+}
+
+html[data-theme="dark"] .tl-section-subtitle,
+html[data-theme="dark"] .section-subtitle,
+body[data-theme="dark"] .tl-section-subtitle,
+body[data-theme="dark"] .section-subtitle {
+  font-size: 12px !important;
+  color: var(--text-2) !important;
+  margin-bottom: 0 !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
