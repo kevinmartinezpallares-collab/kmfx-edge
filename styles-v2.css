@@ -1756,6 +1756,55 @@ body[data-theme="dark"] .content,
   box-shadow: none !important;
 }
 
+/* Shell correction — restore shared background */
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  background: #0a0a0a !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Topbar compaction — avatar + time */
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta,
+html[data-theme="dark"] .topbar-user-shell,
+body[data-theme="dark"] .topbar-user-shell {
+  gap: 4px !important;
+}
+
+html[data-theme="dark"] .topbar-user-card,
+html[data-theme="dark"] .topbar-time-stack,
+body[data-theme="dark"] .topbar-user-card,
+body[data-theme="dark"] .topbar-time-stack {
+  gap: 4px !important;
+  padding: 0 !important;
+  min-height: auto !important;
+}
+
+html[data-theme="dark"] .topbar-user-avatar,
+body[data-theme="dark"] .topbar-user-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+}
+
+html[data-theme="dark"] .meta-date,
+body[data-theme="dark"] .meta-date {
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+}
+
+html[data-theme="dark"] .meta-clock,
+body[data-theme="dark"] .meta-clock {
+  font-size: 12px !important;
+  line-height: 1.05 !important;
+}
+
 /* Sidebar flattening override — dark only (v2 refinement) */
 html[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .sidebar {
