@@ -210,19 +210,32 @@ export function renderDashboard(root, state) {
   root.innerHTML = `
     <div class="dashboard-premium-grid">
       <section class="dashboard-hero-shell">
-        <article class="account-banner account-banner--premium">
-          <div class="account-banner-copy">
-            <div class="banner-kicker">Rendimiento</div>
-            <div class="banner-topline">
-              <div>
-                <div class="banner-title">${account.name}</div>
-                <div class="banner-sub">${accountTypeLabel}</div>
-              </div>
+        <article class="account-banner account-banner--premium account-banner--hero-refined">
+          <div class="account-banner-head">
+            <div class="account-banner-heading">
+              <div class="banner-kicker">Rendimiento</div>
+              <div class="banner-title">${account.name}</div>
+              <div class="banner-sub">${accountTypeLabel}</div>
+            </div>
+            <div class="account-banner-controls">
               <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
                 ${["1D", "1W", "1M", "YTD"].map((range) => `
                   <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
                 `).join("")}
               </div>
+            </div>
+          </div>
+
+          <div class="account-banner-hero">
+            <div class="account-banner-metric">${formatCurrency(model.account.equity)}</div>
+            <div class="account-banner-meta ${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+              ${formatCurrency(model.totals.pnl)} / ${formatPercent(cumulativeReturn)}
+            </div>
+            <div class="account-banner-context">
+              <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
+                ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} / ${formatPercent(heroDeltaPct)}
+              </strong>
+              <span>Rango activo: ${heroRangeLabel}</span>
             </div>
             <div class="account-banner-badges">
               <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
@@ -231,17 +244,8 @@ export function renderDashboard(root, state) {
             </div>
             ${riskAlertsMarkup(riskAlerts, 2)}
           </div>
-          <div class="account-banner-side">
-            <div class="account-banner-metric">${formatCurrency(model.account.equity)}</div>
-            <div class="account-banner-meta ${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-              ${formatCurrency(model.totals.pnl)} / ${formatPercent(cumulativeReturn)}
-            </div>
-            <div class="account-banner-context">
-              <span>Rango activo: ${heroRangeLabel}</span>
-              <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} / ${formatPercent(heroDeltaPct)}</strong>
-            </div>
-          </div>
-          <div class="account-banner-chart">
+
+          <div class="account-banner-chart account-banner-chart--full">
             <div class="account-banner-viz">
               ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
             </div>

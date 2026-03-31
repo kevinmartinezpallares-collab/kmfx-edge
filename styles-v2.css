@@ -1781,6 +1781,121 @@ body[data-theme="dark"] .widget-segmented-btn.active {
   color: #ffffff !important;
 }
 
+/* Phase Hero B — structural flagship layout for dashboard hero */
+html[data-theme="dark"] .account-banner--hero-refined,
+body[data-theme="dark"] .account-banner--hero-refined {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 20px !important;
+  align-items: stretch !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-head,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-heading,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-heading {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-controls,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-controls {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-hero,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-hero {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-metric,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-metric {
+  margin-top: 2px;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-meta,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-meta {
+  margin-top: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-context,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-context {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-context strong,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-context strong {
+  order: 0;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-context span,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-context span {
+  order: 1;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-badges,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-badges {
+  margin-top: 4px !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-chart,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-chart {
+  min-width: 0;
+  display: block;
+  padding-left: 0 !important;
+  border-left: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-chart::before,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-chart::before {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz {
+  margin-top: 0 !important;
+  min-height: 220px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-chart-shell--hero,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-chart-shell--hero {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .account-banner--hero-refined .account-banner-head,
+  body[data-theme="dark"] .account-banner--hero-refined .account-banner-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-theme="dark"] .account-banner--hero-refined .account-banner-controls,
+  body[data-theme="dark"] .account-banner--hero-refined .account-banner-controls {
+    justify-content: flex-start;
+  }
+}
+
 
 /* Phase 5.2 — global visible surface unification */
 
