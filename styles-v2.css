@@ -1638,6 +1638,74 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+/* Sidebar profile widget refinement */
+html[data-theme="dark"] .sidebar-profile,
+body[data-theme="dark"] .sidebar-profile {
+  background: var(--layer-2) !important;
+  border: 1px solid var(--border-0) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  padding: 12px !important;
+  gap: 12px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile:hover,
+body[data-theme="dark"] .sidebar-profile:hover {
+  background: var(--layer-2) !important;
+  border-color: var(--border-0) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-main,
+body[data-theme="dark"] .sidebar-profile-main {
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-avatar,
+body[data-theme="dark"] .sidebar-profile-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--layer-3) 72%, var(--layer-2)) !important;
+  border: 1px solid var(--border-0) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-copy,
+body[data-theme="dark"] .sidebar-profile-copy {
+  gap: 3px !important;
+  align-content: center !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-name,
+body[data-theme="dark"] .sidebar-profile-name {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--text-0) !important;
+  line-height: 1.15 !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-sub,
+body[data-theme="dark"] .sidebar-profile-sub {
+  font-size: 10px !important;
+  color: var(--text-2) !important;
+  line-height: 1.15 !important;
+}
+
+html[data-theme="dark"] .sidebar-profile-menu-btn,
+body[data-theme="dark"] .sidebar-profile-menu-btn {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
