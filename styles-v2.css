@@ -1793,6 +1793,60 @@ body[data-theme="dark"] .pnlcal-card:hover {
   box-shadow: none !important;
 }
 
+/* Phase 3B.1 — KPI/Card density alignment */
+html[data-theme="dark"] .widget-card,
+html[data-theme="dark"] .rm4-card,
+body[data-theme="dark"] .widget-card,
+body[data-theme="dark"] .rm4-card {
+  padding: 20px !important;
+}
+
+html[data-theme="dark"] .tl-kpi-card,
+body[data-theme="dark"] .tl-kpi-card {
+  padding: 18px !important;
+}
+
+html[data-theme="dark"] .tl-kpi-label,
+html[data-theme="dark"] .rm4-label,
+html[data-theme="dark"] .widget-card-meta,
+html[data-theme="dark"] .widget-eyebrow,
+html[data-theme="dark"] .metric-rail-hint,
+body[data-theme="dark"] .tl-kpi-label,
+body[data-theme="dark"] .rm4-label,
+body[data-theme="dark"] .widget-card-meta,
+body[data-theme="dark"] .widget-eyebrow,
+body[data-theme="dark"] .metric-rail-hint {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .tl-kpi-val,
+html[data-theme="dark"] .rm4-val,
+html[data-theme="dark"] .metric-large,
+html[data-theme="dark"] .tl-kpi-value,
+html[data-theme="dark"] .metric-value,
+html[data-theme="dark"] .kpi-value,
+body[data-theme="dark"] .tl-kpi-val,
+body[data-theme="dark"] .rm4-val,
+body[data-theme="dark"] .metric-large,
+body[data-theme="dark"] .tl-kpi-value,
+body[data-theme="dark"] .metric-value,
+body[data-theme="dark"] .kpi-value {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.05 !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .widget-kpi-trend,
+body[data-theme="dark"] .widget-kpi-trend {
+  margin-top: 8px !important;
+  color: var(--text-2) !important;
+}
+
 /* Sidebar profile card restoration */
 html[data-theme="dark"] .sidebar-profile,
 body[data-theme="dark"] .sidebar-profile {
