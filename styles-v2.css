@@ -1805,6 +1805,31 @@ body[data-theme="dark"] .meta-clock {
   line-height: 1.05 !important;
 }
 
+/* Topbar micro-compaction — avatar attached to time */
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta {
+  gap: 2px !important;
+}
+
+html[data-theme="dark"] .topbar-user-shell,
+body[data-theme="dark"] .topbar-user-shell {
+  gap: 2px !important;
+}
+
+html[data-theme="dark"] .topbar-user-card,
+body[data-theme="dark"] .topbar-user-card {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+  min-width: auto !important;
+}
+
+html[data-theme="dark"] .topbar-time-stack,
+body[data-theme="dark"] .topbar-time-stack {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  min-width: auto !important;
+}
+
 /* Sidebar flattening override — dark only (v2 refinement) */
 html[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .sidebar {
