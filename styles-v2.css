@@ -1638,6 +1638,14 @@ body[data-theme="dark"] .sidebar::after {
   display: none !important;
 }
 
+html[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2),
+html[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2):hover,
+body[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2),
+body[data-theme="dark"] .pnlcal-kpi-strip .pnlcal-kpi:nth-child(2):hover {
+  background: var(--negative) !important;
+  background-image: none !important;
+}
+
 /* Phase 5.2 — global visible surface unification */
 
 /* 1. Large wrappers must stay in the canonical base family */
