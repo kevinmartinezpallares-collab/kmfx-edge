@@ -1870,6 +1870,23 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   border: 0 !important;
 }
 
+html[data-theme="dark"] .account-banner--hero-refined,
+body[data-theme="dark"] .account-banner--hero-refined {
+  gap: 12px !important;
+  padding: 18px 22px !important;
+}
+
+html[data-theme="dark"] .account-banner-chart,
+body[data-theme="dark"] .account-banner-chart {
+  margin-top: 0 !important;
+}
+
+html[data-theme="dark"] .account-banner-metric,
+body[data-theme="dark"] .account-banner-metric {
+  text-shadow: 0 2px 12px rgba(255,255,255,0.06);
+  letter-spacing: -0.045em;
+}
+
 /* Phase Hero B — structural flagship layout for dashboard hero */
 html[data-theme="dark"] .account-banner--hero-refined,
 body[data-theme="dark"] .account-banner--hero-refined {
