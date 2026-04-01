@@ -213,6 +213,7 @@ export function buildDashboardModel(source) {
     riskRules: [...(source.riskRules || [])],
     positions,
     recentTrades: [...trades].slice(-6).reverse(),
+    dayStats,
     weekly,
     equityCurve,
     drawdownCurve: drawdown.curve,
