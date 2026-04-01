@@ -192,17 +192,17 @@ export function renderDashboard(root, state) {
       glowAlpha: 0.18,
       tension: 0.82,
       axisColor: axisStandard,
-      axisFontSize: 9,
+      axisFontSize: 8,
       axisFontWeight: "500",
       yTickPadding: 10,
-      xTickPadding: 10,
+      xTickPadding: 4,
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.014 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
       yHeadroomRatio: 0.018,
       yBottomPaddingRatio: -0.001,
-      layoutPaddingTop: 14,
-      layoutPaddingBottom: 6,
+      layoutPaddingTop: 8,
+      layoutPaddingBottom: 2,
       layoutPaddingLeft: 2,
       layoutPaddingRight: 2,
       showAxisBorder: false,
@@ -265,7 +265,7 @@ export function renderDashboard(root, state) {
                 </div>
               </div>
               <div class="account-banner-viz">
-                ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
+                ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
               </div>
             </div>
           </div>
