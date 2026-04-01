@@ -4685,12 +4685,13 @@ body[data-theme="dark"] .topbar {
   position: sticky !important;
   top: 0 !important;
   z-index: 24 !important;
-  background: rgba(10, 10, 10, 0.46) !important;
+  background: rgba(10, 10, 10, 0.4) !important;
   background-image: none !important;
-  backdrop-filter: blur(20px) saturate(108%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(108%) !important;
+  backdrop-filter: blur(18px) saturate(112%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(112%) !important;
   border-bottom: 0 !important;
   box-shadow: none !important;
+  overflow: visible !important;
 }
 
 html[data-theme="dark"] .main-panel,
@@ -4710,7 +4711,19 @@ html[data-theme="dark"] .topbar::after,
 body[data-theme="dark"] .topbar::before,
 body[data-theme="dark"] .topbar::after {
   content: none !important;
-  display: none !important;
+  display: block !important;
+}
+
+html[data-theme="dark"] .topbar::after,
+body[data-theme="dark"] .topbar::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 100% !important;
+  height: 14px !important;
+  pointer-events: none !important;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.12), rgba(10, 10, 10, 0.04) 45%, rgba(10, 10, 10, 0)) !important;
 }
 
 html[data-theme="dark"] .topbar-user-card,
