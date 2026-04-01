@@ -183,10 +183,10 @@ export function renderDashboard(root, state) {
       pointHoverRadius: 3.25,
       pointHitRadius: 20,
       fill: isDarkTheme,
-      fillAlphaStart: isDarkTheme ? 0.3 : 0.05,
-      fillAlphaEnd: isDarkTheme ? 0.0 : 0,
+      fillAlphaStart: isDarkTheme ? 0.32 : 0.05,
+      fillAlphaEnd: isDarkTheme ? 0.005 : 0,
       glowAlpha: 0.18,
-      tension: 0.62,
+      tension: 0.74,
       axisColor: axisStandard,
       axisFontSize: 9,
       axisFontWeight: "500",
@@ -195,8 +195,8 @@ export function renderDashboard(root, state) {
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.014 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
-      yHeadroomRatio: 0.002,
-      yBottomPaddingRatio: 0.0,
+      yHeadroomRatio: 0.001,
+      yBottomPaddingRatio: -0.012,
       showAxisBorder: false,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
@@ -226,39 +226,39 @@ export function renderDashboard(root, state) {
             </div>
           </div>
 
-          <div class="account-banner-hero">
-            <div class="account-banner-hero-row">
+          <div class="account-banner-body">
+            <div class="account-banner-hero">
               <div class="account-banner-metric">
                 <span class="account-banner-currency">€</span>
                 <span class="account-banner-metric-value">${formatCurrency(model.account.equity).replace(/^€/, "")}</span>
               </div>
               <div class="account-banner-metrics-block">
-              <div class="metric-line">
-                <span class="metric-line-label">PnL total</span>
-                <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-                  ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
-                </strong>
-              </div>
+                <div class="metric-line">
+                  <span class="metric-line-label">PnL total</span>
+                  <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+                    ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
+                  </strong>
+                </div>
 
-              <div class="metric-line">
-                <span class="metric-line-label">Rango (${heroRangeLabel})</span>
-                <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                  ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
-                </strong>
+                <div class="metric-line">
+                  <span class="metric-line-label">Rango (${heroRangeLabel})</span>
+                  <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
+                    ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
+                  </strong>
+                </div>
               </div>
+              <div class="account-banner-badges">
+                <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
+                <span class="widget-pill">Riesgo ${model.riskProfile.currentRiskPct?.toFixed(2) || "0.00"}%</span>
+                <span class="widget-pill">${model.positions.length} posiciones activas</span>
+              </div>
+              ${riskAlertsMarkup(riskAlerts, 2)}
             </div>
-            </div>
-            <div class="account-banner-badges">
-              <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
-              <span class="widget-pill">Riesgo ${model.riskProfile.currentRiskPct?.toFixed(2) || "0.00"}%</span>
-              <span class="widget-pill">${model.positions.length} posiciones activas</span>
-            </div>
-            ${riskAlertsMarkup(riskAlerts, 2)}
-          </div>
 
-          <div class="account-banner-chart account-banner-chart--full">
-            <div class="account-banner-viz">
-              ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
+            <div class="account-banner-chart account-banner-chart--full">
+              <div class="account-banner-viz">
+                ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
+              </div>
             </div>
           </div>
         </article>

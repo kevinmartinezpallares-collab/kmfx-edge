@@ -137,10 +137,8 @@ export function initAccountsUI(store) {
       return 0;
     });
 
-    const isMobileViewport = window.innerWidth <= 768;
-    const gridInlineStyle = isMobileViewport
-      ? "display:grid;grid-template-columns:1fr;gap:10px;"
-      : "display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:10px;";
+    const accountCount = orderedAccounts.length;
+    const scrollMode = accountCount >= 3;
 
     root.innerHTML = `
       <div class="account-switcher">
@@ -159,12 +157,14 @@ export function initAccountsUI(store) {
           </div>
         </div>
 
-        <div class="account-cards-grid" style="${gridInlineStyle}">
-          ${orderedAccounts.map((account) => {
-            const isActive = account.id === activeAccountId;
-            const isLoading = isBridgeDataPending(account);
-            return renderAccountCard(account, isActive, isActive, isLoading);
-          }).join("")}
+        <div class="account-cards-rail ${scrollMode ? "is-scrollable" : ""}" data-count="${accountCount}">
+          <div class="account-cards-grid" data-count="${accountCount}" data-scrollable="${scrollMode ? "true" : "false"}">
+            ${orderedAccounts.map((account) => {
+              const isActive = account.id === activeAccountId;
+              const isLoading = isBridgeDataPending(account);
+              return renderAccountCard(account, isActive, isActive, isLoading);
+            }).join("")}
+          </div>
         </div>
       </div>
     `;
