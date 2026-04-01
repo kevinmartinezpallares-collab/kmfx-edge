@@ -217,13 +217,6 @@ export function renderDashboard(root, state) {
               <div class="banner-title">${account.name}</div>
               <div class="banner-sub">${accountTypeLabel}</div>
             </div>
-            <div class="account-banner-controls">
-              <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
-                ${["1D", "1W", "1M", "YTD"].map((range) => `
-                  <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
-                `).join("")}
-              </div>
-            </div>
           </div>
 
           <div class="account-banner-body">
@@ -256,6 +249,13 @@ export function renderDashboard(root, state) {
             </div>
 
             <div class="account-banner-chart account-banner-chart--full">
+              <div class="account-banner-controls account-banner-controls--overlay">
+                <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
+                  ${["1D", "1W", "1M", "YTD"].map((range) => `
+                    <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
+                  `).join("")}
+                </div>
+              </div>
               <div class="account-banner-viz">
                 ${chartCanvas("dashboard-hero-equity-chart", 186, "kmfx-chart-shell--hero")}
               </div>
