@@ -61,6 +61,12 @@ function getHeroRangePoints(range, curve) {
   return curve.slice(-14);
 }
 
+function riskStateDisplayLabel(riskState) {
+  if (riskState === "LOCKED" || riskState === "DANGER") return "DANGER";
+  if (riskState === "CAUTION") return "WATCH";
+  return "SAFE";
+}
+
 export function renderDashboard(root, state) {
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
@@ -91,6 +97,17 @@ export function renderDashboard(root, state) {
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
   const latestDay = model.dayStats?.at?.(-1) || model.weekly?.at?.(-1) || { pnl: 0 };
+  const currentRiskPct = Number(model.riskProfile?.currentRiskPct || 0);
+  const maxTradeRiskPct = Number(model.riskProfile?.maxTradeRiskPct || currentRiskPct || 1);
+  const drawdownPct = Number(model.totals?.drawdown?.maxPct || 0);
+  const maxDrawdownLimitPct = Number(account.maxDrawdownLimit || model.account?.maxDrawdownLimit || 10);
+  const distanceToLimitPct = Math.max(0, maxDrawdownLimitPct - drawdownPct);
+  const riskUsedRatio = maxTradeRiskPct ? Math.min(100, (currentRiskPct / maxTradeRiskPct) * 100) : 0;
+  const riskStateLabel = riskStateDisplayLabel(riskGuidance.risk_state);
+  const riskTone = riskStateLabel === "SAFE" ? "safe" : riskStateLabel === "WATCH" ? "watch" : "danger";
+  const riskAlertLine = account.compliance?.messages?.[0]
+    || riskGuidance.explanation
+    || "Dentro de reglas";
   const accountStateLabel = account.compliance?.riskStatus === "violation"
     ? "Bloqueada"
     : account.compliance?.riskStatus === "warning"
@@ -268,6 +285,46 @@ export function renderDashboard(root, state) {
                 ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
               </div>
             </div>
+          </div>
+        </article>
+
+        <article class="tl-section-card dashboard-risk-card dashboard-risk-card--${riskTone}">
+          <div class="dashboard-risk-card__head">
+            <div>
+              <div class="tl-section-title">Risk</div>
+              <div class="dashboard-risk-card__sub">Lectura operativa inmediata para disciplina y límites.</div>
+            </div>
+            <div class="dashboard-risk-card__state dashboard-risk-card__state--${riskTone}">${riskStateLabel}</div>
+          </div>
+
+          <div class="dashboard-risk-card__metrics">
+            <div class="dashboard-risk-metric">
+              <div class="dashboard-risk-metric__label">Risk used</div>
+              <div class="dashboard-risk-metric__value">${currentRiskPct.toFixed(2)}%</div>
+              <div class="dashboard-risk-metric__meta">${Math.round(riskUsedRatio)}% del riesgo permitido</div>
+            </div>
+
+            <div class="dashboard-risk-metric">
+              <div class="dashboard-risk-metric__label">Max allowed</div>
+              <div class="dashboard-risk-metric__value">${maxTradeRiskPct.toFixed(2)}%</div>
+              <div class="dashboard-risk-metric__meta">riesgo máximo por trade</div>
+            </div>
+
+            <div class="dashboard-risk-metric">
+              <div class="dashboard-risk-metric__label">Drawdown actual</div>
+              <div class="dashboard-risk-metric__value">${formatPercent(drawdownPct).replace(/^[+-]/, "")}</div>
+              <div class="dashboard-risk-metric__meta">máximo registrado</div>
+            </div>
+
+            <div class="dashboard-risk-metric">
+              <div class="dashboard-risk-metric__label">Distance to limit</div>
+              <div class="dashboard-risk-metric__value">${formatPercent(distanceToLimitPct).replace(/^[+-]/, "")}</div>
+              <div class="dashboard-risk-metric__meta">hasta el límite de ${formatPercent(maxDrawdownLimitPct).replace(/^[+-]/, "")}</div>
+            </div>
+          </div>
+
+          <div class="dashboard-risk-card__alert dashboard-risk-card__alert--${riskTone}">
+            ${riskAlertLine}
           </div>
         </article>
 
