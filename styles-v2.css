@@ -3589,46 +3589,46 @@ body[data-theme="dark"] .calendar-day.is-idle .calendar-day__date {
 
 html[data-theme="dark"] .calendar-day.has-trades.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-win {
-  background: color-mix(in srgb, var(--layer-1) 92%, var(--positive) 8%) !important;
-  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.05) 72%, var(--positive) 28%) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.045) 80%, var(--positive) 20%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 92%, var(--negative) 8%) !important;
-  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.05) 72%, var(--negative) 28%) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.045) 80%, var(--negative) 20%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win {
-  background: color-mix(in srgb, var(--layer-1) 89%, var(--positive) 11%) !important;
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.018) 94%, var(--positive) 6%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 89%, var(--negative) 11%) !important;
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.018) 94%, var(--negative) 6%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win {
-  background: color-mix(in srgb, var(--layer-1) 86%, var(--positive) 14%) !important;
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.018) 90%, var(--positive) 10%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 86%, var(--negative) 14%) !important;
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.018) 90%, var(--negative) 10%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-win::after,
 body[data-theme="dark"] .calendar-day.has-trades.is-win::after {
-  background: color-mix(in srgb, var(--positive) 78%, white 22%) !important;
-  opacity: 0.96 !important;
+  background: color-mix(in srgb, var(--positive) 74%, white 26%) !important;
+  opacity: 0.92 !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-loss::after,
 body[data-theme="dark"] .calendar-day.has-trades.is-loss::after {
-  background: color-mix(in srgb, var(--negative) 76%, white 24%) !important;
-  opacity: 0.96 !important;
+  background: color-mix(in srgb, var(--negative) 72%, white 28%) !important;
+  opacity: 0.92 !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades .calendar-day__count,
