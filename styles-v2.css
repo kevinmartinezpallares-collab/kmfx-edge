@@ -2376,12 +2376,12 @@ body[data-theme="dark"] .dashboard-risk-card__sub {
 html[data-theme="dark"] .dashboard-risk-card__state,
 body[data-theme="dark"] .dashboard-risk-card__state {
   flex-shrink: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   line-height: 1;
   color: var(--text-0);
-  opacity: 0.88;
+  opacity: 0.85;
 }
 
 html[data-theme="dark"] .dashboard-risk-card__state--safe,
