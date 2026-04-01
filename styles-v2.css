@@ -2089,15 +2089,17 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-
   bottom: 30px;
   left: 62px;
   pointer-events: none;
-  background: linear-gradient(
-    to right,
-    var(--card-surface) 0%,
-    rgba(23, 23, 24, 0.88) 4%,
-    rgba(23, 23, 24, 0) 12%,
-    rgba(23, 23, 24, 0) 88%,
-    rgba(23, 23, 24, 0.88) 96%,
-    var(--card-surface) 100%
-  );
+  background:
+    linear-gradient(
+      to right,
+      var(--card-surface) 0%,
+      rgba(23, 23, 24, 0) 11%
+    ),
+    linear-gradient(
+      to left,
+      var(--card-surface) 0%,
+      rgba(23, 23, 24, 0) 11%
+    );
   border-radius: 12px;
 }
 
