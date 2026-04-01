@@ -2076,6 +2076,29 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-chart-shell--hero::after,
+body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-chart-shell--hero::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 0;
+  bottom: 18px;
+  left: 44px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    var(--card-surface) 0%,
+    rgba(23, 23, 24, 0.88) 4%,
+    rgba(23, 23, 24, 0) 12%,
+    rgba(23, 23, 24, 0) 88%,
+    rgba(23, 23, 24, 0.88) 96%,
+    var(--card-surface) 100%
+  );
+  border-radius: 12px;
 }
 
 @media (max-width: 900px) {
