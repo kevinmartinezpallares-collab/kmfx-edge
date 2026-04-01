@@ -4698,6 +4698,7 @@ html[data-theme="dark"] .main-panel,
 body[data-theme="dark"] .main-panel,
 [data-theme="dark"] .main-panel {
   gap: 2px !important;
+  padding-top: 0 !important;
 }
 
 html[data-theme="dark"] .content,
@@ -4709,18 +4710,23 @@ body[data-theme="dark"] .content,
 html[data-theme="dark"] .content-sticky-header,
 body[data-theme="dark"] .content-sticky-header {
   position: sticky !important;
-  top: 0 !important;
+  top: 6px !important;
   z-index: 18 !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  width: fit-content !important;
+  max-width: min(520px, calc(100vw - 320px)) !important;
   min-height: 0 !important;
-  padding: 4px 0 2px !important;
-  margin-bottom: 2px !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  padding: 7px 12px !important;
+  margin: 0 0 4px !important;
+  border-radius: 999px !important;
+  background: rgba(10, 10, 10, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.045) !important;
+  backdrop-filter: blur(20px) saturate(112%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(112%) !important;
+  box-shadow: 0 14px 30px -24px rgba(0, 0, 0, 0.58) !important;
 }
 
 html[data-theme="dark"] .content-sticky-header__context,
@@ -4729,18 +4735,18 @@ body[data-theme="dark"] .content-sticky-header__context {
   align-items: center !important;
   min-width: 0 !important;
   width: fit-content !important;
-  max-width: min(340px, 58vw) !important;
-  padding: 7px 12px !important;
-  border-radius: 999px !important;
+  max-width: min(250px, 42vw) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
   font-size: 10px !important;
   line-height: 1.2 !important;
   color: var(--text-2) !important;
   opacity: 0.72 !important;
-  background: rgba(10, 10, 10, 0.42) !important;
-  border: 1px solid rgba(255, 255, 255, 0.045) !important;
-  backdrop-filter: blur(18px) saturate(112%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(112%) !important;
-  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.5) !important;
+  background: transparent !important;
+  border: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -4748,17 +4754,17 @@ body[data-theme="dark"] .content-sticky-header__context {
 
 html[data-theme="dark"] .content-sticky-header__meta,
 body[data-theme="dark"] .content-sticky-header__meta {
-  margin-left: auto !important;
+  margin-left: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   width: fit-content !important;
-  padding: 6px 10px !important;
-  border-radius: 999px !important;
-  background: rgba(10, 10, 10, 0.42) !important;
-  border: 1px solid rgba(255, 255, 255, 0.045) !important;
-  backdrop-filter: blur(18px) saturate(112%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(112%) !important;
-  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .content-sticky-header .topbar-user-card,
@@ -4768,7 +4774,7 @@ body[data-theme="dark"] .content-sticky-header .topbar-user-card {
 
 html[data-theme="dark"] .content-sticky-header .topbar-user-shell,
 body[data-theme="dark"] .content-sticky-header .topbar-user-shell {
-  gap: 1px !important;
+  gap: 6px !important;
   width: fit-content !important;
 }
 
