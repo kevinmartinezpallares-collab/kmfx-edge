@@ -4714,18 +4714,27 @@ body[data-theme="dark"] .content::before,
   position: sticky !important;
   top: 0 !important;
   display: block !important;
-  height: 18px !important;
-  margin-bottom: -18px !important;
+  height: 34px !important;
+  margin-bottom: -34px !important;
   z-index: 12 !important;
   pointer-events: none !important;
-  background: linear-gradient(
+  background: rgba(10, 10, 10, 0.22) !important;
+  backdrop-filter: blur(16px) saturate(108%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(108%) !important;
+  mask-image: linear-gradient(
     to bottom,
-    rgba(10, 10, 10, 0.3) 0%,
-    rgba(10, 10, 10, 0.17) 48%,
-    rgba(10, 10, 10, 0) 100%
+    transparent 0%,
+    rgba(0, 0, 0, 0.86) 28%,
+    rgba(0, 0, 0, 0.86) 68%,
+    transparent 100%
   ) !important;
-  backdrop-filter: blur(12px) saturate(108%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(108%) !important;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.86) 28%,
+    rgba(0, 0, 0, 0.86) 68%,
+    transparent 100%
+  ) !important;
 }
 
 html[data-theme="dark"] .content-sticky-header,
@@ -4740,7 +4749,7 @@ body[data-theme="dark"] .content-sticky-header {
   width: fit-content !important;
   max-width: min(260px, calc(100vw - 320px)) !important;
   min-height: 0 !important;
-  padding: 7px 11px !important;
+  padding: 8px 16px !important;
   margin: 0 0 4px auto !important;
   border-radius: 999px !important;
   background: rgba(10, 10, 10, 0.42) !important;
@@ -4785,7 +4794,7 @@ html[data-theme="dark"] .content-sticky-header .topbar-time-stack,
 body[data-theme="dark"] .content-sticky-header .topbar-time-stack {
   display: flex !important;
   align-items: baseline !important;
-  gap: 5px !important;
+  gap: 8px !important;
   margin-left: 0 !important;
   padding-left: 0 !important;
   min-width: auto !important;
