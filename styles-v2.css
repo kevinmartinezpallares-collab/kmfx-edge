@@ -2469,7 +2469,7 @@ body[data-theme="dark"] .dashboard-risk-card__alert--danger {
 html[data-theme="dark"] .dashboard-kpi-clusters,
 body[data-theme="dark"] .dashboard-kpi-clusters {
   grid-template-columns: 1.08fr 1.2fr 1fr !important;
-  gap: 14px !important;
+  gap: 18px !important;
 }
 
 html[data-theme="dark"] .dashboard-kpi-cluster,
@@ -2495,15 +2495,16 @@ body[data-theme="dark"] .dashboard-kpi-cluster__title {
 html[data-theme="dark"] .dashboard-kpi-cluster__sub,
 body[data-theme="dark"] .dashboard-kpi-cluster__sub {
   margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.3;
+  font-size: 11px;
+  line-height: 1.25;
   color: var(--text-2);
+  opacity: 0.82;
 }
 
 html[data-theme="dark"] .dashboard-kpi-cluster__items,
 body[data-theme="dark"] .dashboard-kpi-cluster__items {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-cluster__items,
@@ -2520,8 +2521,8 @@ body[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-clust
 html[data-theme="dark"] .dashboard-kpi-item,
 body[data-theme="dark"] .dashboard-kpi-item {
   min-width: 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-0);
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 html[data-theme="dark"] .dashboard-kpi-cluster__items .dashboard-kpi-item:last-child,
@@ -2556,11 +2557,53 @@ body[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-item__val
   font-size: 22px;
 }
 
+html[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-item:first-child .dashboard-kpi-item__value,
+body[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-item:first-child .dashboard-kpi-item__value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-item:first-child .dashboard-kpi-item__meta,
+body[data-theme="dark"] .dashboard-kpi-cluster--capital .dashboard-kpi-item:first-child .dashboard-kpi-item__meta {
+  margin-top: 7px;
+}
+
 html[data-theme="dark"] .dashboard-kpi-item__meta,
 body[data-theme="dark"] .dashboard-kpi-item__meta {
   margin-top: 6px;
   font-size: 11px;
   line-height: 1.3;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(-n+2) .dashboard-kpi-item__value,
+body[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(-n+2) .dashboard-kpi-item__value {
+  font-size: 21px;
+  font-weight: 650;
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(n+3) .dashboard-kpi-item__value,
+body[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(n+3) .dashboard-kpi-item__value {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(n+3) .dashboard-kpi-item__meta,
+body[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-item:nth-child(n+3) .dashboard-kpi-item__meta {
+  margin-top: 5px;
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--activity .dashboard-kpi-item:last-child,
+body[data-theme="dark"] .dashboard-kpi-cluster--activity .dashboard-kpi-item:last-child {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="dark"] .dashboard-kpi-cluster--activity .dashboard-kpi-item:last-child .dashboard-kpi-item__label,
+body[data-theme="dark"] .dashboard-kpi-cluster--activity .dashboard-kpi-item:last-child .dashboard-kpi-item__label {
   color: var(--text-2);
 }
 
