@@ -113,78 +113,11 @@ export function renderDashboard(root, state) {
     : account.compliance?.riskStatus === "warning"
       ? "En vigilancia"
       : "Operativa";
-  const kpis = [
-    {
-      label: "Equity actual",
-      value: formatCurrency(model.account.equity),
-      tone: "blue",
-      meta: `${account.name}`
-    },
-    {
-      label: "Balance",
-      value: formatCurrency(model.account.balance),
-      tone: "blue",
-      meta: "Capital base"
-    },
-    {
-      label: "P&L Total",
-      value: formatCurrency(model.totals.pnl),
-      tone: model.totals.pnl >= 0 ? "green" : "red",
-      meta: `${model.totals.totalTrades} operaciones cerradas`
-    },
-    {
-      label: "P&L del día",
-      value: formatCurrency(latestDay.pnl || 0),
-      tone: (latestDay.pnl || 0) >= 0 ? "green" : "red",
-      meta: "Sesión actual"
-    },
-    {
-      label: "% retorno",
-      value: formatPercent(cumulativeReturn),
-      tone: cumulativeReturn >= 0 ? "green" : "red",
-      meta: "Desde balance inicial"
-    },
-    {
-      label: "Total trades",
-      value: `${model.totals.totalTrades}`,
-      tone: "blue",
-      meta: `${weeklyWinDays} días ganadores`
-    },
-    {
-      label: "Win Rate",
-      value: formatPercent(model.totals.winRate),
-      tone: "blue",
-      meta: "Tasa de acierto"
-    },
-    {
-      label: "Profit Factor",
-      value: model.totals.profitFactor.toFixed(2),
-      tone: "violet",
-      meta: `Expectativa ${formatCurrency(model.totals.expectancy)}`
-    },
-    {
-      label: "Avg R",
-      value: `${model.totals.rr.toFixed(2)}R`,
-      tone: "violet",
-      meta: "R multiple medio"
-    },
-    {
-      label: "Mejor Trade",
-      value: formatCurrency(model.totals.bestTrade),
-      tone: "green",
-      meta: `${model.streaks.bestWin} racha ganadora`
-    },
-    {
-      label: "Estado cuenta",
-      value: accountStateLabel,
-      tone: riskGuidance.risk_state === "LOCKED" || accountStateLabel === "Bloqueada"
-        ? "red"
-        : riskGuidance.risk_state === "DANGER" || accountStateLabel === "En vigilancia"
-          ? "violet"
-          : "green",
-      meta: `Riesgo ${riskGuidance.risk_state}`
-    }
-  ];
+  const accountStateTone = riskGuidance.risk_state === "LOCKED" || accountStateLabel === "Bloqueada"
+    ? "red"
+    : riskGuidance.risk_state === "DANGER" || accountStateLabel === "En vigilancia"
+      ? "violet"
+      : "green";
 
   chartSpecs.push(
     lineAreaSpec("dashboard-hero-equity-chart", heroCurve, {
@@ -328,21 +261,83 @@ export function renderDashboard(root, state) {
           </div>
         </article>
 
-        <div class="dashboard-kpi-premium-grid">
-          ${kpis.map((kpi) => `
-            <article class="widget-card widget-card--kpi widget-card--kpi-${kpi.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}">
-              <div class="widget-card-head">
-                <div class="tl-kpi-label">${kpi.label}</div>
-                <div class="widget-dot widget-dot--${kpi.tone}"></div>
+        <div class="dashboard-kpi-premium-grid dashboard-kpi-clusters">
+          <article class="widget-card dashboard-kpi-cluster dashboard-kpi-cluster--capital">
+            <div class="dashboard-kpi-cluster__head">
+              <div class="dashboard-kpi-cluster__title">Capital</div>
+              <div class="dashboard-kpi-cluster__sub">Base financiera y resultado acumulado.</div>
+            </div>
+            <div class="dashboard-kpi-cluster__items">
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Equity actual</div>
+                <div class="dashboard-kpi-item__value">${formatCurrency(model.account.equity)}</div>
+                <div class="dashboard-kpi-item__meta">${account.name}</div>
               </div>
-              <div class="tl-kpi-val ${kpi.tone === "green" ? "green" : kpi.tone === "red" ? "red" : ""}">${kpi.value}</div>
-              <div class="widget-card-meta">${kpi.meta}</div>
-              <div class="widget-kpi-trend ${kpi.tone}">
-                <span class="widget-kpi-trend-arrow">${kpi.tone === "red" ? "↓" : "↑"}</span>
-                <span>${kpi.tone === "red" ? "presión reciente" : "tracción positiva"}</span>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Balance</div>
+                <div class="dashboard-kpi-item__value">${formatCurrency(model.account.balance)}</div>
+                <div class="dashboard-kpi-item__meta">Capital base</div>
               </div>
-            </article>
-          `).join("")}
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">P&amp;L total</div>
+                <div class="dashboard-kpi-item__value ${model.totals.pnl >= 0 ? "green" : "red"}">${formatCurrency(model.totals.pnl)}</div>
+                <div class="dashboard-kpi-item__meta">${model.totals.totalTrades} operaciones cerradas</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="widget-card dashboard-kpi-cluster dashboard-kpi-cluster--performance">
+            <div class="dashboard-kpi-cluster__head">
+              <div class="dashboard-kpi-cluster__title">Rendimiento</div>
+              <div class="dashboard-kpi-cluster__sub">Calidad estadística y tracción del sistema.</div>
+            </div>
+            <div class="dashboard-kpi-cluster__items">
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Win rate</div>
+                <div class="dashboard-kpi-item__value">${formatPercent(model.totals.winRate)}</div>
+                <div class="dashboard-kpi-item__meta">Tasa de acierto</div>
+              </div>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Profit factor</div>
+                <div class="dashboard-kpi-item__value">${model.totals.profitFactor.toFixed(2)}</div>
+                <div class="dashboard-kpi-item__meta">Expectativa ${formatCurrency(model.totals.expectancy)}</div>
+              </div>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Avg R</div>
+                <div class="dashboard-kpi-item__value">${model.totals.rr.toFixed(2)}R</div>
+                <div class="dashboard-kpi-item__meta">R múltiple medio</div>
+              </div>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Mejor trade</div>
+                <div class="dashboard-kpi-item__value green">${formatCurrency(model.totals.bestTrade)}</div>
+                <div class="dashboard-kpi-item__meta">${model.streaks.bestWin} racha ganadora</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="widget-card dashboard-kpi-cluster dashboard-kpi-cluster--activity">
+            <div class="dashboard-kpi-cluster__head">
+              <div class="dashboard-kpi-cluster__title">Actividad</div>
+              <div class="dashboard-kpi-cluster__sub">Sesión actual, ritmo operativo y estado.</div>
+            </div>
+            <div class="dashboard-kpi-cluster__items">
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">P&amp;L del día</div>
+                <div class="dashboard-kpi-item__value ${(latestDay.pnl || 0) >= 0 ? "green" : "red"}">${formatCurrency(latestDay.pnl || 0)}</div>
+                <div class="dashboard-kpi-item__meta">Sesión actual</div>
+              </div>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Total trades</div>
+                <div class="dashboard-kpi-item__value">${model.totals.totalTrades}</div>
+                <div class="dashboard-kpi-item__meta">${weeklyWinDays} días ganadores</div>
+              </div>
+              <div class="dashboard-kpi-item">
+                <div class="dashboard-kpi-item__label">Estado cuenta</div>
+                <div class="dashboard-kpi-item__value ${accountStateTone === "green" ? "green" : accountStateTone === "red" ? "red" : ""}">${accountStateLabel}</div>
+                <div class="dashboard-kpi-item__meta">Riesgo ${riskGuidance.risk_state}</div>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
     </div>
