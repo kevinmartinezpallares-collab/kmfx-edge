@@ -22,7 +22,7 @@ export function renderCalendar(root, state) {
   const summary = buildMonthSummary(monthView, selectedMonth);
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
-  const cumulativeCurve = buildCalendarCurve(model, selectedMonth?.key);
+  const cumulativeCurve = buildCalendarCurve(dayStats, selectedMonth);
   const note = !hasModel
     ? connection.state === "error"
       ? {
@@ -106,6 +106,7 @@ export function renderCalendar(root, state) {
         <div class="calendar-month-grid ${!hasModel ? "calendar-month-grid--loading" : ""}">
           ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
           ${monthView.cells.map((cell) => {
+            const intensityClass = cell.trades ? getCalendarIntensityClass(cell.pnl, monthView.maxAbsPnl) : "";
             const classes = [
               "calendar-day",
               !hasModel ? "calendar-day--skeleton skeleton" : "",
@@ -113,6 +114,7 @@ export function renderCalendar(root, state) {
               cell.trades ? "has-trades" : "is-idle",
               cell.state === "win" ? "is-win" : "",
               cell.state === "loss" ? "is-loss" : "",
+              intensityClass,
               cell.isToday ? "is-today" : "",
               root.__calendarSelectedDay === cell.key ? "is-selected" : ""
             ].filter(Boolean).join(" ");
@@ -190,7 +192,7 @@ export function renderCalendar(root, state) {
                 </tr>
               </thead>
               <tbody>
-                ${buildMonthlyMatrixRows(monthlyMatrix, hasModel)}
+                ${buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonth?.key)}
               </tbody>
               ${buildMonthlyMatrixFooter(monthlyMatrix, hasModel)}
             </table>
@@ -203,7 +205,7 @@ export function renderCalendar(root, state) {
   root.querySelectorAll("[data-calendar-shift]").forEach((button) => {
     button.addEventListener("click", () => {
       const offset = Number(button.dataset.calendarShift);
-      const nextKey = shiftMonthKey(months, monthKey, offset);
+      const nextKey = shiftMonthKey(calendarMonths, monthKey, offset);
       if (!nextKey) return;
       root.__calendarMonthKey = nextKey;
       renderCalendar(root, state);
@@ -299,9 +301,11 @@ function buildMonthView(dayStats, monthKey) {
 
   const cells = [];
   const weeks = [];
+  let maxAbsPnl = 0;
   for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
     const key = current.toISOString().slice(0, 10);
     const day = dayMap.get(key);
+    maxAbsPnl = Math.max(maxAbsPnl, Math.abs(day?.pnl || 0));
     cells.push({
       key,
       inMonth: current.getMonth() === anchorDate.getMonth(),
@@ -331,7 +335,8 @@ function buildMonthView(dayStats, monthKey) {
     key: monthKey,
     label: anchorDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
     cells,
-    weeks
+    weeks,
+    maxAbsPnl
   };
 }
 
@@ -362,15 +367,28 @@ function buildMonthSummary(monthView, monthRecord) {
   };
 }
 
-function buildCalendarCurve(model, selectedMonthKey) {
-  const curve = Array.isArray(model?.cumulative?.curve) ? model.cumulative.curve : [];
-  if (!curve.length) {
-    return buildEmptyCurve(selectedMonthKey);
+function buildCalendarCurve(dayStats, selectedMonth) {
+  const monthKey = selectedMonth?.key || new Date().toISOString().slice(0, 7);
+  const monthDays = dayStats
+    .filter((day) => day.key.startsWith(monthKey))
+    .sort((a, b) => a.key.localeCompare(b.key));
+
+  if (!monthDays.length) {
+    return buildEmptyCurve(monthKey);
   }
-  return curve;
+
+  let runningPnl = 0;
+  const base = Number(selectedMonth?.startBalance || 0);
+  return monthDays.map((day) => {
+    runningPnl += Number(day.pnl || 0);
+    return {
+      label: new Date(day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+      value: base ? (runningPnl / base) * 100 : 0
+    };
+  });
 }
 
-function buildMonthlyMatrixRows(monthlyMatrix, hasModel) {
+function buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonthKey) {
   if (!hasModel) {
     return Array.from({ length: 2 }, () => `
       <tr>
@@ -390,11 +408,18 @@ function buildMonthlyMatrixRows(monthlyMatrix, hasModel) {
   return monthlyMatrix.map((year) => `
     <tr>
       <td>${year.year}</td>
-      ${year.months.map((monthCell) => `
-        <td class="${monthCell.pnl == null ? "" : monthCell.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+      ${year.months.map((monthCell, index) => {
+        const monthKey = `${year.year}-${String(index + 1).padStart(2, "0")}`;
+        const classes = [
+          monthCell.pnl == null ? "" : monthCell.pnl >= 0 ? "metric-positive" : "metric-negative",
+          monthKey === selectedMonthKey ? "calendar-matrix-cell--active" : ""
+        ].filter(Boolean).join(" ");
+        return `
+        <td class="${classes}">
           ${monthCell.pnl == null ? "—" : formatPercent(monthCell.returnPct)}
         </td>
-      `).join("")}
+      `;
+      }).join("")}
       <td class="${year.totalPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(year.totalReturnPct)}</td>
     </tr>
   `).join("");
@@ -427,13 +452,23 @@ function buildFallbackMonthRecord() {
 
 function buildEmptyCurve(monthKey) {
   const anchor = monthKeyToDate(monthKey || new Date().toISOString().slice(0, 7));
-  return Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(anchor.getFullYear(), anchor.getMonth() - (5 - index), 1);
+  const lastDay = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
+  return [1, 8, 15, 22, lastDay].map((day) => {
+    const date = new Date(anchor.getFullYear(), anchor.getMonth(), day);
     return {
-      label: date.toLocaleDateString("es-ES", { month: "short" }),
+      label: date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
       value: 0
     };
   });
+}
+
+function getCalendarIntensityClass(pnl, maxAbsPnl) {
+  const abs = Math.abs(Number(pnl || 0));
+  if (!abs || !maxAbsPnl) return "";
+  const ratio = abs / maxAbsPnl;
+  if (ratio >= 0.72) return "is-heat-3";
+  if (ratio >= 0.38) return "is-heat-2";
+  return "is-heat-1";
 }
 
 function getCalendarMonthKey(root, months) {

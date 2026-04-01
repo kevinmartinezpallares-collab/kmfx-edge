@@ -2692,6 +2692,31 @@ body[data-theme="dark"] .calendar-day.has-trades.is-loss {
   background: color-mix(in srgb, var(--negative) 5%, rgba(255,255,255,0.015));
 }
 
+html[data-theme="dark"] .calendar-day.has-trades.is-heat-1,
+body[data-theme="dark"] .calendar-day.has-trades.is-heat-1 {
+  background: color-mix(in srgb, currentColor 3%, rgba(255,255,255,0.015));
+}
+
+html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win,
+body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win {
+  background: color-mix(in srgb, var(--positive) 8%, rgba(255,255,255,0.015));
+}
+
+html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss,
+body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss {
+  background: color-mix(in srgb, var(--negative) 8%, rgba(255,255,255,0.015));
+}
+
+html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win,
+body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win {
+  background: color-mix(in srgb, var(--positive) 12%, rgba(255,255,255,0.015));
+}
+
+html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss,
+body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss {
+  background: color-mix(in srgb, var(--negative) 12%, rgba(255,255,255,0.015));
+}
+
 html[data-theme="dark"] .calendar-day.has-trades.is-win::after,
 body[data-theme="dark"] .calendar-day.has-trades.is-win::after {
   background: color-mix(in srgb, var(--positive) 90%, white 10%);
@@ -2746,8 +2771,8 @@ body[data-theme="dark"] .calendar-day__count {
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
-  color: var(--text-2);
+  background: rgba(255,255,255,0.08);
+  color: var(--text-1);
   font-size: 10px;
   line-height: 20px;
   text-align: center;
@@ -2764,8 +2789,8 @@ body[data-theme="dark"] .calendar-day__body {
 
 html[data-theme="dark"] .calendar-day__pnl,
 body[data-theme="dark"] .calendar-day__pnl {
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -2846,6 +2871,12 @@ body[data-theme="dark"] .calendar-table-empty td {
   font-size: 12px;
   color: var(--text-2);
   text-align: left;
+}
+
+html[data-theme="dark"] .calendar-matrix-cell--active,
+body[data-theme="dark"] .calendar-matrix-cell--active {
+  background: rgba(255,255,255,0.04);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
 }
 
 html[data-theme="dark"] .calendar-week-chip,
