@@ -81,6 +81,7 @@ export function renderDashboard(root, state) {
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
   const accountTypeLabel = getAccountTypeLabel(model.profile.mode, account.name);
   const isDarkTheme = state.ui.theme === "dark";
+  const axisLine = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-line").trim() || undefined;
   const axisStrong = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-strong").trim() || undefined;
   const axisStandard = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-text").trim() || undefined;
   const chartSpecs = [];
@@ -137,8 +138,8 @@ export function renderDashboard(root, state) {
       pointHoverRadius: 3.25,
       pointHitRadius: 20,
       fill: isDarkTheme,
-      fillAlphaStart: isDarkTheme ? 0.32 : 0.05,
-      fillAlphaEnd: isDarkTheme ? 0.005 : 0,
+      fillAlphaStart: isDarkTheme ? 0.18 : 0.05,
+      fillAlphaEnd: 0,
       glowAlpha: 0.18,
       tension: 0.82,
       axisColor: axisStandard,
@@ -156,7 +157,9 @@ export function renderDashboard(root, state) {
       layoutPaddingBottom: 0,
       layoutPaddingLeft: 2,
       layoutPaddingRight: 2,
-      showAxisBorder: false,
+      showAxisBorder: true,
+      axisBorderColor: axisLine,
+      axisBorderWidth: 1,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
         const delta = value - prev;
