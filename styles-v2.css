@@ -4719,19 +4719,19 @@ body[data-theme="dark"] .content::before,
   margin-bottom: -42px !important;
   z-index: 12 !important;
   pointer-events: none !important;
-  background: rgba(10, 10, 10, 0.2) !important;
-  backdrop-filter: blur(18px) saturate(108%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(108%) !important;
+  background: rgba(10, 10, 10, 0.01) !important;
+  backdrop-filter: blur(20px) saturate(104%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(104%) !important;
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.96) 42%,
+    rgba(0, 0, 0, 0.82) 38%,
     transparent 100%
   ) !important;
   -webkit-mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.96) 42%,
+    rgba(0, 0, 0, 0.82) 38%,
     transparent 100%
   ) !important;
 }
@@ -4747,19 +4747,19 @@ body[data-theme="dark"] .content::after,
   margin-top: -42px !important;
   z-index: 12 !important;
   pointer-events: none !important;
-  background: rgba(10, 10, 10, 0.2) !important;
-  backdrop-filter: blur(18px) saturate(108%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(108%) !important;
+  background: rgba(10, 10, 10, 0.01) !important;
+  backdrop-filter: blur(20px) saturate(104%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(104%) !important;
   mask-image: linear-gradient(
     to top,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.96) 42%,
+    rgba(0, 0, 0, 0.82) 38%,
     transparent 100%
   ) !important;
   -webkit-mask-image: linear-gradient(
     to top,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.96) 42%,
+    rgba(0, 0, 0, 0.82) 38%,
     transparent 100%
   ) !important;
 }
