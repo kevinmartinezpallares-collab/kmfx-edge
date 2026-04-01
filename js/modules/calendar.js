@@ -13,6 +13,7 @@ export function renderCalendar(root, state) {
   const months = Array.isArray(model?.monthlyReturns) ? model.monthlyReturns : [];
   const hasModel = Boolean(model);
   const hasTradingData = dayStats.length > 0 && months.length > 0;
+  const monthlyMatrix = Array.isArray(model?.monthlyMatrix) ? model.monthlyMatrix : [];
   const calendarMonths = months.length ? months : [buildFallbackMonthRecord()];
   const monthKey = getCalendarMonthKey(root, calendarMonths);
   const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
@@ -21,7 +22,7 @@ export function renderCalendar(root, state) {
   const summary = buildMonthSummary(monthView, selectedMonth);
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
-  const monthlyCurve = buildMonthlyCurve(months, selectedMonth?.key);
+  const cumulativeCurve = buildCalendarCurve(model, selectedMonth?.key);
   const note = !hasModel
     ? connection.state === "error"
       ? {
@@ -148,12 +149,12 @@ export function renderCalendar(root, state) {
           : ""}
       </section>
 
-      <section class="calendar-analytics-grid">
+      <section class="calendar-analytics-stack">
         <article class="tl-section-card chart-card calendar-chart-panel">
           <div class="calendar-panel-head">
             <div>
               <div class="calendar-panel-title">Rentabilidad acumulada</div>
-              <div class="calendar-panel-sub">${hasTradingData ? "Lectura mensual acumulada para detectar tracción y pausas." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
+              <div class="calendar-panel-sub">${hasTradingData ? "Lectura acumulada para seguir la tracción del año sin competir con la vista mensual." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
             </div>
           </div>
           <div class="calendar-chart-wrap">
@@ -164,23 +165,34 @@ export function renderCalendar(root, state) {
         <article class="tl-section-card table-card calendar-returns-panel">
           <div class="calendar-panel-head">
             <div>
-              <div class="calendar-panel-title">Rentabilidad mensual</div>
-              <div class="calendar-panel-sub">${hasTradingData ? "Resumen corto para leer ritmo mensual y cierre de cada periodo." : "La tabla se activará cuando existan meses cerrados."}</div>
+              <div class="calendar-panel-title">Tabla de rentabilidad</div>
+              <div class="calendar-panel-sub">${hasTradingData ? "Visión mensual y anual para leer progreso, baches y cierre del año de un vistazo." : "La matriz anual aparecerá aquí cuando existan meses cerrados."}</div>
             </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Mes</th>
-                  <th>P&L</th>
-                  <th>Retorno</th>
-                  <th>Trades</th>
+                  <th>Año</th>
+                  <th>Ene</th>
+                  <th>Feb</th>
+                  <th>Mar</th>
+                  <th>Abr</th>
+                  <th>May</th>
+                  <th>Jun</th>
+                  <th>Jul</th>
+                  <th>Ago</th>
+                  <th>Sep</th>
+                  <th>Oct</th>
+                  <th>Nov</th>
+                  <th>Dic</th>
+                  <th>Total año</th>
                 </tr>
               </thead>
               <tbody>
-                ${buildMonthlyRows(months, hasModel)}
+                ${buildMonthlyMatrixRows(monthlyMatrix, hasModel)}
               </tbody>
+              ${buildMonthlyMatrixFooter(monthlyMatrix, hasModel)}
             </table>
           </div>
         </article>
@@ -248,7 +260,7 @@ export function renderCalendar(root, state) {
 
   if (hasModel) {
     mountCharts(root, [
-      lineAreaSpec("calendar-cumulative-return", monthlyCurve, {
+      lineAreaSpec("calendar-cumulative-return", cumulativeCurve, {
         tone: "blue",
         showXAxis: true,
         showYAxis: true,
@@ -268,7 +280,7 @@ export function renderCalendar(root, state) {
         tension: 0.42,
         yHeadroomRatio: 0.1,
         yBottomPaddingRatio: 0.06,
-        axisFormatter: (value) => formatCompactNumber(value)
+        axisFormatter: (value) => `${Number(value).toFixed(1)}%`
       })
     ]);
   }
@@ -350,47 +362,55 @@ function buildMonthSummary(monthView, monthRecord) {
   };
 }
 
-function buildMonthlyCurve(months, selectedMonthKey) {
-  if (!months.length) {
+function buildCalendarCurve(model, selectedMonthKey) {
+  const curve = Array.isArray(model?.cumulative?.curve) ? model.cumulative.curve : [];
+  if (!curve.length) {
     return buildEmptyCurve(selectedMonthKey);
   }
-
-  let cumulative = 0;
-  const visibleMonths = months.slice(-6);
-  return visibleMonths.map((month) => {
-    cumulative += Number(month.pnl || 0);
-    return {
-      label: month.label,
-      value: cumulative
-    };
-  });
+  return curve;
 }
 
-function buildMonthlyRows(months, hasModel) {
+function buildMonthlyMatrixRows(monthlyMatrix, hasModel) {
   if (!hasModel) {
-    return Array.from({ length: 4 }, () => `
+    return Array.from({ length: 2 }, () => `
       <tr>
-        <td colspan="4"><div class="calendar-table-placeholder skeleton"></div></td>
+        <td colspan="14"><div class="calendar-table-placeholder skeleton"></div></td>
       </tr>
     `).join("");
   }
 
-  if (!months.length) {
+  if (!monthlyMatrix.length) {
     return `
       <tr class="calendar-table-empty">
-        <td colspan="4">Todavía no hay meses cerrados para mostrar rentabilidad.</td>
+        <td colspan="14">Todavía no hay meses cerrados para mostrar rentabilidad.</td>
       </tr>
     `;
   }
 
-  return [...months].reverse().map((month) => `
+  return monthlyMatrix.map((year) => `
     <tr>
-      <td>${month.label}</td>
-      <td class="${month.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(month.pnl)}</td>
-      <td class="${month.returnPct >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(month.returnPct)}</td>
-      <td>${month.trades}</td>
+      <td>${year.year}</td>
+      ${year.months.map((monthCell) => `
+        <td class="${monthCell.pnl == null ? "" : monthCell.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+          ${monthCell.pnl == null ? "—" : formatPercent(monthCell.returnPct)}
+        </td>
+      `).join("")}
+      <td class="${year.totalPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(year.totalReturnPct)}</td>
     </tr>
   `).join("");
+}
+
+function buildMonthlyMatrixFooter(monthlyMatrix, hasModel) {
+  if (!hasModel || !monthlyMatrix.length) return "";
+  const grandTotal = monthlyMatrix.reduce((sum, year) => sum + Number(year.totalPnl || 0), 0);
+  return `
+    <tfoot>
+      <tr>
+        <th colspan="13">Grand Total</th>
+        <th class="${grandTotal >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(grandTotal)}</th>
+      </tr>
+    </tfoot>
+  `;
 }
 
 function buildFallbackMonthRecord() {
@@ -414,19 +434,6 @@ function buildEmptyCurve(monthKey) {
       value: 0
     };
   });
-}
-
-function formatCompactNumber(value) {
-  const numeric = Number(value || 0);
-  if (Math.abs(numeric) >= 1000) {
-    return new Intl.NumberFormat("es-ES", {
-      notation: "compact",
-      maximumFractionDigits: 1
-    }).format(numeric);
-  }
-  return new Intl.NumberFormat("es-ES", {
-    maximumFractionDigits: 0
-  }).format(numeric);
 }
 
 function getCalendarMonthKey(root, months) {

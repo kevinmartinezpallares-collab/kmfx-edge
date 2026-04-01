@@ -2784,10 +2784,9 @@ body[data-theme="dark"] .calendar-week-strip {
   margin-top: 16px;
 }
 
-html[data-theme="dark"] .calendar-analytics-grid,
-body[data-theme="dark"] .calendar-analytics-grid {
+html[data-theme="dark"] .calendar-analytics-stack,
+body[data-theme="dark"] .calendar-analytics-stack {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 14px;
 }
 
@@ -2924,10 +2923,6 @@ body[data-theme="dark"] .calendar-month-grid--loading .calendar-day--skeleton {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  html[data-theme="dark"] .calendar-analytics-grid,
-  body[data-theme="dark"] .calendar-analytics-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 720px) {

@@ -102,13 +102,34 @@ const swingTrades = baseMockPayload.trades.map((trade, index) => ({
   setup: index % 3 === 0 ? "Macro swing build" : trade.setup
 }));
 
+const sandboxTrades = [
+  { id: "sbx-jan-1", date: "2026-01-06T08:35:00", symbol: "EURUSD", side: "BUY", pnl: 280, rMultiple: 1.4, setup: "London continuation", session: "London", durationMin: 54 },
+  { id: "sbx-jan-2", date: "2026-01-08T14:10:00", symbol: "XAUUSD", side: "SELL", pnl: -160, rMultiple: -0.8, setup: "Fade fail", session: "New York", durationMin: 36 },
+  { id: "sbx-jan-3", date: "2026-01-10T09:05:00", symbol: "GBPUSD", side: "BUY", pnl: 340, rMultiple: 1.7, setup: "Range reclaim", session: "London", durationMin: 47 },
+  { id: "sbx-jan-4", date: "2026-01-14T15:15:00", symbol: "NAS100", side: "SELL", pnl: -420, rMultiple: -1.3, setup: "Open fade", session: "New York", durationMin: 29 },
+  { id: "sbx-jan-5", date: "2026-01-16T08:20:00", symbol: "EURUSD", side: "BUY", pnl: 610, rMultiple: 2.6, setup: "Macro drift", session: "London", durationMin: 71 },
+  { id: "sbx-jan-6", date: "2026-01-21T10:25:00", symbol: "USDJPY", side: "SELL", pnl: 150, rMultiple: 0.9, setup: "Session fade", session: "London", durationMin: 33 },
+  { id: "sbx-jan-7", date: "2026-01-23T14:45:00", symbol: "US30", side: "BUY", pnl: -240, rMultiple: -0.7, setup: "NY breakout fail", session: "New York", durationMin: 58 },
+  { id: "sbx-feb-1", date: "2026-02-03T08:10:00", symbol: "EURUSD", side: "SELL", pnl: 390, rMultiple: 1.8, setup: "Asia range break", session: "London", durationMin: 49 },
+  { id: "sbx-feb-2", date: "2026-02-05T09:55:00", symbol: "GBPUSD", side: "BUY", pnl: -210, rMultiple: -0.9, setup: "Liquidity sweep fail", session: "London", durationMin: 41 },
+  { id: "sbx-feb-3", date: "2026-02-07T15:05:00", symbol: "XAUUSD", side: "BUY", pnl: 520, rMultiple: 2.4, setup: "NY continuation", session: "New York", durationMin: 64 },
+  { id: "sbx-feb-4", date: "2026-02-11T08:45:00", symbol: "NAS100", side: "BUY", pnl: 440, rMultiple: 2.1, setup: "Open drive", session: "London", durationMin: 27 },
+  { id: "sbx-feb-5", date: "2026-02-13T14:35:00", symbol: "US30", side: "SELL", pnl: -610, rMultiple: -1.7, setup: "NY reversal fail", session: "New York", durationMin: 52 },
+  { id: "sbx-feb-6", date: "2026-02-18T08:55:00", symbol: "EURUSD", side: "BUY", pnl: 760, rMultiple: 2.9, setup: "London continuation", session: "London", durationMin: 86 },
+  { id: "sbx-feb-7", date: "2026-02-20T10:40:00", symbol: "USDJPY", side: "SELL", pnl: -130, rMultiple: -0.6, setup: "Session fade", session: "London", durationMin: 31 },
+  { id: "sbx-feb-8", date: "2026-02-24T14:20:00", symbol: "XAUUSD", side: "SELL", pnl: 310, rMultiple: 1.5, setup: "NY rejection", session: "New York", durationMin: 44 },
+  ...baseMockPayload.trades
+];
+
 export const rawMockAccounts = {
   sandbox: {
     id: "sandbox",
     name: "KMFX Master",
     broker: "Sandbox institucional",
     sourceType: "mock",
-    payload: createPayloadVariant()
+    payload: createPayloadVariant({
+      trades: sandboxTrades
+    })
   },
   funded: {
     id: "funded",
