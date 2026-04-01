@@ -1,185 +1,162 @@
-import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260329-201102";
+import { formatCurrency, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
 import { openModal } from "./modal-system.js?v=build-20260329-201102";
 
-function smoothPath(points, width = 760, height = 190, padding = 24) {
-  if (!points.length) return { line: "", area: "" };
-  const min = Math.min(...points.map((point) => point.value));
-  const max = Math.max(...points.map((point) => point.value));
-  const range = max - min || 1;
-  const mapped = points.map((point, index) => ({
-    x: padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2),
-    y: height - padding - ((point.value - min) / range) * (height - padding * 2)
-  }));
-
-  let line = `M ${mapped[0].x.toFixed(1)} ${mapped[0].y.toFixed(1)}`;
-  for (let index = 1; index < mapped.length; index += 1) {
-    const prev = mapped[index - 1];
-    const curr = mapped[index];
-    const xc = ((prev.x + curr.x) / 2).toFixed(1);
-    line += ` Q ${prev.x.toFixed(1)} ${prev.y.toFixed(1)} ${xc} ${((prev.y + curr.y) / 2).toFixed(1)}`;
-    if (index === mapped.length - 1) {
-      line += ` T ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
-    }
-  }
-
-  const area = `${line} L ${mapped[mapped.length - 1].x.toFixed(1)} ${(height - padding / 2).toFixed(1)} L ${mapped[0].x.toFixed(1)} ${(height - padding / 2).toFixed(1)} Z`;
-  return { line, area };
-}
+const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export function renderCalendar(root, state) {
+  const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
-  if (!model) {
-    root.innerHTML = "";
+  const connection = account?.connection || {};
+
+  if (!model && connection.state === "error") {
+    root.innerHTML = calendarStateMarkup({
+      tone: "error",
+      title: "Calendario no disponible",
+      message: "No se pudo cargar la actividad diaria. Revisa la conexión de la cuenta e inténtalo de nuevo."
+    });
     return;
   }
-  const range = getCalendarRange(root);
-  const month = model.monthlyReturns[model.monthlyReturns.length - 1];
-  const bestDay = [...model.calendar.cells].sort((a, b) => b.pnl - a.pnl)[0];
-  const worstDay = [...model.calendar.cells].sort((a, b) => a.pnl - b.pnl)[0];
-  const activeDays = model.calendar.cells.filter((cell) => cell.trades).length;
-  const winDays = model.calendar.cells.filter((cell) => cell.pnl > 0).length;
-  const monthReturn = month.returnPct || 0;
-  const cumulativeView = getCumulativeView(model, range);
-  const axisLine = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-line").trim() || undefined;
-  const totalReturnColor = cumulativeView.totalPct >= 0 ? "metric-positive" : "metric-negative";
-  const weeklySummary = [];
 
-  for (let index = 0; index < model.calendar.cells.length; index += 7) {
-    const slice = model.calendar.cells.slice(index, index + 7);
-    const inMonthCells = slice.filter((cell) => cell.inMonth);
-    const weekPnl = inMonthCells.reduce((sum, cell) => sum + (cell.pnl || 0), 0);
-    const weekTrades = inMonthCells.reduce((sum, cell) => sum + (cell.trades || 0), 0);
-    weeklySummary.push({
-      label: `Sem ${weeklySummary.length + 1}`,
-      pnl: weekPnl,
-      returnPct: month.startBalance ? (weekPnl / month.startBalance) * 100 : 0,
-      trades: weekTrades
+  if (!model) {
+    root.innerHTML = calendarLoadingMarkup();
+    return;
+  }
+
+  const dayStats = Array.isArray(model.dayStats) ? model.dayStats : [];
+  const months = Array.isArray(model.monthlyReturns) ? model.monthlyReturns : [];
+
+  if (!dayStats.length || !months.length) {
+    root.innerHTML = calendarStateMarkup({
+      tone: "empty",
+      title: "Todavía no hay sesiones registradas",
+      message: "Cuando entren días operados, aquí verás el patrón mensual, la consistencia y el balance diario."
     });
+    return;
   }
 
-  const grandTotal = model.monthlyMatrix.reduce((sum, year) => sum + year.totalPnl, 0);
-  const calendarRows = [];
+  const monthKey = getCalendarMonthKey(root, months);
+  const monthIndex = months.findIndex((month) => month.key === monthKey);
+  const selectedMonth = months[monthIndex] || months[months.length - 1];
+  const monthView = buildMonthView(dayStats, monthKey);
+  const summary = buildMonthSummary(monthView, selectedMonth);
+  const selectedDayKey = root.__calendarSelectedDay;
+  const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
 
-  for (let index = 0; index < model.calendar.cells.length; index += 7) {
-    const slice = model.calendar.cells.slice(index, index + 7);
-    const week = weeklySummary[Math.floor(index / 7)];
-    calendarRows.push(...slice.map((cell) => `
-      <button class="calendar-cell ${cell.inMonth ? "" : "muted"} ${cell.pnl > 0 ? "win" : cell.pnl < 0 ? "loss" : ""}" type="button" ${cell.trades ? `data-calendar-day="${cell.key}"` : "disabled"}>
-        <div class="calendar-date">${cell.date.getDate()}</div>
-        <div class="calendar-pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${cell.trades ? formatCurrency(cell.pnl) : "—"}</div>
-        <div class="calendar-trades">${cell.trades ? `${cell.trades} ops.` : "Sin actividad"}</div>
-      </button>
-    `));
-    if (week) {
-      calendarRows.push(`
-        <div class="calendar-week-summary calendar-week-summary--side">
-          <div class="calendar-week-summary-title">${week.label}</div>
-          <div class="calendar-week-summary-value ${week.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(week.pnl)}</div>
-          <div class="calendar-week-summary-meta">${week.trades} ops.</div>
-          <div class="calendar-week-summary-value ${week.returnPct >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(week.returnPct)}</div>
-        </div>
-      `);
-    }
-  }
+  if (!hasSelectedDay) root.__calendarSelectedDay = "";
 
   root.innerHTML = `
-    <div class="pnlcal-nav">
-      <button class="pnlcal-nav-btn" type="button">‹</button>
-      <div class="pnlcal-nav-title">${model.calendar.monthLabel}</div>
-      <button class="pnlcal-nav-btn" type="button">›</button>
-    </div>
-
-    <div class="pnlcal-kpi-strip">
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">P&L neto</div><div class="pnlcal-kpi-val ${month.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(month.pnl)}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Retorno</div><div class="pnlcal-kpi-val">${formatPercent(monthReturn)}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Trades</div><div class="pnlcal-kpi-val">${month.trades}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Días activos</div><div class="pnlcal-kpi-val">${activeDays}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Días ganadores</div><div class="pnlcal-kpi-val metric-positive">${winDays}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Mejor día</div><div class="pnlcal-kpi-val metric-positive">${formatCurrency(bestDay?.pnl || 0)}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Peor día</div><div class="pnlcal-kpi-val metric-negative">${formatCurrency(worstDay?.pnl || 0)}</div></div>
-      <div class="pnlcal-kpi"><div class="pnlcal-kpi-label">Win rate</div><div class="pnlcal-kpi-val">${formatPercent(model.totals.winRate)}</div></div>
-    </div>
-
-    <div class="pnlcal-legend-row">
-      <span><span class="legend-dot legend-dot--win"></span>Día ganador</span>
-      <span><span class="legend-dot legend-dot--loss"></span>Día perdedor</span>
-      <span><span class="legend-dot legend-dot--current"></span>Mes actual</span>
-    </div>
-
-    <div class="pnlcal-layout">
-      <div class="pnlcal-card pnlcal-month-card">
-        <div class="calendar-grid">
-          ${model.calendar.headers.map((head) => `<div class="calendar-head">${head}</div>`).join("")}
-          <div class="calendar-head calendar-head--summary">Sem</div>
-          ${calendarRows.join("")}
+    <section class="calendar-screen">
+      <header class="calendar-screen__header">
+        <div class="calendar-screen__copy">
+          <div class="calendar-screen__eyebrow">Calendario</div>
+          <h1 class="calendar-screen__title">Calendario</h1>
+          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
         </div>
-      </div>
-    </div>
 
-    <div class="tl-section-card" style="margin-top:16px">
-      <div class="tl-section-header"><div class="tl-section-title">Tabla de Rentabilidad</div></div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Año</th>
-              <th>Ene</th>
-              <th>Feb</th>
-              <th>Mar</th>
-              <th>Abr</th>
-              <th>May</th>
-              <th>Jun</th>
-              <th>Jul</th>
-              <th>Ago</th>
-              <th>Sep</th>
-              <th>Oct</th>
-              <th>Nov</th>
-              <th>Dic</th>
-              <th>Total año</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${model.monthlyMatrix.map((year) => `
-              <tr>
-                <td>${year.year}</td>
-                ${year.months.map((monthCell) => `<td class="${monthCell.pnl == null ? "" : monthCell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${monthCell.pnl == null ? "—" : formatPercent(monthCell.returnPct)}</td>`).join("")}
-                <td class="${year.totalPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(year.totalReturnPct)}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-          <tfoot>
-            <tr>
-              <th colspan="13">Grand Total</th>
-              <th class="${grandTotal >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(grandTotal)}</th>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-
-    <div class="tl-section-card" style="margin-top:16px">
-      <div class="tl-section-header">
-        <div class="tl-section-title">Rentabilidad Acumulada</div>
-        <div class="pnlcal-range-switch">
-          ${["YTD", "6M", "1A", "TOTAL"].map((option) => `
-            <button class="pnlcal-range-btn ${range === option ? "active" : ""}" type="button" data-cumulative-range="${option}">${option}</button>
-          `).join("")}
+        <div class="calendar-month-nav" aria-label="Selector de mes">
+          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}>‹</button>
+          <div class="calendar-month-nav__label">
+            <strong>${monthView.label}</strong>
+            <span>${summary.activeDays} días operados</span>
+          </div>
+          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= months.length - 1 ? "disabled" : ""}>›</button>
         </div>
-      </div>
-      <div class="trades-kpi-row">
-        <div><div class="tl-kpi-label">Rentabilidad total</div><div class="metric-large ${totalReturnColor}">${formatPercent(cumulativeView.totalPct)}</div></div>
-        <div><div class="tl-kpi-label">P&L neto</div><div class="metric-large ${cumulativeView.totalUsd >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cumulativeView.totalUsd)}</div></div>
-        <div><div class="tl-kpi-label">Última act.</div><div class="metric-large" style="font-size:16px">${cumulativeView.lastUpdate ? cumulativeView.lastUpdate.toLocaleDateString("es-ES") : "—"}</div></div>
-        <div><div class="tl-kpi-label">Rango</div><div class="metric-large" style="font-size:16px">${range}</div></div>
-      </div>
-      ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature kmfx-chart-shell--blended-card")}
-    </div>
+      </header>
+
+      <section class="calendar-summary-strip" aria-label="Resumen del mes">
+        <article class="calendar-summary-card calendar-summary-card--primary">
+          <div class="calendar-summary-card__label">P&L del mes</div>
+          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(summary.monthPnl)}</div>
+          <div class="calendar-summary-card__meta">${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes</div>
+        </article>
+
+        <article class="calendar-summary-card">
+          <div class="calendar-summary-card__label">Días operados</div>
+          <div class="calendar-summary-card__value">${summary.activeDays}</div>
+          <div class="calendar-summary-card__meta">${summary.tradeCount} trades cerrados</div>
+        </article>
+
+        <article class="calendar-summary-card">
+          <div class="calendar-summary-card__label">Días ganadores</div>
+          <div class="calendar-summary-card__value metric-positive">${summary.winDays}</div>
+          <div class="calendar-summary-card__meta">${summary.lossDays} días negativos</div>
+        </article>
+
+        <article class="calendar-summary-card">
+          <div class="calendar-summary-card__label">Consistencia</div>
+          <div class="calendar-summary-card__value">${formatPercent(summary.consistencyPct)}</div>
+          <div class="calendar-summary-card__meta">${summary.consistencyLabel}</div>
+        </article>
+      </section>
+
+      <section class="tl-section-card calendar-month-panel">
+        <div class="calendar-month-panel__head">
+          <div>
+            <div class="calendar-month-panel__title">${monthView.label}</div>
+            <div class="calendar-month-panel__sub">El foco es el ritmo diario: qué días ejecutaste, cómo cerraron y qué semanas sostuvieron la curva.</div>
+          </div>
+
+          <div class="calendar-month-panel__legend" aria-label="Leyenda">
+            <span><i class="calendar-legend-dot calendar-legend-dot--win"></i>Positivo</span>
+            <span><i class="calendar-legend-dot calendar-legend-dot--loss"></i>Negativo</span>
+            <span><i class="calendar-legend-dot calendar-legend-dot--idle"></i>Sin operativa</span>
+            <span><i class="calendar-legend-dot calendar-legend-dot--today"></i>Hoy</span>
+          </div>
+        </div>
+
+        <div class="calendar-month-grid">
+          ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
+          ${monthView.cells.map((cell) => {
+            const classes = [
+              "calendar-day",
+              cell.inMonth ? "is-current-month" : "is-outside-month",
+              cell.trades ? "has-trades" : "is-idle",
+              cell.state === "win" ? "is-win" : "",
+              cell.state === "loss" ? "is-loss" : "",
+              cell.isToday ? "is-today" : "",
+              root.__calendarSelectedDay === cell.key ? "is-selected" : ""
+            ].filter(Boolean).join(" ");
+            const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+            return `
+              <button class="${classes}" type="button" ${cell.trades ? `data-calendar-day="${cell.key}"` : "disabled"}>
+                <div class="calendar-day__top">
+                  <span class="calendar-day__date">${cell.date.getDate()}</span>
+                  ${cell.trades ? `<span class="calendar-day__count">${cell.trades}</span>` : ""}
+                </div>
+                <div class="calendar-day__body">
+                  ${cell.trades
+                    ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
+                       <div class="calendar-day__meta">${tradesLabel}</div>`
+                    : `<div class="calendar-day__meta">${cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+                </div>
+              </button>
+            `;
+          }).join("")}
+        </div>
+
+        ${monthView.weeks.length
+          ? `
+            <div class="calendar-week-strip">
+              ${monthView.weeks.map((week) => `
+                <article class="calendar-week-chip">
+                  <div class="calendar-week-chip__label">${week.label}</div>
+                  <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">${formatCurrency(week.pnl)}</div>
+                  <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} trades</div>
+                </article>
+              `).join("")}
+            </div>
+          `
+          : ""}
+      </section>
+    </section>
   `;
 
-  root.querySelectorAll("[data-cumulative-range]").forEach((button) => {
+  root.querySelectorAll("[data-calendar-shift]").forEach((button) => {
     button.addEventListener("click", () => {
-      root.__calendarRange = button.dataset.cumulativeRange;
+      const offset = Number(button.dataset.calendarShift);
+      const nextKey = shiftMonthKey(months, monthKey, offset);
+      if (!nextKey) return;
+      root.__calendarMonthKey = nextKey;
       renderCalendar(root, state);
     });
   });
@@ -187,6 +164,9 @@ export function renderCalendar(root, state) {
   root.querySelectorAll("[data-calendar-day]").forEach((button) => {
     button.addEventListener("click", () => {
       const key = button.dataset.calendarDay;
+      root.__calendarSelectedDay = key;
+      renderCalendar(root, state);
+
       const dayTrades = model.trades.filter((trade) => trade.when.toISOString().slice(0, 10) === key);
       const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
       openModal({
@@ -228,63 +208,150 @@ export function renderCalendar(root, state) {
       });
     });
   });
-
-  mountCharts(root, [
-    lineAreaSpec("calendar-cumulative-return", cumulativeView.curve, {
-      tone: "blue",
-      showAxisBorder: true,
-      axisBorderColor: axisLine,
-      axisBorderWidth: 1,
-      formatter: (value, context) => {
-        const point = cumulativeView.curve[context.dataIndex];
-        return `${formatPercent(value)} · ${formatCurrency(point.pnl)}`;
-      },
-      axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
-      fillAlphaStart: 0.18
-    })
-  ]);
 }
 
-function getCalendarRange(root) {
-  if (!root.__calendarRange) root.__calendarRange = "TOTAL";
-  return root.__calendarRange;
-}
+function buildMonthView(dayStats, monthKey) {
+  const anchorDate = monthKeyToDate(monthKey);
+  const first = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+  const last = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const end = new Date(last);
+  end.setDate(last.getDate() + (6 - last.getDay()));
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const dayMap = new Map(dayStats.map((entry) => [entry.key, entry]));
 
-function getCumulativeView(model, range) {
-  const curve = model.cumulative.curve || [];
-  if (!curve.length) return { curve: [], totalPct: 0, totalUsd: 0, lastUpdate: null };
-  const datedCurve = curve.map((point, index) => ({
-    ...point,
-    when: model.trades[index]?.when || null
-  }));
-  const lastDate = datedCurve[datedCurve.length - 1]?.when || model.cumulative.lastUpdate || new Date();
-  let filtered = datedCurve;
-
-  if (range === "YTD") {
-    filtered = datedCurve.filter((point) => point.when && point.when.getFullYear() === lastDate.getFullYear());
-  } else if (range === "6M") {
-    const cutoff = new Date(lastDate);
-    cutoff.setMonth(cutoff.getMonth() - 6);
-    filtered = datedCurve.filter((point) => point.when && point.when >= cutoff);
-  } else if (range === "1A") {
-    const cutoff = new Date(lastDate);
-    cutoff.setFullYear(cutoff.getFullYear() - 1);
-    filtered = datedCurve.filter((point) => point.when && point.when >= cutoff);
+  const cells = [];
+  const weeks = [];
+  for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+    const key = current.toISOString().slice(0, 10);
+    const day = dayMap.get(key);
+    cells.push({
+      key,
+      inMonth: current.getMonth() === anchorDate.getMonth(),
+      date: new Date(current),
+      pnl: day?.pnl || 0,
+      trades: day?.trades || 0,
+      isToday: key === todayKey,
+      state: !day?.trades ? "idle" : day.pnl >= 0 ? "win" : "loss"
+    });
   }
 
-  if (!filtered.length) filtered = datedCurve;
-  const firstPnl = filtered[0]?.pnl || 0;
-  const normalized = filtered.map((point, index) => ({
-    ...point,
-    value: Number((point.value - (filtered[0]?.value || 0)).toFixed(2)),
-    pnl: point.pnl - firstPnl,
-    label: point.label || `P${index + 1}`
-  }));
+  for (let index = 0; index < cells.length; index += 7) {
+    const slice = cells.slice(index, index + 7);
+    const inMonthSlice = slice.filter((cell) => cell.inMonth);
+    const trades = inMonthSlice.reduce((sum, cell) => sum + cell.trades, 0);
+    const activeDays = inMonthSlice.filter((cell) => cell.trades > 0).length;
+    if (!inMonthSlice.length) continue;
+    weeks.push({
+      label: `Sem ${weeks.length + 1}`,
+      pnl: inMonthSlice.reduce((sum, cell) => sum + cell.pnl, 0),
+      trades,
+      activeDays
+    });
+  }
 
   return {
-    curve: normalized,
-    totalPct: normalized[normalized.length - 1]?.value || 0,
-    totalUsd: normalized[normalized.length - 1]?.pnl || 0,
-    lastUpdate: lastDate
+    key: monthKey,
+    label: anchorDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
+    cells,
+    weeks
   };
+}
+
+function buildMonthSummary(monthView, monthRecord) {
+  const inMonthCells = monthView.cells.filter((cell) => cell.inMonth);
+  const tradedDays = inMonthCells.filter((cell) => cell.trades > 0);
+  const winDays = tradedDays.filter((cell) => cell.pnl > 0).length;
+  const lossDays = tradedDays.filter((cell) => cell.pnl < 0).length;
+  const monthPnl = tradedDays.reduce((sum, cell) => sum + cell.pnl, 0);
+  const tradeCount = tradedDays.reduce((sum, cell) => sum + cell.trades, 0);
+  const base = monthRecord?.startBalance || 0;
+  const activeDays = tradedDays.length;
+  const consistencyPct = activeDays ? (winDays / activeDays) * 100 : 0;
+
+  return {
+    monthPnl,
+    tradeCount,
+    activeDays,
+    winDays,
+    lossDays,
+    monthReturnPct: base ? (monthPnl / base) * 100 : 0,
+    consistencyPct,
+    consistencyLabel: activeDays
+      ? winDays >= lossDays
+        ? "Más días a favor que en contra"
+        : "Mes con presión operativa"
+      : "Todavía sin muestra suficiente"
+  };
+}
+
+function getCalendarMonthKey(root, months) {
+  const latest = months[months.length - 1]?.key || new Date().toISOString().slice(0, 7);
+  if (!root.__calendarMonthKey || !months.some((month) => month.key === root.__calendarMonthKey)) {
+    root.__calendarMonthKey = latest;
+  }
+  return root.__calendarMonthKey;
+}
+
+function shiftMonthKey(months, currentKey, offset) {
+  const index = months.findIndex((month) => month.key === currentKey);
+  if (index === -1) return null;
+  const next = months[index + offset];
+  return next?.key || null;
+}
+
+function monthKeyToDate(key) {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, 1);
+}
+
+function calendarStateMarkup({ tone, title, message }) {
+  return `
+    <section class="calendar-screen">
+      <header class="calendar-screen__header">
+        <div class="calendar-screen__copy">
+          <div class="calendar-screen__eyebrow">Calendario</div>
+          <h1 class="calendar-screen__title">Calendario</h1>
+          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
+        </div>
+      </header>
+
+      <section class="tl-section-card calendar-state calendar-state--${tone}">
+        <h2 class="calendar-state__title">${title}</h2>
+        <p class="calendar-state__message">${message}</p>
+      </section>
+    </section>
+  `;
+}
+
+function calendarLoadingMarkup() {
+  return `
+    <section class="calendar-screen">
+      <header class="calendar-screen__header">
+        <div class="calendar-screen__copy">
+          <div class="calendar-screen__eyebrow">Calendario</div>
+          <h1 class="calendar-screen__title">Calendario</h1>
+          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
+        </div>
+      </header>
+
+      <section class="calendar-summary-strip">
+        ${Array.from({ length: 4 }, () => `
+          <article class="calendar-summary-card">
+            <div class="skeleton" style="height:12px;border-radius:999px;"></div>
+            <div class="skeleton" style="height:28px;margin-top:10px;border-radius:10px;"></div>
+            <div class="skeleton" style="height:10px;margin-top:12px;border-radius:999px;"></div>
+          </article>
+        `).join("")}
+      </section>
+
+      <section class="tl-section-card calendar-month-panel">
+        <div class="calendar-month-grid calendar-month-grid--loading">
+          ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
+          ${Array.from({ length: 35 }, () => `<div class="calendar-day calendar-day--skeleton skeleton"></div>`).join("")}
+        </div>
+      </section>
+    </section>
+  `;
 }
