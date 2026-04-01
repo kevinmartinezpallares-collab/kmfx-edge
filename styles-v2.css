@@ -4705,6 +4705,7 @@ html[data-theme="dark"] .content,
 body[data-theme="dark"] .content,
 [data-theme="dark"] .content {
   padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 html[data-theme="dark"] .content::before,
@@ -4714,25 +4715,51 @@ body[data-theme="dark"] .content::before,
   position: sticky !important;
   top: 0 !important;
   display: block !important;
-  height: 34px !important;
-  margin-bottom: -34px !important;
+  height: 42px !important;
+  margin-bottom: -42px !important;
   z-index: 12 !important;
   pointer-events: none !important;
-  background: rgba(10, 10, 10, 0.22) !important;
-  backdrop-filter: blur(16px) saturate(108%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(108%) !important;
+  background: rgba(10, 10, 10, 0.2) !important;
+  backdrop-filter: blur(18px) saturate(108%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(108%) !important;
   mask-image: linear-gradient(
     to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.86) 28%,
-    rgba(0, 0, 0, 0.86) 68%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.96) 42%,
     transparent 100%
   ) !important;
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.86) 28%,
-    rgba(0, 0, 0, 0.86) 68%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.96) 42%,
+    transparent 100%
+  ) !important;
+}
+
+html[data-theme="dark"] .content::after,
+body[data-theme="dark"] .content::after,
+[data-theme="dark"] .content::after {
+  content: "" !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  display: block !important;
+  height: 42px !important;
+  margin-top: -42px !important;
+  z-index: 12 !important;
+  pointer-events: none !important;
+  background: rgba(10, 10, 10, 0.2) !important;
+  backdrop-filter: blur(18px) saturate(108%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(108%) !important;
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.96) 42%,
+    transparent 100%
+  ) !important;
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.96) 42%,
     transparent 100%
   ) !important;
 }
