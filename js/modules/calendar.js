@@ -1,3 +1,4 @@
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260329-201102";
 import { formatCurrency, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
 import { openModal } from "./modal-system.js?v=build-20260329-201102";
 
@@ -8,39 +9,35 @@ export function renderCalendar(root, state) {
   const model = selectCurrentModel(state);
   const connection = account?.connection || {};
 
-  if (!model && connection.state === "error") {
-    root.innerHTML = calendarStateMarkup({
-      tone: "error",
-      title: "Calendario no disponible",
-      message: "No se pudo cargar la actividad diaria. Revisa la conexión de la cuenta e inténtalo de nuevo."
-    });
-    return;
-  }
-
-  if (!model) {
-    root.innerHTML = calendarLoadingMarkup();
-    return;
-  }
-
-  const dayStats = Array.isArray(model.dayStats) ? model.dayStats : [];
-  const months = Array.isArray(model.monthlyReturns) ? model.monthlyReturns : [];
-
-  if (!dayStats.length || !months.length) {
-    root.innerHTML = calendarStateMarkup({
-      tone: "empty",
-      title: "Todavía no hay sesiones registradas",
-      message: "Cuando entren días operados, aquí verás el patrón mensual, la consistencia y el balance diario."
-    });
-    return;
-  }
-
-  const monthKey = getCalendarMonthKey(root, months);
-  const monthIndex = months.findIndex((month) => month.key === monthKey);
-  const selectedMonth = months[monthIndex] || months[months.length - 1];
+  const dayStats = Array.isArray(model?.dayStats) ? model.dayStats : [];
+  const months = Array.isArray(model?.monthlyReturns) ? model.monthlyReturns : [];
+  const hasModel = Boolean(model);
+  const hasTradingData = dayStats.length > 0 && months.length > 0;
+  const calendarMonths = months.length ? months : [buildFallbackMonthRecord()];
+  const monthKey = getCalendarMonthKey(root, calendarMonths);
+  const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
+  const selectedMonth = calendarMonths[monthIndex] || calendarMonths[calendarMonths.length - 1];
   const monthView = buildMonthView(dayStats, monthKey);
   const summary = buildMonthSummary(monthView, selectedMonth);
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
+  const monthlyCurve = buildMonthlyCurve(months, selectedMonth?.key);
+  const note = !hasModel
+    ? connection.state === "error"
+      ? {
+          tone: "error",
+          text: "No se pudo cargar la actividad diaria. Mostramos la estructura del calendario mientras se recupera la conexión."
+        }
+      : {
+          tone: "loading",
+          text: "Cargando actividad diaria y resumen mensual."
+        }
+    : !hasTradingData
+      ? {
+          tone: "empty",
+          text: "Todavía no hay sesiones registradas. La vista queda preparada para cuando entren días operados."
+        }
+      : null;
 
   if (!hasSelectedDay) root.__calendarSelectedDay = "";
 
@@ -51,6 +48,7 @@ export function renderCalendar(root, state) {
           <div class="calendar-screen__eyebrow">Calendario</div>
           <h1 class="calendar-screen__title">Calendario</h1>
           <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
+          ${note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : ""}
         </div>
 
         <div class="calendar-month-nav" aria-label="Selector de mes">
@@ -59,32 +57,32 @@ export function renderCalendar(root, state) {
             <strong>${monthView.label}</strong>
             <span>${summary.activeDays} días operados</span>
           </div>
-          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= months.length - 1 ? "disabled" : ""}>›</button>
+          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}>›</button>
         </div>
       </header>
 
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">
           <div class="calendar-summary-card__label">P&L del mes</div>
-          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(summary.monthPnl)}</div>
-          <div class="calendar-summary-card__meta">${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes</div>
+          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCurrency(summary.monthPnl) : "—"}</div>
+          <div class="calendar-summary-card__meta">${hasTradingData ? `${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes` : "Sin muestra mensual todavía"}</div>
         </article>
 
         <article class="calendar-summary-card">
           <div class="calendar-summary-card__label">Días operados</div>
-          <div class="calendar-summary-card__value">${summary.activeDays}</div>
-          <div class="calendar-summary-card__meta">${summary.tradeCount} trades cerrados</div>
+          <div class="calendar-summary-card__value">${hasModel ? summary.activeDays : "—"}</div>
+          <div class="calendar-summary-card__meta">${hasTradingData ? `${summary.tradeCount} trades cerrados` : "Actividad pendiente de cargar"}</div>
         </article>
 
         <article class="calendar-summary-card">
           <div class="calendar-summary-card__label">Días ganadores</div>
-          <div class="calendar-summary-card__value metric-positive">${summary.winDays}</div>
-          <div class="calendar-summary-card__meta">${summary.lossDays} días negativos</div>
+          <div class="calendar-summary-card__value metric-positive">${hasModel ? summary.winDays : "—"}</div>
+          <div class="calendar-summary-card__meta">${hasTradingData ? `${summary.lossDays} días negativos` : "Sin sesiones para clasificar"}</div>
         </article>
 
         <article class="calendar-summary-card">
           <div class="calendar-summary-card__label">Consistencia</div>
-          <div class="calendar-summary-card__value">${formatPercent(summary.consistencyPct)}</div>
+          <div class="calendar-summary-card__value">${hasModel ? formatPercent(summary.consistencyPct) : "—"}</div>
           <div class="calendar-summary-card__meta">${summary.consistencyLabel}</div>
         </article>
       </section>
@@ -104,11 +102,12 @@ export function renderCalendar(root, state) {
           </div>
         </div>
 
-        <div class="calendar-month-grid">
+        <div class="calendar-month-grid ${!hasModel ? "calendar-month-grid--loading" : ""}">
           ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
           ${monthView.cells.map((cell) => {
             const classes = [
               "calendar-day",
+              !hasModel ? "calendar-day--skeleton skeleton" : "",
               cell.inMonth ? "is-current-month" : "is-outside-month",
               cell.trades ? "has-trades" : "is-idle",
               cell.state === "win" ? "is-win" : "",
@@ -118,16 +117,16 @@ export function renderCalendar(root, state) {
             ].filter(Boolean).join(" ");
             const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
             return `
-              <button class="${classes}" type="button" ${cell.trades ? `data-calendar-day="${cell.key}"` : "disabled"}>
+              <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
                 <div class="calendar-day__top">
                   <span class="calendar-day__date">${cell.date.getDate()}</span>
-                  ${cell.trades ? `<span class="calendar-day__count">${cell.trades}</span>` : ""}
+                  ${cell.trades && hasModel ? `<span class="calendar-day__count">${cell.trades}</span>` : ""}
                 </div>
                 <div class="calendar-day__body">
-                  ${cell.trades
+                  ${cell.trades && hasModel
                     ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
                        <div class="calendar-day__meta">${tradesLabel}</div>`
-                    : `<div class="calendar-day__meta">${cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+                    : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
                 </div>
               </button>
             `;
@@ -148,6 +147,44 @@ export function renderCalendar(root, state) {
           `
           : ""}
       </section>
+
+      <section class="calendar-analytics-grid">
+        <article class="tl-section-card chart-card calendar-chart-panel">
+          <div class="calendar-panel-head">
+            <div>
+              <div class="calendar-panel-title">Rentabilidad acumulada</div>
+              <div class="calendar-panel-sub">${hasTradingData ? "Lectura mensual acumulada para detectar tracción y pausas." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
+            </div>
+          </div>
+          <div class="calendar-chart-wrap">
+            ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature")}
+          </div>
+        </article>
+
+        <article class="tl-section-card table-card calendar-returns-panel">
+          <div class="calendar-panel-head">
+            <div>
+              <div class="calendar-panel-title">Rentabilidad mensual</div>
+              <div class="calendar-panel-sub">${hasTradingData ? "Resumen corto para leer ritmo mensual y cierre de cada periodo." : "La tabla se activará cuando existan meses cerrados."}</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mes</th>
+                  <th>P&L</th>
+                  <th>Retorno</th>
+                  <th>Trades</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${buildMonthlyRows(months, hasModel)}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
     </section>
   `;
 
@@ -167,7 +204,7 @@ export function renderCalendar(root, state) {
       root.__calendarSelectedDay = key;
       renderCalendar(root, state);
 
-      const dayTrades = model.trades.filter((trade) => trade.when.toISOString().slice(0, 10) === key);
+      const dayTrades = (model?.trades || []).filter((trade) => trade.when.toISOString().slice(0, 10) === key);
       const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
       openModal({
         title: `Detalle del ${new Date(key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}`,
@@ -208,6 +245,33 @@ export function renderCalendar(root, state) {
       });
     });
   });
+
+  if (hasModel) {
+    mountCharts(root, [
+      lineAreaSpec("calendar-cumulative-return", monthlyCurve, {
+        tone: "blue",
+        showXAxis: true,
+        showYAxis: true,
+        showYGrid: false,
+        showAxisBorder: false,
+        axisFontSize: 10,
+        axisFontWeight: "600",
+        xTickPadding: 6,
+        yTickPadding: 10,
+        maxXTicks: 6,
+        maxYTicks: 4,
+        borderWidth: 2.3,
+        fill: true,
+        fillAlphaStart: 0.16,
+        fillAlphaEnd: 0,
+        glowAlpha: 0.08,
+        tension: 0.42,
+        yHeadroomRatio: 0.1,
+        yBottomPaddingRatio: 0.06,
+        axisFormatter: (value) => formatCompactNumber(value)
+      })
+    ]);
+  }
 }
 
 function buildMonthView(dayStats, monthKey) {
@@ -286,6 +350,85 @@ function buildMonthSummary(monthView, monthRecord) {
   };
 }
 
+function buildMonthlyCurve(months, selectedMonthKey) {
+  if (!months.length) {
+    return buildEmptyCurve(selectedMonthKey);
+  }
+
+  let cumulative = 0;
+  const visibleMonths = months.slice(-6);
+  return visibleMonths.map((month) => {
+    cumulative += Number(month.pnl || 0);
+    return {
+      label: month.label,
+      value: cumulative
+    };
+  });
+}
+
+function buildMonthlyRows(months, hasModel) {
+  if (!hasModel) {
+    return Array.from({ length: 4 }, () => `
+      <tr>
+        <td colspan="4"><div class="calendar-table-placeholder skeleton"></div></td>
+      </tr>
+    `).join("");
+  }
+
+  if (!months.length) {
+    return `
+      <tr class="calendar-table-empty">
+        <td colspan="4">Todavía no hay meses cerrados para mostrar rentabilidad.</td>
+      </tr>
+    `;
+  }
+
+  return [...months].reverse().map((month) => `
+    <tr>
+      <td>${month.label}</td>
+      <td class="${month.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(month.pnl)}</td>
+      <td class="${month.returnPct >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(month.returnPct)}</td>
+      <td>${month.trades}</td>
+    </tr>
+  `).join("");
+}
+
+function buildFallbackMonthRecord() {
+  const date = new Date();
+  return {
+    key: date.toISOString().slice(0, 7),
+    label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+    pnl: 0,
+    trades: 0,
+    startBalance: 0,
+    returnPct: 0
+  };
+}
+
+function buildEmptyCurve(monthKey) {
+  const anchor = monthKeyToDate(monthKey || new Date().toISOString().slice(0, 7));
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(anchor.getFullYear(), anchor.getMonth() - (5 - index), 1);
+    return {
+      label: date.toLocaleDateString("es-ES", { month: "short" }),
+      value: 0
+    };
+  });
+}
+
+function formatCompactNumber(value) {
+  const numeric = Number(value || 0);
+  if (Math.abs(numeric) >= 1000) {
+    return new Intl.NumberFormat("es-ES", {
+      notation: "compact",
+      maximumFractionDigits: 1
+    }).format(numeric);
+  }
+  return new Intl.NumberFormat("es-ES", {
+    maximumFractionDigits: 0
+  }).format(numeric);
+}
+
 function getCalendarMonthKey(root, months) {
   const latest = months[months.length - 1]?.key || new Date().toISOString().slice(0, 7);
   if (!root.__calendarMonthKey || !months.some((month) => month.key === root.__calendarMonthKey)) {
@@ -304,54 +447,4 @@ function shiftMonthKey(months, currentKey, offset) {
 function monthKeyToDate(key) {
   const [year, month] = key.split("-").map(Number);
   return new Date(year, (month || 1) - 1, 1);
-}
-
-function calendarStateMarkup({ tone, title, message }) {
-  return `
-    <section class="calendar-screen">
-      <header class="calendar-screen__header">
-        <div class="calendar-screen__copy">
-          <div class="calendar-screen__eyebrow">Calendario</div>
-          <h1 class="calendar-screen__title">Calendario</h1>
-          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
-        </div>
-      </header>
-
-      <section class="tl-section-card calendar-state calendar-state--${tone}">
-        <h2 class="calendar-state__title">${title}</h2>
-        <p class="calendar-state__message">${message}</p>
-      </section>
-    </section>
-  `;
-}
-
-function calendarLoadingMarkup() {
-  return `
-    <section class="calendar-screen">
-      <header class="calendar-screen__header">
-        <div class="calendar-screen__copy">
-          <div class="calendar-screen__eyebrow">Calendario</div>
-          <h1 class="calendar-screen__title">Calendario</h1>
-          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
-        </div>
-      </header>
-
-      <section class="calendar-summary-strip">
-        ${Array.from({ length: 4 }, () => `
-          <article class="calendar-summary-card">
-            <div class="skeleton" style="height:12px;border-radius:999px;"></div>
-            <div class="skeleton" style="height:28px;margin-top:10px;border-radius:10px;"></div>
-            <div class="skeleton" style="height:10px;margin-top:12px;border-radius:999px;"></div>
-          </article>
-        `).join("")}
-      </section>
-
-      <section class="tl-section-card calendar-month-panel">
-        <div class="calendar-month-grid calendar-month-grid--loading">
-          ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
-          ${Array.from({ length: 35 }, () => `<div class="calendar-day calendar-day--skeleton skeleton"></div>`).join("")}
-        </div>
-      </section>
-    </section>
-  `;
 }
