@@ -426,6 +426,35 @@ const glowLinePlugin = {
   }
 };
 
+const areaMaskPlugin = {
+  id: "kmfxAreaMask",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (pluginOptions === false || !pluginOptions) return;
+    const { ctx, chartArea } = chart;
+    if (!ctx || !chartArea) return;
+
+    const left = chartArea.left;
+    const top = chartArea.top;
+    const width = chartArea.right - chartArea.left;
+    const height = chartArea.bottom - chartArea.top;
+    if (width <= 0 || height <= 0) return;
+
+    const innerStart = pluginOptions.innerStart ?? 0.08;
+    const innerEnd = pluginOptions.innerEnd ?? 0.92;
+    const gradient = ctx.createLinearGradient(left, 0, left + width, 0);
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(innerStart, "rgba(0,0,0,1)");
+    gradient.addColorStop(innerEnd, "rgba(0,0,0,1)");
+    gradient.addColorStop(1, "rgba(0,0,0,0)");
+
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.fillStyle = gradient;
+    ctx.fillRect(left, top, width, height);
+    ctx.restore();
+  }
+};
+
 const crosshairPlugin = {
   id: "kmfxCrosshair",
   afterDatasetsDraw(chart, args, pluginOptions) {
@@ -801,7 +830,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
+  ChartLib.register(glowLinePlugin, areaMaskPlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -975,6 +1004,12 @@ function createLineAreaChart(ChartLib, canvas, spec) {
       },
       plugins: {
         ...buildBaseOptions(spec).plugins,
+        kmfxAreaMask: spec.areaSideFade === true
+          ? {
+              innerStart: spec.areaSideFadeStart ?? 0.08,
+              innerEnd: spec.areaSideFadeEnd ?? 0.92
+            }
+          : false,
         kmfxCrosshair: spec.crosshair === false ? false : { color: withAlpha(start, spec.crosshairAlpha ?? 0.12), lineWidth: 0.85 },
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
