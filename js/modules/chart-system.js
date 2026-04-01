@@ -394,13 +394,6 @@ function computeYHeadroom(spec) {
   const topPad = span * (spec.yHeadroomRatio ?? 0.12);
   const bottomPad = span * (spec.yBottomPaddingRatio ?? 0.04);
 
-  if (min >= 0) {
-    return {
-      suggestedMin: Math.max(0, min - bottomPad),
-      suggestedMax: max + topPad
-    };
-  }
-
   return {
     suggestedMin: min - bottomPad,
     suggestedMax: max + topPad
