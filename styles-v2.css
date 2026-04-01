@@ -3645,9 +3645,9 @@ body[data-theme="dark"] .calendar-day.has-trades .calendar-day__meta {
 
 html[data-theme="dark"] .calendar-matrix-cell--active,
 body[data-theme="dark"] .calendar-matrix-cell--active {
-  background: rgba(255, 255, 255, 0.026) !important;
+  background: transparent !important;
   box-shadow: none !important;
-  font-weight: 600 !important;
+  font-weight: inherit !important;
 }
 
 html[data-theme="dark"] .calendar-returns-panel tfoot th,
