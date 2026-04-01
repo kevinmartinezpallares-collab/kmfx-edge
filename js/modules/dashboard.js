@@ -199,8 +199,8 @@ export function renderDashboard(root, state) {
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.014 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
-      yHeadroomRatio: 0.0005,
-      yBottomPaddingRatio: -0.02,
+      yHeadroomRatio: 0.022,
+      yBottomPaddingRatio: -0.004,
       showAxisBorder: false,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
