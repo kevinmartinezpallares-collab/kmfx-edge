@@ -79,7 +79,7 @@ export function initNavigation(store) {
       pages.forEach((panel) => panel.classList.toggle("active", panel.id === `page-${activePage}`));
     }
 
-    if (topbarTitle) topbarTitle.textContent = pageTitle[activePage] || "Panel";
+    if (topbarTitle) topbarTitle.textContent = "";
     if (topbarContext) topbarContext.textContent = pageContext[activePage] || "";
 
     analyticsTabs?.querySelectorAll(".tl-tab").forEach((item) => {
