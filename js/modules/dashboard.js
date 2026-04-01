@@ -85,6 +85,10 @@ export function renderDashboard(root, state) {
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
+  const totalPnlDisplay = formatCurrency(Math.abs(model.totals.pnl));
+  const totalReturnDisplay = formatPercent(Math.abs(cumulativeReturn)).replace(/^[+-]/, "");
+  const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
+  const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
   const latestDay = model.dayStats?.at?.(-1) || model.weekly?.at?.(-1) || { pnl: 0 };
   const accountStateLabel = account.compliance?.riskStatus === "violation"
@@ -228,14 +232,14 @@ export function renderDashboard(root, state) {
                   <div class="metric-line">
                     <span class="metric-line-label">PnL total</span>
                     <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-                      ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
+                      ${totalPnlDisplay} (${totalReturnDisplay})
                     </strong>
                   </div>
 
                   <div class="metric-line">
                     <span class="metric-line-label">Rango (${heroRangeLabel})</span>
                     <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                      ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
+                      ${heroRangeValueDisplay} (${heroRangePctDisplay})
                     </strong>
                   </div>
                 </div>

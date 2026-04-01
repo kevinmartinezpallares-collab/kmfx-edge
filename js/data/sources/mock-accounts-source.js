@@ -49,17 +49,17 @@ const baseMockPayload = {
     { id: 5, date: "2026-03-05T10:50:00", symbol: "USDJPY", side: "SELL", pnl: -125, rMultiple: -0.7, setup: "Session fade", session: "London", durationMin: 33 },
     { id: 6, date: "2026-03-05T15:10:00", symbol: "XAUUSD", side: "SELL", pnl: 520, rMultiple: 2.8, setup: "NY reversal", session: "New York", durationMin: 74 },
     { id: 7, date: "2026-03-06T09:25:00", symbol: "NAS100", side: "BUY", pnl: 605, rMultiple: 3.1, setup: "Open drive", session: "London", durationMin: 37 },
-    { id: 8, date: "2026-03-09T08:40:00", symbol: "EURUSD", side: "SELL", pnl: -210, rMultiple: -1.1, setup: "Breakout fail", session: "London", durationMin: 45 },
-    { id: 9, date: "2026-03-09T13:45:00", symbol: "US30", side: "BUY", pnl: 365, rMultiple: 1.8, setup: "NY continuation", session: "New York", durationMin: 88 },
-    { id: 10, date: "2026-03-10T09:05:00", symbol: "GBPUSD", side: "BUY", pnl: 285, rMultiple: 1.4, setup: "Range expansion", session: "London", durationMin: 63 },
-    { id: 11, date: "2026-03-11T08:15:00", symbol: "EURUSD", side: "BUY", pnl: 195, rMultiple: 1.0, setup: "VWAP reclaim", session: "London", durationMin: 58 },
-    { id: 12, date: "2026-03-12T14:05:00", symbol: "XAUUSD", side: "SELL", pnl: -240, rMultiple: -1.2, setup: "Fade failed", session: "New York", durationMin: 29 },
-    { id: 13, date: "2026-03-13T09:45:00", symbol: "EURUSD", side: "BUY", pnl: 450, rMultiple: 2.1, setup: "Macro drift", session: "London", durationMin: 104 },
-    { id: 14, date: "2026-03-16T08:55:00", symbol: "NAS100", side: "SELL", pnl: 340, rMultiple: 1.7, setup: "Open rejection", session: "London", durationMin: 46 },
-    { id: 15, date: "2026-03-16T15:35:00", symbol: "XAUUSD", side: "BUY", pnl: 295, rMultiple: 1.5, setup: "Momentum continuation", session: "New York", durationMin: 53 },
+    { id: 8, date: "2026-03-09T08:40:00", symbol: "EURUSD", side: "SELL", pnl: -980, rMultiple: -2.1, setup: "Breakout fail", session: "London", durationMin: 45 },
+    { id: 9, date: "2026-03-09T13:45:00", symbol: "US30", side: "BUY", pnl: -540, rMultiple: -1.5, setup: "NY continuation failed", session: "New York", durationMin: 88 },
+    { id: 10, date: "2026-03-10T09:05:00", symbol: "GBPUSD", side: "BUY", pnl: -420, rMultiple: -1.2, setup: "Range expansion failure", session: "London", durationMin: 63 },
+    { id: 11, date: "2026-03-11T08:15:00", symbol: "EURUSD", side: "BUY", pnl: -160, rMultiple: -0.6, setup: "VWAP reclaim fade", session: "London", durationMin: 58 },
+    { id: 12, date: "2026-03-12T14:05:00", symbol: "XAUUSD", side: "SELL", pnl: -610, rMultiple: -1.9, setup: "Fade failed", session: "New York", durationMin: 29 },
+    { id: 13, date: "2026-03-13T09:45:00", symbol: "EURUSD", side: "BUY", pnl: 920, rMultiple: 3.0, setup: "Macro drift recovery", session: "London", durationMin: 104 },
+    { id: 14, date: "2026-03-16T08:55:00", symbol: "NAS100", side: "SELL", pnl: 740, rMultiple: 2.5, setup: "Open rejection recovery", session: "London", durationMin: 46 },
+    { id: 15, date: "2026-03-16T15:35:00", symbol: "XAUUSD", side: "BUY", pnl: 680, rMultiple: 2.4, setup: "Momentum continuation", session: "New York", durationMin: 53 },
     { id: 16, date: "2026-03-17T09:20:00", symbol: "GBPUSD", side: "SELL", pnl: -145, rMultiple: -0.8, setup: "Countertrend", session: "London", durationMin: 34 },
-    { id: 17, date: "2026-03-18T08:05:00", symbol: "EURUSD", side: "BUY", pnl: 260, rMultiple: 1.4, setup: "Asia range break", session: "London", durationMin: 62 },
-    { id: 18, date: "2026-03-18T14:25:00", symbol: "US30", side: "SELL", pnl: 385, rMultiple: 2.0, setup: "NY fade", session: "New York", durationMin: 48 }
+    { id: 17, date: "2026-03-18T08:05:00", symbol: "EURUSD", side: "BUY", pnl: 860, rMultiple: 2.7, setup: "Asia range break", session: "London", durationMin: 62 },
+    { id: 18, date: "2026-03-18T14:25:00", symbol: "US30", side: "SELL", pnl: 1120, rMultiple: 3.4, setup: "NY fade recovery", session: "New York", durationMin: 48 }
   ]
 };
 
@@ -87,10 +87,10 @@ function createPayloadVariant(overrides = {}) {
 
 const fundedTrades = baseMockPayload.trades.map((trade, index) => ({
   ...trade,
-  pnl: Math.round(trade.pnl * 0.68 + (index % 3 === 0 ? 40 : -15)),
-  rMultiple: Number((trade.rMultiple * 0.9).toFixed(1)),
+  pnl: Math.round(trade.pnl * 0.42 - (index % 2 === 0 ? 260 : 190)),
+  rMultiple: Number((trade.rMultiple * 0.72).toFixed(1)),
   durationMin: trade.durationMin + (index % 2 === 0 ? 6 : -4),
-  setup: index % 4 === 0 ? "Funded continuation" : trade.setup
+  setup: index % 4 === 0 ? "Funded stress test" : trade.setup
 }));
 
 const swingTrades = baseMockPayload.trades.map((trade, index) => ({
@@ -125,8 +125,8 @@ export const rawMockAccounts = {
       },
       account: {
         balance: 80250,
-        equity: 80890,
-        openPnl: 640,
+        equity: 79610,
+        openPnl: -640,
         winRateTarget: 58,
         profitFactorTarget: 2,
         maxDrawdownLimit: 8

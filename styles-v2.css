@@ -2665,6 +2665,13 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-
   }
 }
 
+/* Hero I — quieter secondary metric values */
+html[data-theme="dark"] .account-banner--hero-refined .metric-line strong,
+body[data-theme="dark"] .account-banner--hero-refined .metric-line strong {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+
 /* 2. Evitar nested cards */
 html[data-theme="dark"] .widget-card .widget-card,
 html[data-theme="dark"] .widget-card .kpi-card,
