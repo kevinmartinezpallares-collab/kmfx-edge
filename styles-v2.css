@@ -2511,6 +2511,23 @@ body[data-theme="dark"] .calendar-month-nav__label span {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .calendar-value-toggle,
+body[data-theme="dark"] .calendar-value-toggle {
+  margin-left: 4px;
+  flex-shrink: 0;
+  padding: 2px !important;
+  background: rgba(255, 255, 255, 0.028) !important;
+  border-color: rgba(255, 255, 255, 0.055) !important;
+}
+
+html[data-theme="dark"] .calendar-value-toggle .widget-segmented-btn,
+body[data-theme="dark"] .calendar-value-toggle .widget-segmented-btn {
+  min-height: 28px !important;
+  padding: 5px 9px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.06em !important;
+}
+
 html[data-theme="dark"] .calendar-summary-strip,
 body[data-theme="dark"] .calendar-summary-strip {
   display: grid;
@@ -3014,6 +3031,12 @@ body[data-theme="dark"] .calendar-month-grid--loading .calendar-day--skeleton {
   html[data-theme="dark"] .calendar-day__meta,
   body[data-theme="dark"] .calendar-day__meta {
     font-size: 10px;
+  }
+
+  html[data-theme="dark"] .calendar-value-toggle,
+  body[data-theme="dark"] .calendar-value-toggle {
+    order: 3;
+    margin-left: 0;
   }
 }
 

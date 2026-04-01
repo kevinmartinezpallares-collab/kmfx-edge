@@ -31,6 +31,7 @@ export function renderCalendar(root, state) {
   const monthKey = getCalendarMonthKey(root, calendarMonths, latestMonthKey);
   const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
   const selectedMonth = calendarMonths[monthIndex] || calendarMonths[calendarMonths.length - 1];
+  const valueMode = getCalendarValueMode(root);
   const monthView = buildMonthView(dayStats, monthKey);
   const summary = buildMonthSummary(monthView, selectedMonth);
   const selectedDayKey = root.__calendarSelectedDay;
@@ -49,6 +50,7 @@ export function renderCalendar(root, state) {
     dayStatsCount: dayStats.length,
     monthlyReturnsCount: months.length,
     selectedMonth: selectedMonth?.key || monthKey,
+    valueMode,
     tradedDaysInSelectedMonth: tradedCells.length,
     cellsSample: tradedSample
   };
@@ -88,6 +90,10 @@ export function renderCalendar(root, state) {
             <strong>${monthView.label}</strong>
             <span>${summary.activeDays} días operados</span>
           </div>
+          <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
+            <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
+            <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
+          </div>
           <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}>›</button>
         </div>
       </header>
@@ -95,8 +101,8 @@ export function renderCalendar(root, state) {
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">
           <div class="calendar-summary-card__label">P&L del mes</div>
-          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCurrency(summary.monthPnl) : "—"}</div>
-          <div class="calendar-summary-card__meta">${hasTradingData ? `${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes` : "Sin muestra mensual todavía"}</div>
+          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCalendarValue(summary.monthPnl, valueMode, selectedMonth?.startBalance) : "—"}</div>
+          <div class="calendar-summary-card__meta">${hasTradingData ? valueMode === "usd" ? `${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes` : "Rentabilidad del mes sobre balance inicial" : "Sin muestra mensual todavía"}</div>
         </article>
 
         <article class="calendar-summary-card">
@@ -157,7 +163,7 @@ export function renderCalendar(root, state) {
                 </div>
                 <div class="calendar-day__body">
                   ${cell.trades && hasModel
-                    ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
+                    ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance)}</div>
                        <div class="calendar-day__meta">${tradesLabel}</div>`
                     : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
                 </div>
@@ -238,6 +244,14 @@ export function renderCalendar(root, state) {
       const nextKey = shiftMonthKey(calendarMonths, monthKey, offset);
       if (!nextKey) return;
       root.__calendarMonthKey = nextKey;
+      renderCalendar(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-calendar-value-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextMode = button.dataset.calendarValueMode === "percent" ? "percent" : "usd";
+      root.__calendarValueMode = nextMode;
       renderCalendar(root, state);
     });
   });
@@ -540,6 +554,22 @@ function getCalendarMonthKey(root, months, preferredKey) {
     root.__calendarMonthKey = latest;
   }
   return root.__calendarMonthKey;
+}
+
+function getCalendarValueMode(root) {
+  if (root.__calendarValueMode !== "percent") {
+    root.__calendarValueMode = "usd";
+  }
+  return root.__calendarValueMode;
+}
+
+function formatCalendarValue(value, mode, baseAmount) {
+  if (mode === "percent") {
+    const base = Number(baseAmount || 0);
+    const pct = base ? (Number(value || 0) / base) * 100 : 0;
+    return formatPercent(pct);
+  }
+  return formatCurrency(value);
 }
 
 function shiftMonthKey(months, currentKey, offset) {
