@@ -159,7 +159,6 @@ export function renderCalendar(root, state) {
               <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
                 <div class="calendar-day__top">
                   <span class="calendar-day__date">${cell.date.getDate()}</span>
-                  ${cell.trades && hasModel ? `<span class="calendar-day__count">${cell.trades}</span>` : ""}
                 </div>
                 <div class="calendar-day__body">
                   ${cell.trades && hasModel

@@ -3576,6 +3576,19 @@ body[data-theme="dark"] .calendar-day::after {
   content: none !important;
 }
 
+html[data-theme="dark"] .calendar-day::before,
+body[data-theme="dark"] .calendar-day::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 999px;
+  opacity: 0;
+  background: transparent;
+}
+
 html[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta,
 body[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta {
   color: var(--text-2) !important;
@@ -3600,6 +3613,18 @@ body[data-theme="dark"] .calendar-day.has-trades.is-loss {
   border-color: rgba(255, 255, 255, 0.045) !important;
 }
 
+html[data-theme="dark"] .calendar-day.has-trades.is-win::before,
+body[data-theme="dark"] .calendar-day.has-trades.is-win::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--positive) 76%, white 24%);
+}
+
+html[data-theme="dark"] .calendar-day.has-trades.is-loss::before,
+body[data-theme="dark"] .calendar-day.has-trades.is-loss::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--negative) 74%, white 26%);
+}
+
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win {
   background: rgba(255, 255, 255, 0.018) !important;
@@ -3622,8 +3647,6 @@ body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss {
 
 html[data-theme="dark"] .calendar-day.has-trades .calendar-day__count,
 body[data-theme="dark"] .calendar-day.has-trades .calendar-day__count {
-  background: rgba(255, 255, 255, 0.045) !important;
-  border-color: rgba(255, 255, 255, 0.055) !important;
   color: var(--text-1) !important;
 }
 
