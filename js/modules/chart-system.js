@@ -920,6 +920,14 @@ function createLineAreaChart(ChartLib, canvas, spec) {
     },
     options: {
       ...buildBaseOptions(spec),
+      layout: {
+        padding: {
+          left: spec.layoutPaddingLeft ?? 0,
+          right: spec.layoutPaddingRight ?? 0,
+          top: spec.layoutPaddingTop ?? 0,
+          bottom: spec.layoutPaddingBottom ?? 0
+        }
+      },
       scales: {
         x: {
           display: spec.showXAxis ?? (spec.showAxes ?? true),

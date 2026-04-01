@@ -190,7 +190,7 @@ export function renderDashboard(root, state) {
       fillAlphaStart: isDarkTheme ? 0.32 : 0.05,
       fillAlphaEnd: isDarkTheme ? 0.005 : 0,
       glowAlpha: 0.18,
-      tension: 0.74,
+      tension: 0.82,
       axisColor: axisStandard,
       axisFontSize: 9,
       axisFontWeight: "500",
@@ -199,8 +199,12 @@ export function renderDashboard(root, state) {
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.014 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
-      yHeadroomRatio: 0.022,
-      yBottomPaddingRatio: -0.004,
+      yHeadroomRatio: 0.018,
+      yBottomPaddingRatio: -0.001,
+      layoutPaddingTop: 10,
+      layoutPaddingBottom: 10,
+      layoutPaddingLeft: 2,
+      layoutPaddingRight: 2,
       showAxisBorder: false,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
