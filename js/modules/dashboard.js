@@ -62,9 +62,9 @@ function getHeroRangePoints(range, curve) {
 }
 
 function riskStateDisplayLabel(riskState) {
-  if (riskState === "LOCKED" || riskState === "DANGER") return "DANGER";
-  if (riskState === "CAUTION") return "WATCH";
-  return "SAFE";
+  if (riskState === "LOCKED" || riskState === "DANGER") return "RIESGO";
+  if (riskState === "CAUTION") return "VIGILANCIA";
+  return "SEGURO";
 }
 
 export function renderDashboard(root, state) {
