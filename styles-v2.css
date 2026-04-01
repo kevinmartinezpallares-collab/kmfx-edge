@@ -4707,6 +4707,27 @@ body[data-theme="dark"] .content,
   padding-top: 0 !important;
 }
 
+html[data-theme="dark"] .content::before,
+body[data-theme="dark"] .content::before,
+[data-theme="dark"] .content::before {
+  content: "" !important;
+  position: sticky !important;
+  top: 0 !important;
+  display: block !important;
+  height: 18px !important;
+  margin-bottom: -18px !important;
+  z-index: 12 !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 10, 0.3) 0%,
+    rgba(10, 10, 10, 0.17) 48%,
+    rgba(10, 10, 10, 0) 100%
+  ) !important;
+  backdrop-filter: blur(12px) saturate(108%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(108%) !important;
+}
+
 html[data-theme="dark"] .content-sticky-header,
 body[data-theme="dark"] .content-sticky-header {
   position: sticky !important;
@@ -4715,12 +4736,12 @@ body[data-theme="dark"] .content-sticky-header {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 12px !important;
+  gap: 0 !important;
   width: fit-content !important;
-  max-width: min(520px, calc(100vw - 320px)) !important;
+  max-width: min(260px, calc(100vw - 320px)) !important;
   min-height: 0 !important;
-  padding: 7px 12px !important;
-  margin: 0 0 4px !important;
+  padding: 7px 11px !important;
+  margin: 0 0 4px auto !important;
   border-radius: 999px !important;
   background: rgba(10, 10, 10, 0.42) !important;
   border: 1px solid rgba(255, 255, 255, 0.045) !important;
@@ -4731,25 +4752,7 @@ body[data-theme="dark"] .content-sticky-header {
 
 html[data-theme="dark"] .content-sticky-header__context,
 body[data-theme="dark"] .content-sticky-header__context {
-  display: inline-flex !important;
-  align-items: center !important;
-  min-width: 0 !important;
-  width: fit-content !important;
-  max-width: min(250px, 42vw) !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  font-size: 10px !important;
-  line-height: 1.2 !important;
-  color: var(--text-2) !important;
-  opacity: 0.72 !important;
-  background: transparent !important;
-  border: 0 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  display: none !important;
 }
 
 html[data-theme="dark"] .content-sticky-header__meta,
@@ -4774,7 +4777,7 @@ body[data-theme="dark"] .content-sticky-header .topbar-user-card {
 
 html[data-theme="dark"] .content-sticky-header .topbar-user-shell,
 body[data-theme="dark"] .content-sticky-header .topbar-user-shell {
-  gap: 6px !important;
+  gap: 0 !important;
   width: fit-content !important;
 }
 
