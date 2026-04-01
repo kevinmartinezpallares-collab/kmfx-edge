@@ -4643,14 +4643,14 @@ body[data-theme="dark"] .meta-clock {
 /* Topbar micro-compaction — avatar attached to time */
 html[data-theme="dark"] .topbar-meta,
 body[data-theme="dark"] .topbar-meta {
-  gap: 2px !important;
+  gap: 1px !important;
 }
 
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
-  min-height: 40px !important;
-  padding: 6px 18px !important;
-  gap: 10px !important;
+  min-height: 34px !important;
+  padding: 4px 18px !important;
+  gap: 8px !important;
 }
 
 html[data-theme="dark"] .topbar-brand,
@@ -4676,7 +4676,7 @@ body[data-theme="dark"] .topbar-sub {
 
 html[data-theme="dark"] .topbar-user-shell,
 body[data-theme="dark"] .topbar-user-shell {
-  gap: 2px !important;
+  gap: 1px !important;
 }
 
 /* Topbar scroll polish — integrated glass shell */
@@ -4710,7 +4710,7 @@ html[data-theme="dark"] .topbar-time-stack,
 body[data-theme="dark"] .topbar-time-stack {
   display: flex !important;
   align-items: baseline !important;
-  gap: 6px !important;
+  gap: 5px !important;
   margin-left: 0 !important;
   padding-left: 0 !important;
   min-width: auto !important;
