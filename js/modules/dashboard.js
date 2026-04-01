@@ -156,7 +156,7 @@ export function renderDashboard(root, state) {
       layoutPaddingBottom: 0,
       layoutPaddingLeft: 2,
       layoutPaddingRight: 2,
-      showAxisBorder: true,
+      showAxisBorder: false,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
         const delta = value - prev;
