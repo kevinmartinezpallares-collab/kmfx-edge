@@ -1,6 +1,6 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260329-201102";
-import { formatCurrency, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
-import { openModal } from "./modal-system.js?v=build-20260329-201102";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
+import { formatCurrency, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { openModal } from "./modal-system.js?v=build-20260401-203500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 

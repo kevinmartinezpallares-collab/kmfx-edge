@@ -1,5 +1,5 @@
-import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
-import { barChartSpec, chartCanvas, mountCharts } from "./chart-system.js?v=build-20260329-201102";
+import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { barChartSpec, chartCanvas, mountCharts } from "./chart-system.js?v=build-20260401-203500";
 
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));

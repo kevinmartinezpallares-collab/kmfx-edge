@@ -1,10 +1,10 @@
-import { formatCurrency, formatDateTime, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
-import { badgeMarkup, getRiskStatusMeta } from "./status-badges.js?v=build-20260329-201102";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260329-201102";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260329-201102";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260329-201102";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260329-201102";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260329-201102";
+import { formatCurrency, formatDateTime, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { badgeMarkup, getRiskStatusMeta } from "./status-badges.js?v=build-20260401-203500";
+import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
+import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260401-203500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260401-203500";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260401-203500";
 
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [

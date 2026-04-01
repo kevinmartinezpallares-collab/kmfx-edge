@@ -1,7 +1,7 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260329-201102";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260329-201102";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260329-201102";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260329-201102";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
+import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
+import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260401-203500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
