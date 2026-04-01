@@ -2084,10 +2084,10 @@ html[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-
 body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz .kmfx-chart-shell--hero::after {
   content: "";
   position: absolute;
-  top: 4px;
+  top: 0;
   right: 0;
-  bottom: 18px;
-  left: 44px;
+  bottom: 30px;
+  left: 62px;
   pointer-events: none;
   background: linear-gradient(
     to right,
