@@ -4706,6 +4706,77 @@ body[data-theme="dark"] .content,
   padding-top: 0 !important;
 }
 
+html[data-theme="dark"] .content-sticky-header,
+body[data-theme="dark"] .content-sticky-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 18 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-height: 34px !important;
+  padding: 4px 0 !important;
+  margin-bottom: 2px !important;
+  background: rgba(10, 10, 10, 0.42) !important;
+  backdrop-filter: blur(18px) saturate(112%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(112%) !important;
+}
+
+html[data-theme="dark"] .content-sticky-header__context,
+body[data-theme="dark"] .content-sticky-header__context {
+  min-width: 0 !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  color: var(--text-2) !important;
+  opacity: 0.62 !important;
+  max-width: 280px !important;
+}
+
+html[data-theme="dark"] .content-sticky-header__meta,
+body[data-theme="dark"] .content-sticky-header__meta {
+  margin-left: auto !important;
+}
+
+html[data-theme="dark"] .content-sticky-header .topbar-user-card,
+body[data-theme="dark"] .content-sticky-header .topbar-user-card {
+  display: none !important;
+}
+
+html[data-theme="dark"] .content-sticky-header .topbar-user-shell,
+body[data-theme="dark"] .content-sticky-header .topbar-user-shell {
+  gap: 1px !important;
+}
+
+html[data-theme="dark"] .content-sticky-header .topbar-time-stack,
+body[data-theme="dark"] .content-sticky-header .topbar-time-stack {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 5px !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  min-width: auto !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .content-sticky-header .meta-date,
+body[data-theme="dark"] .content-sticky-header .meta-date {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  color: var(--text-2) !important;
+  opacity: 0.68 !important;
+}
+
+html[data-theme="dark"] .content-sticky-header .meta-clock,
+body[data-theme="dark"] .content-sticky-header .meta-clock {
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
+  color: var(--text-0) !important;
+}
+
 html[data-theme="dark"] .topbar::before,
 html[data-theme="dark"] .topbar::after,
 body[data-theme="dark"] .topbar::before,

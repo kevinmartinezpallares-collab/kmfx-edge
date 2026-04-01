@@ -133,39 +133,11 @@
     </aside>
 
     <main class="main-panel">
-      <header class="topbar">
-        <div class="topbar-brand">
-          <div class="topbar-title" id="topbarTitle">Panel</div>
-          <div class="topbar-sub" id="topbarContext"></div>
-        </div>
-        <div class="topbar-meta">
-          <div class="theme-toggle-badge" role="group" aria-label="Cambiar tema">
-            <button class="theme-badge-option" type="button" data-theme-toggle data-theme-value="light" aria-pressed="false" title="Cambiar a tema claro">
-              <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v2.2"></path>
-                <path d="M12 19.8V22"></path>
-                <path d="m4.93 4.93 1.55 1.55"></path>
-                <path d="m17.52 17.52 1.55 1.55"></path>
-                <path d="M2 12h2.2"></path>
-                <path d="M19.8 12H22"></path>
-                <path d="m4.93 19.07 1.55-1.55"></path>
-                <path d="m17.52 6.48 1.55-1.55"></path>
-              </svg>
-              <span>Claro</span>
-            </button>
-            <button class="theme-badge-option" type="button" data-theme-toggle data-theme-value="dark" aria-pressed="false" title="Cambiar a tema oscuro">
-              <svg class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                <path d="M21 12.8A9 9 0 1 1 11.2 3a7.2 7.2 0 0 0 9.8 9.8z"></path>
-              </svg>
-              <span>Oscuro</span>
-            </button>
-          </div>
-          <div id="topbarQuickInfo"></div>
-        </div>
-      </header>
-
       <div class="content">
+        <div class="content-sticky-header">
+          <div class="content-sticky-header__context" id="topbarContext"></div>
+          <div class="content-sticky-header__meta" id="topbarQuickInfo"></div>
+        </div>
         <section class="page active" id="page-dashboard">
           <div class="dashboard-page-flow">
             <div id="accountSwitcher"></div>
