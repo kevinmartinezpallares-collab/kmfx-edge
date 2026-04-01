@@ -190,13 +190,13 @@ export function renderDashboard(root, state) {
       axisColor: axisStandard,
       axisFontSize: 9,
       axisFontWeight: "500",
-      yTickPadding: 14,
-      xTickPadding: 12,
+      yTickPadding: 10,
+      xTickPadding: 10,
       maxXTicks: 7,
       gridAlpha: isDarkTheme ? 0.014 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.10 : 0.10,
-      yHeadroomRatio: 0.001,
-      yBottomPaddingRatio: -0.012,
+      yHeadroomRatio: 0.0005,
+      yBottomPaddingRatio: -0.02,
       showAxisBorder: false,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
@@ -211,41 +211,41 @@ export function renderDashboard(root, state) {
     <div class="dashboard-premium-grid">
       <section class="dashboard-hero-shell">
         <article class="account-banner account-banner--premium account-banner--hero-refined">
-          <div class="account-banner-head">
-            <div class="account-banner-heading">
-              <div class="banner-kicker">Rendimiento</div>
-              <div class="banner-title">${account.name}</div>
-              <div class="banner-sub">${accountTypeLabel}</div>
-            </div>
-          </div>
-
           <div class="account-banner-body">
-            <div class="account-banner-hero">
-              <div class="account-banner-metric">
-                <span class="account-banner-currency">€</span>
-                <span class="account-banner-metric-value">${formatCurrency(model.account.equity).replace(/^€/, "")}</span>
+            <div class="account-banner-info">
+              <div class="account-banner-heading">
+                <div class="banner-kicker">Rendimiento</div>
+                <div class="banner-title">${account.name}</div>
+                <div class="banner-sub">${accountTypeLabel}</div>
               </div>
-              <div class="account-banner-metrics-block">
-                <div class="metric-line">
-                  <span class="metric-line-label">PnL total</span>
-                  <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
-                  </strong>
-                </div>
 
-                <div class="metric-line">
-                  <span class="metric-line-label">Rango (${heroRangeLabel})</span>
-                  <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
-                  </strong>
+              <div class="account-banner-hero">
+                <div class="account-banner-metric">
+                  <span class="account-banner-currency">€</span>
+                  <span class="account-banner-metric-value">${formatCurrency(model.account.equity).replace(/^€/, "")}</span>
                 </div>
+                <div class="account-banner-metrics-block">
+                  <div class="metric-line">
+                    <span class="metric-line-label">PnL total</span>
+                    <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+                      ${formatCurrency(model.totals.pnl)} (${formatPercent(cumulativeReturn)})
+                    </strong>
+                  </div>
+
+                  <div class="metric-line">
+                    <span class="metric-line-label">Rango (${heroRangeLabel})</span>
+                    <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
+                      ${heroDelta >= 0 ? "+" : ""}${formatCurrency(heroDelta)} (${formatPercent(heroDeltaPct)})
+                    </strong>
+                  </div>
+                </div>
+                <div class="account-banner-badges">
+                  <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
+                  <span class="widget-pill">Riesgo ${model.riskProfile.currentRiskPct?.toFixed(2) || "0.00"}%</span>
+                  <span class="widget-pill">${model.positions.length} posiciones activas</span>
+                </div>
+                ${riskAlertsMarkup(riskAlerts, 2)}
               </div>
-              <div class="account-banner-badges">
-                <span class="widget-pill">Estado: ${riskGuidance.risk_state}</span>
-                <span class="widget-pill">Riesgo ${model.riskProfile.currentRiskPct?.toFixed(2) || "0.00"}%</span>
-                <span class="widget-pill">${model.positions.length} posiciones activas</span>
-              </div>
-              ${riskAlertsMarkup(riskAlerts, 2)}
             </div>
 
             <div class="account-banner-chart account-banner-chart--full">
