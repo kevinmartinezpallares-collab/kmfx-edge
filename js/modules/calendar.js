@@ -14,8 +14,9 @@ export function renderCalendar(root, state) {
   const hasModel = Boolean(model);
   const hasTradingData = dayStats.length > 0 && months.length > 0;
   const monthlyMatrix = Array.isArray(model?.monthlyMatrix) ? model.monthlyMatrix : [];
-  const calendarMonths = months.length ? months : [buildFallbackMonthRecord()];
-  const monthKey = getCalendarMonthKey(root, calendarMonths);
+  const latestMonthKey = months[months.length - 1]?.key || buildFallbackMonthRecord().key;
+  const calendarMonths = months.length ? expandCalendarMonths(months) : [buildFallbackMonthRecord()];
+  const monthKey = getCalendarMonthKey(root, calendarMonths, latestMonthKey);
   const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
   const selectedMonth = calendarMonths[monthIndex] || calendarMonths[calendarMonths.length - 1];
   const monthView = buildMonthView(dayStats, monthKey);
@@ -450,6 +451,39 @@ function buildFallbackMonthRecord() {
   };
 }
 
+function expandCalendarMonths(months) {
+  if (!months.length) return [buildFallbackMonthRecord()];
+
+  const byKey = new Map(months.map((month) => [month.key, month]));
+  const years = [...new Set(months.map((month) => Number(month.key.slice(0, 4))))].sort((a, b) => a - b);
+  const expanded = [];
+  let runningBalance = Number(months[0]?.startBalance || 0);
+
+  years.forEach((year) => {
+    for (let monthNumber = 1; monthNumber <= 12; monthNumber += 1) {
+      const key = `${year}-${String(monthNumber).padStart(2, "0")}`;
+      const existing = byKey.get(key);
+      if (existing) {
+        runningBalance = Number(existing.startBalance || runningBalance) + Number(existing.pnl || 0);
+        expanded.push(existing);
+        continue;
+      }
+
+      const date = new Date(year, monthNumber - 1, 1);
+      expanded.push({
+        key,
+        label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+        pnl: 0,
+        trades: 0,
+        startBalance: runningBalance,
+        returnPct: 0
+      });
+    }
+  });
+
+  return expanded;
+}
+
 function buildEmptyCurve(monthKey) {
   const anchor = monthKeyToDate(monthKey || new Date().toISOString().slice(0, 7));
   const lastDay = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
@@ -471,8 +505,8 @@ function getCalendarIntensityClass(pnl, maxAbsPnl) {
   return "is-heat-1";
 }
 
-function getCalendarMonthKey(root, months) {
-  const latest = months[months.length - 1]?.key || new Date().toISOString().slice(0, 7);
+function getCalendarMonthKey(root, months, preferredKey) {
+  const latest = preferredKey || months[months.length - 1]?.key || new Date().toISOString().slice(0, 7);
   if (!root.__calendarMonthKey || !months.some((month) => month.key === root.__calendarMonthKey)) {
     root.__calendarMonthKey = latest;
   }
