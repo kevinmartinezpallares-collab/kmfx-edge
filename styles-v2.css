@@ -4693,6 +4693,18 @@ body[data-theme="dark"] .topbar {
   box-shadow: none !important;
 }
 
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel {
+  gap: 2px !important;
+}
+
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  padding-top: 0 !important;
+}
+
 html[data-theme="dark"] .topbar::before,
 html[data-theme="dark"] .topbar::after,
 body[data-theme="dark"] .topbar::before,
