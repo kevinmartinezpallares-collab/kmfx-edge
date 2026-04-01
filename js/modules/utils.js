@@ -44,6 +44,14 @@ function getCurrencySymbol(currency) {
   return "$";
 }
 
+function toLocalDayKey(dateLike) {
+  const date = new Date(dateLike);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function formatCurrency(value, currencyOverride) {
   const amount = Number(value) || 0;
   const currency = currencyOverride || readPreferredCurrency();
@@ -133,7 +141,7 @@ export function buildDashboardModel(source) {
 
   const dayMap = new Map();
   trades.forEach((trade) => {
-    const key = trade.when.toISOString().slice(0, 10);
+    const key = toLocalDayKey(trade.when);
     if (!dayMap.has(key)) dayMap.set(key, { pnl: 0, trades: 0, date: new Date(trade.when) });
     const entry = dayMap.get(key);
     entry.pnl += trade.pnl;
@@ -242,7 +250,7 @@ function buildWeeklyStrip(dayStats) {
   for (let i = 0; i < 7; i += 1) {
     const current = new Date(start);
     current.setDate(start.getDate() + i);
-    const key = current.toISOString().slice(0, 10);
+    const key = toLocalDayKey(current);
     const day = dayStats.find((entry) => entry.key === key);
     strip.push({
       label: weekdays[current.getDay()],
@@ -409,7 +417,7 @@ function buildCalendar(dayStats, anchorDate) {
 
   const cells = [];
   for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
-    const key = current.toISOString().slice(0, 10);
+    const key = toLocalDayKey(current);
     const day = dayStats.find((entry) => entry.key === key);
     cells.push({
       key,
@@ -558,7 +566,7 @@ function buildCumulativeReturns(trades, startBalance) {
 }
 
 function buildRiskSummary({ account, trades, dayStats, drawdown, totals, positions, riskProfile, symbols, sessionsBreakdown }) {
-  const todayKey = trades[trades.length - 1]?.when.toISOString().slice(0, 10);
+  const todayKey = trades[trades.length - 1]?.when ? toLocalDayKey(trades[trades.length - 1].when) : "";
   const todayStats = dayStats.find((day) => day.key === todayKey);
   const currentRiskUsd = account.balance * ((riskProfile.currentRiskPct || 0.5) / 100);
   const ddBudgetUsd = account.balance * ((account.maxDrawdownLimit || riskProfile.weeklyHeatLimitPct || 10) / 100);

@@ -4,6 +4,18 @@ import { openModal } from "./modal-system.js?v=build-20260329-201102";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+function toLocalDayKey(dateLike) {
+  const date = new Date(dateLike);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toLocalMonthKey(dateLike) {
+  return toLocalDayKey(dateLike).slice(0, 7);
+}
+
 export function renderCalendar(root, state) {
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
@@ -219,7 +231,7 @@ export function renderCalendar(root, state) {
       root.__calendarSelectedDay = key;
       renderCalendar(root, state);
 
-      const dayTrades = (model?.trades || []).filter((trade) => trade.when.toISOString().slice(0, 10) === key);
+      const dayTrades = (model?.trades || []).filter((trade) => toLocalDayKey(trade.when) === key);
       const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
       openModal({
         title: `Detalle del ${new Date(key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}`,
@@ -297,14 +309,14 @@ function buildMonthView(dayStats, monthKey) {
   start.setDate(first.getDate() - first.getDay());
   const end = new Date(last);
   end.setDate(last.getDate() + (6 - last.getDay()));
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDayKey(new Date());
   const dayMap = new Map(dayStats.map((entry) => [entry.key, entry]));
 
   const cells = [];
   const weeks = [];
   let maxAbsPnl = 0;
   for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
-    const key = current.toISOString().slice(0, 10);
+    const key = toLocalDayKey(current);
     const day = dayMap.get(key);
     maxAbsPnl = Math.max(maxAbsPnl, Math.abs(day?.pnl || 0));
     cells.push({
@@ -369,7 +381,7 @@ function buildMonthSummary(monthView, monthRecord) {
 }
 
 function buildCalendarCurve(dayStats, selectedMonth) {
-  const monthKey = selectedMonth?.key || new Date().toISOString().slice(0, 7);
+  const monthKey = selectedMonth?.key || toLocalMonthKey(new Date());
   const monthDays = dayStats
     .filter((day) => day.key.startsWith(monthKey))
     .sort((a, b) => a.key.localeCompare(b.key));
@@ -442,7 +454,7 @@ function buildMonthlyMatrixFooter(monthlyMatrix, hasModel) {
 function buildFallbackMonthRecord() {
   const date = new Date();
   return {
-    key: date.toISOString().slice(0, 7),
+    key: toLocalMonthKey(date),
     label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
     pnl: 0,
     trades: 0,
@@ -485,7 +497,7 @@ function expandCalendarMonths(months) {
 }
 
 function buildEmptyCurve(monthKey) {
-  const anchor = monthKeyToDate(monthKey || new Date().toISOString().slice(0, 7));
+  const anchor = monthKeyToDate(monthKey || toLocalMonthKey(new Date()));
   const lastDay = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
   return [1, 8, 15, 22, lastDay].map((day) => {
     const date = new Date(anchor.getFullYear(), anchor.getMonth(), day);
@@ -506,7 +518,7 @@ function getCalendarIntensityClass(pnl, maxAbsPnl) {
 }
 
 function getCalendarMonthKey(root, months, preferredKey) {
-  const latest = preferredKey || months[months.length - 1]?.key || new Date().toISOString().slice(0, 7);
+  const latest = preferredKey || months[months.length - 1]?.key || toLocalMonthKey(new Date());
   if (!root.__calendarMonthKey || !months.some((month) => month.key === root.__calendarMonthKey)) {
     root.__calendarMonthKey = latest;
   }
