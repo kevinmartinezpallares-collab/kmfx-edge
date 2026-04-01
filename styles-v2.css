@@ -4648,9 +4648,9 @@ body[data-theme="dark"] .topbar-meta {
 
 html[data-theme="dark"] .topbar,
 body[data-theme="dark"] .topbar {
-  min-height: 50px !important;
-  padding-top: 10px !important;
-  padding-bottom: 8px !important;
+  min-height: 40px !important;
+  padding: 6px 18px !important;
+  gap: 10px !important;
 }
 
 html[data-theme="dark"] .topbar-brand,
@@ -4667,11 +4667,11 @@ body[data-theme="dark"] .topbar-title {
 html[data-theme="dark"] .topbar-sub,
 body[data-theme="dark"] .topbar-sub {
   margin: 0 !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   line-height: 1.2 !important;
   color: var(--text-2) !important;
-  opacity: 0.74 !important;
-  max-width: 360px !important;
+  opacity: 0.62 !important;
+  max-width: 280px !important;
 }
 
 html[data-theme="dark"] .topbar-user-shell,
@@ -4703,16 +4703,36 @@ body[data-theme="dark"] .topbar::after {
 
 html[data-theme="dark"] .topbar-user-card,
 body[data-theme="dark"] .topbar-user-card {
-  margin-right: 0 !important;
-  padding-right: 0 !important;
-  min-width: auto !important;
+  display: none !important;
 }
 
 html[data-theme="dark"] .topbar-time-stack,
 body[data-theme="dark"] .topbar-time-stack {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
   margin-left: 0 !important;
   padding-left: 0 !important;
   min-width: auto !important;
+}
+
+html[data-theme="dark"] .topbar-meta,
+body[data-theme="dark"] .topbar-meta {
+  margin-left: auto !important;
+}
+
+html[data-theme="dark"] .meta-date,
+body[data-theme="dark"] .meta-date {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  opacity: 0.68 !important;
+}
+
+html[data-theme="dark"] .meta-clock,
+body[data-theme="dark"] .meta-clock {
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 600 !important;
 }
 
 /* Sidebar flattening override — dark only (v2 refinement) */
