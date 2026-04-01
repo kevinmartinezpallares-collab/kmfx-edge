@@ -3579,7 +3579,7 @@ body[data-theme="dark"] .calendar-day::after {
 html[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta,
 body[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta {
   color: var(--text-2) !important;
-  opacity: 0.62 !important;
+  opacity: 0.5 !important;
 }
 
 html[data-theme="dark"] .calendar-day.is-idle .calendar-day__date,
@@ -3629,7 +3629,8 @@ body[data-theme="dark"] .calendar-day.has-trades .calendar-day__count {
 
 html[data-theme="dark"] .calendar-day__pnl,
 body[data-theme="dark"] .calendar-day__pnl {
-  font-weight: 650 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades .calendar-day__meta,
