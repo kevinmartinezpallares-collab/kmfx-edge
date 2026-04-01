@@ -36,6 +36,23 @@ export function renderCalendar(root, state) {
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
   const cumulativeCurve = buildCalendarCurve(dayStats, selectedMonth);
+  const tradedCells = monthView.cells.filter((cell) => cell.inMonth && (cell.trades > 0 || cell.pnl !== 0));
+  const tradedSample = tradedCells.slice(0, 8).map((cell) => ({
+    key: cell.key,
+    trades: cell.trades,
+    pnl: cell.pnl
+  }));
+  window.__KMFX_CALENDAR_DEBUG__ = {
+    currentAccount: state?.currentAccount || account?.id || null,
+    currentAccountName: account?.name || null,
+    hasModel,
+    dayStatsCount: dayStats.length,
+    monthlyReturnsCount: months.length,
+    selectedMonth: selectedMonth?.key || monthKey,
+    tradedDaysInSelectedMonth: tradedCells.length,
+    cellsSample: tradedSample
+  };
+  console.info("[KMFX][Calendar Debug]", window.__KMFX_CALENDAR_DEBUG__);
   const note = !hasModel
     ? connection.state === "error"
       ? {

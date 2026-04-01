@@ -43,6 +43,9 @@ import {
   saveSupabaseUserConfig
 } from "./js/modules/supabase-user-config.js?v=build-20260401-203500";
 
+const BUILD_TAG = "build-20260401-203500";
+window.__KMFX_BUILD__ = BUILD_TAG;
+
 const store = createStore();
 
 function ensureLightCardFlattening() {
