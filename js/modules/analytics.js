@@ -20,6 +20,16 @@ function formatCompactSignedCurrency(value) {
   return `${value < 0 ? "-" : ""}€${compact}k`;
 }
 
+function formatCompactSignedMagnitude(value) {
+  const numeric = Number(value || 0);
+  const absolute = Math.abs(numeric);
+  if (absolute < 1000) {
+    return `${numeric < 0 ? "-" : ""}${Math.round(absolute)}`;
+  }
+  const compact = absolute >= 10000 ? (absolute / 1000).toFixed(0) : (absolute / 1000).toFixed(1);
+  return `${numeric < 0 ? "-" : ""}${compact}k`;
+}
+
 function formatCompactSignedPercent(value) {
   const numeric = Number(value || 0);
   const absolute = Math.abs(numeric);
@@ -821,6 +831,9 @@ export function renderAnalytics(root, state) {
   const formatHourlyValue = (value) => analyticsHourValueMode === "percent"
     ? formatCompactSignedPercent((Number(value || 0) / analyticsHourPctBase) * 100)
     : formatCompactSignedCurrency(value);
+  const formatHourlyOverviewValue = (value) => analyticsHourValueMode === "percent"
+    ? formatCompactSignedPercent((Number(value || 0) / analyticsHourPctBase) * 100)
+    : formatCompactSignedMagnitude(value);
   const hourOverviewMarkup = hourlyTimeline.map((hour) => {
     const toneClass = hour.trades
       ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
@@ -830,9 +843,11 @@ export function renderAnalytics(root, state) {
       ? (hour.hour === bestWindow.start ? "is-window-start" : hour.hour === bestWindow.end ? "is-window-end" : "is-window-mid")
       : "";
     const intensity = hour.trades ? Math.max(0.16, Math.min(0.82, Math.abs(hour.pnl) / hourlyMaxAbs)) : 0;
+    const showValue = hour.trades > 0;
     return `
       <div class="analytics-hour-segment ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
         <span class="analytics-hour-segment__time">${String(hour.hour).padStart(2, "0")}</span>
+        ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatHourlyOverviewValue(hour.pnl)}</strong>` : ""}
       </div>
     `;
   }).join("");
@@ -1348,17 +1363,14 @@ export function renderAnalytics(root, state) {
           <div class="analytics-hour-overview">
             ${hourOverviewMarkup}
           </div>
-        </article>
-
-        <article class="tl-section-card analytics-hour-detail-card">
-          <div class="tl-section-header">
-            <div>
+          <div class="analytics-hour-detail-shell">
+            <div class="analytics-hour-detail-shell__head">
               <div class="tl-section-title">Detalle operativo</div>
               <div class="row-sub">Las horas que merecen foco o recorte dentro de la sesión.</div>
             </div>
-          </div>
-          <div class="analytics-hour-detail-list">
-            ${hourDetailRowsMarkup}
+            <div class="analytics-hour-detail-list">
+              ${hourDetailRowsMarkup}
+            </div>
           </div>
         </article>
 

@@ -3068,6 +3068,8 @@ body[data-theme="dark"] .analytics-hour-stat small {
 html[data-theme="dark"] .analytics-hour-timeline-card,
 body[data-theme="dark"] .analytics-hour-timeline-card {
   overflow: hidden;
+  display: grid;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .analytics-hour-toggle,
@@ -3077,8 +3079,8 @@ body[data-theme="dark"] .analytics-hour-toggle {
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.028);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.022);
+  border: 1px solid rgba(255,255,255,0.042);
 }
 
 html[data-theme="dark"] .analytics-hour-toggle__btn,
@@ -3113,7 +3115,6 @@ body[data-theme="dark"] .analytics-hour-overview {
   display: grid;
   grid-template-columns: repeat(24, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 6px;
   padding: 1px;
   border-radius: 18px;
   background: rgba(255,255,255,0.03);
@@ -3124,7 +3125,8 @@ body[data-theme="dark"] .analytics-hour-segment {
   display: grid;
   align-content: end;
   min-height: 112px;
-  padding: 12px 4px 10px;
+  gap: 6px;
+  padding: 12px 3px 10px;
   border-radius: 0;
   text-align: center;
   background: color-mix(in srgb, var(--layer-1-subtle) 97%, rgba(255,255,255,0.018));
@@ -3162,6 +3164,18 @@ body[data-theme="dark"] .analytics-hour-segment__time {
   letter-spacing: 0.05em;
   color: var(--text-2);
   opacity: 0.9;
+}
+
+html[data-theme="dark"] .analytics-hour-segment strong,
+body[data-theme="dark"] .analytics-hour-segment strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
 }
 
 html[data-theme="dark"] .analytics-hour-insight-grid,
@@ -3266,16 +3280,24 @@ body[data-theme="dark"] .analytics-hour-segment.is-worst {
   box-shadow: inset 0 -2px 0 rgba(214, 86, 102, 0.44);
 }
 
-html[data-theme="dark"] .analytics-hour-detail-card,
-body[data-theme="dark"] .analytics-hour-detail-card {
+html[data-theme="dark"] .analytics-hour-detail-shell,
+body[data-theme="dark"] .analytics-hour-detail-shell {
   display: grid;
   gap: 10px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .analytics-hour-detail-shell__head,
+body[data-theme="dark"] .analytics-hour-detail-shell__head {
+  display: grid;
+  gap: 3px;
 }
 
 html[data-theme="dark"] .analytics-hour-detail-list,
 body[data-theme="dark"] .analytics-hour-detail-list {
   display: grid;
-  gap: 8px;
+  gap: 2px;
 }
 
 html[data-theme="dark"] .analytics-hour-detail-row,
@@ -3284,7 +3306,7 @@ body[data-theme="dark"] .analytics-hour-detail-row {
   grid-template-columns: 72px minmax(92px, 120px) 1fr;
   align-items: baseline;
   gap: 12px;
-  padding: 10px 2px;
+  padding: 10px 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
@@ -3648,6 +3670,11 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   html[data-theme="dark"] .analytics-hour-segment,
   body[data-theme="dark"] .analytics-hour-segment {
     min-height: 96px;
+  }
+
+  html[data-theme="dark"] .analytics-hour-segment strong,
+  body[data-theme="dark"] .analytics-hour-segment strong {
+    font-size: 10px;
   }
 
   html[data-theme="dark"] .analytics-hour-detail-row,
