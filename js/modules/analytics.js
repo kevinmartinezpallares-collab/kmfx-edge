@@ -799,12 +799,15 @@ export function renderAnalytics(root, state) {
     const toneClass = hour.trades
       ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
       : "is-empty";
+    const inBestWindow = hour.hour >= bestWindow.start && hour.hour <= bestWindow.end;
+    const windowClass = inBestWindow
+      ? (hour.hour === bestWindow.start ? "is-window-start" : hour.hour === bestWindow.end ? "is-window-end" : "is-window-mid")
+      : "";
     const intensity = hour.trades ? Math.max(0.16, Math.min(0.82, Math.abs(hour.pnl) / hourlyMaxAbs)) : 0;
     return `
-      <div class="analytics-hour-block ${toneClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
-        <span class="analytics-hour-block__time">${formatHourLabel(hour.hour)}</span>
+      <div class="analytics-hour-block ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
+        <span class="analytics-hour-block__time">${String(hour.hour).padStart(2, "0")}</span>
         <strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${hour.trades ? formatCurrency(hour.pnl) : "—"}</strong>
-        <small>${hour.trades ? `${hour.trades} trades` : "Sin actividad"}</small>
       </div>
     `;
   }).join("");
