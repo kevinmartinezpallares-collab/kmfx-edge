@@ -1,5 +1,5 @@
 import { formatCompact, formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts, radarSpec } from "./chart-system.js?v=build-20260401-203500";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
 
@@ -548,11 +548,15 @@ export function renderAnalytics(root, state) {
   const profileHighlights = performanceProfile
     .slice()
     .sort((a, b) => b.value - a.value)
-    .slice(0, 4)
-    .map((metric) => `
-      <div class="analytics-profile-highlight">
-        <span>${metric.label}</span>
-        <strong>${Math.round(metric.value)}%</strong>
+    .map((metric, index) => `
+      <div class="analytics-profile-row ${index < 2 ? "analytics-profile-row--primary" : ""}">
+        <div class="analytics-profile-row__meta">
+          <span>${metric.label}</span>
+          <strong>${Math.round(metric.value)}%</strong>
+        </div>
+        <div class="analytics-profile-row__track">
+          <div class="analytics-profile-row__fill" style="width:${metric.value}%"></div>
+        </div>
       </div>
     `).join("");
   const detailedMetrics = [
@@ -625,15 +629,6 @@ export function renderAnalytics(root, state) {
   ];
 
   const chartSpecs = [
-    radarSpec("analytics-overview-performance-radar", performanceProfile, {
-      tone: "blue",
-      minimalTooltip: true,
-      fillAlpha: 0.08,
-      borderWidth: 1.6,
-      pointRadius: 2.2,
-      pointHoverRadius: 2.8,
-      formatter: (value) => `${Math.round(value)}%`
-    }),
     barChartSpec("analytics-hourly-pnl", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: Math.abs(hour.pnl), rawValue: hour.pnl })), {
       positiveNegative: true,
       literalHistogramBars: true,
@@ -755,8 +750,9 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <div class="analytics-overview-profile">
-              <div class="analytics-overview-profile__chart">
-                ${chartCanvas("analytics-overview-performance-radar", 260, "kmfx-chart-shell--feature")}
+              <div class="analytics-overview-profile__head">
+                <span>Perfil operativo</span>
+                <strong>${scoreInterpretation}</strong>
               </div>
               <div class="analytics-profile-highlights">
                 ${profileHighlights}

@@ -2311,8 +2311,8 @@ body[data-theme="dark"] .analytics-pattern-card {
 html[data-theme="dark"] .analytics-overview-hero__grid,
 body[data-theme="dark"] .analytics-overview-hero__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.86fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+  gap: 14px;
   align-items: stretch;
 }
 
@@ -2328,8 +2328,8 @@ body[data-theme="dark"] .analytics-overview-kicker {
 html[data-theme="dark"] .analytics-overview-title,
 body[data-theme="dark"] .analytics-overview-title {
   margin: 8px 0 0;
-  max-width: 720px;
-  font-size: 24px;
+  max-width: 660px;
+  font-size: 22px;
   line-height: 1.08;
   letter-spacing: -0.04em;
   color: var(--text-0);
@@ -2434,7 +2434,8 @@ body[data-theme="dark"] .analytics-focus-item strong {
 
 html[data-theme="dark"] .analytics-focus-item--warn,
 body[data-theme="dark"] .analytics-focus-item--warn {
-  background: color-mix(in srgb, var(--layer-1-subtle) 90%, var(--gold) 10%);
+  background: rgba(255, 255, 255, 0.022);
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 html[data-theme="dark"] .analytics-focus-item--positive,
@@ -2445,49 +2446,90 @@ body[data-theme="dark"] .analytics-focus-item--positive {
 html[data-theme="dark"] .analytics-overview-profile,
 body[data-theme="dark"] .analytics-overview-profile {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   align-content: start;
 }
 
-html[data-theme="dark"] .analytics-overview-profile__chart,
-body[data-theme="dark"] .analytics-overview-profile__chart {
-  min-width: 0;
-  padding: 10px;
-  border-radius: 16px;
-  background: var(--layer-1-subtle);
-  border: 1px solid rgba(255, 255, 255, 0.045);
-}
-
-html[data-theme="dark"] .analytics-profile-highlights,
-body[data-theme="dark"] .analytics-profile-highlights {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-html[data-theme="dark"] .analytics-profile-highlight,
-body[data-theme="dark"] .analytics-profile-highlight {
-  padding: 12px 12px 11px;
+html[data-theme="dark"] .analytics-overview-profile__head,
+body[data-theme="dark"] .analytics-overview-profile__head {
+  padding: 12px 13px;
   border-radius: 14px;
-  background: var(--layer-1-subtle);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.045);
 }
 
-html[data-theme="dark"] .analytics-profile-highlight span,
-body[data-theme="dark"] .analytics-profile-highlight span {
+html[data-theme="dark"] .analytics-overview-profile__head span,
+body[data-theme="dark"] .analytics-overview-profile__head span {
   display: block;
   font-size: 11px;
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .analytics-profile-highlight strong,
-body[data-theme="dark"] .analytics-profile-highlight strong {
+html[data-theme="dark"] .analytics-overview-profile__head strong,
+body[data-theme="dark"] .analytics-overview-profile__head strong {
   display: block;
   margin-top: 8px;
-  font-size: 18px;
+  font-size: 15px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-profile-highlights,
+body[data-theme="dark"] .analytics-profile-highlights {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .analytics-profile-row,
+body[data-theme="dark"] .analytics-profile-row {
+  padding: 11px 12px 10px;
+  border-radius: 14px;
+  background: var(--layer-1-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] .analytics-profile-row--primary,
+body[data-theme="dark"] .analytics-profile-row--primary {
+  background: rgba(255, 255, 255, 0.024);
+}
+
+html[data-theme="dark"] .analytics-profile-row__meta,
+body[data-theme="dark"] .analytics-profile-row__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .analytics-profile-row__meta span,
+body[data-theme="dark"] .analytics-profile-row__meta span {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-profile-row__meta strong,
+body[data-theme="dark"] .analytics-profile-row__meta strong {
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-profile-row__track,
+body[data-theme="dark"] .analytics-profile-row__track {
+  margin-top: 8px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .analytics-profile-row__fill,
+body[data-theme="dark"] .analytics-profile-row__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(118, 184, 255, 0.68), rgba(152, 214, 255, 0.88));
 }
 
 html[data-theme="dark"] .analytics-pattern-grid,
@@ -2624,7 +2666,7 @@ body[data-theme="dark"] .analytics-timing-hero {
 
 html[data-theme="dark"] .analytics-timing-stat--insight,
 body[data-theme="dark"] .analytics-timing-stat--insight {
-  background: color-mix(in srgb, var(--layer-1-subtle) 92%, var(--gold) 8%);
+  background: rgba(255, 255, 255, 0.022);
 }
 
 html[data-theme="dark"] .analytics-timing-stat,
@@ -2689,7 +2731,45 @@ body[data-theme="dark"] .analytics-distribution-metrics--tight {
 
 html[data-theme="dark"] .analytics-symbol-row--secondary,
 body[data-theme="dark"] .analytics-symbol-row--secondary {
-  opacity: 0.72;
+  opacity: 0.66;
+}
+
+html[data-theme="dark"] #page-analytics .tl-tab-bar,
+body[data-theme="dark"] #page-analytics .tl-tab-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] #page-analytics .tl-tab,
+body[data-theme="dark"] #page-analytics .tl-tab {
+  min-height: 30px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #page-analytics .tl-tab:hover,
+body[data-theme="dark"] #page-analytics .tl-tab:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] #page-analytics .tl-tab.active,
+body[data-theme="dark"] #page-analytics .tl-tab.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-0);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 @media (max-width: 1080px) {
