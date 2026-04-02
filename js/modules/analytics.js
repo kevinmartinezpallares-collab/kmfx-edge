@@ -485,6 +485,81 @@ export function renderAnalytics(root, state) {
   const profitPerTrade = model.totals.totalTrades ? model.totals.pnl / model.totals.totalTrades : 0;
   const winLossRatio = averageLosingTrade ? averageWinningTrade / averageLosingTrade : 0;
   const stdDevPnl = standardDeviation((model.dayStats || []).map((day) => Number(day.pnl || 0)));
+  const sessionRanking = [...model.sessions].sort((a, b) => b.pnl - a.pnl);
+  const symbolRanking = [...model.symbols].sort((a, b) => b.pnl - a.pnl);
+  const strongestSession = sessionRanking[0] || { key: "Sin datos", pnl: 0, winRate: 0, trades: 0 };
+  const weakestSession = [...model.sessions].sort((a, b) => a.pnl - b.pnl)[0] || strongestSession;
+  const strongestSymbol = symbolRanking[0] || { key: "—", pnl: 0, winRate: 0, trades: 0, profitFactor: 0 };
+  const weakestSymbol = [...model.symbols].sort((a, b) => a.pnl - b.pnl)[0] || strongestSymbol;
+  const focusSymbols = symbolRanking.slice(0, 5);
+  const consistencyRatio = calcConsistency(model.dayStats || []);
+  const topInsightCards = [
+    {
+      label: "Sesión con más edge",
+      value: strongestSession.key,
+      note: `${formatCurrency(strongestSession.pnl)} · WR ${formatPercent(strongestSession.winRate)}`
+    },
+    {
+      label: "Símbolo más rentable",
+      value: strongestSymbol.key,
+      note: `${formatCurrency(strongestSymbol.pnl)} · ${strongestSymbol.trades} trades`
+    },
+    {
+      label: "Mejor ventana horaria",
+      value: `${String(bestHour.hour).padStart(2, "0")}:00`,
+      note: `${formatCurrency(bestHour.pnl)} · ${bestHour.trades} trades`
+    },
+    {
+      label: "Punto de fuga",
+      value: `${String(worstHour.hour).padStart(2, "0")}:00`,
+      note: `${formatCurrency(worstHour.pnl)} · revisar timing`
+    }
+  ];
+  const sessionRowsMarkup = sessionRanking.map((session, index) => `
+    <article class="analytics-session-row analytics-session-row--elevated">
+      <div class="analytics-session-main">
+        <div class="analytics-session-copy">
+          <div class="session-label">${index === 0 ? "Mejor sesión" : session.key}</div>
+          <div class="row-sub">${index === 0 ? session.key : badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
+        </div>
+        <div class="analytics-session-metrics">
+          <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
+          <span>${session.trades} trades · WR ${formatPercent(session.winRate)}</span>
+        </div>
+      </div>
+      <div class="analytics-session-rail">
+        <div class="analytics-session-rail-fill ${session.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(session.winRate, 100))}%"></div>
+      </div>
+    </article>
+  `).join("");
+  const symbolRowsMarkup = focusSymbols.map((row, index) => `
+    <article class="analytics-symbol-row">
+      <div class="analytics-symbol-row__main">
+        <div class="analytics-symbol-row__copy">
+          <strong>${row.key}</strong>
+          <span>${index === 0 ? "Más sólido" : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
+        </div>
+        <div class="analytics-symbol-row__meta">
+          <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
+          <span>${row.trades} trades · WR ${formatPercent(row.winRate)}</span>
+        </div>
+      </div>
+      <div class="analytics-symbol-row__aux">
+        <span>PF ${row.profitFactor.toFixed(2)}</span>
+        <span class="${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)} / trade</span>
+      </div>
+    </article>
+  `).join("");
+  const profileHighlights = performanceProfile
+    .slice()
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4)
+    .map((metric) => `
+      <div class="analytics-profile-highlight">
+        <span>${metric.label}</span>
+        <strong>${Math.round(metric.value)}%</strong>
+      </div>
+    `).join("");
   const detailedMetrics = [
     {
       tone: "blue",
@@ -556,15 +631,6 @@ export function renderAnalytics(root, state) {
 
   const chartSpecs = [
     radarSpec("analytics-overview-performance-radar", performanceProfile, {
-      tone: "blue",
-      minimalTooltip: true,
-      fillAlpha: 0.08,
-      borderWidth: 1.6,
-      pointRadius: 2.2,
-      pointHoverRadius: 2.8,
-      formatter: (value) => `${Math.round(value)}%`
-    }),
-    radarSpec("analytics-performance-radar", performanceProfile, {
       tone: "blue",
       minimalTooltip: true,
       fillAlpha: 0.08,
@@ -671,234 +737,199 @@ export function renderAnalytics(root, state) {
   ];
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
-      <div class="analytics-bento-grid">
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--full">
-          <div class="tl-section-header">
-            <div>
-              <div class="tl-section-title">Trading Insights</div>
-              <div class="row-sub">Lectura operativa directa de aciertos, pérdidas y consistencia de ejecución.</div>
-            </div>
-          </div>
-          ${riskAlertsMarkup(riskAlerts, 3)}
-          <div class="analytics-trend-strip">
-            ${trendComparisons.map((item) => `
-              <div class="analytics-trend-chip analytics-trend-chip--${item.tone}">
-                <span>${item.label}</span>
-                <strong>${item.value}</strong>
-                <small>${item.deltaText}</small>
+      <div class="analytics-overview-shell">
+        <article class="tl-section-card analytics-overview-hero">
+          <div class="analytics-overview-hero__grid">
+            <div class="analytics-overview-copy">
+              <div class="analytics-overview-kicker">Dónde está el edge</div>
+              <h3 class="analytics-overview-title">Lectura compacta de sesiones, símbolos y timing para decidir qué reforzar y qué filtrar.</h3>
+              <p class="analytics-overview-subtitle">La pantalla se centra en cuatro preguntas: qué sesión empuja el resultado, qué símbolo sostiene la curva, dónde se pierde ventaja y qué patrón conviene cortar.</p>
+              ${riskAlertsMarkup(riskAlerts, 2)}
+              <div class="analytics-insight-grid">
+                ${topInsightCards.map((item) => `
+                  <article class="analytics-insight-card">
+                    <span>${item.label}</span>
+                    <strong>${item.value}</strong>
+                    <small>${item.note}</small>
+                  </article>
+                `).join("")}
               </div>
-            `).join("")}
-          </div>
-          <div class="analytics-top-metrics-grid analytics-top-metrics-grid--seven">
-            <article class="analytics-top-metric analytics-top-metric--green"><div class="analytics-top-metric-label">Winning Trades</div><div class="analytics-top-metric-value">${winningTrades.length}</div></article>
-            <article class="analytics-top-metric analytics-top-metric--red"><div class="analytics-top-metric-label">Losing Trades</div><div class="analytics-top-metric-value">${losingTrades.length}</div></article>
-            <article class="analytics-top-metric analytics-top-metric--green"><div class="analytics-top-metric-label">Average Winning Trade</div><div class="analytics-top-metric-value">${formatCurrency(averageWinningTrade)}</div></article>
-            <article class="analytics-top-metric analytics-top-metric--red"><div class="analytics-top-metric-label">Average Losing Trade</div><div class="analytics-top-metric-value">${formatCurrency(-averageLosingTrade)}</div></article>
-            <article class="analytics-top-metric"><div class="analytics-top-metric-label">Break-even trades</div><div class="analytics-top-metric-value">${breakEvenTrades.length}</div></article>
-            <article class="analytics-top-metric analytics-top-metric--green"><div class="analytics-top-metric-label">Winning Days</div><div class="analytics-top-metric-value">${winningDays}</div></article>
-            <article class="analytics-top-metric analytics-top-metric--red"><div class="analytics-top-metric-label">Losing Days</div><div class="analytics-top-metric-value">${losingDays}</div></article>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--full analytics-decision-engine">
-          <div class="tl-section-header">
-            <div>
-              <div class="tl-section-title">Trading Decision Engine</div>
-              <div class="row-sub">Diagnóstico computado desde WR, R:R, drawdown, consistencia, sesiones y rendimiento horario.</div>
-            </div>
-          </div>
-          <div class="analytics-decision-grid">
-            <div class="analytics-decision-item analytics-decision-item--warn">
-              <span>Primary Focus</span>
-              <strong>${decisionEngine.primary}</strong>
-            </div>
-            <div class="analytics-decision-item analytics-decision-item--neutral">
-              <span>Secondary Focus</span>
-              <strong>${decisionEngine.secondary}</strong>
-            </div>
-            <div class="analytics-decision-item analytics-decision-item--positive">
-              <span>Strength</span>
-              <strong>${decisionEngine.strength}</strong>
-            </div>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--full">
-          <div class="tl-section-header">
-            <div>
-              <div class="tl-section-title">Advanced Ratios</div>
-              <div class="row-sub">Relación entre retorno, estabilidad y recuperación del sistema.</div>
-            </div>
-          </div>
-          <div class="analytics-ratios-minimal-grid analytics-ratios-minimal-grid--wide analytics-ratios-minimal-grid--bento">
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Expectancy</span>
-              <strong>${formatCurrency(model.totals.expectancy)}</strong>
-              <small>Resultado esperado por trade.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Avg win</span>
-              <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
-              <small>Promedio de trades ganadores.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Avg loss</span>
-              <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
-              <small>Promedio de trades perdedores.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Avg R multiple</span>
-              <strong>${model.totals.rr.toFixed(2)}R</strong>
-              <small>Relación beneficio / pérdida media.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Profit / trade</span>
-              <strong class="${profitPerTrade >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(profitPerTrade)}</strong>
-              <small>PnL medio por operación.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Win/Loss ratio</span>
-              <strong>${winLossRatio.toFixed(2)}</strong>
-              <small>Avg win frente a avg loss.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Sharpe</span>
-              <strong>${model.totals.ratios.sharpe.toFixed(2)}</strong>
-              <small>Retorno ajustado por volatilidad.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Sortino</span>
-              <strong>${model.totals.ratios.sortino.toFixed(2)}</strong>
-              <small>Penaliza solo el downside.</small>
-            </article>
-            <article class="analytics-ratio-minimal-card analytics-ratio-minimal-card--bento">
-              <span>Std deviation</span>
-              <strong>${formatCurrency(stdDevPnl)}</strong>
-              <small>Dispersión diaria del resultado.</small>
-            </article>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-performance-profile analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header">
-            <div class="tl-section-title">Trading Performance Profile</div>
-          </div>
-          <div class="analytics-performance-bento">
-            <div class="analytics-performance-radar-shell analytics-performance-radar-shell--bento">
-              ${chartCanvas("analytics-overview-performance-radar", 280, "kmfx-chart-shell--feature")}
-            </div>
-            <div class="analytics-performance-bars analytics-performance-bars--stacked">
-              ${performanceProfile.map((metric) => `
-                <div class="analytics-performance-bar-row">
-                  <div class="analytics-performance-bar-meta">
-                    <span>${metric.label}</span>
-                    <strong>${Math.round(metric.value)}%</strong>
-                  </div>
-                  <div class="analytics-performance-track">
-                    <div class="analytics-performance-fill" style="width:${metric.value}%"></div>
-                  </div>
+              <div class="analytics-focus-stack">
+                <div class="analytics-focus-item analytics-focus-item--warn">
+                  <span>Foco principal</span>
+                  <strong>${decisionEngine.primary}</strong>
                 </div>
-              `).join("")}
-            </div>
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-bento-card analytics-bento-card--6">
-          <div class="tl-section-header"><div class="tl-section-title">Session Analysis</div></div>
-          <div class="analytics-session-stack">
-            ${model.sessions.map((session) => `
-              <article class="analytics-session-row">
-                <div class="analytics-session-main">
-                  <div class="analytics-session-copy">
-                    <div class="session-label">${session.key}</div>
-                    <div class="analytics-inline-risk-tag">${badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
-                  </div>
-                  <div class="analytics-session-metrics">
-                    <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
-                    <span>WR ${formatPercent(session.winRate)}</span>
-                  </div>
+                <div class="analytics-focus-item analytics-focus-item--positive">
+                  <span>Fortaleza defendible</span>
+                  <strong>${decisionEngine.strength}</strong>
                 </div>
-                <div class="analytics-session-rail">
-                  <div class="analytics-session-rail-fill ${session.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(session.winRate, 100))}%"></div>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        </article>
-
-        <article class="tl-section-card analytics-plain-block analytics-winloss-shell analytics-bento-card analytics-bento-card--4">
-          <div class="tl-section-header"><div class="tl-section-title">Win / Loss Analysis</div></div>
-          <div class="analytics-winloss-card">
-            <div class="analytics-winloss-summary">
-              <div class="analytics-winloss-header">
-                <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
-                <div class="analytics-winloss-sub">trades cerrados analizados</div>
-              </div>
-              <div class="analytics-winloss-bar" aria-hidden="true">
-                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
-                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
               </div>
             </div>
-            <div class="analytics-winloss-grid">
-              <article class="analytics-winloss-stat analytics-winloss-stat--win">
-                <span class="analytics-winloss-label">Winning Trades</span>
-                <strong>${winningTrades.length}</strong>
-                <small>${formatPercent((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
-              </article>
-              <article class="analytics-winloss-stat analytics-winloss-stat--loss">
-                <span class="analytics-winloss-label">Losing Trades</span>
-                <strong>${losingTrades.length}</strong>
-                <small>${formatPercent((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
-              </article>
-            </div>
-            <div class="analytics-winloss-metrics">
-              <div class="analytics-winloss-metric">
-                <span>Average Winning Trade</span>
-                <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
+            <div class="analytics-overview-profile">
+              <div class="analytics-overview-profile__chart">
+                ${chartCanvas("analytics-overview-performance-radar", 260, "kmfx-chart-shell--feature")}
               </div>
-              <div class="analytics-winloss-metric">
-                <span>Average Losing Trade</span>
-                <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
+              <div class="analytics-profile-highlights">
+                ${profileHighlights}
               </div>
             </div>
           </div>
         </article>
 
-        <div class="tl-section-card analytics-bento-card analytics-bento-card--full">
-          <div class="tl-section-header"><div class="tl-section-title">Performance by Symbol</div></div>
-          <div class="table-wrap">
-            <table>
-            <thead><tr><th>Símbolo</th><th class="num">P&amp;L Total</th><th class="num">Operaciones</th><th>Tasa Acierto</th><th class="num">Gan. Prom.</th><th class="num">Perd. Prom.</th><th class="num">P&amp;L Prom.</th><th class="num">Factor Ben.</th></tr></thead>
-            <tbody>
-              ${model.symbols.map((row) => `
-                <tr>
-                  <td>
-                    <div class="analytics-symbol-cell">
-                      <strong>${row.key}</strong>
-                      <div class="row-sub">${row.pnl >= 0 ? "Rentable" : "Presión"}</div>
-                    </div>
-                  </td>
-                  <td class="num ${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</td>
-                  <td class="num">${row.trades}</td>
-                  <td>
-                    <div class="analytics-wr-cell">
-                      <div class="analytics-wr-meta">
-                        <span>${formatPercent(row.winRate)}</span>
-                      </div>
-                      <div class="analytics-wr-track">
-                        <div class="analytics-wr-fill ${row.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(row.winRate, 100))}%"></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="num metric-positive">${formatCurrency(row.avgWin)}</td>
-                  <td class="num metric-negative">${formatCurrency(-row.avgLoss)}</td>
-                  <td class="num ${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)}</td>
-                  <td class="num">${row.profitFactor.toFixed(2)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
+        <div class="analytics-pattern-grid">
+          <article class="tl-section-card analytics-pattern-card">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Rendimiento por sesión</div>
+                <div class="row-sub">Qué bloque horario sostiene mejor el P&amp;L y cuál introduce fricción.</div>
+              </div>
+            </div>
+            <div class="analytics-session-stack analytics-session-stack--focused">
+              ${sessionRowsMarkup}
+            </div>
+            <div class="analytics-pattern-footer">
+              <div class="analytics-pattern-footer__item">
+                <span>Sesión más fuerte</span>
+                <strong>${strongestSession.key}</strong>
+                <small>${formatCurrency(strongestSession.pnl)}</small>
+              </div>
+              <div class="analytics-pattern-footer__item">
+                <span>Sesión a vigilar</span>
+                <strong>${weakestSession.key}</strong>
+                <small>${formatCurrency(weakestSession.pnl)}</small>
+              </div>
+            </div>
+          </article>
+
+          <article class="tl-section-card analytics-pattern-card">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Rendimiento por símbolo</div>
+                <div class="row-sub">Qué instrumentos merecen más capital atencional y cuáles están drenando edge.</div>
+              </div>
+            </div>
+            <div class="analytics-symbol-stack">
+              ${symbolRowsMarkup}
+            </div>
+            <div class="analytics-pattern-footer">
+              <div class="analytics-pattern-footer__item">
+                <span>Mejor símbolo</span>
+                <strong>${strongestSymbol.key}</strong>
+                <small>${formatCurrency(strongestSymbol.pnl)}</small>
+              </div>
+              <div class="analytics-pattern-footer__item">
+                <span>Símbolo más débil</span>
+                <strong>${weakestSymbol.key}</strong>
+                <small>${formatCurrency(weakestSymbol.pnl)}</small>
+              </div>
+            </div>
+          </article>
         </div>
+
+        <div class="analytics-pattern-grid analytics-pattern-grid--timing">
+          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--timing">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Timing y ventana operativa</div>
+                <div class="row-sub">La lectura horaria sirve para concentrar execution quality y cortar franjas improductivas.</div>
+              </div>
+            </div>
+            <div class="analytics-timing-hero">
+              <article class="analytics-timing-stat">
+                <span>Mejor hora</span>
+                <strong>${String(bestHour.hour).padStart(2, "0")}:00</strong>
+                <small>${formatCurrency(bestHour.pnl)}</small>
+              </article>
+              <article class="analytics-timing-stat">
+                <span>Peor hora</span>
+                <strong>${String(worstHour.hour).padStart(2, "0")}:00</strong>
+                <small>${formatCurrency(worstHour.pnl)}</small>
+              </article>
+              <article class="analytics-timing-stat">
+                <span>Hora más activa</span>
+                <strong>${String(activeHour.hour).padStart(2, "0")}:00</strong>
+                <small>${activeHour.trades} trades</small>
+              </article>
+            </div>
+            <div class="analytics-timing-chart">
+              ${chartCanvas("analytics-hourly-pnl", 230, "kmfx-chart-shell--feature")}
+            </div>
+            <div class="analytics-pattern-footer analytics-pattern-footer--three">
+              <div class="analytics-pattern-footer__item">
+                <span>Mejor día</span>
+                <strong>${bestWeekday?.label || "—"}</strong>
+                <small>${formatCurrency(bestWeekday?.pnl || 0)}</small>
+              </div>
+              <div class="analytics-pattern-footer__item">
+                <span>Peor día</span>
+                <strong>${worstWeekday?.label || "—"}</strong>
+                <small>${formatCurrency(worstWeekday?.pnl || 0)}</small>
+              </div>
+              <div class="analytics-pattern-footer__item">
+                <span>Consistencia diaria</span>
+                <strong>${formatPercent(consistencyRatio)}</strong>
+                <small>${winningDays} verdes / ${losingDays} rojos</small>
+              </div>
+            </div>
+          </article>
+
+          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--distribution">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Distribución win/loss</div>
+                <div class="row-sub">Relación entre calidad del acierto, coste del fallo y estabilidad media por trade.</div>
+              </div>
+            </div>
+            <div class="analytics-winloss-card analytics-winloss-card--compact">
+              <div class="analytics-winloss-summary">
+                <div class="analytics-winloss-header">
+                  <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
+                  <div class="analytics-winloss-sub">trades cerrados analizados</div>
+                </div>
+                <div class="analytics-winloss-bar" aria-hidden="true">
+                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+                </div>
+              </div>
+              <div class="analytics-distribution-metrics">
+                <div class="analytics-distribution-metric">
+                  <span>Win rate</span>
+                  <strong>${formatPercent(model.totals.winRate)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Profit factor</span>
+                  <strong>${model.totals.profitFactor.toFixed(2)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Avg win</span>
+                  <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Avg loss</span>
+                  <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Expectancy</span>
+                  <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>P&amp;L / trade</span>
+                  <strong class="${profitPerTrade >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(profitPerTrade)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Win/Loss ratio</span>
+                  <strong>${winLossRatio.toFixed(2)}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
+                  <span>Std. deviation</span>
+                  <strong>${formatCurrency(stdDevPnl)}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="analytics-distribution-chart">
+              ${chartCanvas("analytics-profit-distribution", 220, "kmfx-chart-shell--feature")}
+            </div>
+          </article>
         </div>
       </div>
     </section>
