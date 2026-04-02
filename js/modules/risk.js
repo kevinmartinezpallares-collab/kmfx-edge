@@ -803,11 +803,16 @@ export function renderRisk(root, state) {
             <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
           </label>
         </div>
-        <div class="risk-limit-actions">
-          <button class="btn btn-secondary" type="button" data-risk-reset>Reset</button>
-          <button class="btn btn-primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar configuración"}</button>
+        <div class="risk-limit-footer">
+          <div class="risk-limit-note">
+            <strong>Control operativo</strong>
+            <span>${riskConfigStatusLabel(root.__riskPrefsStatus)}</span>
+          </div>
+          <div class="risk-limit-actions">
+            <button class="btn btn-secondary risk-limit-btn risk-limit-btn--secondary" type="button" data-risk-reset>Reset</button>
+            <button class="btn btn-primary risk-limit-btn risk-limit-btn--primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar configuración"}</button>
+          </div>
         </div>
-        <div class="risk-limit-note">${riskConfigStatusLabel(root.__riskPrefsStatus)}</div>
       </article>
     </div>
 
