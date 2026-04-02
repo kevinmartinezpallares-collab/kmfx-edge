@@ -1693,9 +1693,9 @@ body[data-theme="dark"] .risk-command-center__copy {
 html[data-theme="dark"] .risk-command-center__copy h3,
 body[data-theme="dark"] .risk-command-center__copy h3 {
   margin: 0;
-  font-size: 36px;
-  line-height: 0.98;
-  letter-spacing: -0.05em;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.045em;
   color: var(--text-0);
 }
 
@@ -1792,9 +1792,14 @@ body[data-theme="dark"] .risk-rule-card strong {
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .risk-rule-card--ok .risk-rule-card__head span,
-body[data-theme="dark"] .risk-rule-card--ok .risk-rule-card__head span {
-  color: color-mix(in srgb, var(--positive) 82%, var(--text-1));
+html[data-theme="dark"] .risk-rule-card--neutral,
+body[data-theme="dark"] .risk-rule-card--neutral {
+  background: color-mix(in srgb, var(--layer-1-subtle) 97%, rgba(255,255,255,0.01));
+}
+
+html[data-theme="dark"] .risk-rule-card--neutral .risk-rule-card__head span,
+body[data-theme="dark"] .risk-rule-card--neutral .risk-rule-card__head span {
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .risk-rule-card--warn .risk-rule-card__head span,
@@ -1802,16 +1807,25 @@ body[data-theme="dark"] .risk-rule-card--warn .risk-rule-card__head span {
   color: color-mix(in srgb, var(--warning) 82%, var(--text-1));
 }
 
-html[data-theme="dark"] .risk-rule-card--danger,
-body[data-theme="dark"] .risk-rule-card--danger {
+html[data-theme="dark"] .risk-rule-card--warn,
+body[data-theme="dark"] .risk-rule-card--warn {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)),
-    color-mix(in srgb, var(--layer-1-subtle) 93%, rgba(154, 46, 60, 0.06));
-  border-color: rgba(214, 86, 102, 0.12);
+    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.008)),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255, 159, 10, 0.045));
+  border-color: rgba(255, 159, 10, 0.11);
 }
 
-html[data-theme="dark"] .risk-rule-card--danger .risk-rule-card__head span,
-body[data-theme="dark"] .risk-rule-card--danger .risk-rule-card__head span {
+html[data-theme="dark"] .risk-rule-card--dominant,
+body[data-theme="dark"] .risk-rule-card--dominant {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)),
+    color-mix(in srgb, var(--layer-1-subtle) 91%, rgba(154, 46, 60, 0.085));
+  border-color: rgba(214, 86, 102, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(214, 86, 102, 0.08);
+}
+
+html[data-theme="dark"] .risk-rule-card--dominant .risk-rule-card__head span,
+body[data-theme="dark"] .risk-rule-card--dominant .risk-rule-card__head span {
   color: color-mix(in srgb, var(--negative) 82%, var(--text-1));
 }
 
@@ -1841,6 +1855,45 @@ body[data-theme="dark"] .risk-core-metrics__grid {
 html[data-theme="dark"] .risk-core-kpi,
 body[data-theme="dark"] .risk-core-kpi {
   min-height: 126px;
+}
+
+html[data-theme="dark"] .risk-core-kpi .tl-kpi-val,
+body[data-theme="dark"] .risk-core-kpi .tl-kpi-val {
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-core-kpi__note,
+body[data-theme="dark"] .risk-core-kpi__note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+
+html[data-theme="dark"] .risk-core-kpi__note-value,
+body[data-theme="dark"] .risk-core-kpi__note-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .risk-core-kpi__note-value--positive,
+body[data-theme="dark"] .risk-core-kpi__note-value--positive {
+  color: color-mix(in srgb, var(--positive) 72%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-core-kpi__note-value--warning,
+body[data-theme="dark"] .risk-core-kpi__note-value--warning {
+  color: color-mix(in srgb, var(--warning) 78%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-core-kpi__note-value--negative,
+body[data-theme="dark"] .risk-core-kpi__note-value--negative {
+  color: color-mix(in srgb, var(--negative) 76%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-core-kpi__note-value--neutral,
+body[data-theme="dark"] .risk-core-kpi__note-value--neutral {
+  color: var(--text-1);
 }
 
 html[data-theme="dark"] .risk-exposure-card,
@@ -1878,6 +1931,62 @@ body[data-theme="dark"] .risk-exposure-row strong {
   line-height: 1.1;
   letter-spacing: -0.03em;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-config-surface,
+body[data-theme="dark"] .risk-config-surface,
+html[data-theme="dark"] .risk-limits-surface,
+body[data-theme="dark"] .risk-limits-surface {
+  background: color-mix(in srgb, var(--card-surface) 98%, rgba(255,255,255,0.01)) !important;
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
+html[data-theme="dark"] .risk-config-card,
+body[data-theme="dark"] .risk-config-card {
+  background: color-mix(in srgb, var(--layer-1-subtle) 98%, rgba(255,255,255,0.008)) !important;
+  border-color: rgba(255,255,255,0.035) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .risk-config-card .risk-config-title,
+body[data-theme="dark"] .risk-config-card .risk-config-title,
+html[data-theme="dark"] .risk-config-card .risk-config-value,
+body[data-theme="dark"] .risk-config-card .risk-config-value {
+  color: color-mix(in srgb, var(--text-0) 90%, var(--text-2));
+}
+
+html[data-theme="dark"] .risk-config-card .risk-config-meta,
+body[data-theme="dark"] .risk-config-card .risk-config-meta,
+html[data-theme="dark"] .risk-limit-note,
+body[data-theme="dark"] .risk-limit-note {
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-ladder-current-pill,
+body[data-theme="dark"] .risk-ladder-current-pill {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--warning) 80%, var(--text-1));
+  background: rgba(255, 159, 10, 0.12);
+}
+
+html[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td,
+body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td {
+  background: color-mix(in srgb, var(--layer-1-subtle) 93%, rgba(255, 159, 10, 0.055));
+  border-bottom-color: rgba(255, 159, 10, 0.14);
+}
+
+html[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:first-child,
+body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:first-child {
+  box-shadow: inset 2px 0 0 rgba(255, 159, 10, 0.5);
 }
 
 @media (max-width: 1080px) {

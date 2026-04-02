@@ -87,6 +87,7 @@ function renderLadderProgress(ladder, currentLevel) {
             <div class="risk-ladder-node">
               <span>${row.level}</span>
               <small>${row.riskPct.toFixed(2)}%</small>
+              ${stateClass === "current" ? `<em class="risk-ladder-current-pill">ACTUAL</em>` : ""}
             </div>
             ${index < ladder.length - 1 ? `<div class="risk-ladder-connector"></div>` : ""}
           </div>
@@ -430,6 +431,7 @@ export function renderRisk(root, state) {
   const ddHeadroomPct = Math.max(0, (account.maxDrawdownLimit || 10) - currentDrawdownPct);
   const remainingDailyLossPct = Math.max(0, (model.riskProfile.dailyLossLimitPct || 1.2) - dailyDrawdownPct);
   const openTrades = model.positions.length;
+  const formatDdConsumed = (value) => `${value > 0 ? "-" : ""}${formatPercent(Math.abs(value))}`;
   const controlState = isBlocked
     ? "Bloqueo recomendado"
     : currentLossStreak >= 4 || currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
@@ -444,6 +446,13 @@ export function renderRisk(root, state) {
       : controlState === "Vigilancia activa"
         ? "warn"
         : "ok";
+  const controlHeadline = isBlocked
+    ? "BLOQUEO RECOMENDADO — CORTA EL FLUJO"
+    : controlState === "Zona de protección"
+      ? "RIESGO ACTIVO — MODO PROTECCIÓN"
+      : controlState === "Vigilancia activa"
+        ? "RIESGO BAJO PRESIÓN — VIGILANCIA ACTIVA"
+        : "DENTRO DE LÍMITES — CONTROL OPERATIVO";
   const controlTrigger = currentLossStreak >= 3
     ? `Racha de ${currentLossStreak} pérdidas consecutivas`
     : currentDrawdownPct >= 1
@@ -451,6 +460,11 @@ export function renderRisk(root, state) {
       : account.openPnl < 0
         ? `Exposición abierta en ${formatCurrency(account.openPnl)}`
         : "Sin trigger crítico activo";
+  const marginHeadline = ddHeadroomPct <= 0
+    ? "Sin margen operativo"
+    : ddHeadroomPct <= 0.35
+      ? "Margen agotado"
+      : formatPercent(ddHeadroomPct);
   const controlContext = isBlocked
     ? "El sistema recomienda detener la operativa hasta recuperar margen y resetear presión."
     : controlState === "Zona de protección"
@@ -458,8 +472,13 @@ export function renderRisk(root, state) {
       : controlState === "Vigilancia activa"
         ? "Todavía puedes operar, pero ya hay un límite o comportamiento demasiado cerca."
         : "La operativa sigue dentro del plan y el margen todavía protege la cuenta.";
-  const activeRulesMarkup = risk.stopRules.map((rule) => {
-    const toneClass = rule.tone === "green" ? "ok" : rule.tone === "red" ? "danger" : "warn";
+  const dominantRuleIndex = risk.stopRules.findIndex((rule) => rule.tone === "red");
+  const activeRulesMarkup = risk.stopRules.map((rule, index) => {
+    const toneClass = index === dominantRuleIndex
+      ? "dominant"
+      : rule.tone === "green"
+        ? "neutral"
+        : "warn";
     const statusLabel = rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
     return `
       <article class="risk-rule-card risk-rule-card--${toneClass}">
@@ -473,27 +492,31 @@ export function renderRisk(root, state) {
   const coreMetrics = [
     {
       label: "Drawdown actual",
-      value: formatPercent(currentDrawdownPct),
-      note: `${formatCurrency(-currentDrawdownAmount)} desde pico`,
-      tone: currentDrawdownAmount > 0 ? "negative" : ""
+      value: formatDdConsumed(currentDrawdownPct),
+      noteLead: formatCurrency(-currentDrawdownAmount),
+      noteTail: "desde el último pico",
+      noteTone: currentDrawdownAmount > 0 ? "negative" : "positive"
     },
     {
       label: "Drawdown máximo",
-      value: formatPercent(model.totals.drawdown.maxPct),
-      note: `${formatCurrency(-model.totals.drawdown.maxAmount)} máximo histórico`,
-      tone: "negative"
+      value: formatDdConsumed(model.totals.drawdown.maxPct),
+      noteLead: `${Math.round((model.totals.drawdown.maxPct / Math.max(account.maxDrawdownLimit || 10, 0.01)) * 100)}%`,
+      noteTail: "del límite total consumido",
+      noteTone: "warning"
     },
     {
       label: "Riesgo por trade",
       value: `${risk.currentRiskPct.toFixed(2)}%`,
-      note: `${formatCurrency(risk.currentRiskUsd)} por operación`,
-      tone: risk.currentRiskPct >= (model.riskProfile.maxTradeRiskPct || 1) * 0.8 ? "negative" : ""
+      noteLead: formatCurrency(risk.currentRiskUsd),
+      noteTail: "expuestos por operación",
+      noteTone: risk.currentRiskPct >= (model.riskProfile.maxTradeRiskPct || 1) * 0.8 ? "warning" : "positive"
     },
     {
       label: "Exposición actual",
       value: formatCurrency(account.openPnl),
-      note: `${formatCurrency(exposureOpen)} flotante absoluta`,
-      tone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : ""
+      noteLead: formatCurrency(exposureOpen),
+      noteTail: "flotante absoluta",
+      noteTone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : "warning"
     }
   ];
   const riskConfigCards = [
@@ -657,13 +680,13 @@ export function renderRisk(root, state) {
     <article class="tl-section-card risk-command-center risk-command-center--${controlTone}">
       <div class="risk-command-center__copy">
         <div class="eyebrow">Mando central</div>
-        <h3>${controlState}</h3>
+        <h3>${controlHeadline}</h3>
         <p>${controlContext}</p>
       </div>
       <div class="risk-command-center__meta">
         <div class="risk-command-center__metric">
           <span>Margen restante</span>
-          <strong>${formatPercent(ddHeadroomPct)}</strong>
+          <strong class="${ddHeadroomPct <= 0 ? "metric-negative" : ddHeadroomPct <= 0.35 ? "metric-warning" : ""}">${marginHeadline}</strong>
           <small>${formatPercent(remainingDailyLossPct)} de margen diario</small>
         </div>
         <div class="risk-command-center__metric">
@@ -708,8 +731,11 @@ export function renderRisk(root, state) {
           ${coreMetrics.map((item) => `
             <article class="tl-kpi-card risk-core-kpi">
               <div class="tl-kpi-label">${item.label}</div>
-              <div class="tl-kpi-val ${item.tone === "negative" ? "red" : item.tone === "positive" ? "green" : ""}">${item.value}</div>
-              <div class="row-sub">${item.note}</div>
+              <div class="tl-kpi-val">${item.value}</div>
+              <div class="row-sub risk-core-kpi__note">
+                <span class="risk-core-kpi__note-value risk-core-kpi__note-value--${item.noteTone || "neutral"}">${item.noteLead}</span>
+                <span>${item.noteTail}</span>
+              </div>
             </article>
           `).join("")}
         </div>
@@ -804,14 +830,14 @@ export function renderRisk(root, state) {
           <thead><tr><th>Nivel</th><th>Riesgo/Trade</th><th>Condición Entrada</th><th>Condición Subida</th><th>Condición Bajada</th><th>Trades a $100k</th><th>Estado</th></tr></thead>
           <tbody>
             ${ladder.map((row) => `
-              <tr>
+              <tr class="${row.level === ladderLevel ? "risk-ladder-row--current" : ""}">
                 <td>${row.level}</td>
                 <td>${row.riskPct.toFixed(2)}%</td>
                 <td>${row.entryCondition}</td>
                 <td>${row.riseCondition}</td>
                 <td>${row.fallCondition}</td>
                 <td>${row.tradesTo100k}</td>
-                <td>${badgeMarkup({ label: row.state, tone: row.level === "PROTECT" ? "warn" : row.level === "MAX" ? "info" : "neutral" }, "ui-badge--compact")}</td>
+                <td>${badgeMarkup({ label: row.level === ladderLevel ? "ACTUAL" : row.state, tone: row.level === ladderLevel ? "warn" : row.level === "PROTECT" ? "warn" : row.level === "MAX" ? "info" : "neutral" }, "ui-badge--compact")}</td>
               </tr>
             `).join("")}
           </tbody>
