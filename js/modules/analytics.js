@@ -39,12 +39,12 @@ function buildPerformanceProfile(model) {
   const riskReward = clampPercent((Math.max(model.totals.rr || 0, 0) / 3) * 100);
 
   return [
-    { label: "Profitability", value: profitability },
-    { label: "Consistency", value: consistency },
-    { label: "Risk Management", value: riskManagement },
-    { label: "Discipline", value: discipline },
-    { label: "Efficiency", value: efficiency },
-    { label: "Risk/Reward", value: riskReward }
+    { label: "Rentabilidad", value: profitability },
+    { label: "Consistencia", value: consistency },
+    { label: "Gestión de riesgo", value: riskManagement },
+    { label: "Disciplina", value: discipline },
+    { label: "Eficiencia", value: efficiency },
+    { label: "Riesgo/Beneficio", value: riskReward }
   ];
 }
 
@@ -559,6 +559,34 @@ export function renderAnalytics(root, state) {
         </div>
       </div>
     `).join("");
+  const timingRanking = [...hourlyRows].sort((a, b) => b.pnl - a.pnl);
+  const timingFocusRows = timingRanking.filter((row, index, list) => (
+    index < 3 || row.hour === worstHour.hour || row.hour === bestHour.hour
+  )).filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index);
+  const timingMaxAbs = Math.max(...timingFocusRows.map((row) => Math.abs(row.pnl)), 1);
+  const timingRowsMarkup = timingFocusRows.map((row) => `
+    <article class="analytics-timing-row ${row.hour === bestHour.hour ? "analytics-timing-row--best" : row.hour === worstHour.hour ? "analytics-timing-row--worst" : ""}">
+      <div class="analytics-timing-row__main">
+        <div class="analytics-timing-row__copy">
+          <strong>${String(row.hour).padStart(2, "0")}:00</strong>
+          <span>${row.hour === bestHour.hour ? "Mejor franja" : row.hour === worstHour.hour ? "Franja débil" : `${row.trades} trades`}</span>
+        </div>
+        <div class="analytics-timing-row__meta">
+          <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
+          <span>${row.trades} trades</span>
+        </div>
+      </div>
+      <div class="analytics-session-rail analytics-session-rail--timing">
+        <div class="analytics-session-rail-fill ${row.pnl >= 0 ? "is-positive" : "is-negative"}" style="width:${Math.max(14, (Math.abs(row.pnl) / timingMaxAbs) * 100)}%"></div>
+      </div>
+    </article>
+  `).join("");
+  const quickReadItems = [
+    `${strongestSession.key} sostiene el edge`,
+    `${strongestSymbol.key} concentra rentabilidad`,
+    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción`,
+    `${weakestSession.key} aporta menos valor ahora`
+  ];
   const detailedMetrics = [
     {
       tone: "blue",
@@ -741,6 +769,12 @@ export function renderAnalytics(root, state) {
                   <span>Decisión</span>
                   <strong>${decisionEngine.primary}</strong>
                 </div>
+                <div class="analytics-quick-read">
+                  <span class="analytics-quick-read__label">Lectura rápida</span>
+                  <ul class="analytics-quick-read__list">
+                    ${quickReadItems.map((item) => `<li>${item}</li>`).join("")}
+                  </ul>
+                </div>
               </div>
             </div>
             <div class="analytics-overview-profile">
@@ -820,8 +854,8 @@ export function renderAnalytics(root, state) {
                 <small>${formatCurrency(worstHour.pnl)} frente a ${formatCurrency(bestHour.pnl)} en la mejor franja</small>
               </article>
             </div>
-            <div class="analytics-timing-chart">
-              ${chartCanvas("analytics-hourly-pnl", 230, "kmfx-chart-shell--feature")}
+            <div class="analytics-timing-list">
+              ${timingRowsMarkup}
             </div>
             <div class="analytics-pattern-footer analytics-pattern-footer--single">
               <div class="analytics-pattern-footer__item">
@@ -852,6 +886,10 @@ export function renderAnalytics(root, state) {
               </div>
               <div class="analytics-distribution-metrics analytics-distribution-metrics--tight">
                 <div class="analytics-distribution-metric">
+                  <span>Trades</span>
+                  <strong>${winningTrades.length + losingTrades.length}</strong>
+                </div>
+                <div class="analytics-distribution-metric">
                   <span>Win rate</span>
                   <strong>${formatPercent(model.totals.winRate)}</strong>
                 </div>
@@ -865,9 +903,6 @@ export function renderAnalytics(root, state) {
                 </div>
               </div>
             </div>
-            <div class="analytics-distribution-chart">
-              ${chartCanvas("analytics-profit-distribution", 220, "kmfx-chart-shell--feature")}
-            </div>
           </article>
         </div>
       </div>
@@ -876,7 +911,7 @@ export function renderAnalytics(root, state) {
     <section class="analytics-panel ${state.ui.analyticsTab === "daily" ? "active" : ""}" data-tab="daily">
       <div class="hour-hero-cards analytics-daily-heroes">
         ${weekdayWorkdays.map((day) => `
-          <article class="hhc-card blue">
+          <article class="hhc-card">
             <div class="hhc-label">${day.label}</div>
             <div class="hhc-val ${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</div>
             <div class="hhc-sub">${day.trades} trades</div>
@@ -909,7 +944,7 @@ export function renderAnalytics(root, state) {
       <div class="hour-hero-cards">
         <article class="hhc-card green"><div class="hhc-label">Mejor hora</div><div class="hhc-val green">${String(bestHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(bestHour.pnl)}</div></article>
         <article class="hhc-card red"><div class="hhc-label">Peor hora</div><div class="hhc-val red">${String(worstHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(worstHour.pnl)}</div></article>
-        <article class="hhc-card blue"><div class="hhc-label">Hora más activa</div><div class="hhc-val">${String(activeHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${activeHour.trades} trades</div></article>
+        <article class="hhc-card"><div class="hhc-label">Hora más activa</div><div class="hhc-val">${String(activeHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${activeHour.trades} trades</div></article>
       </div>
 
       <div class="tl-section-card">

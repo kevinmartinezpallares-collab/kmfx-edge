@@ -2405,6 +2405,51 @@ body[data-theme="dark"] .analytics-focus-stack--single {
   max-width: 560px;
 }
 
+html[data-theme="dark"] .analytics-quick-read,
+body[data-theme="dark"] .analytics-quick-read {
+  padding: 4px 2px 0;
+}
+
+html[data-theme="dark"] .analytics-quick-read__label,
+body[data-theme="dark"] .analytics-quick-read__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-quick-read__list,
+body[data-theme="dark"] .analytics-quick-read__list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+html[data-theme="dark"] .analytics-quick-read__list li,
+body[data-theme="dark"] .analytics-quick-read__list li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .analytics-quick-read__list li::before,
+body[data-theme="dark"] .analytics-quick-read__list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.28);
+}
+
 html[data-theme="dark"] .analytics-focus-item,
 body[data-theme="dark"] .analytics-focus-item {
   padding: 16px 16px 15px;
@@ -2531,7 +2576,7 @@ html[data-theme="dark"] .analytics-profile-row__fill,
 body[data-theme="dark"] .analytics-profile-row__fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34));
+  background: linear-gradient(90deg, rgba(86, 158, 255, 0.64), rgba(126, 188, 255, 0.88));
 }
 
 html[data-theme="dark"] .analytics-pattern-grid,
@@ -2697,6 +2742,69 @@ body[data-theme="dark"] .analytics-timing-hero {
   margin-bottom: 12px;
 }
 
+html[data-theme="dark"] .analytics-timing-list,
+body[data-theme="dark"] .analytics-timing-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+html[data-theme="dark"] .analytics-timing-row,
+body[data-theme="dark"] .analytics-timing-row {
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: var(--layer-1-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] .analytics-timing-row--best,
+body[data-theme="dark"] .analytics-timing-row--best,
+html[data-theme="dark"] .analytics-timing-row--worst,
+body[data-theme="dark"] .analytics-timing-row--worst {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012)),
+    var(--layer-1-subtle);
+  border-color: rgba(255, 255, 255, 0.062);
+}
+
+html[data-theme="dark"] .analytics-timing-row__main,
+body[data-theme="dark"] .analytics-timing-row__main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .analytics-timing-row__copy,
+body[data-theme="dark"] .analytics-timing-row__copy,
+html[data-theme="dark"] .analytics-timing-row__meta,
+body[data-theme="dark"] .analytics-timing-row__meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .analytics-timing-row__copy strong,
+body[data-theme="dark"] .analytics-timing-row__copy strong,
+html[data-theme="dark"] .analytics-timing-row__meta strong,
+body[data-theme="dark"] .analytics-timing-row__meta strong {
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+html[data-theme="dark"] .analytics-timing-row__copy span,
+body[data-theme="dark"] .analytics-timing-row__copy span,
+html[data-theme="dark"] .analytics-timing-row__meta span,
+body[data-theme="dark"] .analytics-timing-row__meta span {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-session-rail--timing,
+body[data-theme="dark"] .analytics-session-rail--timing {
+  margin-top: 10px;
+}
+
 html[data-theme="dark"] .analytics-timing-stat--insight,
 body[data-theme="dark"] .analytics-timing-stat--insight {
   background: rgba(255, 255, 255, 0.022);
@@ -2768,7 +2876,7 @@ body[data-theme="dark"] .analytics-distribution-metrics {
 
 html[data-theme="dark"] .analytics-distribution-metrics--tight,
 body[data-theme="dark"] .analytics-distribution-metrics--tight {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 html[data-theme="dark"] .analytics-symbol-row--secondary,
@@ -2830,6 +2938,8 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   body[data-theme="dark"] .analytics-insight-grid,
   html[data-theme="dark"] .analytics-profile-highlights,
   body[data-theme="dark"] .analytics-profile-highlights,
+  html[data-theme="dark"] .analytics-timing-list,
+  body[data-theme="dark"] .analytics-timing-list,
   html[data-theme="dark"] .analytics-pattern-footer,
   body[data-theme="dark"] .analytics-pattern-footer,
   html[data-theme="dark"] .analytics-pattern-footer--three,
@@ -2844,7 +2954,9 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   html[data-theme="dark"] .analytics-symbol-row__main,
   body[data-theme="dark"] .analytics-symbol-row__main,
   html[data-theme="dark"] .analytics-symbol-row__aux,
-  body[data-theme="dark"] .analytics-symbol-row__aux {
+  body[data-theme="dark"] .analytics-symbol-row__aux,
+  html[data-theme="dark"] .analytics-timing-row__main,
+  body[data-theme="dark"] .analytics-timing-row__main {
     flex-direction: column;
     align-items: flex-start;
   }
