@@ -3595,6 +3595,12 @@ body[data-theme="dark"] .analytics-risk-kpi small {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .analytics-risk-kpi__note-value,
+body[data-theme="dark"] .analytics-risk-kpi__note-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 html[data-theme="dark"] .analytics-risk-kpi__note--positive,
 body[data-theme="dark"] .analytics-risk-kpi__note--positive {
   color: color-mix(in srgb, var(--positive) 68%, var(--text-1));

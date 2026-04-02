@@ -1040,21 +1040,24 @@ export function renderAnalytics(root, state) {
     {
       label: "Drawdown actual",
       value: formatPercent(currentDrawdownPct),
-      note: `${formatCurrency(-currentDrawdownAmount)} desde el último pico`,
+      noteLead: formatCurrency(-currentDrawdownAmount),
+      noteTail: "desde el último pico",
       tone: currentDrawdownPct > 0 ? "negative" : "",
       noteTone: currentDrawdownPct >= 1 ? "negative" : currentDrawdownPct > 0 ? "warning" : "positive"
     },
     {
       label: "Drawdown máximo",
       value: formatPercent(maxDrawdownPct),
-      note: `${Math.round(ddUsagePct)}% del límite total consumido`,
+      noteLead: `${Math.round(ddUsagePct)}%`,
+      noteTail: "del límite total consumido",
       tone: maxDrawdownPct >= maxDrawdownLimit * 0.7 ? "negative" : "",
       noteTone: ddUsagePct >= 70 ? "negative" : ddUsagePct >= 40 ? "warning" : "positive"
     },
     {
       label: "Riesgo medio / trade",
       value: `${currentRiskPct.toFixed(2)}%`,
-      note: `${formatCurrency(currentRiskUsd)} expuestos por operación`,
+      noteLead: formatCurrency(currentRiskUsd),
+      noteTail: "expuestos por operación",
       tone: riskPerTradeUsagePct >= 80 ? "negative" : "",
       noteTone: riskPerTradeUsagePct >= 80 ? "negative" : riskPerTradeUsagePct >= 55 ? "warning" : "positive"
     },
@@ -1590,7 +1593,7 @@ export function renderAnalytics(root, state) {
             <article class="tl-section-card analytics-risk-kpi">
               <span class="analytics-risk-kpi__label">${item.label}</span>
               <strong class="analytics-risk-kpi__value ${item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
-              <small class="analytics-risk-kpi__note analytics-risk-kpi__note--${item.noteTone || "neutral"}">${item.note}</small>
+              <small class="analytics-risk-kpi__note analytics-risk-kpi__note--${item.noteTone || "neutral"}">${item.noteLead ? `<span class="analytics-risk-kpi__note-value">${item.noteLead}</span>${item.noteTail ? ` ${item.noteTail}` : ""}` : item.note}</small>
             </article>
           `).join("")}
         </div>
