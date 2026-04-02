@@ -1156,11 +1156,6 @@ export function renderAnalytics(root, state) {
               </div>
             ` : `<p class="analytics-daily-detail__empty">Todavía no hay un día seleccionado con actividad.</p>`}
           </article>
-
-          <article class="analytics-focus-item analytics-focus-item--warn analytics-daily-decision">
-            <span>Decisión</span>
-            <strong>${decisionEngine.primary}</strong>
-          </article>
         </aside>
       </div>
     </section>

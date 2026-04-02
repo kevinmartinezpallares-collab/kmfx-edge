@@ -2618,6 +2618,11 @@ body[data-theme="dark"] .analytics-daily-card {
   padding: 16px !important;
 }
 
+html[data-theme="dark"] .analytics-daily-card--detail,
+body[data-theme="dark"] .analytics-daily-card--detail {
+  padding: 18px !important;
+}
+
 html[data-theme="dark"] .analytics-key-days,
 body[data-theme="dark"] .analytics-key-days {
   display: grid;
@@ -2775,16 +2780,12 @@ body[data-theme="dark"] .analytics-daily-detail__empty {
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .analytics-daily-decision,
-body[data-theme="dark"] .analytics-daily-decision {
-  margin: 0;
-}
-
 html[data-theme="dark"] .analytics-daily-card--detail.is-active,
 body[data-theme="dark"] .analytics-daily-card--detail.is-active {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.012)),
     var(--card-surface);
+  border-color: rgba(255,255,255,0.065);
 }
 
 html[data-theme="dark"] .analytics-pattern-grid--timing,
