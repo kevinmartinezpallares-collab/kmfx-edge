@@ -960,10 +960,10 @@ export function renderAnalytics(root, state) {
       ? "warning"
       : "safe";
   const riskHeroTitle = riskHeroTone === "critical"
-    ? "Riesgo crítico"
+    ? "Control comprometido"
     : riskHeroTone === "warning"
-      ? "Riesgo elevado"
-      : "Riesgo controlado";
+      ? "Control bajo presión"
+      : "Control estable";
   const heroSignalTitle = lossStreak >= 4
     ? `Racha loss ${lossStreak}`
     : inconsistencyLevel !== "stable"
@@ -1569,7 +1569,7 @@ export function renderAnalytics(root, state) {
       <div class="analytics-risk-layout">
         <article class="tl-section-card analytics-risk-hero analytics-risk-hero--${riskHeroTone}">
           <div class="analytics-risk-hero__copy">
-            <div class="eyebrow">Estado de riesgo</div>
+            <div class="eyebrow">Estado de control</div>
             <h3>${riskHeroTitle}</h3>
             <p>${riskHeroContext}</p>
             ${riskAlerts.length ? `<div class="analytics-risk-hero__alerts">${riskAlertsLimited}</div>` : ""}
@@ -1595,7 +1595,7 @@ export function renderAnalytics(root, state) {
           <article class="tl-section-card analytics-risk-behavior">
             <div class="tl-section-header">
               <div>
-                <div class="tl-section-title">Comportamiento de riesgo</div>
+                <div class="tl-section-title">Comportamiento de control</div>
                 <div class="row-sub">Dónde empieza a romperse la disciplina operativa</div>
               </div>
             </div>
