@@ -776,6 +776,43 @@ export function renderAnalytics(root, state) {
     `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción`,
     `${weakestSession.key} aporta menos valor ahora`
   ];
+  const hourMap = new Map((model.hours || []).map((hour) => [Number(hour.hour), hour]));
+  const hourlyTimeline = Array.from({ length: 24 }, (_, hour) => {
+    const source = hourMap.get(hour);
+    return source ? { ...source, hour } : { hour, pnl: 0, trades: 0, winRate: 0 };
+  });
+  const hourlyMaxAbs = Math.max(...hourlyTimeline.map((hour) => Math.abs(Number(hour.pnl || 0))), 1);
+  const formatHourLabel = (hour) => `${String(hour).padStart(2, "0")}:00`;
+  let bestWindow = { start: bestHour.hour, end: bestHour.hour, pnl: bestHour.pnl, trades: bestHour.trades || 0 };
+  for (let start = 0; start <= 21; start += 1) {
+    const windowHours = hourlyTimeline.slice(start, start + 3);
+    const pnl = windowHours.reduce((sum, hour) => sum + Number(hour.pnl || 0), 0);
+    const trades = windowHours.reduce((sum, hour) => sum + Number(hour.trades || 0), 0);
+    if (trades > 0 && pnl > bestWindow.pnl) {
+      bestWindow = { start, end: start + 2, pnl, trades };
+    }
+  }
+  const bestWindowLabel = `${formatHourLabel(bestWindow.start)}–${formatHourLabel(bestWindow.end)}`;
+  const activeNegativeHours = hourlyTimeline.filter((hour) => hour.trades > 0 && hour.pnl < 0).sort((a, b) => a.pnl - b.pnl);
+  const weakestTimingWindow = activeNegativeHours[0] || worstHour;
+  const hourTimelineMarkup = hourlyTimeline.map((hour) => {
+    const toneClass = hour.trades
+      ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
+      : "is-empty";
+    const intensity = hour.trades ? Math.max(0.16, Math.min(0.82, Math.abs(hour.pnl) / hourlyMaxAbs)) : 0;
+    return `
+      <div class="analytics-hour-block ${toneClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
+        <span class="analytics-hour-block__time">${formatHourLabel(hour.hour)}</span>
+        <strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${hour.trades ? formatCurrency(hour.pnl) : "—"}</strong>
+        <small>${hour.trades ? `${hour.trades} trades` : "Sin actividad"}</small>
+      </div>
+    `;
+  }).join("");
+  const hourInsights = [
+    `${bestWindowLabel} concentra el mejor flujo operativo del día.`,
+    `${formatHourLabel(weakestTimingWindow.hour)} rompe la continuidad y resta edge cuando se extiende la ejecución.`
+  ];
+  const hourDecision = `Concentra la ejecución en ${bestWindowLabel} y evita extender operativa más allá de ${formatHourLabel(weakestTimingWindow.hour)} salvo setup excepcional.`;
   const detailedMetrics = [
     {
       tone: "blue",
@@ -1207,51 +1244,66 @@ export function renderAnalytics(root, state) {
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "hourly" ? "active" : ""}" data-tab="hourly">
-      <div class="hour-hero-cards">
-        <article class="hhc-card green"><div class="hhc-label">Mejor hora</div><div class="hhc-val green">${String(bestHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(bestHour.pnl)}</div></article>
-        <article class="hhc-card red"><div class="hhc-label">Peor hora</div><div class="hhc-val red">${String(worstHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${formatCurrency(worstHour.pnl)}</div></article>
-        <article class="hhc-card"><div class="hhc-label">Hora más activa</div><div class="hhc-val">${String(activeHour.hour).padStart(2, "0")}:00</div><div class="hhc-sub">${activeHour.trades} trades</div></article>
-      </div>
-
-      <div class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Heatmap 24 Horas</div></div>
-        <div class="heat-legend">
-          <span><i class="heat-legend-dot heat-legend-dot--gain"></i>Ganancia</span>
-          <span><i class="heat-legend-dot heat-legend-dot--loss"></i>Pérdida</span>
-          <span><i class="heat-legend-dot heat-legend-dot--empty"></i>Sin datos</span>
-        </div>
-        <div class="heat-grid heat-grid--24">
-          ${model.hours.map((hour) => `
-            <div class="heat-cell ${hour.trades ? "" : "heat-cell--empty"}" style="${hour.trades ? `background:${hour.pnl >= 0 ? "var(--green-bg)" : "var(--red-bg)"};border-color:${hour.pnl >= 0 ? "var(--green-border)" : "var(--red-border)"}` : ""}">
-              <div class="heat-hour">${String(hour.hour).padStart(2, "0")}:00</div>
-              <div class="heat-pnl ${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${hour.trades ? formatCurrency(hour.pnl) : "—"}</div>
-              <div class="row-sub">${hour.trades ? `${hour.trades} trades` : "Sin datos"}</div>
+      <div class="analytics-hour-layout">
+        <article class="tl-section-card analytics-hour-hero">
+          <div class="analytics-hour-hero__copy">
+            <div class="analytics-overview-kicker">Ventana óptima</div>
+            <h3 class="analytics-overview-title">${bestWindowLabel} es donde el sistema sostiene mejor el edge temporal.</h3>
+            <p class="analytics-overview-subtitle">${formatCurrency(bestWindow.pnl)} en ${bestWindow.trades} trades. Fuera de esa ventana, la calidad cae especialmente al llegar a ${formatHourLabel(weakestTimingWindow.hour)}.</p>
+          </div>
+          <div class="analytics-hour-hero__stats">
+            <div class="analytics-hour-stat">
+              <span>Mejor hora</span>
+              <strong class="metric-positive">${formatHourLabel(bestHour.hour)}</strong>
+              <small>${formatCurrency(bestHour.pnl)}</small>
             </div>
-          `).join("")}
-        </div>
-      </div>
-
-      <div class="grid-2 equal">
-        <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">PnL por Hora</div></div>
-          ${chartCanvas("analytics-hourly-pnl", 240, "kmfx-chart-shell--feature")}
-        </article>
-        <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">Actividad por Hora</div></div>
-          ${chartCanvas("analytics-hourly-trades", 240, "kmfx-chart-shell--feature")}
-        </article>
-      </div>
-
-      <div class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Desglose Métrico por Hora</div></div>
-        <div class="breakdown-list">
-          ${hourlyRows.sort((a, b) => b.pnl - a.pnl).map((hour) => `
-            <div class="list-row">
-              <div><div class="row-title">${String(hour.hour).padStart(2, "0")}:00</div><div class="row-sub">${hour.trades} trades ejecutados</div></div>
-              <div class="row-chip">${hour.trades > 1 ? "Cluster" : "Single"}</div>
-              <div class="row-pnl ${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(hour.pnl)}</div>
+            <div class="analytics-hour-stat">
+              <span>Franja débil</span>
+              <strong class="metric-negative">${formatHourLabel(weakestTimingWindow.hour)}</strong>
+              <small>${formatCurrency(weakestTimingWindow.pnl)}</small>
             </div>
-          `).join("")}
+            <div class="analytics-hour-stat">
+              <span>Hora más activa</span>
+              <strong>${formatHourLabel(activeHour.hour)}</strong>
+              <small>${activeHour.trades} trades</small>
+            </div>
+          </div>
+        </article>
+
+        <article class="tl-section-card analytics-hour-timeline-card">
+          <div class="tl-section-header">
+            <div>
+              <div class="tl-section-title">Mapa temporal del edge</div>
+              <div class="row-sub">Cada hora muestra si aporta, drena o simplemente no participa en la ejecución.</div>
+            </div>
+          </div>
+          <div class="analytics-hour-timeline">
+            ${hourTimelineMarkup}
+          </div>
+        </article>
+
+        <div class="analytics-hour-insight-grid">
+          <article class="tl-section-card analytics-hour-copy-card">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Insight</div>
+                <div class="row-sub">La lectura temporal debe cerrar rápido y sin ruido cuantitativo.</div>
+              </div>
+            </div>
+            <div class="analytics-hour-insights">
+              ${hourInsights.map((item, index) => `<p class="${index === 0 ? "is-lead" : ""}">${item}</p>`).join("")}
+            </div>
+          </article>
+          <article class="tl-section-card analytics-hour-copy-card analytics-hour-copy-card--decision">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Decisión</div>
+              </div>
+            </div>
+            <div class="analytics-hour-decision">
+              <strong>${hourDecision}</strong>
+            </div>
+          </article>
         </div>
       </div>
     </section>
