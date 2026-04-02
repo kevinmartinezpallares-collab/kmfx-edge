@@ -9,6 +9,10 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
 }
 
+function inRange(value, start, end) {
+  return value >= start && value <= end;
+}
+
 function formatCompactSignedCurrency(value) {
   const absolute = Math.abs(Number(value || 0));
   if (absolute < 1000) return formatCurrency(value);
@@ -817,7 +821,7 @@ export function renderAnalytics(root, state) {
   const formatHourlyValue = (value) => analyticsHourValueMode === "percent"
     ? formatCompactSignedPercent((Number(value || 0) / analyticsHourPctBase) * 100)
     : formatCompactSignedCurrency(value);
-  const hourTimelineMarkup = hourlyTimeline.map((hour) => {
+  const hourOverviewMarkup = hourlyTimeline.map((hour) => {
     const toneClass = hour.trades
       ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
       : "is-empty";
@@ -826,24 +830,53 @@ export function renderAnalytics(root, state) {
       ? (hour.hour === bestWindow.start ? "is-window-start" : hour.hour === bestWindow.end ? "is-window-end" : "is-window-mid")
       : "";
     const intensity = hour.trades ? Math.max(0.16, Math.min(0.82, Math.abs(hour.pnl) / hourlyMaxAbs)) : 0;
-    const showValue = hour.trades && (
-      hour.hour === bestHour.hour
-      || hour.hour === weakestTimingWindow.hour
-      || intensity >= 0.42
-      || inBestWindow
-    );
-    const widthClass = !hour.trades
-      ? "is-compact"
-      : (hour.hour === bestHour.hour || hour.hour === weakestTimingWindow.hour || inBestWindow)
-        ? "is-wide"
-        : "is-active";
     return `
-      <div class="analytics-hour-block ${toneClass} ${widthClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
-        <span class="analytics-hour-block__time">${String(hour.hour).padStart(2, "0")}</span>
-        ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatHourlyValue(hour.pnl)}</strong>` : ""}
+      <div class="analytics-hour-segment ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
+        <span class="analytics-hour-segment__time">${String(hour.hour).padStart(2, "0")}</span>
       </div>
     `;
   }).join("");
+  const secondaryPositiveHour = hourlyTimeline
+    .filter((hour) => hour.trades > 0 && hour.pnl > 0 && !inRange(hour.hour, bestWindow.start, bestWindow.end) && hour.hour !== bestHour.hour)
+    .sort((a, b) => b.pnl - a.pnl)[0] || null;
+  const bestWindowSupportingHours = hourlyTimeline
+    .filter((hour) => hour.trades > 0 && inRange(hour.hour, bestWindow.start, bestWindow.end))
+    .sort((a, b) => b.pnl - a.pnl);
+  const detailHourRows = [
+    {
+      hour: bestHour.hour,
+      pnl: bestHour.pnl,
+      tone: bestHour.pnl >= 0 ? "positive" : "negative",
+      label: "mejor hora"
+    },
+    ...bestWindowSupportingHours
+      .filter((hour) => hour.hour !== bestHour.hour)
+      .map((hour) => ({
+        hour: hour.hour,
+        pnl: hour.pnl,
+        tone: hour.pnl >= 0 ? "positive" : "negative",
+        label: "mantiene edge"
+      })),
+    {
+      hour: weakestTimingWindow.hour,
+      pnl: weakestTimingWindow.pnl,
+      tone: "negative",
+      label: "franja débil"
+    },
+    ...(secondaryPositiveHour ? [{
+      hour: secondaryPositiveHour.hour,
+      pnl: secondaryPositiveHour.pnl,
+      tone: "positive",
+      label: "aporta pero no lidera"
+    }] : [])
+  ].filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index).slice(0, 4);
+  const hourDetailRowsMarkup = detailHourRows.map((row) => `
+    <div class="analytics-hour-detail-row">
+      <div class="analytics-hour-detail-row__time">${String(row.hour).padStart(2, "0")}:00</div>
+      <div class="analytics-hour-detail-row__value ${row.tone === "positive" ? "metric-positive" : "metric-negative"}">${formatHourlyValue(row.pnl)}</div>
+      <div class="analytics-hour-detail-row__label">${row.label}</div>
+    </div>
+  `).join("");
   const hourInsights = [
     `${bestWindowLabel} concentra el mejor flujo operativo del día.`,
     `${formatHourLabel(weakestTimingWindow.hour)} rompe la continuidad y resta edge cuando se extiende la ejecución.`
@@ -1304,16 +1337,28 @@ export function renderAnalytics(root, state) {
         <article class="tl-section-card analytics-hour-timeline-card">
           <div class="tl-section-header">
             <div>
-              <div class="tl-section-title">Mapa temporal del edge</div>
-              <div class="row-sub">Cada hora muestra si aporta, drena o simplemente no participa en la ejecución.</div>
+              <div class="tl-section-title">Overview temporal</div>
+              <div class="row-sub">Lectura visual rápida de actividad, continuidad y fricción horaria.</div>
             </div>
             <div class="analytics-hour-toggle" role="tablist" aria-label="Unidad de valor para hora">
               <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "currency" ? "is-active" : ""}" type="button" data-analytics-hour-mode="currency">€</button>
               <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "percent" ? "is-active" : ""}" type="button" data-analytics-hour-mode="percent">%</button>
             </div>
           </div>
-          <div class="analytics-hour-timeline">
-            ${hourTimelineMarkup}
+          <div class="analytics-hour-overview">
+            ${hourOverviewMarkup}
+          </div>
+        </article>
+
+        <article class="tl-section-card analytics-hour-detail-card">
+          <div class="tl-section-header">
+            <div>
+              <div class="tl-section-title">Detalle operativo</div>
+              <div class="row-sub">Las horas que merecen foco o recorte dentro de la sesión.</div>
+            </div>
+          </div>
+          <div class="analytics-hour-detail-list">
+            ${hourDetailRowsMarkup}
           </div>
         </article>
 
