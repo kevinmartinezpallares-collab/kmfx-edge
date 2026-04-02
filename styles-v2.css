@@ -3445,9 +3445,9 @@ body[data-theme="dark"] .analytics-risk-layout {
 html[data-theme="dark"] .analytics-risk-hero,
 body[data-theme="dark"] .analytics-risk-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(260px, 0.82fr);
+  grid-template-columns: minmax(0, 1.26fr) minmax(300px, 0.62fr);
   gap: 18px;
-  align-items: end;
+  align-items: start;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.012)),
@@ -3514,10 +3514,12 @@ body[data-theme="dark"] .analytics-risk-hero__alerts {
 html[data-theme="dark"] .analytics-risk-hero__signal,
 body[data-theme="dark"] .analytics-risk-hero__signal {
   display: grid;
-  align-content: end;
-  gap: 5px;
-  min-height: 100%;
-  padding: 18px;
+  align-content: start;
+  align-self: center;
+  gap: 4px;
+  min-height: 0;
+  max-width: 460px;
+  padding: 14px 16px 13px;
   border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.024), rgba(255,255,255,0.008)),
@@ -3544,16 +3546,16 @@ body[data-theme="dark"] .analytics-risk-hero__signal-label {
 
 html[data-theme="dark"] .analytics-risk-hero__signal strong,
 body[data-theme="dark"] .analytics-risk-hero__signal strong {
-  font-size: 28px;
-  line-height: 0.98;
+  font-size: 22px;
+  line-height: 1;
   letter-spacing: -0.05em;
   color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-risk-hero__signal small,
 body[data-theme="dark"] .analytics-risk-hero__signal small {
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.4;
   color: var(--text-2);
 }
 
