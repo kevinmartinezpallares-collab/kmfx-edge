@@ -297,6 +297,19 @@ export function renderRisk(root, state) {
   const selectedSymbolOverflowMarkup = selectedSymbolItems.length > 5
     ? `<span class="risk-selected-tag risk-selected-tag--more">+${selectedSymbolItems.length - 5}</span>`
     : "";
+  const selectedSymbolEditorChips = selectedSymbolItems.length
+    ? selectedSymbolItems.map((symbol) => `
+      <button class="risk-editor-chip risk-editor-chip--selected" type="button" data-risk-symbol-remove="${symbol.id}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+        <span>${symbol.id}</span>
+        <i aria-hidden="true">×</i>
+      </button>
+    `).join("")
+    : `<div class="risk-editor-empty">Todavía no hay símbolos autorizados.</div>`;
+  const showSymbolSearchResults = Boolean(normalizedQuery) || canCreateCustomSymbol;
+  const syncToneClass = mt5SyncState.tone === "danger" ? "negative" : mt5SyncState.tone === "warn" ? "warning" : "positive";
+  const riskTradeStatus = prefsDraft.riskGuidanceEnabled ? mt5SyncState.label : "Desactivado";
+  const drawdownStatus = prefsDraft.alertDrawdown ? mt5SyncState.label : "Desactivado";
+  const volumeStatus = prefsDraft.maxVolumeEnabled ? mt5SyncState.label : "Desactivado";
   const summaryCardMarkup = `
     <div class="risk-symbol-summary">
       <div class="risk-symbol-summary-count">
@@ -558,6 +571,7 @@ export function renderRisk(root, state) {
       <div class="risk-policy-numeric-grid">
         <label class="risk-policy-field">
           <span>Riesgo por trade</span>
+          <span class="risk-policy-status risk-policy-status--${prefsDraft.riskGuidanceEnabled ? syncToneClass : "neutral"}">${riskTradeStatus}</span>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
             <em>%</em>
@@ -565,6 +579,7 @@ export function renderRisk(root, state) {
         </label>
         <label class="risk-policy-field">
           <span>Límite daily DD</span>
+          <span class="risk-policy-status risk-policy-status--${prefsDraft.alertDrawdown ? syncToneClass : "neutral"}">${drawdownStatus}</span>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
             <em>%</em>
@@ -572,6 +587,7 @@ export function renderRisk(root, state) {
         </label>
         <label class="risk-policy-field">
           <span>Límite max DD</span>
+          <span class="risk-policy-status risk-policy-status--${prefsDraft.alertDrawdown ? syncToneClass : "neutral"}">${drawdownStatus}</span>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
             <em>%</em>
@@ -593,6 +609,7 @@ export function renderRisk(root, state) {
           </div>
           <label class="risk-policy-field risk-policy-field--compact">
             <span>Lote máximo</span>
+            <span class="risk-policy-status risk-policy-status--${prefsDraft.maxVolumeEnabled ? syncToneClass : "neutral"}">${volumeStatus}</span>
             <div class="risk-policy-input-shell">
               <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
               <em>lot</em>
@@ -617,22 +634,22 @@ export function renderRisk(root, state) {
               <span>${selectedSessionsLabel}</span>
               <strong>${selectedSessions.length}/3</strong>
             </button>
-            <div class="risk-select-menu risk-select-menu--policy">
+            <div class="risk-select-menu risk-select-menu--policy risk-select-menu--sessions">
               <div class="risk-session-group">
                 <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-                  <span class="ccheck ${allSessionsSelected ? "is-checked" : ""} ${sessionsPartial ? "is-partial" : ""}" aria-hidden="true">
-                    ${allSessionsSelected ? iconCheckMarkup() : ""}
-                    ${sessionsPartial ? `<span class="ccheck-dash"></span>` : ""}
+                  <span class="risk-session-stack">
+                    <span class="risk-session-name">Seleccionar todas</span>
+                    <span class="risk-session-utc">${selectedSessions.length}/3 activas</span>
                   </span>
-                  <span class="risk-session-name">Seleccionar todas</span>
-                  <span class="risk-session-utc">${selectedSessions.length}/3</span>
+                  <span class="risk-session-switch ${allSessionsSelected ? "on" : ""} ${sessionsPartial ? "partial" : ""}" aria-hidden="true"><i></i></span>
                 </button>
                 ${sessionOptions.map((session, index) => `
                   <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-                    <span class="risk-session-dot ${selectedSessions.includes(session) ? "active" : ""}" aria-hidden="true"></span>
-                    <span class="ccheck ${selectedSessions.includes(session) ? "is-checked" : ""}" aria-hidden="true">${selectedSessions.includes(session) ? iconCheckMarkup() : ""}</span>
-                    <span class="risk-session-name">${session}</span>
-                    <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
+                    <span class="risk-session-stack">
+                      <span class="risk-session-name">${session}</span>
+                      <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
+                    </span>
+                    <span class="risk-session-switch ${selectedSessions.includes(session) ? "on" : ""}" aria-hidden="true"><i></i></span>
                   </button>
                 `).join("")}
               </div>
@@ -675,45 +692,39 @@ export function renderRisk(root, state) {
                 ${selectedSymbolTagsMarkup}
                 ${selectedSymbolOverflowMarkup}
               </span>
-              <strong>${selectedSymbols.length}</strong>
             </button>
             <div class="risk-select-menu risk-select-menu--symbols risk-select-menu--policy">
               <label class="risk-select-search">
                 <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
               </label>
+              <div class="risk-symbol-editor-topline">
+                <div class="risk-symbol-section-label">Whitelist activa</div>
+                <div class="risk-symbol-editor-chips">
+                  ${selectedSymbolEditorChips}
+                </div>
+              </div>
               ${canCreateCustomSymbol ? `
                 <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
                   + Añadir '${normalizedQuery}' como símbolo personalizado
                 </button>
               ` : ""}
-              <div class="risk-select-options risk-select-options--symbols">
-                <div class="risk-symbol-section-label">Seleccionados</div>
-                <div class="risk-symbol-group">
-                  ${selectedSymbolItems.length ? selectedSymbolItems.map((symbol, index, list) => `
-                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-                        <div class="ccheck is-checked" aria-hidden="true">${iconCheckMarkup()}</div>
-                        <span class="risk-symbol-name">${symbol.id}</span>
-                        ${categoryPillMarkup(symbol)}
-                      </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
-                    </div>
-                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos activos.</div>`}
+              ${showSymbolSearchResults ? `
+                <div class="risk-select-options risk-select-options--symbols">
+                  <div class="risk-symbol-section-label">Resultados</div>
+                  <div class="risk-symbol-group">
+                    ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
+                      <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
+                        <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                          <div class="ccheck" aria-hidden="true"></div>
+                          <span class="risk-symbol-name">${symbol.id}</span>
+                          ${categoryPillMarkup(symbol)}
+                        </button>
+                        <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
+                      </div>
+                    `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
+                  </div>
                 </div>
-                <div class="risk-symbol-section-label">Disponibles</div>
-                <div class="risk-symbol-group">
-                  ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
-                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-                        <div class="ccheck" aria-hidden="true"></div>
-                        <span class="risk-symbol-name">${symbol.id}</span>
-                        ${categoryPillMarkup(symbol)}
-                      </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
-                    </div>
-                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
-                </div>
-              </div>
+              ` : `<div class="risk-editor-empty">Busca un símbolo para añadirlo rápidamente a la whitelist.</div>`}
             </div>
           </div>
         </article>
@@ -861,6 +872,18 @@ export function renderRisk(root, state) {
     ensureRiskUiState(root).symbolQuery = event.target.value;
     ensureRiskUiState(root).openMenu = "symbols";
     rerenderRiskKeepingSymbolSearch(root, state);
+  });
+
+  root.querySelectorAll("[data-risk-symbol-remove]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const symbol = button.dataset.riskSymbolRemove;
+      const next = new Set(selectedSymbols);
+      next.delete(symbol);
+      persistRiskPreferencesDraft(root, { allowedSymbols: serializeTokenList([...next]) });
+      ensureRiskUiState(root).openMenu = "symbols";
+      renderRisk(root, state);
+    });
   });
 
   root.querySelector("[data-risk-symbol-add]")?.addEventListener("click", (event) => {

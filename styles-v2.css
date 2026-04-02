@@ -2021,6 +2021,41 @@ body[data-theme="dark"] .risk-policy-field > span {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .risk-policy-status,
+body[data-theme="dark"] .risk-policy-status {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: -2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-status--positive,
+body[data-theme="dark"] .risk-policy-status--positive {
+  color: color-mix(in srgb, var(--positive) 76%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-policy-status--warning,
+body[data-theme="dark"] .risk-policy-status--warning {
+  color: color-mix(in srgb, var(--warning) 82%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-policy-status--negative,
+body[data-theme="dark"] .risk-policy-status--negative {
+  color: color-mix(in srgb, var(--negative) 82%, var(--text-1));
+}
+
+html[data-theme="dark"] .risk-policy-status--neutral,
+body[data-theme="dark"] .risk-policy-status--neutral {
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .risk-policy-input-shell,
 body[data-theme="dark"] .risk-policy-input-shell {
   display: grid;
@@ -2350,6 +2385,11 @@ body[data-theme="dark"] .risk-select-trigger--symbols {
   gap: 12px;
 }
 
+html[data-theme="dark"] .risk-select-trigger--symbols strong,
+body[data-theme="dark"] .risk-select-trigger--symbols strong {
+  display: none;
+}
+
 html[data-theme="dark"] .risk-select-trigger__tags,
 body[data-theme="dark"] .risk-select-trigger__tags {
   display: flex;
@@ -2421,21 +2461,25 @@ body[data-theme="dark"] .risk-select-menu {
 
 html[data-theme="dark"] .risk-select-menu--policy,
 body[data-theme="dark"] .risk-select-menu--policy {
-  min-width: 100%;
-  width: max(100%, 420px);
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  margin-top: 12px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   padding: 14px;
   border-radius: 16px;
+  transform: none;
+  display: none;
+  opacity: 1;
+  pointer-events: auto;
 }
 
-html[data-theme="dark"] .risk-policy-card .risk-select-menu--policy,
-body[data-theme="dark"] .risk-policy-card .risk-select-menu--policy {
-  top: calc(100% + 12px);
-}
-
-html[data-theme="dark"] .risk-policy-card--full .risk-select-menu--policy,
-body[data-theme="dark"] .risk-policy-card--full .risk-select-menu--policy {
-  width: 100%;
-  max-width: none;
+html[data-theme="dark"] .risk-select.open .risk-select-menu--policy,
+body[data-theme="dark"] .risk-select.open .risk-select-menu--policy {
+  display: grid;
 }
 
 html[data-theme="dark"] .risk-session-group,
@@ -2445,6 +2489,9 @@ body[data-theme="dark"] .risk-session-group {
 
 html[data-theme="dark"] .risk-session-row,
 body[data-theme="dark"] .risk-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 14px;
   padding: 13px 14px;
   border-radius: 12px;
@@ -2464,53 +2511,69 @@ body[data-theme="dark"] .risk-session-row:hover {
   background: rgba(255,255,255,0.04);
 }
 
-html[data-theme="dark"] .risk-session-row .ccheck,
-body[data-theme="dark"] .risk-session-row .ccheck {
-  width: 22px;
+html[data-theme="dark"] .risk-session-stack,
+body[data-theme="dark"] .risk-session-stack {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+html[data-theme="dark"] .risk-session-switch,
+body[data-theme="dark"] .risk-session-switch {
+  position: relative;
+  width: 38px;
   height: 22px;
-  flex: 0 0 22px;
+  flex: 0 0 38px;
   border-radius: 999px;
-  border-color: rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
-html[data-theme="dark"] .risk-session-row .ccheck.is-checked,
-body[data-theme="dark"] .risk-session-row .ccheck.is-checked,
-html[data-theme="dark"] .risk-session-row .ccheck.is-partial,
-body[data-theme="dark"] .risk-session-row .ccheck.is-partial {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.18);
+html[data-theme="dark"] .risk-session-switch i,
+body[data-theme="dark"] .risk-session-switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+  transition: transform 120ms ease-out;
 }
 
-html[data-theme="dark"] .risk-session-row .ccheck svg,
-body[data-theme="dark"] .risk-session-row .ccheck svg {
-  opacity: 1;
+html[data-theme="dark"] .risk-session-switch.on,
+body[data-theme="dark"] .risk-session-switch.on {
+  background: rgba(255,255,255,0.16);
+}
+
+html[data-theme="dark"] .risk-session-switch.on i,
+body[data-theme="dark"] .risk-session-switch.on i {
+  transform: translateX(16px);
+}
+
+html[data-theme="dark"] .risk-session-switch.partial,
+body[data-theme="dark"] .risk-session-switch.partial {
+  background: rgba(255,255,255,0.12);
+}
+
+html[data-theme="dark"] .risk-session-switch.partial i,
+body[data-theme="dark"] .risk-session-switch.partial i {
+  transform: translateX(8px);
 }
 
 html[data-theme="dark"] .risk-session-row.checked,
-body[data-theme="dark"] .risk-session-row.checked {
+body[data-theme="dark"] .risk-session-row.checked,
+html[data-theme="dark"] .risk-session-row--all.checked,
+body[data-theme="dark"] .risk-session-row--all.checked {
   background: rgba(255,255,255,0.055);
 }
 
 html[data-theme="dark"] .risk-select-options--symbols,
 body[data-theme="dark"] .risk-select-options--symbols {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 14px;
-  max-height: min(56vh, 460px);
-  overflow: hidden;
-}
-
-html[data-theme="dark"] .risk-select-options--symbols > .risk-symbol-section-label,
-body[data-theme="dark"] .risk-select-options--symbols > .risk-symbol-section-label {
-  grid-column: span 1;
-}
-
-html[data-theme="dark"] .risk-select-options--symbols > .risk-symbol-group,
-body[data-theme="dark"] .risk-select-options--symbols > .risk-symbol-group {
-  max-height: min(42vh, 340px);
+  display: grid;
+  gap: 12px;
+  max-height: min(54vh, 420px);
   overflow: auto;
-  padding-right: 2px;
 }
 
 html[data-theme="dark"] .risk-symbol-row,
@@ -2542,6 +2605,48 @@ body[data-theme="dark"] .risk-symbol-summary {
 html[data-theme="dark"] .risk-symbol-summary-pills,
 body[data-theme="dark"] .risk-symbol-summary-pills {
   max-width: 72%;
+}
+
+html[data-theme="dark"] .risk-symbol-editor-topline,
+body[data-theme="dark"] .risk-symbol-editor-topline {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .risk-symbol-editor-chips,
+body[data-theme="dark"] .risk-symbol-editor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .risk-editor-chip,
+body[data-theme="dark"] .risk-editor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+html[data-theme="dark"] .risk-editor-chip i,
+body[data-theme="dark"] .risk-editor-chip i {
+  font-style: normal;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-editor-empty,
+body[data-theme="dark"] .risk-editor-empty {
+  padding: 12px 2px 4px;
+  font-size: 12px;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .risk-select.open .risk-select-menu,
