@@ -3601,19 +3601,19 @@ body[data-theme="dark"] .analytics-risk-kpi__note-value {
   font-variant-numeric: tabular-nums;
 }
 
-html[data-theme="dark"] .analytics-risk-kpi__note--positive,
-body[data-theme="dark"] .analytics-risk-kpi__note--positive {
-  color: color-mix(in srgb, var(--positive) 68%, var(--text-1));
+html[data-theme="dark"] .analytics-risk-kpi__note-value--positive,
+body[data-theme="dark"] .analytics-risk-kpi__note-value--positive {
+  color: color-mix(in srgb, var(--positive) 78%, var(--text-1));
 }
 
-html[data-theme="dark"] .analytics-risk-kpi__note--warning,
-body[data-theme="dark"] .analytics-risk-kpi__note--warning {
-  color: color-mix(in srgb, var(--warning) 70%, var(--text-1));
+html[data-theme="dark"] .analytics-risk-kpi__note-value--warning,
+body[data-theme="dark"] .analytics-risk-kpi__note-value--warning {
+  color: color-mix(in srgb, var(--warning) 78%, var(--text-1));
 }
 
-html[data-theme="dark"] .analytics-risk-kpi__note--negative,
-body[data-theme="dark"] .analytics-risk-kpi__note--negative {
-  color: color-mix(in srgb, var(--negative) 68%, var(--text-1));
+html[data-theme="dark"] .analytics-risk-kpi__note-value--negative,
+body[data-theme="dark"] .analytics-risk-kpi__note-value--negative {
+  color: color-mix(in srgb, var(--negative) 78%, var(--text-1));
 }
 
 html[data-theme="dark"] .analytics-risk-grid,

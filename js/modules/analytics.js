@@ -1593,7 +1593,7 @@ export function renderAnalytics(root, state) {
             <article class="tl-section-card analytics-risk-kpi">
               <span class="analytics-risk-kpi__label">${item.label}</span>
               <strong class="analytics-risk-kpi__value ${item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
-              <small class="analytics-risk-kpi__note analytics-risk-kpi__note--${item.noteTone || "neutral"}">${item.noteLead ? `<span class="analytics-risk-kpi__note-value">${item.noteLead}</span>${item.noteTail ? ` ${item.noteTail}` : ""}` : item.note}</small>
+              <small class="analytics-risk-kpi__note">${item.noteLead ? `<span class="analytics-risk-kpi__note-value analytics-risk-kpi__note-value--${item.noteTone || "neutral"}">${item.noteLead}</span>${item.noteTail ? ` ${item.noteTail}` : ""}` : item.note}</small>
             </article>
           `).join("")}
         </div>
