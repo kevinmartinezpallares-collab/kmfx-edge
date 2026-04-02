@@ -1499,7 +1499,7 @@ export function renderAnalytics(root, state) {
           <div class="analytics-hour-hero__copy">
             <div class="analytics-overview-kicker">Ventana óptima</div>
             <h3 class="analytics-overview-title">${bestWindowLabel} es donde el sistema sostiene mejor el edge temporal.</h3>
-            <p class="analytics-overview-subtitle">${formatCurrency(bestWindow.pnl)} en ${bestWindow.trades} trades. Fuera de esa ventana, la calidad cae especialmente al llegar a ${formatHourLabel(weakestTimingWindow.hour)}.</p>
+            <p class="analytics-overview-subtitle"><span class="${bestWindow.pnl >= 0 ? "analytics-value-positive" : "analytics-value-negative"}">${formatCurrency(bestWindow.pnl)}</span> en ${bestWindow.trades} trades. Fuera de esa ventana, la calidad cae especialmente al llegar a ${formatHourLabel(weakestTimingWindow.hour)}.</p>
           </div>
           <div class="analytics-hour-hero__stats">
             <div class="analytics-hour-stat">
