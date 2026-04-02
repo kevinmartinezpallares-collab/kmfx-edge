@@ -804,10 +804,16 @@ export function renderAnalytics(root, state) {
       ? (hour.hour === bestWindow.start ? "is-window-start" : hour.hour === bestWindow.end ? "is-window-end" : "is-window-mid")
       : "";
     const intensity = hour.trades ? Math.max(0.16, Math.min(0.82, Math.abs(hour.pnl) / hourlyMaxAbs)) : 0;
+    const showValue = hour.trades && (
+      hour.hour === bestHour.hour
+      || hour.hour === weakestTimingWindow.hour
+      || intensity >= 0.42
+      || inBestWindow
+    );
     return `
       <div class="analytics-hour-block ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
         <span class="analytics-hour-block__time">${String(hour.hour).padStart(2, "0")}</span>
-        <strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${hour.trades ? formatCurrency(hour.pnl) : "—"}</strong>
+        ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(hour.pnl)}</strong>` : ""}
       </div>
     `;
   }).join("");

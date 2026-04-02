@@ -3032,10 +3032,10 @@ body[data-theme="dark"] .analytics-hour-hero__stats {
 
 html[data-theme="dark"] .analytics-hour-stat,
 body[data-theme="dark"] .analytics-hour-stat {
-  padding: 14px 14px 13px;
+  padding: 12px 13px 11px;
   border-radius: 14px;
-  background: var(--layer-1-subtle);
-  border: 1px solid rgba(255,255,255,0.048);
+  background: color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
 html[data-theme="dark"] .analytics-hour-stat span,
@@ -3048,8 +3048,8 @@ body[data-theme="dark"] .analytics-hour-stat span {
 html[data-theme="dark"] .analytics-hour-stat strong,
 body[data-theme="dark"] .analytics-hour-stat strong {
   display: block;
-  margin-top: 8px;
-  font-size: 20px;
+  margin-top: 7px;
+  font-size: 18px;
   line-height: 1.05;
   letter-spacing: -0.035em;
   color: var(--text-0);
@@ -3076,20 +3076,20 @@ body[data-theme="dark"] .analytics-hour-timeline {
   margin-top: 6px;
   padding: 1px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.045);
+  background: rgba(255,255,255,0.038);
 }
 
 html[data-theme="dark"] .analytics-hour-block,
 body[data-theme="dark"] .analytics-hour-block {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   align-content: end;
-  min-height: 114px;
-  padding: 10px 8px 9px;
+  min-height: 126px;
+  padding: 12px 8px 11px;
   min-width: 0;
   border-radius: 0;
   text-align: left;
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.02));
+  background: color-mix(in srgb, var(--layer-1-subtle) 97%, rgba(255,255,255,0.018));
   border: 0;
   box-shadow: none;
   transition: background-color 120ms ease-out;
@@ -3097,23 +3097,24 @@ body[data-theme="dark"] .analytics-hour-block {
 
 html[data-theme="dark"] .analytics-hour-block.is-positive,
 body[data-theme="dark"] .analytics-hour-block.is-positive {
-  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 22%)), rgba(43, 112, 77, 0.62) calc(var(--hour-intensity) * 22%));
+  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 28%)), rgba(43, 112, 77, 0.68) calc(var(--hour-intensity) * 28%));
 }
 
 html[data-theme="dark"] .analytics-hour-block.is-negative,
 body[data-theme="dark"] .analytics-hour-block.is-negative {
-  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 22%)), rgba(136, 49, 63, 0.58) calc(var(--hour-intensity) * 22%));
+  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 30%)), rgba(146, 46, 60, 0.66) calc(var(--hour-intensity) * 30%));
 }
 
 html[data-theme="dark"] .analytics-hour-block.is-empty,
 body[data-theme="dark"] .analytics-hour-block.is-empty {
   color: var(--text-2);
-  background: color-mix(in srgb, var(--layer-1-subtle) 98%, rgba(255,255,255,0.012));
+  background: color-mix(in srgb, var(--layer-1-subtle) 99%, rgba(255,255,255,0.008));
+  opacity: 0.62;
 }
 
 html[data-theme="dark"] .analytics-hour-block:hover,
 body[data-theme="dark"] .analytics-hour-block:hover {
-  background-color: rgba(255,255,255,0.03);
+  background-color: rgba(255,255,255,0.025);
 }
 
 html[data-theme="dark"] .analytics-hour-block__time,
@@ -3130,7 +3131,10 @@ body[data-theme="dark"] .analytics-hour-block strong {
   font-size: 14px;
   line-height: 1.12;
   letter-spacing: -0.03em;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
 }
 
 html[data-theme="dark"] .analytics-hour-insight-grid,
@@ -3205,8 +3209,9 @@ html[data-theme="dark"] .analytics-hour-block.is-window-end::after,
 body[data-theme="dark"] .analytics-hour-block.is-window-end::after {
   content: "";
   position: absolute;
-  inset: 4px 2px;
-  border: 1px solid rgba(255,255,255,0.12);
+  inset: 3px 1px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.015);
   pointer-events: none;
 }
 
@@ -3227,6 +3232,11 @@ html[data-theme="dark"] .analytics-hour-block.is-window-end::after,
 body[data-theme="dark"] .analytics-hour-block.is-window-end::after {
   border-left: 0;
   border-radius: 0 12px 12px 0;
+}
+
+html[data-theme="dark"] .analytics-hour-block.is-worst,
+body[data-theme="dark"] .analytics-hour-block.is-worst {
+  box-shadow: inset 0 -2px 0 rgba(214, 86, 102, 0.32);
 }
 
 html[data-theme="dark"] .analytics-timing-hero,
