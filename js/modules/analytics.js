@@ -569,7 +569,7 @@ export function renderAnalytics(root, state) {
       <div class="analytics-timing-row__main">
         <div class="analytics-timing-row__copy">
           <strong>${String(row.hour).padStart(2, "0")}:00</strong>
-          <span>${row.hour === bestHour.hour ? "Mejor franja" : row.hour === worstHour.hour ? "Franja débil" : `${row.trades} trades`}</span>
+          <span>${row.hour === bestHour.hour ? "Mejor franja" : row.hour === worstHour.hour ? "Franja débil" : ""}</span>
         </div>
         <div class="analytics-timing-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
@@ -847,13 +847,6 @@ export function renderAnalytics(root, state) {
                 <div class="row-sub">La lectura horaria sirve para concentrar execution quality y cortar franjas improductivas.</div>
               </div>
             </div>
-            <div class="analytics-timing-hero">
-              <article class="analytics-timing-stat analytics-timing-stat--insight">
-                <span>Insight horario</span>
-                <strong>${String(worstHour.hour).padStart(2, "0")}:00 frena el edge</strong>
-                <small>${formatCurrency(worstHour.pnl)} frente a ${formatCurrency(bestHour.pnl)} en la mejor franja</small>
-              </article>
-            </div>
             <div class="analytics-timing-list">
               ${timingRowsMarkup}
             </div>
@@ -880,8 +873,8 @@ export function renderAnalytics(root, state) {
                   <div class="analytics-winloss-sub">trades cerrados analizados</div>
                 </div>
                 <div class="analytics-winloss-bar" aria-hidden="true">
-                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
-                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
+                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min(model.totals.winRate || 0, 100))}%"></div>
+                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, 100 - Math.max(0, Math.min(model.totals.winRate || 0, 100)))}%"></div>
                 </div>
               </div>
               <div class="analytics-distribution-metrics analytics-distribution-metrics--tight">

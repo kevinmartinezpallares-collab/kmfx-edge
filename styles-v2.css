@@ -2452,10 +2452,10 @@ body[data-theme="dark"] .analytics-quick-read__list li::before {
 
 html[data-theme="dark"] .analytics-focus-item,
 body[data-theme="dark"] .analytics-focus-item {
-  padding: 16px 16px 15px;
+  padding: 13px 16px 15px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.026);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.058);
 }
 
 html[data-theme="dark"] .analytics-focus-item span,
@@ -2470,19 +2470,19 @@ body[data-theme="dark"] .analytics-focus-item span {
 html[data-theme="dark"] .analytics-focus-item strong,
 body[data-theme="dark"] .analytics-focus-item strong {
   display: block;
-  margin-top: 8px;
-  font-size: 18px;
-  line-height: 1.24;
-  letter-spacing: -0.028em;
+  margin-top: 6px;
+  font-size: 21px;
+  line-height: 1.18;
+  letter-spacing: -0.032em;
   color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-focus-item--warn,
 body[data-theme="dark"] .analytics-focus-item--warn {
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.014)),
-    rgba(255, 255, 255, 0.018);
-  border-color: rgba(255, 255, 255, 0.055);
+    linear-gradient(180deg, rgba(255,255,255,0.034), rgba(255,255,255,0.016)),
+    rgba(255, 255, 255, 0.022);
+  border-color: rgba(255, 255, 255, 0.065);
 }
 
 html[data-theme="dark"] .analytics-focus-item--positive,
@@ -2798,6 +2798,11 @@ html[data-theme="dark"] .analytics-timing-row__meta span,
 body[data-theme="dark"] .analytics-timing-row__meta span {
   font-size: 11px;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-timing-row__copy span:empty,
+body[data-theme="dark"] .analytics-timing-row__copy span:empty {
+  display: none;
 }
 
 html[data-theme="dark"] .analytics-session-rail--timing,
