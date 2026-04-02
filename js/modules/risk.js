@@ -613,7 +613,7 @@ export function renderRisk(root, state) {
           </div>
           ${sessionSummaryMarkup}
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+            <button class="risk-select-trigger risk-select-trigger--policy" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
               <span>${selectedSessionsLabel}</span>
               <strong>${selectedSessions.length}/3</strong>
             </button>
@@ -640,7 +640,24 @@ export function renderRisk(root, state) {
           </div>
         </article>
 
-        <article class="risk-policy-card risk-policy-card--wide">
+        <article class="risk-policy-card">
+          <div class="risk-policy-card__head">
+            <div>
+              <div class="risk-config-title">Bloqueo automático</div>
+              <div class="risk-config-meta">Corta la operativa cuando la política detecta incumplimiento crítico.</div>
+            </div>
+            <label class="risk-config-toggle" aria-label="Bloqueo automático">
+              <input type="checkbox" data-risk-pref-bool="autoBlockOptIn" ${prefsDraft.autoBlockOptIn ? "checked" : ""}>
+              <span class="risk-config-toggle-ui"></span>
+            </label>
+          </div>
+          <div class="risk-policy-confirmation">
+            <strong>${prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada"}</strong>
+            <span>${prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual."}</span>
+          </div>
+        </article>
+
+        <article class="risk-policy-card risk-policy-card--full">
           <div class="risk-policy-card__head">
             <div>
               <div class="risk-config-title">Símbolos permitidos</div>
@@ -653,7 +670,7 @@ export function renderRisk(root, state) {
           </div>
           ${summaryCardMarkup}
           <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
-            <button class="risk-select-trigger risk-select-trigger--symbols" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+            <button class="risk-select-trigger risk-select-trigger--symbols risk-select-trigger--policy" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
               <span class="risk-select-trigger__tags">
                 ${selectedSymbolTagsMarkup}
                 ${selectedSymbolOverflowMarkup}
@@ -701,22 +718,6 @@ export function renderRisk(root, state) {
           </div>
         </article>
 
-        <article class="risk-policy-card">
-          <div class="risk-policy-card__head">
-            <div>
-              <div class="risk-config-title">Bloqueo automático</div>
-              <div class="risk-config-meta">Corta la operativa cuando la política detecta incumplimiento crítico.</div>
-            </div>
-            <label class="risk-config-toggle" aria-label="Bloqueo automático">
-              <input type="checkbox" data-risk-pref-bool="autoBlockOptIn" ${prefsDraft.autoBlockOptIn ? "checked" : ""}>
-              <span class="risk-config-toggle-ui"></span>
-            </label>
-          </div>
-          <div class="risk-policy-confirmation">
-            <strong>${prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada"}</strong>
-            <span>${prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual."}</span>
-          </div>
-        </article>
       </div>
 
       <div class="risk-policy-footer">
