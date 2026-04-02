@@ -634,6 +634,7 @@ export function renderAnalytics(root, state) {
         behavior: describeDayBehavior(day, trades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour)
       };
     });
+  const keyDaySet = new Set(keyDays.map((day) => day.key));
   const selectedDayKey = root.__analyticsDailySelectedDay && monthDayStats.some((day) => day.key === root.__analyticsDailySelectedDay)
     ? root.__analyticsDailySelectedDay
     : (keyDays[0]?.key || monthDayStats[0]?.key || "");
@@ -1081,6 +1082,7 @@ export function renderAnalytics(root, state) {
                 "calendar-day",
                 cell.inMonth ? "is-current-month" : "is-outside-month",
                 cell.trades ? "has-trades" : "is-idle",
+                keyDaySet.has(cell.key) ? "is-key-day" : "",
                 cell.state === "win" ? "is-win" : "",
                 cell.state === "loss" ? "is-loss" : "",
                 cell.isToday ? "is-today" : "",
@@ -1113,8 +1115,8 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <div class="analytics-key-days">
-              ${keyDays.map((day) => `
-                <button class="analytics-key-day ${selectedDayKey === day.key ? "is-active" : ""}" type="button" data-analytics-day="${day.key}">
+              ${keyDays.map((day, index) => `
+                <button class="analytics-key-day ${index === 0 ? "analytics-key-day--lead" : ""} ${selectedDayKey === day.key ? "is-active" : ""}" type="button" data-analytics-day="${day.key}">
                   <span class="analytics-key-day__date">${new Date(day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>
                   <strong class="${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</strong>
                   <small>${day.behavior}</small>
@@ -1131,11 +1133,11 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <ul class="analytics-daily-bullets">
-              ${dailyReadBullets.map((item) => `<li>${item}</li>`).join("")}
+              ${dailyReadBullets.map((item, index) => `<li class="${index === 0 ? "is-lead" : ""}">${item}</li>`).join("")}
             </ul>
           </article>
 
-          <article class="tl-section-card analytics-daily-card analytics-daily-card--detail">
+          <article class="tl-section-card analytics-daily-card analytics-daily-card--detail ${selectedDay ? "is-active" : ""}">
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Detalle del día</div>

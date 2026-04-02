@@ -2589,14 +2589,16 @@ body[data-theme="dark"] .analytics-pattern-grid {
 html[data-theme="dark"] .analytics-daily-layout,
 body[data-theme="dark"] .analytics-daily-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
   gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 html[data-theme="dark"] .analytics-daily-calendar,
 body[data-theme="dark"] .analytics-daily-calendar {
-  padding: 18px !important;
+  min-width: 0;
+  padding: 16px !important;
 }
 
 html[data-theme="dark"] .analytics-daily-calendar__head,
@@ -2608,6 +2610,7 @@ html[data-theme="dark"] .analytics-daily-side,
 body[data-theme="dark"] .analytics-daily-side {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 html[data-theme="dark"] .analytics-daily-card,
@@ -2633,12 +2636,23 @@ body[data-theme="dark"] .analytics-key-day {
   border: 1px solid rgba(255,255,255,0.045);
   background: var(--layer-1-subtle);
   text-align: left;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
 
 html[data-theme="dark"] .analytics-key-day.is-active,
 body[data-theme="dark"] .analytics-key-day.is-active {
   background: rgba(255,255,255,0.03);
   border-color: rgba(255,255,255,0.07);
+}
+
+html[data-theme="dark"] .analytics-key-day--lead,
+body[data-theme="dark"] .analytics-key-day--lead {
+  padding: 14px 14px 13px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.034), rgba(255,255,255,0.016)),
+    rgba(255,255,255,0.02);
+  border-color: rgba(255,255,255,0.075);
 }
 
 html[data-theme="dark"] .analytics-key-day__date,
@@ -2655,11 +2669,22 @@ body[data-theme="dark"] .analytics-key-day strong {
   line-height: 1.1;
 }
 
+html[data-theme="dark"] .analytics-key-day--lead strong,
+body[data-theme="dark"] .analytics-key-day--lead strong {
+  font-size: 18px;
+}
+
 html[data-theme="dark"] .analytics-key-day small,
 body[data-theme="dark"] .analytics-key-day small {
   font-size: 11px;
   line-height: 1.3;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-key-day:hover,
+body[data-theme="dark"] .analytics-key-day:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.072);
 }
 
 html[data-theme="dark"] .analytics-daily-bullets,
@@ -2677,7 +2702,7 @@ body[data-theme="dark"] .analytics-daily-bullets li {
   padding-left: 14px;
   font-size: 13px;
   line-height: 1.35;
-  color: var(--text-1);
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .analytics-daily-bullets li::before,
@@ -2692,10 +2717,22 @@ body[data-theme="dark"] .analytics-daily-bullets li::before {
   background: rgba(255,255,255,0.28);
 }
 
+html[data-theme="dark"] .analytics-daily-bullets li.is-lead,
+body[data-theme="dark"] .analytics-daily-bullets li.is-lead {
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .analytics-daily-bullets li.is-lead::before,
+body[data-theme="dark"] .analytics-daily-bullets li.is-lead::before {
+  background: rgba(255,255,255,0.46);
+}
+
 html[data-theme="dark"] .analytics-daily-detail,
 body[data-theme="dark"] .analytics-daily-detail {
   display: grid;
   gap: 12px;
+  animation: analytics-detail-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html[data-theme="dark"] .analytics-daily-detail__pnl,
@@ -2741,6 +2778,13 @@ body[data-theme="dark"] .analytics-daily-detail__empty {
 html[data-theme="dark"] .analytics-daily-decision,
 body[data-theme="dark"] .analytics-daily-decision {
   margin: 0;
+}
+
+html[data-theme="dark"] .analytics-daily-card--detail.is-active,
+body[data-theme="dark"] .analytics-daily-card--detail.is-active {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.012)),
+    var(--card-surface);
 }
 
 html[data-theme="dark"] .analytics-pattern-grid--timing,
@@ -3044,6 +3088,47 @@ body[data-theme="dark"] .analytics-distribution-metrics--tight {
 html[data-theme="dark"] .analytics-symbol-row--secondary,
 body[data-theme="dark"] .analytics-symbol-row--secondary {
   opacity: 0.7;
+}
+
+html[data-theme="dark"] .analytics-daily-calendar .calendar-day,
+body[data-theme="dark"] .analytics-daily-calendar .calendar-day {
+  min-height: 102px;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+html[data-theme="dark"] .analytics-daily-calendar .calendar-day.has-trades:hover,
+body[data-theme="dark"] .analytics-daily-calendar .calendar-day.has-trades:hover {
+  transform: scale(1.012);
+  border-color: rgba(255,255,255,0.085);
+  background-color: rgba(255,255,255,0.028);
+}
+
+html[data-theme="dark"] .analytics-daily-calendar .calendar-day.is-key-day,
+body[data-theme="dark"] .analytics-daily-calendar .calendar-day.is-key-day {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .analytics-daily-calendar .calendar-day.is-key-day.is-selected,
+body[data-theme="dark"] .analytics-daily-calendar .calendar-day.is-key-day.is-selected {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content {
+  overflow-x: hidden !important;
+}
+
+@keyframes analytics-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 html[data-theme="dark"] #page-analytics .tl-tab-bar,
