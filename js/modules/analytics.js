@@ -832,8 +832,13 @@ export function renderAnalytics(root, state) {
       || intensity >= 0.42
       || inBestWindow
     );
+    const widthClass = !hour.trades
+      ? "is-compact"
+      : (hour.hour === bestHour.hour || hour.hour === weakestTimingWindow.hour || inBestWindow)
+        ? "is-wide"
+        : "is-active";
     return `
-      <div class="analytics-hour-block ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
+      <div class="analytics-hour-block ${toneClass} ${widthClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
         <span class="analytics-hour-block__time">${String(hour.hour).padStart(2, "0")}</span>
         ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatHourlyValue(hour.pnl)}</strong>` : ""}
       </div>
