@@ -1340,12 +1340,12 @@ export function renderAnalytics(root, state) {
             <div class="analytics-hour-stat">
               <span>Mejor hora</span>
               <strong class="metric-positive">${formatHourLabel(bestHour.hour)}</strong>
-              <small>${formatHourlyValue(bestHour.pnl)}</small>
+              <small class="metric-positive">${formatHourlyValue(bestHour.pnl)}</small>
             </div>
             <div class="analytics-hour-stat">
               <span>Franja débil</span>
               <strong class="metric-negative">${formatHourLabel(weakestTimingWindow.hour)}</strong>
-              <small>${formatHourlyValue(weakestTimingWindow.pnl)}</small>
+              <small class="metric-negative">${formatHourlyValue(weakestTimingWindow.pnl)}</small>
             </div>
           </div>
         </article>

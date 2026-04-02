@@ -3065,6 +3065,18 @@ body[data-theme="dark"] .analytics-hour-stat small {
   opacity: 0.84;
 }
 
+html[data-theme="dark"] .analytics-hour-stat small.metric-positive,
+body[data-theme="dark"] .analytics-hour-stat small.metric-positive {
+  color: color-mix(in srgb, var(--positive) 84%, var(--text-1));
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] .analytics-hour-stat small.metric-negative,
+body[data-theme="dark"] .analytics-hour-stat small.metric-negative {
+  color: color-mix(in srgb, var(--negative) 82%, var(--text-1));
+  opacity: 0.92;
+}
+
 html[data-theme="dark"] .analytics-hour-timeline-card,
 body[data-theme="dark"] .analytics-hour-timeline-card {
   overflow: hidden;
