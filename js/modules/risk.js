@@ -210,68 +210,6 @@ function sessionUtcLabel(session = "") {
   return "UTC";
 }
 
-function renderStepperInput({
-  label,
-  key,
-  value,
-  step = "0.1",
-  min = "0",
-  max = "",
-  dataset = "number",
-  disabled = false
-}) {
-  const maxAttr = max !== "" ? ` max="${max}"` : "";
-  const disabledAttr = disabled ? " disabled" : "";
-  const dataAttr = dataset === "text"
-    ? `data-risk-pref-text="${key}"`
-    : `data-risk-pref-number="${key}"`;
-  const stepperAttr = dataset === "text"
-    ? `data-risk-step-text="${key}"`
-    : `data-risk-step="${key}"`;
-
-  return `
-    <label class="risk-config-control">
-      <span>${label}</span>
-      <div class="risk-stepper">
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}"${disabledAttr}>−</button>
-        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}${disabledAttr}>
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}"${disabledAttr}>+</button>
-      </div>
-    </label>
-  `;
-}
-
-function riskConfigPreviewMap(inputKey = "") {
-  const map = {
-    dailyDrawdownLimit: "drawdown",
-    maxDrawdownLimit: "drawdown",
-    defaultRisk: "risk",
-    maxVolume: "volume"
-  };
-  return map[inputKey] || "";
-}
-
-function getRiskConfigPreviewValue(root, previewKey) {
-  const draft = getRiskPreferencesDraft(root);
-  if (previewKey === "drawdown") {
-    return `${Number(draft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(draft.maxDrawdownLimit || 0).toFixed(1)}%`;
-  }
-  if (previewKey === "risk") {
-    return `${Number(draft.defaultRisk || 0).toFixed(2)}%`;
-  }
-  if (previewKey === "volume") {
-    return draft.maxVolume || "0";
-  }
-  return "";
-}
-
-function syncRiskConfigPreview(root, previewKey) {
-  if (!previewKey) return;
-  const valueNode = root.querySelector(`[data-risk-config-value="${previewKey}"]`);
-  if (!valueNode) return;
-  valueNode.textContent = getRiskConfigPreviewValue(root, previewKey);
-}
-
 function rerenderRiskKeepingSymbolSearch(root, state) {
   const ui = ensureRiskUiState(root);
   const query = ui.symbolQuery;
@@ -283,11 +221,6 @@ function rerenderRiskKeepingSymbolSearch(root, state) {
     search.value = query;
     search.setSelectionRange(query.length, query.length);
   });
-}
-
-function focusCardControl(card) {
-  const control = card?.querySelector("input, textarea, [data-risk-menu-trigger]");
-  control?.focus();
 }
 
 export function renderRisk(root, state) {
@@ -394,6 +327,15 @@ export function renderRisk(root, state) {
       </div>
     </div>
   `;
+  const mt5SyncState = root.__riskPrefsStatus === "error"
+    ? { label: "Error", tone: "danger", detail: "No se pudo aplicar la política. Reintenta la sincronización." }
+    : root.__riskPrefsStatus === "saving"
+      ? { label: "Sincronizando", tone: "warn", detail: "Aplicando cambios de la política al backend." }
+      : root.__riskPrefsStatus === "pending"
+        ? { label: "Pendiente", tone: "warn", detail: "Hay cambios sin guardar antes de enviar a MT5." }
+        : account.connection?.state === "connected"
+          ? { label: "Aplicado en MT5", tone: "ok", detail: `Última sincronización ${formatDateTime(account.connection.lastSync)}` }
+          : { label: "Pendiente de MT5", tone: "warn", detail: "La política está guardada en panel pero aún no confirma MT5." };
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
   const equityPeak = Math.max(account.balance || 0, ...((model.equityCurve || []).map((point) => Number(point.value || 0))));
@@ -505,159 +447,6 @@ export function renderRisk(root, state) {
       noteTone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : "warning"
     }
   ];
-  const riskConfigCards = [
-    {
-      title: "Control de Drawdown",
-      description: "Activa avisos y define los límites diario / total.",
-      value: `${Number(prefsDraft.dailyDrawdownLimit || 0).toFixed(1)}% · ${Number(prefsDraft.maxDrawdownLimit || 0).toFixed(1)}%`,
-      previewKey: "drawdown",
-      checked: prefsDraft.alertDrawdown,
-      key: "alertDrawdown",
-      statusLabel: toggleStatusLabel(prefsDraft.alertDrawdown, "Activo", "Off"),
-      controls: `
-        <div class="risk-config-edit-grid risk-config-edit-grid--two">
-          ${renderStepperInput({ label: "Daily DD", key: "dailyDrawdownLimit", value: prefsDraft.dailyDrawdownLimit, step: "0.1", min: "0" })}
-          ${renderStepperInput({ label: "Max DD", key: "maxDrawdownLimit", value: prefsDraft.maxDrawdownLimit, step: "0.1", min: "0" })}
-        </div>
-      `
-    },
-    {
-      title: "Riesgo por Trade",
-      description: "Usa la guía automática con tu riesgo base.",
-      value: `${Number(prefsDraft.defaultRisk || 0).toFixed(2)}%`,
-      previewKey: "risk",
-      checked: prefsDraft.riskGuidanceEnabled,
-      key: "riskGuidanceEnabled",
-      statusLabel: toggleStatusLabel(prefsDraft.riskGuidanceEnabled, "Activo", "Off"),
-      controls: renderStepperInput({ label: "Riesgo máximo", key: "defaultRisk", value: prefsDraft.defaultRisk, step: "0.05", min: "0", max: "5" })
-    },
-    {
-      title: "Horarios Permitidos",
-      description: "Ventanas operativas UTC",
-      value: selectedSessionsLabel,
-      menuOpen: riskUi.openMenu === "sessions",
-      checked: prefsDraft.allowedSessionsEnabled,
-      key: "allowedSessionsEnabled",
-      headBadge: "Editable",
-      showToggle: true,
-      hideFooterBadge: true,
-      controls: `
-        ${sessionSummaryMarkup}
-        <div class="risk-config-control">
-          <span>Sesiones</span>
-          <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-              <span>${selectedSessionsLabel}</span>
-              <strong>${selectedSessions.length}/3</strong>
-            </button>
-            <div class="risk-select-menu">
-              <div class="risk-session-group">
-                <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-                  <span class="ccheck ${allSessionsSelected ? "is-checked" : ""} ${sessionsPartial ? "is-partial" : ""}" aria-hidden="true">
-                    ${allSessionsSelected ? iconCheckMarkup() : ""}
-                    ${sessionsPartial ? `<span class="ccheck-dash"></span>` : ""}
-                  </span>
-                  <span class="risk-session-name">Seleccionar todas</span>
-                  <span class="risk-session-utc">${selectedSessions.length}/3</span>
-                </button>
-                ${sessionOptions.map((session, index) => `
-                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
-                    <span class="risk-session-dot ${selectedSessions.includes(session) ? "active" : ""}" aria-hidden="true"></span>
-                    <span class="ccheck ${selectedSessions.includes(session) ? "is-checked" : ""}" aria-hidden="true">${selectedSessions.includes(session) ? iconCheckMarkup() : ""}</span>
-                    <span class="risk-session-name">${session}</span>
-                    <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
-                  </button>
-                `).join("")}
-              </div>
-            </div>
-          </div>
-        </div>
-      `
-    },
-    {
-      title: "Control de Volumen",
-      description: "Lote máximo por trade",
-      value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5),
-      previewKey: "volume",
-      checked: prefsDraft.maxVolumeEnabled,
-      key: "maxVolumeEnabled",
-      statusLabel: toggleStatusLabel(prefsDraft.maxVolumeEnabled, "Activo", "Off"),
-      controls: renderStepperInput({ label: "Lote máximo", key: "maxVolume", value: prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5), step: "0.01", min: "0", dataset: "text", disabled: !prefsDraft.maxVolumeEnabled })
-    },
-    {
-      title: "Símbolos Permitidos",
-      description: "Universo habilitado",
-      value: selectedSymbolsLabel,
-      menuOpen: riskUi.openMenu === "symbols",
-      checked: prefsDraft.allowedSymbolsEnabled,
-      key: "allowedSymbolsEnabled",
-      headBadge: "Editable",
-      showToggle: true,
-      statusLabel: toggleStatusLabel(prefsDraft.allowedSymbolsEnabled, "Activo", "Off"),
-      controls: `
-        <div class="risk-config-control">
-          <span>Símbolos</span>
-          <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
-            <button class="risk-select-trigger risk-select-trigger--symbols" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-              <span class="risk-select-trigger__tags">
-                ${selectedSymbolTagsMarkup}
-                ${selectedSymbolOverflowMarkup}
-              </span>
-              <strong>${selectedSymbols.length}</strong>
-            </button>
-            <div class="risk-select-menu risk-select-menu--symbols">
-              <label class="risk-select-search">
-                <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-              </label>
-              ${summaryCardMarkup}
-              ${canCreateCustomSymbol ? `
-                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-                  + Añadir '${normalizedQuery}' como símbolo personalizado
-                </button>
-              ` : ""}
-              <div class="risk-select-options risk-select-options--symbols">
-                <div class="risk-symbol-section-label">Seleccionados</div>
-                <div class="risk-symbol-group">
-                  ${selectedSymbolItems.length ? selectedSymbolItems.map((symbol, index, list) => `
-                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-                        <div class="ccheck is-checked" aria-hidden="true">${iconCheckMarkup()}</div>
-                        <span class="risk-symbol-name">${symbol.id}</span>
-                        ${categoryPillMarkup(symbol)}
-                      </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
-                    </div>
-                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos activos.</div>`}
-                </div>
-                <div class="risk-symbol-section-label">Disponibles</div>
-                <div class="risk-symbol-group">
-                  ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
-                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
-                        <div class="ccheck" aria-hidden="true"></div>
-                        <span class="risk-symbol-name">${symbol.id}</span>
-                        ${categoryPillMarkup(symbol)}
-                      </button>
-                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
-                    </div>
-                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `,
-      hideFooterBadge: true
-    },
-    {
-      title: "Bloqueo Automático",
-      description: "Permite bloquear el flujo cuando el riesgo se dispara.",
-      value: prefsDraft.autoBlockOptIn ? "ON" : "OFF",
-      checked: prefsDraft.autoBlockOptIn,
-      key: "autoBlockOptIn",
-      statusLabel: toggleStatusLabel(prefsDraft.autoBlockOptIn, "Activo", "Off")
-    }
-  ];
   root.innerHTML = `
     <div class="risk-page-stack">
     <div class="tl-page-header">
@@ -754,67 +543,193 @@ export function renderRisk(root, state) {
       </article>
     </div>
 
-    <div class="risk-secondary-grid">
-      <article class="tl-section-card risk-config-surface">
-        <div class="tl-section-header"><div class="tl-section-title">Configuración activa</div></div>
-        <div class="risk-config-grid">
-          ${riskConfigCards.map((rule) => `
-            <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""} ${rule.checked ? "" : "risk-config-card--off"}" data-risk-config-card="${rule.previewKey || rule.key}">
-              <div class="risk-config-card-head">
-                <div>
-                  <div class="risk-config-title">${rule.title}</div>
-                  <div class="risk-config-meta">${rule.description}</div>
+    <article class="tl-section-card risk-policy-surface">
+      <div class="risk-policy-header">
+        <div>
+          <div class="tl-section-title">Política activa de riesgo</div>
+          <div class="row-sub">Única fuente de verdad editable para la cuenta. Esta política es la que terminará gobernando la ejecución en MT5.</div>
+        </div>
+        <div class="risk-policy-sync risk-policy-sync--${mt5SyncState.tone}">
+          <span>${mt5SyncState.label}</span>
+          <strong>${mt5SyncState.detail}</strong>
+        </div>
+      </div>
+
+      <div class="risk-policy-numeric-grid">
+        <label class="risk-policy-field">
+          <span>Riesgo por trade</span>
+          <div class="risk-policy-input-shell">
+            <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
+            <em>%</em>
+          </div>
+        </label>
+        <label class="risk-policy-field">
+          <span>Límite daily DD</span>
+          <div class="risk-policy-input-shell">
+            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
+            <em>%</em>
+          </div>
+        </label>
+        <label class="risk-policy-field">
+          <span>Límite max DD</span>
+          <div class="risk-policy-input-shell">
+            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
+            <em>%</em>
+          </div>
+        </label>
+      </div>
+
+      <div class="risk-policy-editors">
+        <article class="risk-policy-card">
+          <div class="risk-policy-card__head">
+            <div>
+              <div class="risk-config-title">Control de volumen</div>
+              <div class="risk-config-meta">Lote máximo autorizado por operación.</div>
+            </div>
+            <label class="risk-config-toggle" aria-label="Control de volumen">
+              <input type="checkbox" data-risk-pref-bool="maxVolumeEnabled" ${prefsDraft.maxVolumeEnabled ? "checked" : ""}>
+              <span class="risk-config-toggle-ui"></span>
+            </label>
+          </div>
+          <label class="risk-policy-field risk-policy-field--compact">
+            <span>Lote máximo</span>
+            <div class="risk-policy-input-shell">
+              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
+              <em>lot</em>
+            </div>
+          </label>
+        </article>
+
+        <article class="risk-policy-card">
+          <div class="risk-policy-card__head">
+            <div>
+              <div class="risk-config-title">Horarios permitidos</div>
+              <div class="risk-config-meta">Sesiones que puede usar la cuenta para ejecutar.</div>
+            </div>
+            <label class="risk-config-toggle" aria-label="Horarios permitidos">
+              <input type="checkbox" data-risk-pref-bool="allowedSessionsEnabled" ${prefsDraft.allowedSessionsEnabled ? "checked" : ""}>
+              <span class="risk-config-toggle-ui"></span>
+            </label>
+          </div>
+          ${sessionSummaryMarkup}
+          <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+              <span>${selectedSessionsLabel}</span>
+              <strong>${selectedSessions.length}/3</strong>
+            </button>
+            <div class="risk-select-menu risk-select-menu--policy">
+              <div class="risk-session-group">
+                <button class="risk-session-row risk-session-row--all first ${sessionsPartial ? "partial" : ""} ${allSessionsSelected ? "checked" : ""}" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+                  <span class="ccheck ${allSessionsSelected ? "is-checked" : ""} ${sessionsPartial ? "is-partial" : ""}" aria-hidden="true">
+                    ${allSessionsSelected ? iconCheckMarkup() : ""}
+                    ${sessionsPartial ? `<span class="ccheck-dash"></span>` : ""}
+                  </span>
+                  <span class="risk-session-name">Seleccionar todas</span>
+                  <span class="risk-session-utc">${selectedSessions.length}/3</span>
+                </button>
+                ${sessionOptions.map((session, index) => `
+                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+                    <span class="risk-session-dot ${selectedSessions.includes(session) ? "active" : ""}" aria-hidden="true"></span>
+                    <span class="ccheck ${selectedSessions.includes(session) ? "is-checked" : ""}" aria-hidden="true">${selectedSessions.includes(session) ? iconCheckMarkup() : ""}</span>
+                    <span class="risk-session-name">${session}</span>
+                    <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
+                  </button>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="risk-policy-card risk-policy-card--wide">
+          <div class="risk-policy-card__head">
+            <div>
+              <div class="risk-config-title">Símbolos permitidos</div>
+              <div class="risk-config-meta">Whitelist operativa que define el universo autorizado para MT5.</div>
+            </div>
+            <label class="risk-config-toggle" aria-label="Símbolos permitidos">
+              <input type="checkbox" data-risk-pref-bool="allowedSymbolsEnabled" ${prefsDraft.allowedSymbolsEnabled ? "checked" : ""}>
+              <span class="risk-config-toggle-ui"></span>
+            </label>
+          </div>
+          ${summaryCardMarkup}
+          <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
+            <button class="risk-select-trigger risk-select-trigger--symbols" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+              <span class="risk-select-trigger__tags">
+                ${selectedSymbolTagsMarkup}
+                ${selectedSymbolOverflowMarkup}
+              </span>
+              <strong>${selectedSymbols.length}</strong>
+            </button>
+            <div class="risk-select-menu risk-select-menu--symbols risk-select-menu--policy">
+              <label class="risk-select-search">
+                <input type="search" placeholder="Buscar símbolo" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+              </label>
+              ${canCreateCustomSymbol ? `
+                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                  + Añadir '${normalizedQuery}' como símbolo personalizado
+                </button>
+              ` : ""}
+              <div class="risk-select-options risk-select-options--symbols">
+                <div class="risk-symbol-section-label">Seleccionados</div>
+                <div class="risk-symbol-group">
+                  ${selectedSymbolItems.length ? selectedSymbolItems.map((symbol, index, list) => `
+                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="true" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                        <div class="ccheck is-checked" aria-hidden="true">${iconCheckMarkup()}</div>
+                        <span class="risk-symbol-name">${symbol.id}</span>
+                        ${categoryPillMarkup(symbol)}
+                      </button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
+                    </div>
+                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos activos.</div>`}
                 </div>
-                <div class="risk-config-card-actions">
-                  ${rule.headBadge ? `<div class="risk-config-state-pill risk-config-state-pill--header">${rule.headBadge}</div>` : ""}
-                  ${rule.showToggle === false ? "" : `
-                    <label class="risk-config-toggle" aria-label="${rule.title}">
-                      <input type="checkbox" data-risk-pref-bool="${rule.key}" ${rule.checked ? "checked" : ""}>
-                      <span class="risk-config-toggle-ui"></span>
-                    </label>
-                  `}
+                <div class="risk-symbol-section-label">Disponibles</div>
+                <div class="risk-symbol-group">
+                  ${availableSymbolItems.length ? availableSymbolItems.map((symbol, index, list) => `
+                    <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
+                      <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                        <div class="ccheck" aria-hidden="true"></div>
+                        <span class="risk-symbol-name">${symbol.id}</span>
+                        ${categoryPillMarkup(symbol)}
+                      </button>
+                      <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
+                    </div>
+                  `).join("") : `<div class="risk-symbol-empty">No hay símbolos disponibles con ese filtro.</div>`}
                 </div>
               </div>
-              <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
-              ${rule.controls || ""}
-              ${rule.hideFooterBadge ? "" : `
-                <div class="risk-config-footer">
-                  ${badgeMarkup({ label: rule.statusLabel, tone: rule.checked ? "ok" : "neutral" }, "ui-badge--compact")}
-                </div>
-              `}
-            </article>
-          `).join("")}
-        </div>
-      </article>
+            </div>
+          </div>
+        </article>
 
-      <article class="tl-section-card risk-limits-surface">
-        <div class="tl-section-header"><div class="tl-section-title">Configurar Límites</div></div>
-        <div class="risk-limit-form">
-          <label class="risk-input-field">
-            <span>Riesgo por defecto</span>
-            <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
-          </label>
-          <label class="risk-input-field">
-            <span>Límite Daily DD</span>
-            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
-          </label>
-          <label class="risk-input-field">
-            <span>Límite Max DD</span>
-            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
-          </label>
-        </div>
-        <div class="risk-limit-footer">
-          <div class="risk-limit-note">
-            <strong>Control operativo</strong>
-            <span>${riskConfigStatusLabel(root.__riskPrefsStatus)}</span>
+        <article class="risk-policy-card">
+          <div class="risk-policy-card__head">
+            <div>
+              <div class="risk-config-title">Bloqueo automático</div>
+              <div class="risk-config-meta">Corta la operativa cuando la política detecta incumplimiento crítico.</div>
+            </div>
+            <label class="risk-config-toggle" aria-label="Bloqueo automático">
+              <input type="checkbox" data-risk-pref-bool="autoBlockOptIn" ${prefsDraft.autoBlockOptIn ? "checked" : ""}>
+              <span class="risk-config-toggle-ui"></span>
+            </label>
           </div>
-          <div class="risk-limit-actions">
-            <button class="btn btn-secondary risk-limit-btn risk-limit-btn--secondary" type="button" data-risk-reset>Reset</button>
-            <button class="btn btn-primary risk-limit-btn risk-limit-btn--primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar configuración"}</button>
+          <div class="risk-policy-confirmation">
+            <strong>${prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada"}</strong>
+            <span>${prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual."}</span>
           </div>
+        </article>
+      </div>
+
+      <div class="risk-policy-footer">
+        <div class="risk-limit-note">
+          <strong>Fuente de verdad</strong>
+          <span>${riskConfigStatusLabel(root.__riskPrefsStatus)}</span>
         </div>
-      </article>
-    </div>
+        <div class="risk-limit-actions">
+          <button class="btn btn-secondary risk-limit-btn risk-limit-btn--secondary" type="button" data-risk-reset>Reset</button>
+          <button class="btn btn-primary risk-limit-btn risk-limit-btn--primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar política"}</button>
+        </div>
+      </div>
+    </article>
 
     <article class="tl-section-card risk-ladder-surface">
       <div class="tl-section-header"><div class="tl-section-title">Escalera de Riesgo Dinámica</div></div>
@@ -848,8 +763,7 @@ export function renderRisk(root, state) {
       persistRiskPreferencesDraft(root, {
         [inputKey]: input.value
       });
-      syncRiskConfigPreview(root, riskConfigPreviewMap(inputKey));
-      const note = root.querySelector(".risk-limit-note");
+      const note = root.querySelector(".risk-limit-note span");
       if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
     });
   });
@@ -860,8 +774,7 @@ export function renderRisk(root, state) {
       persistRiskPreferencesDraft(root, {
         [inputKey]: input.value
       });
-      syncRiskConfigPreview(root, riskConfigPreviewMap(inputKey));
-      const note = root.querySelector(".risk-limit-note");
+      const note = root.querySelector(".risk-limit-note span");
       if (note) note.textContent = riskConfigStatusLabel(root.__riskPrefsStatus);
     });
   });
@@ -965,43 +878,6 @@ export function renderRisk(root, state) {
     ui.symbolQuery = "";
     ui.openMenu = "symbols";
     renderRisk(root, state);
-  });
-
-  const stepInputValue = (input, direction, stepValue) => {
-    const step = Number(stepValue || input.step || "1");
-    const min = input.min !== "" ? Number(input.min) : -Infinity;
-    const max = input.max !== "" ? Number(input.max) : Infinity;
-    const current = Number(input.value || "0");
-    const precision = step.toString().includes(".") ? step.toString().split(".")[1].length : 0;
-    const next = Math.min(max, Math.max(min, current + step * direction));
-    input.value = String(next.toFixed(precision));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.focus();
-  };
-
-  root.querySelectorAll("[data-risk-step]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const key = button.dataset.riskStep;
-      const input = root.querySelector(`[data-risk-pref-number="${key}"]`);
-      if (!input) return;
-      stepInputValue(input, Number(button.dataset.stepDir || "1"), button.dataset.stepValue);
-    });
-  });
-
-  root.querySelectorAll("[data-risk-step-text]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const key = button.dataset.riskStepText;
-      const input = root.querySelector(`[data-risk-pref-text="${key}"]`);
-      if (!input) return;
-      stepInputValue(input, Number(button.dataset.stepDir || "1"), button.dataset.stepValue);
-    });
-  });
-
-  root.querySelectorAll(".risk-config-card--editable").forEach((card) => {
-    card.addEventListener("click", (event) => {
-      if (event.target.closest("input, textarea, label, button, .risk-config-toggle, .risk-config-state-pill, .risk-select-menu")) return;
-      focusCardControl(card);
-    });
   });
 
   root.addEventListener("click", (event) => {

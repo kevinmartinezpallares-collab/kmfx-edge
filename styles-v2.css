@@ -1942,6 +1942,204 @@ body[data-theme="dark"] .risk-limits-surface {
   overflow: visible !important;
 }
 
+html[data-theme="dark"] .risk-policy-surface,
+body[data-theme="dark"] .risk-policy-surface {
+  display: grid;
+  gap: 18px;
+  overflow: visible !important;
+}
+
+html[data-theme="dark"] .risk-policy-header,
+body[data-theme="dark"] .risk-policy-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+html[data-theme="dark"] .risk-policy-sync,
+body[data-theme="dark"] .risk-policy-sync {
+  display: grid;
+  gap: 4px;
+  min-width: 260px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.055);
+}
+
+html[data-theme="dark"] .risk-policy-sync span,
+body[data-theme="dark"] .risk-policy-sync span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-sync strong,
+body[data-theme="dark"] .risk-policy-sync strong {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .risk-policy-sync--ok,
+body[data-theme="dark"] .risk-policy-sync--ok {
+  border-color: rgba(52, 199, 89, 0.12);
+}
+
+html[data-theme="dark"] .risk-policy-sync--warn,
+body[data-theme="dark"] .risk-policy-sync--warn {
+  border-color: rgba(255, 159, 10, 0.14);
+}
+
+html[data-theme="dark"] .risk-policy-sync--danger,
+body[data-theme="dark"] .risk-policy-sync--danger {
+  border-color: rgba(214, 86, 102, 0.16);
+}
+
+html[data-theme="dark"] .risk-policy-numeric-grid,
+body[data-theme="dark"] .risk-policy-numeric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+html[data-theme="dark"] .risk-policy-field,
+body[data-theme="dark"] .risk-policy-field {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .risk-policy-field > span,
+body[data-theme="dark"] .risk-policy-field > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-input-shell,
+body[data-theme="dark"] .risk-policy-input-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+    rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.065);
+}
+
+html[data-theme="dark"] .risk-policy-input-shell input,
+body[data-theme="dark"] .risk-policy-input-shell input {
+  min-height: 40px;
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--text-0) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .risk-policy-input-shell input:focus,
+body[data-theme="dark"] .risk-policy-input-shell input:focus {
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .risk-policy-input-shell em,
+body[data-theme="dark"] .risk-policy-input-shell em {
+  font-style: normal;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-editors,
+body[data-theme="dark"] .risk-policy-editors {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+  overflow: visible;
+}
+
+html[data-theme="dark"] .risk-policy-card,
+body[data-theme="dark"] .risk-policy-card {
+  grid-column: span 4;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--layer-1-subtle) 97%, rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.045);
+  overflow: visible;
+}
+
+html[data-theme="dark"] .risk-policy-card--wide,
+body[data-theme="dark"] .risk-policy-card--wide {
+  grid-column: span 8;
+}
+
+html[data-theme="dark"] .risk-policy-card__head,
+body[data-theme="dark"] .risk-policy-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+html[data-theme="dark"] .risk-policy-field--compact .risk-policy-input-shell,
+body[data-theme="dark"] .risk-policy-field--compact .risk-policy-input-shell {
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+
+html[data-theme="dark"] .risk-policy-field--compact .risk-policy-input-shell input,
+body[data-theme="dark"] .risk-policy-field--compact .risk-policy-input-shell input {
+  font-size: 26px;
+}
+
+html[data-theme="dark"] .risk-policy-confirmation,
+body[data-theme="dark"] .risk-policy-confirmation {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+html[data-theme="dark"] .risk-policy-confirmation strong,
+body[data-theme="dark"] .risk-policy-confirmation strong {
+  font-size: 14px;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-policy-confirmation span,
+body[data-theme="dark"] .risk-policy-confirmation span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-footer,
+body[data-theme="dark"] .risk-policy-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.045);
+}
+
 html[data-theme="dark"] .risk-limits-surface,
 body[data-theme="dark"] .risk-limits-surface {
   display: grid;
@@ -2216,6 +2414,12 @@ body[data-theme="dark"] .risk-select-menu {
   transition: opacity 120ms ease-out, transform 120ms ease-out;
 }
 
+html[data-theme="dark"] .risk-select-menu--policy,
+body[data-theme="dark"] .risk-select-menu--policy {
+  min-width: 100%;
+  width: max(100%, 360px);
+}
+
 html[data-theme="dark"] .risk-select.open .risk-select-menu,
 body[data-theme="dark"] .risk-select.open .risk-select-menu {
   transform: translateY(0);
@@ -2413,6 +2617,26 @@ body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:
   html[data-theme="dark"] .risk-limit-form,
   body[data-theme="dark"] .risk-limit-form {
     grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .risk-policy-header,
+  body[data-theme="dark"] .risk-policy-header,
+  html[data-theme="dark"] .risk-policy-footer,
+  body[data-theme="dark"] .risk-policy-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-theme="dark"] .risk-policy-numeric-grid,
+  body[data-theme="dark"] .risk-policy-numeric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .risk-policy-card,
+  body[data-theme="dark"] .risk-policy-card,
+  html[data-theme="dark"] .risk-policy-card--wide,
+  body[data-theme="dark"] .risk-policy-card--wide {
+    grid-column: span 12;
   }
 
   html[data-theme="dark"] .risk-limit-footer,
