@@ -714,17 +714,23 @@ export function renderAnalytics(root, state) {
     {
       label: "Sesión con más edge",
       value: strongestSession.key,
-      note: `${formatCurrency(strongestSession.pnl)} · WR ${formatPercent(strongestSession.winRate)}`
+      noteLead: formatCurrency(strongestSession.pnl),
+      noteTail: `WR ${formatPercent(strongestSession.winRate)}`,
+      noteTone: strongestSession.pnl >= 0 ? "positive" : "negative"
     },
     {
       label: "Símbolo más rentable",
       value: strongestSymbol.key,
-      note: `${formatCurrency(strongestSymbol.pnl)} · ${strongestSymbol.trades} trades`
+      noteLead: formatCurrency(strongestSymbol.pnl),
+      noteTail: `${strongestSymbol.trades} trades`,
+      noteTone: strongestSymbol.pnl >= 0 ? "positive" : "negative"
     },
     {
       label: "Punto de fuga",
       value: `${String(worstHour.hour).padStart(2, "0")}:00`,
-      note: `${formatCurrency(worstHour.pnl)} · revisar timing`
+      noteLead: formatCurrency(worstHour.pnl),
+      noteTail: "revisar timing",
+      noteTone: worstHour.pnl >= 0 ? "positive" : "negative"
     }
   ];
   const sessionRowsMarkup = sessionRanking.map((session, index) => `
@@ -1230,7 +1236,7 @@ export function renderAnalytics(root, state) {
                   <article class="analytics-insight-card">
                     <span>${item.label}</span>
                     <strong>${item.value}</strong>
-                    <small>${item.note}</small>
+                    <small><span class="analytics-value-${item.noteTone}">${item.noteLead}</span> · ${item.noteTail}</small>
                   </article>
                 `).join("")}
               </div>
@@ -1274,12 +1280,12 @@ export function renderAnalytics(root, state) {
               <div class="analytics-pattern-footer__item">
                 <span>Sesión más fuerte</span>
                 <strong>${strongestSession.key}</strong>
-                <small>${formatCurrency(strongestSession.pnl)}</small>
+                <small class="analytics-value-positive">${formatCurrency(strongestSession.pnl)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
                 <span>Sesión a vigilar</span>
                 <strong>${weakestSession.key}</strong>
-                <small>${formatCurrency(weakestSession.pnl)}</small>
+                <small class="analytics-value-negative">${formatCurrency(weakestSession.pnl)}</small>
               </div>
             </div>
           </article>
@@ -1298,12 +1304,12 @@ export function renderAnalytics(root, state) {
               <div class="analytics-pattern-footer__item">
                 <span>Mejor símbolo</span>
                 <strong>${strongestSymbol.key}</strong>
-                <small>${formatCurrency(strongestSymbol.pnl)}</small>
+                <small class="analytics-value-positive">${formatCurrency(strongestSymbol.pnl)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
                 <span>Símbolo más débil</span>
                 <strong>${weakestSymbol.key}</strong>
-                <small>${formatCurrency(weakestSymbol.pnl)}</small>
+                <small class="analytics-value-negative">${formatCurrency(weakestSymbol.pnl)}</small>
               </div>
             </div>
           </article>
@@ -1498,13 +1504,13 @@ export function renderAnalytics(root, state) {
           <div class="analytics-hour-hero__stats">
             <div class="analytics-hour-stat">
               <span>Mejor hora</span>
-              <strong class="metric-positive">${formatHourLabel(bestHour.hour)}</strong>
-              <small class="metric-positive">${formatHourlyValue(bestHour.pnl)}</small>
+              <strong>${formatHourLabel(bestHour.hour)}</strong>
+              <small class="analytics-value-positive">${formatHourlyValue(bestHour.pnl)}</small>
             </div>
             <div class="analytics-hour-stat">
               <span>Franja débil</span>
-              <strong class="metric-negative">${formatHourLabel(weakestTimingWindow.hour)}</strong>
-              <small class="metric-negative">${formatHourlyValue(weakestTimingWindow.pnl)}</small>
+              <strong>${formatHourLabel(weakestTimingWindow.hour)}</strong>
+              <small class="analytics-value-negative">${formatHourlyValue(weakestTimingWindow.pnl)}</small>
             </div>
           </div>
         </article>

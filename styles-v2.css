@@ -2393,6 +2393,16 @@ body[data-theme="dark"] .analytics-insight-card small {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .analytics-value-positive,
+body[data-theme="dark"] .analytics-value-positive {
+  color: color-mix(in srgb, var(--positive) 72%, var(--text-1));
+}
+
+html[data-theme="dark"] .analytics-value-negative,
+body[data-theme="dark"] .analytics-value-negative {
+  color: color-mix(in srgb, var(--negative) 70%, var(--text-1));
+}
+
 html[data-theme="dark"] .analytics-focus-stack,
 body[data-theme="dark"] .analytics-focus-stack {
   display: grid;
@@ -3063,18 +3073,14 @@ body[data-theme="dark"] .analytics-hour-stat small {
   font-size: 11px;
   color: var(--text-2);
   opacity: 0.84;
+  font-variant-numeric: tabular-nums;
 }
 
-html[data-theme="dark"] .analytics-hour-stat small.metric-positive,
-body[data-theme="dark"] .analytics-hour-stat small.metric-positive {
-  color: color-mix(in srgb, var(--positive) 84%, var(--text-1));
-  opacity: 0.92;
-}
-
-html[data-theme="dark"] .analytics-hour-stat small.metric-negative,
-body[data-theme="dark"] .analytics-hour-stat small.metric-negative {
-  color: color-mix(in srgb, var(--negative) 82%, var(--text-1));
-  opacity: 0.92;
+html[data-theme="dark"] .analytics-hour-stat small.analytics-value-positive,
+body[data-theme="dark"] .analytics-hour-stat small.analytics-value-positive,
+html[data-theme="dark"] .analytics-hour-stat small.analytics-value-negative,
+body[data-theme="dark"] .analytics-hour-stat small.analytics-value-negative {
+  opacity: 0.94;
 }
 
 html[data-theme="dark"] .analytics-hour-timeline-card,
