@@ -2352,7 +2352,7 @@ body[data-theme="dark"] .analytics-overview-copy .risk-alert-grid {
 html[data-theme="dark"] .analytics-insight-grid,
 body[data-theme="dark"] .analytics-insight-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -2398,6 +2398,11 @@ body[data-theme="dark"] .analytics-focus-stack {
   display: grid;
   gap: 10px;
   margin-top: 14px;
+}
+
+html[data-theme="dark"] .analytics-focus-stack--single,
+body[data-theme="dark"] .analytics-focus-stack--single {
+  max-width: 720px;
 }
 
 html[data-theme="dark"] .analytics-focus-item,
@@ -2571,6 +2576,11 @@ body[data-theme="dark"] .analytics-pattern-footer--three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+html[data-theme="dark"] .analytics-pattern-footer--single,
+body[data-theme="dark"] .analytics-pattern-footer--single {
+  grid-template-columns: 1fr;
+}
+
 html[data-theme="dark"] .analytics-pattern-footer__item,
 body[data-theme="dark"] .analytics-pattern-footer__item {
   padding: 12px 12px 11px;
@@ -2607,9 +2617,14 @@ body[data-theme="dark"] .analytics-pattern-footer__item small {
 html[data-theme="dark"] .analytics-timing-hero,
 body[data-theme="dark"] .analytics-timing-hero {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+html[data-theme="dark"] .analytics-timing-stat--insight,
+body[data-theme="dark"] .analytics-timing-stat--insight {
+  background: color-mix(in srgb, var(--layer-1-subtle) 92%, var(--gold) 8%);
 }
 
 html[data-theme="dark"] .analytics-timing-stat,
@@ -2665,6 +2680,16 @@ body[data-theme="dark"] .analytics-distribution-metrics {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
+}
+
+html[data-theme="dark"] .analytics-distribution-metrics--tight,
+body[data-theme="dark"] .analytics-distribution-metrics--tight {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+html[data-theme="dark"] .analytics-symbol-row--secondary,
+body[data-theme="dark"] .analytics-symbol-row--secondary {
+  opacity: 0.72;
 }
 
 @media (max-width: 1080px) {

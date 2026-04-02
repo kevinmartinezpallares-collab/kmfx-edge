@@ -505,11 +505,6 @@ export function renderAnalytics(root, state) {
       note: `${formatCurrency(strongestSymbol.pnl)} · ${strongestSymbol.trades} trades`
     },
     {
-      label: "Mejor ventana horaria",
-      value: `${String(bestHour.hour).padStart(2, "0")}:00`,
-      note: `${formatCurrency(bestHour.pnl)} · ${bestHour.trades} trades`
-    },
-    {
       label: "Punto de fuga",
       value: `${String(worstHour.hour).padStart(2, "0")}:00`,
       note: `${formatCurrency(worstHour.pnl)} · revisar timing`
@@ -533,11 +528,11 @@ export function renderAnalytics(root, state) {
     </article>
   `).join("");
   const symbolRowsMarkup = focusSymbols.map((row, index) => `
-    <article class="analytics-symbol-row">
+    <article class="analytics-symbol-row ${index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
         <div class="analytics-symbol-row__copy">
-          <strong>${row.key}</strong>
-          <span>${index === 0 ? "Más sólido" : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
+          <strong>${index === 0 ? `Mejor · ${row.key}` : index === 1 ? `Peor · ${row.key}` : row.key}</strong>
+          <span>${index === 0 ? "Más sólido" : index === 1 ? "Más débil" : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
         </div>
         <div class="analytics-symbol-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
@@ -742,9 +737,7 @@ export function renderAnalytics(root, state) {
           <div class="analytics-overview-hero__grid">
             <div class="analytics-overview-copy">
               <div class="analytics-overview-kicker">Dónde está el edge</div>
-              <h3 class="analytics-overview-title">Lectura compacta de sesiones, símbolos y timing para decidir qué reforzar y qué filtrar.</h3>
-              <p class="analytics-overview-subtitle">La pantalla se centra en cuatro preguntas: qué sesión empuja el resultado, qué símbolo sostiene la curva, dónde se pierde ventaja y qué patrón conviene cortar.</p>
-              ${riskAlertsMarkup(riskAlerts, 2)}
+              <h3 class="analytics-overview-title">Mejor sesión, mejor símbolo y punto de fuga para decidir rápido dónde insistir y dónde cortar.</h3>
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
@@ -754,14 +747,10 @@ export function renderAnalytics(root, state) {
                   </article>
                 `).join("")}
               </div>
-              <div class="analytics-focus-stack">
+              <div class="analytics-focus-stack analytics-focus-stack--single">
                 <div class="analytics-focus-item analytics-focus-item--warn">
-                  <span>Foco principal</span>
+                  <span>Decisión</span>
                   <strong>${decisionEngine.primary}</strong>
-                </div>
-                <div class="analytics-focus-item analytics-focus-item--positive">
-                  <span>Fortaleza defendible</span>
-                  <strong>${decisionEngine.strength}</strong>
                 </div>
               </div>
             </div>
@@ -835,40 +824,20 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <div class="analytics-timing-hero">
-              <article class="analytics-timing-stat">
-                <span>Mejor hora</span>
-                <strong>${String(bestHour.hour).padStart(2, "0")}:00</strong>
-                <small>${formatCurrency(bestHour.pnl)}</small>
-              </article>
-              <article class="analytics-timing-stat">
-                <span>Peor hora</span>
-                <strong>${String(worstHour.hour).padStart(2, "0")}:00</strong>
-                <small>${formatCurrency(worstHour.pnl)}</small>
-              </article>
-              <article class="analytics-timing-stat">
-                <span>Hora más activa</span>
-                <strong>${String(activeHour.hour).padStart(2, "0")}:00</strong>
-                <small>${activeHour.trades} trades</small>
+              <article class="analytics-timing-stat analytics-timing-stat--insight">
+                <span>Insight horario</span>
+                <strong>${String(worstHour.hour).padStart(2, "0")}:00 frena el edge</strong>
+                <small>${formatCurrency(worstHour.pnl)} frente a ${formatCurrency(bestHour.pnl)} en la mejor franja</small>
               </article>
             </div>
             <div class="analytics-timing-chart">
               ${chartCanvas("analytics-hourly-pnl", 230, "kmfx-chart-shell--feature")}
             </div>
-            <div class="analytics-pattern-footer analytics-pattern-footer--three">
+            <div class="analytics-pattern-footer analytics-pattern-footer--single">
               <div class="analytics-pattern-footer__item">
-                <span>Mejor día</span>
-                <strong>${bestWeekday?.label || "—"}</strong>
-                <small>${formatCurrency(bestWeekday?.pnl || 0)}</small>
-              </div>
-              <div class="analytics-pattern-footer__item">
-                <span>Peor día</span>
-                <strong>${worstWeekday?.label || "—"}</strong>
-                <small>${formatCurrency(worstWeekday?.pnl || 0)}</small>
-              </div>
-              <div class="analytics-pattern-footer__item">
-                <span>Consistencia diaria</span>
-                <strong>${formatPercent(consistencyRatio)}</strong>
-                <small>${winningDays} verdes / ${losingDays} rojos</small>
+                <span>Decisión</span>
+                <strong>Refuerza ${String(bestHour.hour).padStart(2, "0")}:00 y limita ${String(worstHour.hour).padStart(2, "0")}:00</strong>
+                <small>${activeHour.trades} trades pasan por la franja más activa.</small>
               </div>
             </div>
           </article>
@@ -877,7 +846,7 @@ export function renderAnalytics(root, state) {
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Distribución win/loss</div>
-                <div class="row-sub">Relación entre calidad del acierto, coste del fallo y estabilidad media por trade.</div>
+                <div class="row-sub">La lectura mínima para decidir si el sistema sigue compensando el riesgo.</div>
               </div>
             </div>
             <div class="analytics-winloss-card analytics-winloss-card--compact">
@@ -891,7 +860,7 @@ export function renderAnalytics(root, state) {
                   <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
                 </div>
               </div>
-              <div class="analytics-distribution-metrics">
+              <div class="analytics-distribution-metrics analytics-distribution-metrics--tight">
                 <div class="analytics-distribution-metric">
                   <span>Win rate</span>
                   <strong>${formatPercent(model.totals.winRate)}</strong>
@@ -901,28 +870,8 @@ export function renderAnalytics(root, state) {
                   <strong>${model.totals.profitFactor.toFixed(2)}</strong>
                 </div>
                 <div class="analytics-distribution-metric">
-                  <span>Avg win</span>
-                  <strong class="metric-positive">${formatCurrency(averageWinningTrade)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Avg loss</span>
-                  <strong class="metric-negative">${formatCurrency(-averageLosingTrade)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
                   <span>Expectancy</span>
                   <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>P&amp;L / trade</span>
-                  <strong class="${profitPerTrade >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(profitPerTrade)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Win/Loss ratio</span>
-                  <strong>${winLossRatio.toFixed(2)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Std. deviation</span>
-                  <strong>${formatCurrency(stdDevPnl)}</strong>
                 </div>
               </div>
             </div>
