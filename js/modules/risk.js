@@ -210,29 +210,6 @@ function sessionUtcLabel(session = "") {
   return "UTC";
 }
 
-function isLightThemeActive() {
-  if (typeof document === "undefined") return false;
-  const htmlTheme = document.documentElement?.dataset?.theme;
-  const bodyTheme = document.body?.dataset?.theme;
-  return htmlTheme !== "dark" && bodyTheme !== "dark";
-}
-
-function lightRiskCardAttr() {
-  if (!isLightThemeActive()) return "";
-  return ` style="background:linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)), #0b1020;border-color:rgba(59,89,185,0.22);box-shadow:none;color:rgba(245,247,252,0.98);"`;
-}
-
-function lightRiskControlAttr() {
-  if (!isLightThemeActive()) return "";
-  return ` style="background:rgba(20,24,34,0.52);border-color:rgba(255,255,255,0.12);box-shadow:none;color:rgba(245,247,252,0.96);"`;
-}
-
-function lightRiskTextAttr(kind = "primary") {
-  if (!isLightThemeActive()) return "";
-  if (kind === "muted") return ` style="color:rgba(223,231,247,0.74);"`;
-  return ` style="color:rgba(245,247,252,0.98);"`;
-}
-
 function renderStepperInput({
   label,
   key,
@@ -254,11 +231,11 @@ function renderStepperInput({
 
   return `
     <label class="risk-config-control">
-      <span${lightRiskTextAttr("muted")}>${label}</span>
-      <div class="risk-stepper"${lightRiskControlAttr()}>
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}"${disabledAttr}${lightRiskTextAttr()}>−</button>
-        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}${disabledAttr}${lightRiskControlAttr()}>
-        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}"${disabledAttr}${lightRiskTextAttr()}>+</button>
+      <span>${label}</span>
+      <div class="risk-stepper">
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="-1" data-step-value="${step}" aria-label="Reducir ${label}"${disabledAttr}>−</button>
+        <input type="number" step="${step}" min="${min}"${maxAttr} value="${value}" ${dataAttr}${disabledAttr}>
+        <button class="risk-stepper-btn" type="button" ${stepperAttr} data-step-dir="1" data-step-value="${step}" aria-label="Aumentar ${label}"${disabledAttr}>+</button>
       </div>
     </label>
   `;
@@ -378,11 +355,20 @@ export function renderRisk(root, state) {
     : "Sin símbolos";
   const summaryPills = selectedSymbols.slice(0, 4);
   const summaryOverflow = Math.max(0, selectedSymbols.length - summaryPills.length);
+  const selectedSymbolTagsMarkup = selectedSymbolItems.length
+    ? selectedSymbolItems.slice(0, 5).map((symbol) => {
+      const meta = symbolUniverseMap.get(symbol.id) || { cat: "Custom" };
+      return `<span class="risk-selected-tag risk-selected-tag--${symbolCategoryTone(meta.cat)}">${symbol.id}</span>`;
+    }).join("")
+    : `<span class="risk-selected-tag risk-selected-tag--empty">Sin símbolos</span>`;
+  const selectedSymbolOverflowMarkup = selectedSymbolItems.length > 5
+    ? `<span class="risk-selected-tag risk-selected-tag--more">+${selectedSymbolItems.length - 5}</span>`
+    : "";
   const summaryCardMarkup = `
-    <div class="risk-symbol-summary"${lightRiskControlAttr()}>
+    <div class="risk-symbol-summary">
       <div class="risk-symbol-summary-count">
-        <strong${lightRiskTextAttr()}>${selectedSymbols.length}</strong>
-        <span${lightRiskTextAttr("muted")}>símbolos activos</span>
+        <strong>${selectedSymbols.length}</strong>
+        <span>símbolos activos</span>
       </div>
       <div class="risk-symbol-summary-pills">
         ${summaryPills.map((symbol) => {
@@ -396,10 +382,10 @@ export function renderRisk(root, state) {
   const allSessionsSelected = selectedSessions.length === sessionOptions.length;
   const sessionsPartial = selectedSessions.length > 0 && !allSessionsSelected;
   const sessionSummaryMarkup = `
-    <div class="risk-session-summary"${lightRiskControlAttr()}>
+    <div class="risk-session-summary">
       <div class="risk-session-summary-count">
-        <strong${lightRiskTextAttr()}>${selectedSessions.length}</strong>
-        <span${lightRiskTextAttr("muted")}>sesiones activas</span>
+        <strong>${selectedSessions.length}</strong>
+        <span>sesiones activas</span>
       </div>
       <div class="risk-session-summary-dots" aria-hidden="true">
         ${sessionOptions.map((session) => `
@@ -560,9 +546,9 @@ export function renderRisk(root, state) {
         <div class="risk-config-control">
           <span>Sesiones</span>
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}${lightRiskControlAttr()}>
-              <span${lightRiskTextAttr()}>${selectedSessionsLabel}</span>
-              <strong${lightRiskTextAttr()}>${selectedSessions.length}/3</strong>
+            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+              <span>${selectedSessionsLabel}</span>
+              <strong>${selectedSessions.length}/3</strong>
             </button>
             <div class="risk-select-menu">
               <div class="risk-session-group">
@@ -612,9 +598,12 @@ export function renderRisk(root, state) {
         <div class="risk-config-control">
           <span>Símbolos</span>
           <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
-            <button class="risk-select-trigger" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}${lightRiskControlAttr()}>
-              <span${lightRiskTextAttr()}>${selectedSymbolsLabel}</span>
-              <strong${lightRiskTextAttr()}>${selectedSymbols.length}</strong>
+            <button class="risk-select-trigger risk-select-trigger--symbols" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+              <span class="risk-select-trigger__tags">
+                ${selectedSymbolTagsMarkup}
+                ${selectedSymbolOverflowMarkup}
+              </span>
+              <strong>${selectedSymbols.length}</strong>
             </button>
             <div class="risk-select-menu risk-select-menu--symbols">
               <label class="risk-select-search">
@@ -770,11 +759,11 @@ export function renderRisk(root, state) {
         <div class="tl-section-header"><div class="tl-section-title">Configuración activa</div></div>
         <div class="risk-config-grid">
           ${riskConfigCards.map((rule) => `
-            <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""} ${rule.checked ? "" : "risk-config-card--off"}" data-risk-config-card="${rule.previewKey || rule.key}"${lightRiskCardAttr()}>
+            <article class="risk-config-card risk-config-card--editable ${rule.menuOpen ? "risk-config-card--menu-open" : ""} ${rule.checked ? "" : "risk-config-card--off"}" data-risk-config-card="${rule.previewKey || rule.key}">
               <div class="risk-config-card-head">
                 <div>
-                  <div class="risk-config-title"${lightRiskTextAttr()}>${rule.title}</div>
-                  <div class="risk-config-meta"${lightRiskTextAttr("muted")}>${rule.description}</div>
+                  <div class="risk-config-title">${rule.title}</div>
+                  <div class="risk-config-meta">${rule.description}</div>
                 </div>
                 <div class="risk-config-card-actions">
                   ${rule.headBadge ? `<div class="risk-config-state-pill risk-config-state-pill--header">${rule.headBadge}</div>` : ""}
@@ -786,7 +775,7 @@ export function renderRisk(root, state) {
                   `}
                 </div>
               </div>
-              <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}"${lightRiskTextAttr()}>${rule.value}</div>
+              <div class="risk-config-value" data-risk-config-value="${rule.previewKey || rule.key}">${rule.value}</div>
               ${rule.controls || ""}
               ${rule.hideFooterBadge ? "" : `
                 <div class="risk-config-footer">
