@@ -821,7 +821,7 @@ export function renderAnalytics(root, state) {
     `${bestWindowLabel} concentra el mejor flujo operativo del día.`,
     `${formatHourLabel(weakestTimingWindow.hour)} rompe la continuidad y resta edge cuando se extiende la ejecución.`
   ];
-  const hourDecision = `Concentra la ejecución en ${bestWindowLabel} y evita extender operativa más allá de ${formatHourLabel(weakestTimingWindow.hour)} salvo setup excepcional.`;
+  const shortHourDecision = `Opera ${String(bestWindow.start).padStart(2, "0")}:00–${String(bestWindow.end).padStart(2, "0")}:00. Evita ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción.`;
   const detailedMetrics = [
     {
       tone: "blue",
@@ -1271,11 +1271,6 @@ export function renderAnalytics(root, state) {
               <strong class="metric-negative">${formatHourLabel(weakestTimingWindow.hour)}</strong>
               <small>${formatCurrency(weakestTimingWindow.pnl)}</small>
             </div>
-            <div class="analytics-hour-stat">
-              <span>Hora más activa</span>
-              <strong>${formatHourLabel(activeHour.hour)}</strong>
-              <small>${activeHour.trades} trades</small>
-            </div>
           </div>
         </article>
 
@@ -1310,7 +1305,7 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <div class="analytics-hour-decision">
-              <strong>${hourDecision}</strong>
+              <strong>${shortHourDecision}</strong>
             </div>
           </article>
         </div>
