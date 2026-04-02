@@ -862,7 +862,8 @@ export function renderAnalytics(root, state) {
       hour: bestHour.hour,
       pnl: bestHour.pnl,
       tone: bestHour.pnl >= 0 ? "positive" : "negative",
-      label: "mejor hora"
+      label: "mejor hora",
+      rowType: "leader"
     },
     ...bestWindowSupportingHours
       .filter((hour) => hour.hour !== bestHour.hour)
@@ -870,32 +871,32 @@ export function renderAnalytics(root, state) {
         hour: hour.hour,
         pnl: hour.pnl,
         tone: hour.pnl >= 0 ? "positive" : "negative",
-        label: "mantiene edge"
+        label: "mantiene edge",
+        rowType: "support"
       })),
     {
       hour: weakestTimingWindow.hour,
       pnl: weakestTimingWindow.pnl,
       tone: "negative",
-      label: "franja débil"
+      label: "franja débil",
+      rowType: "weak"
     },
     ...(secondaryPositiveHour ? [{
       hour: secondaryPositiveHour.hour,
       pnl: secondaryPositiveHour.pnl,
       tone: "positive",
-      label: "aporta pero no lidera"
+      label: "aporta pero no lidera",
+      rowType: "support"
     }] : [])
   ].filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index).slice(0, 4);
   const hourDetailRowsMarkup = detailHourRows.map((row) => `
-    <div class="analytics-hour-detail-row">
+    <div class="analytics-hour-detail-row analytics-hour-detail-row--${row.rowType}">
       <div class="analytics-hour-detail-row__time">${String(row.hour).padStart(2, "0")}:00</div>
       <div class="analytics-hour-detail-row__value ${row.tone === "positive" ? "metric-positive" : "metric-negative"}">${formatHourlyValue(row.pnl)}</div>
       <div class="analytics-hour-detail-row__label">${row.label}</div>
     </div>
   `).join("");
-  const hourInsights = [
-    `${bestWindowLabel} concentra el mejor flujo operativo del día.`,
-    `${formatHourLabel(weakestTimingWindow.hour)} rompe la continuidad y resta edge cuando se extiende la ejecución.`
-  ];
+  const hourInsight = `${bestWindowLabel} concentra el edge; ${formatHourLabel(weakestTimingWindow.hour)} introduce la fricción a evitar.`;
   const shortHourDecision = `Opera ${String(bestWindow.start).padStart(2, "0")}:00–${String(bestWindow.end).padStart(2, "0")}:00. Evita ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción.`;
   const detailedMetrics = [
     {
@@ -1379,11 +1380,10 @@ export function renderAnalytics(root, state) {
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Insight</div>
-                <div class="row-sub">La lectura temporal debe cerrar rápido y sin ruido cuantitativo.</div>
               </div>
             </div>
             <div class="analytics-hour-insights">
-              ${hourInsights.map((item, index) => `<p class="${index === 0 ? "is-lead" : ""}">${item}</p>`).join("")}
+              <p class="is-lead">${hourInsight}</p>
             </div>
           </article>
           <article class="tl-section-card analytics-hour-copy-card analytics-hour-copy-card--decision">
