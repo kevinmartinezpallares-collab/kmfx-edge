@@ -197,6 +197,11 @@ function withAlpha(hex, alpha) {
 
 function toneColors(tone) {
   const isDarkTheme = isDarkThemeActive();
+  if (tone === "neutral" || tone === "gray" || tone === "grey") {
+    return isDarkTheme
+      ? { start: getCssVar("--text-2") || "#8f98a3", end: getCssVar("--text-1") || "#c8cdd4" }
+      : { start: "#505862", end: "#6c747e" };
+  }
   if (tone === "violet") {
     return { start: getCssVar("--chart-violet-a"), end: getCssVar("--chart-violet-b") };
   }
@@ -240,6 +245,7 @@ function createBarSurfaceGradient(context, area, tone, hover = false) {
 
 function solidToneColor(tone, value = null) {
   const isDarkTheme = isDarkThemeActive();
+  if (tone === "neutral" || tone === "gray" || tone === "grey") return isDarkTheme ? "#8B95A1" : "#6B7280";
   if (tone === "red") return "#B23030";
   if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
   if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
@@ -249,6 +255,7 @@ function solidToneColor(tone, value = null) {
 
 function solidToneHoverColor(tone, value = null) {
   const isDarkTheme = isDarkThemeActive();
+  if (tone === "neutral" || tone === "gray" || tone === "grey") return isDarkTheme ? "#A1AAB5" : "#7A828C";
   if (tone === "red") return "#B23030";
   if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
   if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
@@ -1116,10 +1123,16 @@ function createBarChart(ChartLib, canvas, spec) {
       },
       scales: {
         x: {
+          display: spec.showXAxis ?? true,
           offset: spec.xOffset ?? true,
+          border: {
+            display: spec.showAxisBorder ?? false,
+            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+            width: spec.axisBorderWidth ?? 1
+          },
           ticks: {
-            color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.84),
-            font: { size: 10, weight: "500" },
+            color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.84),
+            font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
             padding: spec.xTickPadding ?? 8,
             autoSkip: spec.autoSkipXTicks ?? mobile,
             maxRotation: 0,
@@ -1137,10 +1150,16 @@ function createBarChart(ChartLib, canvas, spec) {
           grid: { display: false, drawBorder: false }
         },
         y: {
+          display: spec.showYAxis ?? true,
           ...computeYHeadroom(spec),
+          border: {
+            display: spec.showAxisBorder ?? false,
+            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+            width: spec.axisBorderWidth ?? 1
+          },
           ticks: {
-            color: getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.76),
-            font: { size: 10, weight: "500" },
+            color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.76),
+            font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
             padding: spec.yTickPadding ?? 8,
             maxTicksLimit: spec.maxYTicks || (mobile ? 3 : 4),
             callback: spec.axisFormatter || ((value) => value)

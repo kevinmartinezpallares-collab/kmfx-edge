@@ -511,7 +511,7 @@ export function renderAnalytics(root, state) {
     }
   ];
   const sessionRowsMarkup = sessionRanking.map((session, index) => `
-    <article class="analytics-session-row analytics-session-row--elevated">
+    <article class="analytics-session-row analytics-session-row--elevated ${index === 0 ? "analytics-session-row--strongest" : ""}">
       <div class="analytics-session-main">
         <div class="analytics-session-copy">
           <div class="session-label">${index === 0 ? "Mejor sesión" : session.key}</div>
@@ -528,7 +528,7 @@ export function renderAnalytics(root, state) {
     </article>
   `).join("");
   const symbolRowsMarkup = focusSymbols.map((row, index) => `
-    <article class="analytics-symbol-row ${index > 1 ? "analytics-symbol-row--secondary" : ""}">
+    <article class="analytics-symbol-row ${index === 0 ? "analytics-symbol-row--best" : index === 1 ? "analytics-symbol-row--worst" : index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
         <div class="analytics-symbol-row__copy">
           <strong>${index === 0 ? `Mejor · ${row.key}` : index === 1 ? `Peor · ${row.key}` : row.key}</strong>
@@ -629,95 +629,89 @@ export function renderAnalytics(root, state) {
   ];
 
   const chartSpecs = [
-    barChartSpec("analytics-hourly-pnl", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: Math.abs(hour.pnl), rawValue: hour.pnl })), {
+    barChartSpec("analytics-hourly-pnl", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.pnl, rawValue: hour.pnl })), {
       positiveNegative: true,
-      literalHistogramBars: true,
-      referenceSolidBars: true,
-      absoluteBars: true,
-      maxBarThickness: 48,
-      barThickness: 42,
-      categoryPercentage: 1.0,
-      barPercentage: 0.95,
+      solidBars: true,
+      maxBarThickness: 40,
+      barThickness: 34,
+      categoryPercentage: 0.78,
+      barPercentage: 0.9,
       xOffset: true,
-      xTickPadding: 6,
+      xTickPadding: 8,
       autoSkipXTicks: false,
-      yTickPadding: 6,
-      layoutPaddingLeft: 16,
-      layoutPaddingRight: 16,
-      trackAlpha: 0.12,
-      trackActiveAlpha: 0.18,
-      trackMinWidth: 36,
-      trackMaxWidth: 40,
-      trackWidthRatio: 0.97,
-      fillInset: 0.55,
-      trackTopInset: 8,
-      trackBottomInset: 4,
-      minimalTooltip: true,
+      yTickPadding: 10,
+      layoutPaddingLeft: 6,
+      layoutPaddingRight: 6,
+      layoutPaddingBottom: 2,
+      axisColor: "rgba(182, 188, 196, 0.76)",
+      axisFontSize: 10,
+      axisFontWeight: "600",
+      showYAxis: true,
+      showXAxis: true,
+      showAxisBorder: true,
+      axisBorderColor: "rgba(255,255,255,0.10)",
+      axisLineAlpha: 0.46,
+      showYGrid: false,
+      zeroDivider: true,
+      zeroDividerAlpha: 0.18,
+      zeroDividerWidth: 1,
       formatter: (value, context) => formatCurrency(context.raw.rawValue ?? value),
       axisFormatter: (value) => formatCompact(value),
-      showYAxis: false,
-      zeroDivider: false,
       xAxisFormatter: (label, index, point) => (point?.rawValue || point?.value ? label : ""),
-      valueLabelFormatter: (value, point) => value ? formatCurrency(point.rawValue ?? value) : "",
       tooltipTitleFormatter: (column) => column.point?.label || "",
       tooltipBodyFormatter: (column) => formatCurrency(column.point?.rawValue ?? column.value)
     }),
     barChartSpec("analytics-hourly-trades", hourlyRows.map((hour) => ({ label: `${String(hour.hour).padStart(2, "0")}:00`, value: hour.trades })), {
-      tone: "blue",
-      literalHistogramBars: true,
-      referenceSolidBars: true,
-      maxBarThickness: 48,
-      barThickness: 42,
-      categoryPercentage: 1.0,
-      barPercentage: 0.95,
+      tone: "neutral",
+      solidBars: true,
+      maxBarThickness: 40,
+      barThickness: 34,
+      categoryPercentage: 0.78,
+      barPercentage: 0.9,
       xOffset: true,
-      xTickPadding: 6,
+      xTickPadding: 8,
       autoSkipXTicks: false,
-      yTickPadding: 6,
-      layoutPaddingLeft: 16,
-      layoutPaddingRight: 16,
-      trackAlpha: 0.12,
-      trackActiveAlpha: 0.18,
-      trackMinWidth: 36,
-      trackMaxWidth: 40,
-      trackWidthRatio: 0.97,
-      fillInset: 0.55,
-      trackTopInset: 8,
-      trackBottomInset: 4,
-      minimalTooltip: true,
+      yTickPadding: 10,
+      layoutPaddingLeft: 6,
+      layoutPaddingRight: 6,
+      layoutPaddingBottom: 2,
+      axisColor: "rgba(182, 188, 196, 0.76)",
+      axisFontSize: 10,
+      axisFontWeight: "600",
+      showYAxis: true,
+      showXAxis: true,
+      showAxisBorder: true,
+      axisBorderColor: "rgba(255,255,255,0.10)",
+      axisLineAlpha: 0.46,
+      showYGrid: false,
       formatter: (value) => `${value} trades`,
-      showYAxis: false,
       xAxisFormatter: (label, index, point) => (point?.value ? label : ""),
-      valueLabelFormatter: (value) => value ? `${value}` : "",
       tooltipTitleFormatter: (column) => column.point?.label || "",
       tooltipBodyFormatter: (column) => `${column.value} trades`
     }),
     barChartSpec("analytics-profit-distribution", denseProfitDistribution.map((bin) => ({ label: bin.label, value: bin.value, tone: bin.tone })), {
-      literalHistogramBars: true,
-      referenceSolidBars: true,
-      maxBarThickness: 40,
-      barThickness: 36,
-      categoryPercentage: 1.0,
-      barPercentage: 0.95,
+      solidBars: true,
+      maxBarThickness: 34,
+      barThickness: 30,
+      categoryPercentage: 0.78,
+      barPercentage: 0.9,
       xOffset: true,
-      xTickPadding: 6,
-      yTickPadding: 6,
-      layoutPaddingLeft: 12,
-      layoutPaddingRight: 12,
-      trackAlpha: 0.14,
-      trackActiveAlpha: 0.2,
-      trackMinWidth: 32,
-      trackMaxWidth: 36,
-      trackWidthRatio: 0.97,
-      fillInset: 0.55,
-      trackTopInset: 8,
-      trackBottomInset: 4,
+      xTickPadding: 8,
+      yTickPadding: 10,
+      layoutPaddingLeft: 6,
+      layoutPaddingRight: 6,
+      layoutPaddingBottom: 2,
+      axisColor: "rgba(182, 188, 196, 0.76)",
+      axisFontSize: 10,
+      axisFontWeight: "600",
+      showYAxis: true,
+      showXAxis: true,
+      showAxisBorder: true,
+      axisBorderColor: "rgba(255,255,255,0.10)",
+      axisLineAlpha: 0.46,
+      showYGrid: false,
       pointTone: (point) => point.tone || "green",
-      showValueLabels: true,
-      valueLabelFormatter: (value) => `${value}`,
-      minimalTooltip: true,
       formatter: (value, context) => `${context.label}: ${value} trades`,
-      showYAxis: false,
       tooltipTitleFormatter: (column) => {
         const count = column.value;
         return count === 1 ? "1 trade en rango" : `${count} trades en rango`;
@@ -732,7 +726,7 @@ export function renderAnalytics(root, state) {
           <div class="analytics-overview-hero__grid">
             <div class="analytics-overview-copy">
               <div class="analytics-overview-kicker">Dónde está el edge</div>
-              <h3 class="analytics-overview-title">Mejor sesión, mejor símbolo y punto de fuga para decidir rápido dónde insistir y dónde cortar.</h3>
+              <h3 class="analytics-overview-title">Dónde insistir, qué activo merece foco y qué patrón está drenando edge.</h3>
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
