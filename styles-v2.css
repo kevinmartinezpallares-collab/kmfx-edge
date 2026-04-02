@@ -3483,20 +3483,30 @@ body[data-theme="dark"] .analytics-risk-hero__alerts {
   margin-top: 4px;
 }
 
-html[data-theme="dark"] .analytics-risk-hero__metric,
-body[data-theme="dark"] .analytics-risk-hero__metric {
+html[data-theme="dark"] .analytics-risk-hero__signal,
+body[data-theme="dark"] .analytics-risk-hero__signal {
   display: grid;
   align-content: end;
   gap: 5px;
   min-height: 100%;
   padding: 18px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.028);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.024), rgba(255,255,255,0.008)),
+    rgba(255,255,255,0.018);
   border: 1px solid rgba(255,255,255,0.045);
 }
 
-html[data-theme="dark"] .analytics-risk-hero__metric-label,
-body[data-theme="dark"] .analytics-risk-hero__metric-label {
+html[data-theme="dark"] .analytics-risk-hero__signal.is-loss-streak,
+body[data-theme="dark"] .analytics-risk-hero__signal.is-loss-streak {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008)),
+    color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(154, 46, 60, 0.08));
+  border-color: rgba(214, 86, 102, 0.14);
+}
+
+html[data-theme="dark"] .analytics-risk-hero__signal-label,
+body[data-theme="dark"] .analytics-risk-hero__signal-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -3504,16 +3514,16 @@ body[data-theme="dark"] .analytics-risk-hero__metric-label {
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .analytics-risk-hero__metric strong,
-body[data-theme="dark"] .analytics-risk-hero__metric strong {
-  font-size: 40px;
-  line-height: 0.95;
-  letter-spacing: -0.06em;
+html[data-theme="dark"] .analytics-risk-hero__signal strong,
+body[data-theme="dark"] .analytics-risk-hero__signal strong {
+  font-size: 28px;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .analytics-risk-hero__metric small,
-body[data-theme="dark"] .analytics-risk-hero__metric small {
+html[data-theme="dark"] .analytics-risk-hero__signal small,
+body[data-theme="dark"] .analytics-risk-hero__signal small {
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-2);
@@ -3587,6 +3597,16 @@ body[data-theme="dark"] .analytics-risk-behavior-row {
   background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
 }
 
+html[data-theme="dark"] .analytics-risk-behavior-row.is-dominant,
+body[data-theme="dark"] .analytics-risk-behavior-row.is-dominant {
+  padding-top: 16px;
+  padding-bottom: 15px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.024), rgba(255,255,255,0.01)),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.052);
+}
+
 html[data-theme="dark"] .analytics-risk-behavior-row__copy,
 body[data-theme="dark"] .analytics-risk-behavior-row__copy {
   display: grid;
@@ -3631,6 +3651,16 @@ body[data-theme="dark"] .analytics-risk-behavior-row__metric small {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-behavior-row--warning .analytics-risk-behavior-row__metric small,
+body[data-theme="dark"] .analytics-risk-behavior-row--warning .analytics-risk-behavior-row__metric small {
+  color: color-mix(in srgb, var(--warning) 76%, var(--text-1));
+}
+
+html[data-theme="dark"] .analytics-risk-behavior-row--critical .analytics-risk-behavior-row__metric small,
+body[data-theme="dark"] .analytics-risk-behavior-row--critical .analytics-risk-behavior-row__metric small {
+  color: color-mix(in srgb, var(--negative) 78%, var(--text-1));
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row__track,
@@ -3689,7 +3719,7 @@ body[data-theme="dark"] .analytics-risk-copy-card p {
   margin: 0;
   font-size: 13px;
   line-height: 1.48;
-  color: var(--text-2);
+  color: color-mix(in srgb, var(--text-2) 88%, var(--text-1));
 }
 
 html[data-theme="dark"] .analytics-risk-copy-card--decision,
@@ -4077,8 +4107,8 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
     grid-template-columns: 1fr;
   }
 
-  html[data-theme="dark"] .analytics-risk-hero__metric,
-  body[data-theme="dark"] .analytics-risk-hero__metric,
+  html[data-theme="dark"] .analytics-risk-hero__signal,
+  body[data-theme="dark"] .analytics-risk-hero__signal,
   html[data-theme="dark"] .analytics-risk-behavior-row__metric,
   body[data-theme="dark"] .analytics-risk-behavior-row__metric {
     justify-items: start;

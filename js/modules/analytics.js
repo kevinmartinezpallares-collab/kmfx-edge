@@ -909,7 +909,6 @@ export function renderAnalytics(root, state) {
     currentDrawdownAmount = Math.max(0, riskPeak - runningRiskBalance);
     currentDrawdownPct = riskPeak ? (currentDrawdownAmount / riskPeak) * 100 : 0;
   });
-  const maxDrawdownAmount = Number(model.totals?.drawdown?.maxAmount || 0);
   const maxDrawdownPct = Number(model.totals?.drawdown?.maxPct || 0);
   const riskProfile = model.riskProfile || {};
   const riskSummary = model.riskSummary || {};
@@ -944,6 +943,11 @@ export function renderAnalytics(root, state) {
   const inconsistencyLevel = consistencyPressure
     ? (consistencyRatio < 42 || recentWinRate <= model.totals.winRate - 18 ? "critical" : "warning")
     : "stable";
+  const pressureLevel = (lossStreak >= 5 || overtradingLevel === "critical" || scalingLevel === "critical" || inconsistencyLevel === "critical")
+    ? "critical"
+    : (lossStreak >= 3 || overtradingLevel === "warning" || scalingLevel === "warning" || inconsistencyLevel === "warning")
+      ? "warning"
+      : "stable";
   const riskHeroTone = riskAlerts.some((alert) => alert.tone === "error") || currentDdUsagePct >= 70 || lossStreak >= 6
     ? "critical"
     : riskAlerts.length || currentDdUsagePct >= 45 || lossStreak >= 4
@@ -954,29 +958,53 @@ export function renderAnalytics(root, state) {
     : riskHeroTone === "warning"
       ? "Riesgo elevado"
       : "Riesgo controlado";
+  const heroSignalTitle = lossStreak >= 4
+    ? `Racha loss ${lossStreak}`
+    : inconsistencyLevel !== "stable"
+      ? "Ejecución irregular"
+      : scalingLevel !== "stable"
+        ? "Tamaño bajo presión"
+        : overtradingLevel !== "stable"
+          ? "Frecuencia al límite"
+          : "Disciplina estable";
+  const heroSignalNote = lossStreak >= 4
+    ? "La racha reciente está aumentando la presión operativa y exige bajar agresividad."
+    : inconsistencyLevel !== "stable"
+      ? "La calidad de ejecución se está deteriorando tras las últimas sesiones."
+      : scalingLevel !== "stable"
+        ? "El uso del riesgo por trade está por encima de la zona cómoda del plan."
+        : overtradingLevel !== "stable"
+          ? "La frecuencia está invadiendo la calidad y estrecha el margen del sistema."
+          : "No hay fricciones dominantes: el control sigue viviendo en el proceso.";
   const riskHeroContext = riskHeroTone === "critical"
-    ? "La curva está bajo presión. Hay señales de ruptura de disciplina y conviene pasar a modo defensivo."
+    ? "La señal dominante ya no es el drawdown, sino la presión operativa que aparece en la ejecución reciente."
     : riskHeroTone === "warning"
-      ? "El riesgo sigue operativo, pero ya hay fricción suficiente como para bajar tamaño y frecuencia."
-      : "La exposición sigue contenida y las reglas principales todavía sostienen la curva.";
+      ? "Todavía hay margen, pero la fricción reciente ya está comprometiendo la calidad de las decisiones."
+      : "La exposición sigue contenida y el comportamiento actual todavía sostiene el plan.";
   const riskBehaviorRows = [
     {
-      title: "Overtrading",
-      tone: overtradingLevel,
-      status: overtradingLevel === "critical" ? "Riesgo" : overtradingLevel === "warning" ? "Vigilancia" : "Controlado",
-      metric: `${peakTradesPerDay || 0} trades pico`,
-      note: averageTradesPerDay
-        ? `La media diaria está en ${averageTradesPerDay.toFixed(1)} trades.`
-        : "No hay suficiente muestra diaria para validar frecuencia.",
-      progress: Math.max(12, Math.min(100, averageTradesPerDay ? (peakTradesPerDay / Math.max(averageTradesPerDay * 2.2, 1)) * 100 : 12))
+      title: "Racha de pérdidas",
+      tone: lossStreak >= 5 ? "critical" : lossStreak >= 3 ? "warning" : "stable",
+      status: lossStreak >= 5 ? "Presión alta" : lossStreak >= 3 ? "En aumento" : "Contenida",
+      metric: `${lossStreak} seguidas`,
+      note: lossStreak >= 4
+        ? "La secuencia negativa ya está condicionando el siguiente trade."
+        : "La secuencia aún no domina el proceso operativo.",
+      progress: Math.max(12, Math.min(100, (lossStreak / 6) * 100)),
+      kind: "loss"
     },
     {
-      title: "Escalado agresivo",
-      tone: scalingLevel,
-      status: scalingLevel === "critical" ? "Alto" : scalingLevel === "warning" ? "Atención" : "Estable",
-      metric: `${currentRiskPct.toFixed(2)}% por trade`,
-      note: `El tope del plan está en ${maxTradeRiskPct.toFixed(2)}% por operación.`,
-      progress: Math.max(12, Math.min(100, riskPerTradeUsagePct || 0))
+      title: "Presión operativa",
+      tone: pressureLevel,
+      status: pressureLevel === "critical" ? "Alta" : pressureLevel === "warning" ? "Latente" : "Baja",
+      metric: `${currentRiskPct.toFixed(2)}% · ${peakTradesPerDay || 0} trades pico`,
+      note: scalingLevel !== "stable"
+        ? `El tamaño está forzando el plan: tope ${maxTradeRiskPct.toFixed(2)}% por operación.`
+        : averageTradesPerDay
+          ? `La frecuencia sube hasta ${peakTradesPerDay || 0} trades frente a ${averageTradesPerDay.toFixed(1)} de media.`
+          : "La presión sigue dentro de la zona operativa normal.",
+      progress: Math.max(12, Math.min(100, Math.max(riskPerTradeUsagePct || 0, averageTradesPerDay ? (peakTradesPerDay / Math.max(averageTradesPerDay * 2.1, 1)) * 100 : 0))),
+      kind: "pressure"
     },
     {
       title: "Inconsistencia",
@@ -984,22 +1012,24 @@ export function renderAnalytics(root, state) {
       status: inconsistencyLevel === "critical" ? "Frágil" : inconsistencyLevel === "warning" ? "Irregular" : "Sólida",
       metric: `${Math.round(consistencyRatio)} / 100`,
       note: `WR reciente ${Math.round(recentWinRate)}% · dispersión diaria ${formatCompactSignedCurrency(stdDevPnl)}.`,
-      progress: Math.max(12, Math.min(100, 100 - consistencyRatio))
+      progress: Math.max(12, Math.min(100, 100 - consistencyRatio)),
+      kind: "consistency"
     }
   ];
-  const dominantRiskIssue = riskBehaviorRows.find((row) => row.tone === "critical")
+  const dominantRiskIssue = riskBehaviorRows.find((row) => row.kind === "loss" && row.tone !== "stable")
+    || riskBehaviorRows.find((row) => row.tone === "critical")
     || riskBehaviorRows.find((row) => row.tone === "warning")
     || riskBehaviorRows[0];
-  const riskInsight = dominantRiskIssue.title === "Overtrading"
-    ? "La presión no viene del mercado, sino de alargar la sesión cuando sube la frecuencia."
-    : dominantRiskIssue.title === "Escalado agresivo"
-      ? "La curva aguanta mientras el tamaño se mantiene contenido; cuando sube, el margen se estrecha rápido."
-      : "El edge pierde calidad cuando se mezcla una curva estable con ejecución irregular en los últimos días.";
-  const riskDecision = dominantRiskIssue.title === "Overtrading"
-    ? `Recorta la sesión a ${Math.max(2, Math.round(averageTradesPerDay || 2))} trades de calidad y para al superar esa cuota.`
-    : dominantRiskIssue.title === "Escalado agresivo"
-      ? `Baja a ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% por trade hasta recuperar tracción limpia.`
-      : `Mantén el riesgo en ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y corta la sesión tras 2 pérdidas consecutivas.`;
+  const riskInsight = dominantRiskIssue.kind === "loss"
+    ? "La racha actual está deteriorando la consistencia de ejecución."
+    : dominantRiskIssue.kind === "pressure"
+      ? "La presión tras pérdidas está elevando la fricción operativa."
+      : "La ejecución reciente ya no replica el patrón limpio del mes.";
+  const riskDecision = dominantRiskIssue.kind === "loss"
+    ? `Reduce riesgo tras esta racha y corta la sesión después de 2 pérdidas.`
+    : dominantRiskIssue.kind === "pressure"
+      ? `Mantén ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% mientras dure la fricción y evita añadir frecuencia.`
+      : `Mantén ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y prioriza solo setups de máxima claridad hasta estabilizar la ejecución.`;
   const riskMetricCards = [
     {
       label: "Drawdown actual",
@@ -1538,10 +1568,10 @@ export function renderAnalytics(root, state) {
             <p>${riskHeroContext}</p>
             ${riskAlerts.length ? `<div class="analytics-risk-hero__alerts">${riskAlertsLimited}</div>` : ""}
           </div>
-          <div class="analytics-risk-hero__metric">
-            <span class="analytics-risk-hero__metric-label">Drawdown actual</span>
-            <strong class="${currentDrawdownPct > 0 ? "metric-negative" : ""}">${formatPercent(currentDrawdownPct)}</strong>
-            <small>${formatCurrency(-currentDrawdownAmount)} desde pico · ${Math.round(currentDdUsagePct)}% del umbral de cuenta</small>
+          <div class="analytics-risk-hero__signal ${lossStreak >= 4 ? "is-loss-streak" : ""}">
+            <span class="analytics-risk-hero__signal-label">Señal dominante</span>
+            <strong class="${lossStreak >= 4 || dominantRiskIssue.tone === "critical" ? "metric-negative" : dominantRiskIssue.tone === "warning" ? "text-warning" : ""}">${heroSignalTitle}</strong>
+            <small>${heroSignalNote}</small>
           </div>
         </article>
 
@@ -1565,7 +1595,7 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="analytics-risk-behavior__list">
               ${riskBehaviorRows.map((row) => `
-                <div class="analytics-risk-behavior-row analytics-risk-behavior-row--${row.tone}">
+                <div class="analytics-risk-behavior-row analytics-risk-behavior-row--${row.tone} ${row.kind === dominantRiskIssue.kind ? "is-dominant" : ""}">
                   <div class="analytics-risk-behavior-row__copy">
                     <strong>${row.title}</strong>
                     <span>${row.note}</span>
