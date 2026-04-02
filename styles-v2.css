@@ -3595,6 +3595,21 @@ body[data-theme="dark"] .analytics-risk-kpi small {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .analytics-risk-kpi__note--positive,
+body[data-theme="dark"] .analytics-risk-kpi__note--positive {
+  color: color-mix(in srgb, var(--positive) 68%, var(--text-1));
+}
+
+html[data-theme="dark"] .analytics-risk-kpi__note--warning,
+body[data-theme="dark"] .analytics-risk-kpi__note--warning {
+  color: color-mix(in srgb, var(--warning) 70%, var(--text-1));
+}
+
+html[data-theme="dark"] .analytics-risk-kpi__note--negative,
+body[data-theme="dark"] .analytics-risk-kpi__note--negative {
+  color: color-mix(in srgb, var(--negative) 68%, var(--text-1));
+}
+
 html[data-theme="dark"] .analytics-risk-grid,
 body[data-theme="dark"] .analytics-risk-grid {
   display: grid;
