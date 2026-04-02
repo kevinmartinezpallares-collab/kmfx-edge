@@ -4711,57 +4711,15 @@ body[data-theme="dark"] .content,
 html[data-theme="dark"] .content::before,
 body[data-theme="dark"] .content::before,
 [data-theme="dark"] .content::before {
-  content: "" !important;
-  position: sticky !important;
-  top: 0 !important;
-  display: block !important;
-  height: 42px !important;
-  margin-bottom: -42px !important;
-  z-index: 12 !important;
-  pointer-events: none !important;
-  background: rgba(10, 10, 10, 0.01) !important;
-  backdrop-filter: blur(14px) saturate(103%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(103%) !important;
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
+  content: none !important;
+  display: none !important;
 }
 
 html[data-theme="dark"] .content::after,
 body[data-theme="dark"] .content::after,
 [data-theme="dark"] .content::after {
-  content: "" !important;
-  position: sticky !important;
-  bottom: 0 !important;
-  display: block !important;
-  height: 42px !important;
-  margin-top: -42px !important;
-  z-index: 12 !important;
-  pointer-events: none !important;
-  background: rgba(10, 10, 10, 0.01) !important;
-  backdrop-filter: blur(14px) saturate(103%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(103%) !important;
-  mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
-  -webkit-mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
+  content: none !important;
+  display: none !important;
 }
 
 html[data-theme="dark"] .content-sticky-header,
@@ -4776,14 +4734,32 @@ body[data-theme="dark"] .content-sticky-header {
   width: fit-content !important;
   max-width: min(260px, calc(100vw - 320px)) !important;
   min-height: 0 !important;
-  padding: 8px 16px !important;
-  margin: 0 0 4px auto !important;
+  padding: 7px 15px !important;
+  margin: 0 0 6px auto !important;
   border-radius: 999px !important;
-  background: rgba(10, 10, 10, 0.42) !important;
-  border: 1px solid rgba(255, 255, 255, 0.045) !important;
-  backdrop-filter: blur(20px) saturate(112%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(112%) !important;
-  box-shadow: 0 14px 30px -24px rgba(0, 0, 0, 0.58) !important;
+  background: rgba(12, 12, 12, 0.48) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(16px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(110%) !important;
+  box-shadow: 0 10px 24px -22px rgba(0, 0, 0, 0.44) !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+html[data-theme="dark"] .content-sticky-header::before,
+body[data-theme="dark"] .content-sticky-header::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -8px !important;
+  right: -14px !important;
+  width: calc(100% + 28px) !important;
+  height: 56px !important;
+  border-radius: 999px !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  background: rgba(10, 10, 10, 0.12) !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(106%) !important;
 }
 
 html[data-theme="dark"] .content-sticky-header__context,
@@ -4915,49 +4891,6 @@ html[data-theme="dark"] .sidebar::before,
 html[data-theme="dark"] .sidebar::after,
 body[data-theme="dark"] .sidebar::before,
 body[data-theme="dark"] .sidebar::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 42px !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-  background: rgba(10, 10, 10, 0.01) !important;
-  backdrop-filter: blur(14px) saturate(103%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(103%) !important;
-}
-
-html[data-theme="dark"] .sidebar::before,
-body[data-theme="dark"] .sidebar::before {
-  top: 0 !important;
-  mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
-}
-
-html[data-theme="dark"] .sidebar::after,
-body[data-theme="dark"] .sidebar::after {
-  bottom: 0 !important;
-  mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
-  -webkit-mask-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 0.76) 36%,
-    transparent 100%
-  ) !important;
+  content: none !important;
+  display: none !important;
 }
