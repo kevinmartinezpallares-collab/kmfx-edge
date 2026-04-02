@@ -2734,6 +2734,70 @@ body[data-theme="dark"] .analytics-daily-bullets li.is-lead::before {
   background: rgba(255,255,255,0.46);
 }
 
+html[data-theme="dark"] .analytics-daily-card--confidence,
+body[data-theme="dark"] .analytics-daily-card--confidence {
+  gap: 12px;
+}
+
+html[data-theme="dark"] .analytics-daily-confidence,
+body[data-theme="dark"] .analytics-daily-confidence {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.024), rgba(255,255,255,0.01)),
+    rgba(255,255,255,0.015);
+  border: 1px solid rgba(255,255,255,0.055);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence__level,
+body[data-theme="dark"] .analytics-daily-confidence__level {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  background: rgba(255,255,255,0.06);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence strong,
+body[data-theme="dark"] .analytics-daily-confidence strong {
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence p,
+body[data-theme="dark"] .analytics-daily-confidence p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence--high .analytics-daily-confidence__level,
+body[data-theme="dark"] .analytics-daily-confidence--high .analytics-daily-confidence__level {
+  color: rgba(168, 222, 190, 0.96);
+  background: rgba(42, 103, 73, 0.22);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence--medium .analytics-daily-confidence__level,
+body[data-theme="dark"] .analytics-daily-confidence--medium .analytics-daily-confidence__level {
+  color: rgba(225, 229, 234, 0.92);
+  background: rgba(255,255,255,0.065);
+}
+
+html[data-theme="dark"] .analytics-daily-confidence--low .analytics-daily-confidence__level,
+body[data-theme="dark"] .analytics-daily-confidence--low .analytics-daily-confidence__level {
+  color: rgba(244, 194, 194, 0.94);
+  background: rgba(116, 41, 41, 0.22);
+}
+
 html[data-theme="dark"] .analytics-daily-detail,
 body[data-theme="dark"] .analytics-daily-detail {
   display: grid;

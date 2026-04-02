@@ -622,6 +622,7 @@ export function renderAnalytics(root, state) {
   const analyticsDailyMonthIndex = analyticsMonths.findIndex((month) => month.key === analyticsDailyMonthKey);
   const analyticsDayView = buildAnalyticsMonthView(model.dayStats || [], analyticsDailyMonthKey);
   const monthDayStats = (model.dayStats || []).filter((day) => day.key.startsWith(analyticsDailyMonthKey));
+  const operatedMonthDays = monthDayStats.filter((day) => Number(day.trades || 0) > 0);
   const dayTradeMap = new Map(monthDayStats.map((day) => [day.key, (model.trades || []).filter((trade) => toLocalDayKey(trade.when) === day.key)]));
   const keyDays = monthDayStats
     .slice()
@@ -644,6 +645,37 @@ export function renderAnalytics(root, state) {
   const selectedDaySession = dominantValue(selectedDayTrades.map((trade) => trade.session).filter(Boolean));
   const selectedDayBehavior = selectedDay ? describeDayBehavior(selectedDay, selectedDayTrades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour) : "Sin detalle diario.";
   const selectedDaySymbol = dominantValue(selectedDayTrades.map((trade) => trade.symbol).filter(Boolean));
+  const positiveMonthDays = operatedMonthDays.filter((day) => day.pnl > 0);
+  const positiveSessionCounts = positiveMonthDays.reduce((acc, day) => {
+    const trades = dayTradeMap.get(day.key) || [];
+    const session = dominantValue(trades.map((trade) => trade.session).filter(Boolean));
+    if (!session || session === "Sin dato") return acc;
+    acc.set(session, (acc.get(session) || 0) + 1);
+    return acc;
+  }, new Map());
+  const dominantPositiveSessionEntry = [...positiveSessionCounts.entries()].sort((a, b) => b[1] - a[1])[0] || null;
+  const confidenceLevel = operatedMonthDays.length >= 6 && positiveMonthDays.length >= Math.max(3, Math.ceil(operatedMonthDays.length * 0.55)) && consistencyRatio >= 58
+    ? "high"
+    : operatedMonthDays.length >= 4 && positiveMonthDays.length >= Math.max(2, Math.ceil(operatedMonthDays.length * 0.45))
+      ? "medium"
+      : "low";
+  const confidenceLevelLabel = confidenceLevel === "high" ? "Alta" : confidenceLevel === "medium" ? "Media" : "Baja";
+  const confidenceHeadline = confidenceLevel === "high"
+    ? "Alta consistencia en días positivos"
+    : confidenceLevel === "medium"
+      ? "Confianza moderada en el patrón"
+      : "Confianza limitada en el patrón";
+  const confidenceNote = operatedMonthDays.length === 0
+    ? "Todavía no hay suficiente actividad en el mes para validar un patrón repetible."
+    : confidenceLevel === "high"
+      ? dominantPositiveSessionEntry
+        ? `${dominantPositiveSessionEntry[0]} se repite en ${dominantPositiveSessionEntry[1]} cierres favorables del mes.`
+        : "El patrón positivo aparece de forma repetida en varias sesiones."
+      : confidenceLevel === "medium"
+        ? dominantPositiveSessionEntry
+          ? `${dominantPositiveSessionEntry[0]} sostiene parte del patrón, aunque con continuidad irregular.`
+          : "Hay una señal útil, pero todavía necesita más repetición para consolidarse."
+        : "El mes mezcla resultados y conviene validar más repeticiones antes de reforzar la lectura.";
   const dailyReadBullets = [
     `${strongestSession.key} concentra los cierres más limpios`,
     `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción operativa`,
@@ -1132,15 +1164,29 @@ export function renderAnalytics(root, state) {
                 <div class="row-sub">Patrones de comportamiento que se repiten en los cierres del mes.</div>
               </div>
             </div>
-            <ul class="analytics-daily-bullets">
-              ${dailyReadBullets.map((item, index) => `<li class="${index === 0 ? "is-lead" : ""}">${item}</li>`).join("")}
-            </ul>
-          </article>
+              <ul class="analytics-daily-bullets">
+                ${dailyReadBullets.map((item, index) => `<li class="${index === 0 ? "is-lead" : ""}">${item}</li>`).join("")}
+              </ul>
+            </article>
 
-          <article class="tl-section-card analytics-daily-card analytics-daily-card--detail ${selectedDay ? "is-active" : ""}">
-            <div class="tl-section-header">
-              <div>
-                <div class="tl-section-title">Detalle del día</div>
+            <article class="tl-section-card analytics-daily-card analytics-daily-card--confidence">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Confianza</div>
+                  <div class="row-sub">Qué tan repetible parece el patrón detectado en el mes activo.</div>
+                </div>
+              </div>
+              <div class="analytics-daily-confidence analytics-daily-confidence--${confidenceLevel}">
+                <span class="analytics-daily-confidence__level">${confidenceLevelLabel}</span>
+                <strong>${confidenceHeadline}</strong>
+                <p>${confidenceNote}</p>
+              </div>
+            </article>
+
+            <article class="tl-section-card analytics-daily-card analytics-daily-card--detail ${selectedDay ? "is-active" : ""}">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Detalle del día</div>
                 <div class="row-sub">${selectedDay ? new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }) : "Selecciona un día operado"}</div>
               </div>
             </div>
