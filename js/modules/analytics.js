@@ -574,7 +574,7 @@ function attachArcInteractions(root) {
 
 export function renderAnalytics(root, state) {
   const model = selectCurrentModel(state);
-  const account = state.accounts?.find?.((item) => item.id === state.ui.currentAccountId) || state.accounts?.[0];
+  const account = state.accounts?.[state.currentAccount] || null;
   if (!model) {
     root.innerHTML = "";
     return;
@@ -898,6 +898,135 @@ export function renderAnalytics(root, state) {
   `).join("");
   const hourInsight = `${bestWindowLabel} concentra el edge; ${formatHourLabel(weakestTimingWindow.hour)} introduce la fricción a evitar.`;
   const shortHourDecision = `Opera ${String(bestWindow.start).padStart(2, "0")}:00–${String(bestWindow.end).padStart(2, "0")}:00. Evita ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción.`;
+  const startBalance = Number(account?.model?.account?.balance || model.account?.balance || 0) - Number(model.totals?.pnl || 0);
+  let runningRiskBalance = startBalance;
+  let riskPeak = startBalance;
+  let currentDrawdownAmount = 0;
+  let currentDrawdownPct = 0;
+  (model.trades || []).forEach((trade) => {
+    runningRiskBalance += Number(trade.pnl || 0);
+    riskPeak = Math.max(riskPeak, runningRiskBalance);
+    currentDrawdownAmount = Math.max(0, riskPeak - runningRiskBalance);
+    currentDrawdownPct = riskPeak ? (currentDrawdownAmount / riskPeak) * 100 : 0;
+  });
+  const maxDrawdownAmount = Number(model.totals?.drawdown?.maxAmount || 0);
+  const maxDrawdownPct = Number(model.totals?.drawdown?.maxPct || 0);
+  const riskProfile = model.riskProfile || {};
+  const riskSummary = model.riskSummary || {};
+  const maxDrawdownLimit = Number(account?.maxDrawdownLimit || model.account?.maxDrawdownLimit || 10);
+  const currentRiskPct = Number(riskSummary.currentRiskPct || riskProfile.currentRiskPct || 0);
+  const currentRiskUsd = Number(riskSummary.currentRiskUsd || 0);
+  const maxTradeRiskPct = Number(riskProfile.maxTradeRiskPct || 1);
+  const lossStreak = Number(model.streaks?.bestLoss || 0);
+  const weeklyRows = Array.isArray(model.weekly) ? model.weekly : [];
+  const tradedWeeklyRows = weeklyRows.filter((day) => Number(day.trades || 0) > 0);
+  const averageTradesPerDay = tradedWeeklyRows.length
+    ? tradedWeeklyRows.reduce((sum, day) => sum + Number(day.trades || 0), 0) / tradedWeeklyRows.length
+    : 0;
+  const peakTradesPerDay = tradedWeeklyRows.length
+    ? Math.max(...tradedWeeklyRows.map((day) => Number(day.trades || 0)))
+    : 0;
+  const ddUsagePct = maxDrawdownLimit ? (maxDrawdownPct / maxDrawdownLimit) * 100 : 0;
+  const currentDdUsagePct = maxDrawdownLimit ? (currentDrawdownPct / maxDrawdownLimit) * 100 : 0;
+  const riskPerTradeUsagePct = maxTradeRiskPct ? (currentRiskPct / maxTradeRiskPct) * 100 : 0;
+  const recentWinRate = (model.trades || []).slice(-10).filter((trade) => Number(trade.pnl || 0) > 0).length / Math.max(Math.min((model.trades || []).length, 10), 1) * 100;
+  const overtradingLevel = peakTradesPerDay >= Math.max(8, averageTradesPerDay * 2.1)
+    ? "critical"
+    : peakTradesPerDay >= Math.max(6, averageTradesPerDay * 1.7)
+      ? "warning"
+      : "stable";
+  const scalingLevel = riskPerTradeUsagePct >= 92 || currentRiskPct >= 1.2
+    ? "critical"
+    : riskPerTradeUsagePct >= 72 || currentRiskPct >= 0.9
+      ? "warning"
+      : "stable";
+  const consistencyPressure = consistencyRatio < 52 || recentWinRate <= model.totals.winRate - 12 || stdDevPnl >= Math.max(Math.abs(model.totals.expectancy || 0) * 2.8, 650);
+  const inconsistencyLevel = consistencyPressure
+    ? (consistencyRatio < 42 || recentWinRate <= model.totals.winRate - 18 ? "critical" : "warning")
+    : "stable";
+  const riskHeroTone = riskAlerts.some((alert) => alert.tone === "error") || currentDdUsagePct >= 70 || lossStreak >= 6
+    ? "critical"
+    : riskAlerts.length || currentDdUsagePct >= 45 || lossStreak >= 4
+      ? "warning"
+      : "safe";
+  const riskHeroTitle = riskHeroTone === "critical"
+    ? "Riesgo crítico"
+    : riskHeroTone === "warning"
+      ? "Riesgo elevado"
+      : "Riesgo controlado";
+  const riskHeroContext = riskHeroTone === "critical"
+    ? "La curva está bajo presión. Hay señales de ruptura de disciplina y conviene pasar a modo defensivo."
+    : riskHeroTone === "warning"
+      ? "El riesgo sigue operativo, pero ya hay fricción suficiente como para bajar tamaño y frecuencia."
+      : "La exposición sigue contenida y las reglas principales todavía sostienen la curva.";
+  const riskBehaviorRows = [
+    {
+      title: "Overtrading",
+      tone: overtradingLevel,
+      status: overtradingLevel === "critical" ? "Riesgo" : overtradingLevel === "warning" ? "Vigilancia" : "Controlado",
+      metric: `${peakTradesPerDay || 0} trades pico`,
+      note: averageTradesPerDay
+        ? `La media diaria está en ${averageTradesPerDay.toFixed(1)} trades.`
+        : "No hay suficiente muestra diaria para validar frecuencia.",
+      progress: Math.max(12, Math.min(100, averageTradesPerDay ? (peakTradesPerDay / Math.max(averageTradesPerDay * 2.2, 1)) * 100 : 12))
+    },
+    {
+      title: "Escalado agresivo",
+      tone: scalingLevel,
+      status: scalingLevel === "critical" ? "Alto" : scalingLevel === "warning" ? "Atención" : "Estable",
+      metric: `${currentRiskPct.toFixed(2)}% por trade`,
+      note: `El tope del plan está en ${maxTradeRiskPct.toFixed(2)}% por operación.`,
+      progress: Math.max(12, Math.min(100, riskPerTradeUsagePct || 0))
+    },
+    {
+      title: "Inconsistencia",
+      tone: inconsistencyLevel,
+      status: inconsistencyLevel === "critical" ? "Frágil" : inconsistencyLevel === "warning" ? "Irregular" : "Sólida",
+      metric: `${Math.round(consistencyRatio)} / 100`,
+      note: `WR reciente ${Math.round(recentWinRate)}% · dispersión diaria ${formatCompactSignedCurrency(stdDevPnl)}.`,
+      progress: Math.max(12, Math.min(100, 100 - consistencyRatio))
+    }
+  ];
+  const dominantRiskIssue = riskBehaviorRows.find((row) => row.tone === "critical")
+    || riskBehaviorRows.find((row) => row.tone === "warning")
+    || riskBehaviorRows[0];
+  const riskInsight = dominantRiskIssue.title === "Overtrading"
+    ? "La presión no viene del mercado, sino de alargar la sesión cuando sube la frecuencia."
+    : dominantRiskIssue.title === "Escalado agresivo"
+      ? "La curva aguanta mientras el tamaño se mantiene contenido; cuando sube, el margen se estrecha rápido."
+      : "El edge pierde calidad cuando se mezcla una curva estable con ejecución irregular en los últimos días.";
+  const riskDecision = dominantRiskIssue.title === "Overtrading"
+    ? `Recorta la sesión a ${Math.max(2, Math.round(averageTradesPerDay || 2))} trades de calidad y para al superar esa cuota.`
+    : dominantRiskIssue.title === "Escalado agresivo"
+      ? `Baja a ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% por trade hasta recuperar tracción limpia.`
+      : `Mantén el riesgo en ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y corta la sesión tras 2 pérdidas consecutivas.`;
+  const riskMetricCards = [
+    {
+      label: "Drawdown actual",
+      value: formatPercent(currentDrawdownPct),
+      note: `${formatCurrency(-currentDrawdownAmount)} desde el último pico`,
+      tone: currentDrawdownPct > 0 ? "negative" : ""
+    },
+    {
+      label: "Drawdown máximo",
+      value: formatPercent(maxDrawdownPct),
+      note: `${Math.round(ddUsagePct)}% del límite total consumido`,
+      tone: maxDrawdownPct >= maxDrawdownLimit * 0.7 ? "negative" : ""
+    },
+    {
+      label: "Riesgo medio / trade",
+      value: `${currentRiskPct.toFixed(2)}%`,
+      note: `${formatCurrency(currentRiskUsd)} expuestos por operación`,
+      tone: riskPerTradeUsagePct >= 80 ? "negative" : ""
+    },
+    {
+      label: "Racha de pérdidas",
+      value: `${lossStreak}`,
+      note: lossStreak >= 4 ? "La secuencia exige bajar agresividad" : "Todavía dentro de tolerancia",
+      tone: lossStreak >= 4 ? "negative" : ""
+    }
+  ];
+  const riskAlertsLimited = riskAlertsMarkup(riskAlerts, 3);
   const detailedMetrics = [
     {
       tone: "blue",
@@ -1401,84 +1530,78 @@ export function renderAnalytics(root, state) {
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "risk" ? "active" : ""}" data-tab="risk">
-      <div class="sessions-grid">
-        ${model.sessions.map((session) => `
-          <div class="session-card">
-            <div class="session-label">${session.key}</div>
-            <div class="session-val ${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</div>
-            <div class="session-sub">WR ${formatPercent(session.winRate)} · ${session.trades} trades</div>
+      <div class="analytics-risk-layout">
+        <article class="tl-section-card analytics-risk-hero analytics-risk-hero--${riskHeroTone}">
+          <div class="analytics-risk-hero__copy">
+            <div class="eyebrow">Estado de riesgo</div>
+            <h3>${riskHeroTitle}</h3>
+            <p>${riskHeroContext}</p>
+            ${riskAlerts.length ? `<div class="analytics-risk-hero__alerts">${riskAlertsLimited}</div>` : ""}
           </div>
-        `).join("")}
-      </div>
-
-      <div class="grid-2 equal">
-        <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">Distribución de Profits</div></div>
-          ${chartCanvas("analytics-profit-distribution", 240, "kmfx-chart-shell--feature")}
-        </article>
-        <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">Win / Loss Distribution</div></div>
-          <div class="analytics-winloss-card">
-            <div class="analytics-winloss-summary">
-              <div class="analytics-winloss-header">
-                <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
-                <div class="analytics-winloss-sub">trades cerrados analizados</div>
-              </div>
-              <div class="analytics-winloss-bar" aria-hidden="true">
-                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
-                <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, Math.min((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100, 100))}%"></div>
-              </div>
-            </div>
-            <div class="analytics-winloss-grid">
-              <article class="analytics-winloss-stat analytics-winloss-stat--win">
-                <span class="analytics-winloss-label">Winning Trades</span>
-                <strong>${winningTrades.length}</strong>
-                <small>${formatPercent((winningTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
-              </article>
-              <article class="analytics-winloss-stat analytics-winloss-stat--loss">
-                <span class="analytics-winloss-label">Losing Trades</span>
-                <strong>${losingTrades.length}</strong>
-                <small>${formatPercent((losingTrades.length / Math.max(winningTrades.length + losingTrades.length, 1)) * 100)} del total</small>
-              </article>
-            </div>
+          <div class="analytics-risk-hero__metric">
+            <span class="analytics-risk-hero__metric-label">Drawdown actual</span>
+            <strong class="${currentDrawdownPct > 0 ? "metric-negative" : ""}">${formatPercent(currentDrawdownPct)}</strong>
+            <small>${formatCurrency(-currentDrawdownAmount)} desde pico · ${Math.round(currentDdUsagePct)}% del umbral de cuenta</small>
           </div>
         </article>
-      </div>
 
-      <div class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Performance by Symbol</div></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Símbolo</th><th class="num">P&amp;L Total</th><th class="num">Operaciones</th><th>Tasa Acierto</th><th class="num">Gan. Prom.</th><th class="num">Perd. Prom.</th><th class="num">P&amp;L Prom.</th><th class="num">Factor Ben.</th></tr></thead>
-            <tbody>
-              ${model.symbols.map((row) => `
-                <tr>
-                  <td>
-                    <div class="analytics-symbol-cell">
-                      <strong>${row.key}</strong>
-                      <div class="row-sub">${row.pnl >= 0 ? "Rentable" : "Presión"}</div>
-                    </div>
-                  </td>
-                  <td class="num ${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</td>
-                  <td class="num">${row.trades}</td>
-                  <td>
-                    <div class="analytics-wr-cell">
-                      <div class="analytics-wr-meta">
-                        <span>${formatPercent(row.winRate)}</span>
-                      </div>
-                      <div class="analytics-wr-track">
-                        <div class="analytics-wr-fill ${row.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(row.winRate, 100))}%"></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="num metric-positive">${formatCurrency(row.avgWin)}</td>
-                  <td class="num metric-negative">${formatCurrency(-row.avgLoss)}</td>
-                  <td class="num ${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)}</td>
-                  <td class="num">${row.profitFactor.toFixed(2)}</td>
-                </tr>
+        <div class="analytics-risk-kpis">
+          ${riskMetricCards.map((item) => `
+            <article class="tl-section-card analytics-risk-kpi">
+              <span class="analytics-risk-kpi__label">${item.label}</span>
+              <strong class="analytics-risk-kpi__value ${item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+              <small>${item.note}</small>
+            </article>
+          `).join("")}
+        </div>
+
+        <div class="analytics-risk-grid">
+          <article class="tl-section-card analytics-risk-behavior">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Comportamiento de riesgo</div>
+                <div class="row-sub">Dónde empieza a romperse la disciplina operativa</div>
+              </div>
+            </div>
+            <div class="analytics-risk-behavior__list">
+              ${riskBehaviorRows.map((row) => `
+                <div class="analytics-risk-behavior-row analytics-risk-behavior-row--${row.tone}">
+                  <div class="analytics-risk-behavior-row__copy">
+                    <strong>${row.title}</strong>
+                    <span>${row.note}</span>
+                  </div>
+                  <div class="analytics-risk-behavior-row__metric">
+                    <strong>${row.metric}</strong>
+                    <small>${row.status}</small>
+                  </div>
+                  <div class="analytics-risk-behavior-row__track" aria-hidden="true">
+                    <span style="width:${row.progress}%"></span>
+                  </div>
+                </div>
               `).join("")}
-            </tbody>
-          </table>
+            </div>
+          </article>
+
+          <div class="analytics-risk-side">
+            <article class="tl-section-card analytics-risk-copy-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Insight</div>
+                </div>
+              </div>
+              <p>${riskInsight}</p>
+            </article>
+            <article class="tl-section-card analytics-risk-copy-card analytics-risk-copy-card--decision">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Decisión</div>
+                </div>
+              </div>
+              <div class="analytics-risk-decision">
+                <strong>${riskDecision}</strong>
+              </div>
+            </article>
+          </div>
         </div>
       </div>
     </section>
