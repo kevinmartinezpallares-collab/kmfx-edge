@@ -9,6 +9,20 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
 }
 
+function formatCompactSignedCurrency(value) {
+  const absolute = Math.abs(Number(value || 0));
+  if (absolute < 1000) return formatCurrency(value);
+  const compact = absolute >= 10000 ? (absolute / 1000).toFixed(0) : (absolute / 1000).toFixed(1);
+  return `${value < 0 ? "-" : ""}€${compact}k`;
+}
+
+function formatCompactSignedPercent(value) {
+  const numeric = Number(value || 0);
+  const absolute = Math.abs(numeric);
+  const decimals = absolute >= 10 ? 0 : absolute >= 1 ? 1 : 2;
+  return `${numeric < 0 ? "-" : ""}${absolute.toFixed(decimals)}%`;
+}
+
 function toLocalDayKey(dateLike) {
   const date = new Date(dateLike);
   const year = date.getFullYear();
@@ -795,6 +809,14 @@ export function renderAnalytics(root, state) {
   const bestWindowLabel = `${formatHourLabel(bestWindow.start)}–${formatHourLabel(bestWindow.end)}`;
   const activeNegativeHours = hourlyTimeline.filter((hour) => hour.trades > 0 && hour.pnl < 0).sort((a, b) => a.pnl - b.pnl);
   const weakestTimingWindow = activeNegativeHours[0] || worstHour;
+  if (!root.__analyticsHourValueMode || !["currency", "percent"].includes(root.__analyticsHourValueMode)) {
+    root.__analyticsHourValueMode = "currency";
+  }
+  const analyticsHourValueMode = root.__analyticsHourValueMode;
+  const analyticsHourPctBase = Math.max(Number(analyticsDailyMonth?.startBalance || model.account?.balance || model.account?.equity || 0), 1);
+  const formatHourlyValue = (value) => analyticsHourValueMode === "percent"
+    ? formatCompactSignedPercent((Number(value || 0) / analyticsHourPctBase) * 100)
+    : formatCompactSignedCurrency(value);
   const hourTimelineMarkup = hourlyTimeline.map((hour) => {
     const toneClass = hour.trades
       ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
@@ -813,7 +835,7 @@ export function renderAnalytics(root, state) {
     return `
       <div class="analytics-hour-block ${toneClass} ${windowClass} ${hour.hour === bestHour.hour ? "is-best" : ""} ${hour.hour === weakestTimingWindow.hour ? "is-worst" : ""}" style="--hour-intensity:${intensity.toFixed(3)}">
         <span class="analytics-hour-block__time">${String(hour.hour).padStart(2, "0")}</span>
-        ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(hour.pnl)}</strong>` : ""}
+        ${showValue ? `<strong class="${hour.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatHourlyValue(hour.pnl)}</strong>` : ""}
       </div>
     `;
   }).join("");
@@ -1264,12 +1286,12 @@ export function renderAnalytics(root, state) {
             <div class="analytics-hour-stat">
               <span>Mejor hora</span>
               <strong class="metric-positive">${formatHourLabel(bestHour.hour)}</strong>
-              <small>${formatCurrency(bestHour.pnl)}</small>
+              <small>${formatHourlyValue(bestHour.pnl)}</small>
             </div>
             <div class="analytics-hour-stat">
               <span>Franja débil</span>
               <strong class="metric-negative">${formatHourLabel(weakestTimingWindow.hour)}</strong>
-              <small>${formatCurrency(weakestTimingWindow.pnl)}</small>
+              <small>${formatHourlyValue(weakestTimingWindow.pnl)}</small>
             </div>
           </div>
         </article>
@@ -1279,6 +1301,10 @@ export function renderAnalytics(root, state) {
             <div>
               <div class="tl-section-title">Mapa temporal del edge</div>
               <div class="row-sub">Cada hora muestra si aporta, drena o simplemente no participa en la ejecución.</div>
+            </div>
+            <div class="analytics-hour-toggle" role="tablist" aria-label="Unidad de valor para hora">
+              <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "currency" ? "is-active" : ""}" type="button" data-analytics-hour-mode="currency">€</button>
+              <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "percent" ? "is-active" : ""}" type="button" data-analytics-hour-mode="percent">%</button>
             </div>
           </div>
           <div class="analytics-hour-timeline">
@@ -1410,6 +1436,15 @@ export function renderAnalytics(root, state) {
   root.querySelectorAll("[data-analytics-day]").forEach((button) => {
     button.addEventListener("click", () => {
       root.__analyticsDailySelectedDay = button.dataset.analyticsDay || "";
+      renderAnalytics(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-analytics-hour-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextMode = button.dataset.analyticsHourMode;
+      if (!nextMode || nextMode === root.__analyticsHourValueMode) return;
+      root.__analyticsHourValueMode = nextMode;
       renderAnalytics(root, state);
     });
   });

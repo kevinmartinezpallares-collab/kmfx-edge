@@ -3070,6 +3070,44 @@ body[data-theme="dark"] .analytics-hour-timeline-card {
   overflow: hidden;
 }
 
+html[data-theme="dark"] .analytics-hour-toggle,
+body[data-theme="dark"] .analytics-hour-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.028);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+html[data-theme="dark"] .analytics-hour-toggle__btn,
+body[data-theme="dark"] .analytics-hour-toggle__btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+html[data-theme="dark"] .analytics-hour-toggle__btn:hover,
+body[data-theme="dark"] .analytics-hour-toggle__btn:hover {
+  background: rgba(255,255,255,0.035);
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .analytics-hour-toggle__btn.is-active,
+body[data-theme="dark"] .analytics-hour-toggle__btn.is-active {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-0);
+}
+
 html[data-theme="dark"] .analytics-hour-timeline,
 body[data-theme="dark"] .analytics-hour-timeline {
   display: grid;
@@ -3138,6 +3176,7 @@ body[data-theme="dark"] .analytics-hour-block strong {
   overflow: hidden;
   text-overflow: clip;
   font-variant-numeric: tabular-nums;
+  transition: opacity 120ms ease-out, color 120ms ease-out;
 }
 
 html[data-theme="dark"] .analytics-hour-insight-grid,
@@ -3574,6 +3613,11 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   html[data-theme="dark"] .analytics-hour-timeline,
   body[data-theme="dark"] .analytics-hour-timeline {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  html[data-theme="dark"] .analytics-hour-toggle,
+  body[data-theme="dark"] .analytics-hour-toggle {
+    margin-top: 2px;
   }
 
   html[data-theme="dark"] .analytics-hour-block,
