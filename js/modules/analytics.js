@@ -3,8 +3,127 @@ import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-sy
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
 
+const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
+}
+
+function toLocalDayKey(dateLike) {
+  const date = new Date(dateLike);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toLocalMonthKey(dateLike) {
+  return toLocalDayKey(dateLike).slice(0, 7);
+}
+
+function monthKeyToDate(key) {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, 1);
+}
+
+function buildFallbackMonthRecord() {
+  const date = new Date();
+  return {
+    key: toLocalMonthKey(date),
+    label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+    pnl: 0,
+    trades: 0,
+    startBalance: 0,
+    returnPct: 0
+  };
+}
+
+function expandAnalyticsMonths(months) {
+  if (!months.length) return [buildFallbackMonthRecord()];
+  const byKey = new Map(months.map((month) => [month.key, month]));
+  const years = [...new Set(months.map((month) => Number(month.key.slice(0, 4))))].sort((a, b) => a - b);
+  const expanded = [];
+  let runningBalance = Number(months[0]?.startBalance || 0);
+
+  years.forEach((year) => {
+    for (let monthNumber = 1; monthNumber <= 12; monthNumber += 1) {
+      const key = `${year}-${String(monthNumber).padStart(2, "0")}`;
+      const existing = byKey.get(key);
+      if (existing) {
+        runningBalance = Number(existing.startBalance || runningBalance) + Number(existing.pnl || 0);
+        expanded.push(existing);
+        continue;
+      }
+      const date = new Date(year, monthNumber - 1, 1);
+      expanded.push({
+        key,
+        label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+        pnl: 0,
+        trades: 0,
+        startBalance: runningBalance,
+        returnPct: 0
+      });
+    }
+  });
+
+  return expanded;
+}
+
+function shiftMonthKey(months, currentKey, offset) {
+  const index = months.findIndex((month) => month.key === currentKey);
+  if (index === -1) return null;
+  return months[index + offset]?.key || null;
+}
+
+function buildAnalyticsMonthView(dayStats, monthKey) {
+  const anchorDate = monthKeyToDate(monthKey);
+  const first = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+  const last = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const end = new Date(last);
+  end.setDate(last.getDate() + (6 - last.getDay()));
+  const todayKey = toLocalDayKey(new Date());
+  const dayMap = new Map(dayStats.map((entry) => [entry.key, entry]));
+  const cells = [];
+
+  for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+    const key = toLocalDayKey(current);
+    const day = dayMap.get(key);
+    cells.push({
+      key,
+      inMonth: current.getMonth() === anchorDate.getMonth(),
+      date: new Date(current),
+      pnl: day?.pnl || 0,
+      trades: day?.trades || 0,
+      isToday: key === todayKey,
+      state: !day?.trades ? "idle" : day.pnl >= 0 ? "win" : "loss"
+    });
+  }
+
+  return {
+    key: monthKey,
+    label: anchorDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
+    cells
+  };
+}
+
+function describeDayBehavior(day, trades, bestSessionKey, worstSessionKey, bestHour, worstHour) {
+  const mainSession = dominantValue(trades.map((trade) => trade.session).filter(Boolean));
+  const avgTrades = trades.length;
+  if (day.pnl > 0 && mainSession === bestSessionKey) return "ejecución limpia en sesión fuerte";
+  if (day.pnl < 0 && mainSession === worstSessionKey) return "sesión débil amplificó la pérdida";
+  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "entrada fuera de timing";
+  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "timing alineado con ventaja";
+  if (avgTrades >= 3 && day.pnl < 0) return "sobreoperación redujo calidad";
+  if (avgTrades === 1 && day.pnl > 0) return "paciencia y ejecución limpia";
+  return day.pnl >= 0 ? "sesión controlada" : "mala gestión del día";
+}
+
+function dominantValue(values = []) {
+  const counts = new Map();
+  values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 }
 
 function riskDrivers(model) {
@@ -493,6 +612,43 @@ export function renderAnalytics(root, state) {
   const weakestSymbol = [...model.symbols].sort((a, b) => a.pnl - b.pnl)[0] || strongestSymbol;
   const focusSymbols = symbolRanking.slice(0, 5);
   const consistencyRatio = calcConsistency(model.dayStats || []);
+  const analyticsMonths = Array.isArray(model.monthlyReturns) && model.monthlyReturns.length ? expandAnalyticsMonths(model.monthlyReturns) : [buildFallbackMonthRecord()];
+  const latestAnalyticsMonthKey = analyticsMonths[analyticsMonths.length - 1]?.key || buildFallbackMonthRecord().key;
+  if (!root.__analyticsDailyMonthKey || !analyticsMonths.some((month) => month.key === root.__analyticsDailyMonthKey)) {
+    root.__analyticsDailyMonthKey = latestAnalyticsMonthKey;
+  }
+  const analyticsDailyMonthKey = root.__analyticsDailyMonthKey;
+  const analyticsDailyMonth = analyticsMonths.find((month) => month.key === analyticsDailyMonthKey) || analyticsMonths[analyticsMonths.length - 1];
+  const analyticsDailyMonthIndex = analyticsMonths.findIndex((month) => month.key === analyticsDailyMonthKey);
+  const analyticsDayView = buildAnalyticsMonthView(model.dayStats || [], analyticsDailyMonthKey);
+  const monthDayStats = (model.dayStats || []).filter((day) => day.key.startsWith(analyticsDailyMonthKey));
+  const dayTradeMap = new Map(monthDayStats.map((day) => [day.key, (model.trades || []).filter((trade) => toLocalDayKey(trade.when) === day.key)]));
+  const keyDays = monthDayStats
+    .slice()
+    .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
+    .slice(0, 6)
+    .map((day) => {
+      const trades = dayTradeMap.get(day.key) || [];
+      return {
+        ...day,
+        behavior: describeDayBehavior(day, trades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour)
+      };
+    });
+  const selectedDayKey = root.__analyticsDailySelectedDay && monthDayStats.some((day) => day.key === root.__analyticsDailySelectedDay)
+    ? root.__analyticsDailySelectedDay
+    : (keyDays[0]?.key || monthDayStats[0]?.key || "");
+  root.__analyticsDailySelectedDay = selectedDayKey;
+  const selectedDay = monthDayStats.find((day) => day.key === selectedDayKey) || null;
+  const selectedDayTrades = selectedDay ? (dayTradeMap.get(selectedDay.key) || []) : [];
+  const selectedDaySession = dominantValue(selectedDayTrades.map((trade) => trade.session).filter(Boolean));
+  const selectedDayBehavior = selectedDay ? describeDayBehavior(selectedDay, selectedDayTrades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour) : "Sin detalle diario.";
+  const selectedDaySymbol = dominantValue(selectedDayTrades.map((trade) => trade.symbol).filter(Boolean));
+  const dailyReadBullets = [
+    `${strongestSession.key} concentra los cierres más limpios`,
+    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción operativa`,
+    strongestSymbol.key !== "—" ? `${strongestSymbol.key} aporta la mayor tracción` : "Los mejores días vienen de setups simples",
+    selectedDayTrades.length >= 2 ? "Cuando sube el número de trades, baja la calidad" : "Los días con menos fricción se resuelven con menos trades"
+  ].slice(0, 4);
   const topInsightCards = [
     {
       label: "Sesión con más edge",
@@ -902,35 +1058,109 @@ export function renderAnalytics(root, state) {
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "daily" ? "active" : ""}" data-tab="daily">
-      <div class="hour-hero-cards analytics-daily-heroes">
-        ${weekdayWorkdays.map((day) => `
-          <article class="hhc-card">
-            <div class="hhc-label">${day.label}</div>
-            <div class="hhc-val ${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</div>
-            <div class="hhc-sub">${day.trades} trades</div>
-            <div class="hhc-sub">WR ${formatPercent(day.winRate)}</div>
-            <div class="hhc-sub">Avg R ${day.hasAvgR ? `${day.avgR.toFixed(2)}R` : "—"}</div>
+      <div class="analytics-daily-layout">
+        <section class="tl-section-card calendar-month-panel analytics-daily-calendar">
+          <div class="calendar-month-panel__head analytics-daily-calendar__head">
+            <div>
+              <div class="tl-section-title">Lectura diaria</div>
+              <div class="row-sub">Qué días funcionaron, qué patrón se repite y dónde cae la calidad de ejecución.</div>
+            </div>
+            <div class="calendar-month-nav" aria-label="Selector de mes del diario">
+              <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="-1" ${analyticsDailyMonthIndex <= 0 ? "disabled" : ""}>‹</button>
+              <div class="calendar-month-nav__label">
+                <strong>${analyticsDayView.label}</strong>
+                <span>${monthDayStats.filter((day) => day.trades > 0).length} días operados</span>
+              </div>
+              <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="1" ${analyticsDailyMonthIndex >= analyticsMonths.length - 1 ? "disabled" : ""}>›</button>
+            </div>
+          </div>
+          <div class="calendar-month-grid">
+            ${ANALYTICS_CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
+            ${analyticsDayView.cells.map((cell) => {
+              const classes = [
+                "calendar-day",
+                cell.inMonth ? "is-current-month" : "is-outside-month",
+                cell.trades ? "has-trades" : "is-idle",
+                cell.state === "win" ? "is-win" : "",
+                cell.state === "loss" ? "is-loss" : "",
+                cell.isToday ? "is-today" : "",
+                selectedDayKey === cell.key ? "is-selected" : ""
+              ].filter(Boolean).join(" ");
+              const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+              return `
+                <button class="${classes}" type="button" ${cell.trades ? `data-analytics-day="${cell.key}"` : "disabled"}>
+                  <div class="calendar-day__top">
+                    <span class="calendar-day__date">${cell.date.getDate()}</span>
+                  </div>
+                  <div class="calendar-day__body">
+                    ${cell.trades
+                      ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
+                         <div class="calendar-day__meta">${tradesLabel}</div>`
+                      : `<div class="calendar-day__meta">${cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+                  </div>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </section>
+
+        <aside class="analytics-daily-side">
+          <article class="tl-section-card analytics-daily-card">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Días clave</div>
+                <div class="row-sub">Los días que más explican el mes, ordenados por impacto.</div>
+              </div>
+            </div>
+            <div class="analytics-key-days">
+              ${keyDays.map((day) => `
+                <button class="analytics-key-day ${selectedDayKey === day.key ? "is-active" : ""}" type="button" data-analytics-day="${day.key}">
+                  <span class="analytics-key-day__date">${new Date(day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>
+                  <strong class="${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</strong>
+                  <small>${day.behavior}</small>
+                </button>
+              `).join("")}
+            </div>
           </article>
-        `).join("")}
+
+          <article class="tl-section-card analytics-daily-card">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Lectura diaria</div>
+                <div class="row-sub">Patrones de comportamiento que se repiten en los cierres del mes.</div>
+              </div>
+            </div>
+            <ul class="analytics-daily-bullets">
+              ${dailyReadBullets.map((item) => `<li>${item}</li>`).join("")}
+            </ul>
+          </article>
+
+          <article class="tl-section-card analytics-daily-card analytics-daily-card--detail">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Detalle del día</div>
+                <div class="row-sub">${selectedDay ? new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }) : "Selecciona un día operado"}</div>
+              </div>
+            </div>
+            ${selectedDay ? `
+              <div class="analytics-daily-detail">
+                <div class="analytics-daily-detail__pnl ${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</div>
+                <div class="analytics-daily-detail__grid">
+                  <div><span>Trades</span><strong>${selectedDay.trades}</strong></div>
+                  <div><span>Sesión principal</span><strong>${selectedDaySession}</strong></div>
+                  <div><span>Símbolo dominante</span><strong>${selectedDaySymbol}</strong></div>
+                </div>
+                <p class="analytics-daily-detail__note">${selectedDayBehavior}</p>
+              </div>
+            ` : `<p class="analytics-daily-detail__empty">Todavía no hay un día seleccionado con actividad.</p>`}
+          </article>
+
+          <article class="analytics-focus-item analytics-focus-item--warn analytics-daily-decision">
+            <span>Decisión</span>
+            <strong>${decisionEngine.primary}</strong>
+          </article>
+        </aside>
       </div>
-      <div class="hour-hero-cards analytics-daily-summary">
-        <article class="hhc-card green">
-          <div class="hhc-label">Mejor día</div>
-          <div class="hhc-val ${bestWeekday?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestWeekday?.label || "—"}</div>
-          <div class="hhc-sub">${formatCurrency(bestWeekday?.pnl || 0)}</div>
-          <div class="hhc-sub">WR ${formatPercent(bestWeekday?.winRate || 0)}</div>
-        </article>
-        <article class="hhc-card red">
-          <div class="hhc-label">Peor día</div>
-          <div class="hhc-val ${worstWeekday?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${worstWeekday?.label || "—"}</div>
-          <div class="hhc-sub">${formatCurrency(worstWeekday?.pnl || 0)}</div>
-          <div class="hhc-sub">Avg R ${worstWeekday?.hasAvgR ? `${worstWeekday.avgR.toFixed(2)}R` : "—"}</div>
-        </article>
-      </div>
-      <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Rendimiento por Día</div></div>
-        ${renderDailyPerformanceBreakdown(weekdayWorkdays)}
-      </article>
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "hourly" ? "active" : ""}" data-tab="hourly">
@@ -1066,6 +1296,24 @@ export function renderAnalytics(root, state) {
       </div>
     </section>
   `;
+
+  root.querySelectorAll("[data-analytics-daily-shift]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const offset = Number(button.dataset.analyticsDailyShift);
+      const nextKey = shiftMonthKey(analyticsMonths, analyticsDailyMonthKey, offset);
+      if (!nextKey) return;
+      root.__analyticsDailyMonthKey = nextKey;
+      root.__analyticsDailySelectedDay = "";
+      renderAnalytics(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-analytics-day]").forEach((button) => {
+    button.addEventListener("click", () => {
+      root.__analyticsDailySelectedDay = button.dataset.analyticsDay || "";
+      renderAnalytics(root, state);
+    });
+  });
 
   mountCharts(root, chartSpecs);
 
