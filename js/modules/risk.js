@@ -218,6 +218,54 @@ function splitRiskRuleText(text = "") {
   };
 }
 
+function describeRiskRule(rule = {}, isDominant = false) {
+  const parts = splitRiskRuleText(rule.text);
+  const normalized = String(rule.text || "").toLowerCase();
+
+  if (normalized.includes("dd diario")) {
+    return {
+      title: "Stop total del día",
+      condition: parts.condition,
+      state: isDominant ? "Activa ahora" : "Lista para cortar",
+      impact: "Bloquea nueva operativa"
+    };
+  }
+
+  if (normalized.includes("protect")) {
+    return {
+      title: "Activar PROTECT",
+      condition: parts.condition,
+      state: isDominant ? "Activa ahora" : "Preparada",
+      impact: "Reduce tamaño y frecuencia"
+    };
+  }
+
+  if (normalized.includes("agresividad")) {
+    return {
+      title: "Reducir agresividad",
+      condition: parts.condition,
+      state: isDominant ? "Activa ahora" : "En vigilancia",
+      impact: "Baja riesgo y ritmo"
+    };
+  }
+
+  if (normalized.includes("objetivo diario")) {
+    return {
+      title: "Stop voluntario",
+      condition: parts.condition,
+      state: isDominant ? "Activa ahora" : "Disponible",
+      impact: "Cierra la sesión con disciplina"
+    };
+  }
+
+  return {
+    title: parts.action,
+    condition: parts.condition,
+    state: isDominant ? "Activa ahora" : "En seguimiento",
+    impact: parts.action
+  };
+}
+
 function rerenderRiskKeepingSymbolSearch(root, state) {
   const ui = ensureRiskUiState(root);
   const query = ui.symbolQuery;
@@ -416,38 +464,38 @@ export function renderRisk(root, state) {
       ? "Margen agotado"
       : formatPercent(ddHeadroomPct);
   const controlContext = isBlocked
-    ? "El sistema recomienda detener la operativa hasta recuperar margen y resetear presión."
+    ? "Bloqueo recomendado por incumplimiento de límites."
     : controlState === "Zona de protección"
-      ? "La protección debe mandar ahora: baja frecuencia, baja tamaño y prioriza supervivencia."
+      ? "La operativa ya está bajo reglas defensivas."
       : controlState === "Vigilancia activa"
-        ? "Todavía puedes operar, pero ya hay un límite o comportamiento demasiado cerca."
-        : "La operativa sigue dentro del plan y el margen todavía protege la cuenta.";
+        ? "Hay fricción operativa y margen reduciéndose."
+        : "La cuenta sigue dentro de límites operativos.";
   const dominantRuleIndex = risk.stopRules.findIndex((rule) => rule.tone === "red");
   const dominantRule = risk.stopRules[Math.max(dominantRuleIndex, 0)] || risk.stopRules[0] || { tone: "orange", text: "Sin regla dominante" };
-  const dominantRuleParts = splitRiskRuleText(dominantRule.text);
+  const dominantRuleDescriptor = describeRiskRule(dominantRule, true);
   const activationReason = currentLossStreak >= 2
     ? {
         title: `Racha de ${currentLossStreak} pérdidas consecutivas`,
-        detail: "La política activa entra en protección desde dos pérdidas seguidas para cortar la escalada de presión."
+        detail: "La presión reciente activó el modo defensivo."
       }
     : dailyDrawdownPct >= (model.riskProfile.dailyLossLimitPct || 1.2) * 0.8
       ? {
-          title: `${formatPercent(dailyDrawdownPct)} del límite diario ya consumido`,
-          detail: "El consumo de DD diario ha acercado demasiado la cuenta al stop operativo del día."
-        }
+        title: `${formatPercent(dailyDrawdownPct)} del límite diario ya consumido`,
+        detail: "El DD diario ha llevado la cuenta a protección."
+      }
       : currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
         ? {
             title: `Drawdown acumulado en ${formatPercent(currentDrawdownPct)}`,
-            detail: "El margen total ya exige un modo defensivo antes de entrar en zona de daño mayor."
+            detail: "El margen total ya no permite seguir con ritmo normal."
           }
         : account.openPnl < 0 && exposureOpen > 0
           ? {
               title: `Exposición abierta bajo presión (${formatCurrency(account.openPnl)})`,
-              detail: "La pérdida flotante está elevando la fricción y obliga a contener frecuencia y tamaño."
+              detail: "La pérdida flotante obliga a contener la operativa."
             }
           : {
               title: "Fricción operativa detectada",
-              detail: "La política mantiene vigilancia porque el flujo reciente ya no está limpio ni estable."
+              detail: "El flujo reciente ya no permite operar con normalidad."
             };
   const dailyMarginLabel = remainingDailyLossPct <= 0
     ? "Sin margen diario"
@@ -455,36 +503,64 @@ export function renderRisk(root, state) {
   const totalMarginLabel = ddHeadroomPct <= 0
     ? "Sin margen total"
     : `${formatPercent(ddHeadroomPct)} de margen total`;
-  const dominantRuleContext = riskGuidance.blocked ? riskGuidance.block_reason : riskGuidance.explanation;
-  const activeRulesMarkup = risk.stopRules.map((rule, index) => {
+  const actionRequired = isBlocked
+    ? "Cierra operativa y espera reset de sesión"
+    : dominantRuleDescriptor.title === "Stop total del día"
+      ? "Cierra operativa y espera reset de sesión"
+      : dominantRuleDescriptor.title === "Activar PROTECT"
+        ? "Reduce riesgo y limita nuevas entradas"
+        : dominantRuleDescriptor.title === "Reducir agresividad"
+          ? "Baja tamaño y evita aumentar frecuencia"
+          : "Mantén disciplina y no fuerces más operativa";
+  const dominantRuleMarkup = `
+    <article class="risk-rule-card risk-rule-card--dominant">
+      <div class="risk-rule-card__head">
+        <span>Dominante</span>
+      </div>
+      <strong>${dominantRuleDescriptor.title}</strong>
+      <div class="risk-rule-card__meta">
+        <div class="risk-rule-card__meta-row">
+          <span>Condición</span>
+          <strong>${dominantRuleDescriptor.condition}</strong>
+        </div>
+        <div class="risk-rule-card__meta-row">
+          <span>Estado actual</span>
+          <strong>${dominantRuleDescriptor.state}</strong>
+        </div>
+        <div class="risk-rule-card__meta-row">
+          <span>Impacto operativo</span>
+          <strong>${dominantRuleDescriptor.impact}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+  const secondaryRulesMarkup = risk.stopRules.map((rule, index) => {
+    if (index === Math.max(dominantRuleIndex, 0)) return "";
     const toneClass = index === dominantRuleIndex
       ? "dominant"
       : rule.tone === "green"
         ? "neutral"
         : "warn";
-    const statusLabel = index === dominantRuleIndex ? "Dominante" : rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
-    const ruleParts = splitRiskRuleText(rule.text);
-    const currentState = index === dominantRuleIndex
-      ? "Mandando ahora"
-      : rule.tone === "green"
-        ? "Disponible"
-        : rule.tone === "red"
-          ? "Lista para cortar"
-          : "Reduce agresividad";
+    const statusLabel = rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
+    const descriptor = describeRiskRule(rule, false);
     return `
       <article class="risk-rule-card risk-rule-card--${toneClass}">
         <div class="risk-rule-card__head">
           <span>${statusLabel}</span>
         </div>
-        <strong>${ruleParts.action}</strong>
+        <strong>${descriptor.title}</strong>
         <div class="risk-rule-card__meta">
           <div class="risk-rule-card__meta-row">
             <span>Condición</span>
-            <strong>${ruleParts.condition}</strong>
+            <strong>${descriptor.condition}</strong>
           </div>
           <div class="risk-rule-card__meta-row">
             <span>Estado actual</span>
-            <strong>${currentState}</strong>
+            <strong>${descriptor.state}</strong>
+          </div>
+          <div class="risk-rule-card__meta-row">
+            <span>Impacto operativo</span>
+            <strong>${descriptor.impact}</strong>
           </div>
         </div>
       </article>
@@ -540,9 +616,14 @@ export function renderRisk(root, state) {
             <small>${activationReason.detail}</small>
           </article>
           <article class="risk-command-center__trace-card">
-            <span>Regla dominante</span>
-            <strong>${dominantRuleParts.action}</strong>
-            <small>Condición de entrada: ${dominantRuleParts.condition}</small>
+            <span>Qué bloquea ahora</span>
+            <strong>${dominantRuleDescriptor.title}</strong>
+            <small>${dominantRuleDescriptor.impact}</small>
+          </article>
+          <article class="risk-command-center__trace-card risk-command-center__trace-card--action">
+            <span>Acción requerida</span>
+            <strong>${actionRequired}</strong>
+            <small>${marginHeadline}</small>
           </article>
         </div>
       </div>
@@ -572,9 +653,12 @@ export function renderRisk(root, state) {
           <div class="row-sub">Estas reglas provienen de la política activa de riesgo. La dominante manda ahora mismo sobre la operativa.</div>
         </div>
       </div>
-      <div class="risk-active-rules__context">${dominantRuleContext}</div>
+      <div class="risk-active-rules__context">${riskGuidance.blocked ? riskGuidance.block_reason : "Política activa aplicada sobre la operativa actual."}</div>
+      <div class="risk-active-rules__lead">
+        ${dominantRuleMarkup}
+      </div>
       <div class="risk-active-rules__grid">
-        ${activeRulesMarkup}
+        ${secondaryRulesMarkup}
       </div>
     </article>
 
