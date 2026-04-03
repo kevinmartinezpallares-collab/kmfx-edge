@@ -31,6 +31,31 @@ function normalizeMetric(item = {}, index = 0) {
   };
 }
 
+function normalizeLadderRow(item = {}, index = 0) {
+  return {
+    level: String(item.level || `L${index}`),
+    riskPct: Number.isFinite(Number(item.risk_pct)) ? Number(item.risk_pct) : 0,
+    isCurrent: Boolean(item.is_current),
+    isRecommended: Boolean(item.is_recommended),
+    state: String(item.state || "idle"),
+    entryCondition: String(item.entry_condition || ""),
+    riseCondition: String(item.rise_condition || ""),
+    fallCondition: String(item.fall_condition || ""),
+    tradesTo100k: Number.isFinite(Number(item.trades_to_100k)) ? Number(item.trades_to_100k) : 0,
+  };
+}
+
+function normalizeExposureSnapshot(raw = {}) {
+  const safe = raw && typeof raw === "object" ? raw : {};
+  return {
+    openPositions: Number.isFinite(Number(safe.open_positions)) ? Number(safe.open_positions) : 0,
+    totalOpenRiskPct: Number.isFinite(Number(safe.total_open_risk_pct)) ? Number(safe.total_open_risk_pct) : 0,
+    effectiveCorrelatedRisk: Number.isFinite(Number(safe.effective_correlated_risk)) ? Number(safe.effective_correlated_risk) : 0,
+    pressureLabel: String(safe.pressure_label || ""),
+    pressureTone: String(safe.pressure_tone || "neutral"),
+  };
+}
+
 export function normalizeRiskSnapshot(raw = {}) {
   const safe = raw && typeof raw === "object" ? raw : {};
   return {
@@ -53,6 +78,16 @@ export function normalizeRiskSnapshot(raw = {}) {
     mt5LimitStates: safe.mt5_limit_states && typeof safe.mt5_limit_states === "object" ? safe.mt5_limit_states : {},
     limitsAndPressure: Array.isArray(safe.limits_and_pressure) ? safe.limits_and_pressure.map(normalizeMetric) : [],
     policySnapshot: safe.policy_snapshot && typeof safe.policy_snapshot === "object" ? safe.policy_snapshot : {},
+    ladderSnapshot: safe.ladder_snapshot && typeof safe.ladder_snapshot === "object" ? {
+      currentLevel: String(safe.ladder_snapshot.current_level || ""),
+      recommendedLevel: String(safe.ladder_snapshot.recommended_level || ""),
+      volatilityOverrideActive: Boolean(safe.ladder_snapshot.volatility_override_active),
+      levels: Array.isArray(safe.ladder_snapshot.levels) ? safe.ladder_snapshot.levels.map(normalizeLadderRow) : [],
+    } : { currentLevel: "", recommendedLevel: "", volatilityOverrideActive: false, levels: [] },
+    exposureSnapshot: normalizeExposureSnapshot(safe.exposure_snapshot),
+    policyAppliedAt: String(safe.policy_applied_at || ""),
+    policySource: String(safe.policy_source || ""),
+    policyDirty: Boolean(safe.policy_dirty),
     lastSnapshotAt: String(safe.last_snapshot_at || ""),
     staleAfterSeconds: Number.isFinite(Number(safe.snapshot_stale_after_seconds)) ? Number(safe.snapshot_stale_after_seconds) : DEFAULT_STALE_AFTER_SECONDS,
     backendConnected: Boolean(safe.backend_connected),
@@ -184,4 +219,3 @@ export function getRiskSnapshotState(root) {
     lastReceivedAt: state.lastReceivedAt,
   };
 }
-

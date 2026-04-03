@@ -225,9 +225,48 @@ class RiskOrchestrator:
             "max_dd_limit_pct": self._pct(self.policy.max_dd_limit * 100.0),
             "max_total_open_risk_pct": self._pct(self.policy.max_total_open_risk_pct),
             "max_correlated_risk_pct": self._pct(self.policy.max_correlated_risk_pct),
+            "allowed_sessions": ["London", "New York"],
+            "allowed_symbols": [],
+            "max_volume": 1.5,
+            "auto_block_enabled": True,
             "current_level": self.engine.state.current_level,
             "recommended_level": self.engine.state.recommended_level,
             "volatility_override_active": bool(self.engine.state.volatility_override_active),
+        }
+
+    def _build_ladder_snapshot(self) -> dict[str, Any]:
+        levels: list[dict[str, Any]] = []
+        ladder_order = list(self.policy.risk_ladder)
+        for index, level in enumerate(ladder_order):
+            risk_pct = float(self.policy.risk_ladder_pct.get(level, 0.0))
+            previous_level = ladder_order[index - 1] if index > 0 else None
+            next_level = ladder_order[index + 1] if index < len(ladder_order) - 1 else None
+            levels.append({
+                "level": level,
+                "risk_pct": self._pct(risk_pct),
+                "is_current": level == self.engine.state.current_level,
+                "is_recommended": level == self.engine.state.recommended_level,
+                "state": "recommended" if level == self.engine.state.recommended_level and self.engine.state.volatility_override_active else "current" if level == self.engine.state.current_level else "idle",
+                "entry_condition": "Nivel de protección inicial" if level == "PROTECT" else f"Sube a {level} cuando la cuenta estabiliza ejecución",
+                "rise_condition": f"Siguiente nivel: {next_level}" if next_level else "Nivel máximo alcanzado",
+                "fall_condition": f"Retrocede a {previous_level}" if previous_level else "Sin nivel inferior",
+                "trades_to_100k": round(100 / max(risk_pct, 0.1)),
+            })
+        return {
+            "current_level": self.engine.state.current_level,
+            "recommended_level": self.engine.state.recommended_level,
+            "volatility_override_active": bool(self.engine.state.volatility_override_active),
+            "levels": levels,
+        }
+
+    def _build_exposure_snapshot(self, snapshot: RiskEngineSnapshot) -> dict[str, Any]:
+        open_positions = list(self.engine.state.open_positions.values())
+        return {
+            "open_positions": len(open_positions),
+            "total_open_risk_pct": self._pct(snapshot.total_open_risk_pct),
+            "effective_correlated_risk": self._pct(snapshot.effective_correlated_risk),
+            "pressure_label": snapshot.risk_status.value,
+            "pressure_tone": "danger" if snapshot.panic_lock_active or snapshot.risk_status.value == "protection_mode" else "warn" if snapshot.risk_status.value == "active_monitoring" else "ok",
         }
 
     def _build_dashboard_contract(
@@ -257,8 +296,17 @@ class RiskOrchestrator:
             "mt5_limit_states": dict(snapshot.mt5_limit_states or {}),
             "limits_and_pressure": self._build_limits_and_pressure(snapshot),
             "policy_snapshot": self._build_policy_snapshot(),
+            "policy_applied_at": serialize_for_dashboard(self.engine.state.last_equity_update_at or generated, "policy_applied_at"),
+            "policy_source": "backend",
+            "policy_dirty": False,
+            "ladder_snapshot": self._build_ladder_snapshot(),
+            "exposure_snapshot": self._build_exposure_snapshot(snapshot),
             "last_snapshot_at": serialize_for_dashboard(generated, "last_snapshot_at"),
             "snapshot_stale_after_seconds": 15,
+            "backend_connected": True,
+            "mt5_connected": False,
+            "mode": "unknown",
+            "error": "",
         }
 
     @staticmethod

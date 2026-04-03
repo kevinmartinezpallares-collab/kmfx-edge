@@ -1,4 +1,4 @@
-import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatDateTime, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260401-203500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260401-203500";
@@ -42,33 +42,6 @@ function persistRiskPanelStorage(values = {}) {
   } catch {
     // noop
   }
-}
-
-function ladderRows(risk) {
-  return risk.ladder.map((row) => ({
-    ...row,
-    entryCondition: row.condition,
-    riseCondition: row.rise,
-    fallCondition: row.fall,
-    tradesTo100k: Math.round(100 / Math.max(row.riskPct, 0.1))
-  }));
-}
-
-function currentLadderLevel(ladder, risk) {
-  const currentRiskPct = Number(risk?.currentRiskPct || 0);
-  const protectRow = ladder.find((row) => row.level === "PROTECT");
-  if (Number(risk?.marginTrades || 0) <= 1 && protectRow) return protectRow.level;
-
-  let closest = ladder[0]?.level || "BASE";
-  let minDiff = Number.POSITIVE_INFINITY;
-  ladder.forEach((row) => {
-    const diff = Math.abs(Number(row.riskPct || 0) - currentRiskPct);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closest = row.level;
-    }
-  });
-  return closest;
 }
 
 function renderLadderProgress(ladder, currentLevel) {
@@ -322,9 +295,8 @@ function syncDraftFromSnapshot(root, snapshot) {
 }
 
 export function renderRisk(root, state) {
-  const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
-  if (!model || !account) {
+  if (!account) {
     root.innerHTML = "";
     return;
   }
@@ -341,8 +313,6 @@ export function renderRisk(root, state) {
   const liveSnapshot = liveState.snapshot;
   syncDraftFromSnapshot(root, liveSnapshot);
 
-  const risk = model.riskSummary;
-  const ladder = ladderRows(risk);
   const prefsDraft = getRiskPreferencesDraft(root);
   const riskUi = ensureRiskUiState(root);
   const sessionOptions = ["Asia", "London", "New York"];
@@ -354,21 +324,16 @@ export function renderRisk(root, state) {
   const symbolUniverseMap = new Map(
     [...ALL_SYMBOLS, ...customSymbols].map((symbol) => [symbol.id.toUpperCase(), { ...symbol, id: symbol.id.toUpperCase() }])
   );
-  (model.symbols || []).forEach((item) => {
-    const id = String(item.key || "").toUpperCase().trim();
-    if (!id || symbolUniverseMap.has(id)) return;
-    symbolUniverseMap.set(id, { id, cat: "Custom", color: "#8e8e93" });
-  });
   const symbolUniverse = [...symbolUniverseMap.values()];
   const selectedSessions = parseTokenList(
     prefsDraft.__hasAllowedSessions
       ? prefsDraft.allowedSessions
-      : (model.riskProfile.allowedSessions || ["London", "New York"]).join(" · ")
+      : (liveSnapshot?.policySnapshot?.allowed_sessions || ["London", "New York"]).join(" · ")
   );
   const selectedSymbols = parseTokenList(
     prefsDraft.__hasAllowedSymbols
       ? prefsDraft.allowedSymbols
-      : (model.riskProfile.allowedSymbols || symbolUniverse.map((item) => item.id)).join(" · ")
+      : ((liveSnapshot?.policySnapshot?.allowed_symbols?.length ? liveSnapshot.policySnapshot.allowed_symbols : symbolUniverse.map((item) => item.id))).join(" · ")
   );
   const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
   const selectedSymbolSet = new Set(selectedSymbols);
@@ -461,8 +426,16 @@ export function renderRisk(root, state) {
   const defaultRiskMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.risk_per_trade);
   const dailyDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.daily_dd_limit);
   const maxDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.max_dd_limit);
-  const ladderLevel = liveSnapshot?.currentLevel || currentLadderLevel(ladder, risk);
+  const ladder = liveSnapshot?.ladderSnapshot?.levels || [];
+  const ladderLevel = liveSnapshot?.ladderSnapshot?.currentLevel || "";
   const commandMeta = riskStatusMeta(liveSnapshot);
+  const exposureSnapshot = liveSnapshot?.exposureSnapshot || {
+    openPositions: 0,
+    totalOpenRiskPct: 0,
+    effectiveCorrelatedRisk: 0,
+    pressureLabel: "",
+    pressureTone: "neutral"
+  };
   const remainingDailyLabel = liveSnapshot
     ? (liveSnapshot.remainingDailyMarginPct <= 0 ? "Sin margen diario" : `${liveSnapshot.remainingDailyMarginPct.toFixed(2)}% de margen diario`)
     : "—";
@@ -625,15 +598,15 @@ export function renderRisk(root, state) {
         <div class="risk-exposure-list">
           <div class="risk-exposure-row">
             <span>Riesgo abierto</span>
-            <strong class="${liveSnapshot?.totalOpenRiskPct > 0 ? "metric-warning" : ""}">${liveSnapshot ? `${liveSnapshot.totalOpenRiskPct.toFixed(2)}%` : "—"}</strong>
+            <strong class="${exposureSnapshot.totalOpenRiskPct > 0 ? "metric-warning" : ""}">${liveSnapshot ? `${exposureSnapshot.totalOpenRiskPct.toFixed(2)}%` : "—"}</strong>
           </div>
           <div class="risk-exposure-row">
             <span>Clúster correlacionado</span>
-            <strong class="${liveSnapshot?.effectiveCorrelatedRisk >= Number(liveSnapshot?.policySnapshot?.max_correlated_risk_pct || 999) ? "metric-negative" : ""}">${liveSnapshot ? `${liveSnapshot.effectiveCorrelatedRisk.toFixed(2)}%` : "—"}</strong>
+            <strong class="${exposureSnapshot.effectiveCorrelatedRisk >= Number(liveSnapshot?.policySnapshot?.max_correlated_risk_pct || 999) ? "metric-negative" : ""}">${liveSnapshot ? `${exposureSnapshot.effectiveCorrelatedRisk.toFixed(2)}%` : "—"}</strong>
           </div>
           <div class="risk-exposure-row">
             <span>Presión</span>
-            <strong class="${commandMeta.tone === "danger" ? "metric-negative" : commandMeta.tone === "warn" ? "metric-warning" : "green"}">${liveSnapshot ? liveSnapshot.riskStatus.replaceAll("_", " ") : "Sin snapshot"}</strong>
+            <strong class="${exposureSnapshot.pressureTone === "danger" ? "metric-negative" : exposureSnapshot.pressureTone === "warn" ? "metric-warning" : "green"}">${liveSnapshot ? String(exposureSnapshot.pressureLabel || "sin snapshot").replaceAll("_", " ") : "Sin snapshot"}</strong>
           </div>
         </div>
       </article>
@@ -643,7 +616,7 @@ export function renderRisk(root, state) {
       <div class="risk-policy-header">
         <div>
           <div class="tl-section-title">Política activa de riesgo</div>
-          <div class="row-sub">Única fuente de verdad editable para la cuenta. Esta política es la que terminará gobernando la ejecución en MT5.</div>
+          <div class="row-sub">Única fuente de verdad editable para la cuenta. Fuente actual: ${liveSnapshot?.policySource || "frontend"} · aplicada ${formatDateTime(liveSnapshot?.policyAppliedAt)}</div>
         </div>
         <div class="risk-policy-sync risk-policy-sync--${mt5SyncState.tone}">
           <span>${mt5SyncState.label}</span>
@@ -699,7 +672,7 @@ export function renderRisk(root, state) {
           <label class="risk-policy-field risk-policy-field--compact">
             <span>Lote máximo</span>
             <div class="risk-policy-input-shell">
-              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(model.riskProfile.maxVolume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
+              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policySnapshot?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
               <em>lot</em>
             </div>
           </label>
@@ -835,7 +808,7 @@ export function renderRisk(root, state) {
 
     <article class="tl-section-card risk-ladder-surface">
       <div class="tl-section-header"><div class="tl-section-title">Escalera de Riesgo Dinámica</div></div>
-      ${renderLadderProgress(ladder, ladderLevel)}
+      ${ladder.length ? renderLadderProgress(ladder, ladderLevel) : `<div class="risk-ladder-empty">Esperando ladder_snapshot del backend.</div>`}
       <div class="table-wrap risk-ladder-table">
         <table>
           <thead><tr><th>Nivel</th><th>Riesgo/Trade</th><th>Condición Entrada</th><th>Condición Subida</th><th>Condición Bajada</th><th>Trades a $100k</th><th>Estado</th></tr></thead>
@@ -843,14 +816,14 @@ export function renderRisk(root, state) {
             ${ladder.map((row) => `
               <tr class="${row.level === ladderLevel ? "risk-ladder-row--current" : ""}">
                 <td>${row.level}</td>
-                <td>${row.riskPct.toFixed(2)}%</td>
+                <td>${Number(row.riskPct || 0).toFixed(2)}%</td>
                 <td>${row.entryCondition}</td>
                 <td>${row.riseCondition}</td>
                 <td>${row.fallCondition}</td>
                 <td>${row.tradesTo100k}</td>
-                <td>${badgeMarkup({ label: row.level === ladderLevel ? "ACTUAL" : row.state, tone: row.level === ladderLevel ? "warn" : row.level === "PROTECT" ? "warn" : row.level === "MAX" ? "info" : "neutral" }, "ui-badge--compact")}</td>
+                <td>${badgeMarkup({ label: row.level === ladderLevel ? "ACTUAL" : row.isRecommended ? "RECOMENDADO" : row.state, tone: row.level === ladderLevel ? "warn" : row.isRecommended ? "info" : row.level === "PROTECT" ? "warn" : "neutral" }, "ui-badge--compact")}</td>
               </tr>
-            `).join("")}
+            `).join("") || `<tr><td colspan="7">Sin datos de escalera desde backend.</td></tr>`}
           </tbody>
         </table>
       </div>

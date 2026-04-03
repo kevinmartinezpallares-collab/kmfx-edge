@@ -153,6 +153,11 @@ class RiskPersistenceTests(unittest.TestCase):
                 "active_rules",
                 "limits_and_pressure",
                 "policy_snapshot",
+                "ladder_snapshot",
+                "exposure_snapshot",
+                "policy_applied_at",
+                "policy_source",
+                "policy_dirty",
                 "mt5_limit_states",
             ):
                 self.assertIn(key, payload)
@@ -204,6 +209,8 @@ class RiskPersistenceTests(unittest.TestCase):
             )
             self.assertEqual(payload["total_open_risk_pct"], 0.45)
             self.assertTrue(any(rule["title"] for rule in payload["active_rules"]))
+            self.assertEqual(payload["exposure_snapshot"]["open_positions"], 1)
+            self.assertTrue(payload["ladder_snapshot"]["levels"])
             self.assertEqual(len(orchestrator.engine.state.open_positions), 1)
 
 

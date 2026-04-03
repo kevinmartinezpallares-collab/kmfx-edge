@@ -1703,6 +1703,13 @@ body[data-theme="dark"] .risk-data-state--loading {
   border-color: rgba(255, 159, 10, 0.15);
 }
 
+html[data-theme="dark"] .risk-ladder-empty,
+body[data-theme="dark"] .risk-ladder-empty {
+  padding: 14px 0 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .risk-command-center,
 body[data-theme="dark"] .risk-command-center {
   display: grid;
