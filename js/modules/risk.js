@@ -622,22 +622,22 @@ export function renderRisk(root, state) {
         <div class="eyebrow">Mando central</div>
         <h3>${controlHeadline}</h3>
         <p>${controlContext}</p>
-        <div class="risk-command-center__trace">
-          <article class="risk-command-center__trace-card">
-            <span>Motivo de activación</span>
+        <div class="risk-command-center__ops">
+          <div class="risk-command-center__op-row">
+            <span>Trigger</span>
             <strong>${activationReason.title}</strong>
             <small>${activationReason.detail}</small>
-          </article>
-          <article class="risk-command-center__trace-card">
-            <span>Qué bloquea ahora</span>
+          </div>
+          <div class="risk-command-center__op-row">
+            <span>Bloqueo actual</span>
             <strong>${dominantRuleDescriptor.title}</strong>
             <small>${dominantRuleDescriptor.impact}</small>
-          </article>
-          <article class="risk-command-center__trace-card risk-command-center__trace-card--action">
+          </div>
+          <div class="risk-command-center__op-row risk-command-center__op-row--action">
             <span>Acción requerida</span>
             <strong>${actionRequired}</strong>
-            <small>${marginHeadline}</small>
-          </article>
+            <small>Ejecuta esta acción antes de retomar operativa.</small>
+          </div>
         </div>
       </div>
       <div class="risk-command-center__meta">
@@ -670,6 +670,7 @@ export function renderRisk(root, state) {
       <div class="risk-active-rules__lead">
         ${dominantRuleMarkup}
       </div>
+      <div class="risk-active-rules__secondary-label">Secundarias</div>
       <div class="risk-active-rules__grid">
         ${secondaryRulesMarkup}
       </div>
