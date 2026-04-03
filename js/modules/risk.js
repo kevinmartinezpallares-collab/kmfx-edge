@@ -210,6 +210,14 @@ function sessionUtcLabel(session = "") {
   return "UTC";
 }
 
+function splitRiskRuleText(text = "") {
+  const [condition = "", action = ""] = String(text).split("->").map((part) => part.trim());
+  return {
+    condition: condition || text,
+    action: action || "Sin efecto especificado"
+  };
+}
+
 function rerenderRiskKeepingSymbolSearch(root, state) {
   const ui = ensureRiskUiState(root);
   const query = ui.symbolQuery;
@@ -401,6 +409,38 @@ export function renderRisk(root, state) {
         ? "Todavía puedes operar, pero ya hay un límite o comportamiento demasiado cerca."
         : "La operativa sigue dentro del plan y el margen todavía protege la cuenta.";
   const dominantRuleIndex = risk.stopRules.findIndex((rule) => rule.tone === "red");
+  const dominantRule = risk.stopRules[Math.max(dominantRuleIndex, 0)] || risk.stopRules[0] || { tone: "orange", text: "Sin regla dominante" };
+  const dominantRuleParts = splitRiskRuleText(dominantRule.text);
+  const activationReason = currentLossStreak >= 2
+    ? {
+        title: `Racha de ${currentLossStreak} pérdidas consecutivas`,
+        detail: "La política activa entra en protección desde dos pérdidas seguidas para cortar la escalada de presión."
+      }
+    : dailyDrawdownPct >= (model.riskProfile.dailyLossLimitPct || 1.2) * 0.8
+      ? {
+          title: `${formatPercent(dailyDrawdownPct)} del límite diario ya consumido`,
+          detail: "El consumo de DD diario ha acercado demasiado la cuenta al stop operativo del día."
+        }
+      : currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
+        ? {
+            title: `Drawdown acumulado en ${formatPercent(currentDrawdownPct)}`,
+            detail: "El margen total ya exige un modo defensivo antes de entrar en zona de daño mayor."
+          }
+        : account.openPnl < 0 && exposureOpen > 0
+          ? {
+              title: `Exposición abierta bajo presión (${formatCurrency(account.openPnl)})`,
+              detail: "La pérdida flotante está elevando la fricción y obliga a contener frecuencia y tamaño."
+            }
+          : {
+              title: "Fricción operativa detectada",
+              detail: "La política mantiene vigilancia porque el flujo reciente ya no está limpio ni estable."
+            };
+  const dailyMarginLabel = remainingDailyLossPct <= 0
+    ? "Sin margen diario"
+    : `${formatPercent(remainingDailyLossPct)} de margen diario`;
+  const totalMarginLabel = ddHeadroomPct <= 0
+    ? "Sin margen total"
+    : `${formatPercent(ddHeadroomPct)} de margen total`;
   const activeRulesMarkup = risk.stopRules.map((rule, index) => {
     const toneClass = index === dominantRuleIndex
       ? "dominant"
@@ -408,12 +448,31 @@ export function renderRisk(root, state) {
         ? "neutral"
         : "warn";
     const statusLabel = rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
+    const ruleParts = splitRiskRuleText(rule.text);
+    const currentState = index === dominantRuleIndex
+      ? "Mandando ahora"
+      : rule.tone === "green"
+        ? "Disponible"
+        : rule.tone === "red"
+          ? "Lista para cortar"
+          : "Reduce agresividad";
     return `
       <article class="risk-rule-card risk-rule-card--${toneClass}">
         <div class="risk-rule-card__head">
           <span>${statusLabel}</span>
+          <small>Origen: política activa de riesgo</small>
         </div>
-        <strong>${rule.text}</strong>
+        <strong>${ruleParts.action}</strong>
+        <div class="risk-rule-card__meta">
+          <div class="risk-rule-card__meta-row">
+            <span>Condición</span>
+            <strong>${ruleParts.condition}</strong>
+          </div>
+          <div class="risk-rule-card__meta-row">
+            <span>Estado actual</span>
+            <strong>${currentState}</strong>
+          </div>
+        </div>
       </article>
     `;
   }).join("");
@@ -460,15 +519,27 @@ export function renderRisk(root, state) {
         <div class="eyebrow">Mando central</div>
         <h3>${controlHeadline}</h3>
         <p>${controlContext}</p>
+        <div class="risk-command-center__trace">
+          <article class="risk-command-center__trace-card">
+            <span>Motivo de activación</span>
+            <strong>${activationReason.title}</strong>
+            <small>${activationReason.detail}</small>
+          </article>
+          <article class="risk-command-center__trace-card">
+            <span>Regla dominante</span>
+            <strong>${dominantRuleParts.action}</strong>
+            <small>Condición de entrada: ${dominantRuleParts.condition}</small>
+          </article>
+        </div>
       </div>
       <div class="risk-command-center__meta">
         <div class="risk-command-center__metric">
           <span>Margen restante</span>
           <strong class="${ddHeadroomPct <= 0 ? "metric-negative" : ddHeadroomPct <= 0.35 ? "metric-warning" : ""}">${marginHeadline}</strong>
-          <small>${formatPercent(remainingDailyLossPct)} de margen diario</small>
+          <small>${totalMarginLabel} · ${dailyMarginLabel}</small>
         </div>
         <div class="risk-command-center__metric">
-          <span>Regla que manda</span>
+          <span>Qué limita la operativa</span>
           <strong class="${currentLossStreak >= 3 ? "metric-negative" : controlTone === "warn" ? "metric-warning" : ""}">${controlTrigger}</strong>
           <small>${riskGuidance.blocked ? riskGuidance.block_reason : riskGuidance.explanation}</small>
         </div>
@@ -488,8 +559,8 @@ export function renderRisk(root, state) {
     <article class="tl-section-card risk-active-rules">
       <div class="tl-section-header">
         <div>
-          <div class="tl-section-title">Reglas activas</div>
-          <div class="row-sub">El sistema de protección que manda ahora mismo sobre la operativa.</div>
+          <div class="tl-section-title">Reglas en ejecución</div>
+          <div class="row-sub">Estas reglas provienen de la política activa de riesgo y explican qué está limitando la operativa ahora mismo.</div>
         </div>
       </div>
       <div class="risk-active-rules__grid">

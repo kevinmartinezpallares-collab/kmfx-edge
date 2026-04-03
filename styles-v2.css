@@ -1690,6 +1690,47 @@ body[data-theme="dark"] .risk-command-center__copy {
   gap: 10px;
 }
 
+html[data-theme="dark"] .risk-command-center__trace,
+body[data-theme="dark"] .risk-command-center__trace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+html[data-theme="dark"] .risk-command-center__trace-card,
+body[data-theme="dark"] .risk-command-center__trace-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.018);
+  border: 1px solid rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .risk-command-center__trace-card span,
+body[data-theme="dark"] .risk-command-center__trace-card span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-command-center__trace-card strong,
+body[data-theme="dark"] .risk-command-center__trace-card strong {
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-command-center__trace-card small,
+body[data-theme="dark"] .risk-command-center__trace-card small {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .risk-command-center__copy h3,
 body[data-theme="dark"] .risk-command-center__copy h3 {
   margin: 0;
@@ -1764,11 +1805,19 @@ body[data-theme="dark"] .risk-active-rules__grid {
 html[data-theme="dark"] .risk-rule-card,
 body[data-theme="dark"] .risk-rule-card {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 14px 14px 13px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--layer-1-subtle) 95%, rgba(255,255,255,0.014));
   border: 1px solid rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .risk-rule-card__head,
+body[data-theme="dark"] .risk-rule-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .risk-rule-card__head span,
@@ -1785,11 +1834,47 @@ body[data-theme="dark"] .risk-rule-card__head span {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] .risk-rule-card__head small,
+body[data-theme="dark"] .risk-rule-card__head small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-3);
+}
+
 html[data-theme="dark"] .risk-rule-card strong,
 body[data-theme="dark"] .risk-rule-card strong {
   font-size: 14px;
   line-height: 1.35;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-rule-card__meta,
+body[data-theme="dark"] .risk-rule-card__meta {
+  display: grid;
+  gap: 7px;
+}
+
+html[data-theme="dark"] .risk-rule-card__meta-row,
+body[data-theme="dark"] .risk-rule-card__meta-row {
+  display: grid;
+  gap: 3px;
+}
+
+html[data-theme="dark"] .risk-rule-card__meta-row span,
+body[data-theme="dark"] .risk-rule-card__meta-row span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+html[data-theme="dark"] .risk-rule-card__meta-row strong,
+body[data-theme="dark"] .risk-rule-card__meta-row strong {
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 560;
+  color: var(--text-1);
 }
 
 html[data-theme="dark"] .risk-rule-card--neutral,
@@ -2717,6 +2802,11 @@ body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:
 }
 
 @media (max-width: 1080px) {
+  html[data-theme="dark"] .risk-command-center__trace,
+  body[data-theme="dark"] .risk-command-center__trace {
+    grid-template-columns: 1fr;
+  }
+
   html[data-theme="dark"] .risk-command-center,
   body[data-theme="dark"] .risk-command-center,
   html[data-theme="dark"] .risk-core-grid,
