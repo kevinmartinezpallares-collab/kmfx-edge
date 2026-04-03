@@ -22,6 +22,8 @@ import math
 from datetime import datetime, timezone
 from typing import Set
 
+from account_service import AccountService
+from account_store import JsonFileAccountStore
 from risk_orchestrator import RiskOrchestrator
 from risk_state_store import JsonFileRiskStateStore
 
@@ -56,8 +58,12 @@ PORT = 8765
 POLL_INTERVAL = 1.0          # segundos entre actualizaciones
 MAX_HISTORY_DEALS = 500      # máximo de deals a cargar del historial
 RISK_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-risk-state.json")
+ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
 risk_orchestrator = RiskOrchestrator(
     state_store=JsonFileRiskStateStore(RISK_STATE_PATH)
+)
+account_service = AccountService(
+    JsonFileAccountStore(ACCOUNTS_STATE_PATH)
 )
 
 # ── estado global ──────────────────────────────────────────────────────────
@@ -231,6 +237,55 @@ def build_risk_snapshot(account: dict, positions: list) -> dict:
             "backend_connected": False,
             "mt5_connected": bool(HAS_MT5),
             "mode": "live" if HAS_MT5 else "demo",
+            "error": str(exc),
+        }
+
+
+def build_account_payload(account: dict, positions: list, deals: list, risk_snapshot: dict) -> dict:
+    return {
+        "accountName": account.get("name") or account.get("broker") or "MT5 Account",
+        "name": account.get("name") or account.get("broker") or "MT5 Account",
+        "broker": account.get("broker") or "MT5",
+        "server": account.get("server") or "",
+        "environment": account.get("type") or "live",
+        "platform": "mt5",
+        "mode": "MT5 Live" if HAS_MT5 else "MT5 Demo",
+        "balance": account.get("balance", 0.0),
+        "equity": account.get("equity", account.get("balance", 0.0)),
+        "openPnl": account.get("profit", 0.0),
+        "positions": positions,
+        "trades": deals,
+        "riskProfile": {
+            "currentRiskPct": risk_snapshot.get("total_open_risk_pct", 0.0),
+            "dailyLossLimitPct": risk_snapshot.get("policy_snapshot", {}).get("daily_dd_limit_pct", 0.0),
+            "weeklyHeatLimitPct": risk_snapshot.get("policy_snapshot", {}).get("max_dd_limit_pct", 0.0),
+            "maxTradeRiskPct": risk_snapshot.get("policy_snapshot", {}).get("risk_per_trade_pct", 0.0),
+            "maxVolume": risk_snapshot.get("policy_snapshot", {}).get("max_volume", 0.0),
+            "allowedSessions": risk_snapshot.get("policy_snapshot", {}).get("allowed_sessions", []),
+            "allowedSymbols": risk_snapshot.get("policy_snapshot", {}).get("allowed_symbols", []),
+            "autoBlock": risk_snapshot.get("policy_snapshot", {}).get("auto_block_enabled", False),
+        },
+        "riskRules": risk_snapshot.get("active_rules", []),
+        "riskSnapshot": risk_snapshot,
+    }
+
+
+def build_accounts_snapshot(account: dict, positions: list, deals: list, risk_snapshot: dict) -> dict:
+    try:
+        account_payload = build_account_payload(account, positions, deals, risk_snapshot)
+        account_service.ingest_account_snapshot(
+            user_id="local",
+            account_info=account,
+            connection_mode="bridge",
+            payload=account_payload,
+        )
+        return account_service.build_accounts_snapshot("local")
+    except Exception as exc:
+        log.exception("No se pudo actualizar accounts_snapshot: %s", exc)
+        return {
+            "accounts": [],
+            "active_account_id": "",
+            "updated_at": _now(),
             "error": str(exc),
         }
 
@@ -473,6 +528,7 @@ def build_full_snapshot() -> dict:
     deals    = get_deal_history(days_back=90)
     stats    = compute_stats(deals, account.get("balance", 0))
     risk_snapshot = build_risk_snapshot(account, positions)
+    accounts_snapshot = build_accounts_snapshot(account, positions, deals, risk_snapshot)
 
     # Precios de pares principales
     symbols = ["GBPUSD","EURUSD","USDCAD","AUDUSD","USDJPY"]
@@ -492,6 +548,7 @@ def build_full_snapshot() -> dict:
         "stats":     stats,
         "prices":    prices,
         "risk_snapshot": risk_snapshot,
+        "accounts_snapshot": accounts_snapshot,
         "mode":      "live" if HAS_MT5 else "demo",
     }
 
@@ -567,6 +624,8 @@ async def poll_mt5():
             positions = get_open_positions()
             orders    = get_pending_orders()
             risk_snapshot = build_risk_snapshot(account, positions)
+            deals = get_deal_history(days_back=90)
+            accounts_snapshot = build_accounts_snapshot(account, positions, deals, risk_snapshot)
 
             symbols = list({p["symbol"] for p in positions} | {"GBPUSD","EURUSD"})
             prices  = {s: get_symbol_price(s) for s in symbols}
@@ -579,6 +638,7 @@ async def poll_mt5():
                 "orders":    orders,
                 "prices":    prices,
                 "risk_snapshot": risk_snapshot,
+                "accounts_snapshot": accounts_snapshot,
                 "mode":      "live" if HAS_MT5 else "demo",
             }
             await broadcast(json.dumps(update))

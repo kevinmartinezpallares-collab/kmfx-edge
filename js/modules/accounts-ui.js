@@ -128,7 +128,29 @@ export function initAccountsUI(store) {
 
     const activeAccount = selectCurrentAccount(state);
     const activeModel = selectCurrentModel(state);
-    const accounts = Object.values(state.accounts).filter((account) => account && typeof account === "object" && "id" in account);
+    const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
+    const accounts = liveAccountIds
+      .filter((accountId) => state.accountDirectory?.[accountId]?.status === "connected")
+      .map((accountId) => state.accounts?.[accountId])
+      .filter((account) => account && typeof account === "object" && "id" in account);
+
+    if (!accounts.length) {
+      root.innerHTML = `
+        <div class="account-switcher account-switcher--empty">
+          <div class="account-switcher-header">
+            <div>
+              <div class="account-switcher-label">Cuentas</div>
+              <div class="account-switcher-title">No hay cuentas conectadas</div>
+              <div class="account-switcher-badges">
+                <span class="ui-badge ui-badge--compact">Conecta MT5 para activar el selector real</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     const activeAccountLabel = getAccountTypeLabel(activeAccount?.model?.profile?.mode, activeAccount?.name);
     const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
     const orderedAccounts = [...accounts].sort((left, right) => {

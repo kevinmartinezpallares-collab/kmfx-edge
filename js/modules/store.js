@@ -112,6 +112,7 @@ function sanitizeWorkspace(workspace = {}) {
 function sanitizeConnection(connection = {}, sourceType = "mock") {
   return {
     state: ["disconnected", "connecting", "connected", "error"].includes(connection.state) ? connection.state : "disconnected",
+    connected: Boolean(connection.connected || connection.state === "connected"),
     source: connection.source || (sourceType === "mt5" ? "mt5-ready" : "mock"),
     lastSync: connection.lastSync || null,
     lastError: connection.lastError || null,
@@ -167,6 +168,8 @@ function createInitialState() {
 
   return {
     accounts,
+    accountDirectory: {},
+    liveAccountIds: [],
     currentAccount,
     ui: sanitizeUi(persisted.ui),
     workspace,

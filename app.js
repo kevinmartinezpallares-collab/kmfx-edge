@@ -7,6 +7,7 @@ import { renderRisk } from "./js/modules/risk.js?v=build-20260401-203500";
 import { renderTrades } from "./js/modules/trades.js?v=build-20260401-203500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260401-203500";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260401-203500";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260401-203500";
 import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260401-203500";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260401-203500";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260401-203500";
@@ -130,6 +131,15 @@ const pageRenderers = {
   settings: () => {}
 };
 
+function resolveKnownAccountId(candidateId, state) {
+  if (candidateId && state?.accounts?.[candidateId]) return candidateId;
+  const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
+  const firstLiveId = liveIds.find((id) => state?.accounts?.[id]);
+  if (firstLiveId) return firstLiveId;
+  if (state?.currentAccount && state.accounts?.[state.currentAccount]) return state.currentAccount;
+  return Object.keys(state?.accounts || {})[0] || null;
+}
+
 function renderActivePage() {
   const state = store.getState();
   if (state.ui.activePage === "debug" && !isAdminUser(state)) {
@@ -196,7 +206,7 @@ function initSettings() {
     ["funded", "Funded"],
     ["risk", "Riesgo"],
     ["calculator", "Calculadora"],
-    ["connections", "Conexiones"],
+    ["connections", "Cuentas"],
     ["settings", "Ajustes"]
   ];
   const root = document.documentElement;
@@ -245,7 +255,14 @@ function initSettings() {
     select.innerHTML = options.map(([value, label]) => `<option value="${value}" ${value === selectedValue ? "selected" : ""}>${label}</option>`).join("");
   };
 
-  const buildAccountOptions = () => Object.values(store.getState().accounts).map((account) => [account.id, account.name]);
+  const buildAccountOptions = () => {
+    const state = store.getState();
+    const liveIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
+    const sourceAccounts = liveIds.length
+      ? liveIds.map((id) => state.accounts[id]).filter(Boolean)
+      : Object.values(state.accounts);
+    return sourceAccounts.map((account) => [account.id, account.name]);
+  };
 
   const renderProfilePreview = (profile) => {
     if (displayName) displayName.textContent = profile.name || defaultProfile.name;
@@ -407,7 +424,7 @@ function initSettings() {
         store.setState((state) => ({
           ...state,
           auth: mergedAuth,
-          currentAccount: mergedAuth.profile.defaultAccount || state.currentAccount,
+          currentAccount: resolveKnownAccountId(mergedAuth.profile.defaultAccount, state),
           ui: {
             ...state.ui,
             theme: mergedPreferences.theme === "dark" ? "dark" : "light"
@@ -452,7 +469,7 @@ function initSettings() {
         activePage: preferences.landingPage || "dashboard",
         analyticsTab: "summary"
       },
-      currentAccount: preferences.dashboardAccount || state.currentAccount
+      currentAccount: resolveKnownAccountId(preferences.dashboardAccount, state)
     }));
   });
 
@@ -494,7 +511,7 @@ function initSettings() {
     store.setState((state) => ({
       ...state,
       auth: nextAuth,
-      currentAccount: profile.defaultAccount || state.currentAccount,
+      currentAccount: resolveKnownAccountId(profile.defaultAccount, state),
       ui: {
         ...state.ui,
         theme: preferences.theme === "dark" ? "dark" : "light"
@@ -545,7 +562,7 @@ function initSettings() {
     store.setState((state) => ({
       ...state,
       auth: resetAuth,
-      currentAccount: profile.defaultAccount || state.currentAccount,
+      currentAccount: resolveKnownAccountId(profile.defaultAccount, state),
       ui: {
         ...state.ui,
         theme: preferences.theme === "dark" ? "dark" : "light"
@@ -614,6 +631,7 @@ ensureLightCardFlattening();
 renderActivePage();
 initNavigation(store);
 initAccountsUI(store);
+initAccountsLiveSnapshot(store);
 initConnections(store);
 initCalculator(store);
 initJournal(store);

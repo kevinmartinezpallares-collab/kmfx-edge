@@ -510,6 +510,19 @@ html[data-theme="dark"] .sidebar-section-label,
   -webkit-backdrop-filter: none;
 }
 
+.account-switcher--empty {
+  min-height: 0;
+}
+
+.account-registry-card--active {
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.035) inset;
+}
+
+.accounts-empty-state .connections-guide-grid {
+  margin-top: 12px;
+}
+
 /* Elevated KPI cards */
 .tl-kpi-card,
 .rm4-card {
