@@ -1,9 +1,8 @@
-import { formatCurrency, formatDateTime, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatDateTime, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260401-203500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260401-203500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260401-203500";
+import { ensureRiskSnapshotFeed } from "./risk-live-snapshot.js?v=build-20260401-203500";
 
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
@@ -210,62 +209,6 @@ function sessionUtcLabel(session = "") {
   return "UTC";
 }
 
-function splitRiskRuleText(text = "") {
-  const [condition = "", action = ""] = String(text).split("->").map((part) => part.trim());
-  return {
-    condition: condition || text,
-    action: action || "Sin efecto especificado"
-  };
-}
-
-function describeRiskRule(rule = {}, isDominant = false) {
-  const parts = splitRiskRuleText(rule.text);
-  const normalized = String(rule.text || "").toLowerCase();
-
-  if (normalized.includes("dd diario")) {
-    return {
-      title: "Stop total del día",
-      condition: parts.condition,
-      state: isDominant ? "Activa ahora" : "Lista para cortar",
-      impact: "Bloquea nueva operativa"
-    };
-  }
-
-  if (normalized.includes("protect")) {
-    return {
-      title: "Activar PROTECT",
-      condition: parts.condition,
-      state: isDominant ? "Activa ahora" : "Preparada",
-      impact: "Reduce tamaño y frecuencia"
-    };
-  }
-
-  if (normalized.includes("agresividad")) {
-    return {
-      title: "Reducir agresividad",
-      condition: parts.condition,
-      state: isDominant ? "Activa ahora" : "En vigilancia",
-      impact: "Baja riesgo y ritmo"
-    };
-  }
-
-  if (normalized.includes("objetivo diario")) {
-    return {
-      title: "Stop voluntario",
-      condition: parts.condition,
-      state: isDominant ? "Activa ahora" : "Disponible",
-      impact: "Cierra la sesión con disciplina"
-    };
-  }
-
-  return {
-    title: parts.action,
-    condition: parts.condition,
-    state: isDominant ? "Activa ahora" : "En seguimiento",
-    impact: parts.action
-  };
-}
-
 function rerenderRiskKeepingSymbolSearch(root, state) {
   const ui = ensureRiskUiState(root);
   const query = ui.symbolQuery;
@@ -279,6 +222,105 @@ function rerenderRiskKeepingSymbolSearch(root, state) {
   });
 }
 
+function resolveRiskBridgeUrl() {
+  const preferences = readLocalPreferences();
+  return preferences.bridgeUrl || "ws://localhost:8765";
+}
+
+function riskStatusMeta(snapshot) {
+  const panicLock = snapshot?.panicLockActive;
+  const status = snapshot?.riskStatus || "unavailable";
+  if (panicLock) {
+    return {
+      tone: "danger",
+      eyebrow: "Mando central",
+      headline: "PANIC LOCK ACTIVO — OPERATIVA CONGELADA",
+      context: "El bloqueo manual sigue activo. No se permiten nuevas órdenes hasta su expiración o liberación explícita."
+    };
+  }
+  if (status === "protection_mode") {
+    return {
+      tone: "danger",
+      eyebrow: "Mando central",
+      headline: "RIESGO ACTIVO — MODO PROTECCIÓN",
+      context: "La política de riesgo ya está limitando la operativa. La prioridad es preservar capital y disciplina."
+    };
+  }
+  if (status === "active_monitoring") {
+    return {
+      tone: "warn",
+      eyebrow: "Mando central",
+      headline: "RIESGO BAJO PRESIÓN — VIGILANCIA ACTIVA",
+      context: "La cuenta sigue operable, pero la presión actual exige recortar exposición y evitar ampliar riesgo sin confirmación."
+    };
+  }
+  if (status === "within_limits") {
+    return {
+      tone: "ok",
+      eyebrow: "Mando central",
+      headline: "DENTRO DE LÍMITES — CONTROL OPERATIVO",
+      context: "La cuenta sigue dentro de política. Mantén ejecución limpia y evita añadir fricción innecesaria."
+    };
+  }
+  return {
+    tone: "warn",
+    eyebrow: "Mando central",
+    headline: "RISK SNAPSHOT NO DISPONIBLE",
+    context: "Aún no hay datos confirmados del motor de riesgo para esta cuenta."
+  };
+}
+
+function mt5FieldStateMeta(rawValue = "") {
+  const value = String(rawValue || "");
+  if (value === "activo_mt5") return { label: "Activo en MT5", tone: "ok" };
+  if (value === "pendiente") return { label: "Pendiente", tone: "warn" };
+  if (value === "error") return { label: "Error", tone: "danger" };
+  if (value === "desactivado") return { label: "Desactivado", tone: "neutral" };
+  return { label: "Pendiente MT5", tone: "warn" };
+}
+
+function riskSyncStateMeta(liveState, snapshot) {
+  if (liveState.status === "loading") {
+    return { label: "Sincronizando", tone: "warn", detail: "Esperando snapshot del motor de riesgo." };
+  }
+  if (liveState.status === "error") {
+    return { label: "Error", tone: "danger", detail: liveState.lastError || "No se pudo conectar con el backend de riesgo." };
+  }
+  if (!snapshot?.backendConnected) {
+    return { label: "Backend desconectado", tone: "danger", detail: snapshot?.error || "El motor de riesgo no está respondiendo." };
+  }
+  if (!snapshot?.mt5Connected) {
+    return { label: "MT5 sin sincronía", tone: "warn", detail: "El backend está activo, pero MT5 no está conectado." };
+  }
+  if (liveState.status === "stale") {
+    return { label: "Snapshot antiguo", tone: "warn", detail: `Último snapshot ${formatDateTime(snapshot?.lastSnapshotAt)}` };
+  }
+  return { label: "Aplicado en MT5", tone: "ok", detail: `Último snapshot ${formatDateTime(snapshot?.lastSnapshotAt)}` };
+}
+
+function renderRiskStateCard(kind, title, body, detail = "") {
+  return `
+    <article class="tl-section-card risk-data-state risk-data-state--${kind}">
+      <div class="risk-data-state__eyebrow">Riesgo</div>
+      <strong>${title}</strong>
+      <p>${body}</p>
+      ${detail ? `<small>${detail}</small>` : ""}
+    </article>
+  `;
+}
+
+function syncDraftFromSnapshot(root, snapshot) {
+  if (!snapshot?.policySnapshot) return;
+  if (root.__riskPrefsStatus === "pending" || root.__riskPrefsStatus === "saving") return;
+  const currentDraft = getRiskPreferencesDraft(root);
+  root.__riskPrefsDraft = {
+    ...currentDraft,
+    defaultRisk: String(snapshot.policySnapshot.risk_per_trade_pct ?? currentDraft.defaultRisk),
+    dailyDrawdownLimit: String(snapshot.policySnapshot.daily_dd_limit_pct ?? currentDraft.dailyDrawdownLimit),
+    maxDrawdownLimit: String(snapshot.policySnapshot.max_dd_limit_pct ?? currentDraft.maxDrawdownLimit),
+  };
+}
+
 export function renderRisk(root, state) {
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
@@ -287,8 +329,19 @@ export function renderRisk(root, state) {
     return;
   }
 
+  const rerenderFromFeed = () => {
+    if (state.ui?.activePage === "risk") {
+      renderRisk(root, state);
+    }
+  };
+  const liveState = ensureRiskSnapshotFeed(root, {
+    bridgeUrl: resolveRiskBridgeUrl(),
+    onChange: rerenderFromFeed
+  });
+  const liveSnapshot = liveState.snapshot;
+  syncDraftFromSnapshot(root, liveSnapshot);
+
   const risk = model.riskSummary;
-  const isBlocked = account.compliance.riskStatus === "violation";
   const ladder = ladderRows(risk);
   const prefsDraft = getRiskPreferencesDraft(root);
   const riskUi = ensureRiskUiState(root);
@@ -404,258 +457,124 @@ export function renderRisk(root, state) {
       </div>
     </div>
   `;
-  const mt5SyncState = root.__riskPrefsStatus === "error"
-    ? { label: "Error", tone: "danger", detail: "No se pudo aplicar la política. Reintenta la sincronización." }
-    : root.__riskPrefsStatus === "saving"
-      ? { label: "Sincronizando", tone: "warn", detail: "Aplicando cambios de la política al backend." }
-      : root.__riskPrefsStatus === "pending"
-        ? { label: "Pendiente", tone: "warn", detail: "Hay cambios sin guardar antes de enviar a MT5." }
-        : account.connection?.state === "connected"
-          ? { label: "Aplicado en MT5", tone: "ok", detail: `Última sincronización ${formatDateTime(account.connection.lastSync)}` }
-          : { label: "Pendiente de MT5", tone: "warn", detail: "La política está guardada en panel pero aún no confirma MT5." };
-  const resolveFieldMt5State = (rawValue) => {
-    const numeric = Number(rawValue);
-    if (!Number.isFinite(numeric) || numeric <= 0) {
-      return { label: "Desactivado", tone: "neutral" };
+  const mt5SyncState = riskSyncStateMeta(liveState, liveSnapshot);
+  const defaultRiskMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.risk_per_trade);
+  const dailyDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.daily_dd_limit);
+  const maxDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.max_dd_limit);
+  const ladderLevel = liveSnapshot?.currentLevel || currentLadderLevel(ladder, risk);
+  const commandMeta = riskStatusMeta(liveSnapshot);
+  const remainingDailyLabel = liveSnapshot
+    ? (liveSnapshot.remainingDailyMarginPct <= 0 ? "Sin margen diario" : `${liveSnapshot.remainingDailyMarginPct.toFixed(2)}% de margen diario`)
+    : "—";
+  const remainingTotalLabel = liveSnapshot
+    ? (liveSnapshot.remainingTotalMarginPct <= 0 ? "Sin margen total" : `${liveSnapshot.remainingTotalMarginPct.toFixed(2)}% de margen total`)
+    : "—";
+  const marginHeadline = !liveSnapshot
+    ? "—"
+    : liveSnapshot.panicLockActive
+      ? "Operativa congelada"
+      : liveSnapshot.remainingTotalMarginPct <= 0
+        ? "Sin margen operativo"
+        : `${liveSnapshot.remainingTotalMarginPct.toFixed(2)}%`;
+  const commandRows = liveSnapshot ? [
+    {
+      label: "Trigger",
+      value: liveSnapshot.trigger || "Sin trigger activo",
+      detail: liveSnapshot.riskStatus === "within_limits" ? "La cuenta sigue dentro de política." : "Este evento disparó el estado actual."
+    },
+    {
+      label: "Bloqueo actual",
+      value: liveSnapshot.blockingRule || "Sin bloqueo operativo",
+      detail: liveSnapshot.panicLockActive ? "La cuenta no admite nuevas órdenes." : "Esta regla manda ahora mismo sobre la operativa."
+    },
+    {
+      label: "Acción requerida",
+      value: liveSnapshot.actionRequired || "Sin acción requerida",
+      detail: liveSnapshot.panicLockExpiresAt ? `Expira ${formatDateTime(liveSnapshot.panicLockExpiresAt)}` : "Acción inmediata derivada del motor de riesgo."
     }
-    if (root.__riskPrefsStatus === "error") return { label: "Error", tone: "danger" };
-    if (root.__riskPrefsStatus === "pending" || root.__riskPrefsStatus === "saving") return { label: "Pendiente", tone: "warn" };
-    if (account.connection?.state === "connected") return { label: "Activo en MT5", tone: "ok" };
-    return { label: "Pendiente MT5", tone: "warn" };
-  };
-  const defaultRiskMt5State = resolveFieldMt5State(prefsDraft.defaultRisk);
-  const dailyDdMt5State = resolveFieldMt5State(prefsDraft.dailyDrawdownLimit);
-  const maxDdMt5State = resolveFieldMt5State(prefsDraft.maxDrawdownLimit);
-  const riskAlerts = computeRiskAlerts(model, account);
-  const riskGuidance = computeRecommendedRiskFromModel(model, account);
-  const equityPeak = Math.max(account.balance || 0, ...((model.equityCurve || []).map((point) => Number(point.value || 0))));
-  const currentDrawdownAmount = Math.max(0, equityPeak - Number(account.equity || 0));
-  const currentDrawdownPct = equityPeak ? (currentDrawdownAmount / equityPeak) * 100 : 0;
-  const dailyDrawdownPct = account.balance ? (Math.abs(Math.min(0, risk.dailyLossUsd || 0)) / account.balance) * 100 : 0;
-  const exposureOpen = model.positions.reduce((sum, item) => sum + Math.abs(item.pnl || 0), 0);
-  const currentLossStreak = (() => {
-    let streak = 0;
-    for (let index = model.trades.length - 1; index >= 0; index -= 1) {
-      const trade = model.trades[index];
-      if ((trade.pnl || 0) < 0) {
-        streak += 1;
-        continue;
-      }
-      break;
-    }
-    return streak;
-  })();
-  const ladderLevel = currentLadderLevel(ladder, risk);
-  const ddHeadroomPct = Math.max(0, (account.maxDrawdownLimit || 10) - currentDrawdownPct);
-  const remainingDailyLossPct = Math.max(0, (model.riskProfile.dailyLossLimitPct || 1.2) - dailyDrawdownPct);
-  const openTrades = model.positions.length;
-  const formatDdConsumed = (value) => formatPercent(Math.abs(value));
-  const controlState = isBlocked
-    ? "Bloqueo recomendado"
-    : currentLossStreak >= 4 || currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
-      ? "Zona de protección"
-      : account.compliance.riskStatus === "warning" || riskGuidance.risk_state === "CAUTION" || currentLossStreak >= 2
-        ? "Vigilancia activa"
-        : "Dentro de límites";
-  const controlTone = isBlocked
-    ? "danger"
-    : controlState === "Zona de protección"
-      ? "warn"
-      : controlState === "Vigilancia activa"
-        ? "warn"
-        : "ok";
-  const controlHeadline = isBlocked
-    ? "BLOQUEO RECOMENDADO — CORTA EL FLUJO"
-    : controlState === "Zona de protección"
-      ? "RIESGO ACTIVO — MODO PROTECCIÓN"
-      : controlState === "Vigilancia activa"
-        ? "RIESGO BAJO PRESIÓN — VIGILANCIA ACTIVA"
-        : "DENTRO DE LÍMITES — CONTROL OPERATIVO";
-  const marginHeadline = ddHeadroomPct <= 0
-    ? "Sin margen operativo"
-    : ddHeadroomPct <= 0.35
-      ? "Margen agotado"
-      : formatPercent(ddHeadroomPct);
-  const controlContext = isBlocked
-    ? "Bloqueo recomendado por incumplimiento de límites."
-    : controlState === "Zona de protección"
-      ? "La operativa ya está bajo reglas defensivas."
-      : controlState === "Vigilancia activa"
-        ? "Hay fricción operativa y margen reduciéndose."
-        : "La cuenta sigue dentro de límites operativos.";
-  const dominantRuleIndex = risk.stopRules.findIndex((rule) => rule.tone === "red");
-  const dominantRule = risk.stopRules[Math.max(dominantRuleIndex, 0)] || risk.stopRules[0] || { tone: "orange", text: "Sin regla dominante" };
-  const dominantRuleDescriptor = describeRiskRule(dominantRule, true);
-  const activationReason = currentLossStreak >= 2
-    ? {
-        title: `Racha de ${currentLossStreak} pérdidas consecutivas`,
-        detail: "La presión reciente activó el modo defensivo."
-      }
-    : dailyDrawdownPct >= (model.riskProfile.dailyLossLimitPct || 1.2) * 0.8
-      ? {
-        title: `${formatPercent(dailyDrawdownPct)} del límite diario ya consumido`,
-        detail: "El DD diario ha llevado la cuenta a protección."
-      }
-      : currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
-        ? {
-            title: `Drawdown acumulado en ${formatPercent(currentDrawdownPct)}`,
-            detail: "El margen total ya no permite seguir con ritmo normal."
-          }
-        : account.openPnl < 0 && exposureOpen > 0
-          ? {
-              title: `Exposición abierta bajo presión (${formatCurrency(account.openPnl)})`,
-              detail: "La pérdida flotante obliga a contener la operativa."
-            }
-          : {
-              title: "Fricción operativa detectada",
-              detail: "El flujo reciente ya no permite operar con normalidad."
-            };
-  const dailyMarginLabel = remainingDailyLossPct <= 0
-    ? "Sin margen diario"
-    : `${formatPercent(remainingDailyLossPct)} de margen diario`;
-  const totalMarginLabel = ddHeadroomPct <= 0
-    ? "Sin margen total"
-    : `${formatPercent(ddHeadroomPct)} de margen total`;
-  const actionRequired = isBlocked
-    ? "Cierra operativa y espera reset de sesión"
-    : dominantRuleDescriptor.title === "Stop total del día"
-      ? "Cierra operativa y espera reset de sesión"
-      : dominantRuleDescriptor.title === "Activar PROTECT"
-        ? "Reduce riesgo y limita nuevas entradas"
-        : dominantRuleDescriptor.title === "Reducir agresividad"
-          ? "Baja tamaño y evita aumentar frecuencia"
-          : "Mantén disciplina y no fuerces más operativa";
-  const dominantRuleMarkup = `
-    <article class="risk-rule-card risk-rule-card--dominant">
-      <div class="risk-rule-card__head">
-        <span>Dominante</span>
-      </div>
-      <strong>${dominantRuleDescriptor.title}</strong>
-      <div class="risk-rule-card__meta">
-        <div class="risk-rule-card__meta-row">
-          <span>Condición</span>
-          <strong>${dominantRuleDescriptor.condition}</strong>
-        </div>
-        <div class="risk-rule-card__meta-row">
-          <span>Estado actual</span>
-          <strong>${dominantRuleDescriptor.state}</strong>
-        </div>
-        <div class="risk-rule-card__meta-row">
-          <span>Impacto operativo</span>
-          <strong>${dominantRuleDescriptor.impact}</strong>
-        </div>
-      </div>
-    </article>
-  `;
-  const secondaryRulesMarkup = risk.stopRules.map((rule, index) => {
-    if (index === Math.max(dominantRuleIndex, 0)) return "";
-    const toneClass = index === dominantRuleIndex
-      ? "dominant"
-      : rule.tone === "green"
-        ? "neutral"
-        : "warn";
-    const statusLabel = rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
-    const descriptor = describeRiskRule(rule, false);
-    return `
-      <article class="risk-rule-card risk-rule-card--${toneClass}">
+  ] : [];
+  const activeRules = liveSnapshot?.activeRules || [];
+  const rulesMarkup = activeRules.length
+    ? activeRules.map((rule) => `
+      <article class="risk-rule-card risk-rule-card--${rule.isDominant ? "dominant" : rule.tone}">
         <div class="risk-rule-card__head">
-          <span>${statusLabel}</span>
+          <span>${rule.isDominant ? "Dominante" : rule.tone === "danger" ? "Activa" : rule.tone === "warn" ? "Vigila" : "Control"}</span>
         </div>
-        <strong>${descriptor.title}</strong>
+        <strong>${rule.title}</strong>
         <div class="risk-rule-card__meta">
           <div class="risk-rule-card__meta-row">
             <span>Condición</span>
-            <strong>${descriptor.condition}</strong>
+            <strong>${rule.condition}</strong>
           </div>
           <div class="risk-rule-card__meta-row">
             <span>Estado actual</span>
-            <strong>${descriptor.state}</strong>
+            <strong>${rule.state}</strong>
           </div>
           <div class="risk-rule-card__meta-row">
             <span>Impacto operativo</span>
-            <strong>${descriptor.impact}</strong>
+            <strong>${rule.impact}</strong>
           </div>
         </div>
       </article>
-    `;
-  }).join("");
-  const coreMetrics = [
-    {
-      label: "Drawdown actual",
-      value: formatDdConsumed(currentDrawdownPct),
-      noteLead: currentDrawdownAmount > 0 ? formatCurrency(-currentDrawdownAmount) : "€0",
-      noteTail: currentDrawdownAmount > 0 ? "desde el último pico" : "sin DD abierto",
-      noteTone: currentDrawdownAmount > 0 ? "negative" : "neutral"
-    },
-    {
-      label: "Drawdown máximo",
-      value: formatDdConsumed(model.totals.drawdown.maxPct),
-      noteLead: `${Math.round((model.totals.drawdown.maxPct / Math.max(account.maxDrawdownLimit || 10, 0.01)) * 100)}%`,
-      noteTail: "del límite total",
-      noteTone: "warning"
-    },
-    {
-      label: "Riesgo por trade",
-      value: `${risk.currentRiskPct.toFixed(2)}%`,
-      noteLead: formatCurrency(risk.currentRiskUsd),
-      noteTail: "por operación",
-      noteTone: risk.currentRiskPct >= (model.riskProfile.maxTradeRiskPct || 1) * 0.8 ? "warning" : "positive"
-    },
-    {
-      label: "Exposición actual",
-      value: formatCurrency(account.openPnl),
-      noteLead: exposureOpen > 0 ? formatCurrency(exposureOpen) : "€0",
-      noteTail: exposureOpen > 0 ? "flotante absoluta" : "sin presión flotante",
-      noteTone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : "neutral"
-    }
-  ];
+    `).join("")
+    : `<article class="risk-rule-card risk-rule-card--neutral"><strong>Sin reglas activas</strong><div class="risk-rule-card__meta"><div class="risk-rule-card__meta-row"><span>Estado</span><strong>Esperando snapshot del backend</strong></div></div></article>`;
+  const coreMetrics = (liveSnapshot?.limitsAndPressure || []).map((item) => ({
+    label: item.label,
+    value: item.display,
+    noteLead: item.noteValue,
+    noteTail: item.noteLabel,
+    noteTone: item.tone
+  }));
   root.innerHTML = `
     <div class="risk-page-stack">
     <div class="tl-page-header">
       <div class="tl-page-title">Gestor de Riesgo</div>
       <div class="tl-page-sub">Controles operativos, configuración de límites y lectura clara del estado de seguridad.</div>
     </div>
-    ${riskAlertsMarkup(riskAlerts, 3)}
+    ${liveState.status === "loading" && !liveSnapshot ? renderRiskStateCard("loading", "Sincronizando Riesgo", "Esperando snapshot del motor de riesgo y estado operativo desde MT5.") : ""}
+    ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Backend de riesgo no disponible", "No se pudo obtener el snapshot del motor de riesgo.", liveState.lastError || resolveRiskBridgeUrl()) : ""}
+    ${liveState.status === "disconnected" && !liveSnapshot ? renderRiskStateCard("warning", "Bridge MT5 desconectado", "La sección Riesgo necesita el bridge local para renderizar datos reales.", resolveRiskBridgeUrl()) : ""}
+    ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último snapshot conocido", "El bridge no ha actualizado la sección Riesgo dentro del umbral esperado.", `Último snapshot ${formatDateTime(liveSnapshot.lastSnapshotAt)}`) : ""}
+    ${liveSnapshot && !liveSnapshot.mt5Connected ? renderRiskStateCard("warning", "MT5 sin sincronización", "El backend de riesgo está activo, pero la cuenta MT5 aún no está conectada.", "La UI conserva el último contrato conocido.") : ""}
+    ${liveSnapshot && !liveSnapshot.backendConnected ? renderRiskStateCard("error", "Motor de riesgo sin respuesta", "No se ha podido construir un contrato de riesgo válido desde backend.", liveSnapshot.error || "") : ""}
 
-    <article class="tl-section-card risk-command-center risk-command-center--${controlTone}">
+    <article class="tl-section-card risk-command-center risk-command-center--${commandMeta.tone}">
       <div class="risk-command-center__copy">
-        <div class="eyebrow">Mando central</div>
-        <h3>${controlHeadline}</h3>
-        <p>${controlContext}</p>
+        <div class="eyebrow">${commandMeta.eyebrow}</div>
+        <h3>${commandMeta.headline}</h3>
+        <p>${commandMeta.context}</p>
         <div class="risk-command-center__ops">
-          <div class="risk-command-center__op-row">
-            <span>Trigger</span>
-            <strong>${activationReason.title}</strong>
-            <small>${activationReason.detail}</small>
-          </div>
-          <div class="risk-command-center__op-row">
-            <span>Bloqueo actual</span>
-            <strong>${dominantRuleDescriptor.title}</strong>
-            <small>${dominantRuleDescriptor.impact}</small>
-          </div>
-          <div class="risk-command-center__op-row risk-command-center__op-row--action">
-            <span>Acción requerida</span>
-            <strong>${actionRequired}</strong>
-            <small>Ejecuta esta acción antes de retomar operativa.</small>
-          </div>
+          ${commandRows.length ? commandRows.map((row, index) => `
+            <div class="risk-command-center__op-row ${index === 2 ? "risk-command-center__op-row--action" : ""}">
+              <span>${row.label}</span>
+              <strong>${row.value}</strong>
+              <small>${row.detail}</small>
+            </div>
+          `).join("") : `
+            <div class="risk-command-center__op-row risk-command-center__op-row--action">
+              <span>Estado</span>
+              <strong>Esperando snapshot</strong>
+              <small>La sección se actualizará cuando el bridge confirme el contrato de riesgo.</small>
+            </div>
+          `}
         </div>
       </div>
       <div class="risk-command-center__meta">
         <div class="risk-command-center__metric">
           <span>Margen restante</span>
-          <strong class="${ddHeadroomPct <= 0 ? "metric-negative" : ddHeadroomPct <= 0.35 ? "metric-warning" : ""}">${marginHeadline}</strong>
-          <small>${totalMarginLabel} · ${dailyMarginLabel}</small>
+          <strong class="${liveSnapshot?.remainingTotalMarginPct <= 0 || liveSnapshot?.panicLockActive ? "metric-negative" : liveSnapshot?.remainingTotalMarginPct <= 1 ? "metric-warning" : ""}">${marginHeadline}</strong>
+          <small>${remainingTotalLabel} · ${remainingDailyLabel}</small>
         </div>
       </div>
     </article>
 
-    ${isBlocked ? `
+    ${liveSnapshot?.panicLockActive ? `
       <article class="risk-lock-banner">
         <div class="risk-lock-copy">
-          <strong>EA bloqueado por protección de capital</strong>
-          <span>${account.compliance.messages[0] || "Se activó el bloqueo automático por incumplimiento de límites."}</span>
+          <strong>Panic lock activo</strong>
+          <span>La operativa está congelada manualmente hasta ${formatDateTime(liveSnapshot.panicLockExpiresAt)}.</span>
         </div>
-        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último sync: ${formatDateTime(account.connection.lastSync)}</div>` : ""}
+        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último snapshot: ${formatDateTime(liveSnapshot.lastSnapshotAt)}</div>` : ""}
       </article>
     ` : ""}
 
@@ -663,13 +582,12 @@ export function renderRisk(root, state) {
       <div class="tl-section-header">
         <div>
           <div class="tl-section-title">Reglas en ejecución</div>
-          <div class="row-sub">Estas reglas provienen de la política activa de riesgo. La dominante manda ahora mismo sobre la operativa.</div>
+          <div class="row-sub">Estas reglas provienen de la política activa de riesgo del backend. La dominante manda ahora mismo sobre la operativa.</div>
         </div>
       </div>
-      <div class="risk-active-rules__context">${riskGuidance.blocked ? riskGuidance.block_reason : "Política activa aplicada sobre la operativa actual."}</div>
+      <div class="risk-active-rules__context">${liveSnapshot ? (liveSnapshot.blockingRule || "Política activa aplicada sobre la operativa actual.") : "Esperando reglas del snapshot real."}</div>
       <div class="risk-active-rules__grid">
-        ${dominantRuleMarkup}
-        ${secondaryRulesMarkup}
+        ${rulesMarkup}
       </div>
     </article>
 
@@ -682,7 +600,9 @@ export function renderRisk(root, state) {
           </div>
         </div>
         <div class="risk-core-metrics__grid">
-          ${coreMetrics.map((item) => `
+          ${(coreMetrics.length ? coreMetrics : [
+            { label: "Snapshot", value: "—", noteLead: "Sin datos", noteTail: "esperando backend", noteTone: "neutral" }
+          ]).map((item) => `
             <article class="tl-kpi-card risk-core-kpi">
               <div class="tl-kpi-label">${item.label}</div>
               <div class="tl-kpi-val">${item.value}</div>
@@ -705,15 +625,15 @@ export function renderRisk(root, state) {
         <div class="risk-exposure-list">
           <div class="risk-exposure-row">
             <span>Riesgo abierto</span>
-            <strong class="${account.openPnl < 0 ? "metric-negative" : account.openPnl > 0 ? "metric-positive" : ""}">${formatCurrency(account.openPnl)}</strong>
+            <strong class="${liveSnapshot?.totalOpenRiskPct > 0 ? "metric-warning" : ""}">${liveSnapshot ? `${liveSnapshot.totalOpenRiskPct.toFixed(2)}%` : "—"}</strong>
           </div>
           <div class="risk-exposure-row">
-            <span>Trades activos</span>
-            <strong>${openTrades}</strong>
+            <span>Clúster correlacionado</span>
+            <strong class="${liveSnapshot?.effectiveCorrelatedRisk >= Number(liveSnapshot?.policySnapshot?.max_correlated_risk_pct || 999) ? "metric-negative" : ""}">${liveSnapshot ? `${liveSnapshot.effectiveCorrelatedRisk.toFixed(2)}%` : "—"}</strong>
           </div>
           <div class="risk-exposure-row">
             <span>Presión</span>
-            <strong class="${controlTone === "danger" ? "metric-negative" : controlTone === "warn" ? "metric-warning" : "green"}">${controlState}</strong>
+            <strong class="${commandMeta.tone === "danger" ? "metric-negative" : commandMeta.tone === "warn" ? "metric-warning" : "green"}">${liveSnapshot ? liveSnapshot.riskStatus.replaceAll("_", " ") : "Sin snapshot"}</strong>
           </div>
         </div>
       </article>

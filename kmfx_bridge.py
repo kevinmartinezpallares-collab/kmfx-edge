@@ -18,8 +18,12 @@ import json
 import logging
 import sys
 import os
+import math
 from datetime import datetime, timezone
 from typing import Set
+
+from risk_orchestrator import RiskOrchestrator
+from risk_state_store import JsonFileRiskStateStore
 
 # ── intentar importar dependencias opcionales ──────────────────────────────
 try:
@@ -51,6 +55,10 @@ HOST = "localhost"
 PORT = 8765
 POLL_INTERVAL = 1.0          # segundos entre actualizaciones
 MAX_HISTORY_DEALS = 500      # máximo de deals a cargar del historial
+RISK_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-risk-state.json")
+risk_orchestrator = RiskOrchestrator(
+    state_store=JsonFileRiskStateStore(RISK_STATE_PATH)
+)
 
 # ── estado global ──────────────────────────────────────────────────────────
 connected_clients: Set = set()
@@ -130,6 +138,96 @@ def get_open_positions() -> list:
             "magic":       p.magic,
         })
     return result
+
+
+def _estimate_position_risk(position: dict, account_balance: float) -> tuple[float, float]:
+    """
+    Estima el riesgo usando el SL real y el cálculo de profit del terminal cuando
+    está disponible. Si MT5 no puede calcularlo, conserva una salida segura.
+    """
+    balance = max(float(account_balance or 0.0), 0.0)
+    stop_loss = float(position.get("sl") or 0.0)
+    open_price = float(position.get("open_price") or 0.0)
+    volume = float(position.get("volume") or 0.0)
+    side = str(position.get("type") or "").upper()
+
+    if stop_loss <= 0 or open_price <= 0 or volume <= 0:
+        return 0.0, 0.0
+
+    risk_amount = 0.0
+    if HAS_MT5:
+        try:
+            order_type = mt5.ORDER_TYPE_BUY if side == "BUY" else mt5.ORDER_TYPE_SELL
+            mt5_profit = mt5.order_calc_profit(order_type, position["symbol"], volume, open_price, stop_loss)
+            if mt5_profit is not None and math.isfinite(mt5_profit):
+                risk_amount = abs(float(mt5_profit))
+        except Exception:
+            risk_amount = 0.0
+
+    if risk_amount <= 0:
+        risk_amount = abs(float(position.get("profit") or 0.0))
+
+    risk_pct = (risk_amount / balance * 100.0) if balance > 0 else 0.0
+    return round(max(risk_amount, 0.0), 2), round(max(risk_pct, 0.0), 4)
+
+
+def _enrich_positions_for_risk_engine(positions: list, account: dict) -> list:
+    balance = float(account.get("balance") or 0.0)
+    enriched = []
+    for position in positions:
+        risk_amount, risk_pct = _estimate_position_risk(position, balance)
+        enriched.append({
+            **position,
+            "position_id": position.get("ticket"),
+            "price_open": position.get("open_price"),
+            "price_current": position.get("current"),
+            "time": position.get("open_time"),
+            "strategy_tag": position.get("comment") or None,
+            "risk_amount": risk_amount,
+            "risk_pct": risk_pct,
+        })
+    return enriched
+
+
+def build_risk_snapshot(account: dict, positions: list) -> dict:
+    try:
+        risk_snapshot = risk_orchestrator.sync_mt5_snapshot(
+            account,
+            _enrich_positions_for_risk_engine(positions, account),
+        )
+        risk_snapshot["backend_connected"] = True
+        risk_snapshot["mt5_connected"] = bool(HAS_MT5)
+        risk_snapshot["mode"] = "live" if HAS_MT5 else "demo"
+        return risk_snapshot
+    except Exception as exc:
+        log.exception("No se pudo generar risk_snapshot: %s", exc)
+        return {
+            "risk_status": "unavailable",
+            "trigger": "",
+            "blocking_rule": "",
+            "action_required": "",
+            "remaining_daily_margin_pct": 0.0,
+            "remaining_total_margin_pct": 0.0,
+            "daily_drawdown_pct": 0.0,
+            "max_drawdown_pct": 0.0,
+            "total_open_risk_pct": 0.0,
+            "effective_correlated_risk": 0.0,
+            "volatility_override_active": False,
+            "recommended_level": "",
+            "current_level": "",
+            "panic_lock_active": False,
+            "panic_lock_expires_at": "",
+            "active_rules": [],
+            "mt5_limit_states": {},
+            "limits_and_pressure": [],
+            "policy_snapshot": {},
+            "last_snapshot_at": _now(),
+            "snapshot_stale_after_seconds": 15,
+            "backend_connected": False,
+            "mt5_connected": bool(HAS_MT5),
+            "mode": "live" if HAS_MT5 else "demo",
+            "error": str(exc),
+        }
 
 
 def get_pending_orders() -> list:
@@ -369,6 +467,7 @@ def build_full_snapshot() -> dict:
     orders   = get_pending_orders()
     deals    = get_deal_history(days_back=90)
     stats    = compute_stats(deals, account.get("balance", 0))
+    risk_snapshot = build_risk_snapshot(account, positions)
 
     # Precios de pares principales
     symbols = ["GBPUSD","EURUSD","USDCAD","AUDUSD","USDJPY"]
@@ -387,6 +486,7 @@ def build_full_snapshot() -> dict:
         "trades":    deals,
         "stats":     stats,
         "prices":    prices,
+        "risk_snapshot": risk_snapshot,
         "mode":      "live" if HAS_MT5 else "demo",
     }
 
@@ -461,6 +561,7 @@ async def poll_mt5():
             account   = get_account_info()
             positions = get_open_positions()
             orders    = get_pending_orders()
+            risk_snapshot = build_risk_snapshot(account, positions)
 
             symbols = list({p["symbol"] for p in positions} | {"GBPUSD","EURUSD"})
             prices  = {s: get_symbol_price(s) for s in symbols}
@@ -472,6 +573,7 @@ async def poll_mt5():
                 "positions": positions,
                 "orders":    orders,
                 "prices":    prices,
+                "risk_snapshot": risk_snapshot,
                 "mode":      "live" if HAS_MT5 else "demo",
             }
             await broadcast(json.dumps(update))
