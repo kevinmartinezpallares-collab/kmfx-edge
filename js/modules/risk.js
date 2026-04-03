@@ -667,11 +667,8 @@ export function renderRisk(root, state) {
         </div>
       </div>
       <div class="risk-active-rules__context">${riskGuidance.blocked ? riskGuidance.block_reason : "Política activa aplicada sobre la operativa actual."}</div>
-      <div class="risk-active-rules__lead">
-        ${dominantRuleMarkup}
-      </div>
-      <div class="risk-active-rules__secondary-label">Secundarias</div>
       <div class="risk-active-rules__grid">
+        ${dominantRuleMarkup}
         ${secondaryRulesMarkup}
       </div>
     </article>
