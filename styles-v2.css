@@ -1753,6 +1753,7 @@ html[data-theme="dark"] .risk-command-center__meta,
 body[data-theme="dark"] .risk-command-center__meta {
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
 html[data-theme="dark"] .risk-command-center__metric,
@@ -1793,6 +1794,14 @@ html[data-theme="dark"] .risk-active-rules,
 body[data-theme="dark"] .risk-active-rules {
   display: grid;
   gap: 12px;
+}
+
+html[data-theme="dark"] .risk-active-rules__context,
+body[data-theme="dark"] .risk-active-rules__context {
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .risk-active-rules__grid,
@@ -1907,6 +1916,7 @@ body[data-theme="dark"] .risk-rule-card--dominant {
     color-mix(in srgb, var(--layer-1-subtle) 91%, rgba(154, 46, 60, 0.085));
   border-color: rgba(214, 86, 102, 0.22);
   box-shadow: inset 0 0 0 1px rgba(214, 86, 102, 0.08);
+  grid-column: span 2;
 }
 
 html[data-theme="dark"] .risk-rule-card--dominant .risk-rule-card__head span,
@@ -2519,19 +2529,24 @@ body[data-theme="dark"] .risk-select-menu--policy {
 
 html[data-theme="dark"] .risk-policy-card .risk-select-menu--policy,
 body[data-theme="dark"] .risk-policy-card .risk-select-menu--policy {
-  position: static;
-  inset: auto;
-  margin-top: 10px;
-  width: 100%;
-  transform: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018);
-  z-index: auto;
+  position: absolute;
+  top: auto;
+  bottom: calc(100% + 12px);
+  left: auto;
+  right: 0;
+  margin-top: 0;
+  width: min(440px, calc(100vw - 88px));
+  max-height: min(58vh, 460px);
+  overflow: auto;
+  transform: translateY(6px) scale(0.985);
+  box-shadow: 0 22px 48px rgba(0,0,0,0.44);
+  z-index: 120;
 }
 
 html[data-theme="dark"] .risk-policy-card--full .risk-select-menu--policy,
 body[data-theme="dark"] .risk-policy-card--full .risk-select-menu--policy {
-  width: 100%;
-  max-width: none;
+  width: min(620px, calc(100vw - 88px));
+  max-width: min(620px, calc(100vw - 88px));
 }
 
 html[data-theme="dark"] .risk-inline-editor-head,
@@ -2808,7 +2823,12 @@ body[data-theme="dark"] .risk-symbol-summary-pills {
 
 html[data-theme="dark"] .risk-select.open .risk-select-menu,
 body[data-theme="dark"] .risk-select.open .risk-select-menu {
-  transform: none;
+  transform: translateY(0) scale(1);
+}
+
+html[data-theme="dark"] .risk-select.open,
+body[data-theme="dark"] .risk-select.open {
+  z-index: 60;
 }
 
 html[data-theme="dark"] .risk-session-row,
@@ -2979,6 +2999,11 @@ body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:
 }
 
 @media (max-width: 1080px) {
+  html[data-theme="dark"] .risk-rule-card--dominant,
+  body[data-theme="dark"] .risk-rule-card--dominant {
+    grid-column: span 2;
+  }
+
   html[data-theme="dark"] .risk-command-center__trace,
   body[data-theme="dark"] .risk-command-center__trace {
     grid-template-columns: 1fr;
@@ -3048,6 +3073,11 @@ body[data-theme="dark"] .risk-ladder-table tbody tr.risk-ladder-row--current td:
 }
 
 @media (max-width: 720px) {
+  html[data-theme="dark"] .risk-rule-card--dominant,
+  body[data-theme="dark"] .risk-rule-card--dominant {
+    grid-column: span 1;
+  }
+
   html[data-theme="dark"] .risk-active-rules__grid,
   body[data-theme="dark"] .risk-active-rules__grid,
   html[data-theme="dark"] .risk-core-metrics__grid,

@@ -388,7 +388,7 @@ export function renderRisk(root, state) {
   const ddHeadroomPct = Math.max(0, (account.maxDrawdownLimit || 10) - currentDrawdownPct);
   const remainingDailyLossPct = Math.max(0, (model.riskProfile.dailyLossLimitPct || 1.2) - dailyDrawdownPct);
   const openTrades = model.positions.length;
-  const formatDdConsumed = (value) => `${value > 0 ? "-" : ""}${formatPercent(Math.abs(value))}`;
+  const formatDdConsumed = (value) => formatPercent(Math.abs(value));
   const controlState = isBlocked
     ? "Bloqueo recomendado"
     : currentLossStreak >= 4 || currentDrawdownPct >= Math.max((account.maxDrawdownLimit || 10) * 0.7, 5.5)
@@ -410,13 +410,6 @@ export function renderRisk(root, state) {
       : controlState === "Vigilancia activa"
         ? "RIESGO BAJO PRESIÓN — VIGILANCIA ACTIVA"
         : "DENTRO DE LÍMITES — CONTROL OPERATIVO";
-  const controlTrigger = currentLossStreak >= 3
-    ? `Racha de ${currentLossStreak} pérdidas consecutivas`
-    : currentDrawdownPct >= 1
-      ? `Drawdown actual en ${formatPercent(currentDrawdownPct)}`
-      : account.openPnl < 0
-        ? `Exposición abierta en ${formatCurrency(account.openPnl)}`
-        : "Sin trigger crítico activo";
   const marginHeadline = ddHeadroomPct <= 0
     ? "Sin margen operativo"
     : ddHeadroomPct <= 0.35
@@ -462,13 +455,14 @@ export function renderRisk(root, state) {
   const totalMarginLabel = ddHeadroomPct <= 0
     ? "Sin margen total"
     : `${formatPercent(ddHeadroomPct)} de margen total`;
+  const dominantRuleContext = riskGuidance.blocked ? riskGuidance.block_reason : riskGuidance.explanation;
   const activeRulesMarkup = risk.stopRules.map((rule, index) => {
     const toneClass = index === dominantRuleIndex
       ? "dominant"
       : rule.tone === "green"
         ? "neutral"
         : "warn";
-    const statusLabel = rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
+    const statusLabel = index === dominantRuleIndex ? "Dominante" : rule.tone === "green" ? "Activa" : rule.tone === "red" ? "Stop" : "Vigila";
     const ruleParts = splitRiskRuleText(rule.text);
     const currentState = index === dominantRuleIndex
       ? "Mandando ahora"
@@ -481,7 +475,6 @@ export function renderRisk(root, state) {
       <article class="risk-rule-card risk-rule-card--${toneClass}">
         <div class="risk-rule-card__head">
           <span>${statusLabel}</span>
-          <small>Origen: política activa de riesgo</small>
         </div>
         <strong>${ruleParts.action}</strong>
         <div class="risk-rule-card__meta">
@@ -503,7 +496,7 @@ export function renderRisk(root, state) {
       value: formatDdConsumed(currentDrawdownPct),
       noteLead: formatCurrency(-currentDrawdownAmount),
       noteTail: "desde el último pico",
-      noteTone: currentDrawdownAmount > 0 ? "negative" : "positive"
+      noteTone: currentDrawdownAmount > 0 ? "negative" : "neutral"
     },
     {
       label: "Drawdown máximo",
@@ -559,11 +552,6 @@ export function renderRisk(root, state) {
           <strong class="${ddHeadroomPct <= 0 ? "metric-negative" : ddHeadroomPct <= 0.35 ? "metric-warning" : ""}">${marginHeadline}</strong>
           <small>${totalMarginLabel} · ${dailyMarginLabel}</small>
         </div>
-        <div class="risk-command-center__metric">
-          <span>Qué limita la operativa</span>
-          <strong class="${currentLossStreak >= 3 ? "metric-negative" : controlTone === "warn" ? "metric-warning" : ""}">${controlTrigger}</strong>
-          <small>${riskGuidance.blocked ? riskGuidance.block_reason : riskGuidance.explanation}</small>
-        </div>
       </div>
     </article>
 
@@ -581,9 +569,10 @@ export function renderRisk(root, state) {
       <div class="tl-section-header">
         <div>
           <div class="tl-section-title">Reglas en ejecución</div>
-          <div class="row-sub">Estas reglas provienen de la política activa de riesgo y explican qué está limitando la operativa ahora mismo.</div>
+          <div class="row-sub">Estas reglas provienen de la política activa de riesgo. La dominante manda ahora mismo sobre la operativa.</div>
         </div>
       </div>
+      <div class="risk-active-rules__context">${dominantRuleContext}</div>
       <div class="risk-active-rules__grid">
         ${activeRulesMarkup}
       </div>
@@ -672,7 +661,7 @@ export function renderRisk(root, state) {
       </div>
 
       <div class="risk-policy-editors">
-        <article class="risk-policy-card">
+        <article class="risk-policy-card ${riskUi.openMenu === "sessions" ? "risk-policy-card--menu-open" : ""}">
           <div class="risk-policy-card__head">
             <div>
               <div class="risk-config-title">Control de volumen</div>
@@ -708,7 +697,7 @@ export function renderRisk(root, state) {
             <button class="risk-select-trigger risk-select-trigger--policy" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
               <span>${selectedSessionsLabel}</span>
             </button>
-            <div class="risk-select-menu risk-select-menu--policy">
+            <div class="risk-select-menu risk-select-menu--policy risk-select-menu--sessions-policy">
               <div class="risk-inline-editor-head">
                 <div>
                   <strong>Ventanas operativas</strong>
@@ -754,7 +743,7 @@ export function renderRisk(root, state) {
           </div>
         </article>
 
-        <article class="risk-policy-card risk-policy-card--full">
+        <article class="risk-policy-card risk-policy-card--full ${riskUi.openMenu === "symbols" ? "risk-policy-card--menu-open" : ""}">
           <div class="risk-policy-card__head">
             <div>
               <div class="risk-config-title">Símbolos permitidos</div>
@@ -773,7 +762,7 @@ export function renderRisk(root, state) {
                 ${selectedSymbolOverflowMarkup}
               </span>
             </button>
-            <div class="risk-select-menu risk-select-menu--symbols risk-select-menu--policy">
+            <div class="risk-select-menu risk-select-menu--symbols risk-select-menu--policy risk-select-menu--symbols-policy">
               <div class="risk-inline-editor-head">
                 <div>
                   <strong>Editar whitelist</strong>
