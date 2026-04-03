@@ -2117,13 +2117,64 @@ body[data-theme="dark"] .risk-policy-field {
   gap: 8px;
 }
 
+html[data-theme="dark"] .risk-policy-field__head,
+body[data-theme="dark"] .risk-policy-field__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 html[data-theme="dark"] .risk-policy-field > span,
-body[data-theme="dark"] .risk-policy-field > span {
+body[data-theme="dark"] .risk-policy-field > span,
+html[data-theme="dark"] .risk-policy-field__head > span,
+body[data-theme="dark"] .risk-policy-field__head > span {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-field__state,
+body[data-theme="dark"] .risk-policy-field__state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-policy-field__state--ok,
+body[data-theme="dark"] .risk-policy-field__state--ok {
+  color: color-mix(in srgb, var(--positive) 78%, var(--text-1));
+  border-color: rgba(52, 199, 89, 0.16);
+}
+
+html[data-theme="dark"] .risk-policy-field__state--warn,
+body[data-theme="dark"] .risk-policy-field__state--warn {
+  color: color-mix(in srgb, var(--warning) 82%, var(--text-1));
+  border-color: rgba(255, 159, 10, 0.16);
+}
+
+html[data-theme="dark"] .risk-policy-field__state--danger,
+body[data-theme="dark"] .risk-policy-field__state--danger {
+  color: color-mix(in srgb, var(--negative) 80%, var(--text-1));
+  border-color: rgba(214, 86, 102, 0.18);
+}
+
+html[data-theme="dark"] .risk-policy-field__state--neutral,
+body[data-theme="dark"] .risk-policy-field__state--neutral {
+  color: var(--text-2);
+  border-color: rgba(255,255,255,0.08);
 }
 
 html[data-theme="dark"] .risk-policy-input-shell,

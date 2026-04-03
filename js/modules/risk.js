@@ -413,6 +413,19 @@ export function renderRisk(root, state) {
         : account.connection?.state === "connected"
           ? { label: "Aplicado en MT5", tone: "ok", detail: `Última sincronización ${formatDateTime(account.connection.lastSync)}` }
           : { label: "Pendiente de MT5", tone: "warn", detail: "La política está guardada en panel pero aún no confirma MT5." };
+  const resolveFieldMt5State = (rawValue) => {
+    const numeric = Number(rawValue);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return { label: "Desactivado", tone: "neutral" };
+    }
+    if (root.__riskPrefsStatus === "error") return { label: "Error", tone: "danger" };
+    if (root.__riskPrefsStatus === "pending" || root.__riskPrefsStatus === "saving") return { label: "Pendiente", tone: "warn" };
+    if (account.connection?.state === "connected") return { label: "Activo en MT5", tone: "ok" };
+    return { label: "Pendiente MT5", tone: "warn" };
+  };
+  const defaultRiskMt5State = resolveFieldMt5State(prefsDraft.defaultRisk);
+  const dailyDdMt5State = resolveFieldMt5State(prefsDraft.dailyDrawdownLimit);
+  const maxDdMt5State = resolveFieldMt5State(prefsDraft.maxDrawdownLimit);
   const riskAlerts = computeRiskAlerts(model, account);
   const riskGuidance = computeRecommendedRiskFromModel(model, account);
   const equityPeak = Math.max(account.balance || 0, ...((model.equityCurve || []).map((point) => Number(point.value || 0))));
@@ -570,30 +583,30 @@ export function renderRisk(root, state) {
     {
       label: "Drawdown actual",
       value: formatDdConsumed(currentDrawdownPct),
-      noteLead: formatCurrency(-currentDrawdownAmount),
-      noteTail: "desde el último pico",
+      noteLead: currentDrawdownAmount > 0 ? formatCurrency(-currentDrawdownAmount) : "€0",
+      noteTail: currentDrawdownAmount > 0 ? "desde el último pico" : "sin DD abierto",
       noteTone: currentDrawdownAmount > 0 ? "negative" : "neutral"
     },
     {
       label: "Drawdown máximo",
       value: formatDdConsumed(model.totals.drawdown.maxPct),
       noteLead: `${Math.round((model.totals.drawdown.maxPct / Math.max(account.maxDrawdownLimit || 10, 0.01)) * 100)}%`,
-      noteTail: "del límite total consumido",
+      noteTail: "del límite total",
       noteTone: "warning"
     },
     {
       label: "Riesgo por trade",
       value: `${risk.currentRiskPct.toFixed(2)}%`,
       noteLead: formatCurrency(risk.currentRiskUsd),
-      noteTail: "expuestos por operación",
+      noteTail: "por operación",
       noteTone: risk.currentRiskPct >= (model.riskProfile.maxTradeRiskPct || 1) * 0.8 ? "warning" : "positive"
     },
     {
       label: "Exposición actual",
       value: formatCurrency(account.openPnl),
-      noteLead: formatCurrency(exposureOpen),
-      noteTail: "flotante absoluta",
-      noteTone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : "warning"
+      noteLead: exposureOpen > 0 ? formatCurrency(exposureOpen) : "€0",
+      noteTail: exposureOpen > 0 ? "flotante absoluta" : "sin presión flotante",
+      noteTone: account.openPnl < 0 ? "negative" : account.openPnl > 0 ? "positive" : "neutral"
     }
   ];
   root.innerHTML = `
@@ -662,12 +675,12 @@ export function renderRisk(root, state) {
       </div>
     </article>
 
-    <div class="risk-core-grid">
+      <div class="risk-core-grid">
       <article class="tl-section-card risk-core-metrics">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">Métricas clave</div>
-            <div class="row-sub">Solo lo esencial para saber si el riesgo sigue bajo control.</div>
+            <div class="tl-section-title">Límites y presión</div>
+            <div class="row-sub">Consumo de límites, presión flotante y margen real disponible.</div>
           </div>
         </div>
         <div class="risk-core-metrics__grid">
@@ -722,21 +735,30 @@ export function renderRisk(root, state) {
 
       <div class="risk-policy-numeric-grid">
         <label class="risk-policy-field">
-          <span>Riesgo por trade</span>
+          <div class="risk-policy-field__head">
+            <span>Riesgo por trade</span>
+            <em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${defaultRiskMt5State.label}</em>
+          </div>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
             <em>%</em>
           </div>
         </label>
         <label class="risk-policy-field">
-          <span>Límite daily DD</span>
+          <div class="risk-policy-field__head">
+            <span>Límite daily DD</span>
+            <em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${dailyDdMt5State.label}</em>
+          </div>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
             <em>%</em>
           </div>
         </label>
         <label class="risk-policy-field">
-          <span>Límite max DD</span>
+          <div class="risk-policy-field__head">
+            <span>Límite max DD</span>
+            <em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${maxDdMt5State.label}</em>
+          </div>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
             <em>%</em>
