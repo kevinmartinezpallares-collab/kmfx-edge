@@ -135,6 +135,9 @@ function resolveKnownAccountId(candidateId, state) {
   const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
   const hasLiveAccounts = liveIds.length > 0;
   if (hasLiveAccounts && candidateId && liveIds.includes(candidateId) && state?.accounts?.[candidateId]) return candidateId;
+  if (hasLiveAccounts && state?.activeLiveAccountId && liveIds.includes(state.activeLiveAccountId) && state?.accounts?.[state.activeLiveAccountId]) {
+    return state.activeLiveAccountId;
+  }
   if (!hasLiveAccounts && candidateId && state?.accounts?.[candidateId]) return candidateId;
   const firstLiveId = liveIds.find((id) => state?.accounts?.[id]);
   if (firstLiveId) return firstLiveId;

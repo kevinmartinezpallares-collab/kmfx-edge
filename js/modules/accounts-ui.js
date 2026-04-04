@@ -126,20 +126,22 @@ export function initAccountsUI(store) {
       return;
     }
 
-    const activeAccount = selectCurrentAccount(state);
-    const activeModel = selectCurrentModel(state);
     const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
-    console.log("[KMFX][ACCOUNT] selector compute", {
+    const activeAccountId = state.currentAccount || state.activeLiveAccountId || null;
+    const hasLiveAccounts = liveAccountIds.length > 0;
+    console.log("[KMFX][PANEL]", {
       liveAccountIds,
       currentAccount: state.currentAccount,
-      activeAccountId: state.accounts?.activeAccountId || null,
+      activeAccountId,
+      hasLiveAccounts,
     });
     const accounts = liveAccountIds
-      .filter((accountId) => state.accountDirectory?.[accountId]?.status === "connected")
       .map((accountId) => state.accounts?.[accountId])
       .filter((account) => account && typeof account === "object" && "id" in account);
+    const activeAccount = state.accounts?.[activeAccountId] || accounts[0] || selectCurrentAccount(state);
+    const activeModel = activeAccount?.model || selectCurrentModel(state);
 
-    if (!accounts.length) {
+    if (!hasLiveAccounts) {
       root.innerHTML = `
         <div class="account-switcher account-switcher--empty">
           <div class="account-switcher-header">
@@ -157,7 +159,6 @@ export function initAccountsUI(store) {
     }
 
     const activeAccountLabel = getAccountTypeLabel(activeAccount?.model?.profile?.mode, activeAccount?.name);
-    const activeAccountId = state.accounts?.activeAccountId || state.currentAccount;
     const orderedAccounts = [...accounts].sort((left, right) => {
       if (left.id === activeAccountId) return -1;
       if (right.id === activeAccountId) return 1;

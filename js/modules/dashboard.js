@@ -68,6 +68,15 @@ function riskStateDisplayLabel(riskState) {
 }
 
 export function renderDashboard(root, state) {
+  const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
+  const activeAccountId = state.currentAccount || state.activeLiveAccountId || null;
+  const hasLiveAccounts = liveAccountIds.length > 0;
+  console.log("[KMFX][PANEL]", {
+    liveAccountIds,
+    currentAccount: state.currentAccount,
+    activeAccountId,
+    hasLiveAccounts,
+  });
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
   if (!model || !account) {

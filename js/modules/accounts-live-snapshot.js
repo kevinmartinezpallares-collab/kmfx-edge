@@ -118,6 +118,7 @@ function mergeLiveAccounts(store, snapshot) {
       ])
     ),
     liveAccountIds,
+    activeLiveAccountId: activeAccountId || null,
     currentAccount: resolvedCurrentAccount,
   }));
   console.log("[KMFX][ACCOUNTS] store updated", {

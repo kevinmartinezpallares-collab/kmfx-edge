@@ -170,6 +170,7 @@ function createInitialState() {
     accounts,
     accountDirectory: {},
     liveAccountIds: [],
+    activeLiveAccountId: null,
     currentAccount,
     ui: sanitizeUi(persisted.ui),
     workspace,
