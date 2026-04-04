@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import math
 import os
 import traceback
 from datetime import datetime, timezone
@@ -15,6 +14,9 @@ from fastapi.responses import JSONResponse
 
 from account_service import AccountService
 from account_store import JsonFileAccountStore
+from risk_enforcement_engine import build_risk_status
+from risk_metrics_engine import build_risk_metrics, extract_previous_risk_snapshot
+from risk_policy_engine import build_policy_snapshot, evaluate_risk_policy
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -235,9 +237,6 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
 
 def build_policy(login: str) -> dict[str, Any]:
     policy = {
-        "risk_status": "active_monitoring",
-        "blocking_rule": "",
-        "action_required": "Opera dentro de la política activa y respeta los límites locales.",
         "enforcement_mode": "SAFE_MODE",
         "panic_lock_active": False,
         "panic_lock_expires_at": "",
@@ -246,13 +245,13 @@ def build_policy(login: str) -> dict[str, Any]:
         "allowed_symbols": ["EURUSD", "GBPUSD", "XAUUSD", "NAS100", "US30"],
         "allowed_sessions": ["London", "New York"],
         "max_risk_per_trade_pct": 0.50,
+        "portfolio_heat_limit_pct": "",
         "max_volume": 1.00,
         "current_level": "BASE",
         "recommended_level": "BASE",
         "daily_dd_hard_stop": 1.20,
         "total_dd_hard_stop": 8.00,
-        "reason_code": "OK",
-        "severity": "info",
+        "trading_timezone": os.getenv("KMFX_TRADING_TIMEZONE", "Europe/Andorra"),
     }
 
     last_sync = LAST_SYNC_BY_LOGIN.get(login)
@@ -266,265 +265,15 @@ def build_policy(login: str) -> dict[str, Any]:
     return policy
 
 
-def pct_drop_from_peak(peak_value: float, current_value: float) -> float:
-    if peak_value <= 0:
-        return 0.0
-    return round(max(0.0, ((peak_value - current_value) / peak_value) * 100.0), 4)
-
-
-def calculate_floating_drawdown_pct(balance: float, equity: float) -> float:
-    # Floating drawdown is the live compression of equity versus settled balance.
-    return pct_drop_from_peak(balance, equity)
-
-
-def extract_previous_risk_snapshot(previous_account_payload: dict[str, Any] | None) -> dict[str, Any]:
-    if not previous_account_payload or not isinstance(previous_account_payload, dict):
-        return {}
-    snapshot = previous_account_payload.get("riskSnapshot")
-    return snapshot if isinstance(snapshot, dict) else {}
-
-
-def calculate_rolling_max_drawdown_pct(balance: float, trades: list[dict[str, Any]], equity: float) -> float:
-    realized_pnl = sum(
-        safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))
-        for trade in trades
-    )
-    estimated_start_equity = max(balance - realized_pnl, 0.0)
-    running_equity = estimated_start_equity
-    rolling_peak_equity = estimated_start_equity
-    rolling_max_drawdown_pct = 0.0
-
-    for trade in sorted_by_time(trades):
-        running_equity += (
-            safe_float(trade.get("profit"))
-            + safe_float(trade.get("commission"))
-            + safe_float(trade.get("swap"))
-        )
-        rolling_peak_equity = max(rolling_peak_equity, running_equity)
-        rolling_max_drawdown_pct = max(
-            rolling_max_drawdown_pct,
-            pct_drop_from_peak(rolling_peak_equity, running_equity),
-        )
-
-    rolling_peak_equity = max(rolling_peak_equity, equity)
-    rolling_max_drawdown_pct = max(
-        rolling_max_drawdown_pct,
-        pct_drop_from_peak(rolling_peak_equity, equity),
-    )
-    return round(rolling_max_drawdown_pct, 4)
-
-
-def position_risk_pct(position: dict[str, Any], balance: float) -> float:
-    direct_pct = safe_float(position.get("risk_pct"), -1.0)
-    if direct_pct >= 0:
-        return round(direct_pct, 4)
-
-    risk_amount = safe_float(position.get("risk_amount"), 0.0)
-    if balance > 0 and risk_amount > 0:
-        return round((risk_amount / balance) * 100.0, 4)
-
-    return 0.0
-
-
-def position_risk_amount(position: dict[str, Any], balance: float) -> float:
-    direct_amount = safe_float(position.get("risk_amount"), -1.0)
-    if direct_amount >= 0:
-        return round(direct_amount, 2)
-
-    risk_pct = safe_float(position.get("risk_pct"), 0.0)
-    if balance > 0 and risk_pct > 0:
-        return round(balance * (risk_pct / 100.0), 2)
-
-    return 0.0
-
-
-def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> list[dict[str, Any]]:
-    exposure: dict[str, dict[str, Any]] = {}
-
-    for position in positions:
-        symbol = safe_str(position.get("symbol"), "UNKNOWN")
-        risk_amount = position_risk_amount(position, balance)
-        risk_pct = position_risk_pct(position, balance)
-        volume = safe_float(position.get("volume"))
-        open_pnl = safe_float(position.get("profit"))
-        side = safe_str(position.get("type") or position.get("side"), "BUY").upper()
-
-        bucket = exposure.setdefault(
-            symbol,
-            {
-                "symbol": symbol,
-                "positions": 0,
-                "net_volume": 0.0,
-                "open_pnl": 0.0,
-                "risk_amount": 0.0,
-                "risk_pct": 0.0,
-                "sides": set(),
-            },
-        )
-        bucket["positions"] += 1
-        bucket["net_volume"] += volume
-        bucket["open_pnl"] += open_pnl
-        bucket["risk_amount"] += risk_amount
-        bucket["risk_pct"] += risk_pct
-        bucket["sides"].add(side)
-
-    rows = []
-    for item in exposure.values():
-        rows.append(
-            {
-                "symbol": item["symbol"],
-                "positions": item["positions"],
-                "net_volume": round(item["net_volume"], 2),
-                "open_pnl": round(item["open_pnl"], 2),
-                "risk_amount": round(item["risk_amount"], 2),
-                "risk_pct": round(item["risk_pct"], 4),
-                "direction": "/".join(sorted(item["sides"])) if item["sides"] else "N/A",
-            }
-        )
-
-    return sorted(rows, key=lambda item: item["risk_amount"], reverse=True)
-
-
-def build_open_trade_risk(positions: list[dict[str, Any]], balance: float) -> list[dict[str, Any]]:
-    rows = []
-    for position in positions:
-        rows.append(
-            {
-                "position_id": safe_str(position.get("position_id") or position.get("ticket")),
-                "symbol": safe_str(position.get("symbol"), "UNKNOWN"),
-                "side": safe_str(position.get("type") or position.get("side"), "BUY").upper(),
-                "risk_amount": position_risk_amount(position, balance),
-                "risk_pct": position_risk_pct(position, balance),
-                "entry_price": safe_float(position.get("price_open")),
-                "stop_loss": safe_float(position.get("sl")),
-                "open_pnl": safe_float(position.get("profit")),
-            }
-        )
-    return sorted(rows, key=lambda item: item["risk_amount"], reverse=True)
-
-
-def infer_portfolio_heat_limit_pct(policy: dict[str, Any]) -> tuple[float | None, list[str]]:
-    warnings: list[str] = []
-    explicit_value = policy.get("portfolio_heat_limit_pct")
-    if explicit_value is None or explicit_value == "":
-        warnings.append(
-            "portfolio_heat_limit_pct no está definido en la policy actual; "
-            "distance_to_heat_limit_pct queda sin calcular."
-        )
-        return None, warnings
-
-    try:
-        parsed = float(explicit_value)
-    except (TypeError, ValueError):
-        warnings.append(
-            "portfolio_heat_limit_pct llegó con tipo no numérico; "
-            "distance_to_heat_limit_pct queda sin calcular."
-        )
-        return None, warnings
-
-    if not math.isfinite(parsed) or parsed <= 0:
-        warnings.append(
-            "portfolio_heat_limit_pct no es un valor positivo finito; "
-            "distance_to_heat_limit_pct queda sin calcular."
-        )
-        return None, warnings
-
-    return round(parsed, 4), warnings
-
-
-def build_risk_snapshot(
-    account: dict[str, Any],
-    positions: list[dict[str, Any]],
-    trades: list[dict[str, Any]],
-    policy: dict[str, Any],
-    previous_snapshot: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    balance = safe_float(account.get("balance"))
-    equity = safe_float(account.get("equity"), balance)
-    previous_snapshot = previous_snapshot or {}
-    previous_metadata = previous_snapshot.get("metadata") if isinstance(previous_snapshot.get("metadata"), dict) else {}
-    previous_persisted_peak_equity = safe_float(previous_metadata.get("persisted_peak_equity"), max(balance, equity))
-    previous_persisted_max_drawdown_pct = safe_float(previous_metadata.get("persisted_max_drawdown_pct"), 0.0)
-
-    floating_drawdown_pct = calculate_floating_drawdown_pct(balance, equity)
-    persisted_peak_equity = round(max(previous_persisted_peak_equity, balance, equity), 2)
-    peak_to_equity_drawdown_pct = pct_drop_from_peak(persisted_peak_equity, equity)
-    rolling_max_drawdown_pct = calculate_rolling_max_drawdown_pct(balance, trades, equity)
-    persisted_max_drawdown_pct = round(max(previous_persisted_max_drawdown_pct, peak_to_equity_drawdown_pct), 4)
-    total_open_risk_amount = round(sum(position_risk_amount(position, balance) for position in positions), 2)
-    total_open_risk_pct = round(sum(position_risk_pct(position, balance) for position in positions), 4)
-    max_open_trade_risk_pct = round(max((position_risk_pct(position, balance) for position in positions), default=0.0), 4)
-    max_risk_per_trade_pct = safe_float(policy.get("max_risk_per_trade_pct"), 0.0)
-    max_drawdown_limit_pct = safe_float(policy.get("total_dd_hard_stop"), 0.0)
-    distance_to_max_dd_limit_pct = round(max(0.0, max_drawdown_limit_pct - peak_to_equity_drawdown_pct), 4)
-    portfolio_heat_limit_pct, heat_warnings = infer_portfolio_heat_limit_pct(policy)
-    distance_to_heat_limit_pct = (
-        round(max(0.0, portfolio_heat_limit_pct - total_open_risk_pct), 4)
-        if portfolio_heat_limit_pct is not None
-        else None
-    )
-    symbol_exposure = build_symbol_exposure(positions, balance)
-    open_trade_risks = build_open_trade_risk(positions, balance)
-    warnings = list(heat_warnings)
-    if not trades:
-        warnings.append("rolling_max_drawdown_pct usa una ventana vacía de trades; el valor refleja solo el estado live actual.")
-
+def build_connector_policy_response(login: str) -> dict[str, Any]:
+    policy = build_policy(login)
     return {
-        "summary": {
-            "floating_drawdown_pct": floating_drawdown_pct,
-            "peak_to_equity_drawdown_pct": peak_to_equity_drawdown_pct,
-            "rolling_max_drawdown_pct": rolling_max_drawdown_pct,
-            "persisted_max_drawdown_pct": persisted_max_drawdown_pct,
-            "max_drawdown_limit_pct": max_drawdown_limit_pct,
-            "distance_to_max_dd_limit_pct": distance_to_max_dd_limit_pct,
-            "total_open_risk_amount": total_open_risk_amount,
-            "total_open_risk_pct": total_open_risk_pct,
-            "max_risk_per_trade_pct": max_risk_per_trade_pct,
-            "max_open_trade_risk_pct": max_open_trade_risk_pct,
-            "open_positions_count": len(positions),
-            "portfolio_heat_limit_pct": portfolio_heat_limit_pct,
-            "distance_to_heat_limit_pct": distance_to_heat_limit_pct,
-        },
-        "policy": {
-            "risk_per_trade_pct": max_risk_per_trade_pct,
-            "daily_dd_limit_pct": safe_float(policy.get("daily_dd_hard_stop"), 0.0),
-            "max_dd_limit_pct": max_drawdown_limit_pct,
-            "portfolio_heat_limit_pct": portfolio_heat_limit_pct,
-            "max_volume": safe_float(policy.get("max_volume"), 0.0),
-            "allowed_sessions": list(policy.get("allowed_sessions") or []),
-            "allowed_symbols": list(policy.get("allowed_symbols") or []),
-            "auto_block_enabled": bool(policy.get("auto_block")),
-            "current_level": safe_str(policy.get("current_level")),
-            "recommended_level": safe_str(policy.get("recommended_level")),
-        },
-        "status": {
-            "risk_status": safe_str(policy.get("risk_status"), "active_monitoring"),
-            "severity": safe_str(policy.get("severity"), "info"),
-            "reason_code": safe_str(policy.get("reason_code"), "OK"),
-            "blocking_rule": safe_str(policy.get("blocking_rule")),
-            "action_required": safe_str(policy.get("action_required")),
-        },
-        "symbol_exposure": symbol_exposure,
-        "open_trade_risks": open_trade_risks,
-        "metadata": {
-            "generated_at": now_iso(),
-            "snapshot_version": "2.0.0",
-            "calculation_mode": "connector_sync_institutional_lite",
-            "drawdown_basis": {
-                "floating_drawdown_pct": "balance_to_equity_live",
-                "peak_to_equity_drawdown_pct": "persisted_peak_equity_to_current_equity",
-                "rolling_max_drawdown_pct": "recent_trades_window_plus_live_equity",
-                "persisted_max_drawdown_pct": "persisted_peak_to_equity_high_water_mark",
-            },
-            "warnings": warnings,
-            "persisted_peak_equity": persisted_peak_equity,
-            "persisted_max_drawdown_pct": persisted_max_drawdown_pct,
-            "rolling_trades_window_size": len(trades),
-            "assumptions": [
-                "total_open_risk_pct depende de risk_amount/risk_pct enviados por el connector.",
-                "rolling_max_drawdown_pct no representa histórico absoluto si la ventana de trades es parcial.",
-            ],
-        },
+        **policy,
+        "risk_status": "active_monitoring",
+        "blocking_rule": "",
+        "action_required": "Opera dentro de la política activa y respeta los límites locales.",
+        "reason_code": "OK",
+        "severity": "info",
     }
 
 
@@ -535,11 +284,42 @@ def build_dashboard_account_payload(
     raw_payload: dict[str, Any],
     previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    policy = build_policy(safe_str(account.get("login")))
-    risk_snapshot = build_risk_snapshot(account, positions, trades, policy, extract_previous_risk_snapshot(previous_payload))
-    summary = risk_snapshot["summary"]
-    policy_snapshot = risk_snapshot["policy"]
-    status_snapshot = risk_snapshot["status"]
+    raw_policy = build_policy(safe_str(account.get("login")))
+    previous_snapshot = extract_previous_risk_snapshot(previous_payload)
+    metrics_snapshot = build_risk_metrics(
+        account=account,
+        positions=positions,
+        trades=trades,
+        previous_snapshot=previous_snapshot,
+        trading_timezone=safe_str(raw_policy.get("trading_timezone"), "UTC"),
+    )
+    policy_snapshot, policy_warnings = build_policy_snapshot(raw_policy)
+    policy_evaluation = evaluate_risk_policy(metrics_snapshot, policy_snapshot)
+    status_snapshot = build_risk_status(policy_evaluation, policy_snapshot)
+    summary = {
+        **metrics_snapshot["summary"],
+        "max_drawdown_limit_pct": policy_snapshot["max_dd_limit_pct"],
+        "distance_to_max_dd_limit_pct": policy_evaluation["limits_status"]["max_drawdown"]["distance_to_limit_pct"],
+        "portfolio_heat_limit_pct": policy_snapshot["portfolio_heat_limit_pct"],
+        "distance_to_heat_limit_pct": policy_evaluation["limits_status"]["portfolio_heat"]["distance_to_limit_pct"],
+        "heat_usage_ratio_pct": policy_evaluation["limits_status"]["portfolio_heat"]["usage_ratio_pct"],
+        "max_risk_per_trade_pct": policy_snapshot["risk_per_trade_pct"],
+        "distance_to_daily_dd_limit_pct": policy_evaluation["limits_status"]["daily_drawdown"]["distance_to_limit_pct"],
+    }
+    risk_snapshot = {
+        "summary": summary,
+        "policy": policy_snapshot,
+        "policy_evaluation": policy_evaluation,
+        "status": status_snapshot,
+        "symbol_exposure": metrics_snapshot["symbol_exposure"],
+        "open_trade_risks": metrics_snapshot["open_trade_risks"],
+        "metadata": {
+            **metrics_snapshot["metadata"],
+            "snapshot_version": "3.0.0",
+            "calculation_mode": "sync -> metrics -> policy -> enforcement -> snapshot",
+            "warnings": list(metrics_snapshot["metadata"].get("warnings") or []) + policy_warnings,
+        },
+    }
     return {
         "accountName": account.get("name") or account.get("broker") or "MT5 Account",
         "name": account.get("name") or account.get("broker") or "MT5 Account",
@@ -710,7 +490,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             dashboard_payload["riskSnapshot"]["summary"]["total_open_risk_pct"],
         )
 
-        policy = build_policy(login)
+        policy = build_connector_policy_response(login)
         if issues:
             log.warning(
                 "SYNC accepted with issues | login=%s connector_version=%s issues=%s",
@@ -770,7 +550,7 @@ async def mt5_policy(login: str = Query(..., min_length=1)) -> dict[str, Any]:
             "timestamp": now_iso(),
         }
 
-    policy = build_policy(normalized_login)
+    policy = build_connector_policy_response(normalized_login)
     log.info("Policy requested | login=%s hash=%s", normalized_login, policy["policy_hash"])
     return policy
 
