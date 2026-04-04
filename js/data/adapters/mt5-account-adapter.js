@@ -51,18 +51,38 @@ function normalizePositions(rawPositions = []) {
   }));
 }
 
-function normalizeRiskRules(rawRiskSnapshot = {}) {
-  const activeRules = Array.isArray(rawRiskSnapshot.active_rules) ? rawRiskSnapshot.active_rules : [];
+function normalizeRiskRules(rawRiskSnapshot = {}, rawPayload = {}) {
+  const explicitRules = Array.isArray(rawPayload.riskRules) ? rawPayload.riskRules : [];
+  if (explicitRules.length) {
+    return explicitRules.map((rule) => ({
+      title: rule.title || rule.name || "Regla",
+      description: rule.description || rule.impact || rule.state || "Sin impacto",
+      value: rule.value || rule.condition || "Sin condición",
+    }));
+  }
+
+  const status = rawRiskSnapshot.status && typeof rawRiskSnapshot.status === "object" ? rawRiskSnapshot.status : {};
+  const summary = rawRiskSnapshot.summary && typeof rawRiskSnapshot.summary === "object" ? rawRiskSnapshot.summary : {};
+  if (!Object.keys(status).length && !Object.keys(summary).length) return [];
+
+  const activeRules = [
+    {
+      title: status.blocking_rule || "Estado operativo",
+      description: status.action_required || "Sin acción requerida",
+      value: summary.peak_to_equity_drawdown_pct != null ? `${Number(summary.peak_to_equity_drawdown_pct).toFixed(2)}% DD` : "Sin DD",
+    },
+  ];
   return activeRules.map((rule) => ({
     title: rule.title || rule.name || "Regla",
-    description: rule.impact || rule.state || "Sin impacto",
-    value: rule.condition || "Sin condición",
+    description: rule.description || rule.impact || rule.state || "Sin impacto",
+    value: rule.value || rule.condition || "Sin condición",
   }));
 }
 
 function normalizeMt5Payload(rawPayload = {}) {
   const riskSnapshot = rawPayload.riskSnapshot || rawPayload.risk_snapshot || {};
-  const policySnapshot = riskSnapshot.policy_snapshot || rawPayload.policy_snapshot || {};
+  const summarySnapshot = riskSnapshot.summary || {};
+  const policySnapshot = riskSnapshot.policy || riskSnapshot.policy_snapshot || rawPayload.policy_snapshot || {};
   return {
     profile: {
       trader: rawPayload.trader || "MT5 Trader",
@@ -80,7 +100,7 @@ function normalizeMt5Payload(rawPayload = {}) {
       maxDrawdownLimit: Number(policySnapshot.max_dd_limit_pct || rawPayload.maxDrawdownLimit || 0)
     },
     riskProfile: {
-      currentRiskPct: Number(riskSnapshot.total_open_risk_pct || rawPayload.currentRiskPct || 0),
+      currentRiskPct: Number(summarySnapshot.total_open_risk_pct || rawPayload.currentRiskPct || 0),
       dailyLossLimitPct: Number(policySnapshot.daily_dd_limit_pct || rawPayload.dailyLossLimitPct || 0),
       weeklyHeatLimitPct: Number(policySnapshot.max_dd_limit_pct || rawPayload.weeklyHeatLimitPct || 0),
       maxTradeRiskPct: Number(policySnapshot.risk_per_trade_pct || rawPayload.maxTradeRiskPct || 0),
@@ -89,7 +109,7 @@ function normalizeMt5Payload(rawPayload = {}) {
       allowedSymbols: Array.isArray(policySnapshot.allowed_symbols) ? policySnapshot.allowed_symbols : [],
       autoBlock: Boolean(policySnapshot.auto_block_enabled)
     },
-    riskRules: normalizeRiskRules(riskSnapshot),
+    riskRules: normalizeRiskRules(riskSnapshot, rawPayload),
     positions: normalizePositions(rawPayload.positions || []),
     trades: normalizeTrades(rawPayload.trades || [])
   };

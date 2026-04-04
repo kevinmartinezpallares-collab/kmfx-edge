@@ -26,6 +26,10 @@ def _display_name(account: Account) -> str:
     return account.login or account.account_id
 
 
+def _resolve_account_id(platform: str, broker: str, server: str, login: str) -> str:
+    return _stable_account_id(platform, broker, server, login)
+
+
 class AccountService:
     def __init__(self, store: AccountStore) -> None:
         self.store = store
@@ -51,7 +55,7 @@ class AccountService:
         account_id: str | None = None,
     ) -> Account:
         all_accounts = self.store.list_accounts()
-        resolved_account_id = account_id or _stable_account_id(platform, broker, server, login)
+        resolved_account_id = account_id or _resolve_account_id(platform, broker, server, login)
         existing = next((account for account in all_accounts if account.account_id == resolved_account_id), None)
         now = _now_utc()
 
@@ -106,6 +110,26 @@ class AccountService:
         self.store.save_accounts(accounts)
         return deepcopy(selected) if selected else None
 
+    def get_account_by_identity(
+        self,
+        *,
+        user_id: str,
+        platform: str,
+        broker: str,
+        server: str,
+        login: str,
+    ) -> Account | None:
+        resolved_account_id = _resolve_account_id(platform, broker, server, login)
+        account = next(
+            (
+                account
+                for account in self.store.list_accounts()
+                if account.user_id == user_id and account.account_id == resolved_account_id
+            ),
+            None,
+        )
+        return deepcopy(account) if account else None
+
     def update_account_status(
         self,
         *,
@@ -143,7 +167,7 @@ class AccountService:
         login = str(account_info.get("login") or "")
         server = str(account_info.get("server") or "")
         accounts = self.store.list_accounts()
-        resolved_account_id = account_id or _stable_account_id(platform, broker, server, login)
+        resolved_account_id = account_id or _resolve_account_id(platform, broker, server, login)
         now = _now_utc()
         target = next((account for account in accounts if account.account_id == resolved_account_id), None)
         is_first = not any(account.user_id == user_id for account in accounts)
