@@ -43,7 +43,7 @@ input string            KMFXApiKey            = "";
 input int               KMFXTimerMs           = 2000;
 input int               KMFXPolicyPollSeconds = 12;
 input int               KMFXStatePushSeconds  = 5;
-input int               KMFXWebTimeoutMs      = 2500;
+input int               KMFXWebTimeoutMs      = 5000;
 input int               KMFXClosedDealsLimit  = 50;
 input bool              KMFXVerboseLog        = true;
 input bool              KMFXEnableEnforce     = true;
@@ -527,17 +527,23 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
   {
    char req[];
    char res[];
-   string headers="Content-Type: application/json\r\n";
+   string headers="Content-Type: application/json\r\nConnection: close\r\n";
    string result_headers="";
+   int request_bytes=0;
 
    if(StringLen(KMFXApiKey)>0)
       headers+="X-KMFX-API-Key: "+KMFXApiKey+"\r\n";
 
    if(method=="POST")
+     {
       StringToCharArray(body,req,0,StringLen(body));
+      request_bytes=ArraySize(req);
+     }
 
    ResetLastError();
    status_code=WebRequest(method,url,headers,KMFXWebTimeoutMs,req,res,result_headers);
+   // DEBUG
+   PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, GetLastError());
    if(status_code==-1)
      {
       int err=GetLastError();
@@ -549,6 +555,10 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
      }
 
    response=CharArrayToString(res,0,-1,CP_UTF8);
+   // DEBUG
+   PrintFormat("[KMFX][HTTP] method=%s url=%s status=%d body=%s", method, url, status_code, response);
+   // DEBUG
+   PrintFormat("[KMFX][HTTP][META] method=%s url=%s response_bytes=%d response_chars=%d headers=%s", method, url, ArraySize(res), StringLen(response), result_headers);
    return true;
   }
 
@@ -684,8 +694,16 @@ bool KMFXPushState()
    string url=KMFXBackendBaseUrl+KMFXSyncPath;
    string body=KMFXBuildSyncPayload();
 
+   // DEBUG
+   PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
+   // DEBUG
+   PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
+
    if(!KMFXSendHttpRequest("POST",url,body,response,status_code))
       return false;
+
+   // DEBUG
+   PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
 
    if(status_code<200 || status_code>=300)
      {
@@ -709,8 +727,14 @@ bool KMFXFetchPolicy()
    PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
    string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
 
+   // DEBUG
+   PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);
+
    if(!KMFXSendHttpRequest("GET",url,"",response,status_code))
       return false;
+
+   // DEBUG
+   PrintFormat("[KMFX][POLICY][DEBUG] status_code=%d response=%s", status_code, response);
 
    if(status_code<200 || status_code>=300)
      {
@@ -1067,6 +1091,8 @@ int OnInit()
    Runtime.equity_peak=Runtime.daily_start_equity;
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
 
+   // DEBUG
+   Print("[KMFX][BUILD] DEBUG_HTTP_V1");
    PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
    KMFXLog("INIT","KMFX Connector v2 iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
    EventSetMillisecondTimer(KMFXTimerMs);

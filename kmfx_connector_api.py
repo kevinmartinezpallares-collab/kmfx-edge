@@ -46,6 +46,14 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def connector_json_response(content: Any, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={"Connection": "close"},
+    )
+
+
 def safe_str(value: Any, default: str = "") -> str:
     if value is None:
         return default
@@ -360,9 +368,8 @@ def build_dashboard_account_payload(
 
 
 def sync_error_response(reason: str, details: Any, http_status: int = 200) -> JSONResponse:
-    return JSONResponse(
-        status_code=http_status,
-        content={
+    return connector_json_response(
+        {
             "ok": False,
             "received": False,
             "reason": reason,
@@ -370,16 +377,17 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200) -> JS
             "details": details,
             "timestamp": now_iso(),
         },
+        status_code=http_status,
     )
 
 
 @app.get("/")
-async def healthcheck() -> dict[str, Any]:
-    return {
+async def healthcheck() -> JSONResponse:
+    return connector_json_response({
         "ok": True,
         "service": "kmfx_connector_api",
         "timestamp": now_iso(),
-    }
+    })
 
 
 @app.post("/api/mt5/sync")
@@ -507,9 +515,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 len(sanitized_trades),
             )
 
-        return JSONResponse(
-            status_code=200,
-            content={
+        return connector_json_response(
+            {
                 "ok": True,
                 "received": True,
                 "login": login,
@@ -539,28 +546,28 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
 
 @app.get("/api/mt5/policy")
-async def mt5_policy(login: str = Query(..., min_length=1)) -> dict[str, Any]:
+async def mt5_policy(login: str = Query(..., min_length=1)) -> JSONResponse:
     normalized_login = safe_str(login)
     if not normalized_login:
-        return {
+        return connector_json_response({
             "ok": False,
             "reason": "missing_login",
             "error_code": 4001,
             "details": {"field": "login", "problem": "login query param is required"},
             "timestamp": now_iso(),
-        }
+        })
 
     policy = build_connector_policy_response(normalized_login)
     log.info("Policy requested | login=%s hash=%s", normalized_login, policy["policy_hash"])
-    return policy
+    return connector_json_response(policy)
 
 
 @app.get("/api/accounts/snapshot")
-async def accounts_snapshot() -> dict[str, Any]:
+async def accounts_snapshot() -> JSONResponse:
     snapshot = account_service.build_accounts_snapshot("local")
     log.info(
         "Accounts snapshot built | accounts=%s active_account_id=%s",
         len(snapshot.get("accounts") or []),
         snapshot.get("active_account_id") or "",
     )
-    return snapshot
+    return connector_json_response(snapshot)
