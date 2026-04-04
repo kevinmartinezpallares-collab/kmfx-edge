@@ -3,21 +3,35 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import traceback
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from account_service import AccountService
+from account_store import JsonFileAccountStore
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("kmfx_connector_api")
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
+ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
+account_service = AccountService(JsonFileAccountStore(ACCOUNTS_STATE_PATH))
 
 # 1003 is our sync validation error bucket:
 # the request reached the API, but some required structural field was invalid
@@ -247,6 +261,40 @@ def build_policy(login: str) -> dict[str, Any]:
     return policy
 
 
+def build_dashboard_account_payload(
+    account: dict[str, Any],
+    positions: list[dict[str, Any]],
+    trades: list[dict[str, Any]],
+    raw_payload: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "accountName": account.get("name") or account.get("broker") or "MT5 Account",
+        "name": account.get("name") or account.get("broker") or "MT5 Account",
+        "broker": account.get("broker") or "MT5",
+        "server": account.get("server") or "",
+        "environment": "live",
+        "platform": "mt5",
+        "mode": safe_str(raw_payload.get("mode"), "SAFE_MODE"),
+        "balance": account.get("balance", 0.0),
+        "equity": account.get("equity", account.get("balance", 0.0)),
+        "openPnl": account.get("profit", 0.0),
+        "positions": positions,
+        "trades": trades,
+        "riskSnapshot": {},
+        "riskRules": [],
+        "riskProfile": {
+            "currentRiskPct": 0.0,
+            "dailyLossLimitPct": 0.0,
+            "weeklyHeatLimitPct": 0.0,
+            "maxTradeRiskPct": 0.0,
+            "maxVolume": 0.0,
+            "allowedSessions": [],
+            "allowedSymbols": [],
+            "autoBlock": False,
+        },
+    }
+
+
 def sync_error_response(reason: str, details: Any, http_status: int = 200) -> JSONResponse:
     return JSONResponse(
         status_code=http_status,
@@ -339,6 +387,30 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "raw": payload,
         }
 
+        dashboard_payload = build_dashboard_account_payload(
+            sanitized_account,
+            sanitized_positions,
+            sanitized_trades,
+            payload,
+        )
+        synced_account = account_service.link_connector_sync(
+            user_id="local",
+            account_info={
+                **sanitized_account,
+                "platform": "mt5",
+            },
+            payload=dashboard_payload,
+        )
+        log.info(
+            "ACCOUNT sync upsert | account_id=%s login=%s status=%s broker=%s server=%s last_sync_at=%s",
+            synced_account.account_id,
+            synced_account.login,
+            synced_account.status,
+            synced_account.broker,
+            synced_account.server,
+            synced_account.last_sync_at.isoformat() if synced_account.last_sync_at else "",
+        )
+
         policy = build_policy(login)
         if issues:
             log.warning(
@@ -369,6 +441,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     "positions_count": len(sanitized_positions),
                     "trades_count": len(sanitized_trades),
                     "issues": issues,
+                    "account_id": synced_account.account_id,
                 },
                 "timestamp": now_iso(),
             },
@@ -401,3 +474,14 @@ async def mt5_policy(login: str = Query(..., min_length=1)) -> dict[str, Any]:
     policy = build_policy(normalized_login)
     log.info("Policy requested | login=%s hash=%s", normalized_login, policy["policy_hash"])
     return policy
+
+
+@app.get("/api/accounts/snapshot")
+async def accounts_snapshot() -> dict[str, Any]:
+    snapshot = account_service.build_accounts_snapshot("local")
+    log.info(
+        "Accounts snapshot built | accounts=%s active_account_id=%s",
+        len(snapshot.get("accounts") or []),
+        snapshot.get("active_account_id") or "",
+    )
+    return snapshot

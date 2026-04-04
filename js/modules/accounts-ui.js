@@ -129,6 +129,11 @@ export function initAccountsUI(store) {
     const activeAccount = selectCurrentAccount(state);
     const activeModel = selectCurrentModel(state);
     const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
+    console.log("[KMFX][ACCOUNT] selector compute", {
+      liveAccountIds,
+      currentAccount: state.currentAccount,
+      activeAccountId: state.accounts?.activeAccountId || null,
+    });
     const accounts = liveAccountIds
       .filter((accountId) => state.accountDirectory?.[accountId]?.status === "connected")
       .map((accountId) => state.accounts?.[accountId])

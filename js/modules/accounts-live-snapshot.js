@@ -2,6 +2,7 @@ import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260401-203500";
 
 const DEFAULT_BRIDGE_URL = "ws://localhost:8765";
+const DEFAULT_ACCOUNTS_API_URL = "http://127.0.0.1:8000/api/accounts/snapshot";
 
 function normalizeBridgeUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();
@@ -19,6 +20,20 @@ function getPreferredBridgeUrl() {
     return normalizeBridgeUrl(parsed?.bridgeUrl || DEFAULT_BRIDGE_URL);
   } catch {
     return DEFAULT_BRIDGE_URL;
+  }
+}
+
+function getPreferredAccountsApiUrl() {
+  try {
+    const raw = window.localStorage.getItem("kmfx.settings.preferences");
+    if (!raw) return DEFAULT_ACCOUNTS_API_URL;
+    const parsed = JSON.parse(raw);
+    const bridgeUrl = normalizeBridgeUrl(parsed?.bridgeUrl || DEFAULT_BRIDGE_URL);
+    if (bridgeUrl.startsWith("wss://")) return bridgeUrl.replace("wss://", "https://").replace(/:\d+$/, ":8000") + "/api/accounts/snapshot";
+    if (bridgeUrl.startsWith("ws://")) return bridgeUrl.replace("ws://", "http://").replace(/:\d+$/, ":8000") + "/api/accounts/snapshot";
+    return DEFAULT_ACCOUNTS_API_URL;
+  } catch {
+    return DEFAULT_ACCOUNTS_API_URL;
   }
 }
 
@@ -44,6 +59,10 @@ function normalizeAccountEntry(entry = {}) {
 function mergeLiveAccounts(store, snapshot) {
   const state = store.getState();
   const normalizedAccounts = Array.isArray(snapshot?.accounts) ? snapshot.accounts.map(normalizeAccountEntry) : [];
+  console.log("[KMFX][ACCOUNTS] merge snapshot", {
+    count: normalizedAccounts.length,
+    activeAccountId: snapshot?.active_account_id || "",
+  });
   const liveAccountIds = normalizedAccounts.map((account) => account.accountId).filter(Boolean);
   const nextAccounts = { ...state.accounts };
 
@@ -84,11 +103,42 @@ function mergeLiveAccounts(store, snapshot) {
     liveAccountIds,
     currentAccount: resolvedCurrentAccount,
   }));
+  console.log("[KMFX][ACCOUNTS] store updated", {
+    liveAccountIds,
+    currentAccount: resolvedCurrentAccount,
+  });
 }
 
 export function initAccountsLiveSnapshot(store) {
   let socket = null;
   let reconnectTimer = null;
+  let httpPollTimer = null;
+
+  const pollHttpSnapshot = async () => {
+    const url = getPreferredAccountsApiUrl();
+    try {
+      const response = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!response.ok) {
+        console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
+        return;
+      }
+      const payload = await response.json();
+      console.log("[KMFX][ACCOUNTS] http snapshot received", {
+        count: Array.isArray(payload?.accounts) ? payload.accounts.length : 0,
+        activeAccountId: payload?.active_account_id || "",
+      });
+      if (!payload || !Array.isArray(payload.accounts)) return;
+      mergeLiveAccounts(store, payload);
+    } catch (error) {
+      console.warn("[KMFX][ACCOUNTS] http snapshot error", error);
+    }
+  };
+
+  const startHttpPolling = () => {
+    clearInterval(httpPollTimer);
+    pollHttpSnapshot();
+    httpPollTimer = window.setInterval(pollHttpSnapshot, 5000);
+  };
 
   const connect = () => {
     const bridgeUrl = getPreferredBridgeUrl();
@@ -108,6 +158,10 @@ export function initAccountsLiveSnapshot(store) {
         const payload = JSON.parse(event.data || "{}");
         if (!payload || (payload.type !== "snapshot" && payload.type !== "update")) return;
         if (!payload.accounts_snapshot) return;
+        console.log("[KMFX][ACCOUNTS] websocket snapshot received", {
+          count: Array.isArray(payload.accounts_snapshot?.accounts) ? payload.accounts_snapshot.accounts.length : 0,
+          activeAccountId: payload.accounts_snapshot?.active_account_id || "",
+        });
         mergeLiveAccounts(store, payload.accounts_snapshot);
       } catch (error) {
         console.warn("[KMFX][ACCOUNTS] snapshot parse failed", error);
@@ -129,5 +183,6 @@ export function initAccountsLiveSnapshot(store) {
     });
   };
 
+  startHttpPolling();
   connect();
 }
