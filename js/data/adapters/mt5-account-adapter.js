@@ -116,7 +116,12 @@ function normalizeMt5Payload(rawPayload = {}) {
 }
 
 export function adaptMt5Account(rawAccount = {}) {
-  const payload = normalizeMt5Payload(rawAccount.dashboard_payload || rawAccount.payload || rawAccount);
+  const dashboardPayload = rawAccount.dashboard_payload && typeof rawAccount.dashboard_payload === "object"
+    ? rawAccount.dashboard_payload
+    : rawAccount.payload && typeof rawAccount.payload === "object"
+      ? rawAccount.payload
+      : rawAccount;
+  const payload = normalizeMt5Payload(dashboardPayload);
   const record = createAccountRecord({
     id: rawAccount.account_id || rawAccount.id || rawAccount.login || "mt5-account",
     name: rawAccount.display_name || rawAccount.nickname || rawAccount.name || `${rawAccount.broker || "MT5"} · ${rawAccount.login || "Cuenta"}`,
@@ -137,6 +142,10 @@ export function adaptMt5Account(rawAccount = {}) {
     login: rawAccount.login || "",
     platform: rawAccount.platform || "mt5",
     connectionMode: rawAccount.connection_mode || "bridge",
+    dashboardPayload,
+    riskSnapshot: dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object"
+      ? dashboardPayload.riskSnapshot
+      : {},
     connection: {
       ...record.connection,
       state: rawAccount.status || "disconnected",
