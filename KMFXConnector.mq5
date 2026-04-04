@@ -41,8 +41,8 @@ input string            KMFXSyncPath          = "/api/mt5/sync";
 input string            KMFXPolicyPath        = "/api/mt5/policy";
 input string            KMFXApiKey            = "";
 input int               KMFXTimerMs           = 2000;
-input int               KMFXPolicyPollSeconds = 5;
-input int               KMFXStatePushSeconds  = 2;
+input int               KMFXPolicyPollSeconds = 12;
+input int               KMFXStatePushSeconds  = 5;
 input int               KMFXWebTimeoutMs      = 2500;
 input int               KMFXClosedDealsLimit  = 50;
 input bool              KMFXVerboseLog        = true;
@@ -182,6 +182,12 @@ string KMFXDoubleJson(double value,int digits=2)
    return DoubleToString(value,digits);
   }
 
+string KMFXAccountLoginString()
+  {
+   long login=(long)AccountInfoInteger(ACCOUNT_LOGIN);
+   return (string)login;
+  }
+
 void KMFXLog(string scope,string message,bool force=false)
   {
    if(!KMFXVerboseLog && !force && scope!="ERROR")
@@ -211,7 +217,8 @@ string KMFXSeverityString(KMFXSeverity severity)
 
 KMFXSeverity KMFXParseSeverity(string value)
   {
-   string normalized=StringLower(KMFXTrim(value));
+   string normalized=KMFXTrim(value);
+   StringToLower(normalized);
    if(normalized=="critical") return KMFX_SEVERITY_CRITICAL;
    if(normalized=="high")     return KMFX_SEVERITY_HIGH;
    if(normalized=="warning")  return KMFX_SEVERITY_WARNING;
@@ -286,10 +293,12 @@ bool KMFXSplitCsvContains(string csv,string value)
 
    string items[];
    int count=StringSplit(csv,',',items);
-   string needle=StringUpper(KMFXTrim(value));
+   string needle=KMFXTrim(value);
+   StringToUpper(needle);
    for(int i=0;i<count;i++)
      {
-      string item=StringUpper(KMFXTrim(items[i]));
+      string item=KMFXTrim(items[i]);
+      StringToUpper(item);
       if(item==needle)
          return true;
      }
@@ -374,7 +383,7 @@ double KMFXEstimateRiskPct(string symbol,string side,double volume,double entry_
 string KMFXBuildAccountJson()
   {
    string json="{";
-   json+="\"login\":"+IntegerToString((int)AccountInfoInteger(ACCOUNT_LOGIN))+",";
+   json+="\"login\":"+KMFXAccountLoginString()+",";
    json+="\"name\":"+KMFXQuote(AccountInfoString(ACCOUNT_NAME))+",";
    json+="\"broker\":"+KMFXQuote(AccountInfoString(ACCOUNT_COMPANY))+",";
    json+="\"server\":"+KMFXQuote(AccountInfoString(ACCOUNT_SERVER))+",";
@@ -567,7 +576,8 @@ bool KMFXExtractJsonBool(string json,string key,bool &value)
    string raw="";
    if(!KMFXExtractJsonString(json,key,raw))
       return false;
-   string normalized=StringLower(raw);
+   string normalized=raw;
+   StringToLower(normalized);
    value=(normalized=="true");
    return true;
   }
@@ -690,7 +700,7 @@ bool KMFXFetchPolicy()
   {
    string response="";
    int status_code=0;
-   string url=KMFXBackendBaseUrl+KMFXPolicyPath+"?login="+IntegerToString((int)AccountInfoInteger(ACCOUNT_LOGIN));
+   string url=KMFXBackendBaseUrl+KMFXPolicyPath+"?login="+KMFXAccountLoginString();
 
    if(!KMFXSendHttpRequest("GET",url,"",response,status_code))
       return false;
@@ -824,12 +834,17 @@ KMFXValidationResult KMFXCanOpenTradeInternal(KMFXOrderIntent &intent)
    if(allowed_risk>0.0 && effective_risk>allowed_risk)
       return KMFXDenyResult("TRADE_RISK_ABOVE_LIMIT","El riesgo por trade supera el máximo permitido.","Reduce tamaño o ajusta SL.");
 
-   if(Policy.auto_block && StringLen(Policy.blocking_rule)>0 && StringFind(StringLower(Policy.blocking_rule),"stop")>=0)
-      return KMFXDenyResult(
-         StringLen(Policy.reason_code)>0 ? Policy.reason_code : "BACKEND_BLOCKING_RULE",
-         Policy.blocking_rule,
-         StringLen(Policy.action_required)>0 ? Policy.action_required : "Sigue la instrucción del backend."
-      );
+   if(Policy.auto_block && StringLen(Policy.blocking_rule)>0)
+     {
+      string blocking_rule_lower=Policy.blocking_rule;
+      StringToLower(blocking_rule_lower);
+      if(StringFind(blocking_rule_lower,"stop")>=0)
+         return KMFXDenyResult(
+            StringLen(Policy.reason_code)>0 ? Policy.reason_code : "BACKEND_BLOCKING_RULE",
+            Policy.blocking_rule,
+            StringLen(Policy.action_required)>0 ? Policy.action_required : "Sigue la instrucción del backend."
+         );
+     }
 
    return KMFXAllowResult();
   }
