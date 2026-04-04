@@ -184,8 +184,10 @@ string KMFXDoubleJson(double value,int digits=2)
 
 string KMFXAccountLoginString()
   {
-   long login=(long)AccountInfoInteger(ACCOUNT_LOGIN);
-   return (string)login;
+   long login = (long)AccountInfoInteger(ACCOUNT_LOGIN);
+   string helper_login = IntegerToString(login);
+   KMFXLog("DEBUG","raw login=" + (string)login + " helper login=" + helper_login,true);
+   return helper_login;
   }
 
 void KMFXLog(string scope,string message,bool force=false)
@@ -502,10 +504,13 @@ string KMFXBuildRecentDealsJson()
 
 string KMFXBuildSyncPayload()
   {
+   string sync_login=KMFXAccountLoginString();
+   KMFXLog("DEBUG","login usado en sync payload=" + sync_login,true);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":\"2.00\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
+   json += "\"login\":" + KMFXAccountLoginString() + ",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
@@ -700,7 +705,9 @@ bool KMFXFetchPolicy()
   {
    string response="";
    int status_code=0;
-   string url=KMFXBackendBaseUrl+KMFXPolicyPath+"?login="+KMFXAccountLoginString();
+   string policy_login=KMFXAccountLoginString();
+   KMFXLog("DEBUG","login usado en policy=" + policy_login,true);
+   string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + KMFXAccountLoginString();
 
    if(!KMFXSendHttpRequest("GET",url,"",response,status_code))
       return false;
