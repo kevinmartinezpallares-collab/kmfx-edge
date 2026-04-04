@@ -111,6 +111,26 @@ export function getAccountTypeLabel(mode = "", name = "") {
   return "Cuenta principal";
 }
 
+export function resolveActiveAccountId(state) {
+  const accounts = state?.accounts && typeof state.accounts === "object" ? state.accounts : {};
+  const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds.filter((id) => accounts[id]) : [];
+  const activeLiveAccountId = state?.activeLiveAccountId;
+  const currentAccount = state?.currentAccount;
+
+  if (liveIds.length > 0) {
+    if (currentAccount && liveIds.includes(currentAccount)) return currentAccount;
+    if (activeLiveAccountId && liveIds.includes(activeLiveAccountId)) return activeLiveAccountId;
+    return liveIds[0] || null;
+  }
+
+  if (currentAccount && accounts[currentAccount]) return currentAccount;
+  return Object.keys(accounts)[0] || null;
+}
+
+export function hasLiveAccounts(state) {
+  return Array.isArray(state?.liveAccountIds) && state.liveAccountIds.length > 0;
+}
+
 export function buildDashboardModel(source) {
   const trades = source.trades
     .map((trade, index) => enrichTrade(trade, index))
@@ -233,12 +253,18 @@ export function buildDashboardModel(source) {
 }
 
 export function selectCurrentAccount(state) {
-  return state.accounts[state.currentAccount] || null;
+  const activeAccountId = resolveActiveAccountId(state);
+  return activeAccountId ? state?.accounts?.[activeAccountId] || null : null;
 }
 
 export function selectCurrentModel(state) {
   const account = selectCurrentAccount(state);
   return account?.model || null;
+}
+
+export function selectCurrentDashboardPayload(state) {
+  const account = selectCurrentAccount(state);
+  return account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
 }
 
 function buildWeeklyStrip(dayStats) {

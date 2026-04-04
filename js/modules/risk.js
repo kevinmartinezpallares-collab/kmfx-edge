@@ -1,9 +1,7 @@
-import { formatDateTime, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
+import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260401-203500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260401-203500";
-import { ensureRiskSnapshotFeed } from "./risk-live-snapshot.js?v=build-20260401-203500";
-
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
@@ -195,14 +193,9 @@ function rerenderRiskKeepingSymbolSearch(root, state) {
   });
 }
 
-function resolveRiskBridgeUrl() {
-  const preferences = readLocalPreferences();
-  return preferences.bridgeUrl || "ws://localhost:8765";
-}
-
 function riskStatusMeta(snapshot) {
-  const panicLock = snapshot?.panicLockActive;
-  const status = snapshot?.riskStatus || "unavailable";
+  const panicLock = snapshot?.status?.risk_status === "blocked" || snapshot?.status?.enforcement?.block_new_trades || false;
+  const status = snapshot?.status?.risk_status || "unavailable";
   if (panicLock) {
     return {
       tone: "danger",
@@ -211,7 +204,7 @@ function riskStatusMeta(snapshot) {
       context: "El bloqueo manual sigue activo. No se permiten nuevas órdenes hasta su expiración o liberación explícita."
     };
   }
-  if (status === "protection_mode") {
+  if (status === "blocked" || status === "breach") {
     return {
       tone: "danger",
       eyebrow: "Mando central",
@@ -219,7 +212,7 @@ function riskStatusMeta(snapshot) {
       context: "La política de riesgo ya está limitando la operativa. La prioridad es preservar capital y disciplina."
     };
   }
-  if (status === "active_monitoring") {
+  if (status === "warning") {
     return {
       tone: "warn",
       eyebrow: "Mando central",
@@ -227,7 +220,7 @@ function riskStatusMeta(snapshot) {
       context: "La cuenta sigue operable, pero la presión actual exige recortar exposición y evitar ampliar riesgo sin confirmación."
     };
   }
-  if (status === "within_limits") {
+  if (status === "active_monitoring" || status === "ok") {
     return {
       tone: "ok",
       eyebrow: "Mando central",
@@ -253,22 +246,19 @@ function mt5FieldStateMeta(rawValue = "") {
 }
 
 function riskSyncStateMeta(liveState, snapshot) {
-  if (liveState.status === "loading") {
-    return { label: "Sincronizando", tone: "warn", detail: "Esperando snapshot del motor de riesgo." };
+  if (!snapshot) {
+    return { label: "Sin snapshot", tone: "warn", detail: "Esperando dashboard_payload de la cuenta activa." };
   }
   if (liveState.status === "error") {
-    return { label: "Error", tone: "danger", detail: liveState.lastError || "No se pudo conectar con el backend de riesgo." };
-  }
-  if (!snapshot?.backendConnected) {
-    return { label: "Backend desconectado", tone: "danger", detail: snapshot?.error || "El motor de riesgo no está respondiendo." };
-  }
-  if (!snapshot?.mt5Connected) {
-    return { label: "MT5 sin sincronía", tone: "warn", detail: "El backend está activo, pero MT5 no está conectado." };
+    return { label: "Error", tone: "danger", detail: liveState.lastError || "No se pudo resolver la cuenta activa." };
   }
   if (liveState.status === "stale") {
-    return { label: "Snapshot antiguo", tone: "warn", detail: `Último snapshot ${formatDateTime(snapshot?.lastSnapshotAt)}` };
+    return { label: "Snapshot antiguo", tone: "warn", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
   }
-  return { label: "Aplicado en MT5", tone: "ok", detail: `Último snapshot ${formatDateTime(snapshot?.lastSnapshotAt)}` };
+  if (!liveState.connected) {
+    return { label: "Conector inactivo", tone: "warn", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
+  }
+  return { label: "Aplicado en MT5", tone: "ok", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
 }
 
 function renderRiskStateCard(kind, title, body, detail = "") {
@@ -283,34 +273,52 @@ function renderRiskStateCard(kind, title, body, detail = "") {
 }
 
 function syncDraftFromSnapshot(root, snapshot) {
-  if (!snapshot?.policySnapshot) return;
+  if (!snapshot?.policy) return;
   if (root.__riskPrefsStatus === "pending" || root.__riskPrefsStatus === "saving") return;
   const currentDraft = getRiskPreferencesDraft(root);
   root.__riskPrefsDraft = {
     ...currentDraft,
-    defaultRisk: String(snapshot.policySnapshot.risk_per_trade_pct ?? currentDraft.defaultRisk),
-    dailyDrawdownLimit: String(snapshot.policySnapshot.daily_dd_limit_pct ?? currentDraft.dailyDrawdownLimit),
-    maxDrawdownLimit: String(snapshot.policySnapshot.max_dd_limit_pct ?? currentDraft.maxDrawdownLimit),
+    defaultRisk: String(snapshot.policy.risk_per_trade_pct ?? currentDraft.defaultRisk),
+    dailyDrawdownLimit: String(snapshot.policy.daily_dd_limit_pct ?? currentDraft.dailyDrawdownLimit),
+    maxDrawdownLimit: String(snapshot.policy.max_dd_limit_pct ?? currentDraft.maxDrawdownLimit),
   };
 }
 
 export function renderRisk(root, state) {
+  const activeAccountId = resolveActiveAccountId(state);
   const account = selectCurrentAccount(state);
   if (!account) {
-    root.innerHTML = "";
+    console.log("[KMFX][VIEW]", {
+      view: "risk",
+      activeAccountId,
+      hasAccount: false,
+      reason: "no_active_account",
+    });
+    root.innerHTML = renderRiskStateCard("warning", "Sin cuenta activa", "No hay una cuenta real activa para renderizar Riesgo.");
     return;
   }
 
-  const rerenderFromFeed = () => {
-    if (state.ui?.activePage === "risk") {
-      renderRisk(root, state);
-    }
+  const dashboardPayload = account.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const liveSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object" ? dashboardPayload.riskSnapshot : null;
+  const lastSyncAt = account.connection?.lastSync || account.dashboardPayload?.timestamp || null;
+  const lastSyncMs = lastSyncAt ? new Date(lastSyncAt).getTime() : 0;
+  const isStale = Number.isFinite(lastSyncMs) ? Date.now() - lastSyncMs > 30000 : false;
+  const liveState = {
+    status: !liveSnapshot ? "empty" : isStale ? "stale" : "ready",
+    snapshot: liveSnapshot,
+    lastError: "",
+    lastSyncAt,
+    connected: Boolean(account.connection?.connected),
   };
-  const liveState = ensureRiskSnapshotFeed(root, {
-    bridgeUrl: resolveRiskBridgeUrl(),
-    onChange: rerenderFromFeed
+  console.log("[KMFX][VIEW]", {
+    view: "risk",
+    activeAccountId,
+    hasAccount: true,
+    hasPayload: Boolean(account.dashboardPayload),
+    hasRiskSnapshot: Boolean(liveSnapshot),
+    liveState: liveState.status,
+    lastSyncAt,
   });
-  const liveSnapshot = liveState.snapshot;
   syncDraftFromSnapshot(root, liveSnapshot);
 
   const prefsDraft = getRiskPreferencesDraft(root);
@@ -328,12 +336,12 @@ export function renderRisk(root, state) {
   const selectedSessions = parseTokenList(
     prefsDraft.__hasAllowedSessions
       ? prefsDraft.allowedSessions
-      : (liveSnapshot?.policySnapshot?.allowed_sessions || ["London", "New York"]).join(" · ")
+      : (liveSnapshot?.policy?.allowed_sessions || ["London", "New York"]).join(" · ")
   );
   const selectedSymbols = parseTokenList(
     prefsDraft.__hasAllowedSymbols
       ? prefsDraft.allowedSymbols
-      : ((liveSnapshot?.policySnapshot?.allowed_symbols?.length ? liveSnapshot.policySnapshot.allowed_symbols : symbolUniverse.map((item) => item.id))).join(" · ")
+      : ((liveSnapshot?.policy?.allowed_symbols?.length ? liveSnapshot.policy.allowed_symbols : symbolUniverse.map((item) => item.id))).join(" · ")
   );
   const favoriteSymbols = new Set(parseTokenList(prefsDraft.favoriteSymbols));
   const selectedSymbolSet = new Set(selectedSymbols);
@@ -423,50 +431,50 @@ export function renderRisk(root, state) {
     </div>
   `;
   const mt5SyncState = riskSyncStateMeta(liveState, liveSnapshot);
-  const defaultRiskMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.risk_per_trade);
-  const dailyDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.daily_dd_limit);
-  const maxDdMt5State = mt5FieldStateMeta(liveSnapshot?.mt5LimitStates?.max_dd_limit);
-  const ladder = liveSnapshot?.ladderSnapshot?.levels || [];
-  const ladderLevel = liveSnapshot?.ladderSnapshot?.currentLevel || "";
+  const defaultRiskMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.risk_per_trade);
+  const dailyDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.daily_dd_limit);
+  const maxDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.max_dd_limit);
+  const ladder = [];
+  const ladderLevel = liveSnapshot?.policy?.current_level || "";
   const commandMeta = riskStatusMeta(liveSnapshot);
-  const exposureSnapshot = liveSnapshot?.exposureSnapshot || {
-    openPositions: 0,
-    totalOpenRiskPct: 0,
+  const exposureSnapshot = {
+    openPositions: Number(liveSnapshot?.summary?.open_positions_count || 0),
+    totalOpenRiskPct: Number(liveSnapshot?.summary?.total_open_risk_pct || 0),
     effectiveCorrelatedRisk: 0,
-    pressureLabel: "",
-    pressureTone: "neutral"
+    pressureLabel: liveSnapshot?.status?.risk_status || "",
+    pressureTone: liveSnapshot?.status?.severity === "critical" ? "danger" : liveSnapshot?.status?.severity === "warning" ? "warn" : "ok"
   };
   const remainingDailyLabel = liveSnapshot
-    ? (liveSnapshot.remainingDailyMarginPct <= 0 ? "Sin margen diario" : `${liveSnapshot.remainingDailyMarginPct.toFixed(2)}% de margen diario`)
+    ? (Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0) <= 0 ? "Sin margen diario" : `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}% de margen diario`)
     : "—";
   const remainingTotalLabel = liveSnapshot
-    ? (liveSnapshot.remainingTotalMarginPct <= 0 ? "Sin margen total" : `${liveSnapshot.remainingTotalMarginPct.toFixed(2)}% de margen total`)
+    ? (Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0) <= 0 ? "Sin margen total" : `${Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0).toFixed(2)}% de margen total`)
     : "—";
   const marginHeadline = !liveSnapshot
     ? "—"
-    : liveSnapshot.panicLockActive
+    : liveSnapshot?.status?.risk_status === "blocked"
       ? "Operativa congelada"
-      : liveSnapshot.remainingTotalMarginPct <= 0
+      : Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0) <= 0
         ? "Sin margen operativo"
-        : `${liveSnapshot.remainingTotalMarginPct.toFixed(2)}%`;
+        : `${Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0).toFixed(2)}%`;
   const commandRows = liveSnapshot ? [
     {
       label: "Trigger",
-      value: liveSnapshot.trigger || "Sin trigger activo",
-      detail: liveSnapshot.riskStatus === "within_limits" ? "La cuenta sigue dentro de política." : "Este evento disparó el estado actual."
+      value: liveSnapshot.status?.reason_code || "Sin trigger activo",
+      detail: liveSnapshot.status?.risk_status === "active_monitoring" ? "La cuenta sigue dentro de política." : "Este evento disparó el estado actual."
     },
     {
       label: "Bloqueo actual",
-      value: liveSnapshot.blockingRule || "Sin bloqueo operativo",
-      detail: liveSnapshot.panicLockActive ? "La cuenta no admite nuevas órdenes." : "Esta regla manda ahora mismo sobre la operativa."
+      value: liveSnapshot.status?.blocking_rule || "Sin bloqueo operativo",
+      detail: liveSnapshot.status?.enforcement?.block_new_trades ? "La cuenta no admite nuevas órdenes." : "Esta regla manda ahora mismo sobre la operativa."
     },
     {
       label: "Acción requerida",
-      value: liveSnapshot.actionRequired || "Sin acción requerida",
-      detail: liveSnapshot.panicLockExpiresAt ? `Expira ${formatDateTime(liveSnapshot.panicLockExpiresAt)}` : "Acción inmediata derivada del motor de riesgo."
+      value: liveSnapshot.status?.action_required || "Sin acción requerida",
+      detail: "Acción inmediata derivada del motor de riesgo."
     }
   ] : [];
-  const activeRules = liveSnapshot?.activeRules || [];
+  const activeRules = Array.isArray(account.dashboardPayload?.riskRules) ? account.dashboardPayload.riskRules : [];
   const rulesMarkup = activeRules.length
     ? activeRules.map((rule) => `
       <article class="risk-rule-card risk-rule-card--${rule.isDominant ? "dominant" : rule.tone}">
@@ -491,25 +499,46 @@ export function renderRisk(root, state) {
       </article>
     `).join("")
     : `<article class="risk-rule-card risk-rule-card--neutral"><strong>Sin reglas activas</strong><div class="risk-rule-card__meta"><div class="risk-rule-card__meta-row"><span>Estado</span><strong>Esperando snapshot del backend</strong></div></div></article>`;
-  const coreMetrics = (liveSnapshot?.limitsAndPressure || []).map((item) => ({
-    label: item.label,
-    value: item.display,
-    noteLead: item.noteValue,
-    noteTail: item.noteLabel,
-    noteTone: item.tone
-  }));
+  const coreMetrics = liveSnapshot ? [
+    {
+      label: "DD actual",
+      value: `${Number(liveSnapshot.summary?.peak_to_equity_drawdown_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.floating_drawdown_pct || 0).toFixed(2)}%`,
+      noteTail: "drawdown flotante",
+      noteTone: "neutral"
+    },
+    {
+      label: "Daily DD",
+      value: `${Number(liveSnapshot.summary?.daily_drawdown_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}%`,
+      noteTail: "margen diario restante",
+      noteTone: "neutral"
+    },
+    {
+      label: "Heat",
+      value: `${Number(liveSnapshot.summary?.total_open_risk_pct || 0).toFixed(2)}%`,
+      noteLead: liveSnapshot.summary?.heat_usage_ratio_pct != null ? `${Number(liveSnapshot.summary?.heat_usage_ratio_pct || 0).toFixed(1)}%` : "—",
+      noteTail: "uso del límite heat",
+      noteTone: "neutral"
+    },
+    {
+      label: "Risk / trade",
+      value: `${Number(liveSnapshot.summary?.max_open_trade_risk_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.max_risk_per_trade_pct || 0).toFixed(2)}%`,
+      noteTail: "límite por política",
+      noteTone: "neutral"
+    }
+  ] : [];
   root.innerHTML = `
     <div class="risk-page-stack">
     <div class="tl-page-header">
       <div class="tl-page-title">Gestor de Riesgo</div>
       <div class="tl-page-sub">Controles operativos, configuración de límites y lectura clara del estado de seguridad.</div>
     </div>
-    ${liveState.status === "loading" && !liveSnapshot ? renderRiskStateCard("loading", "Sincronizando Riesgo", "Esperando snapshot del motor de riesgo y estado operativo desde MT5.") : ""}
-    ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Backend de riesgo no disponible", "No se pudo obtener el snapshot del motor de riesgo.", liveState.lastError || resolveRiskBridgeUrl()) : ""}
-    ${liveState.status === "disconnected" && !liveSnapshot ? renderRiskStateCard("warning", "Bridge MT5 desconectado", "La sección Riesgo necesita el bridge local para renderizar datos reales.", resolveRiskBridgeUrl()) : ""}
-    ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último snapshot conocido", "El bridge no ha actualizado la sección Riesgo dentro del umbral esperado.", `Último snapshot ${formatDateTime(liveSnapshot.lastSnapshotAt)}`) : ""}
-    ${liveSnapshot && !liveSnapshot.mt5Connected ? renderRiskStateCard("warning", "MT5 sin sincronización", "El backend de riesgo está activo, pero la cuenta MT5 aún no está conectada.", "La UI conserva el último contrato conocido.") : ""}
-    ${liveSnapshot && !liveSnapshot.backendConnected ? renderRiskStateCard("error", "Motor de riesgo sin respuesta", "No se ha podido construir un contrato de riesgo válido desde backend.", liveSnapshot.error || "") : ""}
+    ${liveState.status === "empty" ? renderRiskStateCard("loading", "Risk snapshot no disponible", "La cuenta activa todavía no trae `dashboard_payload.riskSnapshot`.") : ""}
+    ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Cuenta activa no disponible", "No se pudo resolver una cuenta activa válida.", liveState.lastError || "") : ""}
+    ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último snapshot conocido", "La cuenta no ha refrescado el dashboard_payload dentro del umbral esperado.", `Último sync ${formatDateTime(lastSyncAt)}`) : ""}
+    ${liveSnapshot && !account.connection?.connected ? renderRiskStateCard("warning", "MT5 sin sincronización", "La cuenta existe, pero la conexión del connector no está marcada como conectada.", "La UI conserva el último contrato conocido.") : ""}
 
     <article class="tl-section-card risk-command-center risk-command-center--${commandMeta.tone}">
       <div class="risk-command-center__copy">
@@ -535,19 +564,19 @@ export function renderRisk(root, state) {
       <div class="risk-command-center__meta">
         <div class="risk-command-center__metric">
           <span>Margen restante</span>
-          <strong class="${liveSnapshot?.remainingTotalMarginPct <= 0 || liveSnapshot?.panicLockActive ? "metric-negative" : liveSnapshot?.remainingTotalMarginPct <= 1 ? "metric-warning" : ""}">${marginHeadline}</strong>
+          <strong class="${Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 0 || liveSnapshot?.status?.risk_status === "blocked" ? "metric-negative" : Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 1 ? "metric-warning" : ""}">${marginHeadline}</strong>
           <small>${remainingTotalLabel} · ${remainingDailyLabel}</small>
         </div>
       </div>
     </article>
 
-    ${liveSnapshot?.panicLockActive ? `
+    ${liveSnapshot?.status?.risk_status === "blocked" ? `
       <article class="risk-lock-banner">
         <div class="risk-lock-copy">
           <strong>Panic lock activo</strong>
-          <span>La operativa está congelada manualmente hasta ${formatDateTime(liveSnapshot.panicLockExpiresAt)}.</span>
+          <span>La operativa está congelada mientras el enforcement mantenga bloqueo sobre nuevas entradas.</span>
         </div>
-        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último snapshot: ${formatDateTime(liveSnapshot.lastSnapshotAt)}</div>` : ""}
+        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último snapshot: ${formatDateTime(lastSyncAt)}</div>` : ""}
       </article>
     ` : ""}
 
@@ -558,7 +587,7 @@ export function renderRisk(root, state) {
           <div class="row-sub">Estas reglas provienen de la política activa de riesgo del backend. La dominante manda ahora mismo sobre la operativa.</div>
         </div>
       </div>
-      <div class="risk-active-rules__context">${liveSnapshot ? (liveSnapshot.blockingRule || "Política activa aplicada sobre la operativa actual.") : "Esperando reglas del snapshot real."}</div>
+      <div class="risk-active-rules__context">${liveSnapshot ? (liveSnapshot.status?.blocking_rule || "Política activa aplicada sobre la operativa actual.") : "Esperando reglas del snapshot real."}</div>
       <div class="risk-active-rules__grid">
         ${rulesMarkup}
       </div>
@@ -602,7 +631,7 @@ export function renderRisk(root, state) {
           </div>
           <div class="risk-exposure-row">
             <span>Clúster correlacionado</span>
-            <strong class="${exposureSnapshot.effectiveCorrelatedRisk >= Number(liveSnapshot?.policySnapshot?.max_correlated_risk_pct || 999) ? "metric-negative" : ""}">${liveSnapshot ? `${exposureSnapshot.effectiveCorrelatedRisk.toFixed(2)}%` : "—"}</strong>
+            <strong>${liveSnapshot ? `${exposureSnapshot.effectiveCorrelatedRisk.toFixed(2)}%` : "—"}</strong>
           </div>
           <div class="risk-exposure-row">
             <span>Presión</span>
@@ -616,7 +645,7 @@ export function renderRisk(root, state) {
       <div class="risk-policy-header">
         <div>
           <div class="tl-section-title">Política activa de riesgo</div>
-          <div class="row-sub">Única fuente de verdad editable para la cuenta. Fuente actual: ${liveSnapshot?.policySource || "frontend"} · aplicada ${formatDateTime(liveSnapshot?.policyAppliedAt)}</div>
+          <div class="row-sub">Única fuente de verdad editable para la cuenta. Fuente actual: backend · aplicada ${formatDateTime(lastSyncAt)}</div>
         </div>
         <div class="risk-policy-sync risk-policy-sync--${mt5SyncState.tone}">
           <span>${mt5SyncState.label}</span>
@@ -631,7 +660,7 @@ export function renderRisk(root, state) {
             <em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${defaultRiskMt5State.label}</em>
           </div>
           <div class="risk-policy-input-shell">
-            <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
+              <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
             <em>%</em>
           </div>
         </label>
@@ -672,7 +701,7 @@ export function renderRisk(root, state) {
           <label class="risk-policy-field risk-policy-field--compact">
             <span>Lote máximo</span>
             <div class="risk-policy-input-shell">
-              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policySnapshot?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
+              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policy?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
               <em>lot</em>
             </div>
           </label>

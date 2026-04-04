@@ -1,4 +1,4 @@
-import { formatDateTime } from "./utils.js?v=build-20260401-203500";
+import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
 import { showToast } from "./toast.js?v=build-20260401-203500";
 
 function accountStatusMeta(status = "") {
@@ -39,6 +39,8 @@ export function initConnections(store) {
 export function renderConnections(root, state) {
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
+  const activeAccountId = resolveActiveAccountId(state);
+  const activeAccount = selectCurrentAccount(state);
   const liveAccounts = liveAccountIds
     .map((accountId) => accountDirectory[accountId])
     .filter(Boolean);
@@ -93,7 +95,7 @@ export function renderConnections(root, state) {
       <article class="tl-kpi-card"><div class="tl-kpi-label">Conectadas</div><div class="tl-kpi-val green">${connectedAccounts.length}</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">Pendientes</div><div class="tl-kpi-val">${pendingAccounts.length}</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">Errores</div><div class="tl-kpi-val">${erroredAccounts.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Cuenta activa</div><div class="tl-kpi-val">${state.accounts?.[state.currentAccount]?.name || "Sin cuenta"}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Cuenta activa</div><div class="tl-kpi-val">${activeAccount?.name || "Sin cuenta"}</div></article>
     </div>
 
     <article class="tl-section-card">
@@ -107,7 +109,7 @@ export function renderConnections(root, state) {
       <div class="connections-grid">
         ${liveAccounts.map((account) => {
           const statusMeta = accountStatusMeta(account.status);
-          const isActive = account.accountId === state.currentAccount;
+          const isActive = account.accountId === activeAccountId;
           return `
             <article class="tl-section-card ${isActive ? "account-registry-card--active" : ""}">
               <div class="tl-section-header">

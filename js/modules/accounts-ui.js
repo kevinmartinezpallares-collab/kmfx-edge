@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260401-203500";
 
 const accountSurfacePages = new Set(["dashboard"]);
@@ -127,7 +127,7 @@ export function initAccountsUI(store) {
     }
 
     const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
-    const activeAccountId = state.currentAccount || state.activeLiveAccountId || null;
+    const activeAccountId = resolveActiveAccountId(state);
     const hasLiveAccounts = liveAccountIds.length > 0;
     console.log("[KMFX][PANEL]", {
       liveAccountIds,

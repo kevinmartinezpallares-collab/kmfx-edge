@@ -43,6 +43,7 @@ import {
   readLocalPreferences,
   saveSupabaseUserConfig
 } from "./js/modules/supabase-user-config.js?v=build-20260401-203500";
+import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260401-203500";
 
 const BUILD_TAG = "build-20260401-203500";
 window.__KMFX_BUILD__ = BUILD_TAG;
@@ -133,16 +134,10 @@ const pageRenderers = {
 
 function resolveKnownAccountId(candidateId, state) {
   const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
-  const hasLiveAccounts = liveIds.length > 0;
-  if (hasLiveAccounts && candidateId && liveIds.includes(candidateId) && state?.accounts?.[candidateId]) return candidateId;
-  if (hasLiveAccounts && state?.activeLiveAccountId && liveIds.includes(state.activeLiveAccountId) && state?.accounts?.[state.activeLiveAccountId]) {
-    return state.activeLiveAccountId;
+  if (candidateId && state?.accounts?.[candidateId] && (liveIds.length === 0 || liveIds.includes(candidateId))) {
+    return candidateId;
   }
-  if (!hasLiveAccounts && candidateId && state?.accounts?.[candidateId]) return candidateId;
-  const firstLiveId = liveIds.find((id) => state?.accounts?.[id]);
-  if (firstLiveId) return firstLiveId;
-  if (!hasLiveAccounts && state?.currentAccount && state.accounts?.[state.currentAccount]) return state.currentAccount;
-  return Object.keys(state?.accounts || {})[0] || null;
+  return resolveActiveAccountId(state);
 }
 
 function renderActivePage() {

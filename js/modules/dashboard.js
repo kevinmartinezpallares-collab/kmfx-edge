@@ -1,4 +1,4 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260401-203500";
 import {
@@ -81,8 +81,8 @@ function riskStateDisplayLabel(riskState) {
 
 export function renderDashboard(root, state) {
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
-  const activeAccountId = state.currentAccount || state.activeLiveAccountId || null;
-  const hasLiveAccounts = liveAccountIds.length > 0;
+  const activeAccountId = resolveActiveAccountId(state);
+  const hasLiveAccounts = hasResolvedLiveAccounts(state);
   console.log("[KMFX][PANEL]", {
     liveAccountIds,
     currentAccount: state.currentAccount,

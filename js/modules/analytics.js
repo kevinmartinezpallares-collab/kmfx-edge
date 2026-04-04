@@ -1,4 +1,4 @@
-import { formatCompact, formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatCompact, formatCurrency, formatPercent, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
 import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260401-203500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260401-203500";
@@ -574,7 +574,14 @@ function attachArcInteractions(root) {
 
 export function renderAnalytics(root, state) {
   const model = selectCurrentModel(state);
-  const account = state.accounts?.[state.currentAccount] || null;
+  const activeAccountId = resolveActiveAccountId(state);
+  const account = selectCurrentAccount(state) || state.accounts?.[activeAccountId] || null;
+  console.log("[KMFX][VIEW]", {
+    view: "analytics",
+    activeAccountId,
+    hasPayload: Boolean(account?.dashboardPayload),
+    hasModel: Boolean(model),
+  });
   if (!model) {
     root.innerHTML = "";
     return;

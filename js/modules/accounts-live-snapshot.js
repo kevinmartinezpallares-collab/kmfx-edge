@@ -105,6 +105,27 @@ function mergeLiveAccounts(store, snapshot) {
     resolvedCurrentAccount,
   });
 
+  const sameLiveIds = liveAccountIds.length === (state.liveAccountIds || []).length
+    && liveAccountIds.every((accountId, index) => accountId === state.liveAccountIds[index]);
+  const sameActive = (activeAccountId || null) === (state.activeLiveAccountId || null);
+  const sameCurrent = (resolvedCurrentAccount || null) === (state.currentAccount || null);
+  const sameDirectory = normalizedAccounts.every((account) => {
+    const previous = state.accountDirectory?.[account.accountId];
+    return previous
+      && previous.lastSyncAt === account.lastSyncAt
+      && previous.status === account.status
+      && previous.displayName === account.displayName;
+  }) && Object.keys(state.accountDirectory || {}).length === normalizedAccounts.length;
+
+  if (sameLiveIds && sameActive && sameCurrent && sameDirectory) {
+    console.log("[KMFX][ACCOUNTS] snapshot skipped", {
+      reason: "no_material_changes",
+      liveAccountIds,
+      activeAccountId,
+    });
+    return;
+  }
+
   store.setState((prev) => ({
     ...prev,
     accounts: nextAccounts,
