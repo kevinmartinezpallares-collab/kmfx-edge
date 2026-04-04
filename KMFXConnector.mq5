@@ -186,7 +186,7 @@ string KMFXAccountLoginString()
   {
    long login = (long)AccountInfoInteger(ACCOUNT_LOGIN);
    string helper_login = IntegerToString(login);
-   KMFXLog("DEBUG","raw login=" + (string)login + " helper login=" + helper_login,true);
+   PrintFormat("[KMFX][DEBUG] ACCOUNT_LOGIN raw=%I64d helper=%s", login, helper_login);
    return helper_login;
   }
 
@@ -505,12 +505,12 @@ string KMFXBuildRecentDealsJson()
 string KMFXBuildSyncPayload()
   {
    string sync_login=KMFXAccountLoginString();
-   KMFXLog("DEBUG","login usado en sync payload=" + sync_login,true);
+   PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":\"2.00\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
-   json += "\"login\":" + KMFXAccountLoginString() + ",";
+   json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
@@ -706,8 +706,8 @@ bool KMFXFetchPolicy()
    string response="";
    int status_code=0;
    string policy_login=KMFXAccountLoginString();
-   KMFXLog("DEBUG","login usado en policy=" + policy_login,true);
-   string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + KMFXAccountLoginString();
+   PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
+   string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
 
    if(!KMFXSendHttpRequest("GET",url,"",response,status_code))
       return false;
@@ -1067,6 +1067,7 @@ int OnInit()
    Runtime.equity_peak=Runtime.daily_start_equity;
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
 
+   PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
    KMFXLog("INIT","KMFX Connector v2 iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
    EventSetMillisecondTimer(KMFXTimerMs);
    KMFXRunCycle();
