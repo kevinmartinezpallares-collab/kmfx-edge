@@ -132,11 +132,13 @@ const pageRenderers = {
 };
 
 function resolveKnownAccountId(candidateId, state) {
-  if (candidateId && state?.accounts?.[candidateId]) return candidateId;
   const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
+  const hasLiveAccounts = liveIds.length > 0;
+  if (hasLiveAccounts && candidateId && liveIds.includes(candidateId) && state?.accounts?.[candidateId]) return candidateId;
+  if (!hasLiveAccounts && candidateId && state?.accounts?.[candidateId]) return candidateId;
   const firstLiveId = liveIds.find((id) => state?.accounts?.[id]);
   if (firstLiveId) return firstLiveId;
-  if (state?.currentAccount && state.accounts?.[state.currentAccount]) return state.currentAccount;
+  if (!hasLiveAccounts && state?.currentAccount && state.accounts?.[state.currentAccount]) return state.currentAccount;
   return Object.keys(state?.accounts || {})[0] || null;
 }
 

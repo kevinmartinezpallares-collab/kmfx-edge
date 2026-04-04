@@ -81,12 +81,29 @@ function mergeLiveAccounts(store, snapshot) {
     nextAccounts[nextAccount.id] = nextAccount;
   });
 
+  const previousCurrentAccount = state.currentAccount;
   const activeAccountId = snapshot?.active_account_id || normalizedAccounts.find((account) => account.isDefault)?.accountId || liveAccountIds[0] || state.currentAccount;
-  const resolvedCurrentAccount = nextAccounts[activeAccountId]
-    ? activeAccountId
-    : nextAccounts[state.currentAccount]
-      ? state.currentAccount
-      : Object.keys(nextAccounts)[0] || null;
+  const currentAccountIsLive = liveAccountIds.includes(previousCurrentAccount);
+  let resolvedCurrentAccount = previousCurrentAccount;
+
+  if (liveAccountIds.length > 0) {
+    if (previousCurrentAccount === "sandbox") {
+      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || previousCurrentAccount;
+    } else if (!currentAccountIsLive) {
+      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || previousCurrentAccount;
+    } else if (!nextAccounts[previousCurrentAccount]) {
+      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || Object.keys(nextAccounts)[0] || null;
+    }
+  } else if (!nextAccounts[previousCurrentAccount]) {
+    resolvedCurrentAccount = Object.keys(nextAccounts)[0] || null;
+  }
+
+  console.log("[KMFX][ACCOUNTS] currentAccount resolution", {
+    previousCurrentAccount,
+    liveAccountIds,
+    activeAccountId,
+    resolvedCurrentAccount,
+  });
 
   store.setState((prev) => ({
     ...prev,
