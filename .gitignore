@@ -12,3 +12,4 @@ kmfx_bridge_8765.log
 kmfx_equity_*.json
 kmfx_risk_*.json
 kmfx_bridge_*.log
+__pycache__/
