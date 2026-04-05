@@ -33,13 +33,15 @@ app.add_middleware(
 )
 log.info(
     "Connector API startup configured | response_helper=connector_json_response routes=%s",
-    ["/api/mt5/sync", "/api/mt5/policy", "/api/accounts/snapshot"],
+    ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot"],
 )
 
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
+JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
+JOURNAL_TRADES_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-trades.json")
 SYNC_RECEIPT_TTL = timedelta(days=7)
 account_service = AccountService(JsonFileAccountStore(ACCOUNTS_STATE_PATH))
 
@@ -88,6 +90,38 @@ def load_sync_receipts() -> dict[str, dict[str, Any]]:
     return {str(key): value for key, value in records.items() if isinstance(value, dict)}
 
 
+def load_journal_receipts() -> dict[str, dict[str, Any]]:
+    if not os.path.exists(JOURNAL_RECEIPTS_STATE_PATH):
+        return {}
+    try:
+        with open(JOURNAL_RECEIPTS_STATE_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    records = payload.get("journal_receipts") if isinstance(payload, dict) else {}
+    if not isinstance(records, dict):
+        return {}
+    return {str(key): value for key, value in records.items() if isinstance(value, dict)}
+
+
+def load_journal_trade_store() -> dict[str, list[dict[str, Any]]]:
+    if not os.path.exists(JOURNAL_TRADES_STATE_PATH):
+        return {}
+    try:
+        with open(JOURNAL_TRADES_STATE_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    records = payload.get("journal_trades") if isinstance(payload, dict) else {}
+    if not isinstance(records, dict):
+        return {}
+    return {
+        str(key): [item for item in value if isinstance(item, dict)]
+        for key, value in records.items()
+        if isinstance(value, list)
+    }
+
+
 def save_sync_receipts(records: dict[str, dict[str, Any]]) -> None:
     os.makedirs(os.path.dirname(SYNC_RECEIPTS_STATE_PATH) or ".", exist_ok=True)
     payload = {
@@ -100,7 +134,33 @@ def save_sync_receipts(records: dict[str, dict[str, Any]]) -> None:
     os.replace(temp_path, SYNC_RECEIPTS_STATE_PATH)
 
 
+def save_journal_receipts(records: dict[str, dict[str, Any]]) -> None:
+    os.makedirs(os.path.dirname(JOURNAL_RECEIPTS_STATE_PATH) or ".", exist_ok=True)
+    payload = {
+        "journal_receipts": records,
+        "saved_at": now_iso(),
+    }
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(JOURNAL_RECEIPTS_STATE_PATH) or ".", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=True, indent=2)
+        temp_path = handle.name
+    os.replace(temp_path, JOURNAL_RECEIPTS_STATE_PATH)
+
+
+def save_journal_trade_store(records: dict[str, list[dict[str, Any]]]) -> None:
+    os.makedirs(os.path.dirname(JOURNAL_TRADES_STATE_PATH) or ".", exist_ok=True)
+    payload = {
+        "journal_trades": records,
+        "saved_at": now_iso(),
+    }
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(JOURNAL_TRADES_STATE_PATH) or ".", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=True, indent=2)
+        temp_path = handle.name
+    os.replace(temp_path, JOURNAL_TRADES_STATE_PATH)
+
+
 PROCESSED_SYNC_RECEIPTS: dict[str, dict[str, Any]] = load_sync_receipts()
+PROCESSED_JOURNAL_RECEIPTS: dict[str, dict[str, Any]] = load_journal_receipts()
+JOURNAL_TRADES_BY_IDENTITY: dict[str, list[dict[str, Any]]] = load_journal_trade_store()
 
 
 def purge_expired_sync_receipts() -> None:
@@ -115,6 +175,15 @@ def purge_expired_sync_receipts() -> None:
     for sync_id in expired_ids:
         PROCESSED_SYNC_RECEIPTS.pop(sync_id, None)
     save_sync_receipts(PROCESSED_SYNC_RECEIPTS)
+    expired_batch_ids = [
+        batch_id
+        for batch_id, record in PROCESSED_JOURNAL_RECEIPTS.items()
+        if (_parse_datetime(record.get("received_at")) or datetime.min.replace(tzinfo=timezone.utc)) < cutoff
+    ]
+    for batch_id in expired_batch_ids:
+        PROCESSED_JOURNAL_RECEIPTS.pop(batch_id, None)
+    if expired_batch_ids:
+        save_journal_receipts(PROCESSED_JOURNAL_RECEIPTS)
 
 
 def get_processed_sync_receipt(sync_id: str) -> dict[str, Any] | None:
@@ -132,6 +201,53 @@ def remember_processed_sync(sync_id: str, *, login: str, account_id: str, policy
         "received_at": now_iso(),
     }
     save_sync_receipts(PROCESSED_SYNC_RECEIPTS)
+
+
+def get_processed_journal_receipt(batch_id: str) -> dict[str, Any] | None:
+    purge_expired_sync_receipts()
+    return PROCESSED_JOURNAL_RECEIPTS.get(batch_id)
+
+
+def remember_processed_journal(batch_id: str, *, identity_key: str, trade_count: int) -> None:
+    purge_expired_sync_receipts()
+    PROCESSED_JOURNAL_RECEIPTS[batch_id] = {
+        "batch_id": batch_id,
+        "identity_key": identity_key,
+        "trade_count": trade_count,
+        "received_at": now_iso(),
+    }
+    save_journal_receipts(PROCESSED_JOURNAL_RECEIPTS)
+
+
+def resolve_connection_key(payload: dict[str, Any], request: Request | None = None) -> str:
+    if request is not None:
+        header_value = safe_str(request.headers.get("x-kmfx-connection-key"))
+        if header_value:
+            return header_value
+    explicit = safe_str(payload.get("connection_key"))
+    if explicit:
+        return explicit
+    return ""
+
+
+def resolve_identity_key(connection_key: str, login: str) -> str:
+    return connection_key or login
+
+
+def journal_trades_for_identity(identity_key: str) -> list[dict[str, Any]]:
+    return list(JOURNAL_TRADES_BY_IDENTITY.get(identity_key) or [])
+
+
+def remember_journal_trades(identity_key: str, trades: list[dict[str, Any]]) -> None:
+    existing = JOURNAL_TRADES_BY_IDENTITY.get(identity_key) or []
+    by_trade_id: dict[str, dict[str, Any]] = {}
+    for trade in existing + trades:
+        trade_id = safe_str(trade.get("trade_id") or trade.get("ticket"))
+        if trade_id:
+            by_trade_id[trade_id] = trade
+    ordered = sorted(by_trade_id.values(), key=lambda item: safe_timestamp(item.get("time")), reverse=True)
+    JOURNAL_TRADES_BY_IDENTITY[identity_key] = ordered[:200]
+    save_journal_trade_store(JOURNAL_TRADES_BY_IDENTITY)
 
 
 def resolve_sync_id(payload: dict[str, Any]) -> str:
@@ -305,6 +421,7 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
     for index, trade in enumerate(trades):
         sanitized.append(
             {
+                "trade_id": safe_str(trade.get("trade_id") or trade.get("ticket")),
                 "ticket": safe_str(trade.get("ticket")),
                 "position_id": safe_str(trade.get("position_id")),
                 "symbol": safe_str(trade.get("symbol")),
@@ -512,6 +629,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
     try:
         issues: list[dict[str, Any]] = []
         sync_id = resolve_sync_id(payload)
+        connection_key = resolve_connection_key(payload, request)
         sanitized_account, account_issues = sanitize_account(payload.get("account"))
         sanitized_positions, position_issues = sanitize_positions(payload.get("positions"))
         sanitized_trades, trade_issues = sanitize_trades(payload.get("trades"))
@@ -536,7 +654,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
         connector_version = safe_str(payload.get("connector_version"), "unknown")
         sync_timestamp = safe_timestamp(payload.get("timestamp"))
-        policy = build_connector_policy_response(login)
+        identity_key = resolve_identity_key(connection_key, login)
+        policy = build_connector_policy_response(identity_key)
         existing_receipt = get_processed_sync_receipt(sync_id)
         if existing_receipt:
             log.info(
@@ -563,9 +682,10 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 },
             )
 
-        LAST_SYNC_BY_LOGIN[login] = {
+        LAST_SYNC_BY_LOGIN[identity_key] = {
             "received_at": now_iso(),
             "sync_id": sync_id,
+            "connection_key": connection_key,
             "mode": safe_str(payload.get("mode"), "unknown"),
             "connector_version": connector_version,
             "timestamp": sync_timestamp,
@@ -588,7 +708,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         dashboard_payload = build_dashboard_account_payload(
             sanitized_account,
             sanitized_positions,
-            sanitized_trades,
+            journal_trades_for_identity(identity_key),
             payload,
             previous_account.latest_payload if previous_account else None,
         )
@@ -599,6 +719,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 "platform": "mt5",
             },
             payload=dashboard_payload,
+            api_key=connection_key,
         )
         log.info(
             "ACCOUNT sync upsert | account_id=%s login=%s status=%s broker=%s server=%s last_sync_at=%s",
@@ -674,20 +795,117 @@ async def mt5_sync(request: Request) -> JSONResponse:
         return sync_error_response("unexpected_exception", details, sync_id=sync_id)
 
 
+@app.post("/api/mt5/journal")
+async def mt5_journal(request: Request) -> JSONResponse:
+    batch_id = ""
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        log.exception("JOURNAL invalid JSON payload: %s", exc)
+        return connector_json_response(
+            {
+                "ok": False,
+                "received": False,
+                "batch_id": batch_id,
+                "disposition": "rejected",
+                "reason": "invalid_json",
+                "error_code": SYNC_ERROR_INVALID_PAYLOAD,
+                "details": {"message": str(exc)},
+                "timestamp": now_iso(),
+            }
+        )
+
+    if not isinstance(payload, dict):
+        return connector_json_response(
+            {
+                "ok": False,
+                "received": False,
+                "batch_id": batch_id,
+                "disposition": "rejected",
+                "reason": "invalid_payload_shape",
+                "error_code": SYNC_ERROR_INVALID_PAYLOAD,
+                "details": {"problem": "expected_object"},
+                "timestamp": now_iso(),
+            }
+        )
+
+    batch_id = safe_str(payload.get("batch_id"))
+    connection_key = resolve_connection_key(payload, request)
+    login = normalize_login(payload)
+    identity_key = resolve_identity_key(connection_key, login)
+    if not batch_id or not identity_key:
+        return connector_json_response(
+            {
+                "ok": False,
+                "received": False,
+                "batch_id": batch_id,
+                "disposition": "rejected",
+                "reason": "missing_identity_or_batch",
+                "error_code": SYNC_ERROR_INVALID_PAYLOAD,
+                "details": {"batch_id": batch_id, "identity_key": identity_key},
+                "timestamp": now_iso(),
+            }
+        )
+
+    existing_receipt = get_processed_journal_receipt(batch_id)
+    if existing_receipt:
+        return connector_json_response(
+            {
+                "ok": True,
+                "received": True,
+                "batch_id": batch_id,
+                "disposition": "duplicate",
+                "reason": "already_processed",
+                "error_code": None,
+                "details": {
+                    "trade_count": existing_receipt.get("trade_count", 0),
+                    "received_at": existing_receipt.get("received_at", ""),
+                },
+                "timestamp": now_iso(),
+            }
+        )
+
+    trades, trade_issues = sanitize_trades(payload.get("trades"))
+    remember_journal_trades(identity_key, trades)
+    remember_processed_journal(batch_id, identity_key=identity_key, trade_count=len(trades))
+    log.info("JOURNAL accepted | batch_id=%s identity=%s trades=%s issues=%s", batch_id, identity_key, len(trades), trade_issues)
+    return connector_json_response(
+        {
+            "ok": True,
+            "received": True,
+            "batch_id": batch_id,
+            "disposition": "accepted",
+            "reason": "accepted",
+            "error_code": None,
+            "details": {
+                "trade_count": len(trades),
+                "issues": trade_issues,
+            },
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.get("/api/mt5/policy")
-async def mt5_policy(login: str = Query(..., min_length=1)) -> JSONResponse:
+async def mt5_policy(
+    request: Request,
+    login: str = Query("", min_length=0),
+    connection_key: str = Query("", min_length=0),
+) -> JSONResponse:
     normalized_login = safe_str(login)
-    if not normalized_login:
+    normalized_connection_key = safe_str(connection_key) or safe_str(request.headers.get("x-kmfx-connection-key"))
+    identity_key = resolve_identity_key(normalized_connection_key, normalized_login)
+    if not identity_key:
         return connector_json_response({
             "ok": False,
-            "reason": "missing_login",
+            "reason": "missing_identity",
             "error_code": 4001,
-            "details": {"field": "login", "problem": "login query param is required"},
+            "details": {"field": "connection_key|login", "problem": "one identity value is required"},
             "timestamp": now_iso(),
         })
 
-    policy = build_connector_policy_response(normalized_login)
-    log.info("Policy requested | login=%s hash=%s", normalized_login, policy["policy_hash"])
+    policy = build_connector_policy_response(identity_key)
+    log.info("Policy requested | identity=%s hash=%s", identity_key, policy["policy_hash"])
     return connector_json_response(policy)
 
 

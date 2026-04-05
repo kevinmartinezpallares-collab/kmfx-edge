@@ -38,13 +38,16 @@ enum KMFXSeverity
 input KMFXConnectorMode KMFXMode              = SAFE_MODE;
 input string            KMFXBackendBaseUrl    = "http://127.0.0.1:8000";
 input string            KMFXSyncPath          = "/api/mt5/sync";
+input string            KMFXJournalPath       = "/api/mt5/journal";
 input string            KMFXPolicyPath        = "/api/mt5/policy";
 input string            KMFXApiKey            = "";
+input string            connection_key        = "";
 input int               KMFXTimerMs           = 2000;
 input int               KMFXPolicyPollSeconds = 12;
 input int               KMFXStatePushSeconds  = 5;
 input int               KMFXWebTimeoutMs      = 5000;
 input int               KMFXClosedDealsLimit  = 50;
+input int               KMFXJournalBatchSize  = 20;
 input bool              KMFXVerboseLog        = true;
 input bool              KMFXEnableEnforce     = true;
 input bool              KMFXSendClosedDeals   = true;
@@ -106,6 +109,16 @@ struct KMFXRuntimeState
 struct KMFXPendingSync
   {
    string    sync_id;
+   string    payload;
+   int       attempts;
+   datetime  created_at;
+   datetime  next_retry_at;
+  };
+
+struct KMFXPendingJournalBatch
+  {
+   string    batch_id;
+   string    trade_ids_csv;
    string    payload;
    int       attempts;
    datetime  created_at;
@@ -201,7 +214,18 @@ string KMFXAccountLoginString()
 
 string KMFXBuildSyncId()
   {
-   return KMFXAccountLoginString()+"-"+IntegerToString((int)KMFXNow())+"-"+IntegerToString((int)GetTickCount());
+   string identity=StringLen(KMFXTrim(connection_key))>0 ? KMFXTrim(connection_key) : KMFXAccountLoginString();
+   return identity+"-"+IntegerToString((int)KMFXNow())+"-"+IntegerToString((int)GetTickCount());
+  }
+
+string KMFXConnectionKeyValue()
+  {
+   return KMFXTrim(connection_key);
+  }
+
+bool KMFXHasConnectionKey()
+  {
+   return StringLen(KMFXConnectionKeyValue())>0;
   }
 
 string KMFXPendingSyncPrefix()
@@ -342,6 +366,125 @@ bool KMFXQueuePendingSync(string sync_id,string payload,int attempts)
 
    PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
    return true;
+  }
+
+string KMFXPendingJournalPrefix()
+  {
+   return "KMFX_PENDING_JOURNAL_";
+  }
+
+string KMFXPendingJournalFileName(string batch_id)
+  {
+   return KMFXPendingJournalPrefix()+batch_id+".txt";
+  }
+
+string KMFXSentTradeMarkerPrefix()
+  {
+   return "KMFX_SENT_TRADE_";
+  }
+
+string KMFXSentTradeMarkerFileName(string trade_id)
+  {
+   return KMFXSentTradeMarkerPrefix()+trade_id+".txt";
+  }
+
+string KMFXBuildJournalBatchId()
+  {
+   string identity=KMFXHasConnectionKey() ? KMFXConnectionKeyValue() : KMFXAccountLoginString();
+   return "batch-"+identity+"-"+IntegerToString((int)KMFXNow())+"-"+IntegerToString((int)GetTickCount());
+  }
+
+bool KMFXIsTradeSent(string trade_id)
+  {
+   int handle=FileOpen(KMFXSentTradeMarkerFileName(trade_id),FILE_READ|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+   FileClose(handle);
+   return true;
+  }
+
+bool KMFXMarkTradeSent(string trade_id)
+  {
+   int handle=FileOpen(KMFXSentTradeMarkerFileName(trade_id),FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+   FileWriteString(handle,"sent");
+   FileClose(handle);
+   return true;
+  }
+
+bool KMFXSavePendingJournalBatch(KMFXPendingJournalBatch &item)
+  {
+   int handle=FileOpen(KMFXPendingJournalFileName(item.batch_id),FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   FileWriteString(handle,item.batch_id+"\n");
+   FileWriteString(handle,item.trade_ids_csv+"\n");
+   FileWriteString(handle,IntegerToString(item.attempts)+"\n");
+   FileWriteString(handle,IntegerToString((int)item.created_at)+"\n");
+   FileWriteString(handle,IntegerToString((int)item.next_retry_at)+"\n");
+   FileWriteString(handle,item.payload);
+   FileClose(handle);
+   return true;
+  }
+
+bool KMFXLoadPendingJournalBatch(string file_name,KMFXPendingJournalBatch &item)
+  {
+   int handle=FileOpen(file_name,FILE_READ|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   item.batch_id=KMFXTrim(FileReadString(handle));
+   item.trade_ids_csv=KMFXTrim(FileReadString(handle));
+   item.attempts=(int)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.created_at=(datetime)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.next_retry_at=(datetime)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.payload=FileReadString(handle);
+   FileClose(handle);
+   return StringLen(item.batch_id)>0 && StringLen(item.payload)>0;
+  }
+
+bool KMFXDeletePendingJournalFile(string file_name)
+  {
+   return FileDelete(file_name,FILE_COMMON);
+  }
+
+bool KMFXTradeIsQueued(string trade_id)
+  {
+   string file_name="";
+   long handle=FileFindFirst(KMFXPendingJournalPrefix()+"*.txt",file_name,FILE_COMMON);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   bool queued=false;
+   do
+     {
+      KMFXPendingJournalBatch item;
+      if(!KMFXLoadPendingJournalBatch(file_name,item))
+         continue;
+      if(KMFXSplitCsvContains(item.trade_ids_csv,trade_id))
+        {
+         queued=true;
+         break;
+        }
+     }
+   while(FileFindNext(handle,file_name));
+
+   FileFindClose(handle);
+   return queued;
+  }
+
+void KMFXMarkTradeCsvAsSent(string trade_ids_csv)
+  {
+   string items[];
+   int count=StringSplit(trade_ids_csv,',',items);
+   for(int i=0;i<count;i++)
+     {
+      string trade_id=KMFXTrim(items[i]);
+      if(StringLen(trade_id)>0)
+         KMFXMarkTradeSent(trade_id);
+     }
   }
 
 void KMFXLog(string scope,string message,bool force=false)
@@ -604,9 +747,10 @@ string KMFXBuildPositionsJson()
    return json;
   }
 
-string KMFXBuildRecentDealsJson()
+string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
   {
-   if(!KMFXSendClosedDeals)
+   trade_ids_csv="";
+   if(!KMFXSendClosedDeals || max_count<=0)
       return "[]";
 
    datetime to_time=KMFXNow();
@@ -628,6 +772,10 @@ string KMFXBuildRecentDealsJson()
       if(ticket==0)
          continue;
 
+      string trade_id=(string)ticket;
+      if(KMFXIsTradeSent(trade_id) || KMFXTradeIsQueued(trade_id))
+         continue;
+
       long entry=HistoryDealGetInteger(ticket,DEAL_ENTRY);
       if(entry!=DEAL_ENTRY_OUT)
          continue;
@@ -636,8 +784,12 @@ string KMFXBuildRecentDealsJson()
          json+=",";
       first=false;
       added++;
+      if(StringLen(trade_ids_csv)>0)
+         trade_ids_csv+=",";
+      trade_ids_csv+=trade_id;
 
       json+="{";
+      json+="\"trade_id\":"+KMFXQuote(trade_id)+",";
       json+="\"ticket\":"+IntegerToString((int)ticket)+",";
       json+="\"position_id\":"+IntegerToString((int)HistoryDealGetInteger(ticket,DEAL_POSITION_ID))+",";
       json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
@@ -665,12 +817,29 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"connector_version\":\"2.00\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
+    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
    json+="\"positions\":"+KMFXBuildPositionsJson()+",";
-   json+="\"trades\":"+KMFXBuildRecentDealsJson();
+   json+="\"trades\":[]";
+   json+="}";
+   return json;
+  }
+
+string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
+  {
+   string login_value=KMFXAccountLoginString();
+   string json="{";
+   json+="\"type\":\"kmfx_connector_journal\",";
+   json+="\"connector_version\":\"2.00\",";
+   json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
+   json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
+   json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
+   json+="\"login\":"+login_value+",";
+   json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
+   json+="\"trades\":"+trades_json;
    json+="}";
    return json;
   }
@@ -688,6 +857,8 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
 
    if(StringLen(KMFXApiKey)>0)
       headers+="X-KMFX-API-Key: "+KMFXApiKey+"\r\n";
+   if(KMFXHasConnectionKey())
+      headers+="X-KMFX-Connection-Key: "+KMFXConnectionKeyValue()+"\r\n";
 
    if(method=="POST")
      {
@@ -1020,6 +1191,137 @@ bool KMFXPushState()
    return true;
   }
 
+bool KMFXSendJournalBatch(string batch_id,string trade_ids_csv,string payload,string source_label)
+  {
+   string response="";
+   int status_code=0;
+   int transport_error=0;
+   bool request_ok=false;
+   string disposition="";
+
+   request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,payload,response,status_code,transport_error);
+   if(!request_ok && !(status_code==1003 || status_code<=0))
+      return false;
+
+   if(status_code==1003 || status_code<=0)
+     {
+      PrintFormat("[KMFX][JOURNAL][RETRY] source=%s retry=1 reason=transport_error status=%d last_error=%d batch_id=%s", source_label, status_code, transport_error, batch_id);
+      Sleep(250);
+      response="";
+      status_code=0;
+      transport_error=0;
+      request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,payload,response,status_code,transport_error);
+      if(!request_ok && !(status_code==1003 || status_code<=0))
+         return false;
+
+      if(status_code==1003 || status_code<=0)
+        {
+         KMFXPendingJournalBatch item;
+         item.batch_id=batch_id;
+         item.trade_ids_csv=trade_ids_csv;
+         item.payload=payload;
+         item.attempts=2;
+         item.created_at=KMFXNow();
+         item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
+         KMFXSavePendingJournalBatch(item);
+         PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d", batch_id, item.attempts);
+         return false;
+        }
+     }
+
+   if(status_code>=300)
+     {
+      PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", batch_id, status_code);
+      return false;
+     }
+
+   disposition=KMFXExtractSyncDisposition(response);
+   if(disposition=="duplicate")
+      PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", batch_id);
+   else
+      PrintFormat("[KMFX][JOURNAL][ACCEPTED] batch_id=%s", batch_id);
+
+   KMFXMarkTradeCsvAsSent(trade_ids_csv);
+   return true;
+  }
+
+void KMFXProcessPendingJournalQueue()
+  {
+   string file_name="";
+   long handle=FileFindFirst(KMFXPendingJournalPrefix()+"*.txt",file_name,FILE_COMMON);
+   if(handle==INVALID_HANDLE)
+      return;
+
+   datetime now_time=KMFXNow();
+   do
+     {
+      KMFXPendingJournalBatch item;
+      if(!KMFXLoadPendingJournalBatch(file_name,item))
+         continue;
+      if(item.next_retry_at>now_time)
+         continue;
+
+      string response="";
+      int status_code=0;
+      int transport_error=0;
+      bool request_ok=false;
+      string disposition="";
+
+      PrintFormat("[KMFX][JOURNAL][RETRYING] batch_id=%s attempt=%d", item.batch_id, item.attempts+1);
+      request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,item.payload,response,status_code,transport_error);
+      if(!request_ok && !(status_code==1003 || status_code<=0))
+         break;
+
+      if(status_code==1003 || status_code<=0)
+        {
+         item.attempts++;
+         if(item.attempts>KMFXPendingSyncMaxAttempts())
+           {
+            KMFXDeletePendingJournalFile(file_name);
+            PrintFormat("[KMFX][JOURNAL][DROPPED] batch_id=%s reason=transport_exhausted attempts=%d", item.batch_id, item.attempts);
+           }
+         else
+           {
+            item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
+            KMFXSavePendingJournalBatch(item);
+            PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d next_retry=%s", item.batch_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+           }
+         break;
+        }
+
+      if(status_code>=300)
+        {
+         KMFXDeletePendingJournalFile(file_name);
+         PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", item.batch_id, status_code);
+         break;
+        }
+
+      disposition=KMFXExtractSyncDisposition(response);
+      if(disposition=="duplicate")
+         PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", item.batch_id);
+      else
+         PrintFormat("[KMFX][JOURNAL][RECOVERED] batch_id=%s final_status=%d", item.batch_id, status_code);
+      KMFXMarkTradeCsvAsSent(item.trade_ids_csv);
+      KMFXDeletePendingJournalFile(file_name);
+      break;
+     }
+   while(FileFindNext(handle,file_name));
+
+   FileFindClose(handle);
+  }
+
+void KMFXPushJournalBatch()
+  {
+   string trade_ids_csv="";
+   string trades_json=KMFXBuildJournalTradesJson(KMFXJournalBatchSize,trade_ids_csv);
+   if(StringLen(trade_ids_csv)==0)
+      return;
+
+   string batch_id=KMFXBuildJournalBatchId();
+   string payload=KMFXBuildJournalBatchPayload(batch_id,trades_json);
+   KMFXSendJournalBatch(batch_id,trade_ids_csv,payload,"live");
+  }
+
 bool KMFXFetchPolicy()
   {
    string response="";
@@ -1028,6 +1330,8 @@ bool KMFXFetchPolicy()
    string policy_login=KMFXAccountLoginString();
    PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
    string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
+   if(KMFXHasConnectionKey())
+      url += "&connection_key=" + KMFXConnectionKeyValue();
 
    // DEBUG
    PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);
@@ -1375,9 +1679,12 @@ void KMFXRunCycle()
   {
    KMFXResetDailyContextIfNeeded();
    KMFXProcessPendingSyncQueue();
+   KMFXProcessPendingJournalQueue();
 
    if(KMFXShouldPushState())
       KMFXPushState();
+
+   KMFXPushJournalBatch();
 
    if(KMFXShouldRefreshPolicy())
       KMFXFetchPolicy();
