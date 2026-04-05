@@ -1,29 +1,29 @@
-import { createStore } from "./js/modules/store.js?v=build-20260405-204500";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260405-204500";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260405-204500";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260405-204500";
-import { renderDiscipline } from "./js/modules/discipline.js?v=build-20260405-204500";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260405-204500";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260405-204500";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260405-204500";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260405-204500";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260405-204500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260405-204500";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260405-204500";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260405-204500";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260405-204500";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260405-204500";
-import { renderMarket } from "./js/modules/market.js?v=build-20260405-204500";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260405-204500";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260405-204500";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260405-204500";
-import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260405-204500";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260405-204500";
-import "./js/modules/modal-system.js?v=build-20260405-204500";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260405-204500";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260405-204500";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260405-204500";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260405-204500";
+import { createStore } from "./js/modules/store.js?v=build-20260405-205500";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260405-205500";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260405-205500";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260405-205500";
+import { renderDiscipline } from "./js/modules/discipline.js?v=build-20260405-205500";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260405-205500";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260405-205500";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260405-205500";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260405-205500";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260405-205500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260405-205500";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260405-205500";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260405-205500";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260405-205500";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260405-205500";
+import { renderMarket } from "./js/modules/market.js?v=build-20260405-205500";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260405-205500";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260405-205500";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260405-205500";
+import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260405-205500";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260405-205500";
+import "./js/modules/modal-system.js?v=build-20260405-205500";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260405-205500";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260405-205500";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260405-205500";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260405-205500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -32,8 +32,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260405-204500";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260405-204500";
+} from "./js/modules/auth-session.js?v=build-20260405-205500";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260405-205500";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -42,10 +42,11 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260405-204500";
-import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260405-204500";
+} from "./js/modules/supabase-user-config.js?v=build-20260405-205500";
+import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260405-205500";
+import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260405-205500";
 
-const BUILD_TAG = "build-20260405-204500";
+const BUILD_TAG = "build-20260405-205500";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
@@ -662,6 +663,12 @@ function initSettings() {
 }
 
 ensureLightCardFlattening();
+console.info("[KMFX][API]", {
+  label: "boot-config",
+  baseURL: resolveApiBaseUrl() || "(unset)",
+  snapshotURL: resolveAccountsSnapshotUrl() || "(disabled)",
+  accountsURL: resolveAccountsRegistryUrl() || "(disabled)",
+});
 logBootState("startup-before-init");
 renderActivePage();
 initNavigation(store);

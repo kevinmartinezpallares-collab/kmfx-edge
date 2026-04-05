@@ -1,47 +1,8 @@
-import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260405-204500";
-import { showToast } from "./toast.js?v=build-20260405-204500";
-
-function isLocalRuntime() {
-  const hostname = window.location.hostname || "";
-  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-}
-
-function isLocalBridgeUrl(url = "") {
-  return /localhost|127\.0\.0\.1|\[::1\]|::1/i.test(String(url || ""));
-}
-
-const DEFAULT_ACCOUNTS_REGISTRY_URL = isLocalRuntime() ? "http://127.0.0.1:8000/accounts" : "/accounts";
+import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260405-205500";
+import { showToast } from "./toast.js?v=build-20260405-205500";
+import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260405-205500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
-
-function normalizeRegistryUrl(rawUrl = "") {
-  const value = String(rawUrl || "").trim();
-  if (!value) return DEFAULT_ACCOUNTS_REGISTRY_URL;
-  if (value.startsWith("ws://")) return value.replace("ws://", "http://").replace(/:\d+$/, ":8000") + "/accounts";
-  if (value.startsWith("wss://")) return value.replace("wss://", "https://").replace(/:\d+$/, ":8000") + "/accounts";
-  if (value.startsWith("http://") || value.startsWith("https://")) return value;
-  return DEFAULT_ACCOUNTS_REGISTRY_URL;
-}
-
-function getAccountsRegistryUrl() {
-  try {
-    const raw = window.localStorage.getItem("kmfx.settings.preferences");
-    if (!raw) return DEFAULT_ACCOUNTS_REGISTRY_URL;
-    const parsed = JSON.parse(raw);
-    const resolved = normalizeRegistryUrl(parsed?.bridgeUrl || "");
-    if (!isLocalRuntime() && isLocalBridgeUrl(resolved)) {
-      console.info("[KMFX][BOOT]", {
-        label: "connections-registry-skip-localhost",
-        mode: "live",
-        url: resolved,
-      });
-      return "/accounts";
-    }
-    return resolved;
-  } catch {
-    return DEFAULT_ACCOUNTS_REGISTRY_URL;
-  }
-}
 
 function openLauncher() {
   try {
@@ -144,13 +105,15 @@ function getWizardState(root) {
 }
 
 async function fetchAccountsRegistry(store) {
-  const url = getAccountsRegistryUrl();
-  try {
-    console.info("[KMFX][BOOT]", {
-      label: "connections-registry-fetch",
-      mode: isLocalRuntime() ? "local" : "remote",
-      url,
+  const url = resolveAccountsRegistryUrl();
+  if (!url) {
+    console.info("[KMFX][API]", {
+      label: "accounts-fetch-disabled",
+      reason: "missing_api_base_url",
     });
+    return;
+  }
+  try {
     const response = await fetch(url, { headers: { Accept: "application/json" } });
     if (!response.ok) return;
     const payload = await response.json();
@@ -331,7 +294,14 @@ export function initConnections(store) {
       wizard.error = "";
       renderConnections(root, store.getState());
       try {
-        const response = await fetch(getAccountsRegistryUrl(), {
+        const registryUrl = resolveAccountsRegistryUrl();
+        if (!registryUrl) {
+          wizard.loading = false;
+          wizard.error = "Configura KMFX API Base URL para crear cuentas en producción.";
+          renderConnections(root, store.getState());
+          return;
+        }
+        const response = await fetch(registryUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ alias, platform: "mt5" }),
