@@ -103,6 +103,15 @@ struct KMFXRuntimeState
    string    last_error;
   };
 
+struct KMFXPendingSync
+  {
+   string    sync_id;
+   string    payload;
+   int       attempts;
+   datetime  created_at;
+   datetime  next_retry_at;
+  };
+
 struct KMFXOrderIntent
   {
    string symbol;
@@ -188,6 +197,151 @@ string KMFXAccountLoginString()
    string helper_login = IntegerToString(login);
    PrintFormat("[KMFX][DEBUG] ACCOUNT_LOGIN raw=%I64d helper=%s", login, helper_login);
    return helper_login;
+  }
+
+string KMFXBuildSyncId()
+  {
+   return KMFXAccountLoginString()+"-"+IntegerToString((int)KMFXNow())+"-"+IntegerToString((int)GetTickCount());
+  }
+
+string KMFXPendingSyncPrefix()
+  {
+   return "KMFX_PENDING_SYNC_";
+  }
+
+string KMFXPendingSyncFileName(string sync_id)
+  {
+   return KMFXPendingSyncPrefix()+sync_id+".txt";
+  }
+
+int KMFXPendingSyncQueueLimit()
+  {
+   return 20;
+  }
+
+int KMFXPendingSyncMaxAttempts()
+  {
+   return 6;
+  }
+
+int KMFXPendingSyncBackoffSeconds(int attempts)
+  {
+   int delay=5;
+   for(int i=1;i<attempts;i++)
+      delay*=2;
+   if(delay>120)
+      delay=120;
+   return delay;
+  }
+
+bool KMFXSavePendingSync(KMFXPendingSync &item)
+  {
+   int handle=FileOpen(KMFXPendingSyncFileName(item.sync_id),FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   FileWriteString(handle,item.sync_id+"\n");
+   FileWriteString(handle,IntegerToString(item.attempts)+"\n");
+   FileWriteString(handle,IntegerToString((int)item.created_at)+"\n");
+   FileWriteString(handle,IntegerToString((int)item.next_retry_at)+"\n");
+   FileWriteString(handle,item.payload);
+   FileClose(handle);
+   return true;
+  }
+
+bool KMFXLoadPendingSync(string file_name,KMFXPendingSync &item)
+  {
+   int handle=FileOpen(file_name,FILE_READ|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   item.sync_id=KMFXTrim(FileReadString(handle));
+   item.attempts=(int)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.created_at=(datetime)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.next_retry_at=(datetime)StringToInteger(KMFXTrim(FileReadString(handle)));
+   item.payload=FileReadString(handle);
+   FileClose(handle);
+   return StringLen(item.sync_id)>0 && StringLen(item.payload)>0;
+  }
+
+bool KMFXDeletePendingSyncFile(string file_name)
+  {
+   return FileDelete(file_name,FILE_COMMON);
+  }
+
+int KMFXCountPendingSyncFiles()
+  {
+   int count=0;
+   string file_name="";
+   long handle=FileFindFirst(KMFXPendingSyncPrefix()+"*.txt",file_name,FILE_COMMON);
+   if(handle==INVALID_HANDLE)
+      return 0;
+
+   do
+     {
+      count++;
+     }
+   while(FileFindNext(handle,file_name));
+
+   FileFindClose(handle);
+   return count;
+  }
+
+bool KMFXDropOldestPendingSync()
+  {
+   string file_name="";
+   string oldest_file="";
+   datetime oldest_created_at=0;
+   long handle=FileFindFirst(KMFXPendingSyncPrefix()+"*.txt",file_name,FILE_COMMON);
+   if(handle==INVALID_HANDLE)
+      return false;
+
+   do
+     {
+      KMFXPendingSync item;
+      if(!KMFXLoadPendingSync(file_name,item))
+         continue;
+      if(oldest_created_at==0 || item.created_at<oldest_created_at)
+        {
+         oldest_created_at=item.created_at;
+         oldest_file=file_name;
+        }
+     }
+   while(FileFindNext(handle,file_name));
+
+   FileFindClose(handle);
+
+   if(StringLen(oldest_file)==0)
+      return false;
+
+   KMFXPendingSync dropped_item;
+   KMFXLoadPendingSync(oldest_file,dropped_item);
+   if(KMFXDeletePendingSyncFile(oldest_file))
+     {
+      PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=queue_limit attempts=%d", dropped_item.sync_id, dropped_item.attempts);
+      return true;
+     }
+
+   return false;
+  }
+
+bool KMFXQueuePendingSync(string sync_id,string payload,int attempts)
+  {
+   if(KMFXCountPendingSyncFiles()>=KMFXPendingSyncQueueLimit())
+      KMFXDropOldestPendingSync();
+
+   KMFXPendingSync item;
+   item.sync_id=sync_id;
+   item.payload=payload;
+   item.attempts=attempts;
+   item.created_at=KMFXNow();
+   item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(attempts);
+
+   if(!KMFXSavePendingSync(item))
+      return false;
+
+   PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+   return true;
   }
 
 void KMFXLog(string scope,string message,bool force=false)
@@ -502,7 +656,7 @@ string KMFXBuildRecentDealsJson()
    return json;
   }
 
-string KMFXBuildSyncPayload()
+string KMFXBuildSyncPayload(string sync_id)
   {
    string sync_login=KMFXAccountLoginString();
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
@@ -510,6 +664,7 @@ string KMFXBuildSyncPayload()
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":\"2.00\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
+   json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
@@ -523,7 +678,7 @@ string KMFXBuildSyncPayload()
 // -------------------------------------------------------------------
 // HTTP / JSON
 // -------------------------------------------------------------------
-bool KMFXSendHttpRequest(string method,string url,string body,string &response,int &status_code)
+bool KMFXSendHttpRequest(string method,string url,string body,string &response,int &status_code,int &transport_error)
   {
    char req[];
    char res[];
@@ -542,20 +697,21 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
 
    ResetLastError();
    status_code=WebRequest(method,url,headers,KMFXWebTimeoutMs,req,res,result_headers);
+   int request_error=GetLastError();
+   transport_error=request_error;
    // DEBUG
-   PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, GetLastError());
+   PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, request_error);
    if(status_code==1003 || status_code<=0)
      {
       // DEBUG
-      PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, GetLastError());
+      PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, request_error);
      }
    if(status_code==-1)
      {
-      int err=GetLastError();
       response="";
       Policy.backend_connected=false;
       Policy.degraded_mode=true;
-      KMFXSetError("WebRequest falló. code="+IntegerToString(err)+" url="+url);
+      KMFXSetError("WebRequest falló. code="+IntegerToString(request_error)+" url="+url);
       return false;
      }
 
@@ -644,6 +800,100 @@ bool KMFXExtractJsonArrayRaw(string json,string key,string &value)
    return false;
   }
 
+string KMFXExtractSyncDisposition(string json)
+  {
+   string disposition="";
+   if(KMFXExtractJsonString(json,"disposition",disposition))
+      return disposition;
+   return "";
+  }
+
+bool KMFXHandlePendingSyncFailure(string file_name,KMFXPendingSync &item,int status_code,int transport_error)
+  {
+   item.attempts++;
+   if(item.attempts>KMFXPendingSyncMaxAttempts())
+     {
+      KMFXDeletePendingSyncFile(file_name);
+      PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=transport_exhausted attempts=%d status=%d last_error=%d", item.sync_id, item.attempts, status_code, transport_error);
+      return false;
+     }
+
+   item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
+   KMFXSavePendingSync(item);
+   PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+   return false;
+  }
+
+void KMFXProcessPendingSyncQueue()
+  {
+   string file_name="";
+   long handle=FileFindFirst(KMFXPendingSyncPrefix()+"*.txt",file_name,FILE_COMMON);
+   if(handle==INVALID_HANDLE)
+      return;
+
+   datetime now_time=KMFXNow();
+   bool processed=false;
+
+   do
+     {
+      KMFXPendingSync item;
+      if(!KMFXLoadPendingSync(file_name,item))
+         continue;
+      if(item.next_retry_at>now_time)
+         continue;
+
+      string response="";
+      int status_code=0;
+      int transport_error=0;
+      bool request_ok=false;
+      string disposition="";
+
+      PrintFormat("[KMFX][SYNC][RETRYING] sync_id=%s attempt=%d", item.sync_id, item.attempts+1);
+      request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXSyncPath,item.payload,response,status_code,transport_error);
+
+      if(!request_ok && !(status_code==1003 || status_code<=0))
+        {
+         processed=true;
+         break;
+        }
+
+      if(status_code==1003 || status_code<=0)
+        {
+         Policy.backend_connected=false;
+         Policy.degraded_mode=true;
+         KMFXHandlePendingSyncFailure(file_name,item,status_code,transport_error);
+         processed=true;
+         break;
+        }
+
+      if(status_code>=300)
+        {
+         KMFXDeletePendingSyncFile(file_name);
+         PrintFormat("[KMFX][SYNC][BACKEND_REJECT] sync_id=%s status=%d", item.sync_id, status_code);
+         processed=true;
+         break;
+        }
+
+      disposition=KMFXExtractSyncDisposition(response);
+      if(disposition=="duplicate")
+         PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", item.sync_id);
+      else
+         PrintFormat("[KMFX][SYNC][RECOVERED] retry=%d recovered=true final_status=%d sync_id=%s", item.attempts, status_code, item.sync_id);
+
+      KMFXDeletePendingSyncFile(file_name);
+      Policy.backend_connected=true;
+      Policy.degraded_mode=false;
+      Runtime.last_error="";
+      processed=true;
+      break;
+     }
+   while(FileFindNext(handle,file_name));
+
+   FileFindClose(handle);
+   if(processed)
+      Runtime.last_state_push_at=KMFXNow();
+  }
+
 bool KMFXExtractAllowedValues(string array_json,string &csv)
   {
    csv="";
@@ -697,39 +947,74 @@ bool KMFXPushState()
    string response="";
    int status_code=0;
    int transport_error=0;
+   bool recovered_after_retry=false;
+   bool request_ok=false;
+   string sync_id=KMFXBuildSyncId();
+   string disposition="";
    string url=KMFXBackendBaseUrl+KMFXSyncPath;
-   string body=KMFXBuildSyncPayload();
+   string body=KMFXBuildSyncPayload(sync_id);
 
    // DEBUG
    PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
    // DEBUG
    PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
 
-   if(!KMFXSendHttpRequest("POST",url,body,response,status_code))
+   request_ok=KMFXSendHttpRequest("POST",url,body,response,status_code,transport_error);
+   if(!request_ok && !(status_code==1003 || status_code<=0))
       return false;
-
-   transport_error=GetLastError();
 
    // DEBUG
    PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
 
    if(status_code==1003 || status_code<=0)
      {
-      Policy.backend_connected=false;
-      Policy.degraded_mode=true;
-      KMFXSetError("Sync falló en transporte MT5. HTTP="+IntegerToString(status_code)+" last_error="+IntegerToString(transport_error));
-      return false;
-     }
+      PrintFormat("[KMFX][SYNC][RETRY] retry=1 reason=transport_error status=%d last_error=%d", status_code, transport_error);
+      Sleep(250);
+      response="";
+      status_code=0;
+      transport_error=0;
+
+      request_ok=KMFXSendHttpRequest("POST",url,body,response,status_code,transport_error);
+      if(!request_ok && !(status_code==1003 || status_code<=0))
+         return false;
+
+      // DEBUG
+      PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
+
+      if(status_code==1003 || status_code<=0)
+        {
+         Policy.backend_connected=false;
+         Policy.degraded_mode=true;
+         KMFXQueuePendingSync(sync_id,body,2);
+         KMFXSetError("Sync falló en transporte MT5. HTTP="+IntegerToString(status_code)+" last_error="+IntegerToString(transport_error));
+         return false;
+        }
+
+      if(status_code>=200 && status_code<300)
+        {
+         recovered_after_retry=true;
+         Policy.backend_connected=true;
+         Policy.degraded_mode=false;
+         PrintFormat("[KMFX][SYNC][RECOVERED] retry=1 recovered=true final_status=%d", status_code);
+        }
+    }
 
    if(status_code>=300)
      {
       Policy.backend_connected=false;
       Policy.degraded_mode=true;
       KMFXSetError("Sync rechazado por backend. HTTP="+IntegerToString(status_code));
-      return false;
-     }
+     return false;
+    }
+
+   disposition=KMFXExtractSyncDisposition(response);
+   if(disposition=="duplicate")
+      PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", sync_id);
 
    Policy.backend_connected=true;
+   if(!recovered_after_retry)
+      Policy.degraded_mode=false;
+   Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();
    KMFXLog("SYNC","Estado enviado al backend.");
    return true;
@@ -739,6 +1024,7 @@ bool KMFXFetchPolicy()
   {
    string response="";
    int status_code=0;
+   int transport_error=0;
    string policy_login=KMFXAccountLoginString();
    PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
    string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
@@ -746,11 +1032,16 @@ bool KMFXFetchPolicy()
    // DEBUG
    PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);
 
-   if(!KMFXSendHttpRequest("GET",url,"",response,status_code))
+   if(!KMFXSendHttpRequest("GET",url,"",response,status_code,transport_error))
       return false;
 
    // DEBUG
    PrintFormat("[KMFX][POLICY][DEBUG] status_code=%d response=%s", status_code, response);
+
+   if(status_code==1003 || status_code<=0)
+     {
+      PrintFormat("[KMFX][POLICY][TRANSPORT] status=%d last_error=%d url=%s", status_code, transport_error, url);
+     }
 
    if(status_code<200 || status_code>=300)
      {
@@ -1083,6 +1374,7 @@ bool KMFXShouldRefreshPolicy()
 void KMFXRunCycle()
   {
    KMFXResetDailyContextIfNeeded();
+   KMFXProcessPendingSyncQueue();
 
    if(KMFXShouldPushState())
       KMFXPushState();

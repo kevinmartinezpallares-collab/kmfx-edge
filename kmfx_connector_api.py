@@ -4,8 +4,9 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import FastAPI, Query, Request
@@ -38,6 +39,8 @@ log.info(
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
+SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
+SYNC_RECEIPT_TTL = timedelta(days=7)
 account_service = AccountService(JsonFileAccountStore(ACCOUNTS_STATE_PATH))
 
 # 1003 is our sync validation error bucket:
@@ -56,6 +59,87 @@ def connector_json_response(content: Any, status_code: int = 200) -> JSONRespons
         content=content,
         headers={"Connection": "close"},
     )
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def load_sync_receipts() -> dict[str, dict[str, Any]]:
+    if not os.path.exists(SYNC_RECEIPTS_STATE_PATH):
+        return {}
+    try:
+        with open(SYNC_RECEIPTS_STATE_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    records = payload.get("sync_receipts") if isinstance(payload, dict) else {}
+    if not isinstance(records, dict):
+        return {}
+    return {str(key): value for key, value in records.items() if isinstance(value, dict)}
+
+
+def save_sync_receipts(records: dict[str, dict[str, Any]]) -> None:
+    os.makedirs(os.path.dirname(SYNC_RECEIPTS_STATE_PATH) or ".", exist_ok=True)
+    payload = {
+        "sync_receipts": records,
+        "saved_at": now_iso(),
+    }
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(SYNC_RECEIPTS_STATE_PATH) or ".", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=True, indent=2)
+        temp_path = handle.name
+    os.replace(temp_path, SYNC_RECEIPTS_STATE_PATH)
+
+
+PROCESSED_SYNC_RECEIPTS: dict[str, dict[str, Any]] = load_sync_receipts()
+
+
+def purge_expired_sync_receipts() -> None:
+    cutoff = datetime.now(timezone.utc) - SYNC_RECEIPT_TTL
+    expired_ids = [
+        sync_id
+        for sync_id, record in PROCESSED_SYNC_RECEIPTS.items()
+        if (_parse_datetime(record.get("received_at")) or datetime.min.replace(tzinfo=timezone.utc)) < cutoff
+    ]
+    if not expired_ids:
+        return
+    for sync_id in expired_ids:
+        PROCESSED_SYNC_RECEIPTS.pop(sync_id, None)
+    save_sync_receipts(PROCESSED_SYNC_RECEIPTS)
+
+
+def get_processed_sync_receipt(sync_id: str) -> dict[str, Any] | None:
+    purge_expired_sync_receipts()
+    return PROCESSED_SYNC_RECEIPTS.get(sync_id)
+
+
+def remember_processed_sync(sync_id: str, *, login: str, account_id: str, policy_hash: str) -> None:
+    purge_expired_sync_receipts()
+    PROCESSED_SYNC_RECEIPTS[sync_id] = {
+        "sync_id": sync_id,
+        "login": login,
+        "account_id": account_id,
+        "policy_hash": policy_hash,
+        "received_at": now_iso(),
+    }
+    save_sync_receipts(PROCESSED_SYNC_RECEIPTS)
+
+
+def resolve_sync_id(payload: dict[str, Any]) -> str:
+    explicit_sync_id = safe_str(payload.get("sync_id"))
+    if explicit_sync_id:
+        return explicit_sync_id
+    payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True).encode("utf-8")).hexdigest()
+    return payload_hash[:24]
 
 
 def safe_str(value: Any, default: str = "") -> str:
@@ -371,11 +455,13 @@ def build_dashboard_account_payload(
     }
 
 
-def sync_error_response(reason: str, details: Any, http_status: int = 200) -> JSONResponse:
+def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_id: str = "") -> JSONResponse:
     return connector_json_response(
         {
             "ok": False,
             "received": False,
+            "sync_id": sync_id,
+            "disposition": "rejected",
             "reason": reason,
             "error_code": SYNC_ERROR_INVALID_PAYLOAD,
             "details": details,
@@ -396,6 +482,7 @@ async def healthcheck() -> JSONResponse:
 
 @app.post("/api/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
+    sync_id = ""
     try:
         payload = await request.json()
     except Exception as exc:
@@ -424,6 +511,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
     try:
         issues: list[dict[str, Any]] = []
+        sync_id = resolve_sync_id(payload)
         sanitized_account, account_issues = sanitize_account(payload.get("account"))
         sanitized_positions, position_issues = sanitize_positions(payload.get("positions"))
         sanitized_trades, trade_issues = sanitize_trades(payload.get("trades"))
@@ -444,13 +532,40 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 "issues": issues,
             }
             log.error("SYNC rejected | reason=missing_login details=%s", details)
-            return sync_error_response("missing_login", details)
+            return sync_error_response("missing_login", details, sync_id=sync_id)
 
         connector_version = safe_str(payload.get("connector_version"), "unknown")
         sync_timestamp = safe_timestamp(payload.get("timestamp"))
+        policy = build_connector_policy_response(login)
+        existing_receipt = get_processed_sync_receipt(sync_id)
+        if existing_receipt:
+            log.info(
+                "SYNC duplicate | sync_id=%s login=%s original_received_at=%s",
+                sync_id,
+                login,
+                existing_receipt.get("received_at", ""),
+            )
+            return connector_json_response(
+                {
+                    "ok": True,
+                    "received": True,
+                    "sync_id": sync_id,
+                    "disposition": "duplicate",
+                    "login": login,
+                    "policy_hash": existing_receipt.get("policy_hash") or policy["policy_hash"],
+                    "reason": "already_processed",
+                    "error_code": None,
+                    "details": {
+                        "account_id": existing_receipt.get("account_id", ""),
+                        "received_at": existing_receipt.get("received_at", ""),
+                    },
+                    "timestamp": now_iso(),
+                },
+            )
 
         LAST_SYNC_BY_LOGIN[login] = {
             "received_at": now_iso(),
+            "sync_id": sync_id,
             "mode": safe_str(payload.get("mode"), "unknown"),
             "connector_version": connector_version,
             "timestamp": sync_timestamp,
@@ -502,27 +617,37 @@ async def mt5_sync(request: Request) -> JSONResponse:
             dashboard_payload["riskSnapshot"]["summary"]["total_open_risk_pct"],
         )
 
-        policy = build_connector_policy_response(login)
         if issues:
             log.warning(
-                "SYNC accepted with issues | login=%s connector_version=%s issues=%s",
+                "SYNC accepted with issues | sync_id=%s login=%s connector_version=%s issues=%s",
+                sync_id,
                 login,
                 connector_version,
                 issues,
             )
         else:
             log.info(
-                "SYNC accepted | login=%s connector_version=%s positions=%s trades=%s",
+                "SYNC accepted | sync_id=%s login=%s connector_version=%s positions=%s trades=%s",
+                sync_id,
                 login,
                 connector_version,
                 len(sanitized_positions),
                 len(sanitized_trades),
             )
 
+        remember_processed_sync(
+            sync_id,
+            login=login,
+            account_id=synced_account.account_id,
+            policy_hash=policy["policy_hash"],
+        )
+
         return connector_json_response(
             {
                 "ok": True,
                 "received": True,
+                "sync_id": sync_id,
+                "disposition": "accepted",
                 "login": login,
                 "policy_hash": policy["policy_hash"],
                 "reason": "accepted",
@@ -546,7 +671,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "traceback": traceback.format_exc(),
         }
         log.exception("SYNC unexpected failure | details=%s", details)
-        return sync_error_response("unexpected_exception", details)
+        return sync_error_response("unexpected_exception", details, sync_id=sync_id)
 
 
 @app.get("/api/mt5/policy")
