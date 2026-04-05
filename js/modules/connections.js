@@ -1,7 +1,16 @@
-import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
-import { showToast } from "./toast.js?v=build-20260401-203500";
+import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260405-204500";
+import { showToast } from "./toast.js?v=build-20260405-204500";
 
-const DEFAULT_ACCOUNTS_REGISTRY_URL = "http://127.0.0.1:8000/accounts";
+function isLocalRuntime() {
+  const hostname = window.location.hostname || "";
+  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function isLocalBridgeUrl(url = "") {
+  return /localhost|127\.0\.0\.1|\[::1\]|::1/i.test(String(url || ""));
+}
+
+const DEFAULT_ACCOUNTS_REGISTRY_URL = isLocalRuntime() ? "http://127.0.0.1:8000/accounts" : "/accounts";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
@@ -10,6 +19,7 @@ function normalizeRegistryUrl(rawUrl = "") {
   if (!value) return DEFAULT_ACCOUNTS_REGISTRY_URL;
   if (value.startsWith("ws://")) return value.replace("ws://", "http://").replace(/:\d+$/, ":8000") + "/accounts";
   if (value.startsWith("wss://")) return value.replace("wss://", "https://").replace(/:\d+$/, ":8000") + "/accounts";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
   return DEFAULT_ACCOUNTS_REGISTRY_URL;
 }
 
@@ -18,7 +28,16 @@ function getAccountsRegistryUrl() {
     const raw = window.localStorage.getItem("kmfx.settings.preferences");
     if (!raw) return DEFAULT_ACCOUNTS_REGISTRY_URL;
     const parsed = JSON.parse(raw);
-    return normalizeRegistryUrl(parsed?.bridgeUrl || "");
+    const resolved = normalizeRegistryUrl(parsed?.bridgeUrl || "");
+    if (!isLocalRuntime() && isLocalBridgeUrl(resolved)) {
+      console.info("[KMFX][BOOT]", {
+        label: "connections-registry-skip-localhost",
+        mode: "live",
+        url: resolved,
+      });
+      return "/accounts";
+    }
+    return resolved;
   } catch {
     return DEFAULT_ACCOUNTS_REGISTRY_URL;
   }
@@ -127,6 +146,11 @@ function getWizardState(root) {
 async function fetchAccountsRegistry(store) {
   const url = getAccountsRegistryUrl();
   try {
+    console.info("[KMFX][BOOT]", {
+      label: "connections-registry-fetch",
+      mode: isLocalRuntime() ? "local" : "remote",
+      url,
+    });
     const response = await fetch(url, { headers: { Accept: "application/json" } });
     if (!response.ok) return;
     const payload = await response.json();
@@ -335,6 +359,12 @@ export function initConnections(store) {
 }
 
 export function renderConnections(root, state) {
+  console.info("[KMFX][BOOT]", {
+    label: "render-connections",
+    mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+    currentAccount: state.currentAccount,
+    liveAccountIds: state.liveAccountIds || [],
+  });
   const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};

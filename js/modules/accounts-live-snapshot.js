@@ -1,8 +1,17 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260405-201500";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260405-201500";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260405-204500";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260405-204500";
 
-const DEFAULT_BRIDGE_URL = "ws://localhost:8765";
-const DEFAULT_ACCOUNTS_API_URL = "http://127.0.0.1:8000/api/accounts/snapshot";
+function isLocalRuntime() {
+  const hostname = window.location.hostname || "";
+  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function isLocalBridgeUrl(url = "") {
+  return /localhost|127\.0\.0\.1|\[::1\]|::1/i.test(String(url || ""));
+}
+
+const DEFAULT_BRIDGE_URL = isLocalRuntime() ? "ws://localhost:8765" : "";
+const DEFAULT_ACCOUNTS_API_URL = isLocalRuntime() ? "http://127.0.0.1:8000/api/accounts/snapshot" : "/api/accounts/snapshot";
 
 function normalizeBridgeUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();
@@ -17,7 +26,9 @@ function getPreferredBridgeUrl() {
     const raw = window.localStorage.getItem("kmfx.settings.preferences");
     if (!raw) return DEFAULT_BRIDGE_URL;
     const parsed = JSON.parse(raw);
-    return normalizeBridgeUrl(parsed?.bridgeUrl || DEFAULT_BRIDGE_URL);
+    const resolved = normalizeBridgeUrl(parsed?.bridgeUrl || DEFAULT_BRIDGE_URL);
+    if (!isLocalRuntime() && isLocalBridgeUrl(resolved)) return "";
+    return resolved;
   } catch {
     return DEFAULT_BRIDGE_URL;
   }
@@ -29,6 +40,7 @@ function getPreferredAccountsApiUrl() {
     if (!raw) return DEFAULT_ACCOUNTS_API_URL;
     const parsed = JSON.parse(raw);
     const bridgeUrl = normalizeBridgeUrl(parsed?.bridgeUrl || DEFAULT_BRIDGE_URL);
+    if (!isLocalRuntime() && isLocalBridgeUrl(bridgeUrl)) return DEFAULT_ACCOUNTS_API_URL;
     if (bridgeUrl.startsWith("wss://")) return bridgeUrl.replace("wss://", "https://").replace(/:\d+$/, ":8000") + "/api/accounts/snapshot";
     if (bridgeUrl.startsWith("ws://")) return bridgeUrl.replace("ws://", "http://").replace(/:\d+$/, ":8000") + "/api/accounts/snapshot";
     return DEFAULT_ACCOUNTS_API_URL;
@@ -164,6 +176,11 @@ export function initAccountsLiveSnapshot(store) {
   const pollHttpSnapshot = async () => {
     const url = getPreferredAccountsApiUrl();
     try {
+      console.info("[KMFX][BOOT]", {
+        label: "accounts-http-snapshot",
+        mode: isLocalRuntime() ? "local" : "live",
+        url,
+      });
       const response = await fetch(url, { headers: { Accept: "application/json" } });
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
@@ -189,6 +206,13 @@ export function initAccountsLiveSnapshot(store) {
 
   const connect = () => {
     const bridgeUrl = getPreferredBridgeUrl();
+    if (!bridgeUrl) {
+      console.info("[KMFX][BOOT]", {
+        label: "accounts-ws-disabled",
+        mode: "http-only",
+      });
+      return;
+    }
     try {
       socket = new WebSocket(bridgeUrl);
     } catch (error) {

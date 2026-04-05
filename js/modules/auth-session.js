@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase.js?v=build-20260401-203500";
-import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260401-203500";
+import { supabase } from "../lib/supabase.js?v=build-20260405-204500";
+import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260405-204500";
 
 const AUTH_STORAGE_KEY = "kmfx.auth.session.v1";
 const LEGACY_PROFILE_STORAGE_KEY = "kmfx.settings.profile";
@@ -348,6 +348,18 @@ export function isAdminUser(state) {
 }
 
 export function initAuthSession(store) {
+  const resolvePreferredAccount = (state, candidateId = "") => {
+    const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
+    if (liveIds.length > 0) {
+      if (candidateId && liveIds.includes(candidateId) && state?.accounts?.[candidateId]) return candidateId;
+      if (state?.currentAccount && liveIds.includes(state.currentAccount) && state?.accounts?.[state.currentAccount]) return state.currentAccount;
+      if (state?.activeLiveAccountId && liveIds.includes(state.activeLiveAccountId) && state?.accounts?.[state.activeLiveAccountId]) return state.activeLiveAccountId;
+      return liveIds[0] || state.currentAccount;
+    }
+    if (candidateId && state?.accounts?.[candidateId]) return candidateId;
+    return state.currentAccount;
+  };
+
   let recoveryState = persistRecoveryState(
     getRecoveryHintFromUrl()
       ? {
@@ -368,8 +380,14 @@ export function initAuthSession(store) {
     store.setState((state) => ({
       ...state,
       auth: sanitized,
-      currentAccount: sanitized.profile.defaultAccount || state.currentAccount
+      currentAccount: resolvePreferredAccount(state, sanitized.profile.defaultAccount)
     }));
+    console.info("[KMFX][BOOT]", {
+      label: "auth-state-updated",
+      currentAccount: store.getState().currentAccount,
+      preferredAccount: sanitized.profile.defaultAccount || "",
+      liveAccountIds: store.getState().liveAccountIds || [],
+    });
     return sanitized;
   };
 

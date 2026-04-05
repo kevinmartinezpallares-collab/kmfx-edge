@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase.js?v=build-20260401-203500";
-import { mergeAuthProfile } from "./auth-session.js?v=build-20260401-203500";
+import { supabase } from "../lib/supabase.js?v=build-20260405-204500";
+import { mergeAuthProfile } from "./auth-session.js?v=build-20260405-204500";
 
 export const SETTINGS_PREFS_STORAGE_KEY = "kmfx.settings.preferences";
 
@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS_PREFERENCES = {
   autoBlockOptIn: false,
   dailyDrawdownLimit: "1.2",
   maxDrawdownLimit: "10",
-  bridgeUrl: "ws://localhost:8080/bridge",
+  bridgeUrl: "",
   refreshInterval: "5"
 };
 

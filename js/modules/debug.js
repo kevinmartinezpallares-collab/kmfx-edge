@@ -1,5 +1,5 @@
-import { formatDateTime } from "./utils.js?v=build-20260401-203500";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260401-203500";
+import { formatDateTime } from "./utils.js?v=build-20260405-204500";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260405-204500";
 
 export function renderDebug(root, state) {
   if (state?.auth?.user?.role !== "admin") {
