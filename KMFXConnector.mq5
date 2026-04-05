@@ -220,7 +220,12 @@ string KMFXBuildSyncId()
 
 string KMFXConnectionKeyValue()
   {
-   return KMFXTrim(connection_key);
+   string explicit_key=KMFXTrim(connection_key);
+   if(StringLen(explicit_key)>0)
+      return explicit_key;
+
+   string legacy_key=KMFXTrim(KMFXApiKey);
+   return legacy_key;
   }
 
 bool KMFXHasConnectionKey()
@@ -808,22 +813,154 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
    return json;
   }
 
+string KMFXBuildSyncTradesJson(int max_count)
+  {
+   if(max_count<=0)
+      return "[]";
+
+   datetime to_time=KMFXNow();
+   datetime from_time=to_time-(datetime)(86400*90);
+   if(!HistorySelect(from_time,to_time))
+      return "[]";
+
+   string json="[";
+   bool first=true;
+   int total=HistoryDealsTotal();
+   int added=0;
+
+   for(int i=total-1;i>=0;i--)
+     {
+      if(added>=max_count)
+         break;
+
+      ulong ticket=HistoryDealGetTicket(i);
+      if(ticket==0)
+         continue;
+
+      long entry=HistoryDealGetInteger(ticket,DEAL_ENTRY);
+      if(entry!=DEAL_ENTRY_OUT)
+         continue;
+
+      if(!first)
+         json+=",";
+      first=false;
+      added++;
+
+      json+="{";
+      json+="\"trade_id\":"+KMFXQuote((string)ticket)+",";
+      json+="\"ticket\":"+IntegerToString((int)ticket)+",";
+      json+="\"position_id\":"+IntegerToString((int)HistoryDealGetInteger(ticket,DEAL_POSITION_ID))+",";
+      json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
+      json+="\"type\":"+KMFXQuote(HistoryDealGetInteger(ticket,DEAL_TYPE)==DEAL_TYPE_BUY ? "BUY" : "SELL")+",";
+      json+="\"volume\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_VOLUME),2)+",";
+      json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),_Digits)+",";
+      json+="\"profit\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PROFIT),2)+",";
+      json+="\"commission\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_COMMISSION),2)+",";
+      json+="\"swap\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_SWAP),2)+",";
+      json+="\"comment\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_COMMENT))+",";
+      json+="\"time\":"+KMFXQuote(TimeToString((datetime)HistoryDealGetInteger(ticket,DEAL_TIME),TIME_DATE|TIME_SECONDS));
+      json+="}";
+     }
+
+   json+="]";
+   return json;
+  }
+
+string KMFXBuildSyncHistoryJson(int max_points)
+  {
+   if(max_points<=0)
+      max_points=2;
+
+   datetime to_time=KMFXNow();
+   datetime from_time=to_time-(datetime)(86400*90);
+   if(!HistorySelect(from_time,to_time))
+     {
+      string fallback_json="[";
+      fallback_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
+      fallback_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
+      fallback_json+="]";
+      return fallback_json;
+     }
+
+   int total=HistoryDealsTotal();
+   double pnls[];
+   datetime times[];
+   int collected=0;
+
+   for(int i=total-1;i>=0;i--)
+     {
+      ulong ticket=HistoryDealGetTicket(i);
+      if(ticket==0)
+         continue;
+
+      if(HistoryDealGetInteger(ticket,DEAL_ENTRY)!=DEAL_ENTRY_OUT)
+         continue;
+
+      ArrayResize(pnls,collected+1);
+      ArrayResize(times,collected+1);
+      pnls[collected]=HistoryDealGetDouble(ticket,DEAL_PROFIT)+HistoryDealGetDouble(ticket,DEAL_COMMISSION)+HistoryDealGetDouble(ticket,DEAL_SWAP);
+      times[collected]=(datetime)HistoryDealGetInteger(ticket,DEAL_TIME);
+      collected++;
+
+      if(collected>=max_points)
+         break;
+     }
+
+   if(collected<=0)
+     {
+      string minimal_json="[";
+      minimal_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
+      minimal_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
+      minimal_json+="]";
+      return minimal_json;
+     }
+
+   double running_balance=AccountInfoDouble(ACCOUNT_BALANCE);
+   for(int j=0;j<collected;j++)
+      running_balance-=pnls[j];
+
+   string json="[";
+   for(int k=collected-1;k>=0;k--)
+     {
+      running_balance+=pnls[k];
+      if(k!=collected-1)
+         json+=",";
+      json+="{";
+      json+="\"label\":"+KMFXQuote(TimeToString(times[k],TIME_DATE|TIME_MINUTES))+",";
+      json+="\"timestamp\":"+KMFXQuote(TimeToString(times[k],TIME_DATE|TIME_SECONDS))+",";
+      json+="\"value\":"+KMFXDoubleJson(running_balance,2);
+      json+="}";
+     }
+   json+=",";
+   json+="{";
+   json+="\"label\":\"equity\",";
+   json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
+   json+="\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2);
+   json+="}";
+   json+="]";
+   return json;
+  }
+
 string KMFXBuildSyncPayload(string sync_id)
   {
    string sync_login=KMFXAccountLoginString();
+   string positions_json=KMFXBuildPositionsJson();
+   string trades_json=KMFXBuildSyncTradesJson(KMFXClosedDealsLimit);
+   string history_json=KMFXBuildSyncHistoryJson(MathMin(20,KMFXClosedDealsLimit));
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":\"2.00\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
-    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
+   json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
-   json+="\"positions\":"+KMFXBuildPositionsJson()+",";
-   json+="\"trades\":[]";
+   json+="\"positions\":"+positions_json+",";
+   json+="\"trades\":"+trades_json+",";
+   json+="\"history\":"+history_json;
    json+="}";
    return json;
   }
@@ -842,6 +979,46 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    json+="\"trades\":"+trades_json;
    json+="}";
    return json;
+  }
+
+int KMFXCountJsonArrayItems(string json,string key)
+  {
+   string array_json="";
+   if(!KMFXExtractJsonArrayRaw(json,key,array_json))
+      return 0;
+
+   string trimmed=KMFXTrim(array_json);
+   if(trimmed=="[]" || StringLen(trimmed)<2)
+      return 0;
+
+   int count=0;
+   int depth=0;
+   bool in_string=false;
+
+   for(int i=0;i<StringLen(trimmed);i++)
+     {
+      ushort ch=(ushort)StringGetCharacter(trimmed,i);
+      if(ch=='\"')
+        {
+         bool escaped=(i>0 && StringGetCharacter(trimmed,i-1)=='\\');
+         if(!escaped)
+            in_string=!in_string;
+         continue;
+        }
+      if(in_string)
+         continue;
+      if(ch=='{')
+        {
+         if(depth==0)
+            count++;
+         depth++;
+         continue;
+        }
+      if(ch=='}' && depth>0)
+         depth--;
+     }
+
+   return count;
   }
 
 // -------------------------------------------------------------------
@@ -1124,9 +1301,18 @@ bool KMFXPushState()
    string disposition="";
    string url=KMFXBackendBaseUrl+KMFXSyncPath;
    string body=KMFXBuildSyncPayload(sync_id);
+   int positions_count=KMFXCountJsonArrayItems(body,"positions");
+   int trades_count=KMFXCountJsonArrayItems(body,"trades");
+   int history_count=KMFXCountJsonArrayItems(body,"history");
 
    // DEBUG
    PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
+   // DEBUG
+   PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXConnectionKeyValue());
+   // DEBUG
+   PrintFormat("[KMFX][SYNC][COUNTS] positions=%d trades=%d history=%d", positions_count, trades_count, history_count);
+   // DEBUG
+   Print("[KMFX][PAYLOAD] "+body);
    // DEBUG
    PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
 
