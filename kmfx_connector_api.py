@@ -648,6 +648,31 @@ async def list_accounts() -> JSONResponse:
     )
 
 
+@app.get("/accounts/pending")
+async def list_pending_accounts() -> JSONResponse:
+    pending_accounts = [
+        account
+        for account in account_service.build_accounts_registry("local")
+        if account.get("status") in {"pending_setup", "waiting_sync"}
+    ]
+    return connector_json_response(
+        {
+            "ok": True,
+            "accounts": [
+                {
+                    "account_id": account.get("account_id", ""),
+                    "alias": account.get("alias", ""),
+                    "platform": account.get("platform", "mt5"),
+                    "connection_key": account.get("connection_key", ""),
+                    "created_at": account.get("created_at", ""),
+                }
+                for account in pending_accounts
+            ],
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.post("/api/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
     sync_id = ""

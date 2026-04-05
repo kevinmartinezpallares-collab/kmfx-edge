@@ -42,6 +42,7 @@ class LauncherStateStore:
             "queue": {"snapshot": [], "journal": []},
             "receipts": {"snapshot": {}, "journal": {}},
             "cached_policy": {},
+            "bindings": [],
             "last_sync": {},
             "last_policy": {},
             "last_backend_error": "",
@@ -148,4 +149,12 @@ class LauncherStateStore:
     def set_last_local_error(self, message: str) -> None:
         with self._lock:
             self._state["last_local_error"] = message
+            self._save(self._state)
+
+    def save_binding(self, binding: dict[str, Any]) -> None:
+        with self._lock:
+            bindings = self._state.setdefault("bindings", [])
+            account_id = str(binding.get("account_id") or "")
+            bindings[:] = [item for item in bindings if str(item.get("account_id") or "") != account_id]
+            bindings.append(deepcopy(binding))
             self._save(self._state)

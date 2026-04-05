@@ -2,6 +2,7 @@
   "local_host": "127.0.0.1",
   "local_port": 8766,
   "backend_base_url": "http://127.0.0.1:8000",
+  "backend_token": "",
   "backend_sync_path": "/api/mt5/sync",
   "backend_journal_path": "/api/mt5/journal",
   "backend_policy_path": "/api/mt5/policy",

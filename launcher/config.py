@@ -30,6 +30,7 @@ class LauncherConfig:
     local_host: str = "127.0.0.1"
     local_port: int = 8766
     backend_base_url: str = "http://127.0.0.1:8000"
+    backend_token: str = ""
     backend_sync_path: str = "/api/mt5/sync"
     backend_journal_path: str = "/api/mt5/journal"
     backend_policy_path: str = "/api/mt5/policy"

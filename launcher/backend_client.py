@@ -33,6 +33,8 @@ class BackendClient:
         headers = {"Content-Type": "application/json", "Connection": "close"}
         if self.config.connection_key:
             headers["X-KMFX-Connection-Key"] = self.config.connection_key
+        if self.config.backend_token:
+            headers["Authorization"] = f"Bearer {self.config.backend_token}"
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
 
@@ -70,3 +72,6 @@ class BackendClient:
 
     def healthcheck(self) -> BackendResponse:
         return self._request("GET", self.config.backend_health_path)
+
+    def get_pending_accounts(self) -> BackendResponse:
+        return self._request("GET", "/accounts/pending")

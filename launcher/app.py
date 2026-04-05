@@ -10,12 +10,14 @@ from tkinter import messagebox, ttk
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from .backend_client import BackendClient
 from .config import LauncherConfig, load_config, save_config
 from .connector_installer import connector_installed, install_connector
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
 from .platform_mac import guided_mt5_install as guided_mt5_install_mac, open_mt5 as open_mt5_mac
 from .platform_windows import guided_mt5_install as guided_mt5_install_windows, open_mt5 as open_mt5_windows
+from .state_store import LauncherStateStore
 
 
 class LauncherApp:
@@ -26,7 +28,10 @@ class LauncherApp:
         self.root.title("KMFX Launcher")
         self.root.geometry("920x640")
         self.service_process: subprocess.Popen[str] | None = None
+        self.backend = BackendClient(self.config)
+        self.store = LauncherStateStore()
         self.installations: list[MT5Installation] = []
+        self.pending_accounts: list[dict[str, str]] = []
         self.selected_installation_label = tk.StringVar()
         self.service_status = tk.StringVar(value="OFF")
         self.backend_status = tk.StringVar(value="Unknown")
@@ -36,6 +41,7 @@ class LauncherApp:
         self.connection_key = tk.StringVar(value=self.config.connection_key)
         self._build_ui()
         self.refresh_installations()
+        self.refresh_pending_accounts()
         self.root.after(1000, self.refresh_status)
 
     def _build_ui(self) -> None:
@@ -72,6 +78,19 @@ class LauncherApp:
         ttk.Button(install_frame, text="Instalar MT5", command=self.guided_mt5_install).grid(row=1, column=2, sticky="w", pady=(8, 0))
         install_frame.columnconfigure(1, weight=1)
 
+        pending_frame = ttk.LabelFrame(self.root, text="Cuentas pendientes de vincular", padding=12)
+        pending_frame.pack(fill="x", padx=16, pady=(0, 12))
+        self.pending_tree = ttk.Treeview(pending_frame, columns=("alias", "created_at"), show="headings", height=5)
+        self.pending_tree.heading("alias", text="Alias")
+        self.pending_tree.heading("created_at", text="Creada")
+        self.pending_tree.column("alias", width=280, anchor="w")
+        self.pending_tree.column("created_at", width=180, anchor="w")
+        self.pending_tree.grid(row=0, column=0, columnspan=3, sticky="nsew")
+        ttk.Button(pending_frame, text="Actualizar pendientes", command=self.refresh_pending_accounts).grid(row=1, column=0, sticky="w", pady=(8, 0))
+        ttk.Button(pending_frame, text="Vincular", command=self.bind_selected_pending_account).grid(row=1, column=1, sticky="w", pady=(8, 0), padx=(8, 0))
+        ttk.Label(pending_frame, text="El campo manual de connection_key sigue disponible como fallback.").grid(row=1, column=2, sticky="e", pady=(8, 0))
+        pending_frame.columnconfigure(0, weight=1)
+
         actions = ttk.Frame(self.root, padding=(16, 0))
         actions.pack(fill="x")
         ttk.Button(actions, text="Arrancar servicio local", command=self.start_service).pack(side="left")
@@ -92,6 +111,55 @@ class LauncherApp:
         self.config.connection_key = self.connection_key.get().strip()
         save_config(self.config.ensure_runtime_values())
         messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán este connection_key.")
+
+    def refresh_pending_accounts(self) -> None:
+        response = self.backend.get_pending_accounts()
+        self.pending_tree.delete(*self.pending_tree.get_children())
+        self.pending_accounts = response.body.get("accounts", []) if response.ok else []
+        for account in self.pending_accounts:
+            self.pending_tree.insert("", "end", iid=account.get("account_id", ""), values=(account.get("alias", "—"), account.get("created_at", "")))
+
+    def bind_selected_pending_account(self) -> None:
+        selection = self.pending_tree.selection()
+        if not selection:
+            messagebox.showwarning("KMFX Launcher", "Selecciona una cuenta pendiente para vincular.")
+            return
+        installation = self.selected_installation()
+        if installation is None:
+            messagebox.showwarning("KMFX Launcher", "Selecciona primero una instalación MT5.")
+            return
+        account_id = selection[0]
+        account = next((item for item in self.pending_accounts if item.get("account_id") == account_id), None)
+        if not account:
+            messagebox.showerror("KMFX Launcher", "No pude resolver la cuenta pendiente seleccionada.")
+            return
+        self.config.connection_key = str(account.get("connection_key") or "").strip()
+        self.connection_key.set(self.config.connection_key)
+        self.config.selected_mt5_terminal_path = installation.terminal_path
+        self.config.selected_mt5_data_path = installation.data_path
+        self.config.selected_mt5_experts_path = installation.experts_path
+        save_config(self.config.ensure_runtime_values())
+        result = install_connector(installation, self.config)
+        self.store.save_binding(
+            {
+                "account_id": account.get("account_id", ""),
+                "alias": account.get("alias", ""),
+                "connection_key": self.config.connection_key,
+                "mt5_terminal_path": installation.terminal_path,
+                "mt5_data_path": installation.data_path,
+                "mt5_experts_path": installation.experts_path,
+                "status": "waiting_first_sync",
+            }
+        )
+        messagebox.showinfo(
+            "KMFX Launcher",
+            "Cuenta vinculada.\n\n"
+            f"Alias: {account.get('alias','')}\n"
+            f"Experts: {result['experts_path']}\n"
+            f"Preset: {result['preset_path']}\n\n"
+            "Ahora abre MT5, adjunta el EA y ejecuta el primer sync.",
+        )
+        self.refresh_pending_accounts()
 
     def refresh_installations(self) -> None:
         self.installations = detect_mt5_installations()
@@ -148,6 +216,7 @@ class LauncherApp:
         else:
             self.service_status.set("OFF")
             self.backend_status.set("Unknown")
+        self.refresh_pending_accounts()
         self.root.after(2000, self.refresh_status)
 
     def install_connector(self) -> None:
