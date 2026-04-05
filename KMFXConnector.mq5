@@ -10,7 +10,7 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.00"
+#property version   "2.50"
 #property strict
 
 #include <Trade/Trade.mqh>

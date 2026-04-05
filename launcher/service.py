@@ -83,6 +83,15 @@ class LauncherServiceRuntime:
                 return payload_login
         return login or self.config.connection_key
 
+    def inject_connection_key(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> dict[str, Any]:
+        safe_payload = payload if isinstance(payload, dict) else {}
+        explicit_key = str(header_connection_key or safe_payload.get("connection_key") or "").strip()
+        effective_key = explicit_key or self.config.connection_key
+        if effective_key and not explicit_key:
+            safe_payload["connection_key"] = effective_key
+            self.logger.info("[KMFX][SERVICE] injected connection_key from launcher config")
+        return safe_payload
+
     def build_queue_item(self, kind: str, item_id: str, identity_key: str, payload: dict[str, Any], attempts: int = 0) -> dict[str, Any]:
         return {
             "item_id": item_id,
@@ -298,6 +307,7 @@ def resolve_batch_id(payload: dict[str, Any]) -> str:
 @app.post("/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
     payload = await request.json()
+    payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     sync_id = resolve_sync_id(payload)
     identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", ""))
     receipt = runtime.store.find_receipt("snapshot", sync_id)
@@ -335,6 +345,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
 @app.post("/mt5/journal")
 async def mt5_journal(request: Request) -> JSONResponse:
     payload = await request.json()
+    payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     batch_id = resolve_batch_id(payload)
     identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", ""))
     receipt = runtime.store.find_receipt("journal", batch_id)

@@ -26,6 +26,7 @@ def preset_contents(config: LauncherConfig) -> str:
             "KMFXSyncPath=/mt5/sync||0||0||0||N",
             "KMFXJournalPath=/mt5/journal||0||0||0||N",
             "KMFXPolicyPath=/mt5/policy||0||0||0||N",
+            f"KMFXApiKey={config.connection_key}||0||0||0||N",
             f"connection_key={config.connection_key}||0||0||0||N",
             "KMFXVerboseLog=true||0||0||0||N",
             "",

@@ -238,6 +238,19 @@ def journal_trades_for_identity(identity_key: str) -> list[dict[str, Any]]:
     return list(JOURNAL_TRADES_BY_IDENTITY.get(identity_key) or [])
 
 
+def merge_trade_sources(primary: list[dict[str, Any]], secondary: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in list(primary or []) + list(secondary or []):
+        trade_id = safe_str(item.get("trade_id") or item.get("ticket") or item.get("position_id"))
+        if trade_id and trade_id in seen:
+            continue
+        if trade_id:
+            seen.add(trade_id)
+        merged.append(item)
+    return merged
+
+
 def remember_journal_trades(identity_key: str, trades: list[dict[str, Any]]) -> None:
     existing = JOURNAL_TRADES_BY_IDENTITY.get(identity_key) or []
     by_trade_id: dict[str, dict[str, Any]] = {}
@@ -546,6 +559,7 @@ def build_dashboard_account_payload(
         "openPnl": account.get("profit", 0.0),
         "positions": positions,
         "trades": trades,
+        "history": raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else [],
         "riskSnapshot": risk_snapshot,
         "riskRules": [
             {
@@ -782,10 +796,11 @@ async def mt5_sync(request: Request) -> JSONResponse:
             server=safe_str(sanitized_account.get("server")),
             login=login,
         )
+        effective_trades = merge_trade_sources(sanitized_trades, journal_trades_for_identity(identity_key))
         dashboard_payload = build_dashboard_account_payload(
             sanitized_account,
             sanitized_positions,
-            journal_trades_for_identity(identity_key),
+            effective_trades,
             payload,
             previous_account.latest_payload if previous_account else None,
         )
