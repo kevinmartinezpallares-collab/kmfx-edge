@@ -1,7 +1,19 @@
 import { createAccountRecord } from "./internal-model-adapter.js";
 
+function toFiniteNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function toIsoString(value) {
   if (!value) return new Date().toISOString();
+  if (typeof value === "string") {
+    const mt5Match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+    if (mt5Match) {
+      const [, year, month, day, hour, minute, second] = mt5Match;
+      return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`).toISOString();
+    }
+  }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return new Date().toISOString();
   return parsed.toISOString();
@@ -25,12 +37,13 @@ function durationMinutes(startValue, endValue) {
 function normalizeTrades(rawTrades = []) {
   return (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
     const date = toIsoString(trade.close_time || trade.time || trade.open_time);
+    const netPnl = Number(trade.profit || 0) + Number(trade.commission || 0) + Number(trade.swap || 0);
     return {
       id: trade.position_id || trade.ticket || `mt5-trade-${index}`,
       date,
       symbol: trade.symbol || "UNKNOWN",
       side: String(trade.type || trade.side || "BUY").toUpperCase(),
-      pnl: Number(trade.profit || 0),
+      pnl: netPnl,
       rMultiple: Number(trade.r_multiple || trade.rMultiple || 0),
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
@@ -49,6 +62,31 @@ function normalizePositions(rawPositions = []) {
     current: Number(position.current || position.price_current || position.current_price || 0),
     pnl: Number(position.profit || 0),
   }));
+}
+
+function normalizeHistory(rawHistory = [], balance = 0, equity = 0) {
+  const points = (Array.isArray(rawHistory) ? rawHistory : [])
+    .map((point, index) => {
+      const labelSource = point.label || point.timestamp || point.time || point.date || point.at || "";
+      const value = point.value ?? point.equity ?? point.balance ?? point.pnl;
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue)) return null;
+      const parsedDate = labelSource ? new Date(toIsoString(labelSource)) : null;
+      const label = parsedDate && !Number.isNaN(parsedDate.getTime())
+        ? parsedDate.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })
+        : `P${index + 1}`;
+      return { label, value: numericValue };
+    })
+    .filter(Boolean);
+
+  if (points.length) return points;
+
+  const normalizedBalance = toFiniteNumber(balance);
+  const normalizedEquity = toFiniteNumber(equity, normalizedBalance);
+  return [
+    { label: "Balance", value: normalizedBalance },
+    { label: "Equity", value: normalizedEquity },
+  ];
 }
 
 function normalizeRiskRules(rawRiskSnapshot = {}, rawPayload = {}) {
@@ -83,6 +121,18 @@ function normalizeMt5Payload(rawPayload = {}) {
   const riskSnapshot = rawPayload.riskSnapshot || rawPayload.risk_snapshot || {};
   const summarySnapshot = riskSnapshot.summary || {};
   const policySnapshot = riskSnapshot.policy || riskSnapshot.policy_snapshot || rawPayload.policy_snapshot || {};
+  const rawAccount = rawPayload.account && typeof rawPayload.account === "object" ? rawPayload.account : {};
+  const balance = toFiniteNumber(rawPayload.balance ?? rawAccount.balance, 0);
+  const equity = toFiniteNumber(rawPayload.equity ?? rawAccount.equity, balance);
+  const openPnl = toFiniteNumber(rawPayload.openPnl ?? rawPayload.pnl ?? rawPayload.profit ?? rawAccount.openPnl ?? rawAccount.profit, equity - balance);
+  const trades = normalizeTrades(rawPayload.trades || rawPayload.history?.trades || []);
+  const positions = normalizePositions(rawPayload.positions || rawPayload.open_positions || []);
+  const history = normalizeHistory(rawPayload.history || rawPayload.equityCurve || rawPayload.equity_curve || [], balance, equity);
+  const winRate = toFiniteNumber(rawPayload.winrate ?? rawPayload.winRate ?? rawPayload.win_rate ?? rawAccount.winRate, trades.length ? (trades.filter((trade) => trade.pnl > 0).length / trades.length) * 100 : 0);
+  const drawdownPct = toFiniteNumber(
+    rawPayload.drawdown ?? rawPayload.drawdown_pct ?? rawPayload.max_drawdown_pct ?? rawAccount.drawdown ?? summarySnapshot.peak_to_equity_drawdown_pct,
+    0,
+  );
   return {
     profile: {
       trader: rawPayload.trader || "MT5 Trader",
@@ -92,10 +142,15 @@ function normalizeMt5Payload(rawPayload = {}) {
       tagline: rawPayload.tagline || "Cuenta conectada en vivo desde MT5."
     },
     account: {
-      balance: Number(rawPayload.balance || 0),
-      equity: Number(rawPayload.equity || rawPayload.balance || 0),
-      openPnl: Number(rawPayload.openPnl || rawPayload.profit || 0),
-      winRateTarget: Number(rawPayload.winRateTarget || 0),
+      balance,
+      equity,
+      openPnl,
+      pnl: openPnl,
+      winRate,
+      drawdownPct,
+      totalTrades: trades.length,
+      openPositionsCount: positions.length,
+      winRateTarget: Number(rawPayload.winRateTarget || winRate || 0),
       profitFactorTarget: Number(rawPayload.profitFactorTarget || 0),
       maxDrawdownLimit: Number(policySnapshot.max_dd_limit_pct || rawPayload.maxDrawdownLimit || 0)
     },
@@ -110,8 +165,9 @@ function normalizeMt5Payload(rawPayload = {}) {
       autoBlock: Boolean(policySnapshot.auto_block_enabled)
     },
     riskRules: normalizeRiskRules(riskSnapshot, rawPayload),
-    positions: normalizePositions(rawPayload.positions || []),
-    trades: normalizeTrades(rawPayload.trades || [])
+    positions,
+    trades,
+    history
   };
 }
 

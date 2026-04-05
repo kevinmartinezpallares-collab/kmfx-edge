@@ -137,12 +137,26 @@ export function buildDashboardModel(source) {
     .sort((a, b) => a.when - b.when);
   const positions = (source.positions || []).map((position) => ({ ...position }));
   const riskProfile = source.riskProfile || {};
+  const explicitHistory = Array.isArray(source.history)
+    ? source.history
+        .map((point, index) => {
+          const numericValue = Number(point?.value);
+          if (!Number.isFinite(numericValue)) return null;
+          return {
+            label: point?.label || `P${index + 1}`,
+            value: numericValue,
+          };
+        })
+        .filter(Boolean)
+    : [];
 
-  const totalPnl = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+  const totalPnl = trades.length
+    ? trades.reduce((sum, trade) => sum + trade.pnl, 0)
+    : Number(source.account.pnl ?? source.account.openPnl ?? 0);
   const wins = trades.filter((trade) => trade.pnl > 0);
   const losses = trades.filter((trade) => trade.pnl < 0);
   const startBalance = source.account.balance - totalPnl;
-  const winRate = trades.length ? (wins.length / trades.length) * 100 : 0;
+  const winRate = trades.length ? (wins.length / trades.length) * 100 : Number(source.account.winRate || 0);
   const grossProfit = wins.reduce((sum, trade) => sum + trade.pnl, 0);
   const grossLoss = Math.abs(losses.reduce((sum, trade) => sum + trade.pnl, 0));
   const profitFactor = grossLoss ? grossProfit / grossLoss : grossProfit;
@@ -154,10 +168,11 @@ export function buildDashboardModel(source) {
   const worstTrade = losses.reduce((worst, trade) => Math.min(worst, trade.pnl), 0);
 
   let equity = startBalance;
-  const equityCurve = trades.map((trade) => {
+  const generatedEquityCurve = trades.map((trade) => {
     equity += trade.pnl;
     return { label: trade.when.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }), value: equity };
   });
+  const equityCurve = explicitHistory.length ? explicitHistory : generatedEquityCurve;
 
   const dayMap = new Map();
   trades.forEach((trade) => {
@@ -178,6 +193,10 @@ export function buildDashboardModel(source) {
   const weekdaysBreakdown = buildWeekdayStats(trades);
   const streaks = buildStreaks(trades);
   const drawdown = calculateDrawdown(startBalance, trades);
+  const drawdownWithFallback = {
+    ...drawdown,
+    maxPct: trades.length ? drawdown.maxPct : Number(source.account.drawdownPct || 0),
+  };
   const dailyReturns = buildDailyReturns(dayStats, startBalance);
   const ratios = calculateRatios(dailyReturns, monthlyReturns, totalPnl, drawdown);
   const profitDistribution = buildProfitDistribution(trades);
@@ -213,10 +232,10 @@ export function buildDashboardModel(source) {
       rr,
       bestTrade,
       worstTrade,
-      totalTrades: trades.length,
+      totalTrades: Number(source.account.totalTrades || trades.length),
       bestMonth: monthlyBest,
       worstMonth: monthlyWorst,
-      drawdown,
+      drawdown: drawdownWithFallback,
       riskScore,
       grossProfit,
       grossLoss,
@@ -236,7 +255,7 @@ export function buildDashboardModel(source) {
     dayStats,
     weekly,
     equityCurve,
-    drawdownCurve: drawdown.curve,
+    drawdownCurve: drawdownWithFallback.curve,
     monthlyReturns,
     monthlyMatrix,
     calendar,

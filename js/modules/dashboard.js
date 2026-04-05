@@ -91,6 +91,7 @@ export function renderDashboard(root, state) {
   });
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
+  console.log("ACCOUNT MODEL", model);
   if (!model || !account) {
     root.innerHTML = "";
     return;
@@ -103,14 +104,26 @@ export function renderDashboard(root, state) {
   const axisStandard = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-text").trim() || undefined;
   const chartSpecs = [];
   const heroRange = root.dataset.heroRange || "1M";
-  const heroCurve = getHeroRangePoints(heroRange, model.equityCurve);
+  const baseCurve = Array.isArray(model.equityCurve) && model.equityCurve.length
+    ? model.equityCurve
+    : [
+        { label: "Base", value: model.account.balance },
+        { label: "Ahora", value: model.account.equity },
+      ];
+  const heroCurve = getHeroRangePoints(heroRange, baseCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
-  const totalPnlDisplay = formatCurrency(Math.abs(model.totals.pnl));
-  const totalReturnDisplay = formatPercent(Math.abs(cumulativeReturn)).replace(/^[+-]/, "");
+  const currentPnl = account?.sourceType === "mt5"
+    ? Number(model.account.openPnl || 0)
+    : Number(model.totals.pnl || 0);
+  const currentReturnPct = account?.sourceType === "mt5"
+    ? (model.account.balance ? (currentPnl / model.account.balance) * 100 : 0)
+    : cumulativeReturn;
+  const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
+  const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
@@ -226,7 +239,7 @@ export function renderDashboard(root, state) {
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
                     <span class="metric-line-label">PnL total</span>
-                    <strong class="${model.totals.pnl >= 0 ? "metric-positive" : "metric-negative"}">
+                    <strong class="${currentPnl >= 0 ? "metric-positive" : "metric-negative"}">
                       ${totalPnlDisplay} (${totalReturnDisplay})
                     </strong>
                   </div>
