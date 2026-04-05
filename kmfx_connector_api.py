@@ -597,6 +597,57 @@ async def healthcheck() -> JSONResponse:
     })
 
 
+@app.post("/accounts")
+async def create_account(request: Request) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    alias = safe_str(payload.get("alias"))
+    platform = safe_str(payload.get("platform"), "mt5")
+    if not alias:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "missing_alias",
+                "details": {"field": "alias"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+
+    created = account_service.create_pending_account(
+        user_id="local",
+        alias=alias,
+        platform=platform or "mt5",
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": created.account_id,
+            "alias": created.alias,
+            "platform": created.platform,
+            "connection_key": created.api_key,
+            "status": created.status,
+            "created_at": created.created_at.isoformat(),
+            "timestamp": now_iso(),
+        },
+        status_code=201,
+    )
+
+
+@app.get("/accounts")
+async def list_accounts() -> JSONResponse:
+    return connector_json_response(
+        {
+            "ok": True,
+            "accounts": account_service.build_accounts_registry("local"),
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.post("/api/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
     sync_id = ""
@@ -698,7 +749,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "raw": payload,
         }
 
-        previous_account = account_service.get_account_by_identity(
+        bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
+        previous_account = bound_account or account_service.get_account_by_identity(
             user_id="local",
             platform="mt5",
             broker=safe_str(sanitized_account.get("broker"), "Unknown broker"),
@@ -719,7 +771,9 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 "platform": "mt5",
             },
             payload=dashboard_payload,
+            account_id=bound_account.account_id if bound_account else None,
             api_key=connection_key,
+            nickname=bound_account.alias if bound_account else None,
         )
         log.info(
             "ACCOUNT sync upsert | account_id=%s login=%s status=%s broker=%s server=%s last_sync_at=%s",

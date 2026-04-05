@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Optional
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from account_models import Account
 from account_store import AccountStore
@@ -19,6 +19,8 @@ def _stable_account_id(platform: str, broker: str, server: str, login: str) -> s
 
 
 def _display_name(account: Account) -> str:
+    if account.alias:
+        return account.alias
     if account.nickname:
         return account.nickname
     if account.broker and account.login:
@@ -43,6 +45,7 @@ class AccountService:
         self,
         *,
         user_id: str,
+        alias: str = "",
         broker: str,
         platform: str,
         login: str,
@@ -63,6 +66,7 @@ class AccountService:
             existing = Account(
                 account_id=resolved_account_id,
                 user_id=user_id,
+                alias=alias or nickname or "",
                 broker=broker,
                 platform=platform,
                 login=login,
@@ -78,6 +82,7 @@ class AccountService:
             all_accounts.append(existing)
         else:
             existing.user_id = user_id
+            existing.alias = alias or existing.alias or nickname or ""
             existing.broker = broker
             existing.platform = platform
             existing.login = login
@@ -96,6 +101,35 @@ class AccountService:
 
         self.store.save_accounts(all_accounts)
         return deepcopy(existing)
+
+    def _generate_connection_key(self) -> str:
+        existing_keys = {account.api_key for account in self.store.list_accounts() if account.api_key}
+        while True:
+            candidate = f"kmfx_{uuid4().hex}"
+            if candidate not in existing_keys:
+                return candidate
+
+    def create_pending_account(
+        self,
+        *,
+        user_id: str,
+        alias: str,
+        platform: str = "mt5",
+    ) -> Account:
+        return self.create_account(
+            user_id=user_id,
+            alias=alias,
+            broker="",
+            platform=platform,
+            login="",
+            server="",
+            connection_mode="launcher",
+            status="pending_setup",
+            api_key=self._generate_connection_key(),
+            nickname=alias,
+            is_default=False,
+            account_id=str(uuid4()),
+        )
 
     def set_default_account(self, user_id: str, account_id: str) -> Account | None:
         accounts = self.store.list_accounts()
@@ -125,6 +159,20 @@ class AccountService:
                 account
                 for account in self.store.list_accounts()
                 if account.user_id == user_id and account.account_id == resolved_account_id
+            ),
+            None,
+        )
+        return deepcopy(account) if account else None
+
+    def get_account_by_api_key(self, *, user_id: str, api_key: str) -> Account | None:
+        normalized = str(api_key or "").strip()
+        if not normalized:
+            return None
+        account = next(
+            (
+                account
+                for account in self.store.list_accounts()
+                if account.user_id == user_id and account.api_key == normalized
             ),
             None,
         )
@@ -176,6 +224,7 @@ class AccountService:
             target = Account(
                 account_id=resolved_account_id,
                 user_id=user_id,
+                alias=nickname or "",
                 broker=broker,
                 platform=platform,
                 login=login,
@@ -196,6 +245,7 @@ class AccountService:
             target.platform = platform
             target.login = login
             target.server = server
+            target.alias = target.alias or nickname or ""
             target.connection_mode = connection_mode
             target.status = "connected"
             target.api_key = api_key or target.api_key
@@ -233,12 +283,17 @@ class AccountService:
         )
 
     def build_accounts_snapshot(self, user_id: str = "local") -> dict[str, Any]:
-        accounts = self.list_accounts(user_id)
+        accounts = [
+            account
+            for account in self.list_accounts(user_id)
+            if account.status not in {"pending_setup", "waiting_sync"}
+        ]
         return {
             "accounts": [
                 {
                     "account_id": account.account_id,
                     "user_id": account.user_id,
+                    "alias": account.alias,
                     "broker": account.broker,
                     "platform": account.platform,
                     "login": account.login,
@@ -246,6 +301,7 @@ class AccountService:
                     "connection_mode": account.connection_mode,
                     "status": account.status,
                     "api_key": account.api_key,
+                    "connection_key": account.api_key,
                     "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else "",
                     "is_default": bool(account.is_default),
                     "nickname": account.nickname or "",
@@ -257,3 +313,23 @@ class AccountService:
             "active_account_id": next((account.account_id for account in accounts if account.is_default), ""),
             "updated_at": _now_utc().isoformat(),
         }
+
+    def build_accounts_registry(self, user_id: str = "local") -> list[dict[str, Any]]:
+        accounts = self.list_accounts(user_id)
+        return [
+            {
+                "account_id": account.account_id,
+                "user_id": account.user_id,
+                "alias": account.alias or account.nickname or "",
+                "platform": account.platform,
+                "connection_key": account.api_key,
+                "status": account.status,
+                "broker": account.broker,
+                "login": account.login,
+                "server": account.server,
+                "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else "",
+                "created_at": account.created_at.isoformat(),
+                "display_name": _display_name(account),
+            }
+            for account in accounts
+        ]

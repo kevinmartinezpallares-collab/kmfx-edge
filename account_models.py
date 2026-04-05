@@ -9,6 +9,7 @@ from typing import Any, Optional
 class Account:
     account_id: str
     user_id: str
+    alias: str
     broker: str
     platform: str
     login: str
@@ -25,4 +26,3 @@ class Account:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
-

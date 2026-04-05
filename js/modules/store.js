@@ -169,6 +169,7 @@ function createInitialState() {
   return {
     accounts,
     accountDirectory: {},
+    managedAccounts: [],
     liveAccountIds: [],
     activeLiveAccountId: null,
     currentAccount,

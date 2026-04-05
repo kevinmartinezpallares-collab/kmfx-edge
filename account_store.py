@@ -41,6 +41,7 @@ def account_to_record(account: Account) -> dict:
     return {
         "account_id": account.account_id,
         "user_id": account.user_id,
+        "alias": account.alias,
         "broker": account.broker,
         "platform": account.platform,
         "login": account.login,
@@ -62,6 +63,7 @@ def record_to_account(record: dict) -> Account:
     return Account(
         account_id=str(record.get("account_id") or ""),
         user_id=str(record.get("user_id") or "local"),
+        alias=str(record.get("alias") or record.get("nickname") or ""),
         broker=str(record.get("broker") or ""),
         platform=str(record.get("platform") or "mt5"),
         login=str(record.get("login") or ""),
@@ -116,4 +118,3 @@ class JsonFileAccountStore(AccountStore):
             json.dump(payload, handle, ensure_ascii=True, indent=2)
             temp_path = handle.name
         os.replace(temp_path, self.path)
-

@@ -48,8 +48,9 @@ class LauncherApp:
         config_frame.pack(fill="x", padx=16, pady=(0, 12))
         ttk.Label(config_frame, text="Connection Key").grid(row=0, column=0, sticky="w")
         ttk.Entry(config_frame, textvariable=self.connection_key, width=40).grid(row=0, column=1, sticky="ew", padx=(8, 8))
-        ttk.Button(config_frame, text="Guardar", command=self.save_launcher_config).grid(row=0, column=2, sticky="e")
-        ttk.Label(config_frame, text=f"Servicio local: http://{self.config.local_host}:{self.config.local_port}").grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ttk.Button(config_frame, text="Vincular cuenta", command=self.save_launcher_config).grid(row=0, column=2, sticky="e")
+        ttk.Label(config_frame, text="Pega aquí el connection_key generado desde el dashboard y luego reinstala o repara el connector si hace falta.").grid(row=1, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ttk.Label(config_frame, text=f"Servicio local: http://{self.config.local_host}:{self.config.local_port}").grid(row=2, column=0, columnspan=3, sticky="w", pady=(6, 0))
         config_frame.columnconfigure(1, weight=1)
 
         status_frame = ttk.LabelFrame(self.root, text="Estado", padding=12)
@@ -90,7 +91,7 @@ class LauncherApp:
     def save_launcher_config(self) -> None:
         self.config.connection_key = self.connection_key.get().strip()
         save_config(self.config.ensure_runtime_values())
-        messagebox.showinfo("KMFX Launcher", "Configuración guardada.")
+        messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán este connection_key.")
 
     def refresh_installations(self) -> None:
         self.installations = detect_mt5_installations()
