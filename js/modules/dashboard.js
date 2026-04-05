@@ -1,6 +1,6 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveActiveAccountId, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260405-201500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260401-203500";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260401-203500";
+import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260405-201500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -91,7 +91,31 @@ export function renderDashboard(root, state) {
   });
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
-  console.log("ACCOUNT MODEL", model);
+  const dashboardPayload = selectCurrentDashboardPayload(state);
+  console.log("[KMFX][PANEL][TRACE]", {
+    currentAccount: state.currentAccount,
+    activeAccountId,
+    accountId: account?.id || "",
+    sourceType: account?.sourceType || "",
+    payloadSource: dashboardPayload?.payloadSource || "",
+    rawSnapshot: {
+      balance: dashboardPayload?.balance,
+      equity: dashboardPayload?.equity,
+      openPnl: dashboardPayload?.openPnl,
+      closedPnl: dashboardPayload?.closedPnl,
+      positions: Array.isArray(dashboardPayload?.positions) ? dashboardPayload.positions.length : 0,
+      trades: Array.isArray(dashboardPayload?.trades) ? dashboardPayload.trades.length : 0,
+      history: Array.isArray(dashboardPayload?.history) ? dashboardPayload.history.length : 0,
+    },
+    model: {
+      equity: model?.account?.equity,
+      openPnl: model?.account?.openPnl,
+      closedPnl: model?.account?.closedPnl,
+      totalTrades: model?.totals?.totalTrades,
+      equityCurve: Array.isArray(model?.equityCurve) ? model.equityCurve.length : 0,
+      sourceTrace: model?.sourceTrace || null,
+    },
+  });
   if (!model || !account) {
     root.innerHTML = "";
     return;
@@ -127,6 +151,7 @@ export function renderDashboard(root, state) {
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
+  const heroPnlLabel = account?.sourceType === "mt5" ? "Open PnL" : "PnL total";
   const riskSummary = selectRiskSummary(state);
   const riskStatus = selectRiskStatus(state);
   const riskLimits = selectRiskLimits(state);
@@ -233,12 +258,11 @@ export function renderDashboard(root, state) {
 
               <div class="account-banner-hero">
                 <div class="account-banner-metric">
-                  <span class="account-banner-currency">€</span>
-                  <span class="account-banner-metric-value">${formatCurrency(model.account.equity).replace(/^€/, "")}</span>
+                  <span class="account-banner-metric-value">${formatCurrency(model.account.equity)}</span>
                 </div>
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
-                    <span class="metric-line-label">PnL total</span>
+                    <span class="metric-line-label">${heroPnlLabel}</span>
                     <strong class="${currentPnl >= 0 ? "metric-positive" : "metric-negative"}">
                       ${totalPnlDisplay} (${totalReturnDisplay})
                     </strong>

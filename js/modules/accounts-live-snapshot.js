@@ -1,5 +1,5 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260401-203500";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260401-203500";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260405-201500";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260405-201500";
 
 const DEFAULT_BRIDGE_URL = "ws://localhost:8765";
 const DEFAULT_ACCOUNTS_API_URL = "http://127.0.0.1:8000/api/accounts/snapshot";
@@ -62,6 +62,14 @@ function mergeLiveAccounts(store, snapshot) {
   console.log("[KMFX][ACCOUNTS] merge snapshot", {
     count: normalizedAccounts.length,
     activeAccountId: snapshot?.active_account_id || "",
+    accounts: normalizedAccounts.map((account) => ({
+      accountId: account.accountId,
+      login: account.login,
+      status: account.status,
+      trades: Array.isArray(account.dashboardPayload?.trades) ? account.dashboardPayload.trades.length : 0,
+      history: Array.isArray(account.dashboardPayload?.history) ? account.dashboardPayload.history.length : 0,
+      positions: Array.isArray(account.dashboardPayload?.positions) ? account.dashboardPayload.positions.length : 0,
+    })),
   });
   const liveAccountIds = normalizedAccounts.map((account) => account.accountId).filter(Boolean);
   const nextAccounts = { ...state.accounts };

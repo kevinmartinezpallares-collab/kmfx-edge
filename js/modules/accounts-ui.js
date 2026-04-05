@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260401-203500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260405-201500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260401-203500";
 
 const accountSurfacePages = new Set(["dashboard"]);

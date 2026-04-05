@@ -124,32 +124,54 @@ function normalizeMt5Payload(rawPayload = {}) {
   const rawAccount = rawPayload.account && typeof rawPayload.account === "object" ? rawPayload.account : {};
   const balance = toFiniteNumber(rawPayload.balance ?? rawAccount.balance, 0);
   const equity = toFiniteNumber(rawPayload.equity ?? rawAccount.equity, balance);
-  const openPnl = toFiniteNumber(rawPayload.openPnl ?? rawPayload.pnl ?? rawPayload.profit ?? rawAccount.openPnl ?? rawAccount.profit, equity - balance);
+  const openPnl = toFiniteNumber(rawPayload.openPnl ?? rawPayload.floatingPnl ?? rawPayload.profit ?? rawAccount.openPnl ?? rawAccount.profit, equity - balance);
   const trades = normalizeTrades(rawPayload.trades || rawPayload.history?.trades || []);
   const positions = normalizePositions(rawPayload.positions || rawPayload.open_positions || []);
   const history = normalizeHistory(rawPayload.history || rawPayload.equityCurve || rawPayload.equity_curve || [], balance, equity);
+  const closedPnl = toFiniteNumber(
+    rawPayload.closedPnl ?? rawPayload.realizedPnl,
+    trades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0),
+  );
+  const totalPnl = toFiniteNumber(rawPayload.totalPnl, closedPnl + openPnl);
   const winRate = toFiniteNumber(rawPayload.winrate ?? rawPayload.winRate ?? rawPayload.win_rate ?? rawAccount.winRate, trades.length ? (trades.filter((trade) => trade.pnl > 0).length / trades.length) * 100 : 0);
   const drawdownPct = toFiniteNumber(
     rawPayload.drawdown ?? rawPayload.drawdown_pct ?? rawPayload.max_drawdown_pct ?? rawAccount.drawdown ?? summarySnapshot.peak_to_equity_drawdown_pct,
     0,
   );
+  console.debug("[KMFX][ADAPTER][MT5]", {
+    balance,
+    equity,
+    openPnl,
+    closedPnl,
+    totalPnl,
+    trades: trades.length,
+    history: history.length,
+    positions: positions.length,
+    winRate,
+    drawdownPct,
+    payloadSource: rawPayload.payloadSource || "unknown",
+  });
   return {
     profile: {
       trader: rawPayload.trader || "MT5 Trader",
       desk: rawPayload.name || rawPayload.accountName || rawPayload.server || "MT5 Account",
       mode: rawPayload.mode || "MT5 Live",
       broker: rawPayload.broker || rawPayload.server || "MT5",
-      tagline: rawPayload.tagline || "Cuenta conectada en vivo desde MT5."
+      tagline: rawPayload.tagline || "Cuenta conectada en vivo desde MT5.",
+      payloadSource: rawPayload.payloadSource || "mt5_sync_live",
     },
+    payloadSource: rawPayload.payloadSource || "mt5_sync_live",
     account: {
       balance,
       equity,
       openPnl,
-      pnl: openPnl,
+      closedPnl,
+      totalPnl,
+      pnl: totalPnl,
       winRate,
       drawdownPct,
-      totalTrades: trades.length,
-      openPositionsCount: positions.length,
+      totalTrades: Number(rawPayload.totalTrades || trades.length),
+      openPositionsCount: Number(rawPayload.openPositionsCount || positions.length),
       winRateTarget: Number(rawPayload.winRateTarget || winRate || 0),
       profitFactorTarget: Number(rawPayload.profitFactorTarget || 0),
       maxDrawdownLimit: Number(policySnapshot.max_dd_limit_pct || rawPayload.maxDrawdownLimit || 0)
@@ -178,6 +200,15 @@ export function adaptMt5Account(rawAccount = {}) {
       ? rawAccount.payload
       : rawAccount;
   const payload = normalizeMt5Payload(dashboardPayload);
+  console.debug("[KMFX][ACCOUNT][RAW]", {
+    accountId: rawAccount.account_id || rawAccount.id || "",
+    login: rawAccount.login || "",
+    status: rawAccount.status || "",
+    dashboardPayloadKeys: Object.keys(dashboardPayload || {}),
+    trades: Array.isArray(dashboardPayload?.trades) ? dashboardPayload.trades.length : 0,
+    history: Array.isArray(dashboardPayload?.history) ? dashboardPayload.history.length : 0,
+    positions: Array.isArray(dashboardPayload?.positions) ? dashboardPayload.positions.length : 0,
+  });
   const record = createAccountRecord({
     id: rawAccount.account_id || rawAccount.id || rawAccount.login || "mt5-account",
     name: rawAccount.display_name || rawAccount.nickname || rawAccount.name || `${rawAccount.broker || "MT5"} · ${rawAccount.login || "Cuenta"}`,

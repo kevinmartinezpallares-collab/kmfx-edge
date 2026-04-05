@@ -510,6 +510,16 @@ def build_dashboard_account_payload(
     raw_payload: dict[str, Any],
     previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    closed_pnl = sum(
+        safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))
+        for trade in trades
+    )
+    winning_trades = sum(
+        1
+        for trade in trades
+        if (safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))) > 0
+    )
+    win_rate = (winning_trades / len(trades) * 100.0) if trades else 0.0
     raw_policy = build_policy(safe_str(account.get("login")))
     previous_snapshot = extract_previous_risk_snapshot(previous_payload)
     metrics_snapshot = build_risk_metrics(
@@ -557,6 +567,15 @@ def build_dashboard_account_payload(
         "balance": account.get("balance", 0.0),
         "equity": account.get("equity", account.get("balance", 0.0)),
         "openPnl": account.get("profit", 0.0),
+        "floatingPnl": account.get("profit", 0.0),
+        "closedPnl": closed_pnl,
+        "totalPnl": closed_pnl + safe_float(account.get("profit")),
+        "winRate": win_rate,
+        "drawdownPct": summary["peak_to_equity_drawdown_pct"],
+        "openPositionsCount": len(positions),
+        "totalTrades": len(trades),
+        "timestamp": safe_timestamp(raw_payload.get("timestamp") or account.get("timestamp")),
+        "payloadSource": "mt5_sync_live",
         "positions": positions,
         "trades": trades,
         "history": raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else [],
@@ -803,6 +822,18 @@ async def mt5_sync(request: Request) -> JSONResponse:
             effective_trades,
             payload,
             previous_account.latest_payload if previous_account else None,
+        )
+        log.info(
+            "DASHBOARD payload built | account_id=%s login=%s balance=%.2f equity=%.2f open_pnl=%.2f closed_pnl=%.2f trades=%s history=%s positions=%s",
+            previous_account.account_id if previous_account else (bound_account.account_id if bound_account else ""),
+            login,
+            safe_float(dashboard_payload.get("balance")),
+            safe_float(dashboard_payload.get("equity")),
+            safe_float(dashboard_payload.get("openPnl")),
+            safe_float(dashboard_payload.get("closedPnl")),
+            len(dashboard_payload.get("trades") or []),
+            len(dashboard_payload.get("history") or []),
+            len(dashboard_payload.get("positions") or []),
         )
         synced_account = account_service.link_connector_sync(
             user_id="local",

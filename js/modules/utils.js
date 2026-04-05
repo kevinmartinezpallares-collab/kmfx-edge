@@ -150,9 +150,12 @@ export function buildDashboardModel(source) {
         .filter(Boolean)
     : [];
 
-  const totalPnl = trades.length
-    ? trades.reduce((sum, trade) => sum + trade.pnl, 0)
-    : Number(source.account.pnl ?? source.account.openPnl ?? 0);
+  const explicitClosedPnl = Number(source.account.closedPnl);
+  const totalPnl = Number.isFinite(explicitClosedPnl)
+    ? explicitClosedPnl
+    : trades.length
+      ? trades.reduce((sum, trade) => sum + trade.pnl, 0)
+      : Number(source.account.pnl ?? source.account.openPnl ?? 0);
   const wins = trades.filter((trade) => trade.pnl > 0);
   const losses = trades.filter((trade) => trade.pnl < 0);
   const startBalance = source.account.balance - totalPnl;
@@ -247,6 +250,15 @@ export function buildDashboardModel(source) {
       balance: source.account.balance,
       equity: source.account.equity,
       openPnl: source.account.openPnl
+    },
+    sourceTrace: {
+      kind: source.profile?.mode || source.profile?.broker || "unknown",
+      payloadSource: source.payloadSource || source.profile?.payloadSource || "normalized",
+      tradesCount: trades.length,
+      positionsCount: positions.length,
+      historyCount: explicitHistory.length,
+      currentAccountPnl: source.account.openPnl,
+      closedPnl: totalPnl,
     },
     riskProfile,
     riskRules: [...(source.riskRules || [])],
