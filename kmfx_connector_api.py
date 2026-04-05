@@ -30,6 +30,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+log.info(
+    "Connector API startup configured | response_helper=connector_json_response routes=%s",
+    ["/api/mt5/sync", "/api/mt5/policy", "/api/accounts/snapshot"],
+)
 
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}

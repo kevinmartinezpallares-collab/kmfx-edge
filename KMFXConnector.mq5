@@ -544,6 +544,11 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
    status_code=WebRequest(method,url,headers,KMFXWebTimeoutMs,req,res,result_headers);
    // DEBUG
    PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, GetLastError());
+   if(status_code==1003 || status_code<=0)
+     {
+      // DEBUG
+      PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, GetLastError());
+     }
    if(status_code==-1)
      {
       int err=GetLastError();
@@ -691,6 +696,7 @@ bool KMFXPushState()
   {
    string response="";
    int status_code=0;
+   int transport_error=0;
    string url=KMFXBackendBaseUrl+KMFXSyncPath;
    string body=KMFXBuildSyncPayload();
 
@@ -702,10 +708,20 @@ bool KMFXPushState()
    if(!KMFXSendHttpRequest("POST",url,body,response,status_code))
       return false;
 
+   transport_error=GetLastError();
+
    // DEBUG
    PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
 
-   if(status_code<200 || status_code>=300)
+   if(status_code==1003 || status_code<=0)
+     {
+      Policy.backend_connected=false;
+      Policy.degraded_mode=true;
+      KMFXSetError("Sync falló en transporte MT5. HTTP="+IntegerToString(status_code)+" last_error="+IntegerToString(transport_error));
+      return false;
+     }
+
+   if(status_code>=300)
      {
       Policy.backend_connected=false;
       Policy.degraded_mode=true;
@@ -1092,7 +1108,7 @@ int OnInit()
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
 
    // DEBUG
-   Print("[KMFX][BUILD] DEBUG_HTTP_V1");
+   PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
    PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
    KMFXLog("INIT","KMFX Connector v2 iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
    EventSetMillisecondTimer(KMFXTimerMs);
