@@ -1,7 +1,9 @@
-import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
+import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260401-203500";
 import { showToast } from "./toast.js?v=build-20260401-203500";
 
 const DEFAULT_ACCOUNTS_REGISTRY_URL = "http://127.0.0.1:8000/accounts";
+const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
+const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
 function normalizeRegistryUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();
@@ -22,16 +24,90 @@ function getAccountsRegistryUrl() {
   }
 }
 
-function accountStatusMeta(status = "") {
-  if (status === "connected") return { label: "Conectada", tone: "ok" };
-  if (status === "pending" || status === "pending_setup" || status === "waiting_sync") return { label: "Pendiente", tone: "info" };
-  if (status === "stale") return { label: "Sin actualizar", tone: "warn" };
-  if (status === "error") return { label: "Error", tone: "error" };
-  return { label: "Desconectada", tone: "neutral" };
+function openLauncher() {
+  try {
+    window.location.href = LAUNCHER_OPEN_URL;
+    window.setTimeout(() => {
+      window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+    }, 900);
+  } catch {
+    window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+  }
 }
 
-function badge(meta = {}) {
-  return `<span class="ui-badge ui-badge--${meta.tone || "neutral"} ui-badge--compact">${meta.label || "Estado"}</span>`;
+function downloadLauncher() {
+  window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+}
+
+function relativeTime(value) {
+  if (!value) return "Sin sincronización";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sin sincronización";
+  const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (seconds < 5) return "hace unos segundos";
+  if (seconds < 60) return `hace ${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `hace ${minutes}min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  const days = Math.round(hours / 24);
+  return `hace ${days}d`;
+}
+
+function accountStatusMeta(status = "", lastSyncAt = "") {
+  const relative = relativeTime(lastSyncAt);
+  if (status === "connected") {
+    return {
+      label: "Conectada",
+      tone: "connected",
+      subtitle: lastSyncAt ? `Último sync ${relative}` : "Sincronización activa",
+      actionLabel: "Usar en panel",
+      action: "use",
+    };
+  }
+  if (status === "waiting_sync") {
+    return {
+      label: "Conectando…",
+      tone: "waiting",
+      subtitle: "Esperando datos desde MT5",
+      actionLabel: "Abrir Launcher",
+      action: "launcher",
+    };
+  }
+  if (status === "pending_setup" || status === "pending") {
+    return {
+      label: "Pendiente",
+      tone: "pending",
+      subtitle: "Abre el Launcher para vincular",
+      actionLabel: "Abrir Launcher",
+      action: "launcher",
+    };
+  }
+  if (status === "stale") {
+    return {
+      label: "Sin actualizar",
+      tone: "stale",
+      subtitle: lastSyncAt ? `Último sync ${relative}` : "Aún sin sync reciente",
+      actionLabel: "Usar en panel",
+      action: "use",
+    };
+  }
+  if (status === "error") {
+    return {
+      label: "Error de conexión",
+      tone: "error",
+      subtitle: "Revisa la vinculación en Launcher",
+      actionLabel: "Abrir Launcher",
+      action: "launcher",
+    };
+  }
+  return {
+    label: "Desconectada",
+    tone: "neutral",
+    subtitle: "Sin actividad reciente",
+    actionLabel: "Descargar Launcher",
+    action: "download",
+  };
 }
 
 function getWizardState(root) {
@@ -64,52 +140,111 @@ async function fetchAccountsRegistry(store) {
   }
 }
 
-function copyText(value) {
-  if (!value) return Promise.resolve(false);
-  if (navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(value).then(() => true).catch(() => false);
-  }
-  return Promise.resolve(false);
-}
-
 function renderAccountWizard(root) {
   const wizard = getWizardState(root);
   if (!wizard.open) return "";
   return `
     <div class="kmfx-modal-backdrop">
-      <div class="tl-section-card" style="max-width:560px;width:min(92vw,560px);margin:48px auto;padding:24px;">
-        <div class="tl-section-header">
+      <div class="kmfx-mt5-modal">
+        <div class="kmfx-mt5-modal__header">
           <div>
-            <div class="tl-section-title">Añadir cuenta MT5</div>
-            <div class="row-sub">${wizard.step === 1 ? "Crea la cuenta y genera su connection_key." : "Vincula esta cuenta en KMFX Launcher y ejecuta el primer sync."}</div>
+            <div class="kmfx-mt5-modal__eyebrow">Nuevo onboarding</div>
+            <div class="kmfx-mt5-modal__title">Añadir cuenta MT5</div>
+            <div class="kmfx-mt5-modal__subtitle">${wizard.step === 1 ? "Crea la cuenta para generar su flujo de vinculación." : "La cuenta ya está lista. El siguiente paso ocurre en KMFX Launcher."}</div>
           </div>
           <button class="btn-secondary" type="button" data-account-close="true">Cerrar</button>
         </div>
         ${wizard.step === 1 ? `
-          <div class="form-stack" style="display:grid;gap:12px;">
+          <div class="kmfx-mt5-modal__body">
             <label class="form-stack">
               <span>Alias</span>
-              <input type="text" data-account-alias value="${wizard.alias || ""}" placeholder="Darwinex Live · Principal">
+              <input type="text" data-account-alias value="${wizard.alias || ""}" placeholder="Darwinex principal">
             </label>
-            ${wizard.error ? `<div class="row-sub" style="color:var(--negative);">${wizard.error}</div>` : ""}
-            <div class="settings-actions">
-              <button class="btn-primary" type="button" data-account-create="true" ${wizard.loading ? "disabled" : ""}>${wizard.loading ? "Creando..." : "Crear cuenta"}</button>
-            </div>
+            ${wizard.error ? `<div class="kmfx-mt5-inline-error">${wizard.error}</div>` : ""}
+          </div>
+          <div class="kmfx-mt5-modal__footer">
+            <button class="btn-primary" type="button" data-account-create="true" ${wizard.loading ? "disabled" : ""}>${wizard.loading ? "Creando..." : "Crear cuenta"}</button>
           </div>
         ` : `
-          <div class="info-list compact">
-            <div><strong>Alias</strong><span>${wizard.created?.alias || "—"}</span></div>
-            <div><strong>Connection Key</strong><span style="font-family:monospace;word-break:break-all;">${wizard.created?.connection_key || "—"}</span></div>
-            <div><strong>Estado</strong><span>${wizard.created?.status || "pending_setup"}</span></div>
+          <div class="kmfx-mt5-modal__success">
+            <div class="kmfx-mt5-modal__success-icon">✓</div>
+            <div class="kmfx-mt5-modal__success-title">Cuenta creada correctamente</div>
+            <div class="kmfx-mt5-modal__success-copy">Abre KMFX Launcher y pulsa Vincular para completar la conexión automática.</div>
           </div>
-          <div class="row-sub" style="margin-top:14px;">Abre KMFX Launcher, pega este <code>connection_key</code>, guarda la vinculación y luego lanza el primer sync desde MT5.</div>
-          <div class="settings-actions" style="margin-top:16px;">
-            <button class="btn-secondary" type="button" data-account-copy="true">Copiar código</button>
-            <button class="btn-primary" type="button" data-account-done="true">Continuar</button>
+          <div class="kmfx-mt5-modal__footer">
+            <button class="btn-secondary" type="button" data-account-done="true">Cerrar</button>
+            <button class="btn-primary" type="button" data-account-open-launcher="true">Abrir Launcher</button>
           </div>
         `}
       </div>
     </div>
+  `;
+}
+
+function renderEmptyState(root) {
+  root.innerHTML = `
+    <section class="kmfx-mt5-page">
+      <header class="kmfx-mt5-header">
+        <div>
+          <h1 class="kmfx-mt5-header__title">Cuentas MT5</h1>
+          <p class="kmfx-mt5-header__subtitle">Gestiona y conecta tus cuentas de trading</p>
+        </div>
+        <div class="kmfx-mt5-header__actions">
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
+          <button class="btn-primary" type="button" data-account-add="true">+ Añadir cuenta</button>
+        </div>
+      </header>
+
+      <article class="kmfx-mt5-empty">
+        <div class="kmfx-mt5-empty__icon">◎</div>
+        <div class="kmfx-mt5-empty__title">Conecta tu primera cuenta MT5</div>
+        <div class="kmfx-mt5-empty__copy">Descarga el Launcher y vincula tu cuenta en segundos</div>
+        <ol class="kmfx-mt5-empty__steps">
+          <li>Descarga KMFX Launcher</li>
+          <li>Crea una cuenta</li>
+          <li>Vincúlala automáticamente</li>
+        </ol>
+        <div class="kmfx-mt5-empty__actions">
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
+          <button class="btn-primary" type="button" data-account-add="true">Añadir cuenta</button>
+        </div>
+      </article>
+      ${renderAccountWizard(root)}
+    </section>
+  `;
+}
+
+function renderAccountCard(account, { isActive }) {
+  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const identityLine = [account.broker || null, account.login || null, account.server || null].filter(Boolean).join(" · ") || "Pendiente de primer sync";
+  const actionMarkup = meta.action === "use"
+    ? `<button class="btn-primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
+    : meta.action === "launcher"
+      ? `<button class="btn-primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
+      : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
+
+  return `
+    <article class="kmfx-mt5-card ${isActive ? "is-active" : ""}">
+      <div class="kmfx-mt5-card__top">
+        <div>
+          <div class="kmfx-mt5-card__alias">${account.alias || account.display_name || "Cuenta MT5"}</div>
+          <div class="kmfx-mt5-card__identity">${identityLine}</div>
+        </div>
+      </div>
+      <div class="kmfx-mt5-card__status-row">
+        <div class="kmfx-mt5-status kmfx-mt5-status--${meta.tone}">
+          <span class="kmfx-mt5-status__dot"></span>
+          <div>
+            <div class="kmfx-mt5-status__label">${meta.label}</div>
+            <div class="kmfx-mt5-status__subtitle">${meta.subtitle}</div>
+          </div>
+        </div>
+        <div class="kmfx-mt5-card__sync">${account.last_sync_at || account.lastSyncAt ? relativeTime(account.last_sync_at || account.lastSyncAt) : "Sin sync"}</div>
+      </div>
+      <div class="kmfx-mt5-card__actions">
+        ${actionMarkup}
+      </div>
+    </article>
   `;
 }
 
@@ -138,27 +273,23 @@ export function initConnections(store) {
       return;
     }
 
-    const addButton = event.target.closest("[data-account-add]");
-    if (addButton) {
+    if (event.target.closest("[data-account-open-launcher]")) {
+      openLauncher();
+      return;
+    }
+
+    if (event.target.closest("[data-account-download-launcher]")) {
+      downloadLauncher();
+      return;
+    }
+
+    if (event.target.closest("[data-account-add]")) {
       root.__accountWizardState = { open: true, step: 1, alias: "", created: null, loading: false, error: "" };
       renderConnections(root, store.getState());
       return;
     }
 
-    if (event.target.closest("[data-account-close]")) {
-      root.__accountWizardState = { open: false, step: 1, alias: "", created: null, loading: false, error: "" };
-      renderConnections(root, store.getState());
-      return;
-    }
-
-    if (event.target.closest("[data-account-copy]")) {
-      const wizard = getWizardState(root);
-      const copied = await copyText(wizard.created?.connection_key || "");
-      showToast(copied ? "Connection key copiada" : "No pude copiar el código", copied ? "success" : "error");
-      return;
-    }
-
-    if (event.target.closest("[data-account-done]")) {
+    if (event.target.closest("[data-account-close]") || event.target.closest("[data-account-done]")) {
       root.__accountWizardState = { open: false, step: 1, alias: "", created: null, loading: false, error: "" };
       renderConnections(root, store.getState());
       return;
@@ -193,8 +324,8 @@ export function initConnections(store) {
         wizard.created = payload;
         await fetchAccountsRegistry(store);
         renderConnections(root, store.getState());
-        showToast("Cuenta creada. Vincúlala ahora en KMFX Launcher.", "success");
-      } catch (error) {
+        showToast("Cuenta creada. Sigue en Launcher para vincularla.", "success");
+      } catch {
         wizard.loading = false;
         wizard.error = "No pude conectar con el backend.";
         renderConnections(root, store.getState());
@@ -223,98 +354,31 @@ export function renderConnections(root, state) {
     login: account.login,
     server: account.server,
     last_sync_at: account.lastSyncAt,
-    connection_key: account.apiKey || account.connectionKey || "",
   }));
-  const connectedAccounts = registryAccounts.filter((account) => account.status === "connected");
-  const pendingAccounts = registryAccounts.filter((account) => account.status === "pending" || account.status === "pending_setup" || account.status === "waiting_sync");
-  const erroredAccounts = registryAccounts.filter((account) => account.status === "error");
 
   if (!registryAccounts.length) {
-    root.innerHTML = `
-      <div class="tl-page-header">
-        <div class="tl-page-title">Cuentas</div>
-        <div class="tl-page-sub">Crea cuentas MT5, genera su connection_key y vincúlalas desde KMFX Launcher.</div>
-      </div>
-
-      <article class="tl-section-card accounts-empty-state">
-        <div class="tl-section-header">
-          <div>
-            <div class="tl-section-title">Sin cuentas conectadas</div>
-            <div class="row-sub">El dashboard mostrará cuentas reales cuando el bridge o el connector MT5 sincronicen una cuenta.</div>
-          </div>
-          <button class="btn-primary" type="button" data-account-add="true">Añadir cuenta</button>
-        </div>
-        <div class="connections-guide-grid">
-          <article class="connection-step-card">
-            <div class="row-chip">1</div>
-            <div class="row-title">Crea la cuenta</div>
-            <div class="row-sub">Genera su connection_key desde el dashboard.</div>
-          </article>
-          <article class="connection-step-card">
-            <div class="row-chip">2</div>
-            <div class="row-title">Vincúlala en Launcher</div>
-            <div class="row-sub">Pega el connection_key y reinstala/repara el connector si hace falta.</div>
-          </article>
-          <article class="connection-step-card">
-            <div class="row-chip">3</div>
-            <div class="row-title">Haz el primer sync</div>
-            <div class="row-sub">El backend rellenará broker, login, server y último sync automáticamente.</div>
-          </article>
-        </div>
-      </article>
-      ${renderAccountWizard(root)}
-    `;
+    renderEmptyState(root);
     return;
   }
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Cuentas</div>
-      <div class="tl-page-sub">Fuente única de verdad para broker, conexión, sincronización y selección activa del dashboard.</div>
-    </div>
-
-      <div class="tl-kpi-row four">
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Conectadas</div><div class="tl-kpi-val green">${connectedAccounts.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Pendientes</div><div class="tl-kpi-val">${pendingAccounts.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Errores</div><div class="tl-kpi-val">${erroredAccounts.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Cuenta activa</div><div class="tl-kpi-val">${activeAccount?.name || "Sin cuenta"}</div></article>
-    </div>
-
-    <article class="tl-section-card">
-      <div class="tl-section-header">
+    <section class="kmfx-mt5-page">
+      <header class="kmfx-mt5-header">
         <div>
-          <div class="tl-section-title">Cuentas conectadas</div>
-          <div class="row-sub">Cada cuenta conserva alias, connection_key, estado y sincronización real desde backend.</div>
+          <h1 class="kmfx-mt5-header__title">Cuentas MT5</h1>
+          <p class="kmfx-mt5-header__subtitle">Gestiona y conecta tus cuentas de trading</p>
         </div>
-        <button class="btn-primary" type="button" data-account-add="true">Añadir cuenta</button>
+        <div class="kmfx-mt5-header__actions">
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
+          <button class="btn-primary" type="button" data-account-add="true">+ Añadir cuenta</button>
+        </div>
+      </header>
+
+      <div class="kmfx-mt5-grid">
+        ${registryAccounts.map((account) => renderAccountCard(account, { isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id })).join("")}
       </div>
-      <div class="connections-grid">
-        ${registryAccounts.map((account) => {
-          const statusMeta = accountStatusMeta(account.status);
-          const isActive = account.account_id === activeAccountId;
-          return `
-            <article class="tl-section-card ${isActive ? "account-registry-card--active" : ""}">
-              <div class="tl-section-header">
-                <div>
-                  <div class="tl-section-title">${account.alias || account.display_name || `${account.broker || "MT5"} · ${account.login || "Cuenta"}`}</div>
-                  <div class="row-sub">${account.platform?.toUpperCase?.() || "MT5"} · ${account.connection_mode || account.connectionMode || "launcher"}</div>
-                </div>
-                ${badge(statusMeta)}
-              </div>
-              <div class="info-list compact">
-                <div><strong>Broker</strong><span>${account.broker || "—"}</span></div>
-                <div><strong>Login</strong><span>${account.login || "—"}</span></div>
-                <div><strong>Servidor</strong><span>${account.server || "—"}</span></div>
-                <div><strong>Último sync</strong><span>${formatDateTime(account.last_sync_at || account.lastSyncAt)}</span></div>
-              </div>
-              <div class="settings-actions">
-                <button class="btn-secondary" type="button" data-account-use="${account.account_id}">${isActive ? "Cuenta en uso" : "Usar en Panel"}</button>
-              </div>
-            </article>
-          `;
-        }).join("")}
-      </div>
-    </article>
-    ${renderAccountWizard(root)}
+
+      ${renderAccountWizard(root)}
+    </section>
   `;
 }
