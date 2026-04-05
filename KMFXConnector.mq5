@@ -36,10 +36,10 @@ enum KMFXSeverity
 // Inputs principales
 // -------------------------------------------------------------------
 input KMFXConnectorMode KMFXMode              = SAFE_MODE;
-input string            KMFXBackendBaseUrl    = "http://127.0.0.1:8000";
-input string            KMFXSyncPath          = "/api/mt5/sync";
-input string            KMFXJournalPath       = "/api/mt5/journal";
-input string            KMFXPolicyPath        = "/api/mt5/policy";
+input string            KMFXBackendBaseUrl    = "http://127.0.0.1:8766";
+input string            KMFXSyncPath          = "/mt5/sync";
+input string            KMFXJournalPath       = "/mt5/journal";
+input string            KMFXPolicyPath        = "/mt5/policy";
 input string            KMFXApiKey            = "";
 input string            connection_key        = "";
 input int               KMFXTimerMs           = 2000;

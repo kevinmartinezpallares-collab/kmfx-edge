@@ -1,0 +1,18 @@
+{
+  "local_host": "127.0.0.1",
+  "local_port": 8766,
+  "backend_base_url": "http://127.0.0.1:8000",
+  "backend_sync_path": "/api/mt5/sync",
+  "backend_journal_path": "/api/mt5/journal",
+  "backend_policy_path": "/api/mt5/policy",
+  "backend_health_path": "/",
+  "backend_timeout_seconds": 5,
+  "service_retry_interval_seconds": 3,
+  "max_queue_size": 100,
+  "max_attempts": 8,
+  "debug": true,
+  "connection_key": "kmfx-demo-connection-key",
+  "selected_mt5_terminal_path": "",
+  "selected_mt5_data_path": "",
+  "selected_mt5_experts_path": ""
+}
