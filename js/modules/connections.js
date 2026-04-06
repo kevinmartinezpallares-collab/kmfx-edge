@@ -4,6 +4,25 @@ import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-104
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
+function isLocalRuntime() {
+  const hostname = window.location.hostname || "";
+  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function registrySignature(accounts = []) {
+  return JSON.stringify(
+    (Array.isArray(accounts) ? accounts : []).map((account) => ({
+      account_id: account?.account_id || "",
+      status: account?.status || "",
+      broker: account?.broker || "",
+      login: account?.login || "",
+      server: account?.server || "",
+      last_sync_at: account?.last_sync_at || "",
+      updated_at: account?.updated_at || "",
+    }))
+  );
+}
+
 function openLauncher() {
   try {
     window.location.href = LAUNCHER_OPEN_URL;
@@ -118,6 +137,14 @@ async function fetchAccountsRegistry(store) {
     if (!response.ok) return;
     const payload = await response.json();
     const accounts = Array.isArray(payload?.accounts) ? payload.accounts : [];
+    const previousAccounts = Array.isArray(store.getState().managedAccounts) ? store.getState().managedAccounts : [];
+    if (registrySignature(previousAccounts) === registrySignature(accounts)) {
+      console.info("[KMFX][ACCOUNTS]", {
+        label: "registry-unchanged",
+        count: accounts.length,
+      });
+      return;
+    }
     store.setState((state) => ({
       ...state,
       managedAccounts: accounts,
@@ -239,7 +266,13 @@ export function initConnections(store) {
   const root = document.getElementById("connectionsRoot");
   if (!root) return;
   fetchAccountsRegistry(store);
-  window.setInterval(() => fetchAccountsRegistry(store), 5000);
+  const pollMs = isLocalRuntime() ? 5000 : 30000;
+  console.info("[KMFX][ACCOUNTS]", {
+    label: "registry-poll-config",
+    intervalMs: pollMs,
+    mode: isLocalRuntime() ? "local" : "production",
+  });
+  window.setInterval(() => fetchAccountsRegistry(store), pollMs);
 
   root.addEventListener("input", (event) => {
     const aliasInput = event.target.closest("[data-account-alias]");

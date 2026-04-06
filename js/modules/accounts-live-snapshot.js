@@ -2,6 +2,83 @@ import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-104500";
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260406-104500";
 
+function isLocalRuntime() {
+  const hostname = window.location.hostname || "";
+  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function toFiniteNumber(value, fallback = null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toIsoTimestamp(value) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+}
+
+function payloadTimestamp(payload = {}) {
+  return toIsoTimestamp(payload.timestamp || payload.updated_at || payload.updatedAt || payload.last_sync_at || payload.lastSyncAt || payload.account?.timestamp || "");
+}
+
+function payloadQualityScore(payload = {}) {
+  if (!payload || typeof payload !== "object") return 0;
+  let score = 0;
+  if (String(payload.payloadSource || "") === "mt5_sync_live") score += 20;
+  if (Number.isFinite(Number(payload.balance))) score += 8;
+  if (Number.isFinite(Number(payload.equity))) score += 8;
+  if (Number.isFinite(Number(payload.openPnl ?? payload.floatingPnl))) score += 4;
+  if (Number.isFinite(Number(payload.closedPnl))) score += 4;
+  if (Number.isFinite(Number(payload.totalPnl ?? payload.pnl))) score += 4;
+  if (Array.isArray(payload.trades)) score += Math.min(payload.trades.length, 50);
+  if (Array.isArray(payload.history)) score += Math.min(payload.history.length, 50);
+  if (Array.isArray(payload.positions)) score += Math.min(payload.positions.length, 20);
+  if (payload.riskSnapshot && typeof payload.riskSnapshot === "object") score += 12;
+  return score;
+}
+
+function payloadSignature(payload = {}) {
+  const history = Array.isArray(payload.history) ? payload.history : [];
+  const trades = Array.isArray(payload.trades) ? payload.trades : [];
+  const positions = Array.isArray(payload.positions) ? payload.positions : [];
+  const lastHistoryPoint = history.at(-1) || {};
+  const riskSummary = payload.riskSnapshot?.summary || {};
+  return JSON.stringify({
+    payloadSource: payload.payloadSource || "",
+    balance: toFiniteNumber(payload.balance),
+    equity: toFiniteNumber(payload.equity),
+    openPnl: toFiniteNumber(payload.floatingPnl ?? payload.openPnl),
+    closedPnl: toFiniteNumber(payload.closedPnl),
+    totalPnl: toFiniteNumber(payload.totalPnl ?? payload.pnl),
+    openPositionsCount: toFiniteNumber(payload.openPositionsCount, positions.length),
+    tradesCount: trades.length,
+    historyCount: history.length,
+    positionsCount: positions.length,
+    lastHistoryValue: toFiniteNumber(lastHistoryPoint.value ?? lastHistoryPoint.equity ?? lastHistoryPoint.balance),
+    timestamp: payloadTimestamp(payload),
+    riskStatus: payload.riskSnapshot?.status?.risk_status || "",
+    dailyDd: toFiniteNumber(riskSummary.daily_drawdown_pct),
+    peakDd: toFiniteNumber(riskSummary.peak_to_equity_drawdown_pct),
+  });
+}
+
+function chooseMostReliablePayload(...candidates) {
+  const validCandidates = candidates
+    .filter((candidate) => candidate && typeof candidate === "object")
+    .map((candidate) => ({
+      payload: candidate,
+      score: payloadQualityScore(candidate),
+      timestamp: payloadTimestamp(candidate),
+    }));
+  if (!validCandidates.length) return {};
+  validCandidates.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    return String(right.timestamp).localeCompare(String(left.timestamp));
+  });
+  return validCandidates[0]?.payload || {};
+}
+
 function normalizeBridgeUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();
   if (!value || value === "ws://localhost:8080/bridge") return "";
@@ -23,13 +100,12 @@ function getPreferredBridgeUrl() {
 
 function normalizeAccountEntry(entry = {}) {
   const safe = entry && typeof entry === "object" ? entry : {};
-  const dashboardPayload = safe.dashboard_payload && typeof safe.dashboard_payload === "object"
-    ? safe.dashboard_payload
-    : safe.latest_payload && typeof safe.latest_payload === "object"
-      ? safe.latest_payload
-      : safe.payload && typeof safe.payload === "object"
-        ? safe.payload
-        : {};
+  const dashboardPayload = chooseMostReliablePayload(
+    safe.dashboard_payload,
+    safe.dashboardPayload,
+    safe.latest_payload,
+    safe.payload
+  );
   return {
     accountId: String(safe.account_id || safe.id || ""),
     broker: String(safe.broker || "MT5"),
@@ -44,6 +120,7 @@ function normalizeAccountEntry(entry = {}) {
     nickname: String(safe.nickname || ""),
     displayName: String(safe.display_name || safe.nickname || `${safe.broker || "MT5"} · ${safe.login || "Cuenta"}`),
     dashboardPayload,
+    payloadSignature: payloadSignature(dashboardPayload),
   };
 }
 
@@ -76,11 +153,16 @@ function mergeLiveAccounts(store, snapshot) {
   });
 
   normalizedAccounts.forEach((accountEntry) => {
+    const previousAccount = nextAccounts[accountEntry.accountId];
+    const previousPayload = previousAccount?.dashboardPayload && typeof previousAccount.dashboardPayload === "object"
+      ? previousAccount.dashboardPayload
+      : {};
+    const resolvedPayload = chooseMostReliablePayload(accountEntry.dashboardPayload, previousPayload);
     const liveRecord = adaptMt5Account({
       ...accountEntry,
       account_id: accountEntry.accountId,
-      dashboard_payload: accountEntry.dashboardPayload,
-      latest_payload: accountEntry.dashboardPayload,
+      dashboard_payload: resolvedPayload,
+      latest_payload: resolvedPayload,
     });
     const nextAccount = {
       ...liveRecord,
@@ -133,12 +215,15 @@ function mergeLiveAccounts(store, snapshot) {
   const sameDirectory = normalizedAccounts.every((account) => {
     const previous = state.accountDirectory?.[account.accountId];
     return previous
-      && previous.lastSyncAt === account.lastSyncAt
       && previous.status === account.status
       && previous.displayName === account.displayName;
   }) && Object.keys(state.accountDirectory || {}).length === normalizedAccounts.length;
+  const samePayloads = normalizedAccounts.every((account) => {
+    const previous = state.accountDirectory?.[account.accountId];
+    return previous && previous.payloadSignature === account.payloadSignature;
+  });
 
-  if (sameLiveIds && sameActive && sameCurrent && sameDirectory) {
+  if (sameLiveIds && sameActive && sameCurrent && sameDirectory && samePayloads) {
     console.log("[KMFX][ACCOUNTS] snapshot skipped", {
       reason: "no_material_changes",
       liveAccountIds,
@@ -228,6 +313,25 @@ export function initAccountsLiveSnapshot(store) {
         }));
         return { ok: false, count: 0 };
       }
+      if (!payload.accounts.length) {
+        const state = store.getState();
+        if (Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0) {
+          console.warn("[KMFX][ACCOUNTS] empty snapshot ignored", {
+            reason: "keep_existing_live_state",
+            liveAccountIds: state.liveAccountIds,
+          });
+          store.setState((current) => ({
+            ...current,
+            bootResolved: true,
+            mode: "live",
+          }));
+          return {
+            ok: true,
+            count: state.liveAccountIds.length,
+            selectedAccountId: state.currentAccount || state.activeLiveAccountId || state.liveAccountIds[0] || "",
+          };
+        }
+      }
       mergeLiveAccounts(store, payload);
       if (!payload.accounts.length) {
         store.setState((state) => ({
@@ -254,7 +358,13 @@ export function initAccountsLiveSnapshot(store) {
 
   const startHttpPolling = () => {
     clearInterval(httpPollTimer);
-    httpPollTimer = window.setInterval(pollHttpSnapshot, 5000);
+    const intervalMs = isLocalRuntime() ? 5000 : 30000;
+    console.info("[KMFX][ACCOUNTS]", {
+      label: "http-poll-config",
+      intervalMs,
+      mode: isLocalRuntime() ? "local" : "production",
+    });
+    httpPollTimer = window.setInterval(pollHttpSnapshot, intervalMs);
   };
 
   const connect = () => {

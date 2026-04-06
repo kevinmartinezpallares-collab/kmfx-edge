@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-104500";
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-104500";
 
@@ -28,10 +28,8 @@ function accountStatusBadge(account) {
 }
 
 function renderAccountCard(account, isMain, isActive, isLoading) {
-  const pnlSummary = resolveAccountPnlSummary(account);
-  const pnl = account?.sourceType === "mt5"
-    ? Number(pnlSummary.heroOpenPnl || 0)
-    : Number(account?.model?.totals?.pnl || 0);
+  const performanceView = resolvePerformanceViewModel(account);
+  const pnl = Number(performanceView.openPnl || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
@@ -80,7 +78,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
           </div>
           ${accountStatusBadge(account)}
         </div>
-        <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(account.model.account.equity)}</div>
+        <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(performanceView.mainPerformanceValue)}</div>
         <div class="account-hero-card__equity-label" style="${equityLabelInlineStyle}">Equity actual</div>
         <div class="account-hero-card__stats" style="${statsInlineStyle}">
           <div>
