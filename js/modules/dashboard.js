@@ -145,6 +145,9 @@ export function renderDashboard(root, state) {
   const currentPnl = account?.sourceType === "mt5"
     ? Number(pnlSummary.heroOpenPnl || 0)
     : Number(model.totals.pnl || 0);
+  const bannerMetricValue = account?.sourceType === "mt5" && pnlSummary.usedExplicitLivePayload
+    ? Number(pnlSummary.heroOpenPnl || 0)
+    : Number(model.account.equity || 0);
   const currentReturnPct = account?.sourceType === "mt5"
     ? (model.account.balance ? (currentPnl / model.account.balance) * 100 : 0)
     : cumulativeReturn;
@@ -152,6 +155,17 @@ export function renderDashboard(root, state) {
     accountId: account?.id || "",
     sourceType: pnlSummary.sourceType,
     payloadSource: pnlSummary.payloadSource,
+    heroOpenPnl: pnlSummary.heroOpenPnl,
+    heroClosedPnl: pnlSummary.heroClosedPnl,
+    heroTotalPnl: pnlSummary.heroTotalPnl,
+    openPositionsCount: pnlSummary.openPositionsCount,
+    usedExplicitLivePayload: pnlSummary.usedExplicitLivePayload,
+  });
+  console.log("[KMFX][ACCOUNT_BANNER][SOURCE]", {
+    accountId: account?.id || "",
+    sourceType: pnlSummary.sourceType,
+    payloadSource: pnlSummary.payloadSource,
+    bannerMetricValue,
     heroOpenPnl: pnlSummary.heroOpenPnl,
     heroClosedPnl: pnlSummary.heroClosedPnl,
     heroTotalPnl: pnlSummary.heroTotalPnl,
@@ -270,7 +284,7 @@ export function renderDashboard(root, state) {
 
               <div class="account-banner-hero">
                 <div class="account-banner-metric">
-                  <span class="account-banner-metric-value">${formatCurrency(model.account.equity)}</span>
+                  <span class="account-banner-metric-value">${formatCurrency(bannerMetricValue)}</span>
                 </div>
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
