@@ -1043,3 +1043,10 @@ async def accounts_snapshot() -> JSONResponse:
         snapshot.get("active_account_id") or "",
     )
     return connector_json_response(snapshot)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run("kmfx_connector_api:app", host="0.0.0.0", port=port, reload=False)
