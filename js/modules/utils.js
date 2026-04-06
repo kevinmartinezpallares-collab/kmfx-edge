@@ -131,6 +131,32 @@ export function hasLiveAccounts(state) {
   return Array.isArray(state?.liveAccountIds) && state.liveAccountIds.length > 0;
 }
 
+export function resolveAccountPnlSummary(account) {
+  const model = account?.model || {};
+  const accountMetrics = model.account || {};
+  const sourceTrace = model.sourceTrace || {};
+  const sourceType = account?.sourceType || "";
+  const payloadSource = sourceTrace.payloadSource || account?.dashboardPayload?.payloadSource || "";
+  const usedExplicitLivePayload = Boolean(sourceTrace.usedExplicitLivePayload) || (sourceType === "mt5" && Boolean(payloadSource));
+  const openPositionsCount = Number.isFinite(Number(sourceTrace.openPositionsCount))
+    ? Number(sourceTrace.openPositionsCount)
+    : Number.isFinite(Number(accountMetrics.openPositionsCount))
+      ? Number(accountMetrics.openPositionsCount)
+      : Array.isArray(model.positions)
+        ? model.positions.length
+        : 0;
+
+  return {
+    sourceType,
+    payloadSource,
+    heroOpenPnl: Number.isFinite(Number(sourceTrace.heroOpenPnl)) ? Number(sourceTrace.heroOpenPnl) : Number(accountMetrics.openPnl || 0),
+    heroClosedPnl: Number.isFinite(Number(sourceTrace.heroClosedPnl)) ? Number(sourceTrace.heroClosedPnl) : Number(accountMetrics.closedPnl || 0),
+    heroTotalPnl: Number.isFinite(Number(sourceTrace.heroTotalPnl)) ? Number(sourceTrace.heroTotalPnl) : Number(accountMetrics.totalPnl ?? model.totals?.pnl ?? 0),
+    openPositionsCount,
+    usedExplicitLivePayload,
+  };
+}
+
 export function buildDashboardModel(source) {
   const trades = source.trades
     .map((trade, index) => enrichTrade(trade, index))
@@ -150,12 +176,32 @@ export function buildDashboardModel(source) {
         .filter(Boolean)
     : [];
 
+  const payloadSource = source.payloadSource || source.profile?.payloadSource || "normalized";
+  const usedExplicitLivePayload = payloadSource === "mt5_sync_live";
+  const explicitOpenPositionsCount = Number.isFinite(Number(source.account.openPositionsCount))
+    ? Number(source.account.openPositionsCount)
+    : positions.length;
+  const explicitFloatingPnl = Number(source.account.floatingPnl);
+  const explicitOpenPnl = Number(source.account.openPnl);
   const explicitClosedPnl = Number(source.account.closedPnl);
-  const totalPnl = Number.isFinite(explicitClosedPnl)
-    ? explicitClosedPnl
-    : trades.length
-      ? trades.reduce((sum, trade) => sum + trade.pnl, 0)
-      : Number(source.account.pnl ?? source.account.openPnl ?? 0);
+  const explicitTotalPnl = Number(source.account.totalPnl ?? source.account.pnl);
+  const heroOpenPnl = usedExplicitLivePayload
+    ? (Number.isFinite(explicitFloatingPnl)
+      ? explicitFloatingPnl
+      : Number.isFinite(explicitOpenPnl)
+        ? explicitOpenPnl
+        : 0)
+    : (Number.isFinite(explicitOpenPnl) ? explicitOpenPnl : 0);
+  const heroClosedPnl = usedExplicitLivePayload
+    ? (Number.isFinite(explicitClosedPnl) ? explicitClosedPnl : 0)
+    : (Number.isFinite(explicitClosedPnl) ? explicitClosedPnl : trades.reduce((sum, trade) => sum + trade.pnl, 0));
+  const totalPnl = usedExplicitLivePayload
+    ? (Number.isFinite(explicitTotalPnl) ? explicitTotalPnl : heroClosedPnl)
+    : Number.isFinite(explicitClosedPnl)
+      ? explicitClosedPnl
+      : trades.length
+        ? trades.reduce((sum, trade) => sum + trade.pnl, 0)
+        : Number(source.account.pnl ?? source.account.openPnl ?? 0);
   const wins = trades.filter((trade) => trade.pnl > 0);
   const losses = trades.filter((trade) => trade.pnl < 0);
   const startBalance = source.account.balance - totalPnl;
@@ -249,16 +295,28 @@ export function buildDashboardModel(source) {
       ...source.account,
       balance: source.account.balance,
       equity: source.account.equity,
-      openPnl: source.account.openPnl
+      floatingPnl: usedExplicitLivePayload
+        ? heroOpenPnl
+        : (Number.isFinite(explicitFloatingPnl) ? explicitFloatingPnl : source.account.openPnl),
+      openPnl: heroOpenPnl,
+      closedPnl: heroClosedPnl,
+      totalPnl,
+      pnl: totalPnl,
+      openPositionsCount: explicitOpenPositionsCount
     },
     sourceTrace: {
       kind: source.profile?.mode || source.profile?.broker || "unknown",
-      payloadSource: source.payloadSource || source.profile?.payloadSource || "normalized",
+      payloadSource,
       tradesCount: trades.length,
       positionsCount: positions.length,
       historyCount: explicitHistory.length,
-      currentAccountPnl: source.account.openPnl,
-      closedPnl: totalPnl,
+      currentAccountPnl: heroOpenPnl,
+      closedPnl: heroClosedPnl,
+      heroOpenPnl,
+      heroClosedPnl,
+      heroTotalPnl: totalPnl,
+      openPositionsCount: explicitOpenPositionsCount,
+      usedExplicitLivePayload,
     },
     riskProfile,
     riskRules: [...(source.riskRules || [])],

@@ -1,4 +1,4 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveActiveAccountId, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260405-204500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260405-204500";
 import {
@@ -92,6 +92,7 @@ export function renderDashboard(root, state) {
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
   const dashboardPayload = selectCurrentDashboardPayload(state);
+  const pnlSummary = resolveAccountPnlSummary(account);
   console.log("[KMFX][PANEL][TRACE]", {
     currentAccount: state.currentAccount,
     activeAccountId,
@@ -111,6 +112,7 @@ export function renderDashboard(root, state) {
       equity: model?.account?.equity,
       openPnl: model?.account?.openPnl,
       closedPnl: model?.account?.closedPnl,
+      totalPnl: model?.account?.totalPnl,
       totalTrades: model?.totals?.totalTrades,
       equityCurve: Array.isArray(model?.equityCurve) ? model.equityCurve.length : 0,
       sourceTrace: model?.sourceTrace || null,
@@ -141,11 +143,21 @@ export function renderDashboard(root, state) {
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
   const currentPnl = account?.sourceType === "mt5"
-    ? Number(model.account.openPnl || 0)
+    ? Number(pnlSummary.heroOpenPnl || 0)
     : Number(model.totals.pnl || 0);
   const currentReturnPct = account?.sourceType === "mt5"
     ? (model.account.balance ? (currentPnl / model.account.balance) * 100 : 0)
     : cumulativeReturn;
+  console.log("[KMFX][HERO][SOURCE]", {
+    accountId: account?.id || "",
+    sourceType: pnlSummary.sourceType,
+    payloadSource: pnlSummary.payloadSource,
+    heroOpenPnl: pnlSummary.heroOpenPnl,
+    heroClosedPnl: pnlSummary.heroClosedPnl,
+    heroTotalPnl: pnlSummary.heroTotalPnl,
+    openPositionsCount: pnlSummary.openPositionsCount,
+    usedExplicitLivePayload: pnlSummary.usedExplicitLivePayload,
+  });
   const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
@@ -278,7 +290,7 @@ export function renderDashboard(root, state) {
                 <div class="account-banner-badges">
                   <span class="widget-pill">Estado: ${riskStatus.riskStatus}</span>
                   <span class="widget-pill">Heat ${formatRiskValuePct(riskSummary.totalOpenRiskPct, 2)}</span>
-                  <span class="widget-pill">${riskSummary.openPositionsCount} posiciones activas</span>
+                  <span class="widget-pill">${pnlSummary.openPositionsCount} posiciones activas</span>
                 </div>
                 <div class="dashboard-risk-inline">${riskAction}</div>
               </div>

@@ -122,17 +122,33 @@ function normalizeMt5Payload(rawPayload = {}) {
   const summarySnapshot = riskSnapshot.summary || {};
   const policySnapshot = riskSnapshot.policy || riskSnapshot.policy_snapshot || rawPayload.policy_snapshot || {};
   const rawAccount = rawPayload.account && typeof rawPayload.account === "object" ? rawPayload.account : {};
+  const payloadSource = rawPayload.payloadSource || "mt5_sync_live";
+  const hasExplicitFloatingPnl = rawPayload.floatingPnl != null;
+  const hasExplicitOpenPnl = rawPayload.openPnl != null || rawAccount.openPnl != null;
+  const hasExplicitClosedPnl = rawPayload.closedPnl != null || rawPayload.realizedPnl != null;
+  const hasExplicitTotalPnl = rawPayload.totalPnl != null || rawPayload.pnl != null;
+  const hasExplicitOpenPositionsCount = rawPayload.openPositionsCount != null;
   const balance = toFiniteNumber(rawPayload.balance ?? rawAccount.balance, 0);
   const equity = toFiniteNumber(rawPayload.equity ?? rawAccount.equity, balance);
-  const openPnl = toFiniteNumber(rawPayload.openPnl ?? rawPayload.floatingPnl ?? rawPayload.profit ?? rawAccount.openPnl ?? rawAccount.profit, equity - balance);
   const trades = normalizeTrades(rawPayload.trades || rawPayload.history?.trades || []);
   const positions = normalizePositions(rawPayload.positions || rawPayload.open_positions || []);
   const history = normalizeHistory(rawPayload.history || rawPayload.equityCurve || rawPayload.equity_curve || [], balance, equity);
-  const closedPnl = toFiniteNumber(
-    rawPayload.closedPnl ?? rawPayload.realizedPnl,
-    trades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0),
+  const openPositionsCount = hasExplicitOpenPositionsCount
+    ? toFiniteNumber(rawPayload.openPositionsCount, positions.length)
+    : positions.length;
+  const floatingPnl = toFiniteNumber(
+    hasExplicitFloatingPnl
+      ? rawPayload.floatingPnl
+      : hasExplicitOpenPnl
+        ? (rawPayload.openPnl ?? rawAccount.openPnl)
+        : 0,
+    0,
   );
-  const totalPnl = toFiniteNumber(rawPayload.totalPnl, closedPnl + openPnl);
+  const openPnl = openPositionsCount === 0 && !hasExplicitFloatingPnl && !hasExplicitOpenPnl
+    ? 0
+    : floatingPnl;
+  const closedPnl = toFiniteNumber(rawPayload.closedPnl ?? rawPayload.realizedPnl, 0);
+  const totalPnl = toFiniteNumber(rawPayload.totalPnl ?? rawPayload.pnl, hasExplicitClosedPnl ? closedPnl : 0);
   const winRate = toFiniteNumber(rawPayload.winrate ?? rawPayload.winRate ?? rawPayload.win_rate ?? rawAccount.winRate, trades.length ? (trades.filter((trade) => trade.pnl > 0).length / trades.length) * 100 : 0);
   const drawdownPct = toFiniteNumber(
     rawPayload.drawdown ?? rawPayload.drawdown_pct ?? rawPayload.max_drawdown_pct ?? rawAccount.drawdown ?? summarySnapshot.peak_to_equity_drawdown_pct,
@@ -149,7 +165,7 @@ function normalizeMt5Payload(rawPayload = {}) {
     positions: positions.length,
     winRate,
     drawdownPct,
-    payloadSource: rawPayload.payloadSource || "unknown",
+    payloadSource,
   });
   return {
     profile: {
@@ -158,12 +174,13 @@ function normalizeMt5Payload(rawPayload = {}) {
       mode: rawPayload.mode || "MT5 Live",
       broker: rawPayload.broker || rawPayload.server || "MT5",
       tagline: rawPayload.tagline || "Cuenta conectada en vivo desde MT5.",
-      payloadSource: rawPayload.payloadSource || "mt5_sync_live",
+      payloadSource,
     },
-    payloadSource: rawPayload.payloadSource || "mt5_sync_live",
+    payloadSource,
     account: {
       balance,
       equity,
+      floatingPnl,
       openPnl,
       closedPnl,
       totalPnl,
@@ -171,10 +188,15 @@ function normalizeMt5Payload(rawPayload = {}) {
       winRate,
       drawdownPct,
       totalTrades: Number(rawPayload.totalTrades || trades.length),
-      openPositionsCount: Number(rawPayload.openPositionsCount || positions.length),
+      openPositionsCount,
       winRateTarget: Number(rawPayload.winRateTarget || winRate || 0),
       profitFactorTarget: Number(rawPayload.profitFactorTarget || 0),
-      maxDrawdownLimit: Number(policySnapshot.max_dd_limit_pct || rawPayload.maxDrawdownLimit || 0)
+      maxDrawdownLimit: Number(policySnapshot.max_dd_limit_pct || rawPayload.maxDrawdownLimit || 0),
+      hasExplicitFloatingPnl,
+      hasExplicitOpenPnl,
+      hasExplicitClosedPnl,
+      hasExplicitTotalPnl,
+      hasExplicitOpenPositionsCount
     },
     riskProfile: {
       currentRiskPct: Number(summarySnapshot.total_open_risk_pct || rawPayload.currentRiskPct || 0),

@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260405-204500";
 
 const accountSurfacePages = new Set(["dashboard"]);
@@ -27,7 +27,10 @@ function accountStatusBadge(account) {
 }
 
 function renderAccountCard(account, isMain, isActive, isLoading) {
-  const pnl = Number(account?.model?.totals?.pnl || 0);
+  const pnlSummary = resolveAccountPnlSummary(account);
+  const pnl = account?.sourceType === "mt5"
+    ? Number(pnlSummary.heroOpenPnl || 0)
+    : Number(account?.model?.totals?.pnl || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;

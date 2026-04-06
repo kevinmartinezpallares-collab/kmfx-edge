@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime, getAccountTypeLabel } from "./utils.js?v=build-20260405-204500";
+import { formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountPnlSummary } from "./utils.js?v=build-20260405-204500";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">
@@ -20,7 +20,10 @@ function accountStatusBadge(account) {
 }
 
 function renderPortfolioAccountCard(account, isMain) {
-  const pnl = Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
+  const pnlSummary = resolveAccountPnlSummary(account);
+  const pnl = account?.sourceType === "mt5"
+    ? Number(pnlSummary.heroOpenPnl || 0)
+    : Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const winRate = Number(account?.model?.totals?.winRate || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
