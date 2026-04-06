@@ -107,6 +107,30 @@ export function initAccountsUI(store) {
   if (!root) return;
   let lastViewportMode = window.innerWidth <= 768 ? "mobile" : "desktop";
 
+  root.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-account-selector]");
+    if (!select) return;
+    const accountId = select.value;
+    const state = store.getState();
+    const selectedAccount = state.accounts?.[accountId];
+    if (!accountId || !selectedAccount || accountId === state.currentAccount) return;
+
+    store.setState((current) => ({
+      ...current,
+      currentAccount: accountId,
+      activeLiveAccountId: accountId,
+      activeAccountId: selectedAccount.login || current.activeAccountId || null,
+      mode: Array.isArray(current.liveAccountIds) && current.liveAccountIds.length > 0 ? "live" : current.mode,
+    }));
+
+    console.info("[KMFX][ACCOUNT_SELECTOR]", {
+      selectedAccountId: accountId,
+      login: selectedAccount.login || "",
+      broker: selectedAccount.broker || "",
+      payloadSource: selectedAccount.dashboardPayload?.payloadSource || selectedAccount.model?.sourceTrace?.payloadSource || "",
+    });
+  });
+
   root.addEventListener("click", (event) => {
     const button = event.target.closest("[data-account-id]");
     if (!button) return;
@@ -115,7 +139,10 @@ export function initAccountsUI(store) {
 
     store.setState((state) => ({
       ...state,
-      currentAccount: accountId
+      currentAccount: accountId,
+      activeLiveAccountId: accountId,
+      activeAccountId: state.accounts?.[accountId]?.login || state.activeAccountId || null,
+      mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : state.mode,
     }));
 
     console.log("[KMFX][ACCOUNT] switched", accountId);
@@ -176,7 +203,19 @@ export function initAccountsUI(store) {
         <div class="account-switcher-header">
           <div>
             <div class="account-switcher-label">Cuentas</div>
-            <div class="account-switcher-title">Cuenta activa: ${activeAccount?.name || "Sin cuenta seleccionada"}</div>
+            <div class="account-switcher-title">Cuenta activa</div>
+            <div style="margin-top:10px;max-width:420px;">
+              <select
+                data-account-selector
+                aria-label="Seleccionar cuenta activa"
+                style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:inherit;font:inherit;outline:none;"
+              >
+                ${accounts.map((account) => {
+                  const label = [account.meta?.nickname || account.dashboardPayload?.nickname || "", account.broker, account.login].filter(Boolean).join(" · ");
+                  return `<option value="${account.id}" ${account.id === activeAccountId ? "selected" : ""}>${label || account.name}</option>`;
+                }).join("")}
+              </select>
+            </div>
             <div class="account-switcher-badges">
               ${badgeMarkup(getConnectionStatusMeta(activeAccount?.connection))}
               ${badgeMarkup(getRiskStatusMeta(activeAccount?.compliance))}
@@ -199,6 +238,13 @@ export function initAccountsUI(store) {
         </div>
       </div>
     `;
+    console.info("[KMFX][ACCOUNT_RENDER]", {
+      selectedAccountId: activeAccount?.id || "",
+      login: activeAccount?.login || "",
+      broker: activeAccount?.broker || "",
+      payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
+      sourceUsed: activeAccount?.sourceType === "mt5" ? "live" : "mock",
+    });
   };
 
   render(store.getState());

@@ -157,6 +157,25 @@ export function resolveAccountPnlSummary(account) {
   };
 }
 
+export function resolvePerformanceCardSource(account) {
+  const model = account?.model || {};
+  const accountMetrics = model.account || {};
+  const pnlSummary = resolveAccountPnlSummary(account);
+  const historyPoints = Array.isArray(model.equityCurve) ? model.equityCurve.length : 0;
+  const mainPerformanceValue = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
+    ? Number(accountMetrics.equity ?? accountMetrics.balance ?? 0)
+    : Number(accountMetrics.equity ?? pnlSummary.heroTotalPnl ?? 0);
+
+  return {
+    ...pnlSummary,
+    mainPerformanceValue,
+    historyPoints,
+    sourceUsed: pnlSummary.usedExplicitLivePayload ? "mt5_live_payload" : "model_fallback",
+    broker: account?.broker || account?.meta?.broker || "",
+    login: account?.login || account?.meta?.login || "",
+  };
+}
+
 export function buildDashboardModel(source) {
   const trades = source.trades
     .map((trade, index) => enrichTrade(trade, index))

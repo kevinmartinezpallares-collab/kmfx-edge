@@ -1,4 +1,4 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountPnlSummary, resolveActiveAccountId, resolvePerformanceCardSource, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-104500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-104500";
 import {
@@ -93,6 +93,7 @@ export function renderDashboard(root, state) {
   const account = selectCurrentAccount(state);
   const dashboardPayload = selectCurrentDashboardPayload(state);
   const pnlSummary = resolveAccountPnlSummary(account);
+  const performanceSource = resolvePerformanceCardSource(account);
   console.log("[KMFX][PANEL][TRACE]", {
     currentAccount: state.currentAccount,
     activeAccountId,
@@ -145,9 +146,7 @@ export function renderDashboard(root, state) {
   const currentPnl = account?.sourceType === "mt5"
     ? Number(pnlSummary.heroOpenPnl || 0)
     : Number(model.totals.pnl || 0);
-  const bannerMetricValue = account?.sourceType === "mt5" && pnlSummary.usedExplicitLivePayload
-    ? Number(pnlSummary.heroOpenPnl || 0)
-    : Number(model.account.equity || 0);
+  const bannerMetricValue = Number(performanceSource.mainPerformanceValue || 0);
   const currentReturnPct = account?.sourceType === "mt5"
     ? (model.account.balance ? (currentPnl / model.account.balance) * 100 : 0)
     : cumulativeReturn;
@@ -171,6 +170,27 @@ export function renderDashboard(root, state) {
     heroTotalPnl: pnlSummary.heroTotalPnl,
     openPositionsCount: pnlSummary.openPositionsCount,
     usedExplicitLivePayload: pnlSummary.usedExplicitLivePayload,
+  });
+  console.log("[KMFX][PERFORMANCE_CARD][SOURCE]", {
+    selectedAccountId: account?.id || "",
+    login: performanceSource.login,
+    broker: performanceSource.broker,
+    payloadSource: performanceSource.payloadSource,
+    mainPerformanceValue: performanceSource.mainPerformanceValue,
+    openPnl: performanceSource.heroOpenPnl,
+    totalPnl: performanceSource.heroTotalPnl,
+    sourceUsed: performanceSource.sourceUsed,
+  });
+  console.log("[KMFX][CHART][SOURCE]", {
+    selectedAccountId: account?.id || "",
+    login: performanceSource.login,
+    broker: performanceSource.broker,
+    payloadSource: performanceSource.payloadSource,
+    historyPoints: performanceSource.historyPoints,
+    mainPerformanceValue: performanceSource.mainPerformanceValue,
+    openPnl: performanceSource.heroOpenPnl,
+    totalPnl: performanceSource.heroTotalPnl,
+    sourceUsed: Array.isArray(model.equityCurve) && model.equityCurve.length ? "history_or_fallback_curve" : "balance_equity_fallback",
   });
   const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
