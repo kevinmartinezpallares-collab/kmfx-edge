@@ -621,13 +621,21 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
     )
 
 
+def health_payload() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "service": "kmfx-edge-api",
+    }
+
+
 @app.get("/")
 async def healthcheck() -> JSONResponse:
-    return connector_json_response({
-        "ok": True,
-        "service": "kmfx_connector_api",
-        "timestamp": now_iso(),
-    })
+    return connector_json_response(health_payload())
+
+
+@app.get("/health")
+async def render_healthcheck() -> JSONResponse:
+    return connector_json_response(health_payload())
 
 
 @app.post("/accounts")
