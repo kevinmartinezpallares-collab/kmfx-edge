@@ -2,7 +2,7 @@ const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-190500";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-191800";
 const symbolBasePrices = {
   EURUSD: 1.084,
   GBPUSD: 1.273,

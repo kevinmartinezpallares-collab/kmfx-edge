@@ -1,5 +1,5 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260406-190500";
-import { formatCurrency, selectCurrentAccount } from "./utils.js?v=build-20260406-190500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260406-191800";
+import { formatCurrency, selectCurrentAccount } from "./utils.js?v=build-20260406-191800";
 
 const emptyForm = {
   date: "2026-03-20",

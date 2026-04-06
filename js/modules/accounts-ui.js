@@ -1,6 +1,6 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-190500";
-import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-190500";
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-190500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-191800";
+import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-191800";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-191800";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `

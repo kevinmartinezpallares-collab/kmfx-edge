@@ -1,7 +1,7 @@
-import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-190500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-190500";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-190500";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-190500";
+import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-191800";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-191800";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-191800";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-191800";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },

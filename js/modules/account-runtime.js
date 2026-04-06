@@ -139,6 +139,8 @@ export function initAccountRuntime(store) {
 
     Object.values(state.accounts).forEach((account) => {
       if (account.connection.state !== "connected") return;
+      // Live MT5 accounts are hydrated by backend snapshots. Never mutate them locally.
+      if (account.sourceType === "mt5") return;
       changed = true;
       const jitter = ((account.connection.syncTick % 4) - 1.5) * 18;
       const nextEquity = Math.round(account.model.account.balance + account.model.totals.pnl + jitter);
@@ -176,7 +178,7 @@ export function initAccountRuntime(store) {
           accounts: Object.fromEntries(
             Object.entries(prev.accounts).map(([id, account]) => [
               id,
-              account.connection.state === "connected"
+              account.connection.state === "connected" && account.sourceType !== "mt5"
                 ? {
                     ...account,
                     connection: {

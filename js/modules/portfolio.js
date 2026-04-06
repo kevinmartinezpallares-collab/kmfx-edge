@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-190500";
+import { formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-191800";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">

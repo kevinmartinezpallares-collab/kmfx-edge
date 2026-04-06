@@ -1,5 +1,5 @@
-import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-190500";
-import { formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-190500";
+import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-191800";
+import { formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-191800";
 
 export function renderTalent(root, state) {
   const model = selectCurrentModel(state);
