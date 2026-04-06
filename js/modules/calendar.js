@@ -1,6 +1,6 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-203500";
-import { formatCurrency, formatPercent, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { openModal } from "./modal-system.js?v=build-20260406-203500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-210500";
+import { formatCurrency, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
+import { openModal } from "./modal-system.js?v=build-20260406-210500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -19,6 +19,7 @@ function toLocalMonthKey(dateLike) {
 export function renderCalendar(root, state) {
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
+  const authority = resolveAccountDataAuthority(account);
   const connection = account?.connection || {};
 
   const dayStats = Array.isArray(model?.dayStats) ? model.dayStats : [];
@@ -55,6 +56,17 @@ export function renderCalendar(root, state) {
     cellsSample: tradedSample
   };
   console.info("[KMFX][Calendar Debug]", window.__KMFX_CALENDAR_DEBUG__);
+  console.info("[KMFX][CALENDAR_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
+  });
   const note = !hasModel
     ? connection.state === "error"
       ? {
@@ -80,7 +92,7 @@ export function renderCalendar(root, state) {
         <div class="calendar-screen__copy">
           <div class="calendar-screen__eyebrow">Calendario</div>
           <h1 class="calendar-screen__title">Calendario</h1>
-          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo.</p>
+          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo. ${authority.firstTradeLabel ? `Ledger real desde ${authority.firstTradeLabel}.` : ""}</p>
           ${note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : ""}
         </div>
 

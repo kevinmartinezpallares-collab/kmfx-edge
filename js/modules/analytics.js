@@ -1,7 +1,7 @@
-import { formatCompact, formatCurrency, formatPercent, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-203500";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-203500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-203500";
+import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-210500";
+import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-210500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-210500";
 
 const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -576,6 +576,7 @@ export function renderAnalytics(root, state) {
   const model = selectCurrentModel(state);
   const activeAccountId = resolveActiveAccountId(state);
   const account = selectCurrentAccount(state) || state.accounts?.[activeAccountId] || null;
+  const authority = resolveAccountDataAuthority(account);
   console.log("[KMFX][VIEW]", {
     view: "analytics",
     activeAccountId,
@@ -586,6 +587,17 @@ export function renderAnalytics(root, state) {
     root.innerHTML = "";
     return;
   }
+  console.info("[KMFX][ANALYTICS_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
+  });
 
   const workdayIndexes = new Set([1, 2, 3, 4, 5]);
   const weekdayTrades = new Map([...workdayIndexes].map((index) => [index, []]));

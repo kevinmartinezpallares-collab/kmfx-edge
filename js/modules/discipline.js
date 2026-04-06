@@ -1,5 +1,5 @@
-import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { barChartSpec, chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-203500";
+import { formatCurrency, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
+import { barChartSpec, chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-210500";
 
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
@@ -76,11 +76,24 @@ function buildDisciplineScore(model) {
 }
 
 export function renderDiscipline(root, state) {
+  const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
   if (!model) {
     root.innerHTML = "";
     return;
   }
+  const authority = resolveAccountDataAuthority(account);
+  console.info("[KMFX][DISCIPLINE_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
+  });
 
   const avgRValue = avgR(model.trades);
   const currentLosses = currentLossStreak(model.trades);

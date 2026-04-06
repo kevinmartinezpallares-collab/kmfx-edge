@@ -2,7 +2,7 @@ const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-203500";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-210500";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
@@ -100,6 +100,113 @@ export function getAccountTypeLabel(mode = "", name = "") {
   if (normalized.includes("fund") || normalized.includes("prop")) return "Cuenta fondeada";
   if (normalized.includes("sandbox") || normalized.includes("master") || normalized.includes("principal")) return "Cuenta principal";
   return "Cuenta principal";
+}
+
+function normalizeDateLike(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "string") {
+    const mt5Match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+    if (mt5Match) {
+      const [, year, month, day, hour, minute, second] = mt5Match;
+      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatAuthorityDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export function resolveAccountDisplayIdentity(account) {
+  const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const meta = account?.meta && typeof account.meta === "object" ? account.meta : {};
+  const broker = account?.broker || meta.broker || dashboardPayload.broker || dashboardPayload.account?.broker || "";
+  const login = account?.login || meta.login || dashboardPayload.login || dashboardPayload.account?.login || "";
+  const server = account?.server || meta.server || dashboardPayload.server || dashboardPayload.account?.server || "";
+  const nickname = meta.nickname || dashboardPayload.nickname || dashboardPayload.alias || "";
+  const canonicalTitle = [broker, login].filter(Boolean).join(" · ");
+  const title = nickname || canonicalTitle || account?.name || "Cuenta MT5";
+  const subtitle = [server, getAccountTypeLabel(account?.model?.profile?.mode, account?.name)].filter(Boolean).join(" · ");
+
+  return {
+    title,
+    subtitle,
+    broker,
+    login,
+    server,
+    nickname,
+  };
+}
+
+export function resolveAccountDataAuthority(account) {
+  const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const model = account?.model && typeof account.model === "object" ? account.model : {};
+  const sourceType = account?.sourceType || "";
+  const payloadSource = dashboardPayload.payloadSource || model?.sourceTrace?.payloadSource || "";
+  const rawTrades = Array.isArray(dashboardPayload.trades) ? dashboardPayload.trades : [];
+  const modelTrades = Array.isArray(model.trades) ? model.trades : [];
+  const trades = rawTrades.length ? rawTrades : modelTrades;
+  const rawHistory = Array.isArray(dashboardPayload.history) ? dashboardPayload.history : [];
+  const modelHistory = Array.isArray(model.equityCurve) ? model.equityCurve : [];
+  const history = rawHistory.length ? rawHistory : modelHistory;
+
+  const tradeDates = trades
+    .map((trade) => normalizeDateLike(
+      trade?.close_time ||
+      trade?.time ||
+      trade?.open_time ||
+      trade?.date ||
+      trade?.when
+    ))
+    .filter(Boolean)
+    .sort((left, right) => left.getTime() - right.getTime());
+
+  const historyDates = history
+    .map((point) => normalizeDateLike(point?.timestamp || point?.time || point?.date || point?.label))
+    .filter(Boolean)
+    .sort((left, right) => left.getTime() - right.getTime());
+
+  const firstTradeAt = tradeDates[0] || null;
+  const lastTradeAt = tradeDates[tradeDates.length - 1] || null;
+  const firstHistoryAt = historyDates[0] || null;
+  const lastHistoryAt = historyDates[historyDates.length - 1] || null;
+  const tradeCount = rawTrades.length || modelTrades.length;
+  const historyPoints = rawHistory.length || modelHistory.length;
+  const hasRiskSnapshot = Boolean(account?.riskSnapshot && Object.keys(account.riskSnapshot).length) || Boolean(dashboardPayload.riskSnapshot && Object.keys(dashboardPayload.riskSnapshot).length);
+  const hasLivePayload = sourceType === "mt5" && payloadSource === "mt5_sync_live";
+  const hasRenderableIdentity = Boolean(resolveAccountDisplayIdentity(account).title);
+  const hasUsableLiveSnapshot = hasLivePayload && (
+    Number.isFinite(Number(dashboardPayload.balance)) ||
+    Number.isFinite(Number(dashboardPayload.equity)) ||
+    tradeCount > 0 ||
+    historyPoints > 0
+  );
+
+  return {
+    sourceType,
+    payloadSource,
+    tradeCount,
+    historyPoints,
+    firstTradeAt,
+    lastTradeAt,
+    firstTradeLabel: formatAuthorityDate(firstTradeAt),
+    lastTradeLabel: formatAuthorityDate(lastTradeAt),
+    firstHistoryAt,
+    lastHistoryAt,
+    firstHistoryLabel: formatAuthorityDate(firstHistoryAt),
+    lastHistoryLabel: formatAuthorityDate(lastHistoryAt),
+    hasRiskSnapshot,
+    hasLivePayload,
+    hasUsableLiveSnapshot,
+    hasRenderableIdentity,
+    shouldRenderLoadingSkeleton: sourceType === "mt5" && !hasUsableLiveSnapshot && !hasRenderableIdentity,
+    sourceUsed: hasLivePayload ? "dashboard_payload_live" : "model_fallback",
+  };
 }
 
 export function resolveActiveAccountId(state) {

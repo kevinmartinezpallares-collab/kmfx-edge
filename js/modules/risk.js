@@ -1,7 +1,7 @@
-import { formatDateTime, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-203500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-203500";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-203500";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-203500";
+import { formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-210500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-210500";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-210500";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-210500";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
@@ -299,6 +299,7 @@ export function renderRisk(root, state) {
   }
 
   const dashboardPayload = account.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const authority = resolveAccountDataAuthority(account);
   const liveSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object" ? dashboardPayload.riskSnapshot : null;
   const lastSyncAt = account.connection?.lastSync || account.dashboardPayload?.timestamp || null;
   const lastSyncMs = lastSyncAt ? new Date(lastSyncAt).getTime() : 0;
@@ -318,6 +319,18 @@ export function renderRisk(root, state) {
     hasRiskSnapshot: Boolean(liveSnapshot),
     liveState: liveState.status,
     lastSyncAt,
+  });
+  console.info("[KMFX][RISK_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    hasRiskSnapshot: authority.hasRiskSnapshot,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
   });
   syncDraftFromSnapshot(root, liveSnapshot);
 

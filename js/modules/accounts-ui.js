@@ -1,6 +1,6 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-203500";
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-203500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
+import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-210500";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-210500";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `
@@ -14,7 +14,8 @@ const accountMeshMarkup = () => `
 
 function isBridgeDataPending(account) {
   if (!account || account.sourceType !== "mt5") return false;
-  return !account.connection?.lastSync;
+  const authority = resolveAccountDataAuthority(account);
+  return authority.shouldRenderLoadingSkeleton;
 }
 
 function accountStatusBadge(account) {
@@ -29,10 +30,14 @@ function accountStatusBadge(account) {
 
 function renderAccountCard(account, isMain, isActive, isLoading) {
   const performanceView = resolvePerformanceViewModel(account);
+  const display = resolveAccountDisplayIdentity(account);
+  const authority = resolveAccountDataAuthority(account);
   const pnl = Number(performanceView.openPnl || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
-  const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
+  const meta = isMain
+    ? [display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `desde ${authority.firstTradeLabel}` : "", "activa"].filter(Boolean).join(" · ")
+    : [display.subtitle || accountTypeLabel, authority.tradeCount > 0 ? `${authority.tradeCount} trades` : ""].filter(Boolean).join(" · ");
   const cardInlineStyle = isMain
     ? "min-height:240px;box-shadow:none;filter:none;"
     : "min-height:240px;box-shadow:none;filter:none;";
@@ -73,7 +78,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
       <div class="account-hero-card__content">
         <div class="account-hero-card__top" style="${topInlineStyle}">
           <div>
-            <div class="account-hero-card__name" style="${nameInlineStyle}">${account.name}</div>
+            <div class="account-hero-card__name" style="${nameInlineStyle}">${display.title}</div>
             <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
           </div>
           ${accountStatusBadge(account)}
@@ -201,6 +206,7 @@ export function initAccountsUI(store) {
       .filter((account) => account && typeof account === "object" && "id" in account);
     const activeAccount = state.accounts?.[activeAccountId] || accounts[0] || selectCurrentAccount(state);
     const activeModel = activeAccount?.model || selectCurrentModel(state);
+    const activeAuthority = resolveAccountDataAuthority(activeAccount);
 
     if (!hasLiveAccounts) {
       root.innerHTML = `
@@ -275,6 +281,17 @@ export function initAccountsUI(store) {
       broker: activeAccount?.broker || "",
       payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
       sourceUsed: activeAccount?.sourceType === "mt5" ? "live" : "mock",
+    });
+    console.info("[KMFX][ACCOUNT_LEDGER_AUTHORITY]", {
+      selectedAccountId: activeAccount?.id || "",
+      login: activeAccount?.login || "",
+      broker: activeAccount?.broker || "",
+      payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
+      tradeCount: activeAuthority.tradeCount,
+      historyPoints: activeAuthority.historyPoints,
+      firstTradeLabel: activeAuthority.firstTradeLabel,
+      lastTradeLabel: activeAuthority.lastTradeLabel,
+      sourceUsed: activeAuthority.sourceUsed,
     });
     console.info("[KMFX][ACCOUNT_CANONICAL]", {
       account_id: activeAccount?.id || "",

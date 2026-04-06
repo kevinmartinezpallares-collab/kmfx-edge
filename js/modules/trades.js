@@ -1,5 +1,5 @@
-import { openModal } from "./modal-system.js?v=build-20260406-203500";
-import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
+import { openModal } from "./modal-system.js?v=build-20260406-210500";
+import { formatCurrency, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
@@ -61,11 +61,24 @@ function showTradeContextMenu(trade) {
 }
 
 export function renderTrades(root, state) {
+  const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
   if (!model) {
     root.innerHTML = "";
     return;
   }
+  const authority = resolveAccountDataAuthority(account);
+  console.info("[KMFX][TRADES_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
+  });
   const filters = getTradeFilters(root);
   const symbols = uniqueValues(model.trades, "symbol");
   const sessions = uniqueValues(model.trades, "session");
@@ -93,7 +106,7 @@ export function renderTrades(root, state) {
   root.innerHTML = `
     <div class="tl-page-header">
       <div class="tl-page-title">Historial de Trades</div>
-      <div class="tl-page-sub">Registro completo de ejecución para auditar setups, sesiones y consistencia operativa.</div>
+      <div class="tl-page-sub">Registro completo de ejecución para auditar setups, sesiones y consistencia operativa. ${authority.firstTradeLabel ? `Desde ${authority.firstTradeLabel} hasta ${authority.lastTradeLabel || authority.firstTradeLabel}.` : ""}</div>
     </div>
 
     <div class="tl-kpi-row five">

@@ -1,6 +1,6 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-203500";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-203500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-210500";
+import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-210500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -11,7 +11,7 @@ import {
   renderRiskStatusBadge,
   renderSymbolExposureTable,
   riskToneFromStatus,
-} from "./risk-panel-components.js?v=build-20260406-203500";
+} from "./risk-panel-components.js?v=build-20260406-210500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
@@ -124,6 +124,8 @@ export function renderDashboard(root, state) {
   }
 
   const cumulativeReturn = model.cumulative?.totalPct || 0;
+  const display = resolveAccountDisplayIdentity(account);
+  const authority = resolveAccountDataAuthority(account);
   const accountTypeLabel = getAccountTypeLabel(model.profile.mode, account.name);
   const isDarkTheme = state.ui.theme === "dark";
   const axisLine = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-line").trim() || undefined;
@@ -244,6 +246,17 @@ export function renderDashboard(root, state) {
     sourceUsed: performanceView.usedExplicitLivePayload ? "dashboard_payload.history" : "model.equityCurve_fallback",
     primaryMetricUsed: performanceView.primaryMetricUsed,
   });
+  console.info("[KMFX][DASHBOARD_LEDGER_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: display.login,
+    broker: display.broker,
+    payloadSource: authority.payloadSource,
+    tradeCount: authority.tradeCount,
+    historyPoints: authority.historyPoints,
+    firstTradeLabel: authority.firstTradeLabel,
+    lastTradeLabel: authority.lastTradeLabel,
+    sourceUsed: authority.sourceUsed,
+  });
   const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
@@ -350,8 +363,8 @@ export function renderDashboard(root, state) {
             <div class="account-banner-info">
               <div class="account-banner-heading">
                 <div class="banner-kicker">Rendimiento</div>
-                <div class="banner-title">${account.name}</div>
-                <div class="banner-sub">${accountTypeLabel}</div>
+                <div class="banner-title">${display.title}</div>
+                <div class="banner-sub">${[display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</div>
               </div>
 
               <div class="account-banner-hero">
