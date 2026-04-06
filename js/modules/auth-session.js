@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase.js?v=build-20260406-104500";
-import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260406-104500";
+import { supabase } from "../lib/supabase.js?v=build-20260406-190500";
+import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260406-190500";
 
 const AUTH_STORAGE_KEY = "kmfx.auth.session.v1";
 const LEGACY_PROFILE_STORAGE_KEY = "kmfx.settings.profile";
@@ -377,10 +377,17 @@ export function initAuthSession(store) {
 
   const setAuthState = (nextAuth) => {
     const sanitized = persistAuthState(nextAuth);
-    store.setState((state) => ({
-      ...state,
+    const state = store.getState();
+    const resolvedCurrentAccount = resolvePreferredAccount(state, sanitized.profile.defaultAccount);
+    const currentAuthSerialized = JSON.stringify(sanitizeAuthState(state.auth || DEFAULT_AUTH_STATE));
+    const nextAuthSerialized = JSON.stringify(sanitized);
+    if (currentAuthSerialized === nextAuthSerialized && resolvedCurrentAccount === state.currentAccount) {
+      return sanitized;
+    }
+    store.setState((current) => ({
+      ...current,
       auth: sanitized,
-      currentAccount: resolvePreferredAccount(state, sanitized.profile.defaultAccount)
+      currentAccount: resolvePreferredAccount(current, sanitized.profile.defaultAccount)
     }));
     console.info("[KMFX][BOOT]", {
       label: "auth-state-updated",

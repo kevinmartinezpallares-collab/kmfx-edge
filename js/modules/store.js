@@ -1,6 +1,6 @@
-import { adaptMockAccounts, createMockWorkspaceState, rawMockAccounts } from "../data/index.js?v=build-20260406-104500";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-104500";
-import { readPersistedAuthState } from "./auth-session.js?v=build-20260406-104500";
+import { adaptMockAccounts, createMockWorkspaceState, rawMockAccounts } from "../data/index.js?v=build-20260406-190500";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-190500";
+import { readPersistedAuthState } from "./auth-session.js?v=build-20260406-190500";
 
 const STORAGE_KEY = "kmfx_frontend_state";
 const validPages = new Set(["dashboard", "analytics", "risk", "trades", "calendar", "connections", "calculator", "journal", "strategies", "funded", "market", "portfolio", "glossary", "debug", "settings"]);
