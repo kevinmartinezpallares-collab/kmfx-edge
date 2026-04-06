@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -16,11 +17,24 @@ class BackendResponse:
     status_code: int
     body: dict[str, Any]
     error: str = ""
+    method: str = ""
+    request_url: str = ""
+    request_attempted: bool = False
 
 
 class BackendClient:
     def __init__(self, config: LauncherConfig) -> None:
         self.config = config
+        self.logger = logging.getLogger("kmfx_launcher")
+
+    def _summarize_body(self, body: dict[str, Any] | None) -> str:
+        if not body:
+            return ""
+        try:
+            raw = json.dumps(body, ensure_ascii=True, sort_keys=True)
+        except Exception:
+            raw = str(body)
+        return raw[:280]
 
     def _request(self, method: str, path: str, payload: dict[str, Any] | None = None, query: dict[str, Any] | None = None) -> BackendResponse:
         url = self.config.backend_base_url.rstrip("/") + path
@@ -39,13 +53,19 @@ class BackendClient:
             data = json.dumps(payload).encode("utf-8")
 
         request = urllib.request.Request(url=url, data=data, headers=headers, method=method)
+        self.logger.info("[KMFX][HTTP] %s %s dispatch", method, url)
         try:
             with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
                 body = response.read().decode("utf-8", errors="ignore")
+                parsed_body = json.loads(body) if body else {}
+                self.logger.info("[KMFX][HTTP] %s %s %s", method, url, response.status)
                 return BackendResponse(
                     ok=200 <= response.status < 300,
                     status_code=response.status,
-                    body=json.loads(body) if body else {},
+                    body=parsed_body,
+                    method=method,
+                    request_url=url,
+                    request_attempted=True,
                 )
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="ignore")
@@ -53,9 +73,33 @@ class BackendClient:
                 parsed = json.loads(body) if body else {}
             except json.JSONDecodeError:
                 parsed = {"raw": body}
-            return BackendResponse(ok=False, status_code=exc.code, body=parsed, error=str(exc))
+            self.logger.error(
+                "[KMFX][HTTP][ERROR] %s %s status=%s body=%s",
+                method,
+                url,
+                exc.code,
+                self._summarize_body(parsed),
+            )
+            return BackendResponse(
+                ok=False,
+                status_code=exc.code,
+                body=parsed,
+                error=str(exc),
+                method=method,
+                request_url=url,
+                request_attempted=True,
+            )
         except Exception as exc:
-            return BackendResponse(ok=False, status_code=0, body={}, error=str(exc))
+            self.logger.error("[KMFX][HTTP][EXCEPTION] %s %s error=%s", method, url, exc)
+            return BackendResponse(
+                ok=False,
+                status_code=0,
+                body={},
+                error=str(exc),
+                method=method,
+                request_url=url,
+                request_attempted=True,
+            )
 
     def post_snapshot(self, payload: dict[str, Any]) -> BackendResponse:
         return self._request("POST", self.config.backend_sync_path, payload=payload)

@@ -262,6 +262,7 @@ class LauncherApp:
         messagebox.showinfo(
             "KMFX Launcher",
             "Servicio local operativo.\n\n"
+            f"Backend target: {health.get('backend_base_url', self.config.backend_base_url)}\n"
             f"Backend reachable: {health.get('backend_reachable')}\n"
             f"Queue snapshot: {health.get('queue_depth',{}).get('snapshot',0)}\n"
             f"Queue journal: {health.get('queue_depth',{}).get('journal',0)}",

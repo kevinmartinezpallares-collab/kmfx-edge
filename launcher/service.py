@@ -147,7 +147,15 @@ class LauncherServiceRuntime:
                     }
                 )
             self.logger.info("[KMFX][BACKEND] delivered kind=%s id=%s disposition=%s", kind, item_id, disposition)
-            return {"delivered": True, "disposition": disposition, "body": backend_response.body, "status_code": backend_response.status_code}
+            return {
+                "delivered": True,
+                "disposition": disposition,
+                "body": backend_response.body,
+                "status_code": backend_response.status_code,
+                "request_attempted": backend_response.request_attempted,
+                "request_url": backend_response.request_url,
+                "method": backend_response.method,
+            }
 
         if backend_response.status_code >= 500 or backend_response.status_code == 0:
             attempts = int(item.get("attempts", 0)) + 1
@@ -162,11 +170,27 @@ class LauncherServiceRuntime:
                 }
                 self.store.save_receipt(kind, item_id, dropped_receipt)
                 self.logger.error("[KMFX][BACKEND] dropped kind=%s id=%s error=%s", kind, item_id, backend_response.error)
-                return {"delivered": False, "disposition": "dropped", "body": backend_response.body, "status_code": backend_response.status_code}
+                return {
+                    "delivered": False,
+                    "disposition": "dropped",
+                    "body": backend_response.body,
+                    "status_code": backend_response.status_code,
+                    "request_attempted": backend_response.request_attempted,
+                    "request_url": backend_response.request_url,
+                    "method": backend_response.method,
+                }
 
             self.mark_retried(kind, item_id, attempts, backend_response.error or f"status={backend_response.status_code}")
             self.logger.warning("[KMFX][BACKEND] queued retry kind=%s id=%s attempts=%s error=%s", kind, item_id, attempts, backend_response.error)
-            return {"delivered": False, "disposition": "queued", "body": backend_response.body, "status_code": backend_response.status_code}
+            return {
+                "delivered": False,
+                "disposition": "queued",
+                "body": backend_response.body,
+                "status_code": backend_response.status_code,
+                "request_attempted": backend_response.request_attempted,
+                "request_url": backend_response.request_url,
+                "method": backend_response.method,
+            }
 
         receipt = {
             "received_at": now_iso(),
@@ -177,7 +201,15 @@ class LauncherServiceRuntime:
         }
         self.mark_delivered(kind, item_id, receipt)
         self.logger.error("[KMFX][BACKEND] rejected kind=%s id=%s status=%s", kind, item_id, backend_response.status_code)
-        return {"delivered": False, "disposition": "rejected", "body": backend_response.body, "status_code": backend_response.status_code}
+        return {
+            "delivered": False,
+            "disposition": "rejected",
+            "body": backend_response.body,
+            "status_code": backend_response.status_code,
+            "request_attempted": backend_response.request_attempted,
+            "request_url": backend_response.request_url,
+            "method": backend_response.method,
+        }
 
     def try_dispatch_immediately(self, kind: str, item_id: str) -> dict[str, Any]:
         item = self.store.find_queue_item(kind, item_id)
@@ -224,6 +256,7 @@ class LauncherServiceRuntime:
             "service_running": True,
             "backend_reachable": backend_health.ok,
             "backend_status_code": backend_health.status_code,
+            "backend_base_url": self.config.backend_base_url,
             "queue_depth": {
                 "snapshot": len(snapshot["queue"]["snapshot"]),
                 "journal": len(snapshot["queue"]["journal"]),
@@ -331,6 +364,16 @@ async def mt5_sync(request: Request) -> JSONResponse:
         body.setdefault("disposition", result["disposition"])
         return json_response(body)
 
+    runtime.logger.warning(
+        "[KMFX][SERVICE] snapshot not delivered sync_id=%s attempted=%s method=%s url=%s status=%s disposition=%s",
+        sync_id,
+        result.get("request_attempted", False),
+        result.get("method", ""),
+        result.get("request_url", ""),
+        result.get("status_code", 0),
+        result.get("disposition", ""),
+    )
+
     return json_response(
         {
             "ok": True,
@@ -368,6 +411,16 @@ async def mt5_journal(request: Request) -> JSONResponse:
         body.setdefault("batch_id", batch_id)
         body.setdefault("disposition", result["disposition"])
         return json_response(body)
+
+    runtime.logger.warning(
+        "[KMFX][SERVICE] journal not delivered batch_id=%s attempted=%s method=%s url=%s status=%s disposition=%s",
+        batch_id,
+        result.get("request_attempted", False),
+        result.get("method", ""),
+        result.get("request_url", ""),
+        result.get("status_code", 0),
+        result.get("disposition", ""),
+    )
 
     return json_response(
         {
