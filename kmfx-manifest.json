@@ -6,7 +6,7 @@
   "orientation": "portrait-primary",
   "background_color": "#f4f5f7",
   "theme_color": "#2563eb",
-  "start_url": "./kmfx-edge.html?app=build-20260406-191800",
+  "start_url": "./kmfx-edge.html?app=build-20260406-203500",
   "scope": "./",
   "icons": [
     {

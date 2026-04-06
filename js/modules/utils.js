@@ -2,16 +2,7 @@ const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-191800";
-const symbolBasePrices = {
-  EURUSD: 1.084,
-  GBPUSD: 1.273,
-  XAUUSD: 3024,
-  USDJPY: 149.8,
-  US30: 42840,
-  NAS100: 18240
-};
-
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-203500";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
@@ -198,7 +189,11 @@ export function resolvePerformanceViewModel(account) {
         { label: "Base", value: Number(accountMetrics.balance || 0) },
         { label: "Ahora", value: Number(accountMetrics.equity ?? accountMetrics.balance ?? 0) },
       ];
-  const chartSeries = pnlSummary.usedExplicitLivePayload && explicitHistory.length ? explicitHistory : fallbackSeries;
+  const chartSeries = pnlSummary.usedExplicitLivePayload
+    ? (explicitHistory.length >= fallbackSeries.length && explicitHistory.length
+      ? explicitHistory
+      : fallbackSeries)
+    : fallbackSeries;
   const historyPoints = chartSeries.length;
   const openPnl = Number(pnlSummary.heroOpenPnl || 0);
   const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
@@ -298,7 +293,9 @@ export function buildDashboardModel(source) {
     equity += trade.pnl;
     return { label: trade.when.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }), value: equity };
   });
-  const equityCurve = explicitHistory.length ? explicitHistory : generatedEquityCurve;
+  const equityCurve = explicitHistory.length >= generatedEquityCurve.length && explicitHistory.length
+    ? explicitHistory
+    : generatedEquityCurve;
 
   const dayMap = new Map();
   trades.forEach((trade) => {
@@ -711,23 +708,15 @@ function standardDeviation(values) {
 
 function enrichTrade(trade, index) {
   const when = new Date(trade.date);
-  const base = symbolBasePrices[trade.symbol] || 100;
-  const step = base < 10 ? 0.0012 : base < 1000 ? 0.85 : 34;
-  const move = ((Math.abs(trade.pnl) % 9) + 3) / 10;
-  const direction = trade.side === "BUY" ? 1 : -1;
-  const entry = base + index * step * 0.08;
-  const exit = entry + direction * step * move;
-  const sl = entry - direction * step * 0.9;
-  const tp = entry + direction * step * 1.8;
-  const volume = Number((0.2 + (Math.abs(trade.pnl) % 5) * 0.15).toFixed(2));
   return {
     ...trade,
     when,
-    volume,
-    entry: roundPrice(entry),
-    exit: roundPrice(exit),
-    sl: roundPrice(sl),
-    tp: roundPrice(tp)
+    durationMin: Number.isFinite(Number(trade.durationMin)) ? Number(trade.durationMin) : null,
+    volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
+    entry: Number.isFinite(Number(trade.entry)) ? roundPrice(Number(trade.entry)) : null,
+    exit: Number.isFinite(Number(trade.exit)) ? roundPrice(Number(trade.exit)) : null,
+    sl: Number.isFinite(Number(trade.sl)) ? roundPrice(Number(trade.sl)) : null,
+    tp: Number.isFinite(Number(trade.tp)) ? roundPrice(Number(trade.tp)) : null
   };
 }
 

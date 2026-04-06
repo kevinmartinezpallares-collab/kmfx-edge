@@ -1,5 +1,5 @@
-import { selectVisibleUserProfile } from "./utils.js?v=build-20260406-191800";
-import { applyAvatarContent } from "./avatar-utils.js?v=build-20260406-191800";
+import { selectVisibleUserProfile } from "./utils.js?v=build-20260406-203500";
+import { applyAvatarContent } from "./avatar-utils.js?v=build-20260406-203500";
 
 export function initSidebarUI(store) {
   const shell = document.querySelector(".app-shell");

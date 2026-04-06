@@ -592,6 +592,72 @@ def build_dashboard_account_payload(
     raw_payload: dict[str, Any],
     previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    def build_risk_rules() -> list[dict[str, Any]]:
+        breaches = policy_evaluation.get("breaches") if isinstance(policy_evaluation.get("breaches"), list) else []
+        warnings = policy_evaluation.get("warnings") if isinstance(policy_evaluation.get("warnings"), list) else []
+        candidates = breaches or warnings
+        tone = "danger" if breaches else "warn" if warnings else "ok"
+        dominant_metric = candidates[0].get("metric") if candidates else ""
+
+        rules: list[dict[str, Any]] = []
+        for metric_key, fallback_title in (
+            ("max_drawdown", "DD pico a equity"),
+            ("daily_drawdown", "DD diario"),
+            ("portfolio_heat", "Heat abierto"),
+            ("risk_per_trade", "Riesgo por operación"),
+        ):
+            limit_status = policy_evaluation["limits_status"].get(metric_key, {})
+            matching_alert = next((item for item in candidates if item.get("metric") == metric_key), None)
+            state = limit_status.get("state") or ("breach" if breaches else "warning" if warnings else "ok")
+            current_pct = safe_float(limit_status.get("current_pct"))
+            limit_pct = safe_float(limit_status.get("limit_pct"))
+            distance_pct = limit_status.get("distance_to_limit_pct")
+            usage_ratio_pct = limit_status.get("usage_ratio_pct")
+
+            if matching_alert:
+                condition = matching_alert.get("message") or matching_alert.get("label") or fallback_title
+                current_label = f"{safe_float(matching_alert.get('current')):.2f}%"
+                limit_label = f"{safe_float(matching_alert.get('limit')):.2f}%"
+                impact = f"{current_label} sobre límite {limit_label}"
+            elif state == "ok":
+                condition = f"{fallback_title} dentro de límite"
+                if limit_pct > 0:
+                    impact = f"{current_pct:.2f}% sobre límite {limit_pct:.2f}%"
+                else:
+                    impact = f"{current_pct:.2f}% sin límite configurado"
+            else:
+                condition = fallback_title
+                impact = f"{current_pct:.2f}%"
+
+            if state == "breach":
+                state_label = "breach"
+                tone_label = "danger"
+            elif state == "warning":
+                state_label = "warning"
+                tone_label = "warn"
+            else:
+                state_label = "ok"
+                tone_label = "ok"
+
+            if distance_pct is not None and state_label == "ok":
+                impact = f"margen {safe_float(distance_pct):.2f}% restante"
+            elif usage_ratio_pct is not None and state_label != "ok":
+                impact = f"uso {safe_float(usage_ratio_pct):.2f}% del límite"
+
+            rules.append(
+                {
+                    "title": matching_alert.get("label") if matching_alert else fallback_title,
+                    "description": status_snapshot["action_required"],
+                    "value": f"{current_pct:.2f}%",
+                    "condition": condition,
+                    "state": state_label,
+                    "impact": impact,
+                    "tone": tone_label if metric_key == dominant_metric or state_label != "ok" else "ok",
+                    "isDominant": metric_key == dominant_metric,
+                }
+            )
+        return rules
+
     closed_pnl = sum(
         safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))
         for trade in trades
@@ -662,18 +728,7 @@ def build_dashboard_account_payload(
         "trades": trades,
         "history": raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else [],
         "riskSnapshot": risk_snapshot,
-        "riskRules": [
-            {
-                "title": "DD pico a equity",
-                "description": status_snapshot["blocking_rule"] or "Presión vigente sobre capital.",
-                "value": f"{summary['peak_to_equity_drawdown_pct']:.2f}%",
-            },
-            {
-                "title": "Heat abierto",
-                "description": "Riesgo total estimado en posiciones abiertas.",
-                "value": f"{summary['total_open_risk_pct']:.2f}%",
-            },
-        ],
+        "riskRules": build_risk_rules(),
         "riskProfile": {
             "currentRiskPct": summary["total_open_risk_pct"],
             "dailyLossLimitPct": policy_snapshot["daily_dd_limit_pct"],

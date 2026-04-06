@@ -28,9 +28,10 @@ function inferSession(dateLike) {
 }
 
 function durationMinutes(startValue, endValue) {
+  if (!startValue || !endValue) return null;
   const start = new Date(startValue);
   const end = new Date(endValue || startValue);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 }
 
@@ -47,7 +48,12 @@ function normalizeTrades(rawTrades = []) {
       rMultiple: Number(trade.r_multiple || trade.rMultiple || 0),
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
-      durationMin: durationMinutes(trade.open_time || date, trade.close_time || date),
+      durationMin: durationMinutes(trade.open_time, trade.close_time),
+      volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
+      entry: Number.isFinite(Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open)) ? Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open) : null,
+      exit: Number.isFinite(Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price)) ? Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price) : null,
+      sl: Number.isFinite(Number(trade.sl || trade.stop_loss)) ? Number(trade.sl || trade.stop_loss) : null,
+      tp: Number.isFinite(Number(trade.tp || trade.take_profit)) ? Number(trade.tp || trade.take_profit) : null,
     };
   });
 }
@@ -96,6 +102,11 @@ function normalizeRiskRules(rawRiskSnapshot = {}, rawPayload = {}) {
       title: rule.title || rule.name || "Regla",
       description: rule.description || rule.impact || rule.state || "Sin impacto",
       value: rule.value || rule.condition || "Sin condición",
+      condition: rule.condition || rule.value || "Sin condición",
+      state: rule.state || "ok",
+      impact: rule.impact || rule.description || "Sin impacto",
+      tone: rule.tone || "ok",
+      isDominant: Boolean(rule.isDominant),
     }));
   }
 
@@ -114,6 +125,11 @@ function normalizeRiskRules(rawRiskSnapshot = {}, rawPayload = {}) {
     title: rule.title || rule.name || "Regla",
     description: rule.description || rule.impact || rule.state || "Sin impacto",
     value: rule.value || rule.condition || "Sin condición",
+    condition: rule.value || "Sin condición",
+    state: "ok",
+    impact: rule.description || "Sin impacto",
+    tone: "ok",
+    isDominant: false,
   }));
 }
 

@@ -10,7 +10,7 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.50"
+#property version   "2.70"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -46,7 +46,9 @@ input int               KMFXTimerMs           = 2000;
 input int               KMFXPolicyPollSeconds = 12;
 input int               KMFXStatePushSeconds  = 5;
 input int               KMFXWebTimeoutMs      = 5000;
-input int               KMFXClosedDealsLimit  = 50;
+input int               KMFXClosedDealsLimit  = 0;
+input int               KMFXHistoryPointsLimit= 0;
+input int               KMFXHistoryLookbackDays = 0;
 input int               KMFXJournalBatchSize  = 20;
 input bool              KMFXVerboseLog        = true;
 input bool              KMFXEnableEnforce     = true;
@@ -161,6 +163,13 @@ datetime KMFXNow()
 string KMFXNowIso()
   {
    return TimeToString(KMFXNow(),TIME_DATE|TIME_SECONDS);
+  }
+
+datetime KMFXHistoryFromTime()
+  {
+   if(KMFXHistoryLookbackDays<=0)
+      return 0;
+   return KMFXNow()-(datetime)(86400*KMFXHistoryLookbackDays);
   }
 
 string KMFXModeName()
@@ -770,7 +779,7 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
 
    for(int i=total-1;i>=0;i--)
      {
-      if(added>=KMFXClosedDealsLimit)
+      if(max_count>0 && added>=max_count)
          break;
 
       ulong ticket=HistoryDealGetTicket(i);
@@ -815,11 +824,8 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
 
 string KMFXBuildSyncTradesJson(int max_count)
   {
-   if(max_count<=0)
-      return "[]";
-
    datetime to_time=KMFXNow();
-   datetime from_time=to_time-(datetime)(86400*90);
+   datetime from_time=KMFXHistoryFromTime();
    if(!HistorySelect(from_time,to_time))
       return "[]";
 
@@ -830,7 +836,7 @@ string KMFXBuildSyncTradesJson(int max_count)
 
    for(int i=total-1;i>=0;i--)
      {
-      if(added>=max_count)
+      if(max_count>0 && added>=max_count)
          break;
 
       ulong ticket=HistoryDealGetTicket(i);
@@ -868,11 +874,8 @@ string KMFXBuildSyncTradesJson(int max_count)
 
 string KMFXBuildSyncHistoryJson(int max_points)
   {
-   if(max_points<=0)
-      max_points=2;
-
    datetime to_time=KMFXNow();
-   datetime from_time=to_time-(datetime)(86400*90);
+   datetime from_time=KMFXHistoryFromTime();
    if(!HistorySelect(from_time,to_time))
      {
       string fallback_json="[";
@@ -889,6 +892,9 @@ string KMFXBuildSyncHistoryJson(int max_points)
 
    for(int i=total-1;i>=0;i--)
      {
+      if(max_points>0 && collected>=max_points)
+         break;
+
       ulong ticket=HistoryDealGetTicket(i);
       if(ticket==0)
          continue;
@@ -901,9 +907,6 @@ string KMFXBuildSyncHistoryJson(int max_points)
       pnls[collected]=HistoryDealGetDouble(ticket,DEAL_PROFIT)+HistoryDealGetDouble(ticket,DEAL_COMMISSION)+HistoryDealGetDouble(ticket,DEAL_SWAP);
       times[collected]=(datetime)HistoryDealGetInteger(ticket,DEAL_TIME);
       collected++;
-
-      if(collected>=max_points)
-         break;
      }
 
    if(collected<=0)
@@ -946,7 +949,15 @@ string KMFXBuildSyncPayload(string sync_id)
    string sync_login=KMFXAccountLoginString();
    string positions_json=KMFXBuildPositionsJson();
    string trades_json=KMFXBuildSyncTradesJson(KMFXClosedDealsLimit);
-   string history_json=KMFXBuildSyncHistoryJson(MathMin(20,KMFXClosedDealsLimit));
+   int history_points_limit=0;
+   if(KMFXHistoryPointsLimit>0 && KMFXClosedDealsLimit>0)
+      history_points_limit=MathMin(KMFXHistoryPointsLimit,KMFXClosedDealsLimit);
+   else
+     if(KMFXHistoryPointsLimit>0)
+        history_points_limit=KMFXHistoryPointsLimit;
+     else
+        history_points_limit=KMFXClosedDealsLimit;
+   string history_json=KMFXBuildSyncHistoryJson(history_points_limit);
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";

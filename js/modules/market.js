@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-191800";
+import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
 
 export function renderMarket(root, state) {
   const model = selectCurrentModel(state);

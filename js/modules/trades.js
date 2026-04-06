@@ -1,8 +1,12 @@
-import { openModal } from "./modal-system.js?v=build-20260406-191800";
-import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260406-191800";
+import { openModal } from "./modal-system.js?v=build-20260406-203500";
+import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
+}
+
+function formatTableValue(value) {
+  return value == null || value === "" ? "—" : value;
 }
 
 function positionRail(position, exposureBase) {
@@ -75,7 +79,10 @@ export function renderTrades(root, state) {
     const matchesSearch = !filters.query || searchValue.includes(filters.query);
     return matchesSymbol && matchesSession && matchesSetup && matchesSide && matchesSearch;
   });
-  const avgDuration = model.trades.length ? Math.round(model.trades.reduce((sum, trade) => sum + trade.durationMin, 0) / model.trades.length) : 0;
+  const tradesWithDuration = model.trades.filter((trade) => Number.isFinite(Number(trade.durationMin)));
+  const avgDuration = tradesWithDuration.length
+    ? Math.round(tradesWithDuration.reduce((sum, trade) => sum + Number(trade.durationMin || 0), 0) / tradesWithDuration.length)
+    : null;
   const bestSetup = aggregateBy(model.trades, "setup")[0];
   const bestSession = aggregateBy(model.trades, "session")[0];
   const filteredPnl = filteredTrades.reduce((sum, trade) => sum + trade.pnl, 0);
@@ -94,7 +101,7 @@ export function renderTrades(root, state) {
       <article class="tl-kpi-card"><div class="tl-kpi-label">PnL filtrado</div><div class="tl-kpi-val ${filteredPnl >= 0 ? "green" : "red"}">${formatCurrency(filteredPnl)}</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">Win Rate</div><div class="tl-kpi-val">${Math.round(filteredWinRate)}%</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">R medio</div><div class="tl-kpi-val">${filteredAvgR.toFixed(1)}R</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${avgDuration}m</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${avgDuration == null ? "—" : `${avgDuration}m`}</div></article>
     </div>
 
     <div class="grid-2 equal">
@@ -226,14 +233,14 @@ export function renderTrades(root, state) {
                 <td>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</td>
                 <td>${trade.symbol}</td>
                 <td><span class="trade-side trade-side--${trade.side.toLowerCase()}">${trade.side}</span></td>
-                <td class="table-num">${trade.entry}</td>
-                <td class="table-num">${trade.exit}</td>
-                <td class="table-num">${trade.sl}</td>
-                <td class="table-num">${trade.tp}</td>
-                <td class="table-num">${trade.volume}</td>
+                <td class="table-num">${formatTableValue(trade.entry)}</td>
+                <td class="table-num">${formatTableValue(trade.exit)}</td>
+                <td class="table-num">${formatTableValue(trade.sl)}</td>
+                <td class="table-num">${formatTableValue(trade.tp)}</td>
+                <td class="table-num">${formatTableValue(trade.volume)}</td>
                 <td class="table-num ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</td>
                 <td class="table-num">${trade.rMultiple.toFixed(1)}R</td>
-                <td class="table-num">${trade.durationMin} min</td>
+                <td class="table-num">${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</td>
                 <td>${trade.setup}</td>
                 <td>${trade.session}</td>
               </tr>
