@@ -6,6 +6,9 @@ import secrets
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+LOCAL_BACKEND_BASE_URL = "http://127.0.0.1:8000"
+PRODUCTION_BACKEND_BASE_URL = "https://kmfx-edge-api.onrender.com"
+
 
 def launcher_home() -> Path:
     custom_home = os.getenv("KMFX_LAUNCHER_HOME", "").strip()
@@ -25,11 +28,20 @@ def config_path() -> Path:
     return ensure_launcher_home() / "config.json"
 
 
+def resolve_backend_base_url(configured_value: str = "") -> str:
+    env_override = os.getenv("BACKEND_BASE_URL", "").strip() or os.getenv("KMFX_BACKEND_BASE_URL", "").strip()
+    if env_override:
+        return env_override.rstrip("/")
+    if configured_value and configured_value.strip():
+        return configured_value.strip().rstrip("/")
+    return LOCAL_BACKEND_BASE_URL
+
+
 @dataclass
 class LauncherConfig:
     local_host: str = "127.0.0.1"
     local_port: int = 8766
-    backend_base_url: str = "http://127.0.0.1:8000"
+    backend_base_url: str = LOCAL_BACKEND_BASE_URL
     backend_token: str = ""
     backend_sync_path: str = "/api/mt5/sync"
     backend_journal_path: str = "/api/mt5/journal"
@@ -48,6 +60,7 @@ class LauncherConfig:
     def ensure_runtime_values(self) -> "LauncherConfig":
         if not self.connection_key:
             self.connection_key = f"kmfx-{secrets.token_hex(8)}"
+        self.backend_base_url = resolve_backend_base_url(self.backend_base_url)
         return self
 
 

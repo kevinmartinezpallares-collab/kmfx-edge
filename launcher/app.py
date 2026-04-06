@@ -24,6 +24,7 @@ class LauncherApp:
     def __init__(self) -> None:
         self.config: LauncherConfig = load_config().ensure_runtime_values()
         self.logger = configure_logging(self.config.debug)
+        self.logger.info("[KMFX][LAUNCHER] backend target resolved url=%s", self.config.backend_base_url)
         self.root = tk.Tk()
         self.root.title("KMFX Launcher")
         self.root.geometry("920x640")
