@@ -75,6 +75,8 @@ function mergeLiveAccounts(store, snapshot) {
 
   const previousCurrentAccount = state.currentAccount;
   const activeAccountId = snapshot?.active_account_id || normalizedAccounts.find((account) => account.isDefault)?.accountId || liveAccountIds[0] || state.currentAccount;
+  const selectedAccount = normalizedAccounts.find((account) => account.accountId === activeAccountId) || normalizedAccounts[0] || null;
+  const selectedLogin = selectedAccount?.login || "";
   const currentAccountIsLive = liveAccountIds.includes(previousCurrentAccount);
   let resolvedCurrentAccount = previousCurrentAccount;
 
@@ -132,12 +134,22 @@ function mergeLiveAccounts(store, snapshot) {
     ),
     liveAccountIds,
     activeLiveAccountId: activeAccountId || null,
+    activeAccountId: selectedLogin || null,
+    mode: liveAccountIds.length > 0 ? "live" : "mock",
+    bootResolved: true,
     currentAccount: resolvedCurrentAccount,
   }));
   console.log("[KMFX][ACCOUNTS] store updated", {
     liveAccountIds,
     currentAccount: resolvedCurrentAccount,
   });
+  if (liveAccountIds.length > 0 && selectedAccount) {
+    console.info("[KMFX][BOOT][LIVE-DETECTED]", {
+      accountsCount: liveAccountIds.length,
+      selectedAccountId: selectedAccount.accountId,
+      login: selectedAccount.login || "",
+    });
+  }
 }
 
 export function initAccountsLiveSnapshot(store) {
@@ -152,29 +164,64 @@ export function initAccountsLiveSnapshot(store) {
         label: "snapshot-fetch-disabled",
         reason: "missing_api_base_url",
       });
-      return;
+      store.setState((state) => ({
+        ...state,
+        bootResolved: true,
+        mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+      }));
+      return { ok: false, count: 0 };
     }
     try {
       const response = await fetch(url, { headers: { Accept: "application/json" } });
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
-        return;
+        store.setState((state) => ({
+          ...state,
+          bootResolved: true,
+          mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+        }));
+        return { ok: false, count: 0, status: response.status };
       }
       const payload = await response.json();
       console.log("[KMFX][ACCOUNTS] http snapshot received", {
         count: Array.isArray(payload?.accounts) ? payload.accounts.length : 0,
         activeAccountId: payload?.active_account_id || "",
       });
-      if (!payload || !Array.isArray(payload.accounts)) return;
+      if (!payload || !Array.isArray(payload.accounts)) {
+        store.setState((state) => ({
+          ...state,
+          bootResolved: true,
+          mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+        }));
+        return { ok: false, count: 0 };
+      }
       mergeLiveAccounts(store, payload);
+      if (!payload.accounts.length) {
+        store.setState((state) => ({
+          ...state,
+          bootResolved: true,
+          mode: "mock",
+        }));
+      }
+      return {
+        ok: true,
+        count: payload.accounts.length,
+        selectedAccountId: payload.accounts[0]?.account_id || "",
+        login: payload.accounts[0]?.login || "",
+      };
     } catch (error) {
       console.warn("[KMFX][ACCOUNTS] http snapshot error", error);
+      store.setState((state) => ({
+        ...state,
+        bootResolved: true,
+        mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+      }));
+      return { ok: false, count: 0, error: true };
     }
   };
 
   const startHttpPolling = () => {
     clearInterval(httpPollTimer);
-    pollHttpSnapshot();
     httpPollTimer = window.setInterval(pollHttpSnapshot, 5000);
   };
 
@@ -228,6 +275,8 @@ export function initAccountsLiveSnapshot(store) {
     });
   };
 
+  const initialSnapshotPromise = pollHttpSnapshot();
   startHttpPolling();
   connect();
+  return initialSnapshotPromise;
 }

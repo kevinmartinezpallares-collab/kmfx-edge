@@ -1,29 +1,29 @@
-import { createStore } from "./js/modules/store.js?v=build-20260406-090500";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260406-090500";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260406-090500";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260406-090500";
-import { renderDiscipline } from "./js/modules/discipline.js?v=build-20260406-090500";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260406-090500";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260406-090500";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260406-090500";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260406-090500";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260406-090500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260406-090500";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260406-090500";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260406-090500";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260406-090500";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260406-090500";
-import { renderMarket } from "./js/modules/market.js?v=build-20260406-090500";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260406-090500";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260406-090500";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260406-090500";
-import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260406-090500";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260406-090500";
-import "./js/modules/modal-system.js?v=build-20260406-090500";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260406-090500";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260406-090500";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260406-090500";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260406-090500";
+import { createStore } from "./js/modules/store.js?v=build-20260406-103500";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260406-103500";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260406-103500";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260406-103500";
+import { renderDiscipline } from "./js/modules/discipline.js?v=build-20260406-103500";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260406-103500";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260406-103500";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260406-103500";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260406-103500";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260406-103500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260406-103500";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260406-103500";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260406-103500";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260406-103500";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260406-103500";
+import { renderMarket } from "./js/modules/market.js?v=build-20260406-103500";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260406-103500";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260406-103500";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260406-103500";
+import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260406-103500";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260406-103500";
+import "./js/modules/modal-system.js?v=build-20260406-103500";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260406-103500";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260406-103500";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260406-103500";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260406-103500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -32,8 +32,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260406-090500";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260406-090500";
+} from "./js/modules/auth-session.js?v=build-20260406-103500";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260406-103500";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -42,11 +42,11 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260406-090500";
-import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260406-090500";
-import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260406-090500";
+} from "./js/modules/supabase-user-config.js?v=build-20260406-103500";
+import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260406-103500";
+import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260406-103500";
 
-const BUILD_TAG = "build-20260406-090500";
+const BUILD_TAG = "build-20260406-103500";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
@@ -155,10 +155,12 @@ function logBootState(label, state = store.getState(), extra = {}) {
   console.info("[KMFX][BOOT]", {
     label,
     build: BUILD_TAG,
-    mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+    mode: state.mode || (Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock"),
     currentAccount: state.currentAccount,
     activeLiveAccountId: state.activeLiveAccountId || null,
+    activeAccountId: state.activeAccountId || null,
     liveAccountIds: state.liveAccountIds || [],
+    bootResolved: Boolean(state.bootResolved),
     ...extra,
   });
 }
@@ -663,38 +665,59 @@ function initSettings() {
 }
 
 ensureLightCardFlattening();
-console.info("[KMFX][API]", {
-  label: "boot-config",
-  baseURL: resolveApiBaseUrl() || "(unset)",
-  snapshotURL: resolveAccountsSnapshotUrl() || "(disabled)",
-  accountsURL: resolveAccountsRegistryUrl() || "(disabled)",
-});
-logBootState("startup-before-init");
-renderActivePage();
-initNavigation(store);
-initAccountsUI(store);
-initAccountsLiveSnapshot(store);
-initConnections(store);
-initCalculator(store);
-initJournal(store);
-initStrategies(store);
-initFunded(store);
-initMobileNav(store);
-initPullToRefresh(() => {
-  return window.kmfxBridge?.refresh?.();
-});
-initAccountRuntime(store);
-initAuthSession(store);
-initAuthUI(store);
-initTopbarStatus(store);
-initSidebarUI(store);
-initSettings();
-startClock();
-store.subscribe(() => renderActivePage());
-store.subscribe((state) => {
-  logBootState("state-updated", state);
-});
+async function bootstrapApp() {
+  console.info("[KMFX][API]", {
+    label: "boot-config",
+    baseURL: resolveApiBaseUrl() || "(unset)",
+    snapshotURL: resolveAccountsSnapshotUrl() || "(disabled)",
+    accountsURL: resolveAccountsRegistryUrl() || "(disabled)",
+  });
+  logBootState("startup-before-init");
 
-window.kmfxStore = store;
+  const snapshotBootstrap = await initAccountsLiveSnapshot(store);
+  if (snapshotBootstrap?.ok && snapshotBootstrap.count > 0) {
+    const state = store.getState();
+    store.setState((current) => ({
+      ...current,
+      mode: "live",
+      bootResolved: true,
+      currentAccount: snapshotBootstrap.selectedAccountId || state.currentAccount,
+      activeAccountId: snapshotBootstrap.login || state.activeAccountId || null,
+    }));
+  } else {
+    store.setState((state) => ({
+      ...state,
+      bootResolved: true,
+      mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
+    }));
+  }
 
-console.log("[KMFX] clean frontend baseline ready", BUILD_TAG);
+  renderActivePage();
+  initNavigation(store);
+  initAccountsUI(store);
+  initConnections(store);
+  initCalculator(store);
+  initJournal(store);
+  initStrategies(store);
+  initFunded(store);
+  initMobileNav(store);
+  initPullToRefresh(() => {
+    return window.kmfxBridge?.refresh?.();
+  });
+  initAccountRuntime(store);
+  initAuthSession(store);
+  initAuthUI(store);
+  initTopbarStatus(store);
+  initSidebarUI(store);
+  initSettings();
+  startClock();
+  store.subscribe(() => renderActivePage());
+  store.subscribe((state) => {
+    logBootState("state-updated", state);
+  });
+
+  window.kmfxStore = store;
+  console.log("[KMFX] clean frontend baseline ready", BUILD_TAG);
+}
+
+bootstrapApp();
