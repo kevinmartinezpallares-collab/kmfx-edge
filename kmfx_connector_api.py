@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import logging
@@ -161,6 +162,7 @@ def save_journal_trade_store(records: dict[str, list[dict[str, Any]]]) -> None:
 PROCESSED_SYNC_RECEIPTS: dict[str, dict[str, Any]] = load_sync_receipts()
 PROCESSED_JOURNAL_RECEIPTS: dict[str, dict[str, Any]] = load_journal_receipts()
 JOURNAL_TRADES_BY_IDENTITY: dict[str, list[dict[str, Any]]] = load_journal_trade_store()
+RECENT_LIVE_ACCOUNTS: dict[str, dict[str, Any]] = {}
 
 
 def purge_expired_sync_receipts() -> None:
@@ -261,6 +263,86 @@ def remember_journal_trades(identity_key: str, trades: list[dict[str, Any]]) -> 
     ordered = sorted(by_trade_id.values(), key=lambda item: safe_timestamp(item.get("time")), reverse=True)
     JOURNAL_TRADES_BY_IDENTITY[identity_key] = ordered[:200]
     save_journal_trade_store(JOURNAL_TRADES_BY_IDENTITY)
+
+
+def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
+    latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
+    return {
+        "account_id": getattr(account, "account_id", ""),
+        "user_id": getattr(account, "user_id", "local"),
+        "alias": getattr(account, "alias", ""),
+        "broker": getattr(account, "broker", ""),
+        "platform": getattr(account, "platform", "mt5"),
+        "login": getattr(account, "login", ""),
+        "server": getattr(account, "server", ""),
+        "connection_mode": getattr(account, "connection_mode", "connector"),
+        "status": getattr(account, "status", "connected"),
+        "api_key": getattr(account, "api_key", ""),
+        "connection_key": getattr(account, "api_key", ""),
+        "last_sync_at": getattr(account, "last_sync_at", None).isoformat() if getattr(account, "last_sync_at", None) else "",
+        "is_default": bool(getattr(account, "is_default", False)),
+        "nickname": getattr(account, "nickname", "") or "",
+        "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
+        "dashboard_payload": latest_payload,
+        "source": source,
+    }
+
+
+def remember_live_account_snapshot(account: Any) -> None:
+    entry = build_live_snapshot_entry(account, source="sync_memory")
+    RECENT_LIVE_ACCOUNTS[entry["account_id"]] = entry
+    log.info(
+        "LIVE account cached | source=sync_memory account_id=%s login=%s broker=%s last_sync_at=%s",
+        entry["account_id"],
+        entry["login"],
+        entry["broker"],
+        entry["last_sync_at"],
+    )
+
+
+def build_live_accounts_snapshot(user_id: str = "local") -> dict[str, Any]:
+    persisted_snapshot = account_service.build_accounts_snapshot(user_id)
+    merged_accounts: dict[str, dict[str, Any]] = {}
+
+    for entry in persisted_snapshot.get("accounts") or []:
+        if not isinstance(entry, dict):
+            continue
+        account_id = safe_str(entry.get("account_id"))
+        if not account_id:
+            continue
+        merged_entry = deepcopy(entry)
+        merged_entry["source"] = merged_entry.get("source") or "store"
+        merged_accounts[account_id] = merged_entry
+
+    for account_id, entry in RECENT_LIVE_ACCOUNTS.items():
+        if safe_str(entry.get("user_id"), "local") != user_id:
+            continue
+        cached_last_sync = _parse_datetime(entry.get("last_sync_at"))
+        persisted_last_sync = _parse_datetime((merged_accounts.get(account_id) or {}).get("last_sync_at"))
+        if account_id not in merged_accounts or (cached_last_sync and (persisted_last_sync is None or cached_last_sync >= persisted_last_sync)):
+            merged_accounts[account_id] = deepcopy(entry)
+
+    accounts = list(merged_accounts.values())
+    accounts.sort(key=lambda item: ((not bool(item.get("is_default"))), item.get("display_name", ""), item.get("login", "")))
+    active_account_id = next((item.get("account_id", "") for item in accounts if item.get("is_default")), "") or persisted_snapshot.get("active_account_id", "")
+    log.info(
+        "LIVE snapshot rebuilt | source=merged accounts=%s active_account_id=%s entries=%s",
+        len(accounts),
+        active_account_id,
+        [
+            {
+                "account_id": item.get("account_id", ""),
+                "login": item.get("login", ""),
+                "source": item.get("source", ""),
+            }
+            for item in accounts
+        ],
+    )
+    return {
+        "accounts": accounts,
+        "active_account_id": active_account_id,
+        "updated_at": now_iso(),
+    }
 
 
 def resolve_sync_id(payload: dict[str, Any]) -> str:
@@ -854,6 +936,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             api_key=connection_key,
             nickname=bound_account.alias if bound_account else None,
         )
+        remember_live_account_snapshot(synced_account)
         log.info(
             "ACCOUNT sync upsert | account_id=%s login=%s status=%s broker=%s server=%s last_sync_at=%s",
             synced_account.account_id,
@@ -1044,7 +1127,7 @@ async def mt5_policy(
 
 @app.get("/api/accounts/snapshot")
 async def accounts_snapshot() -> JSONResponse:
-    snapshot = account_service.build_accounts_snapshot("local")
+    snapshot = build_live_accounts_snapshot("local")
     log.info(
         "Accounts snapshot built | accounts=%s active_account_id=%s",
         len(snapshot.get("accounts") or []),
