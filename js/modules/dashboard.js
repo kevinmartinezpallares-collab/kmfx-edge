@@ -143,13 +143,18 @@ export function renderDashboard(root, state) {
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
   if (account?.sourceType === "mt5" && performanceView.usedExplicitLivePayload) {
-    console.info("[KMFX][LEGACY_RENDER_BLOCKED]", {
-      selectedAccountId: account?.id || "",
-      selectedLogin: account?.login || "",
-      sourceType: account?.sourceType || "",
+    console.info("[KMFX][LEGACY_BLOCKED]", {
+      account_id: account?.id || "",
+      login: account?.login || "",
+      broker: account?.broker || "",
       payloadSource: performanceView.payloadSource,
+      balance: performanceView.balance,
+      equity: performanceView.equity,
+      openPnl: performanceView.openPnl,
+      totalPnl: performanceView.totalPnl,
+      historyLength: performanceView.historyPoints,
       renderTarget: "dashboard_performance",
-      sourceUsed: performanceView.sourceUsed,
+      primaryMetricUsed: performanceView.primaryMetricUsed,
     });
   }
   const currentPnl = Number(performanceView.openPnl || 0);
@@ -177,42 +182,67 @@ export function renderDashboard(root, state) {
     usedExplicitLivePayload: performanceView.usedExplicitLivePayload,
   });
   console.info("[KMFX][PERFORMANCE_VIEW_MODEL]", {
-    selectedAccountId: performanceView.selectedAccountId,
-    selectedLogin: performanceView.login,
+    account_id: performanceView.selectedAccountId,
+    login: performanceView.login,
+    broker: performanceView.broker,
     sourceType: account?.sourceType || "",
     payloadSource: performanceView.payloadSource,
+    balance: performanceView.balance,
+    equity: performanceView.equity,
     mainPerformanceValue: performanceView.mainPerformanceValue,
     openPnl: performanceView.openPnl,
     totalPnl: performanceView.totalPnl,
     openPositionsCount: performanceView.openPositionsCount,
-    historyPoints: performanceView.historyPoints,
+    historyLength: performanceView.historyPoints,
     sourceUsed: performanceView.sourceUsed,
+    primaryMetricUsed: performanceView.primaryMetricUsed,
   });
-  console.info("[KMFX][PERFORMANCE_RENDER]", {
-    selectedAccountId: performanceView.selectedAccountId,
-    selectedLogin: performanceView.login,
+  console.info("[KMFX][PERFORMANCE_SOURCE]", {
+    account_id: performanceView.selectedAccountId,
+    login: performanceView.login,
+    broker: performanceView.broker,
     sourceType: account?.sourceType || "",
     payloadSource: performanceView.payloadSource,
+    balance: performanceView.balance,
+    equity: performanceView.equity,
     mainPerformanceValue: performanceView.mainPerformanceValue,
     openPnl: performanceView.openPnl,
     totalPnl: performanceView.totalPnl,
     openPositionsCount: performanceView.openPositionsCount,
-    historyPoints: performanceView.historyPoints,
+    historyLength: performanceView.historyPoints,
     renderTarget: "account_banner_and_performance_card",
     sourceUsed: performanceView.sourceUsed,
+    primaryMetricUsed: performanceView.primaryMetricUsed,
   });
-  console.info("[KMFX][CHART_RENDER]", {
-    selectedAccountId: performanceView.selectedAccountId,
-    selectedLogin: performanceView.login,
+  console.info("[KMFX][PERFORMANCE_PRIMARY_VALUE]", {
+    account_id: performanceView.selectedAccountId,
+    login: performanceView.login,
+    broker: performanceView.broker,
+    payloadSource: performanceView.payloadSource,
+    balance: performanceView.balance,
+    equity: performanceView.equity,
+    openPnl: performanceView.openPnl,
+    totalPnl: performanceView.totalPnl,
+    historyLength: performanceView.historyPoints,
+    primaryMetricUsed: performanceView.primaryMetricUsed,
+    mainPerformanceValue: performanceView.mainPerformanceValue,
+  });
+  console.info("[KMFX][CHART_SOURCE]", {
+    account_id: performanceView.selectedAccountId,
+    login: performanceView.login,
+    broker: performanceView.broker,
     sourceType: account?.sourceType || "",
     payloadSource: performanceView.payloadSource,
+    balance: performanceView.balance,
+    equity: performanceView.equity,
     mainPerformanceValue: performanceView.mainPerformanceValue,
     openPnl: performanceView.openPnl,
     totalPnl: performanceView.totalPnl,
     openPositionsCount: performanceView.openPositionsCount,
-    historyPoints: performanceView.historyPoints,
+    historyLength: performanceView.historyPoints,
     renderTarget: "dashboard_hero_equity_chart",
     sourceUsed: performanceView.usedExplicitLivePayload ? "dashboard_payload.history" : "model.equityCurve_fallback",
+    primaryMetricUsed: performanceView.primaryMetricUsed,
   });
   const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");

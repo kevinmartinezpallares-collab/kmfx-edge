@@ -103,6 +103,12 @@ function mergeLiveAccounts(store, snapshot) {
     broker: selectedAccount?.broker || "",
     sourceType: "mt5",
   });
+  console.info("[KMFX][ACCOUNT_CANONICAL]", {
+    account_id: selectedAccount?.accountId || resolvedCurrentAccount || "",
+    login: selectedAccount?.login || "",
+    broker: selectedAccount?.broker || "",
+    payloadSource: selectedAccount?.dashboardPayload?.payloadSource || "",
+  });
 
   const sameLiveIds = liveAccountIds.length === (state.liveAccountIds || []).length
     && liveAccountIds.every((accountId, index) => accountId === state.liveAccountIds[index]);
@@ -153,6 +159,12 @@ function mergeLiveAccounts(store, snapshot) {
       accountsCount: liveAccountIds.length,
       selectedAccountId: selectedAccount.accountId,
       login: selectedAccount.login || "",
+    });
+    console.info("[KMFX][LIVE_ACCOUNT_SELECTED]", {
+      account_id: selectedAccount.accountId,
+      login: selectedAccount.login || "",
+      broker: selectedAccount.broker || "",
+      payloadSource: selectedAccount.dashboardPayload?.payloadSource || "",
     });
   }
 }

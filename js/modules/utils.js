@@ -177,6 +177,9 @@ export function resolvePerformanceViewModel(account) {
     : {};
   const accountMetrics = model.account || {};
   const pnlSummary = resolveAccountPnlSummary(account);
+  const payloadSource = pnlSummary.payloadSource || dashboardPayload.payloadSource || "";
+  const balance = Number(accountMetrics.balance ?? dashboardPayload.balance ?? 0);
+  const equity = Number(accountMetrics.equity ?? dashboardPayload.equity ?? balance);
   const explicitHistory = Array.isArray(dashboardPayload.history)
     ? dashboardPayload.history
         .map((point, index) => {
@@ -201,15 +204,21 @@ export function resolvePerformanceViewModel(account) {
   const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
   const totalPnl = Number(pnlSummary.heroTotalPnl || 0);
   const mainPerformanceValue = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
-    ? totalPnl
+    ? (Number.isFinite(equity) ? equity : balance)
     : Number(accountMetrics.equity ?? totalPnl ?? 0);
-  const firstPoint = chartSeries[0]?.value ?? Number(accountMetrics.balance || 0);
-  const lastPoint = chartSeries.at(-1)?.value ?? Number(accountMetrics.equity ?? accountMetrics.balance ?? 0);
+  const firstPoint = chartSeries[0]?.value ?? balance;
+  const lastPoint = chartSeries.at(-1)?.value ?? equity;
   const rangeValue = Number(lastPoint - firstPoint || 0);
+  const primaryMetricUsed = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
+    ? (Number.isFinite(equity) ? "equity" : "balance")
+    : "equity_or_fallback";
 
   return {
     ...pnlSummary,
     selectedAccountId: account?.id || "",
+    payloadSource,
+    balance,
+    equity,
     mainPerformanceValue,
     openPnl,
     closedPnl,
@@ -217,6 +226,7 @@ export function resolvePerformanceViewModel(account) {
     rangeValue,
     chartSeries,
     historyPoints,
+    primaryMetricUsed,
     sourceUsed: pnlSummary.usedExplicitLivePayload ? "dashboard_payload_explicit_live" : "model_fallback",
     broker: account?.broker || account?.meta?.broker || "",
     server: account?.server || account?.meta?.server || "",

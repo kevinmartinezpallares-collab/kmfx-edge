@@ -135,6 +135,12 @@ export function initAccountsUI(store) {
       broker: selectedAccount.broker || "",
       sourceType: selectedAccount.sourceType || "",
     });
+    console.info("[KMFX][LIVE_ACCOUNT_SELECTED]", {
+      account_id: accountId,
+      login: selectedAccount.login || "",
+      broker: selectedAccount.broker || "",
+      payloadSource: selectedAccount.dashboardPayload?.payloadSource || selectedAccount.model?.sourceTrace?.payloadSource || "",
+    });
   });
 
   root.addEventListener("click", (event) => {
@@ -156,6 +162,12 @@ export function initAccountsUI(store) {
       selectedLogin: state.accounts?.[accountId]?.login || "",
       broker: state.accounts?.[accountId]?.broker || "",
       sourceType: state.accounts?.[accountId]?.sourceType || "",
+    });
+    console.info("[KMFX][LIVE_ACCOUNT_SELECTED]", {
+      account_id: accountId,
+      login: state.accounts?.[accountId]?.login || "",
+      broker: state.accounts?.[accountId]?.broker || "",
+      payloadSource: state.accounts?.[accountId]?.dashboardPayload?.payloadSource || state.accounts?.[accountId]?.model?.sourceTrace?.payloadSource || "",
     });
   });
 
@@ -255,6 +267,12 @@ export function initAccountsUI(store) {
       broker: activeAccount?.broker || "",
       payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
       sourceUsed: activeAccount?.sourceType === "mt5" ? "live" : "mock",
+    });
+    console.info("[KMFX][ACCOUNT_CANONICAL]", {
+      account_id: activeAccount?.id || "",
+      login: activeAccount?.login || "",
+      broker: activeAccount?.broker || "",
+      payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
     });
   };
 
