@@ -124,9 +124,32 @@ class LauncherServiceRuntime:
         payload = item["payload"]
         self.logger.info("[KMFX][SERVICE] dispatch kind=%s id=%s attempts=%s", kind, item_id, item.get("attempts", 0))
         if kind == "snapshot":
+            target_path = self.config.backend_sync_path
+            method = "POST"
+        else:
+            target_path = self.config.backend_journal_path
+            method = "POST"
+        self.logger.info(
+            "[KMFX][BACKEND][POST] kind=%s id=%s method=%s url=%s",
+            kind,
+            item_id,
+            method,
+            self.config.backend_base_url.rstrip("/") + target_path,
+        )
+        if kind == "snapshot":
             backend_response = self.backend.post_snapshot(payload)
         else:
             backend_response = self.backend.post_journal(payload)
+
+        self.logger.info(
+            "[KMFX][BACKEND][RESPONSE] kind=%s id=%s attempted=%s method=%s url=%s status=%s",
+            kind,
+            item_id,
+            backend_response.request_attempted,
+            backend_response.method,
+            backend_response.request_url,
+            backend_response.status_code,
+        )
 
         if backend_response.ok:
             disposition = str(backend_response.body.get("disposition") or "accepted")
@@ -217,8 +240,33 @@ class LauncherServiceRuntime:
             receipt = self.store.find_receipt(kind, item_id)
             if receipt:
                 body = receipt.get("body") or {}
-                return {"delivered": True, "disposition": receipt.get("disposition", "accepted"), "body": body, "status_code": receipt.get("status_code", 200)}
-            return {"delivered": False, "disposition": "missing", "body": {}, "status_code": 404}
+                self.logger.warning(
+                    "[KMFX][SERVICE] cached receipt hit kind=%s id=%s disposition=%s status=%s",
+                    kind,
+                    item_id,
+                    receipt.get("disposition", "accepted"),
+                    receipt.get("status_code", 200),
+                )
+                return {
+                    "delivered": False,
+                    "disposition": receipt.get("disposition", "accepted"),
+                    "body": body,
+                    "status_code": receipt.get("status_code", 200),
+                    "request_attempted": False,
+                    "request_url": "",
+                    "method": "",
+                    "from_receipt_cache": True,
+                }
+            return {
+                "delivered": False,
+                "disposition": "missing",
+                "body": {},
+                "status_code": 404,
+                "request_attempted": False,
+                "request_url": "",
+                "method": "",
+                "from_receipt_cache": False,
+            }
         return self.dispatch(kind, item)
 
     def process_due_queue(self) -> None:
