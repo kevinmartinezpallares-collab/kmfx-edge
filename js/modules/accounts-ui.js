@@ -1,5 +1,5 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
-import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260405-204500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
+import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-104500";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `

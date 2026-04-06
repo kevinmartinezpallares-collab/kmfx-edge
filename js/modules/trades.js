@@ -1,5 +1,5 @@
-import { openModal } from "./modal-system.js?v=build-20260405-204500";
-import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260405-204500";
+import { openModal } from "./modal-system.js?v=build-20260406-104500";
+import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
