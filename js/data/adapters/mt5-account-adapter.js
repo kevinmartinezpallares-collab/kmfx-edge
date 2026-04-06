@@ -218,9 +218,13 @@ function normalizeMt5Payload(rawPayload = {}) {
 export function adaptMt5Account(rawAccount = {}) {
   const dashboardPayload = rawAccount.dashboard_payload && typeof rawAccount.dashboard_payload === "object"
     ? rawAccount.dashboard_payload
-    : rawAccount.payload && typeof rawAccount.payload === "object"
-      ? rawAccount.payload
-      : rawAccount;
+    : rawAccount.dashboardPayload && typeof rawAccount.dashboardPayload === "object"
+      ? rawAccount.dashboardPayload
+      : rawAccount.latest_payload && typeof rawAccount.latest_payload === "object"
+        ? rawAccount.latest_payload
+        : rawAccount.payload && typeof rawAccount.payload === "object"
+          ? rawAccount.payload
+          : rawAccount;
   const payload = normalizeMt5Payload(dashboardPayload);
   console.debug("[KMFX][ACCOUNT][RAW]", {
     accountId: rawAccount.account_id || rawAccount.id || "",

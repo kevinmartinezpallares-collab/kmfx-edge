@@ -23,6 +23,13 @@ function getPreferredBridgeUrl() {
 
 function normalizeAccountEntry(entry = {}) {
   const safe = entry && typeof entry === "object" ? entry : {};
+  const dashboardPayload = safe.dashboard_payload && typeof safe.dashboard_payload === "object"
+    ? safe.dashboard_payload
+    : safe.latest_payload && typeof safe.latest_payload === "object"
+      ? safe.latest_payload
+      : safe.payload && typeof safe.payload === "object"
+        ? safe.payload
+        : {};
   return {
     accountId: String(safe.account_id || safe.id || ""),
     broker: String(safe.broker || "MT5"),
@@ -36,7 +43,7 @@ function normalizeAccountEntry(entry = {}) {
     isDefault: Boolean(safe.is_default),
     nickname: String(safe.nickname || ""),
     displayName: String(safe.display_name || safe.nickname || `${safe.broker || "MT5"} · ${safe.login || "Cuenta"}`),
-    dashboardPayload: safe.dashboard_payload && typeof safe.dashboard_payload === "object" ? safe.dashboard_payload : {},
+    dashboardPayload,
   };
 }
 
@@ -49,7 +56,11 @@ function mergeLiveAccounts(store, snapshot) {
     accounts: normalizedAccounts.map((account) => ({
       accountId: account.accountId,
       login: account.login,
+      broker: account.broker,
       status: account.status,
+      payloadSource: account.dashboardPayload?.payloadSource || "",
+      balance: account.dashboardPayload?.balance ?? null,
+      equity: account.dashboardPayload?.equity ?? null,
       trades: Array.isArray(account.dashboardPayload?.trades) ? account.dashboardPayload.trades.length : 0,
       history: Array.isArray(account.dashboardPayload?.history) ? account.dashboardPayload.history.length : 0,
       positions: Array.isArray(account.dashboardPayload?.positions) ? account.dashboardPayload.positions.length : 0,
@@ -65,7 +76,12 @@ function mergeLiveAccounts(store, snapshot) {
   });
 
   normalizedAccounts.forEach((accountEntry) => {
-    const liveRecord = adaptMt5Account(accountEntry);
+    const liveRecord = adaptMt5Account({
+      ...accountEntry,
+      account_id: accountEntry.accountId,
+      dashboard_payload: accountEntry.dashboardPayload,
+      latest_payload: accountEntry.dashboardPayload,
+    });
     const nextAccount = {
       ...liveRecord,
       compliance: evaluateCompliance(liveRecord, state.workspace.fundedAccounts),

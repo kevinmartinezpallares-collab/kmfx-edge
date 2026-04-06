@@ -1,5 +1,6 @@
 import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-104500";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-104500";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `
@@ -189,7 +190,16 @@ export function initAccountsUI(store) {
       hasLiveAccounts,
     });
     const accounts = liveAccountIds
-      .map((accountId) => state.accounts?.[accountId])
+      .map((accountId) => state.accounts?.[accountId] || (() => {
+        const fallback = state.accountDirectory?.[accountId];
+        if (!fallback) return null;
+        return adaptMt5Account({
+          ...fallback,
+          account_id: fallback.accountId || fallback.id || accountId,
+          dashboard_payload: fallback.dashboardPayload,
+          latest_payload: fallback.dashboardPayload,
+        });
+      })())
       .filter((account) => account && typeof account === "object" && "id" in account);
     const activeAccount = state.accounts?.[activeAccountId] || accounts[0] || selectCurrentAccount(state);
     const activeModel = activeAccount?.model || selectCurrentModel(state);

@@ -255,6 +255,13 @@ export function initConnections(store) {
       store.setState((state) => ({
         ...state,
         currentAccount: accountId,
+        activeLiveAccountId: accountId,
+        activeAccountId: accountId,
+        mode: state.accounts?.[accountId]?.sourceType === "mt5" || state.accountDirectory?.[accountId] ? "live" : state.mode,
+        ui: {
+          ...state.ui,
+          activePage: "dashboard",
+        },
       }));
       showToast("Cuenta activa actualizada", "success");
       return;
