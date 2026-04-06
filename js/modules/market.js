@@ -1,11 +1,21 @@
-import { formatCurrency, formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
+import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
 export function renderMarket(root, state) {
+  const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
   if (!model) {
     root.innerHTML = "";
     return;
   }
+  const authorityMeta = describeAccountAuthority(account, "workspace");
+  console.info("[KMFX][MARKET_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "workspace_plus_live_context",
+  });
 
   const strongestSymbol = [...model.symbols].sort((a, b) => b.pnl - a.pnl)[0];
 
@@ -14,6 +24,8 @@ export function renderMarket(root, state) {
       <div class="tl-page-title">Market</div>
       <div class="tl-page-sub">Panel táctico de watchlist, régimen y catalizadores para la sesión actual.</div>
     </div>
+
+    ${renderAuthorityNotice(authorityMeta)}
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Focus symbol</div><div class="tl-kpi-val">${strongestSymbol?.key || "—"}</div></article>

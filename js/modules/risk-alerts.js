@@ -1,5 +1,5 @@
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-203500";
-import { formatPercent } from "./utils.js?v=build-20260406-203500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
+import { formatPercent } from "./utils.js?v=build-20260406-213500";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));

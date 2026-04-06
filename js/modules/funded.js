@@ -1,6 +1,6 @@
-import { openModal } from "./modal-system.js?v=build-20260406-203500";
-import { formatCurrency, formatDateTime, formatPercent } from "./utils.js?v=build-20260406-203500";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-203500";
+import { openModal } from "./modal-system.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-213500";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 
@@ -382,6 +382,15 @@ export function renderFunded(root, state) {
     || selectedByCurrentAccount
     || fundedAccounts[0];
   root.dataset.selectedFundedId = selected.id;
+  const authorityMeta = describeAccountAuthority(selected.linked || selectCurrentAccount(state), "derived");
+  console.info("[KMFX][FUNDED_AUTHORITY]", {
+    account_id: selected.linked?.id || "",
+    login: selected.linked?.login || "",
+    broker: selected.linked?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "derived_funded_progress",
+  });
 
   const statusMeta = fundedStatusMeta(selected.globalStatus);
   const challengeMeta = challengeStateMeta(selected.challengeState);
@@ -396,6 +405,8 @@ export function renderFunded(root, state) {
         <div class="tl-page-title">Funded</div>
         <div class="tl-page-sub">Mission progress, compliance y preservación de capital para cuentas prop.</div>
       </div>
+
+      ${renderAuthorityNotice(authorityMeta)}
 
       <article class="tl-section-card funded-hero-card">
         <div class="funded-account-switch">

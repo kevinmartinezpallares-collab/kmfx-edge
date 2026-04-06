@@ -2,7 +2,7 @@ const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-210500";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-213500";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
@@ -207,6 +207,48 @@ export function resolveAccountDataAuthority(account) {
     shouldRenderLoadingSkeleton: sourceType === "mt5" && !hasUsableLiveSnapshot && !hasRenderableIdentity,
     sourceUsed: hasLivePayload ? "dashboard_payload_live" : "model_fallback",
   };
+}
+
+export function describeAccountAuthority(account, kind = "derived") {
+  const authority = resolveAccountDataAuthority(account);
+  if (kind === "workspace") {
+    return {
+      tone: "neutral",
+      label: "Workspace",
+      title: "Herramienta de workspace",
+      text: "Esta vista usa la cuenta activa como contexto, pero parte de su contenido pertenece al workspace local del usuario y no al snapshot MT5 del backend.",
+      authority,
+    };
+  }
+  if (kind === "derived") {
+    return {
+      tone: "info",
+      label: "Derivado",
+      title: "Análisis derivado del ledger real",
+      text: authority.firstTradeLabel
+        ? `Esta vista se calcula sobre el ledger real de la cuenta activa, desde ${authority.firstTradeLabel}${authority.lastTradeLabel ? ` hasta ${authority.lastTradeLabel}` : ""}.`
+        : "Esta vista se calcula sobre el ledger real disponible de la cuenta activa.",
+      authority,
+    };
+  }
+  return {
+    tone: "ok",
+    label: "Live",
+    title: "Dato live de cuenta",
+    text: authority.firstTradeLabel
+      ? `Esta vista usa el snapshot live de la cuenta activa y el ledger real disponible desde ${authority.firstTradeLabel}.`
+      : "Esta vista usa el snapshot live de la cuenta activa.",
+    authority,
+  };
+}
+
+export function renderAuthorityNotice(authorityMeta) {
+  if (!authorityMeta) return "";
+  return `
+    <div class="calendar-inline-note calendar-inline-note--${authorityMeta.tone || "info"}">
+      <strong>${authorityMeta.title || "Fuente de datos"}</strong> ${authorityMeta.text || ""}
+    </div>
+  `;
 }
 
 export function resolveActiveAccountId(state) {

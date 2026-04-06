@@ -1,7 +1,7 @@
-import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-210500";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-210500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-210500";
+import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
+import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-213500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 
 const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 

@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-203500";
+import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, renderAuthorityNotice, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">
@@ -20,6 +20,7 @@ function accountStatusBadge(account) {
 }
 
 function renderPortfolioAccountCard(account, isMain) {
+  const display = resolveAccountDisplayIdentity(account);
   const pnlSummary = resolveAccountPnlSummary(account);
   const pnl = account?.sourceType === "mt5"
     ? Number(pnlSummary.heroOpenPnl || 0)
@@ -67,7 +68,7 @@ function renderPortfolioAccountCard(account, isMain) {
       <div class="account-hero-card__content">
         <div class="account-hero-card__top" style="${topInlineStyle}">
           <div>
-            <div class="account-hero-card__name" style="${nameInlineStyle}">${account.name}</div>
+              <div class="account-hero-card__name" style="${nameInlineStyle}">${display.title}</div>
             <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
           </div>
           ${accountStatusBadge(account)}
@@ -101,6 +102,15 @@ export function renderPortfolio(root, state) {
     root.innerHTML = "";
     return;
   }
+  const authorityMeta = describeAccountAuthority(accounts[0], "derived");
+  console.info("[KMFX][PORTFOLIO_AUTHORITY]", {
+    account_id: accounts[0]?.id || "",
+    login: accounts[0]?.login || "",
+    broker: accounts[0]?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "live_plus_derived_aggregate",
+  });
 
   const activeAccounts = accounts.filter((account) => account.connection.state === "connected" || account.connection.state === "connecting" || account.connection.state === "error");
   const totalBalance = accounts.reduce((sum, account) => sum + (account.model?.account?.balance || 0), 0);
@@ -117,6 +127,8 @@ export function renderPortfolio(root, state) {
       <div class="tl-page-title">Portfolio</div>
       <div class="tl-page-sub">Vista global del libro multi-cuenta con balance, equity y exposición abierta consolidada.</div>
     </div>
+
+    ${renderAuthorityNotice(authorityMeta)}
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Balance Total</div><div class="tl-kpi-val">${formatCurrency(totalBalance)}</div></article>

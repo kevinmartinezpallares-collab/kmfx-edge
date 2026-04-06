@@ -1,6 +1,6 @@
-import { formatCurrency, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260406-203500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260406-203500";
+import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260406-213500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 
 const INSTRUMENTS = [
   { id: "forex", label: "Forex", symbols: ["EURUSD", "GBPUSD", "USDJPY"] },
@@ -183,8 +183,18 @@ export function initCalculator(store) {
 }
 
 export function renderCalculator(root, state) {
+  const account = selectCurrentAccount(state);
   const currentModel = selectCurrentModel(state);
   const model = calculateModel(state);
+  const authorityMeta = describeAccountAuthority(account, "workspace");
+  console.info("[KMFX][CALCULATOR_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "workspace_risk_tool",
+  });
   const calc = model.calc;
   const instrumentSymbols = INSTRUMENTS.find((item) => item.id === calc.instrument)?.symbols || [];
   const adviceTone = model.riskAdvice?.risk_state === "LOCKED" || model.riskAdvice?.risk_state === "DANGER"
@@ -206,6 +216,8 @@ export function renderCalculator(root, state) {
       <div class="tl-page-title">Calculadora de Lotaje</div>
       <div class="tl-page-sub">Sizing rápido con broker, instrumento, riesgo real y exposición operativa controlada.</div>
     </div>
+
+    ${renderAuthorityNotice(authorityMeta)}
 
     <div class="grid-2 equal">
       <article class="tl-section-card">

@@ -1,5 +1,5 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260406-203500";
-import { formatCurrency, selectCurrentAccount } from "./utils.js?v=build-20260406-203500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 
 const emptyForm = {
   date: "2026-03-20",
@@ -125,6 +125,15 @@ export function renderJournal(root, state) {
     root.innerHTML = "";
     return;
   }
+  const authorityMeta = describeAccountAuthority(account, "workspace");
+  console.info("[KMFX][JOURNAL_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "workspace_journal",
+  });
 
   const { entries } = state.workspace.journal;
   const accountEntries = entries.filter((entry) => entry.accountId === account.id);
@@ -138,6 +147,8 @@ export function renderJournal(root, state) {
         <button class="btn-primary" data-journal-action="new">Nueva entrada</button>
       </div>
     </div>
+
+    ${renderAuthorityNotice(authorityMeta)}
 
     <div class="grid-2 equal">
       <article class="tl-section-card">

@@ -1,6 +1,6 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-210500";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-210500";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-210500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
+import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -11,7 +11,7 @@ import {
   renderRiskStatusBadge,
   renderSymbolExposureTable,
   riskToneFromStatus,
-} from "./risk-panel-components.js?v=build-20260406-210500";
+} from "./risk-panel-components.js?v=build-20260406-213500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));

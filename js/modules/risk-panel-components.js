@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent } from "./utils.js?v=build-20260406-203500";
+import { formatCurrency, formatPercent } from "./utils.js?v=build-20260406-213500";
 
 function formatPlainPercent(value, digits = 2) {
   const parsed = Number(value);

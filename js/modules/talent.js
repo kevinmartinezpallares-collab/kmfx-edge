@@ -1,12 +1,22 @@
-import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-203500";
-import { formatPercent, selectCurrentModel } from "./utils.js?v=build-20260406-203500";
+import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
 export function renderTalent(root, state) {
+  const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
   if (!model) {
     root.innerHTML = "";
     return;
   }
+  const authorityMeta = describeAccountAuthority(account, "derived");
+  console.info("[KMFX][TALENT_AUTHORITY]", {
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authorityMeta.authority.payloadSource,
+    tradeCount: authorityMeta.authority.tradeCount,
+    sourceUsed: "derived_skill_profile",
+  });
   const score = model.totals.riskScore || 0;
   const maxDd = model.totals.drawdown?.maxPct || 0;
   const rr = model.totals.rr || 0;
@@ -30,6 +40,8 @@ export function renderTalent(root, state) {
       <div class="tl-page-title">Talent / Progress Tracker</div>
       <div class="tl-page-sub">Lectura de desarrollo del trader con score, radar competencial, ratios avanzados y objetivos de ejecución.</div>
     </div>
+
+    ${renderAuthorityNotice(authorityMeta)}
 
     <div class="grid-2 equal">
       <article class="tl-section-card talent-score-surface">
