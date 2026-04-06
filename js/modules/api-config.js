@@ -1,3 +1,5 @@
+const PRODUCTION_API_BASE_URL = "https://kmfx-edge-api.onrender.com";
+
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
   return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
@@ -27,11 +29,11 @@ export function resolveApiBaseUrl() {
   } else if (isLocalRuntime()) {
     cachedBaseUrl = "http://127.0.0.1:8000";
   } else {
-    cachedBaseUrl = "";
+    cachedBaseUrl = PRODUCTION_API_BASE_URL;
   }
 
   console.info("[KMFX][API]", {
-    label: "resolve-base-url",
+    label: "base url resolved",
     baseURL: cachedBaseUrl || "(unset)",
     mode: isLocalRuntime() ? "local" : "production",
   });

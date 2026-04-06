@@ -1,6 +1,6 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260405-205500";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260405-205500";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260405-205500";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-090500";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-090500";
+import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260406-090500";
 
 function normalizeBridgeUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();

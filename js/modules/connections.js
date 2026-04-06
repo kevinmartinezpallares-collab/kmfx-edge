@@ -1,6 +1,6 @@
-import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260405-205500";
-import { showToast } from "./toast.js?v=build-20260405-205500";
-import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260405-205500";
+import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-090500";
+import { showToast } from "./toast.js?v=build-20260406-090500";
+import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-090500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
