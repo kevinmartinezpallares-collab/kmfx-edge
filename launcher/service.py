@@ -327,6 +327,7 @@ app = FastAPI(title="KMFX Launcher Service", version="0.1.0")
 async def on_startup() -> None:
     runtime.start()
     runtime.logger.info("[KMFX][LAUNCHER] backend target resolved url=%s", config.backend_base_url)
+    runtime.logger.info("[KMFX][LAUNCHER] local bridge listening on http://%s:%s", config.local_host, config.local_port)
     runtime.logger.info("[KMFX][LAUNCHER] service startup host=%s port=%s backend=%s", config.local_host, config.local_port, config.backend_base_url)
 
 

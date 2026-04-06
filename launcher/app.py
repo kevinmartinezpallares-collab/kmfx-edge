@@ -41,8 +41,10 @@ class LauncherApp:
         self.account_status = tk.StringVar(value="Sin sincronización")
         self.connection_key = tk.StringVar(value=self.config.connection_key)
         self._build_ui()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.refresh_installations()
         self.refresh_pending_accounts()
+        self.root.after(150, self.ensure_service_started)
         self.root.after(1000, self.refresh_status)
 
     def _build_ui(self) -> None:
@@ -108,9 +110,12 @@ class LauncherApp:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=2)
         ttk.Label(parent, textvariable=value_var).grid(row=row, column=1, sticky="w", pady=2, padx=(12, 0))
 
-    def save_launcher_config(self) -> None:
+    def persist_launcher_config(self) -> None:
         self.config.connection_key = self.connection_key.get().strip()
         save_config(self.config.ensure_runtime_values())
+
+    def save_launcher_config(self) -> None:
+        self.persist_launcher_config()
         messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán este connection_key.")
 
     def refresh_pending_accounts(self) -> None:
@@ -183,10 +188,17 @@ class LauncherApp:
     def start_service(self) -> None:
         if self.service_process and self.service_process.poll() is None:
             return
-        self.save_launcher_config()
+        self.persist_launcher_config()
         self.service_process = subprocess.Popen([sys.executable, "-m", "launcher.service"], cwd=str(Path(__file__).resolve().parent.parent))
         self.logger.info("[KMFX][LAUNCHER] service process started pid=%s", self.service_process.pid if self.service_process else "")
         self.service_status.set("STARTING")
+
+    def ensure_service_started(self) -> None:
+        if self.fetch_json("/health"):
+            self.logger.info("[KMFX][LAUNCHER] local bridge already running on %s", self.service_url(""))
+            self.service_status.set("ON")
+            return
+        self.start_service()
 
     def stop_service(self) -> None:
         if self.service_process and self.service_process.poll() is None:
@@ -276,6 +288,10 @@ class LauncherApp:
 
     def run(self) -> None:
         self.root.mainloop()
+
+    def on_close(self) -> None:
+        self.stop_service()
+        self.root.destroy()
 
 
 def main() -> None:
