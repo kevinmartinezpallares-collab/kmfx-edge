@@ -76,7 +76,6 @@ function mergeLiveAccounts(store, snapshot) {
   const previousCurrentAccount = state.currentAccount;
   const activeAccountId = snapshot?.active_account_id || normalizedAccounts.find((account) => account.isDefault)?.accountId || liveAccountIds[0] || state.currentAccount;
   const selectedAccount = normalizedAccounts.find((account) => account.accountId === activeAccountId) || normalizedAccounts[0] || null;
-  const selectedLogin = selectedAccount?.login || "";
   const currentAccountIsLive = liveAccountIds.includes(previousCurrentAccount);
   let resolvedCurrentAccount = previousCurrentAccount;
 
@@ -97,6 +96,12 @@ function mergeLiveAccounts(store, snapshot) {
     liveAccountIds,
     activeAccountId,
     resolvedCurrentAccount,
+  });
+  console.info("[KMFX][ACCOUNT_SELECTION_RESOLVED]", {
+    selectedAccountId: selectedAccount?.accountId || resolvedCurrentAccount || "",
+    selectedLogin: selectedAccount?.login || "",
+    broker: selectedAccount?.broker || "",
+    sourceType: "mt5",
   });
 
   const sameLiveIds = liveAccountIds.length === (state.liveAccountIds || []).length
@@ -134,7 +139,7 @@ function mergeLiveAccounts(store, snapshot) {
     ),
     liveAccountIds,
     activeLiveAccountId: activeAccountId || null,
-    activeAccountId: selectedLogin || null,
+    activeAccountId: activeAccountId || null,
     mode: liveAccountIds.length > 0 ? "live" : "mock",
     bootResolved: true,
     currentAccount: resolvedCurrentAccount,
@@ -207,7 +212,6 @@ export function initAccountsLiveSnapshot(store) {
         ok: true,
         count: payload.accounts.length,
         selectedAccountId: payload.accounts[0]?.account_id || "",
-        login: payload.accounts[0]?.login || "",
       };
     } catch (error) {
       console.warn("[KMFX][ACCOUNTS] http snapshot error", error);

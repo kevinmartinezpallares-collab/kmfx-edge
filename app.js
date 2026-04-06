@@ -682,7 +682,8 @@ async function bootstrapApp() {
       mode: "live",
       bootResolved: true,
       currentAccount: snapshotBootstrap.selectedAccountId || state.currentAccount,
-      activeAccountId: snapshotBootstrap.login || state.activeAccountId || null,
+      activeLiveAccountId: snapshotBootstrap.selectedAccountId || state.activeLiveAccountId || null,
+      activeAccountId: snapshotBootstrap.selectedAccountId || state.activeAccountId || null,
     }));
   } else {
     store.setState((state) => ({

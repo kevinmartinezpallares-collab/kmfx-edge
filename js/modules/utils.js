@@ -112,6 +112,10 @@ export function getAccountTypeLabel(mode = "", name = "") {
 }
 
 export function resolveActiveAccountId(state) {
+  return resolveSelectedLiveAccountId(state);
+}
+
+export function resolveSelectedLiveAccountId(state) {
   const accounts = state?.accounts && typeof state.accounts === "object" ? state.accounts : {};
   const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds.filter((id) => accounts[id]) : [];
   const activeLiveAccountId = state?.activeLiveAccountId;
@@ -125,6 +129,11 @@ export function resolveActiveAccountId(state) {
 
   if (currentAccount && accounts[currentAccount]) return currentAccount;
   return Object.keys(accounts)[0] || null;
+}
+
+export function resolveSelectedLiveAccount(state) {
+  const selectedAccountId = resolveSelectedLiveAccountId(state);
+  return selectedAccountId ? state?.accounts?.[selectedAccountId] || null : null;
 }
 
 export function hasLiveAccounts(state) {
@@ -158,20 +167,59 @@ export function resolveAccountPnlSummary(account) {
 }
 
 export function resolvePerformanceCardSource(account) {
+  return resolvePerformanceViewModel(account);
+}
+
+export function resolvePerformanceViewModel(account) {
   const model = account?.model || {};
+  const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object"
+    ? account.dashboardPayload
+    : {};
   const accountMetrics = model.account || {};
   const pnlSummary = resolveAccountPnlSummary(account);
-  const historyPoints = Array.isArray(model.equityCurve) ? model.equityCurve.length : 0;
+  const explicitHistory = Array.isArray(dashboardPayload.history)
+    ? dashboardPayload.history
+        .map((point, index) => {
+          const numericValue = Number(point?.value);
+          if (!Number.isFinite(numericValue)) return null;
+          return {
+            label: point?.label || `P${index + 1}`,
+            value: numericValue,
+          };
+        })
+        .filter(Boolean)
+    : [];
+  const fallbackSeries = Array.isArray(model.equityCurve) && model.equityCurve.length
+    ? model.equityCurve
+    : [
+        { label: "Base", value: Number(accountMetrics.balance || 0) },
+        { label: "Ahora", value: Number(accountMetrics.equity ?? accountMetrics.balance ?? 0) },
+      ];
+  const chartSeries = pnlSummary.usedExplicitLivePayload && explicitHistory.length ? explicitHistory : fallbackSeries;
+  const historyPoints = chartSeries.length;
+  const openPnl = Number(pnlSummary.heroOpenPnl || 0);
+  const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
+  const totalPnl = Number(pnlSummary.heroTotalPnl || 0);
   const mainPerformanceValue = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
-    ? Number(accountMetrics.equity ?? accountMetrics.balance ?? 0)
-    : Number(accountMetrics.equity ?? pnlSummary.heroTotalPnl ?? 0);
+    ? totalPnl
+    : Number(accountMetrics.equity ?? totalPnl ?? 0);
+  const firstPoint = chartSeries[0]?.value ?? Number(accountMetrics.balance || 0);
+  const lastPoint = chartSeries.at(-1)?.value ?? Number(accountMetrics.equity ?? accountMetrics.balance ?? 0);
+  const rangeValue = Number(lastPoint - firstPoint || 0);
 
   return {
     ...pnlSummary,
+    selectedAccountId: account?.id || "",
     mainPerformanceValue,
+    openPnl,
+    closedPnl,
+    totalPnl,
+    rangeValue,
+    chartSeries,
     historyPoints,
-    sourceUsed: pnlSummary.usedExplicitLivePayload ? "mt5_live_payload" : "model_fallback",
+    sourceUsed: pnlSummary.usedExplicitLivePayload ? "dashboard_payload_explicit_live" : "model_fallback",
     broker: account?.broker || account?.meta?.broker || "",
+    server: account?.server || account?.meta?.server || "",
     login: account?.login || account?.meta?.login || "",
   };
 }
@@ -361,8 +409,7 @@ export function buildDashboardModel(source) {
 }
 
 export function selectCurrentAccount(state) {
-  const activeAccountId = resolveActiveAccountId(state);
-  return activeAccountId ? state?.accounts?.[activeAccountId] || null : null;
+  return resolveSelectedLiveAccount(state);
 }
 
 export function selectCurrentModel(state) {

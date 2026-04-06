@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountPnlSummary, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-104500";
 import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260406-104500";
 
 const accountSurfacePages = new Set(["dashboard"]);
@@ -119,7 +119,7 @@ export function initAccountsUI(store) {
       ...current,
       currentAccount: accountId,
       activeLiveAccountId: accountId,
-      activeAccountId: selectedAccount.login || current.activeAccountId || null,
+      activeAccountId: accountId,
       mode: Array.isArray(current.liveAccountIds) && current.liveAccountIds.length > 0 ? "live" : current.mode,
     }));
 
@@ -128,6 +128,12 @@ export function initAccountsUI(store) {
       login: selectedAccount.login || "",
       broker: selectedAccount.broker || "",
       payloadSource: selectedAccount.dashboardPayload?.payloadSource || selectedAccount.model?.sourceTrace?.payloadSource || "",
+    });
+    console.info("[KMFX][ACCOUNT_SELECTION_RESOLVED]", {
+      selectedAccountId: accountId,
+      selectedLogin: selectedAccount.login || "",
+      broker: selectedAccount.broker || "",
+      sourceType: selectedAccount.sourceType || "",
     });
   });
 
@@ -141,11 +147,16 @@ export function initAccountsUI(store) {
       ...state,
       currentAccount: accountId,
       activeLiveAccountId: accountId,
-      activeAccountId: state.accounts?.[accountId]?.login || state.activeAccountId || null,
+      activeAccountId: accountId,
       mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : state.mode,
     }));
 
-    console.log("[KMFX][ACCOUNT] switched", accountId);
+    console.info("[KMFX][ACCOUNT_SELECTION_RESOLVED]", {
+      selectedAccountId: accountId,
+      selectedLogin: state.accounts?.[accountId]?.login || "",
+      broker: state.accounts?.[accountId]?.broker || "",
+      sourceType: state.accounts?.[accountId]?.sourceType || "",
+    });
   });
 
   const render = (state) => {
@@ -157,7 +168,7 @@ export function initAccountsUI(store) {
     }
 
     const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
-    const activeAccountId = resolveActiveAccountId(state);
+    const activeAccountId = resolveSelectedLiveAccountId(state);
     const hasLiveAccounts = liveAccountIds.length > 0;
     console.log("[KMFX][PANEL]", {
       liveAccountIds,
@@ -211,7 +222,7 @@ export function initAccountsUI(store) {
                 style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:inherit;font:inherit;outline:none;"
               >
                 ${accounts.map((account) => {
-                  const label = [account.meta?.nickname || account.dashboardPayload?.nickname || "", account.broker, account.login].filter(Boolean).join(" · ");
+                  const label = [account.meta?.nickname || account.dashboardPayload?.nickname || "", account.broker, account.login, account.server].filter(Boolean).join(" · ");
                   return `<option value="${account.id}" ${account.id === activeAccountId ? "selected" : ""}>${label || account.name}</option>`;
                 }).join("")}
               </select>
