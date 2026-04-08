@@ -1,6 +1,5 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolvePanelViewModel, resolveRiskViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -92,7 +91,8 @@ export function renderDashboard(root, state) {
   const model = selectCurrentModel(state);
   const account = selectCurrentAccount(state);
   const dashboardPayload = selectCurrentDashboardPayload(state);
-  const performanceView = resolvePerformanceViewModel(account);
+  const panelView = resolvePanelViewModel(account);
+  const riskView = resolveRiskViewModel(account);
   console.log("[KMFX][PANEL][TRACE]", {
     currentAccount: state.currentAccount,
     activeAccountId,
@@ -132,8 +132,8 @@ export function renderDashboard(root, state) {
   const axisStandard = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-text").trim() || undefined;
   const chartSpecs = [];
   const heroRange = root.dataset.heroRange || "1M";
-  const baseCurve = Array.isArray(performanceView.chartSeries) && performanceView.chartSeries.length
-    ? performanceView.chartSeries
+  const baseCurve = Array.isArray(panelView.chartSeries) && panelView.chartSeries.length
+    ? panelView.chartSeries
     : [
         { label: "Base", value: model.account.balance },
         { label: "Ahora", value: model.account.equity },
@@ -144,107 +144,131 @@ export function renderDashboard(root, state) {
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
   const heroDelta = heroEnd - heroStart;
   const heroDeltaPct = heroStart ? (heroDelta / heroStart) * 100 : 0;
-  if (account?.sourceType === "mt5" && performanceView.usedExplicitLivePayload) {
+  if (account?.sourceType === "mt5" && panelView.reportMetrics) {
     console.info("[KMFX][LEGACY_BLOCKED]", {
       account_id: account?.id || "",
       login: account?.login || "",
       broker: account?.broker || "",
-      payloadSource: performanceView.payloadSource,
-      balance: performanceView.balance,
-      equity: performanceView.equity,
-      openPnl: performanceView.openPnl,
-      totalPnl: performanceView.totalPnl,
-      historyLength: performanceView.historyPoints,
+      payloadSource: panelView.payloadSource,
+      balance: panelView.balance,
+      equity: panelView.equity,
+      openPnl: panelView.openPnl,
+      totalPnl: panelView.totalPnl,
+      historyLength: panelView.historyPoints,
       renderTarget: "dashboard_performance",
-      primaryMetricUsed: performanceView.primaryMetricUsed,
+      primaryMetricUsed: panelView.primaryMetricUsed,
     });
   }
-  const currentPnl = Number(performanceView.openPnl || 0);
-  const bannerMetricValue = Number(performanceView.mainPerformanceValue || 0);
+  const currentPnl = Number(panelView.openPnl || 0);
+  const bannerMetricValue = Number(panelView.mainPerformanceValue || 0);
   const currentReturnPct = model.account.balance ? (currentPnl / model.account.balance) * 100 : cumulativeReturn;
+  console.info("[KMFX][PANEL_REPORT_SOURCE]", {
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
+    payloadSource: panelView.payloadSource,
+    sourceUsed: panelView.sourceUsed.report,
+    freshness: panelView.freshness,
+  });
+  console.info("[KMFX][PANEL_LIVE_SOURCE]", {
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
+    payloadSource: panelView.payloadSource,
+    sourceUsed: panelView.sourceUsed.live,
+    freshness: panelView.freshness,
+  });
+  if (!panelView.reportMetrics) {
+    console.warn("[KMFX][WIDGET_FALLBACK]", {
+      widget: "panel_metrics",
+      account_id: panelView.selectedAccountId,
+      payloadSource: panelView.payloadSource,
+      sourceUsed: panelView.sourceUsed.report,
+    });
+  }
   console.log("[KMFX][HERO][SOURCE]", {
     accountId: account?.id || "",
     sourceType: account?.sourceType || "",
-    payloadSource: performanceView.payloadSource,
-    heroOpenPnl: performanceView.openPnl,
-    heroClosedPnl: performanceView.closedPnl,
-    heroTotalPnl: performanceView.totalPnl,
-    openPositionsCount: performanceView.openPositionsCount,
-    usedExplicitLivePayload: performanceView.usedExplicitLivePayload,
+    payloadSource: panelView.payloadSource,
+    heroOpenPnl: panelView.openPnl,
+    heroClosedPnl: panelView.closedPnl,
+    heroTotalPnl: panelView.totalPnl,
+    openPositionsCount: panelView.openPositionsCount,
+    usedExplicitLivePayload: panelView.usedExplicitLivePayload,
   });
   console.log("[KMFX][ACCOUNT_BANNER][SOURCE]", {
     accountId: account?.id || "",
     sourceType: account?.sourceType || "",
-    payloadSource: performanceView.payloadSource,
+    payloadSource: panelView.payloadSource,
     bannerMetricValue,
-    heroOpenPnl: performanceView.openPnl,
-    heroClosedPnl: performanceView.closedPnl,
-    heroTotalPnl: performanceView.totalPnl,
-    openPositionsCount: performanceView.openPositionsCount,
-    usedExplicitLivePayload: performanceView.usedExplicitLivePayload,
+    heroOpenPnl: panelView.openPnl,
+    heroClosedPnl: panelView.closedPnl,
+    heroTotalPnl: panelView.totalPnl,
+    openPositionsCount: panelView.openPositionsCount,
+    usedExplicitLivePayload: panelView.usedExplicitLivePayload,
   });
   console.info("[KMFX][PERFORMANCE_VIEW_MODEL]", {
-    account_id: performanceView.selectedAccountId,
-    login: performanceView.login,
-    broker: performanceView.broker,
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
     sourceType: account?.sourceType || "",
-    payloadSource: performanceView.payloadSource,
-    balance: performanceView.balance,
-    equity: performanceView.equity,
-    mainPerformanceValue: performanceView.mainPerformanceValue,
-    openPnl: performanceView.openPnl,
-    totalPnl: performanceView.totalPnl,
-    openPositionsCount: performanceView.openPositionsCount,
-    historyLength: performanceView.historyPoints,
-    sourceUsed: performanceView.sourceUsed,
-    primaryMetricUsed: performanceView.primaryMetricUsed,
+    payloadSource: panelView.payloadSource,
+    balance: panelView.balance,
+    equity: panelView.equity,
+    mainPerformanceValue: panelView.mainPerformanceValue,
+    openPnl: panelView.openPnl,
+    totalPnl: panelView.totalPnl,
+    openPositionsCount: panelView.openPositionsCount,
+    historyLength: panelView.historyPoints,
+    sourceUsed: panelView.sourceUsed,
+    primaryMetricUsed: panelView.primaryMetricUsed,
   });
   console.info("[KMFX][PERFORMANCE_SOURCE]", {
-    account_id: performanceView.selectedAccountId,
-    login: performanceView.login,
-    broker: performanceView.broker,
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
     sourceType: account?.sourceType || "",
-    payloadSource: performanceView.payloadSource,
-    balance: performanceView.balance,
-    equity: performanceView.equity,
-    mainPerformanceValue: performanceView.mainPerformanceValue,
-    openPnl: performanceView.openPnl,
-    totalPnl: performanceView.totalPnl,
-    openPositionsCount: performanceView.openPositionsCount,
-    historyLength: performanceView.historyPoints,
+    payloadSource: panelView.payloadSource,
+    balance: panelView.balance,
+    equity: panelView.equity,
+    mainPerformanceValue: panelView.mainPerformanceValue,
+    openPnl: panelView.openPnl,
+    totalPnl: panelView.totalPnl,
+    openPositionsCount: panelView.openPositionsCount,
+    historyLength: panelView.historyPoints,
     renderTarget: "account_banner_and_performance_card",
-    sourceUsed: performanceView.sourceUsed,
-    primaryMetricUsed: performanceView.primaryMetricUsed,
+    sourceUsed: panelView.sourceUsed,
+    primaryMetricUsed: panelView.primaryMetricUsed,
   });
   console.info("[KMFX][PERFORMANCE_PRIMARY_VALUE]", {
-    account_id: performanceView.selectedAccountId,
-    login: performanceView.login,
-    broker: performanceView.broker,
-    payloadSource: performanceView.payloadSource,
-    balance: performanceView.balance,
-    equity: performanceView.equity,
-    openPnl: performanceView.openPnl,
-    totalPnl: performanceView.totalPnl,
-    historyLength: performanceView.historyPoints,
-    primaryMetricUsed: performanceView.primaryMetricUsed,
-    mainPerformanceValue: performanceView.mainPerformanceValue,
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
+    payloadSource: panelView.payloadSource,
+    balance: panelView.balance,
+    equity: panelView.equity,
+    openPnl: panelView.openPnl,
+    totalPnl: panelView.totalPnl,
+    historyLength: panelView.historyPoints,
+    primaryMetricUsed: panelView.primaryMetricUsed,
+    mainPerformanceValue: panelView.mainPerformanceValue,
   });
   console.info("[KMFX][CHART_SOURCE]", {
-    account_id: performanceView.selectedAccountId,
-    login: performanceView.login,
-    broker: performanceView.broker,
+    account_id: panelView.selectedAccountId,
+    login: panelView.login,
+    broker: panelView.broker,
     sourceType: account?.sourceType || "",
-    payloadSource: performanceView.payloadSource,
-    balance: performanceView.balance,
-    equity: performanceView.equity,
-    mainPerformanceValue: performanceView.mainPerformanceValue,
-    openPnl: performanceView.openPnl,
-    totalPnl: performanceView.totalPnl,
-    openPositionsCount: performanceView.openPositionsCount,
-    historyLength: performanceView.historyPoints,
+    payloadSource: panelView.payloadSource,
+    balance: panelView.balance,
+    equity: panelView.equity,
+    mainPerformanceValue: panelView.mainPerformanceValue,
+    openPnl: panelView.openPnl,
+    totalPnl: panelView.totalPnl,
+    openPositionsCount: panelView.openPositionsCount,
+    historyLength: panelView.historyPoints,
     renderTarget: "dashboard_hero_equity_chart",
-    sourceUsed: performanceView.usedExplicitLivePayload ? "dashboard_payload.history" : "model.equityCurve_fallback",
-    primaryMetricUsed: performanceView.primaryMetricUsed,
+    sourceUsed: panelView.sourceUsed.chart,
+    primaryMetricUsed: panelView.primaryMetricUsed,
   });
   console.info("[KMFX][DASHBOARD_LEDGER_AUTHORITY]", {
     account_id: account?.id || "",
@@ -263,10 +287,50 @@ export function renderDashboard(root, state) {
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
   const heroPnlLabel = account?.sourceType === "mt5" ? "Open PnL" : "PnL total";
-  const riskSummary = selectRiskSummary(state);
-  const riskStatus = selectRiskStatus(state);
-  const riskLimits = selectRiskLimits(state);
-  const riskExposure = selectRiskExposure(state);
+  const riskSummary = {
+    peakToEquityDrawdownPct: riskView.live.peakToEquityDrawdownPct,
+    floatingDrawdownPct: riskView.live.floatingDrawdownPct,
+    dailyDrawdownPct: riskView.live.dailyDrawdownPct,
+    dailyPeakEquity: riskView.live.dailyPeakEquity,
+    distanceToMaxDdLimitPct: riskView.live.distanceToMaxDdLimitPct,
+    distanceToDailyDdLimitPct: riskView.live.distanceToDailyDdLimitPct,
+    totalOpenRiskPct: riskView.live.totalOpenRiskPct,
+    totalOpenRiskAmount: riskView.live.totalOpenRiskAmount,
+    maxOpenTradeRiskPct: riskView.live.maxOpenTradeRiskPct,
+    maxRiskPerTradePct: riskView.live.maxRiskPerTradePct,
+    portfolioHeatLimitPct: riskView.live.portfolioHeatLimitPct,
+    distanceToHeatLimitPct: riskView.live.distanceToHeatLimitPct,
+    heatUsageRatioPct: riskView.live.heatUsageRatioPct,
+    maxDrawdownLimitPct: riskView.policy.maxDdLimitPct,
+  };
+  const riskStatus = {
+    riskStatus: riskView.live.riskStatus,
+    severity: riskView.live.severity,
+    blockingRule: riskView.live.blockingRule,
+    reasonCode: riskView.live.reasonCode,
+    actionRequired: riskView.live.actionRequired,
+    allowNewTrades: riskView.live.allowNewTrades,
+    blockNewTrades: riskView.live.blockNewTrades,
+    reduceSize: riskView.live.reduceSize,
+    closePositionsRequired: riskView.live.closePositionsRequired,
+  };
+  const riskLimits = {
+    policy: {
+      dailyDdLimitPct: riskView.policy.dailyDdLimitPct,
+    },
+    evaluation: {
+      limitsStatus: {
+        max_drawdown: { state: riskSummary.distanceToMaxDdLimitPct <= 0 ? "breach" : "ok" },
+        daily_drawdown: { state: riskSummary.distanceToDailyDdLimitPct <= 0 ? "breach" : "ok" },
+        portfolio_heat: { state: riskSummary.distanceToHeatLimitPct <= 0 ? "breach" : "ok" },
+        risk_per_trade: { state: riskSummary.maxRiskPerTradePct > 0 && riskSummary.maxOpenTradeRiskPct > riskSummary.maxRiskPerTradePct ? "breach" : "ok" },
+      },
+    },
+  };
+  const riskExposure = {
+    symbolExposure: riskView.live.symbolExposure,
+    openTradeRisks: riskView.live.openTradeRisks,
+  };
   const riskTone = riskToneFromStatus(riskStatus.riskStatus, riskStatus.severity);
   const riskStateLabel = riskStateDisplayLabel(riskStatus.riskStatus);
   const primaryDistanceToLimit = Math.min(
@@ -389,7 +453,7 @@ export function renderDashboard(root, state) {
                 <div class="account-banner-badges">
                   <span class="widget-pill">Estado: ${riskStatus.riskStatus}</span>
                   <span class="widget-pill">Heat ${formatRiskValuePct(riskSummary.totalOpenRiskPct, 2)}</span>
-                  <span class="widget-pill">${performanceView.openPositionsCount} posiciones activas</span>
+                  <span class="widget-pill">${panelView.openPositionsCount} posiciones activas</span>
                 </div>
                 <div class="dashboard-risk-inline">${riskAction}</div>
               </div>

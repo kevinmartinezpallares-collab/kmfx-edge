@@ -307,10 +307,14 @@ export function resolveAccountPnlSummary(account) {
 }
 
 export function resolvePerformanceCardSource(account) {
-  return resolvePerformanceViewModel(account);
+  return resolvePanelViewModel(account);
 }
 
 export function resolvePerformanceViewModel(account) {
+  return resolvePanelViewModel(account);
+}
+
+export function resolvePanelViewModel(account) {
   const model = account?.model || {};
   const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object"
     ? account.dashboardPayload
@@ -325,6 +329,7 @@ export function resolvePerformanceViewModel(account) {
   const accountMetrics = model.account || {};
   const pnlSummary = resolveAccountPnlSummary(account);
   const payloadSource = pnlSummary.payloadSource || dashboardPayload.payloadSource || "";
+  const sourceType = account?.sourceType || "";
   const balance = Number(accountMetrics.balance ?? dashboardPayload.balance ?? 0);
   const equity = Number(accountMetrics.equity ?? dashboardPayload.equity ?? balance);
   const explicitHistory = Array.isArray(dashboardPayload.history)
@@ -345,26 +350,36 @@ export function resolvePerformanceViewModel(account) {
         { label: "Base", value: Number(accountMetrics.balance || 0) },
         { label: "Ahora", value: Number(accountMetrics.equity ?? accountMetrics.balance ?? 0) },
       ];
-  const chartSeries = pnlSummary.usedExplicitLivePayload
-    ? (explicitHistory.length >= fallbackSeries.length && explicitHistory.length
-      ? explicitHistory
-      : fallbackSeries)
+  const chartSeries = explicitHistory.length
+    ? explicitHistory
     : fallbackSeries;
   const historyPoints = chartSeries.length;
   const openPnl = Number(pnlSummary.heroOpenPnl || 0);
   const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
   const totalPnl = Number(pnlSummary.heroTotalPnl || 0);
-  const mainPerformanceValue = reportMetrics && account?.sourceType === "mt5"
+  const mainPerformanceValue = reportMetrics && sourceType === "mt5"
     ? (Number.isFinite(Number(reportMetrics.equity)) ? Number(reportMetrics.equity) : Number(reportMetrics.balance ?? equity ?? balance))
-    : pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
+    : pnlSummary.usedExplicitLivePayload && sourceType === "mt5"
       ? (Number.isFinite(equity) ? equity : balance)
     : Number(accountMetrics.equity ?? totalPnl ?? 0);
   const firstPoint = chartSeries[0]?.value ?? balance;
   const lastPoint = chartSeries.at(-1)?.value ?? equity;
   const rangeValue = Number(lastPoint - firstPoint || 0);
-  const primaryMetricUsed = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
-    ? (Number.isFinite(equity) ? "equity" : "balance")
-    : "equity_or_fallback";
+  const primaryMetricUsed = reportMetrics && sourceType === "mt5"
+    ? (Number.isFinite(Number(reportMetrics.equity)) ? "reportMetrics.equity" : "reportMetrics.balance")
+    : pnlSummary.usedExplicitLivePayload && sourceType === "mt5"
+      ? (Number.isFinite(equity) ? "live.equity" : "live.balance")
+      : "fallback";
+  const connected = Boolean(account?.connection?.connected);
+  const lastSyncAt = account?.connection?.lastSync || dashboardPayload?.timestamp || null;
+  const freshnessMs = lastSyncAt ? Math.max(0, Date.now() - new Date(lastSyncAt).getTime()) : null;
+  const reportSourceUsed = reportMetrics ? "reportMetrics" : "fallback";
+  const liveSourceUsed = pnlSummary.usedExplicitLivePayload ? "dashboard_payload_live" : "fallback";
+  const chartSourceUsed = explicitHistory.length
+    ? "dashboard_payload.history"
+    : Array.isArray(model.equityCurve) && model.equityCurve.length
+      ? "model.equityCurve_fallback"
+      : "minimal_balance_equity";
 
   return {
     ...pnlSummary,
@@ -380,11 +395,138 @@ export function resolvePerformanceViewModel(account) {
     chartSeries,
     historyPoints,
     primaryMetricUsed,
-    sourceUsed: pnlSummary.usedExplicitLivePayload ? "dashboard_payload_explicit_live" : "model_fallback",
+    sourceUsed: {
+      report: reportSourceUsed,
+      live: liveSourceUsed,
+      chart: chartSourceUsed,
+    },
+    freshness: freshnessMs,
+    connected,
+    lastSyncAt,
     broker: account?.broker || account?.meta?.broker || "",
     server: account?.server || account?.meta?.server || "",
     login: account?.login || account?.meta?.login || "",
     reportMetrics,
+  };
+}
+
+export function resolveRiskViewModel(account) {
+  const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object"
+    ? account.dashboardPayload
+    : {};
+  const reportMetrics = dashboardPayload.reportMetrics && typeof dashboardPayload.reportMetrics === "object"
+    ? dashboardPayload.reportMetrics
+    : account?.reportMetrics && typeof account.reportMetrics === "object"
+      ? account.reportMetrics
+      : null;
+  const riskSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object"
+    ? dashboardPayload.riskSnapshot
+    : account?.riskSnapshot && typeof account.riskSnapshot === "object"
+      ? account.riskSnapshot
+      : null;
+  const riskRulesRaw = Array.isArray(dashboardPayload.riskRules)
+    ? dashboardPayload.riskRules
+    : Array.isArray(account?.riskRules)
+      ? account.riskRules
+      : [];
+  const payloadSource = dashboardPayload.payloadSource || account?.payloadSource || "";
+  const lastSyncAt = account?.connection?.lastSync || dashboardPayload?.timestamp || null;
+  const freshnessMs = lastSyncAt ? Math.max(0, Date.now() - new Date(lastSyncAt).getTime()) : null;
+  const connected = Boolean(account?.connection?.connected);
+  const reportSourceUsed = reportMetrics ? "reportMetrics" : riskSnapshot ? "riskSnapshot" : "fallback";
+  const liveSourceUsed = riskSnapshot ? "riskSnapshot" : "fallback";
+  const drawdownPct = Number(reportMetrics?.drawdownPct ?? riskSnapshot?.summary?.peak_to_equity_drawdown_pct ?? 0);
+  const dailyDrawdownPct = Number(riskSnapshot?.summary?.daily_drawdown_pct ?? 0);
+  const totalOpenRiskPct = Number(riskSnapshot?.summary?.total_open_risk_pct ?? 0);
+  const heatUsageRatioPct = Number(riskSnapshot?.summary?.heat_usage_ratio_pct ?? 0);
+  const maxOpenTradeRiskPct = Number(riskSnapshot?.summary?.max_open_trade_risk_pct ?? 0);
+  const maxRiskPerTradePct = Number(riskSnapshot?.summary?.max_risk_per_trade_pct ?? 0);
+  const maxDrawdownLimitPct = Number(riskSnapshot?.summary?.max_drawdown_limit_pct ?? riskSnapshot?.policy?.max_dd_limit_pct ?? 0);
+  const dailyDdLimitPct = Number(riskSnapshot?.policy?.daily_dd_limit_pct ?? 0);
+  const portfolioHeatLimitPct = Number(riskSnapshot?.summary?.portfolio_heat_limit_pct ?? riskSnapshot?.policy?.portfolio_heat_limit_pct ?? 0);
+  const rules = riskRulesRaw.map((rule, index) => ({
+    title: rule?.title || `Rule ${index + 1}`,
+    condition: rule?.condition || "Sin condición publicada",
+    state: rule?.state || "pending",
+    impact: rule?.impact || "Sin impacto publicado",
+    tone: rule?.tone || "neutral",
+    isDominant: Boolean(rule?.isDominant),
+  }));
+
+  return {
+    account_id: account?.id || "",
+    login: account?.login || account?.meta?.login || "",
+    broker: account?.broker || account?.meta?.broker || "",
+    payloadSource,
+    freshness: freshnessMs,
+    lastSyncAt,
+    connected,
+    sourceUsed: {
+      report: reportSourceUsed,
+      live: liveSourceUsed,
+    },
+    report: {
+      balance: Number(reportMetrics?.balance ?? dashboardPayload?.balance ?? 0),
+      equity: Number(reportMetrics?.equity ?? dashboardPayload?.equity ?? 0),
+      netProfit: Number(reportMetrics?.netProfit ?? 0),
+      grossProfit: Number(reportMetrics?.grossProfit ?? 0),
+      grossLoss: Number(reportMetrics?.grossLoss ?? 0),
+      winRate: Number(reportMetrics?.winRate ?? 0),
+      totalTrades: Number(reportMetrics?.totalTrades ?? 0),
+      profitFactor: Number(reportMetrics?.profitFactor ?? 0),
+      drawdownPct,
+      commissions: Number(reportMetrics?.commissions ?? 0),
+      swaps: Number(reportMetrics?.swaps ?? 0),
+      dividends: Number(reportMetrics?.dividends ?? 0),
+      maxConsecutiveWins: Number(reportMetrics?.maxConsecutiveWins ?? 0),
+      maxConsecutiveLosses: Number(reportMetrics?.maxConsecutiveLosses ?? 0),
+      maxConsecutiveProfit: Number(reportMetrics?.maxConsecutiveProfit ?? 0),
+      maxConsecutiveLoss: Number(reportMetrics?.maxConsecutiveLoss ?? 0),
+    },
+    live: {
+      riskStatus: riskSnapshot?.status?.risk_status || "empty",
+      severity: riskSnapshot?.status?.severity || "muted",
+      reasonCode: riskSnapshot?.status?.reason_code || "",
+      blockingRule: riskSnapshot?.status?.blocking_rule || "",
+      actionRequired: riskSnapshot?.status?.action_required || "",
+      allowNewTrades: Boolean(riskSnapshot?.status?.enforcement?.allow_new_trades),
+      blockNewTrades: Boolean(riskSnapshot?.status?.enforcement?.block_new_trades),
+      reduceSize: Boolean(riskSnapshot?.status?.enforcement?.reduce_size),
+      closePositionsRequired: Boolean(riskSnapshot?.status?.enforcement?.close_positions_required),
+      peakToEquityDrawdownPct: Number(riskSnapshot?.summary?.peak_to_equity_drawdown_pct ?? 0),
+      floatingDrawdownPct: Number(riskSnapshot?.summary?.floating_drawdown_pct ?? 0),
+      dailyDrawdownPct,
+      dailyPeakEquity: Number(riskSnapshot?.summary?.daily_peak_equity ?? 0),
+      distanceToMaxDdLimitPct: Number(riskSnapshot?.summary?.distance_to_max_dd_limit_pct ?? 0),
+      distanceToDailyDdLimitPct: Number(riskSnapshot?.summary?.distance_to_daily_dd_limit_pct ?? 0),
+      totalOpenRiskPct,
+      totalOpenRiskAmount: Number(riskSnapshot?.summary?.total_open_risk_amount ?? 0),
+      maxOpenTradeRiskPct,
+      maxRiskPerTradePct,
+      portfolioHeatLimitPct,
+      distanceToHeatLimitPct: Number(riskSnapshot?.summary?.distance_to_heat_limit_pct ?? 0),
+      heatUsageRatioPct,
+      openPositionsCount: Number(riskSnapshot?.summary?.open_positions_count ?? 0),
+      symbolExposure: Array.isArray(riskSnapshot?.exposure?.symbol_exposure) ? riskSnapshot.exposure.symbol_exposure : [],
+      openTradeRisks: Array.isArray(riskSnapshot?.exposure?.open_trade_risks) ? riskSnapshot.exposure.open_trade_risks : [],
+    },
+    policy: {
+      riskPerTradePct: Number(riskSnapshot?.policy?.risk_per_trade_pct ?? 0),
+      dailyDdLimitPct,
+      maxDdLimitPct: Number(riskSnapshot?.policy?.max_dd_limit_pct ?? 0),
+      portfolioHeatLimitPct: Number(riskSnapshot?.policy?.portfolio_heat_limit_pct ?? 0),
+      maxVolume: Number(riskSnapshot?.policy?.max_volume ?? 0),
+      allowedSessions: Array.isArray(riskSnapshot?.policy?.allowed_sessions) ? riskSnapshot.policy.allowed_sessions : [],
+      allowedSymbols: Array.isArray(riskSnapshot?.policy?.allowed_symbols) ? riskSnapshot.policy.allowed_symbols : [],
+      currentLevel: riskSnapshot?.policy?.current_level || "",
+    },
+    rules,
+    ladder: Array.isArray(riskSnapshot?.ladder_snapshot?.levels)
+      ? riskSnapshot.ladder_snapshot.levels
+      : Array.isArray(riskSnapshot?.ladderSnapshot?.levels)
+        ? riskSnapshot.ladderSnapshot.levels
+        : [],
+    rawSnapshot: riskSnapshot,
   };
 }
 
