@@ -412,7 +412,15 @@ export function resolvePerformanceViewModel(account) {
   const openPnl = Number(pnlSummary.heroOpenPnl || 0);
   const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
   const totalPnl = Number(pnlSummary.heroTotalPnl || 0);
-  const mainPerformanceValue = reportMetrics && account?.sourceType === "mt5"
+  const hasAuthoritativeReportMetrics = Boolean(
+    reportMetrics
+    && account?.sourceType === "mt5"
+    && (
+      Number.isFinite(Number(reportMetrics.equity))
+      || Number.isFinite(Number(reportMetrics.balance))
+    )
+  );
+  const mainPerformanceValue = hasAuthoritativeReportMetrics
     ? (Number.isFinite(Number(reportMetrics.equity)) ? Number(reportMetrics.equity) : Number(reportMetrics.balance ?? equity ?? balance))
     : pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
       ? (Number.isFinite(equity) ? equity : balance)
@@ -420,9 +428,11 @@ export function resolvePerformanceViewModel(account) {
   const firstPoint = chartSeries[0]?.value ?? balance;
   const lastPoint = chartSeries.at(-1)?.value ?? equity;
   const rangeValue = Number(lastPoint - firstPoint || 0);
-  const primaryMetricUsed = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
-    ? (Number.isFinite(equity) ? "equity" : "balance")
-    : "equity_or_fallback";
+  const primaryMetricUsed = hasAuthoritativeReportMetrics
+    ? (Number.isFinite(Number(reportMetrics?.equity)) ? "reportMetrics.equity" : "reportMetrics.balance")
+    : pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
+      ? (Number.isFinite(equity) ? "dashboard_payload.equity" : "dashboard_payload.balance")
+      : "equity_or_fallback";
 
   return {
     ...pnlSummary,
@@ -438,7 +448,11 @@ export function resolvePerformanceViewModel(account) {
     chartSeries,
     historyPoints,
     primaryMetricUsed,
-    sourceUsed: pnlSummary.usedExplicitLivePayload ? "dashboard_payload_explicit_live" : "model_fallback",
+    sourceUsed: hasAuthoritativeReportMetrics
+      ? "reportMetrics"
+      : pnlSummary.usedExplicitLivePayload
+        ? "dashboard_payload_explicit_live"
+        : "model_fallback",
     broker: account?.broker || account?.meta?.broker || "",
     server: account?.server || account?.meta?.server || "",
     login: account?.login || account?.meta?.login || "",

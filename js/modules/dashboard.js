@@ -161,6 +161,29 @@ export function renderDashboard(root, state) {
   }
   const currentPnl = Number(performanceView.openPnl || 0);
   const bannerMetricValue = Number(performanceView.mainPerformanceValue || 0);
+  if (performanceView?.sourceUsed === "reportMetrics") {
+    console.info("[KMFX][PANEL_SINGLE_METRIC_SOURCE]", {
+      account_id: performanceView.selectedAccountId,
+      login: performanceView.login,
+      broker: performanceView.broker,
+      payloadSource: performanceView.payloadSource,
+      renderTarget: "dashboard_main_performance_value",
+      sourceUsed: performanceView.sourceUsed,
+      primaryMetricUsed: performanceView.primaryMetricUsed,
+      value: bannerMetricValue,
+    });
+  } else {
+    console.info("[KMFX][PANEL_SINGLE_METRIC_FALLBACK]", {
+      account_id: performanceView.selectedAccountId,
+      login: performanceView.login,
+      broker: performanceView.broker,
+      payloadSource: performanceView.payloadSource,
+      renderTarget: "dashboard_main_performance_value",
+      sourceUsed: performanceView.sourceUsed,
+      primaryMetricUsed: performanceView.primaryMetricUsed,
+      value: bannerMetricValue,
+    });
+  }
   const currentReturnPct = model.account.balance ? (currentPnl / model.account.balance) * 100 : cumulativeReturn;
   console.log("[KMFX][HERO][SOURCE]", {
     accountId: account?.id || "",
