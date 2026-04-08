@@ -1,4 +1,4 @@
-import { formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, resolveRiskViewModel, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-213500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-213500";
@@ -300,14 +300,8 @@ export function renderRisk(root, state) {
 
   const dashboardPayload = account.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
   const authority = resolveAccountDataAuthority(account);
-  const riskView = resolveRiskViewModel(account);
-  const liveSnapshot = riskView.rawSnapshot && typeof riskView.rawSnapshot === "object" ? riskView.rawSnapshot : null;
-  const reportMetrics = riskView.report && typeof riskView.report === "object" ? riskView.report : null;
-  const riskLive = riskView.live && typeof riskView.live === "object" ? riskView.live : {};
-  const riskPolicy = riskView.policy && typeof riskView.policy === "object" ? riskView.policy : {};
-  const riskRules = Array.isArray(riskView.rules) ? riskView.rules : [];
-  const riskLadder = Array.isArray(riskView.ladder?.levels) ? riskView.ladder.levels : [];
-  const lastSyncAt = riskView.lastSyncAt || account.connection?.lastSync || account.dashboardPayload?.timestamp || null;
+  const liveSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object" ? dashboardPayload.riskSnapshot : null;
+  const lastSyncAt = account.connection?.lastSync || account.dashboardPayload?.timestamp || null;
   const lastSyncMs = lastSyncAt ? new Date(lastSyncAt).getTime() : 0;
   const isStale = Number.isFinite(lastSyncMs) ? Date.now() - lastSyncMs > 30000 : false;
   const liveState = {
@@ -315,66 +309,28 @@ export function renderRisk(root, state) {
     snapshot: liveSnapshot,
     lastError: "",
     lastSyncAt,
-    connected: Boolean(riskView.connected),
+    connected: Boolean(account.connection?.connected),
   };
   console.log("[KMFX][VIEW]", {
     view: "risk",
     activeAccountId,
     hasAccount: true,
     hasPayload: Boolean(account.dashboardPayload),
-      hasRiskSnapshot: Boolean(liveSnapshot),
-      liveState: liveState.status,
-      lastSyncAt,
+    hasRiskSnapshot: Boolean(liveSnapshot),
+    liveState: liveState.status,
+    lastSyncAt,
   });
-  console.info("[KMFX][RISK_REPORT_SOURCE]", {
-    account_id: riskView.account_id || "",
-    login: riskView.login || "",
-    broker: riskView.broker || "",
-    payloadSource: riskView.payloadSource || "",
-    freshness: riskView.freshness || "",
-    sourceUsed: riskView.sourceUsed?.report || "fallback",
-    drawdownPct: reportMetrics?.drawdownPct ?? null,
-    totalTrades: reportMetrics?.totalTrades ?? null,
-    profitFactor: reportMetrics?.profitFactor ?? null,
-  });
-  console.info("[KMFX][RISK_LIVE_SOURCE]", {
-    account_id: riskView.account_id || "",
-    login: riskView.login || "",
-    broker: riskView.broker || "",
-    payloadSource: riskView.payloadSource || "",
-    freshness: riskView.freshness || "",
-    sourceUsed: riskView.sourceUsed?.live || "fallback",
-    openPositionsCount: riskLive.openPositionsCount ?? null,
-    totalOpenRiskPct: riskLive.totalOpenRiskPct ?? null,
-    heatPct: riskLive.heatPct ?? null,
-    enforcementBlocked: Boolean(riskLive.enforcement?.blockNewTrades),
-  });
-  if (reportMetrics) {
-    console.info("[KMFX][LEGACY_BLOCKED]", {
-      account_id: riskView.account_id || "",
-      payloadSource: riskView.payloadSource || "",
-      widget: "risk-consolidated",
-      sourceUsed: "reportMetrics",
-    });
-  } else {
-    console.info("[KMFX][WIDGET_FALLBACK]", {
-      account_id: riskView.account_id || "",
-      payloadSource: riskView.payloadSource || "",
-      widget: "risk-consolidated",
-      sourceUsed: "liveSnapshot",
-    });
-  }
   console.info("[KMFX][RISK_AUTHORITY]", {
-    account_id: riskView.account_id || "",
-    login: riskView.login || "",
-    broker: riskView.broker || "",
-    payloadSource: riskView.payloadSource || authority.payloadSource,
+    account_id: account?.id || "",
+    login: account?.login || "",
+    broker: account?.broker || "",
+    payloadSource: authority.payloadSource,
     tradeCount: authority.tradeCount,
     historyPoints: authority.historyPoints,
-    hasRiskSnapshot: Boolean(liveSnapshot),
+    hasRiskSnapshot: authority.hasRiskSnapshot,
     firstTradeLabel: authority.firstTradeLabel,
     lastTradeLabel: authority.lastTradeLabel,
-    sourceUsed: riskView.sourceUsed,
+    sourceUsed: authority.sourceUsed,
   });
   syncDraftFromSnapshot(root, liveSnapshot);
 
@@ -491,47 +447,47 @@ export function renderRisk(root, state) {
   const defaultRiskMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.risk_per_trade);
   const dailyDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.daily_dd_limit);
   const maxDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.max_dd_limit);
-  const ladder = riskLadder;
-  const ladderLevel = riskPolicy.currentLevel || liveSnapshot?.policy?.current_level || "";
+  const ladder = [];
+  const ladderLevel = liveSnapshot?.policy?.current_level || "";
   const commandMeta = riskStatusMeta(liveSnapshot);
   const exposureSnapshot = {
-    openPositions: Number(riskLive.openPositionsCount || 0),
-    totalOpenRiskPct: Number(riskLive.totalOpenRiskPct || 0),
-    effectiveCorrelatedRisk: Number(riskLive.effectiveCorrelatedRisk || 0),
-    pressureLabel: riskLive.pressureLabel || liveSnapshot?.status?.risk_status || "",
-    pressureTone: riskLive.severity === "critical" ? "danger" : riskLive.severity === "warning" ? "warn" : "ok"
+    openPositions: Number(liveSnapshot?.summary?.open_positions_count || 0),
+    totalOpenRiskPct: Number(liveSnapshot?.summary?.total_open_risk_pct || 0),
+    effectiveCorrelatedRisk: 0,
+    pressureLabel: liveSnapshot?.status?.risk_status || "",
+    pressureTone: liveSnapshot?.status?.severity === "critical" ? "danger" : liveSnapshot?.status?.severity === "warning" ? "warn" : "ok"
   };
   const remainingDailyLabel = liveSnapshot
-    ? (Number(riskLive.distanceToDailyDdLimitPct || 0) <= 0 ? "Sin margen diario" : `${Number(riskLive.distanceToDailyDdLimitPct || 0).toFixed(2)}% de margen diario`)
+    ? (Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0) <= 0 ? "Sin margen diario" : `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}% de margen diario`)
     : "—";
   const remainingTotalLabel = liveSnapshot
-    ? (Number(riskLive.distanceToMaxDdLimitPct || 0) <= 0 ? "Sin margen total" : `${Number(riskLive.distanceToMaxDdLimitPct || 0).toFixed(2)}% de margen total`)
+    ? (Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0) <= 0 ? "Sin margen total" : `${Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0).toFixed(2)}% de margen total`)
     : "—";
   const marginHeadline = !liveSnapshot
     ? "—"
-    : riskLive.status === "blocked"
+    : liveSnapshot?.status?.risk_status === "blocked"
       ? "Operativa congelada"
-      : Number(riskLive.distanceToMaxDdLimitPct || 0) <= 0
+      : Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0) <= 0
         ? "Sin margen operativo"
-        : `${Number(riskLive.distanceToMaxDdLimitPct || 0).toFixed(2)}%`;
+        : `${Number(liveSnapshot.summary?.distance_to_max_dd_limit_pct || 0).toFixed(2)}%`;
   const commandRows = liveSnapshot ? [
     {
       label: "Trigger",
-      value: riskLive.reasonCode || liveSnapshot.status?.reason_code || "Sin trigger activo",
-      detail: riskLive.status === "active_monitoring" ? "La cuenta sigue dentro de política." : "Este evento disparó el estado actual."
+      value: liveSnapshot.status?.reason_code || "Sin trigger activo",
+      detail: liveSnapshot.status?.risk_status === "active_monitoring" ? "La cuenta sigue dentro de política." : "Este evento disparó el estado actual."
     },
     {
       label: "Bloqueo actual",
-      value: riskLive.blockingRule || liveSnapshot.status?.blocking_rule || "Sin bloqueo operativo",
-      detail: riskLive.enforcement?.blockNewTrades ? "La cuenta no admite nuevas órdenes." : "Esta regla manda ahora mismo sobre la operativa."
+      value: liveSnapshot.status?.blocking_rule || "Sin bloqueo operativo",
+      detail: liveSnapshot.status?.enforcement?.block_new_trades ? "La cuenta no admite nuevas órdenes." : "Esta regla manda ahora mismo sobre la operativa."
     },
     {
       label: "Acción requerida",
-      value: riskLive.actionRequired || liveSnapshot.status?.action_required || "Sin acción requerida",
+      value: liveSnapshot.status?.action_required || "Sin acción requerida",
       detail: "Acción inmediata derivada del motor de riesgo."
     }
   ] : [];
-  const activeRules = riskRules;
+  const activeRules = Array.isArray(account.dashboardPayload?.riskRules) ? account.dashboardPayload.riskRules : [];
   const rulesMarkup = activeRules.length
     ? activeRules.map((rule) => `
       <article class="risk-rule-card risk-rule-card--${rule.isDominant ? "dominant" : rule.tone}">
@@ -559,29 +515,29 @@ export function renderRisk(root, state) {
   const coreMetrics = liveSnapshot ? [
     {
       label: "DD actual",
-      value: `${Number(reportMetrics?.drawdownPct ?? riskLive.peakToEquityDrawdownPct || 0).toFixed(2)}%`,
-      noteLead: `${Number(riskLive.peakToEquityDrawdownPct || 0).toFixed(2)}%`,
+      value: `${Number(liveSnapshot.summary?.peak_to_equity_drawdown_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.floating_drawdown_pct || 0).toFixed(2)}%`,
       noteTail: "drawdown flotante",
       noteTone: "neutral"
     },
     {
       label: "Daily DD",
-      value: `${Number(riskLive.dailyDrawdownPct || 0).toFixed(2)}%`,
-      noteLead: `${Number(riskLive.distanceToDailyDdLimitPct || 0).toFixed(2)}%`,
+      value: `${Number(liveSnapshot.summary?.daily_drawdown_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}%`,
       noteTail: "margen diario restante",
       noteTone: "neutral"
     },
     {
       label: "Heat",
-      value: `${Number(riskLive.totalOpenRiskPct || riskLive.heatPct || 0).toFixed(2)}%`,
-      noteLead: riskLive.heatPct != null ? `${Number(riskLive.heatPct || 0).toFixed(1)}%` : "—",
+      value: `${Number(liveSnapshot.summary?.total_open_risk_pct || 0).toFixed(2)}%`,
+      noteLead: liveSnapshot.summary?.heat_usage_ratio_pct != null ? `${Number(liveSnapshot.summary?.heat_usage_ratio_pct || 0).toFixed(1)}%` : "—",
       noteTail: "uso del límite heat",
       noteTone: "neutral"
     },
     {
       label: "Risk / trade",
-      value: `${Number(riskLive.maxOpenTradeRiskPct || 0).toFixed(2)}%`,
-      noteLead: `${Number(riskPolicy.riskPerTradePct || 0).toFixed(2)}%`,
+      value: `${Number(liveSnapshot.summary?.max_open_trade_risk_pct || 0).toFixed(2)}%`,
+      noteLead: `${Number(liveSnapshot.summary?.max_risk_per_trade_pct || 0).toFixed(2)}%`,
       noteTail: "límite por política",
       noteTone: "neutral"
     }
