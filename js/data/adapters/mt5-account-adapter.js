@@ -5,6 +5,59 @@ function toFiniteNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function normalizeReportMetrics(rawMetrics = {}, context = {}) {
+  if (!rawMetrics || typeof rawMetrics !== "object" || !Object.keys(rawMetrics).length) {
+    return null;
+  }
+
+  const normalized = {
+    balance: toFiniteNumber(rawMetrics.balance, context.balance ?? 0),
+    equity: toFiniteNumber(rawMetrics.equity, context.equity ?? context.balance ?? 0),
+    netProfit: toFiniteNumber(rawMetrics.netProfit),
+    grossProfit: toFiniteNumber(rawMetrics.grossProfit),
+    grossLoss: toFiniteNumber(rawMetrics.grossLoss),
+    winRate: toFiniteNumber(rawMetrics.winRate),
+    totalTrades: toFiniteNumber(rawMetrics.totalTrades, context.totalTrades ?? 0),
+    profitFactor: toFiniteNumber(rawMetrics.profitFactor),
+    drawdownPct: toFiniteNumber(rawMetrics.drawdownPct),
+    commissions: toFiniteNumber(rawMetrics.commissions),
+    swaps: toFiniteNumber(rawMetrics.swaps),
+    dividends: toFiniteNumber(rawMetrics.dividends),
+    winTrades: toFiniteNumber(rawMetrics.winTrades),
+    lossTrades: toFiniteNumber(rawMetrics.lossTrades),
+    bestTrade: toFiniteNumber(rawMetrics.bestTrade),
+    worstTrade: toFiniteNumber(rawMetrics.worstTrade),
+    maxConsecutiveWins: toFiniteNumber(rawMetrics.maxConsecutiveWins),
+    maxConsecutiveLosses: toFiniteNumber(rawMetrics.maxConsecutiveLosses),
+    maxConsecutiveProfit: toFiniteNumber(rawMetrics.maxConsecutiveProfit),
+    maxConsecutiveLoss: toFiniteNumber(rawMetrics.maxConsecutiveLoss),
+    tradesPerWeek: toFiniteNumber(rawMetrics.tradesPerWeek),
+    averageHoldMinutes: toFiniteNumber(rawMetrics.averageHoldMinutes),
+    longCount: toFiniteNumber(rawMetrics.longCount),
+    shortCount: toFiniteNumber(rawMetrics.shortCount),
+    manualCount: toFiniteNumber(rawMetrics.manualCount),
+    robotCount: toFiniteNumber(rawMetrics.robotCount),
+    signalCount: toFiniteNumber(rawMetrics.signalCount),
+    growthPct: toFiniteNumber(rawMetrics.growthPct),
+    source: rawMetrics.source || "backend_mt5_report_metrics",
+  };
+
+  console.debug("[KMFX][REPORT_METRICS_READY]", {
+    source: normalized.source,
+    balance: normalized.balance,
+    equity: normalized.equity,
+    netProfit: normalized.netProfit,
+    grossProfit: normalized.grossProfit,
+    grossLoss: normalized.grossLoss,
+    winRate: normalized.winRate,
+    totalTrades: normalized.totalTrades,
+    profitFactor: normalized.profitFactor,
+    drawdownPct: normalized.drawdownPct,
+  });
+
+  return normalized;
+}
+
 function toIsoString(value) {
   if (!value) return new Date().toISOString();
   if (typeof value === "string") {
@@ -162,39 +215,11 @@ function normalizeMt5Payload(rawPayload = {}) {
     : rawPayload.report_metrics && typeof rawPayload.report_metrics === "object"
       ? rawPayload.report_metrics
       : {};
-  const reportMetrics = Object.keys(rawReportMetrics).length
-    ? {
-        balance: toFiniteNumber(rawReportMetrics.balance, balance),
-        equity: toFiniteNumber(rawReportMetrics.equity, equity),
-        grossProfit: toFiniteNumber(rawReportMetrics.grossProfit),
-        grossLoss: toFiniteNumber(rawReportMetrics.grossLoss),
-        netProfit: toFiniteNumber(rawReportMetrics.netProfit),
-        winRate: toFiniteNumber(rawReportMetrics.winRate),
-        totalTrades: toFiniteNumber(rawReportMetrics.totalTrades, trades.length),
-        winTrades: toFiniteNumber(rawReportMetrics.winTrades),
-        lossTrades: toFiniteNumber(rawReportMetrics.lossTrades),
-        profitFactor: toFiniteNumber(rawReportMetrics.profitFactor),
-        drawdownPct: toFiniteNumber(rawReportMetrics.drawdownPct),
-        commissions: toFiniteNumber(rawReportMetrics.commissions),
-        swaps: toFiniteNumber(rawReportMetrics.swaps),
-        dividends: toFiniteNumber(rawReportMetrics.dividends),
-        bestTrade: toFiniteNumber(rawReportMetrics.bestTrade),
-        worstTrade: toFiniteNumber(rawReportMetrics.worstTrade),
-        maxConsecutiveWins: toFiniteNumber(rawReportMetrics.maxConsecutiveWins),
-        maxConsecutiveLosses: toFiniteNumber(rawReportMetrics.maxConsecutiveLosses),
-        maxConsecutiveProfit: toFiniteNumber(rawReportMetrics.maxConsecutiveProfit),
-        maxConsecutiveLoss: toFiniteNumber(rawReportMetrics.maxConsecutiveLoss),
-        tradesPerWeek: toFiniteNumber(rawReportMetrics.tradesPerWeek),
-        averageHoldMinutes: toFiniteNumber(rawReportMetrics.averageHoldMinutes),
-        longCount: toFiniteNumber(rawReportMetrics.longCount),
-        shortCount: toFiniteNumber(rawReportMetrics.shortCount),
-        manualCount: toFiniteNumber(rawReportMetrics.manualCount),
-        robotCount: toFiniteNumber(rawReportMetrics.robotCount),
-        signalCount: toFiniteNumber(rawReportMetrics.signalCount),
-        growthPct: toFiniteNumber(rawReportMetrics.growthPct),
-        source: rawReportMetrics.source || "backend_mt5_report_metrics",
-      }
-    : null;
+  const reportMetrics = normalizeReportMetrics(rawReportMetrics, {
+    balance,
+    equity,
+    totalTrades: trades.length,
+  });
   const openPositionsCount = hasExplicitOpenPositionsCount
     ? toFiniteNumber(rawPayload.openPositionsCount, positions.length)
     : positions.length;
@@ -318,7 +343,10 @@ export function adaptMt5Account(rawAccount = {}) {
     login: rawAccount.login || "",
     platform: rawAccount.platform || "mt5",
     connectionMode: rawAccount.connection_mode || "bridge",
-    dashboardPayload,
+    dashboardPayload: reportMetrics
+      ? { ...dashboardPayload, reportMetrics }
+      : dashboardPayload,
+    reportMetrics,
     riskSnapshot: dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object"
       ? dashboardPayload.riskSnapshot
       : {},

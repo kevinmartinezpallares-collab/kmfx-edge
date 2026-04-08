@@ -117,6 +117,57 @@ function normalizeDateLike(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeReportMetricsShape(reportMetrics, context = {}) {
+  if (!reportMetrics || typeof reportMetrics !== "object" || !Object.keys(reportMetrics).length) {
+    return null;
+  }
+
+  const normalized = {
+    balance: Number.isFinite(Number(reportMetrics.balance))
+      ? Number(reportMetrics.balance)
+      : Number(context.balance ?? 0),
+    equity: Number.isFinite(Number(reportMetrics.equity))
+      ? Number(reportMetrics.equity)
+      : Number(context.equity ?? context.balance ?? 0),
+    netProfit: Number.isFinite(Number(reportMetrics.netProfit)) ? Number(reportMetrics.netProfit) : 0,
+    grossProfit: Number.isFinite(Number(reportMetrics.grossProfit)) ? Number(reportMetrics.grossProfit) : 0,
+    grossLoss: Number.isFinite(Number(reportMetrics.grossLoss)) ? Number(reportMetrics.grossLoss) : 0,
+    winRate: Number.isFinite(Number(reportMetrics.winRate)) ? Number(reportMetrics.winRate) : 0,
+    totalTrades: Number.isFinite(Number(reportMetrics.totalTrades))
+      ? Number(reportMetrics.totalTrades)
+      : Number(context.totalTrades ?? 0),
+    profitFactor: Number.isFinite(Number(reportMetrics.profitFactor)) ? Number(reportMetrics.profitFactor) : 0,
+    drawdownPct: Number.isFinite(Number(reportMetrics.drawdownPct)) ? Number(reportMetrics.drawdownPct) : 0,
+    commissions: Number.isFinite(Number(reportMetrics.commissions)) ? Number(reportMetrics.commissions) : 0,
+    swaps: Number.isFinite(Number(reportMetrics.swaps)) ? Number(reportMetrics.swaps) : 0,
+    dividends: Number.isFinite(Number(reportMetrics.dividends)) ? Number(reportMetrics.dividends) : 0,
+    winTrades: Number.isFinite(Number(reportMetrics.winTrades)) ? Number(reportMetrics.winTrades) : 0,
+    lossTrades: Number.isFinite(Number(reportMetrics.lossTrades)) ? Number(reportMetrics.lossTrades) : 0,
+    bestTrade: Number.isFinite(Number(reportMetrics.bestTrade)) ? Number(reportMetrics.bestTrade) : 0,
+    worstTrade: Number.isFinite(Number(reportMetrics.worstTrade)) ? Number(reportMetrics.worstTrade) : 0,
+    maxConsecutiveWins: Number.isFinite(Number(reportMetrics.maxConsecutiveWins)) ? Number(reportMetrics.maxConsecutiveWins) : 0,
+    maxConsecutiveLosses: Number.isFinite(Number(reportMetrics.maxConsecutiveLosses)) ? Number(reportMetrics.maxConsecutiveLosses) : 0,
+    maxConsecutiveProfit: Number.isFinite(Number(reportMetrics.maxConsecutiveProfit)) ? Number(reportMetrics.maxConsecutiveProfit) : 0,
+    maxConsecutiveLoss: Number.isFinite(Number(reportMetrics.maxConsecutiveLoss)) ? Number(reportMetrics.maxConsecutiveLoss) : 0,
+    source: reportMetrics.source || "backend_mt5_report_metrics",
+  };
+
+  console.debug("[KMFX][REPORT_METRICS_READY]", {
+    source: normalized.source,
+    balance: normalized.balance,
+    equity: normalized.equity,
+    netProfit: normalized.netProfit,
+    grossProfit: normalized.grossProfit,
+    grossLoss: normalized.grossLoss,
+    winRate: normalized.winRate,
+    totalTrades: normalized.totalTrades,
+    profitFactor: normalized.profitFactor,
+    drawdownPct: normalized.drawdownPct,
+  });
+
+  return normalized;
+}
+
 function formatAuthorityDate(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
@@ -315,13 +366,20 @@ export function resolvePerformanceViewModel(account) {
   const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object"
     ? account.dashboardPayload
     : {};
-  const reportMetrics = dashboardPayload.reportMetrics && typeof dashboardPayload.reportMetrics === "object"
-    ? dashboardPayload.reportMetrics
-    : account?.reportMetrics && typeof account.reportMetrics === "object"
-      ? account.reportMetrics
-      : model?.reportMetrics && typeof model.reportMetrics === "object"
-        ? model.reportMetrics
-        : null;
+  const reportMetrics = normalizeReportMetricsShape(
+    dashboardPayload.reportMetrics && typeof dashboardPayload.reportMetrics === "object"
+      ? dashboardPayload.reportMetrics
+      : account?.reportMetrics && typeof account.reportMetrics === "object"
+        ? account.reportMetrics
+        : model?.reportMetrics && typeof model.reportMetrics === "object"
+          ? model.reportMetrics
+          : null,
+    {
+      balance: account?.model?.account?.balance ?? dashboardPayload.balance ?? 0,
+      equity: account?.model?.account?.equity ?? dashboardPayload.equity ?? 0,
+      totalTrades: model?.trades?.length ?? 0,
+    },
+  );
   const accountMetrics = model.account || {};
   const pnlSummary = resolveAccountPnlSummary(account);
   const payloadSource = pnlSummary.payloadSource || dashboardPayload.payloadSource || "";
@@ -408,7 +466,11 @@ export function buildDashboardModel(source) {
     : [];
 
   const payloadSource = source.payloadSource || source.profile?.payloadSource || "normalized";
-  const reportMetrics = source.reportMetrics && typeof source.reportMetrics === "object" ? source.reportMetrics : null;
+  const reportMetrics = normalizeReportMetricsShape(source.reportMetrics, {
+    balance: source?.account?.balance ?? 0,
+    equity: source?.account?.equity ?? source?.account?.balance ?? 0,
+    totalTrades: source?.trades?.length ?? 0,
+  });
   const hasReportMetrics = Boolean(reportMetrics);
   const usedExplicitLivePayload = payloadSource === "mt5_sync_live";
   const explicitOpenPositionsCount = Number.isFinite(Number(source.account.openPositionsCount))
