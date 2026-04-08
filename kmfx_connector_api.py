@@ -585,6 +585,177 @@ def build_connector_policy_response(login: str) -> dict[str, Any]:
     }
 
 
+def trade_profit_components(trade: dict[str, Any]) -> dict[str, float]:
+    profit = safe_float(trade.get("profit"))
+    commission = safe_float(trade.get("commission"))
+    swap = safe_float(trade.get("swap"))
+    dividend = safe_float(trade.get("dividend"))
+    net = profit + commission + swap + dividend
+    return {
+        "profit": profit,
+        "commission": commission,
+        "swap": swap,
+        "dividend": dividend,
+        "net": net,
+    }
+
+
+def calculate_max_drawdown_pct(history: list[dict[str, Any]], starting_balance: float, trades: list[dict[str, Any]]) -> float:
+    points: list[float] = []
+    for point in history:
+        numeric = safe_float(point.get("value"))
+        if numeric > 0:
+            points.append(numeric)
+
+    if not points:
+        running_balance = starting_balance
+        points.append(running_balance)
+        for trade in trades:
+            running_balance += trade_profit_components(trade)["net"]
+            if running_balance > 0:
+                points.append(running_balance)
+
+    if not points:
+        return 0.0
+
+    peak = points[0]
+    max_drawdown_pct = 0.0
+    for value in points:
+        peak = max(peak, value)
+        if peak <= 0:
+            continue
+        drawdown_pct = ((peak - value) / peak) * 100.0
+        max_drawdown_pct = max(max_drawdown_pct, drawdown_pct)
+    return max_drawdown_pct
+
+
+def build_report_metrics(account: dict[str, Any], trades: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any]:
+    balance = safe_float(account.get("balance"))
+    equity = safe_float(account.get("equity"), balance)
+    components = [trade_profit_components(trade) for trade in trades]
+
+    gross_profit = sum(max(item["profit"], 0.0) for item in components)
+    gross_loss_abs = sum(abs(min(item["profit"], 0.0)) for item in components)
+    gross_loss = -gross_loss_abs
+    commissions = sum(item["commission"] for item in components)
+    swaps = sum(item["swap"] for item in components)
+    dividends = sum(item["dividend"] for item in components)
+    net_profit = sum(item["net"] for item in components)
+    win_trades = sum(1 for item in components if item["net"] > 0)
+    loss_trades = sum(1 for item in components if item["net"] < 0)
+    total_trades = len(components)
+    win_rate = (win_trades / total_trades * 100.0) if total_trades else 0.0
+    profit_factor = (gross_profit / gross_loss_abs) if gross_loss_abs > 0 else (gross_profit if gross_profit > 0 else 0.0)
+
+    best_trade = max((item["net"] for item in components), default=0.0)
+    worst_trade = min((item["net"] for item in components), default=0.0)
+
+    max_consecutive_wins = 0
+    max_consecutive_losses = 0
+    current_wins = 0
+    current_losses = 0
+    max_consecutive_profit = 0.0
+    max_consecutive_loss = 0.0
+    running_win_profit = 0.0
+    running_loss_profit = 0.0
+
+    for item in components:
+        net = item["net"]
+        if net > 0:
+            current_wins += 1
+            current_losses = 0
+            running_win_profit += net
+            running_loss_profit = 0.0
+            max_consecutive_wins = max(max_consecutive_wins, current_wins)
+            max_consecutive_profit = max(max_consecutive_profit, running_win_profit)
+        elif net < 0:
+            current_losses += 1
+            current_wins = 0
+            running_loss_profit += net
+            running_win_profit = 0.0
+            max_consecutive_losses = max(max_consecutive_losses, current_losses)
+            max_consecutive_loss = min(max_consecutive_loss, running_loss_profit)
+        else:
+            current_wins = 0
+            current_losses = 0
+            running_win_profit = 0.0
+            running_loss_profit = 0.0
+
+    long_count = 0
+    short_count = 0
+    for trade in trades:
+        trade_type = safe_str(trade.get("type") or trade.get("side")).upper()
+        if any(token in trade_type for token in ("SELL", "SHORT")):
+            short_count += 1
+        else:
+            long_count += 1
+
+    robot_count = sum(1 for trade in trades if safe_str(trade.get("strategy_tag")).strip())
+    signal_count = 0
+    manual_count = max(total_trades - robot_count - signal_count, 0)
+
+    first_close = None
+    last_close = None
+    hold_minutes: list[float] = []
+    for trade in trades:
+        close_raw = trade.get("close_time") or trade.get("time")
+        open_raw = trade.get("open_time")
+        close_time = safe_timestamp(close_raw)
+        open_time = safe_timestamp(open_raw)
+        if close_time:
+            first_close = close_time if not first_close or close_time < first_close else first_close
+            last_close = close_time if not last_close or close_time > last_close else last_close
+        if close_time and open_time:
+            open_dt = datetime.fromisoformat(open_time.replace("Z", "+00:00"))
+            close_dt = datetime.fromisoformat(close_time.replace("Z", "+00:00"))
+            hold_minutes.append(max((close_dt - open_dt).total_seconds() / 60.0, 0.0))
+
+    trades_per_week = 0.0
+    if first_close and last_close and total_trades:
+        first_dt = datetime.fromisoformat(first_close.replace("Z", "+00:00"))
+        last_dt = datetime.fromisoformat(last_close.replace("Z", "+00:00"))
+        span_days = max((last_dt - first_dt).total_seconds() / 86400.0, 1.0)
+        trades_per_week = total_trades / (span_days / 7.0)
+
+    average_hold_minutes = (sum(hold_minutes) / len(hold_minutes)) if hold_minutes else 0.0
+    starting_balance = balance - net_profit
+    growth_pct = ((net_profit / starting_balance) * 100.0) if starting_balance > 0 else 0.0
+    drawdown_pct = calculate_max_drawdown_pct(history, starting_balance if starting_balance > 0 else balance, trades)
+    recovery_factor = (net_profit / drawdown_pct) if drawdown_pct > 0 else 0.0
+
+    return {
+        "balance": balance,
+        "equity": equity,
+        "grossProfit": gross_profit,
+        "grossLoss": gross_loss,
+        "netProfit": net_profit,
+        "winRate": win_rate,
+        "totalTrades": total_trades,
+        "winTrades": win_trades,
+        "lossTrades": loss_trades,
+        "profitFactor": profit_factor,
+        "drawdownPct": drawdown_pct,
+        "commissions": commissions,
+        "swaps": swaps,
+        "dividends": dividends,
+        "bestTrade": best_trade,
+        "worstTrade": worst_trade,
+        "maxConsecutiveWins": max_consecutive_wins,
+        "maxConsecutiveLosses": max_consecutive_losses,
+        "maxConsecutiveProfit": max_consecutive_profit,
+        "maxConsecutiveLoss": max_consecutive_loss,
+        "tradesPerWeek": trades_per_week,
+        "averageHoldMinutes": average_hold_minutes,
+        "longCount": long_count,
+        "shortCount": short_count,
+        "manualCount": manual_count,
+        "robotCount": robot_count,
+        "signalCount": signal_count,
+        "growthPct": growth_pct,
+        "source": "backend_mt5_report_metrics",
+    }
+
+
 def build_dashboard_account_payload(
     account: dict[str, Any],
     positions: list[dict[str, Any]],
@@ -658,16 +829,16 @@ def build_dashboard_account_payload(
             )
         return rules
 
-    closed_pnl = sum(
-        safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))
-        for trade in trades
-    )
+    trade_components = [trade_profit_components(trade) for trade in trades]
+    closed_pnl = sum(item["net"] for item in trade_components)
     winning_trades = sum(
         1
-        for trade in trades
-        if (safe_float(trade.get("profit")) + safe_float(trade.get("commission")) + safe_float(trade.get("swap"))) > 0
+        for item in trade_components
+        if item["net"] > 0
     )
     win_rate = (winning_trades / len(trades) * 100.0) if trades else 0.0
+    history = raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else []
+    report_metrics = build_report_metrics(account, trades, history)
     raw_policy = build_policy(safe_str(account.get("login")))
     previous_snapshot = extract_previous_risk_snapshot(previous_payload)
     metrics_snapshot = build_risk_metrics(
@@ -726,7 +897,8 @@ def build_dashboard_account_payload(
         "payloadSource": "mt5_sync_live",
         "positions": positions,
         "trades": trades,
-        "history": raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else [],
+        "history": history,
+        "reportMetrics": report_metrics,
         "riskSnapshot": risk_snapshot,
         "riskRules": build_risk_rules(),
         "riskProfile": {

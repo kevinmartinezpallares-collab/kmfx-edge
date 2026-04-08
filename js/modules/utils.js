@@ -315,6 +315,13 @@ export function resolvePerformanceViewModel(account) {
   const dashboardPayload = account?.dashboardPayload && typeof account.dashboardPayload === "object"
     ? account.dashboardPayload
     : {};
+  const reportMetrics = dashboardPayload.reportMetrics && typeof dashboardPayload.reportMetrics === "object"
+    ? dashboardPayload.reportMetrics
+    : account?.reportMetrics && typeof account.reportMetrics === "object"
+      ? account.reportMetrics
+      : model?.reportMetrics && typeof model.reportMetrics === "object"
+        ? model.reportMetrics
+        : null;
   const accountMetrics = model.account || {};
   const pnlSummary = resolveAccountPnlSummary(account);
   const payloadSource = pnlSummary.payloadSource || dashboardPayload.payloadSource || "";
@@ -347,8 +354,10 @@ export function resolvePerformanceViewModel(account) {
   const openPnl = Number(pnlSummary.heroOpenPnl || 0);
   const closedPnl = Number(pnlSummary.heroClosedPnl || 0);
   const totalPnl = Number(pnlSummary.heroTotalPnl || 0);
-  const mainPerformanceValue = pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
-    ? (Number.isFinite(equity) ? equity : balance)
+  const mainPerformanceValue = reportMetrics && account?.sourceType === "mt5"
+    ? (Number.isFinite(Number(reportMetrics.equity)) ? Number(reportMetrics.equity) : Number(reportMetrics.balance ?? equity ?? balance))
+    : pnlSummary.usedExplicitLivePayload && account?.sourceType === "mt5"
+      ? (Number.isFinite(equity) ? equity : balance)
     : Number(accountMetrics.equity ?? totalPnl ?? 0);
   const firstPoint = chartSeries[0]?.value ?? balance;
   const lastPoint = chartSeries.at(-1)?.value ?? equity;
@@ -375,6 +384,7 @@ export function resolvePerformanceViewModel(account) {
     broker: account?.broker || account?.meta?.broker || "",
     server: account?.server || account?.meta?.server || "",
     login: account?.login || account?.meta?.login || "",
+    reportMetrics,
   };
 }
 
@@ -398,6 +408,8 @@ export function buildDashboardModel(source) {
     : [];
 
   const payloadSource = source.payloadSource || source.profile?.payloadSource || "normalized";
+  const reportMetrics = source.reportMetrics && typeof source.reportMetrics === "object" ? source.reportMetrics : null;
+  const hasReportMetrics = Boolean(reportMetrics);
   const usedExplicitLivePayload = payloadSource === "mt5_sync_live";
   const explicitOpenPositionsCount = Number.isFinite(Number(source.account.openPositionsCount))
     ? Number(source.account.openPositionsCount)
@@ -416,7 +428,9 @@ export function buildDashboardModel(source) {
   const heroClosedPnl = usedExplicitLivePayload
     ? (Number.isFinite(explicitClosedPnl) ? explicitClosedPnl : 0)
     : (Number.isFinite(explicitClosedPnl) ? explicitClosedPnl : trades.reduce((sum, trade) => sum + trade.pnl, 0));
-  const totalPnl = usedExplicitLivePayload
+  const totalPnl = hasReportMetrics
+    ? Number(reportMetrics.netProfit || 0)
+    : usedExplicitLivePayload
     ? (Number.isFinite(explicitTotalPnl) ? explicitTotalPnl : heroClosedPnl)
     : Number.isFinite(explicitClosedPnl)
       ? explicitClosedPnl
@@ -426,16 +440,28 @@ export function buildDashboardModel(source) {
   const wins = trades.filter((trade) => trade.pnl > 0);
   const losses = trades.filter((trade) => trade.pnl < 0);
   const startBalance = source.account.balance - totalPnl;
-  const winRate = trades.length ? (wins.length / trades.length) * 100 : Number(source.account.winRate || 0);
-  const grossProfit = wins.reduce((sum, trade) => sum + trade.pnl, 0);
-  const grossLoss = Math.abs(losses.reduce((sum, trade) => sum + trade.pnl, 0));
-  const profitFactor = grossLoss ? grossProfit / grossLoss : grossProfit;
+  const winRate = hasReportMetrics
+    ? Number(reportMetrics.winRate || 0)
+    : trades.length ? (wins.length / trades.length) * 100 : Number(source.account.winRate || 0);
+  const grossProfit = hasReportMetrics
+    ? Number(reportMetrics.grossProfit || 0)
+    : wins.reduce((sum, trade) => sum + trade.pnl, 0);
+  const grossLoss = hasReportMetrics
+    ? Math.abs(Number(reportMetrics.grossLoss || 0))
+    : Math.abs(losses.reduce((sum, trade) => sum + trade.pnl, 0));
+  const profitFactor = hasReportMetrics
+    ? Number(reportMetrics.profitFactor || 0)
+    : grossLoss ? grossProfit / grossLoss : grossProfit;
   const expectancy = trades.length ? totalPnl / trades.length : 0;
   const avgWin = wins.length ? grossProfit / wins.length : 0;
   const avgLoss = losses.length ? grossLoss / losses.length : 0;
   const rr = avgLoss ? avgWin / avgLoss : 0;
-  const bestTrade = wins.reduce((best, trade) => Math.max(best, trade.pnl), 0);
-  const worstTrade = losses.reduce((worst, trade) => Math.min(worst, trade.pnl), 0);
+  const bestTrade = hasReportMetrics
+    ? Number(reportMetrics.bestTrade || 0)
+    : wins.reduce((best, trade) => Math.max(best, trade.pnl), 0);
+  const worstTrade = hasReportMetrics
+    ? Number(reportMetrics.worstTrade || 0)
+    : losses.reduce((worst, trade) => Math.min(worst, trade.pnl), 0);
 
   let equity = startBalance;
   const generatedEquityCurve = trades.map((trade) => {
@@ -463,11 +489,18 @@ export function buildDashboardModel(source) {
   const sessionsBreakdown = buildGroupStats(trades, (trade) => trade.session, sessions);
   const hours = buildHourStats(trades);
   const weekdaysBreakdown = buildWeekdayStats(trades);
-  const streaks = buildStreaks(trades);
+  const streaks = hasReportMetrics
+    ? {
+        bestWin: Number(reportMetrics.maxConsecutiveWins || 0),
+        bestLoss: Number(reportMetrics.maxConsecutiveLosses || 0),
+      }
+    : buildStreaks(trades);
   const drawdown = calculateDrawdown(startBalance, trades);
   const drawdownWithFallback = {
     ...drawdown,
-    maxPct: trades.length ? drawdown.maxPct : Number(source.account.drawdownPct || 0),
+    maxPct: hasReportMetrics
+      ? Number(reportMetrics.drawdownPct || 0)
+      : trades.length ? drawdown.maxPct : Number(source.account.drawdownPct || 0),
   };
   const dailyReturns = buildDailyReturns(dayStats, startBalance);
   const ratios = calculateRatios(dailyReturns, monthlyReturns, totalPnl, drawdown);
@@ -489,6 +522,25 @@ export function buildDashboardModel(source) {
   const monthlyWorst = [...monthlyReturns].sort((a, b) => a.pnl - b.pnl)[0];
   const riskScore = Math.max(0, Math.min(100, Math.round((winRate * 0.38) + (Math.min(rr, 3) / 3 * 28) + ((100 - drawdown.maxPct * 6) * 0.34))));
 
+  if (hasReportMetrics) {
+    console.debug("[KMFX][REPORT_METRICS_USED]", {
+      payloadSource,
+      totalTrades: reportMetrics.totalTrades,
+      winRate: reportMetrics.winRate,
+      grossProfit: reportMetrics.grossProfit,
+      grossLoss: reportMetrics.grossLoss,
+      netProfit: reportMetrics.netProfit,
+      profitFactor: reportMetrics.profitFactor,
+      drawdownPct: reportMetrics.drawdownPct,
+    });
+  } else {
+    console.debug("[KMFX][REPORT_METRICS_FALLBACK]", {
+      payloadSource,
+      totalTrades: trades.length,
+      reason: "reportMetrics_missing",
+    });
+  }
+
   return {
     profile: {
       ...(source.profile || {})
@@ -504,20 +556,22 @@ export function buildDashboardModel(source) {
       rr,
       bestTrade,
       worstTrade,
-      totalTrades: Number(source.account.totalTrades || trades.length),
+      totalTrades: Number(hasReportMetrics ? reportMetrics.totalTrades : (source.account.totalTrades || trades.length)),
       bestMonth: monthlyBest,
       worstMonth: monthlyWorst,
       drawdown: drawdownWithFallback,
       riskScore,
       grossProfit,
       grossLoss,
-      commissions: trades.length * 4,
+      commissions: hasReportMetrics ? Number(reportMetrics.commissions || 0) : 0,
+      swaps: hasReportMetrics ? Number(reportMetrics.swaps || 0) : 0,
+      dividends: hasReportMetrics ? Number(reportMetrics.dividends || 0) : 0,
       ratios
     },
     account: {
       ...source.account,
-      balance: source.account.balance,
-      equity: source.account.equity,
+      balance: hasReportMetrics ? Number(reportMetrics.balance ?? source.account.balance) : source.account.balance,
+      equity: hasReportMetrics ? Number(reportMetrics.equity ?? source.account.equity) : source.account.equity,
       floatingPnl: usedExplicitLivePayload
         ? heroOpenPnl
         : (Number.isFinite(explicitFloatingPnl) ? explicitFloatingPnl : source.account.openPnl),
@@ -540,7 +594,9 @@ export function buildDashboardModel(source) {
       heroTotalPnl: totalPnl,
       openPositionsCount: explicitOpenPositionsCount,
       usedExplicitLivePayload,
+      hasReportMetrics,
     },
+    reportMetrics,
     riskProfile,
     riskRules: [...(source.riskRules || [])],
     positions,

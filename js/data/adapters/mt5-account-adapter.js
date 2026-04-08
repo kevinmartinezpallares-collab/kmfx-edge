@@ -38,13 +38,21 @@ function durationMinutes(startValue, endValue) {
 function normalizeTrades(rawTrades = []) {
   return (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
     const date = toIsoString(trade.close_time || trade.time || trade.open_time);
-    const netPnl = Number(trade.profit || 0) + Number(trade.commission || 0) + Number(trade.swap || 0);
+    const profit = Number(trade.profit || 0);
+    const commission = Number(trade.commission || 0);
+    const swap = Number(trade.swap || 0);
+    const dividend = Number(trade.dividend || 0);
+    const netPnl = profit + commission + swap + dividend;
     return {
       id: trade.position_id || trade.ticket || `mt5-trade-${index}`,
       date,
       symbol: trade.symbol || "UNKNOWN",
       side: String(trade.type || trade.side || "BUY").toUpperCase(),
       pnl: netPnl,
+      profit,
+      commission,
+      swap,
+      dividend,
       rMultiple: Number(trade.r_multiple || trade.rMultiple || 0),
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
@@ -149,6 +157,44 @@ function normalizeMt5Payload(rawPayload = {}) {
   const trades = normalizeTrades(rawPayload.trades || rawPayload.history?.trades || []);
   const positions = normalizePositions(rawPayload.positions || rawPayload.open_positions || []);
   const history = normalizeHistory(rawPayload.history || rawPayload.equityCurve || rawPayload.equity_curve || [], balance, equity);
+  const rawReportMetrics = rawPayload.reportMetrics && typeof rawPayload.reportMetrics === "object"
+    ? rawPayload.reportMetrics
+    : rawPayload.report_metrics && typeof rawPayload.report_metrics === "object"
+      ? rawPayload.report_metrics
+      : {};
+  const reportMetrics = Object.keys(rawReportMetrics).length
+    ? {
+        balance: toFiniteNumber(rawReportMetrics.balance, balance),
+        equity: toFiniteNumber(rawReportMetrics.equity, equity),
+        grossProfit: toFiniteNumber(rawReportMetrics.grossProfit),
+        grossLoss: toFiniteNumber(rawReportMetrics.grossLoss),
+        netProfit: toFiniteNumber(rawReportMetrics.netProfit),
+        winRate: toFiniteNumber(rawReportMetrics.winRate),
+        totalTrades: toFiniteNumber(rawReportMetrics.totalTrades, trades.length),
+        winTrades: toFiniteNumber(rawReportMetrics.winTrades),
+        lossTrades: toFiniteNumber(rawReportMetrics.lossTrades),
+        profitFactor: toFiniteNumber(rawReportMetrics.profitFactor),
+        drawdownPct: toFiniteNumber(rawReportMetrics.drawdownPct),
+        commissions: toFiniteNumber(rawReportMetrics.commissions),
+        swaps: toFiniteNumber(rawReportMetrics.swaps),
+        dividends: toFiniteNumber(rawReportMetrics.dividends),
+        bestTrade: toFiniteNumber(rawReportMetrics.bestTrade),
+        worstTrade: toFiniteNumber(rawReportMetrics.worstTrade),
+        maxConsecutiveWins: toFiniteNumber(rawReportMetrics.maxConsecutiveWins),
+        maxConsecutiveLosses: toFiniteNumber(rawReportMetrics.maxConsecutiveLosses),
+        maxConsecutiveProfit: toFiniteNumber(rawReportMetrics.maxConsecutiveProfit),
+        maxConsecutiveLoss: toFiniteNumber(rawReportMetrics.maxConsecutiveLoss),
+        tradesPerWeek: toFiniteNumber(rawReportMetrics.tradesPerWeek),
+        averageHoldMinutes: toFiniteNumber(rawReportMetrics.averageHoldMinutes),
+        longCount: toFiniteNumber(rawReportMetrics.longCount),
+        shortCount: toFiniteNumber(rawReportMetrics.shortCount),
+        manualCount: toFiniteNumber(rawReportMetrics.manualCount),
+        robotCount: toFiniteNumber(rawReportMetrics.robotCount),
+        signalCount: toFiniteNumber(rawReportMetrics.signalCount),
+        growthPct: toFiniteNumber(rawReportMetrics.growthPct),
+        source: rawReportMetrics.source || "backend_mt5_report_metrics",
+      }
+    : null;
   const openPositionsCount = hasExplicitOpenPositionsCount
     ? toFiniteNumber(rawPayload.openPositionsCount, positions.length)
     : positions.length;
@@ -225,6 +271,7 @@ function normalizeMt5Payload(rawPayload = {}) {
       autoBlock: Boolean(policySnapshot.auto_block_enabled)
     },
     riskRules: normalizeRiskRules(riskSnapshot, rawPayload),
+    reportMetrics,
     positions,
     trades,
     history
