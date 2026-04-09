@@ -144,13 +144,7 @@ function mergeLiveAccounts(store, snapshot) {
     })),
   });
   const liveAccountIds = normalizedAccounts.map((account) => account.accountId).filter(Boolean);
-  const nextAccounts = { ...state.accounts };
-
-  Object.entries(nextAccounts).forEach(([accountId, account]) => {
-    if (account?.sourceType === "mt5" && !liveAccountIds.includes(accountId)) {
-      delete nextAccounts[accountId];
-    }
-  });
+  const nextAccounts = {};
 
   normalizedAccounts.forEach((accountEntry) => {
     const previousAccount = nextAccounts[accountEntry.accountId];

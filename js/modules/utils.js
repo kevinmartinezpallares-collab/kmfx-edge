@@ -702,6 +702,9 @@ export function selectCurrentAccount(state) {
 
 export function selectCurrentModel(state) {
   const account = selectCurrentAccount(state);
+  if (account?.source && typeof account.source === "object") {
+    return buildDashboardModel(account.source);
+  }
   return account?.model || null;
 }
 
