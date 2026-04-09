@@ -313,15 +313,38 @@ export function adaptMt5Account(rawAccount = {}) {
         : rawAccount.payload && typeof rawAccount.payload === "object"
           ? rawAccount.payload
           : rawAccount;
-  const payload = normalizeMt5Payload(dashboardPayload);
+  const safeDashboardPayload = dashboardPayload && typeof dashboardPayload === "object" ? dashboardPayload : {};
+  const rawReportMetrics = safeDashboardPayload.reportMetrics && typeof safeDashboardPayload.reportMetrics === "object"
+    ? safeDashboardPayload.reportMetrics
+    : safeDashboardPayload.report_metrics && typeof safeDashboardPayload.report_metrics === "object"
+      ? safeDashboardPayload.report_metrics
+      : null;
+
+  console.log("[KMFX][ADAPTER]", {
+    accountId: rawAccount.account_id || rawAccount.id || null,
+    hasPayload: Boolean(safeDashboardPayload && Object.keys(safeDashboardPayload).length),
+    hasReportMetrics: Boolean(rawReportMetrics),
+  });
+
+  let payload;
+  try {
+    payload = normalizeMt5Payload(safeDashboardPayload);
+  } catch (error) {
+    console.error("[KMFX][ADAPTER] adaptMt5Account normalizeMt5Payload failed", {
+      accountId: rawAccount.account_id || rawAccount.id || null,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    payload = normalizeMt5Payload({});
+  }
+  const reportMetrics = payload?.reportMetrics || rawReportMetrics || null;
   console.debug("[KMFX][ACCOUNT][RAW]", {
     accountId: rawAccount.account_id || rawAccount.id || "",
     login: rawAccount.login || "",
     status: rawAccount.status || "",
-    dashboardPayloadKeys: Object.keys(dashboardPayload || {}),
-    trades: Array.isArray(dashboardPayload?.trades) ? dashboardPayload.trades.length : 0,
-    history: Array.isArray(dashboardPayload?.history) ? dashboardPayload.history.length : 0,
-    positions: Array.isArray(dashboardPayload?.positions) ? dashboardPayload.positions.length : 0,
+    dashboardPayloadKeys: Object.keys(safeDashboardPayload || {}),
+    trades: Array.isArray(safeDashboardPayload?.trades) ? safeDashboardPayload.trades.length : 0,
+    history: Array.isArray(safeDashboardPayload?.history) ? safeDashboardPayload.history.length : 0,
+    positions: Array.isArray(safeDashboardPayload?.positions) ? safeDashboardPayload.positions.length : 0,
   });
   const record = createAccountRecord({
     id: rawAccount.account_id || rawAccount.id || rawAccount.login || "mt5-account",
@@ -344,11 +367,11 @@ export function adaptMt5Account(rawAccount = {}) {
     platform: rawAccount.platform || "mt5",
     connectionMode: rawAccount.connection_mode || "bridge",
     dashboardPayload: reportMetrics
-      ? { ...dashboardPayload, reportMetrics }
-      : dashboardPayload,
+      ? { ...safeDashboardPayload, reportMetrics }
+      : safeDashboardPayload,
     reportMetrics,
-    riskSnapshot: dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object"
-      ? dashboardPayload.riskSnapshot
+    riskSnapshot: safeDashboardPayload.riskSnapshot && typeof safeDashboardPayload.riskSnapshot === "object"
+      ? safeDashboardPayload.riskSnapshot
       : {},
     connection: {
       ...record.connection,
