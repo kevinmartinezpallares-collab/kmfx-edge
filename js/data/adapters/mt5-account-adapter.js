@@ -314,11 +314,6 @@ export function adaptMt5Account(rawAccount = {}) {
           ? rawAccount.payload
           : rawAccount;
   const payload = normalizeMt5Payload(dashboardPayload);
-  const reportMetrics = payload.reportMetrics || null;
-  const source =
-    dashboardPayload && typeof dashboardPayload === "object"
-      ? dashboardPayload
-      : {};
   console.debug("[KMFX][ACCOUNT][RAW]", {
     accountId: rawAccount.account_id || rawAccount.id || "",
     login: rawAccount.login || "",
@@ -348,10 +343,9 @@ export function adaptMt5Account(rawAccount = {}) {
     login: rawAccount.login || "",
     platform: rawAccount.platform || "mt5",
     connectionMode: rawAccount.connection_mode || "bridge",
-    source: reportMetrics ? { ...source, reportMetrics } : source,
     dashboardPayload: reportMetrics
-      ? { ...source, reportMetrics }
-      : source,
+      ? { ...dashboardPayload, reportMetrics }
+      : dashboardPayload,
     reportMetrics,
     riskSnapshot: dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object"
       ? dashboardPayload.riskSnapshot
