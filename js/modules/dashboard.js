@@ -161,6 +161,12 @@ export function renderDashboard(root, state) {
   }
   const currentPnl = Number(performanceView.openPnl || 0);
   const bannerMetricValue = Number(performanceView.mainPerformanceValue || 0);
+  const heroPnlLabel = account?.sourceType === "mt5" ? "Open PnL" : "PnL total";
+  const hasPanelSecondMetricFromReport = Number.isFinite(Number(performanceView?.reportMetrics?.netProfit));
+  const panelSecondMetricValue = hasPanelSecondMetricFromReport
+    ? Number(performanceView.reportMetrics.netProfit)
+    : currentPnl;
+  const panelSecondMetricLabel = hasPanelSecondMetricFromReport ? "PnL neto" : heroPnlLabel;
   if (performanceView?.sourceUsed === "reportMetrics") {
     console.info("[KMFX][PANEL_SINGLE_METRIC_SOURCE]", {
       account_id: performanceView.selectedAccountId,
@@ -184,7 +190,28 @@ export function renderDashboard(root, state) {
       value: bannerMetricValue,
     });
   }
-  const currentReturnPct = model.account.balance ? (currentPnl / model.account.balance) * 100 : cumulativeReturn;
+  if (hasPanelSecondMetricFromReport) {
+    console.info("[KMFX][PANEL_SECOND_METRIC_SOURCE]", {
+      account_id: performanceView.selectedAccountId,
+      login: performanceView.login,
+      broker: performanceView.broker,
+      payloadSource: performanceView.payloadSource,
+      renderTarget: "dashboard_secondary_pnl_value",
+      sourceUsed: "reportMetrics.netProfit",
+      value: panelSecondMetricValue,
+    });
+  } else {
+    console.info("[KMFX][PANEL_SECOND_METRIC_FALLBACK]", {
+      account_id: performanceView.selectedAccountId,
+      login: performanceView.login,
+      broker: performanceView.broker,
+      payloadSource: performanceView.payloadSource,
+      renderTarget: "dashboard_secondary_pnl_value",
+      sourceUsed: "existing_open_pnl",
+      value: panelSecondMetricValue,
+    });
+  }
+  const currentReturnPct = model.account.balance ? (panelSecondMetricValue / model.account.balance) * 100 : cumulativeReturn;
   console.log("[KMFX][HERO][SOURCE]", {
     accountId: account?.id || "",
     sourceType: account?.sourceType || "",
@@ -280,12 +307,11 @@ export function renderDashboard(root, state) {
     lastTradeLabel: authority.lastTradeLabel,
     sourceUsed: authority.sourceUsed,
   });
-  const totalPnlDisplay = formatCurrency(Math.abs(currentPnl));
+  const totalPnlDisplay = formatCurrency(Math.abs(panelSecondMetricValue));
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
-  const heroPnlLabel = account?.sourceType === "mt5" ? "Open PnL" : "PnL total";
   const riskSummary = selectRiskSummary(state);
   const riskStatus = selectRiskStatus(state);
   const riskLimits = selectRiskLimits(state);
@@ -396,8 +422,8 @@ export function renderDashboard(root, state) {
                 </div>
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
-                    <span class="metric-line-label">${heroPnlLabel}</span>
-                    <strong class="${currentPnl >= 0 ? "metric-positive" : "metric-negative"}">
+                    <span class="metric-line-label">${panelSecondMetricLabel}</span>
+                    <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
                       ${totalPnlDisplay} (${totalReturnDisplay})
                     </strong>
                   </div>
