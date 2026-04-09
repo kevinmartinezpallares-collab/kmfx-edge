@@ -306,9 +306,21 @@ export function resolveActiveAccountId(state) {
   return resolveSelectedLiveAccountId(state);
 }
 
+function isLiveAccountCandidate(account, accountId, liveIds = []) {
+  if (!account || typeof account !== "object") return false;
+  if (liveIds.includes(accountId)) return true;
+  if (account.source === "mt5" || account.sourceType === "mt5") return true;
+  const dashboardPayload = account.dashboardPayload;
+  return Boolean(dashboardPayload && typeof dashboardPayload === "object" && Object.keys(dashboardPayload).length > 0);
+}
+
 export function resolveSelectedLiveAccountId(state) {
   const accounts = state?.accounts && typeof state.accounts === "object" ? state.accounts : {};
-  const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds.filter((id) => accounts[id]) : [];
+  const explicitLiveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds.filter((id) => accounts[id]) : [];
+  const inferredLiveIds = Object.entries(accounts)
+    .filter(([accountId, account]) => isLiveAccountCandidate(account, accountId, explicitLiveIds))
+    .map(([accountId]) => accountId);
+  const liveIds = explicitLiveIds.length > 0 ? explicitLiveIds : inferredLiveIds;
   const activeLiveAccountId = state?.activeLiveAccountId;
   const currentAccount = state?.currentAccount;
 
@@ -697,7 +709,22 @@ export function buildDashboardModel(source) {
 }
 
 export function selectCurrentAccount(state) {
-  return resolveSelectedLiveAccount(state);
+  const resolvedAccountId = resolveSelectedLiveAccountId(state);
+  const account = resolvedAccountId ? state?.accounts?.[resolvedAccountId] || null : null;
+  const isLive = isLiveAccountCandidate(
+    account,
+    resolvedAccountId,
+    Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : []
+  );
+
+  console.log("[KMFX][Panel Resolution]", {
+    currentAccount: state?.currentAccount || null,
+    resolvedAccountId,
+    isLive,
+    availableAccounts: Object.keys(state?.accounts || {})
+  });
+
+  return account;
 }
 
 export function selectCurrentModel(state) {
