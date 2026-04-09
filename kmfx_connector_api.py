@@ -922,6 +922,7 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
             "sync_id": sync_id,
             "disposition": "rejected",
             "reason": reason,
+            "rejection_reason": reason,
             "error_code": SYNC_ERROR_INVALID_PAYLOAD,
             "details": details,
             "timestamp": now_iso(),

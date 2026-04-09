@@ -153,6 +153,12 @@ class LauncherServiceRuntime:
 
         if backend_response.ok:
             disposition = str(backend_response.body.get("disposition") or "accepted")
+            reason = str(
+                backend_response.body.get("rejection_reason")
+                or backend_response.body.get("reason")
+                or ""
+            )
+            details = backend_response.body.get("details")
             receipt = {
                 "received_at": now_iso(),
                 "disposition": disposition,
@@ -169,7 +175,14 @@ class LauncherServiceRuntime:
                         "timestamp": now_iso(),
                     }
                 )
-            self.logger.info("[KMFX][BACKEND] delivered kind=%s id=%s disposition=%s", kind, item_id, disposition)
+            self.logger.info(
+                "[KMFX][BACKEND] delivered kind=%s id=%s disposition=%s reason=%s details=%s",
+                kind,
+                item_id,
+                disposition,
+                reason,
+                details,
+            )
             return {
                 "delivered": True,
                 "disposition": disposition,
@@ -223,7 +236,17 @@ class LauncherServiceRuntime:
             "error": backend_response.error,
         }
         self.mark_delivered(kind, item_id, receipt)
-        self.logger.error("[KMFX][BACKEND] rejected kind=%s id=%s status=%s", kind, item_id, backend_response.status_code)
+        self.logger.error(
+            "[KMFX][BACKEND] rejected kind=%s id=%s status=%s reason=%s details=%s",
+            kind,
+            item_id,
+            backend_response.status_code,
+            backend_response.body.get("rejection_reason")
+            or backend_response.body.get("reason")
+            or backend_response.error
+            or "",
+            backend_response.body.get("details"),
+        )
         return {
             "delivered": False,
             "disposition": "rejected",
