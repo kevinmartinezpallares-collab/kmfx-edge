@@ -89,23 +89,49 @@ function durationMinutes(startValue, endValue) {
 }
 
 function normalizeTrades(rawTrades = []) {
+  const dayFormatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Andorra",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const monthFormatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Andorra",
+    year: "numeric",
+    month: "2-digit",
+  });
+  const toTradingDayKey = (value) => {
+    const parsed = value ? new Date(value) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? dayFormatter.format(parsed) : "";
+  };
+  const toMonthKey = (value) => {
+    const parsed = value ? new Date(value) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? monthFormatter.format(parsed) : "";
+  };
   return (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
     const date = toIsoString(trade.close_time || trade.time || trade.open_time);
     const profit = Number(trade.profit || 0);
     const commission = Number(trade.commission || 0);
     const swap = Number(trade.swap || 0);
     const dividend = Number(trade.dividend || 0);
-    const netPnl = profit + commission + swap + dividend;
+    const fees = Number(trade.fees || trade.fee || 0);
+    const netPnl = profit + commission + swap + dividend + fees;
     return {
       id: trade.position_id || trade.ticket || `mt5-trade-${index}`,
       date,
+      closeTime: date,
+      tradingDayKey: toTradingDayKey(date),
+      monthKey: toMonthKey(date),
       symbol: trade.symbol || "UNKNOWN",
       side: String(trade.type || trade.side || "BUY").toUpperCase(),
       pnl: netPnl,
+      net: netPnl,
+      grossProfit: profit,
       profit,
       commission,
       swap,
       dividend,
+      fees,
       rMultiple: Number(trade.r_multiple || trade.rMultiple || 0),
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),

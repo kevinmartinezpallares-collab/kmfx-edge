@@ -2,6 +2,23 @@ const esNumber = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
 const esPct = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const sessions = ["Asia", "London", "New York"];
+const ACCOUNTING_TIMEZONE = "Europe/Andorra";
+const dayKeyFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: ACCOUNTING_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const monthKeyFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: ACCOUNTING_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+});
+const monthLabelFormatter = new Intl.DateTimeFormat("es-ES", {
+  timeZone: ACCOUNTING_TIMEZONE,
+  month: "short",
+  year: "numeric",
+});
 import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260406-213500";
 function readPreferredCurrency() {
   try {
@@ -36,11 +53,13 @@ function getCurrencySymbol(currency) {
 }
 
 function toLocalDayKey(dateLike) {
-  const date = new Date(dateLike);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const date = normalizeDateLike(dateLike);
+  return date ? dayKeyFormatter.format(date) : "";
+}
+
+function toLocalMonthKey(dateLike) {
+  const date = normalizeDateLike(dateLike);
+  return date ? monthKeyFormatter.format(date) : "";
 }
 
 export function formatCurrency(value, currencyOverride) {
@@ -115,6 +134,79 @@ function normalizeDateLike(value) {
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function resolveTradeNet(trade) {
+  const grossProfit = Number.isFinite(Number(trade?.grossProfit))
+    ? Number(trade.grossProfit)
+    : Number.isFinite(Number(trade?.profit))
+      ? Number(trade.profit)
+      : 0;
+  const commission = Number.isFinite(Number(trade?.commission)) ? Number(trade.commission) : 0;
+  const swap = Number.isFinite(Number(trade?.swap)) ? Number(trade.swap) : 0;
+  const dividend = Number.isFinite(Number(trade?.dividend)) ? Number(trade.dividend) : 0;
+  const fees = Number.isFinite(Number(trade?.fees))
+    ? Number(trade.fees)
+    : Number.isFinite(Number(trade?.fee))
+      ? Number(trade.fee)
+      : 0;
+  const explicitNet = Number(trade?.net);
+  const explicitPnl = Number(trade?.pnl);
+  const hasExplicitNet = Number.isFinite(explicitNet);
+  const hasExplicitPnl = Number.isFinite(explicitPnl);
+  const net = hasExplicitNet
+    ? explicitNet
+    : hasExplicitPnl
+      ? explicitPnl
+      : grossProfit + commission + swap + dividend + fees;
+  const closeTime = trade?.closeTime || trade?.date || "";
+  const mode = hasExplicitNet ? "explicit_net" : hasExplicitPnl ? "explicit_pnl" : "profit_plus_costs";
+  console.debug("[KMFX][TRADE_NET_AUDIT]", {
+    id: trade?.id || trade?.ticket || trade?.trade_id || "",
+    source: trade?.source || "model",
+    profit: grossProfit,
+    commission,
+    swap,
+    fees,
+    grossProfit,
+    net,
+    mode,
+    closeTime,
+  });
+  return { net, grossProfit, commission, swap, dividend, fees, mode };
+}
+
+function buildDailyPnlMap(trades) {
+  const dayMap = new Map();
+  trades.forEach((trade) => {
+    const key = trade.tradingDayKey || toLocalDayKey(trade.closeTime || trade.when || trade.date);
+    if (!key) return;
+    if (!dayMap.has(key)) {
+      const dayDate = normalizeDateLike(trade.closeTime || trade.when || trade.date) || new Date();
+      dayMap.set(key, {
+        key,
+        pnl: 0,
+        trades: 0,
+        date: dayDate,
+        monthKey: trade.monthKey || toLocalMonthKey(dayDate),
+      });
+    }
+    const entry = dayMap.get(key);
+    const net = Number.isFinite(Number(trade.net)) ? Number(trade.net) : Number(trade.pnl || 0);
+    entry.pnl += net;
+    entry.trades += 1;
+  });
+  [...dayMap.values()]
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .forEach((day) => {
+      console.debug("[KMFX][DAILY_PNL_AUDIT]", {
+        dayKey: day.key,
+        timezone: ACCOUNTING_TIMEZONE,
+        trades: day.trades,
+        netPnl: day.pnl,
+      });
+    });
+  return dayMap;
 }
 
 function normalizeReportMetricsShape(reportMetrics, context = {}) {
@@ -560,16 +652,8 @@ export function buildDashboardModel(source) {
     ? explicitHistory
     : generatedEquityCurve;
 
-  const dayMap = new Map();
-  trades.forEach((trade) => {
-    const key = toLocalDayKey(trade.when);
-    if (!dayMap.has(key)) dayMap.set(key, { pnl: 0, trades: 0, date: new Date(trade.when) });
-    const entry = dayMap.get(key);
-    entry.pnl += trade.pnl;
-    entry.trades += 1;
-  });
-
-  const dayStats = [...dayMap.entries()].map(([key, value]) => ({ key, ...value })).sort((a, b) => a.key.localeCompare(b.key));
+  const dayMap = buildDailyPnlMap(trades);
+  const dayStats = [...dayMap.values()].sort((a, b) => a.key.localeCompare(b.key));
   const weekly = buildWeeklyStrip(dayStats);
   const monthlyReturns = buildMonthlyReturns(dayStats, startBalance);
   const calendar = buildCalendar(dayStats, trades[trades.length - 1]?.when || new Date());
@@ -765,23 +849,38 @@ function buildMonthlyReturns(dayStats, startBalance) {
   let runningBalance = startBalance;
   dayStats.forEach((day) => {
     const date = day.date;
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    if (!months.has(key)) months.set(key, {
-      key,
-      label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
-      pnl: 0,
-      trades: 0,
-      startBalance: runningBalance
-    });
+    const key = day.monthKey || toLocalMonthKey(date);
+    if (!months.has(key)) {
+      months.set(key, {
+        key,
+        label: monthLabelFormatter.format(date),
+        pnl: 0,
+        trades: 0,
+        startBalance: runningBalance,
+        endBalance: runningBalance
+      });
+    }
     const month = months.get(key);
     month.pnl += day.pnl;
     month.trades += day.trades;
     runningBalance += day.pnl;
+    month.endBalance = runningBalance;
   });
-  return [...months.values()].map((month) => ({
-    ...month,
-    returnPct: month.startBalance ? (month.pnl / month.startBalance) * 100 : 0
-  }));
+  return [...months.values()].map((month) => {
+    const returnPct = month.startBalance ? (month.pnl / month.startBalance) * 100 : 0;
+    console.debug("[KMFX][MONTHLY_RETURN_AUDIT]", {
+      monthKey: month.key,
+      startBalance: month.startBalance,
+      pnl: month.pnl,
+      endBalance: month.endBalance,
+      returnPct,
+      tradeCount: month.trades,
+    });
+    return {
+      ...month,
+      returnPct
+    };
+  });
 }
 
 function buildMonthlyMatrix(monthlyReturns) {
@@ -1015,9 +1114,21 @@ function standardDeviation(values) {
 }
 
 function enrichTrade(trade, index) {
-  const when = new Date(trade.date);
+  const when = normalizeDateLike(trade.closeTime || trade.date) || new Date(trade.date);
+  const accounting = resolveTradeNet(trade);
+  const closeTime = trade.closeTime || trade.date || "";
   return {
     ...trade,
+    closeTime,
+    tradingDayKey: trade.tradingDayKey || toLocalDayKey(when),
+    monthKey: trade.monthKey || toLocalMonthKey(when),
+    pnl: accounting.net,
+    net: accounting.net,
+    grossProfit: accounting.grossProfit,
+    commission: accounting.commission,
+    swap: accounting.swap,
+    dividend: accounting.dividend,
+    fees: accounting.fees,
     when,
     durationMin: Number.isFinite(Number(trade.durationMin)) ? Number(trade.durationMin) : null,
     volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
