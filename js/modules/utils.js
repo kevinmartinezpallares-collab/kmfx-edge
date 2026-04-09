@@ -121,14 +121,18 @@ export function getAccountTypeLabel(mode = "", name = "") {
   return "Cuenta principal";
 }
 
-function normalizeDateLike(value) {
+function normalizeDateLike(value, unixFallbackSeconds) {
+  const unixSeconds = Number(unixFallbackSeconds);
+  if (Number.isFinite(unixSeconds) && unixSeconds > 0) {
+    return new Date(unixSeconds * 1000);
+  }
   if (!value) return null;
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
   if (typeof value === "string") {
     const mt5Match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
     if (mt5Match) {
       const [, year, month, day, hour, minute, second] = mt5Match;
-      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
+      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
       if (!Number.isNaN(parsed.getTime())) return parsed;
     }
   }
@@ -304,7 +308,8 @@ export function resolveAccountDataAuthority(account) {
       trade?.time ||
       trade?.open_time ||
       trade?.date ||
-      trade?.when
+      trade?.when,
+      trade?.time_unix || trade?.close_time_unix
     ))
     .filter(Boolean)
     .sort((left, right) => left.getTime() - right.getTime());
@@ -568,7 +573,19 @@ export function buildDashboardModel(source) {
   const trades = source.trades
     .map((trade, index) => enrichTrade(trade, index))
     .sort((a, b) => a.when - b.when);
-  const positions = (source.positions || []).map((position) => ({ ...position }));
+  const positions = (source.positions || []).map((position) => {
+    const explicitFloatingPnl = Number(position?.floating_pnl ?? position?.floatingPnl);
+    const fallbackProfit = Number(position?.profit ?? position?.pnl ?? 0);
+    // floating_pnl = POSITION_PROFIT + POSITION_SWAP from MT5
+    // Do not add swap separately — it is already included
+    const floatingPnl = Number.isFinite(explicitFloatingPnl) ? explicitFloatingPnl : fallbackProfit;
+    return {
+      ...position,
+      floating_pnl: floatingPnl,
+      floatingPnl,
+      pnl: floatingPnl,
+    };
+  });
   const riskProfile = source.riskProfile || {};
   const explicitHistory = Array.isArray(source.history)
     ? source.history
@@ -590,6 +607,14 @@ export function buildDashboardModel(source) {
     totalTrades: source?.trades?.length ?? 0,
   });
   const hasReportMetrics = Boolean(reportMetrics);
+  if (!hasReportMetrics) {
+    console.warn(
+      "[KMFX][DATA_INTEGRITY] reportMetrics missing from payload. " +
+      "Falling back to JS calculations — metrics may not match MT5. " +
+      "Ensure KMFXConnector sends reportMetrics on every sync.",
+      { payloadSource: source.payloadSource || source.profile?.payloadSource || "normalized", tradesCount: trades.length }
+    );
+  }
   const usedExplicitLivePayload = payloadSource === "mt5_sync_live";
   const explicitOpenPositionsCount = Number.isFinite(Number(source.account.openPositionsCount))
     ? Number(source.account.openPositionsCount)
@@ -598,12 +623,19 @@ export function buildDashboardModel(source) {
   const explicitOpenPnl = Number(source.account.openPnl);
   const explicitClosedPnl = Number(source.account.closedPnl);
   const explicitTotalPnl = Number(source.account.totalPnl ?? source.account.pnl);
+  const positionsFloatingPnl = positions.reduce((sum, position) => {
+    const value = Number(position.floating_pnl ?? position.floatingPnl ?? position.pnl ?? position.profit ?? 0);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
+  const hasPositionFloatingPnl = positions.some((position) => (
+    Number.isFinite(Number(position.floating_pnl ?? position.floatingPnl))
+  ));
   const heroOpenPnl = usedExplicitLivePayload
-    ? (Number.isFinite(explicitFloatingPnl)
-      ? explicitFloatingPnl
-      : Number.isFinite(explicitOpenPnl)
-        ? explicitOpenPnl
-        : 0)
+    ? (hasPositionFloatingPnl
+      ? positionsFloatingPnl
+      : (Number.isFinite(explicitFloatingPnl)
+        ? explicitFloatingPnl
+        : (Number.isFinite(explicitOpenPnl) ? explicitOpenPnl : 0)))
     : (Number.isFinite(explicitOpenPnl) ? explicitOpenPnl : 0);
   const heroClosedPnl = usedExplicitLivePayload
     ? (Number.isFinite(explicitClosedPnl) ? explicitClosedPnl : 0)
@@ -1114,9 +1146,12 @@ function standardDeviation(values) {
 }
 
 function enrichTrade(trade, index) {
-  const when = normalizeDateLike(trade.closeTime || trade.date) || new Date(trade.date);
+  const when = normalizeDateLike(
+    trade.closeTime || trade.close_time || trade.time || trade.date,
+    trade.time_unix || trade.close_time_unix
+  ) || new Date(trade.date);
   const accounting = resolveTradeNet(trade);
-  const closeTime = trade.closeTime || trade.date || "";
+  const closeTime = trade.closeTime || trade.close_time || trade.time || trade.date || "";
   return {
     ...trade,
     closeTime,
