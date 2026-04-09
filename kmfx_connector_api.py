@@ -586,8 +586,9 @@ def build_policy(login: str) -> dict[str, Any]:
     return policy
 
 
-def build_connector_policy_response(login: str) -> dict[str, Any]:
+def build_connector_policy_response(login: str, account_state: dict[str, Any] | None = None) -> dict[str, Any]:
     policy = build_policy(login)
+    state = account_state if isinstance(account_state, dict) else {}
     return {
         **policy,
         "risk_status": "active_monitoring",
@@ -595,6 +596,49 @@ def build_connector_policy_response(login: str) -> dict[str, Any]:
         "action_required": "Opera dentro de la política activa y respeta los límites locales.",
         "reason_code": "OK",
         "severity": "info",
+        "equity_peak": safe_float(state.get("equity_peak")),
+        "daily_start_equity": safe_float(state.get("daily_start_equity")),
+        "peak_source": "backend_persisted",
+    }
+
+
+def load_persisted_account_state(connection_key: str, identity_key: str = "") -> dict[str, Any]:
+    normalized_connection_key = safe_str(connection_key)
+    if normalized_connection_key:
+        account = account_service.get_account_by_api_key(user_id="local", api_key=normalized_connection_key)
+        if account and isinstance(account.latest_payload, dict):
+            return deepcopy(account.latest_payload or {})
+
+    normalized_identity = safe_str(identity_key)
+    if normalized_identity:
+        last_sync = LAST_SYNC_BY_LOGIN.get(normalized_identity) or {}
+        raw_payload = last_sync.get("raw") if isinstance(last_sync, dict) else None
+        if isinstance(raw_payload, dict):
+            return deepcopy(raw_payload)
+
+    return {}
+
+
+def resolve_persisted_equity_state(
+    *,
+    payload: dict[str, Any],
+    account: dict[str, Any],
+    stored_payload: dict[str, Any] | None,
+) -> dict[str, float | str]:
+    stored = stored_payload if isinstance(stored_payload, dict) else {}
+    account_equity = safe_float(account.get("equity"))
+    incoming_equity_peak = safe_float(payload.get("equity_peak"), account_equity)
+    stored_equity_peak = safe_float(stored.get("equity_peak"))
+    resolved_peak = max(stored_equity_peak, incoming_equity_peak, account_equity)
+
+    incoming_daily_start = safe_float(payload.get("daily_start_equity"))
+    stored_daily_start = safe_float(stored.get("daily_start_equity"))
+    daily_start_equity = incoming_daily_start if incoming_daily_start > 0 else stored_daily_start
+
+    return {
+        "equity_peak": resolved_peak,
+        "daily_start_equity": daily_start_equity,
+        "last_sync_at": now_iso(),
     }
 
 
@@ -1110,7 +1154,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
         connector_version = safe_str(payload.get("connector_version"), "unknown")
         sync_timestamp = safe_timestamp(payload.get("timestamp"))
         identity_key = resolve_identity_key(connection_key, login)
-        policy = build_connector_policy_response(identity_key)
+        persisted_state = load_persisted_account_state(connection_key, identity_key)
+        policy = build_connector_policy_response(identity_key, persisted_state)
         existing_receipt = get_processed_sync_receipt(sync_id)
         if existing_receipt:
             log.info(
@@ -1160,6 +1205,17 @@ async def mt5_sync(request: Request) -> JSONResponse:
             server=safe_str(sanitized_account.get("server")),
             login=login,
         )
+        stored_payload = persisted_state or (previous_account.latest_payload if previous_account else {})
+        equity_state = resolve_persisted_equity_state(
+            payload=payload,
+            account=sanitized_account,
+            stored_payload=stored_payload,
+        )
+        payload = {
+            **payload,
+            "equity_peak": equity_state["equity_peak"],
+            "daily_start_equity": equity_state["daily_start_equity"],
+        }
         effective_trades = merge_trade_sources(sanitized_trades, journal_trades_for_identity(identity_key))
         dashboard_payload = build_dashboard_account_payload(
             sanitized_account,
@@ -1167,6 +1223,19 @@ async def mt5_sync(request: Request) -> JSONResponse:
             effective_trades,
             payload,
             previous_account.latest_payload if previous_account else None,
+        )
+        dashboard_payload["equity_peak"] = equity_state["equity_peak"]
+        dashboard_payload["daily_start_equity"] = equity_state["daily_start_equity"]
+        dashboard_payload["last_sync_at"] = equity_state["last_sync_at"]
+        log.info(
+            "SYNC equity peak persisted | connection_key=%s identity=%s stored_peak=%.2f incoming_peak=%.2f equity=%.2f resolved_peak=%.2f daily_start=%.2f",
+            connection_key,
+            identity_key,
+            safe_float(stored_payload.get("equity_peak")) if isinstance(stored_payload, dict) else 0.0,
+            safe_float(payload.get("equity_peak")),
+            safe_float(sanitized_account.get("equity")),
+            safe_float(equity_state["equity_peak"]),
+            safe_float(equity_state["daily_start_equity"]),
         )
         log.info(
             "DASHBOARD payload built | account_id=%s login=%s balance=%.2f equity=%.2f open_pnl=%.2f closed_pnl=%.2f trades=%s history=%s positions=%s",
@@ -1375,8 +1444,15 @@ async def mt5_policy(
             "timestamp": now_iso(),
         })
 
-    policy = build_connector_policy_response(identity_key)
-    log.info("Policy requested | identity=%s hash=%s", identity_key, policy["policy_hash"])
+    persisted_state = load_persisted_account_state(normalized_connection_key, identity_key)
+    policy = build_connector_policy_response(identity_key, persisted_state)
+    log.info(
+        "Policy requested | identity=%s hash=%s equity_peak=%.2f daily_start_equity=%.2f",
+        identity_key,
+        policy["policy_hash"],
+        safe_float(policy.get("equity_peak")),
+        safe_float(policy.get("daily_start_equity")),
+    )
     return connector_json_response(policy)
 
 

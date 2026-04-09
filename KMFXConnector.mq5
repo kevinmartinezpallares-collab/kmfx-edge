@@ -1761,6 +1761,11 @@ bool KMFXFetchPolicy()
    KMFXExtractJsonDouble(response,"total_dd_hard_stop",next_policy.total_dd_hard_stop);
    KMFXExtractJsonDouble(response,"equity_protection_limit",next_policy.equity_protection_limit);
 
+   double backend_equity_peak=0.0;
+   double backend_daily_start=0.0;
+   KMFXExtractJsonDouble(response,"equity_peak",backend_equity_peak);
+   KMFXExtractJsonDouble(response,"daily_start_equity",backend_daily_start);
+
    if(KMFXExtractJsonString(response,"panic_lock_expires_at",panic_expires_raw))
       next_policy.panic_lock_expires_at=KMFXParseIsoUtc(panic_expires_raw);
 
@@ -1769,6 +1774,24 @@ bool KMFXFetchPolicy()
 
    if(KMFXExtractJsonArrayRaw(response,"allowed_symbols",raw_symbols))
       KMFXExtractAllowedValues(raw_symbols,next_policy.allowed_symbols_csv);
+
+   if(MathIsValidNumber(backend_equity_peak) && backend_equity_peak>0.0)
+     {
+      double resolved_peak=MathMax(Runtime.equity_peak,backend_equity_peak);
+      if(resolved_peak!=Runtime.equity_peak)
+        {
+         PrintFormat("[KMFX][POLICY][PEAK_SYNC] local=%.2f backend=%.2f resolved=%.2f",
+                     Runtime.equity_peak,backend_equity_peak,resolved_peak);
+         Runtime.equity_peak=resolved_peak;
+        }
+     }
+
+   if(MathIsValidNumber(backend_daily_start) && backend_daily_start>0.0
+      && Runtime.daily_start_equity<=0.0)
+     {
+      Runtime.daily_start_equity=backend_daily_start;
+      PrintFormat("[KMFX][POLICY][DAILY_START_SYNC] restored=%.2f",backend_daily_start);
+     }
 
    next_policy.loaded=true;
    next_policy.backend_connected=true;
@@ -2083,6 +2106,8 @@ int OnInit()
    Runtime.daily_start_equity=AccountInfoDouble(ACCOUNT_EQUITY);
    Runtime.daily_peak_equity=Runtime.daily_start_equity;
    Runtime.equity_peak=Runtime.daily_start_equity;
+   PrintFormat("[KMFX][INIT][PEAK_BOOTSTRAP] initial_peak=%.2f (will sync from backend)",
+               Runtime.equity_peak);
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
 
    // DEBUG
