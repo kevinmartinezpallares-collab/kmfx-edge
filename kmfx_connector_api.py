@@ -65,12 +65,22 @@ def connector_json_response(content: Any, status_code: int = 200) -> JSONRespons
 
 
 def _parse_datetime(value: object) -> datetime | None:
-    if not isinstance(value, str) or not value:
+    text = safe_str(value)
+    if not text:
         return None
-    normalized = value.replace("Z", "+00:00")
+    normalized = text.replace("Z", "+00:00")
     try:
         parsed = datetime.fromisoformat(normalized)
     except ValueError:
+        parsed = None
+    if parsed is None:
+        for pattern in ("%Y.%m.%d %H:%M:%S", "%Y.%m.%d %H:%M"):
+            try:
+                parsed = datetime.strptime(text, pattern)
+                break
+            except ValueError:
+                continue
+    if parsed is None:
         return None
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
@@ -372,8 +382,11 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def safe_timestamp(value: Any) -> str:
+    parsed = _parse_datetime(value)
+    if parsed is not None:
+        return parsed.isoformat().replace("+00:00", "Z")
     text = safe_str(value)
-    return text or now_iso()
+    return text or ""
 
 
 def sorted_by_time(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -706,16 +719,18 @@ def build_report_metrics(account: dict[str, Any], trades: list[dict[str, Any]], 
             first_close = close_time if not first_close or close_time < first_close else first_close
             last_close = close_time if not last_close or close_time > last_close else last_close
         if close_time and open_time:
-            open_dt = datetime.fromisoformat(open_time.replace("Z", "+00:00"))
-            close_dt = datetime.fromisoformat(close_time.replace("Z", "+00:00"))
-            hold_minutes.append(max((close_dt - open_dt).total_seconds() / 60.0, 0.0))
+            open_dt = _parse_datetime(open_raw)
+            close_dt = _parse_datetime(close_raw)
+            if open_dt is not None and close_dt is not None:
+                hold_minutes.append(max((close_dt - open_dt).total_seconds() / 60.0, 0.0))
 
     trades_per_week = 0.0
     if first_close and last_close and total_trades:
-        first_dt = datetime.fromisoformat(first_close.replace("Z", "+00:00"))
-        last_dt = datetime.fromisoformat(last_close.replace("Z", "+00:00"))
-        span_days = max((last_dt - first_dt).total_seconds() / 86400.0, 1.0)
-        trades_per_week = total_trades / (span_days / 7.0)
+        first_dt = _parse_datetime(first_close)
+        last_dt = _parse_datetime(last_close)
+        if first_dt is not None and last_dt is not None:
+            span_days = max((last_dt - first_dt).total_seconds() / 86400.0, 1.0)
+            trades_per_week = total_trades / (span_days / 7.0)
 
     average_hold_minutes = (sum(hold_minutes) / len(hold_minutes)) if hold_minutes else 0.0
     starting_balance = balance - net_profit
