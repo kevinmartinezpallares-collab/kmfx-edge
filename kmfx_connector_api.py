@@ -1063,7 +1063,19 @@ async def mt5_sync(request: Request) -> JSONResponse:
         issues.extend(position_issues)
         issues.extend(trade_issues)
 
+        bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
+
         login = normalize_login(payload)
+        if not login and bound_account and safe_str(bound_account.login):
+            login = safe_str(bound_account.login)
+            sanitized_account["login"] = login
+            log.info(
+                "SYNC login fallback | source=bound_account sync_id=%s account_id=%s login=%s",
+                sync_id,
+                bound_account.account_id,
+                login,
+            )
+
         if not login:
             details = {
                 "section": "account",
@@ -1072,6 +1084,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 "payload_sections": {
                     "has_account": isinstance(payload.get("account"), dict),
                     "has_top_level_login": payload.get("login") is not None,
+                    "has_bound_account": bool(bound_account),
                 },
                 "issues": issues,
             }
@@ -1124,7 +1137,6 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "raw": payload,
         }
 
-        bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
         previous_account = bound_account or account_service.get_account_by_identity(
             user_id="local",
             platform="mt5",
