@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.0                                               |
+//| KMFXConnector v2.71                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,7 +10,7 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.70"
+#property version   "2.71"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -1136,7 +1136,7 @@ string KMFXBuildSyncPayload(string sync_id)
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
-   json+="\"connector_version\":\"2.00\",";
+   json+="\"connector_version\":\"2.71\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -1163,7 +1163,7 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    string login_value=KMFXAccountLoginString();
    string json="{";
    json+="\"type\":\"kmfx_connector_journal\",";
-   json+="\"connector_version\":\"2.00\",";
+   json+="\"connector_version\":\"2.71\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
