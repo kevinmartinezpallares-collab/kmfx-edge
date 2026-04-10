@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.71                                              |
+//| KMFXConnector v2.72                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,7 +10,7 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.71"
+#property version   "2.72"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -1136,7 +1136,7 @@ string KMFXBuildSyncPayload(string sync_id)
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
-   json+="\"connector_version\":\"2.71\",";
+   json+="\"connector_version\":\"2.72\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -1148,6 +1148,7 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"total_dd_pct\":"+KMFXDoubleJson(total_dd_pct,4)+",";
    json+="\"equity_peak\":"+KMFXDoubleJson(Runtime.equity_peak,2)+",";
    json+="\"daily_start_equity\":"+KMFXDoubleJson(Runtime.daily_start_equity,2)+",";
+   json+="\"daily_start_day_key\":"+KMFXQuote(KMFXDayKey(KMFXNow()))+",";
    json+="\"daily_peak_equity\":"+KMFXDoubleJson(Runtime.daily_peak_equity,2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
    json+="\"positions\":"+positions_json+",";
@@ -1163,7 +1164,7 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    string login_value=KMFXAccountLoginString();
    string json="{";
    json+="\"type\":\"kmfx_connector_journal\",";
-   json+="\"connector_version\":\"2.71\",";
+   json+="\"connector_version\":\"2.72\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -1763,8 +1764,10 @@ bool KMFXFetchPolicy()
 
    double backend_equity_peak=0.0;
    double backend_daily_start=0.0;
+   string backend_day_key="";
    KMFXExtractJsonDouble(response,"equity_peak",backend_equity_peak);
    KMFXExtractJsonDouble(response,"daily_start_equity",backend_daily_start);
+   KMFXExtractJsonString(response,"daily_start_day_key",backend_day_key);
 
    if(KMFXExtractJsonString(response,"panic_lock_expires_at",panic_expires_raw))
       next_policy.panic_lock_expires_at=KMFXParseIsoUtc(panic_expires_raw);
@@ -1786,11 +1789,20 @@ bool KMFXFetchPolicy()
         }
      }
 
-   if(MathIsValidNumber(backend_daily_start) && backend_daily_start>0.0
-      && Runtime.daily_start_equity<=0.0)
+   string local_day_key=KMFXDayKey(KMFXNow());
+   if(MathIsValidNumber(backend_daily_start)
+      && backend_daily_start>0.0
+      && StringLen(backend_day_key)>0
+      && backend_day_key==local_day_key)
      {
       Runtime.daily_start_equity=backend_daily_start;
-      PrintFormat("[KMFX][POLICY][DAILY_START_SYNC] restored=%.2f",backend_daily_start);
+      PrintFormat("[KMFX][POLICY][DAILY_START_SYNC] restored=%.2f day=%s",
+                  backend_daily_start,backend_day_key);
+     }
+   else if(StringLen(backend_day_key)>0 && backend_day_key!=local_day_key)
+     {
+      PrintFormat("[KMFX][POLICY][DAILY_START_SKIP] backend_day=%s local_day=%s reason=day_mismatch",
+                  backend_day_key,local_day_key);
      }
 
    next_policy.loaded=true;

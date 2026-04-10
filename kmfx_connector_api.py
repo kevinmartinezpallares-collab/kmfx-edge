@@ -598,6 +598,7 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
         "severity": "info",
         "equity_peak": safe_float(state.get("equity_peak")),
         "daily_start_equity": safe_float(state.get("daily_start_equity")),
+        "daily_start_day_key": safe_str(state.get("daily_start_day_key")),
         "peak_source": "backend_persisted",
     }
 
@@ -631,13 +632,21 @@ def resolve_persisted_equity_state(
     stored_equity_peak = safe_float(stored.get("equity_peak"))
     resolved_peak = max(stored_equity_peak, incoming_equity_peak, account_equity)
 
+    incoming_day_key = safe_str(payload.get("daily_start_day_key"))
     incoming_daily_start = safe_float(payload.get("daily_start_equity"))
+    stored_day_key = safe_str(stored.get("daily_start_day_key"))
     stored_daily_start = safe_float(stored.get("daily_start_equity"))
-    daily_start_equity = incoming_daily_start if incoming_daily_start > 0 else stored_daily_start
+    if incoming_day_key == stored_day_key and stored_day_key:
+        daily_start_equity = stored_daily_start if stored_daily_start > 0 else incoming_daily_start
+        daily_start_day_key = stored_day_key
+    else:
+        daily_start_equity = incoming_daily_start
+        daily_start_day_key = incoming_day_key
 
     return {
         "equity_peak": resolved_peak,
         "daily_start_equity": daily_start_equity,
+        "daily_start_day_key": daily_start_day_key,
         "last_sync_at": now_iso(),
     }
 
@@ -1215,6 +1224,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             **payload,
             "equity_peak": equity_state["equity_peak"],
             "daily_start_equity": equity_state["daily_start_equity"],
+            "daily_start_day_key": equity_state["daily_start_day_key"],
         }
         effective_trades = merge_trade_sources(sanitized_trades, journal_trades_for_identity(identity_key))
         dashboard_payload = build_dashboard_account_payload(
@@ -1226,6 +1236,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         )
         dashboard_payload["equity_peak"] = equity_state["equity_peak"]
         dashboard_payload["daily_start_equity"] = equity_state["daily_start_equity"]
+        dashboard_payload["daily_start_day_key"] = equity_state["daily_start_day_key"]
         dashboard_payload["last_sync_at"] = equity_state["last_sync_at"]
         log.info(
             "SYNC equity peak persisted | connection_key=%s identity=%s stored_peak=%.2f incoming_peak=%.2f equity=%.2f resolved_peak=%.2f daily_start=%.2f",
