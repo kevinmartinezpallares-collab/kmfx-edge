@@ -105,7 +105,7 @@ class AccountService:
     def _generate_connection_key(self) -> str:
         existing_keys = {account.api_key for account in self.store.list_accounts() if account.api_key}
         while True:
-            candidate = f"kmfx_{uuid4().hex}"
+            candidate = str(uuid4())
             if candidate not in existing_keys:
                 return candidate
 

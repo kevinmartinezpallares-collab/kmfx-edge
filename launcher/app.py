@@ -11,7 +11,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from .backend_client import BackendClient
-from .config import LauncherConfig, load_config, save_config
+from .config import LauncherConfig, load_config, save_bridge_config, save_config
 from .connector_installer import connector_installed, install_connector
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
@@ -113,6 +113,8 @@ class LauncherApp:
     def persist_launcher_config(self) -> None:
         self.config.connection_key = self.connection_key.get().strip()
         save_config(self.config.ensure_runtime_values())
+        if self.config.connection_key:
+            save_bridge_config(self.config, user_id="local")
 
     def save_launcher_config(self) -> None:
         self.persist_launcher_config()
@@ -145,6 +147,7 @@ class LauncherApp:
         self.config.selected_mt5_data_path = installation.data_path
         self.config.selected_mt5_experts_path = installation.experts_path
         save_config(self.config.ensure_runtime_values())
+        save_bridge_config(self.config, user_id=str(account.get("user_id") or "local"))
         result = install_connector(installation, self.config)
         self.store.save_binding(
             {
@@ -241,6 +244,8 @@ class LauncherApp:
         self.config.selected_mt5_data_path = installation.data_path
         self.config.selected_mt5_experts_path = installation.experts_path
         save_config(self.config)
+        if self.config.connection_key:
+            save_bridge_config(self.config, user_id="local")
         result = install_connector(installation, self.config)
         self.connector_status.set("Instalado")
         messagebox.showinfo(

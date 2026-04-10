@@ -12,7 +12,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .backend_client import BackendClient
-from .config import LauncherConfig, load_config
+from .config import LauncherConfig, load_bridge_config, mask_connection_key, load_config
 from .log_utils import configure_logging, read_recent_logs
 from .state_store import LauncherStateStore
 
@@ -61,10 +61,21 @@ class LauncherServiceRuntime:
     def __init__(self, config: LauncherConfig) -> None:
         self.config = config
         self.logger = configure_logging(config.debug)
+        self.bridge_config = load_bridge_config()
+        bridge_connection_key = str(self.bridge_config.get("connection_key") or "").strip()
+        if bridge_connection_key:
+            self.config.connection_key = bridge_connection_key
+            self.logger.info("[KMFX][BRIDGE] connection_key loaded: %s", mask_connection_key(bridge_connection_key))
+        else:
+            self.config.connection_key = ""
+            self.logger.warning("[KMFX][BRIDGE] WARNING: no connection_key config found")
         self.store = LauncherStateStore()
         self.backend = BackendClient(config)
         self.stop_event = threading.Event()
         self.worker_thread: threading.Thread | None = None
+
+    def effective_connection_key(self) -> str:
+        return str(self.bridge_config.get("connection_key") or "").strip()
 
     def identity_key(self, payload: dict[str, Any] | None, login: str = "", connection_key: str = "") -> str:
         if connection_key:
@@ -81,15 +92,15 @@ class LauncherServiceRuntime:
             payload_login = str(payload.get("login") or "").strip()
             if payload_login:
                 return payload_login
-        return login or self.config.connection_key
+        return login or self.effective_connection_key()
 
     def inject_connection_key(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> dict[str, Any]:
         safe_payload = payload if isinstance(payload, dict) else {}
         explicit_key = str(header_connection_key or safe_payload.get("connection_key") or "").strip()
-        effective_key = explicit_key or self.config.connection_key
+        effective_key = explicit_key or self.effective_connection_key()
         if effective_key and not explicit_key:
             safe_payload["connection_key"] = effective_key
-            self.logger.info("[KMFX][SERVICE] injected connection_key from launcher config")
+            self.logger.info("[KMFX][BRIDGE] connection_key injected into payload key=%s", mask_connection_key(effective_key))
         return safe_payload
 
     def build_queue_item(self, kind: str, item_id: str, identity_key: str, payload: dict[str, Any], attempts: int = 0) -> dict[str, Any]:
@@ -376,23 +387,24 @@ async def logs() -> PlainTextResponse:
 
 @app.get("/mt5/policy")
 async def mt5_policy(login: str = Query("", min_length=0), connection_key: str = Query("", min_length=0)) -> JSONResponse:
-    identity_key = runtime.identity_key(None, login=login, connection_key=connection_key)
-    backend_response = runtime.backend.get_policy(login=login, connection_key=connection_key or runtime.config.connection_key)
+    effective_connection_key = connection_key or runtime.effective_connection_key()
+    identity_key = runtime.identity_key(None, login=login, connection_key=effective_connection_key)
+    backend_response = runtime.backend.get_policy(login=login, connection_key=effective_connection_key)
     if backend_response.ok:
         runtime.store.set_cached_policy(identity_key, backend_response.body)
         runtime.store.set_last_policy({"identity_key": identity_key, "status": "fresh", "timestamp": now_iso()})
-        runtime.logger.info("[KMFX][BACKEND] policy fresh identity=%s", identity_key)
+        runtime.logger.info("[KMFX][BACKEND] policy fresh identity=%s", mask_connection_key(identity_key) or identity_key)
         return json_response(backend_response.body)
 
     cached_policy = runtime.store.get_cached_policy(identity_key)
     if cached_policy:
         runtime.store.set_last_policy({"identity_key": identity_key, "status": "cached", "timestamp": now_iso()})
-        runtime.logger.warning("[KMFX][BACKEND] policy cached identity=%s error=%s", identity_key, backend_response.error)
+        runtime.logger.warning("[KMFX][BACKEND] policy cached identity=%s error=%s", mask_connection_key(identity_key) or identity_key, backend_response.error)
         return json_response(cached_policy)
 
     fallback = fallback_policy(identity_key)
     runtime.store.set_last_policy({"identity_key": identity_key, "status": "fallback", "timestamp": now_iso()})
-    runtime.logger.warning("[KMFX][BACKEND] policy fallback identity=%s error=%s", identity_key, backend_response.error)
+    runtime.logger.warning("[KMFX][BACKEND] policy fallback identity=%s error=%s", mask_connection_key(identity_key) or identity_key, backend_response.error)
     return json_response(fallback)
 
 
@@ -415,7 +427,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
     payload = await request.json()
     payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     sync_id = resolve_sync_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", ""))
+    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", "") or runtime.effective_connection_key())
     receipt = runtime.store.find_receipt("snapshot", sync_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate snapshot sync_id=%s", sync_id)
@@ -427,7 +439,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
     if not runtime.store.find_queue_item("snapshot", sync_id):
         item = runtime.build_queue_item("snapshot", sync_id, identity_key, payload)
         runtime.store.enqueue("snapshot", item, runtime.config.max_queue_size)
-        runtime.logger.info("[KMFX][SERVICE] snapshot queued sync_id=%s identity=%s", sync_id, identity_key)
+        runtime.logger.info("[KMFX][SERVICE] snapshot queued sync_id=%s identity=%s", sync_id, mask_connection_key(identity_key) or identity_key)
 
     result = runtime.try_dispatch_immediately("snapshot", sync_id)
     if result["delivered"]:
@@ -463,7 +475,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
     payload = await request.json()
     payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     batch_id = resolve_batch_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", ""))
+    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", "") or runtime.effective_connection_key())
     receipt = runtime.store.find_receipt("journal", batch_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate journal batch_id=%s", batch_id)
@@ -475,7 +487,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
     if not runtime.store.find_queue_item("journal", batch_id):
         item = runtime.build_queue_item("journal", batch_id, identity_key, payload)
         runtime.store.enqueue("journal", item, runtime.config.max_queue_size)
-        runtime.logger.info("[KMFX][SERVICE] journal queued batch_id=%s identity=%s", batch_id, identity_key)
+        runtime.logger.info("[KMFX][SERVICE] journal queued batch_id=%s identity=%s", batch_id, mask_connection_key(identity_key) or identity_key)
 
     result = runtime.try_dispatch_immediately("journal", batch_id)
     if result["delivered"]:

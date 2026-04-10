@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import os
-import secrets
+import sys
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 LOCAL_BACKEND_BASE_URL = "http://127.0.0.1:8000"
@@ -26,6 +27,27 @@ def ensure_launcher_home() -> Path:
 
 def config_path() -> Path:
     return ensure_launcher_home() / "config.json"
+
+
+def platform_data_dir() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "KMFX"
+    if os.name == "nt":
+        return Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming"))) / "KMFX"
+    return Path(os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "KMFX"
+
+
+def bridge_config_path() -> Path:
+    root = platform_data_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    return root / "kmfx_bridge_config.json"
+
+
+def mask_connection_key(connection_key: str) -> str:
+    normalized = str(connection_key or "").strip()
+    if not normalized:
+        return ""
+    return f"{normalized[:8]}..."
 
 
 def resolve_backend_base_url(configured_value: str = "") -> str:
@@ -58,8 +80,6 @@ class LauncherConfig:
     selected_mt5_experts_path: str = ""
 
     def ensure_runtime_values(self) -> "LauncherConfig":
-        if not self.connection_key:
-            self.connection_key = f"kmfx-{secrets.token_hex(8)}"
         self.backend_base_url = resolve_backend_base_url(self.backend_base_url)
         return self
 
@@ -85,3 +105,26 @@ def load_config() -> LauncherConfig:
 def save_config(config: LauncherConfig) -> None:
     path = config_path()
     path.write_text(json.dumps(asdict(config), ensure_ascii=True, indent=2), encoding="utf-8")
+
+
+def save_bridge_config(config: LauncherConfig, *, user_id: str = "", linked_at: str = "") -> Path:
+    payload = {
+        "connection_key": str(config.connection_key or "").strip(),
+        "backend_url": str(config.backend_base_url or "").strip(),
+        "user_id": str(user_id or "").strip(),
+        "linked_at": linked_at or datetime.now(timezone.utc).isoformat(),
+    }
+    path = bridge_config_path()
+    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    return path
+
+
+def load_bridge_config() -> dict[str, str]:
+    path = bridge_config_path()
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}

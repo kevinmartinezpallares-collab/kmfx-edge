@@ -28,7 +28,14 @@ def preset_contents(config: LauncherConfig) -> str:
             "KMFXPolicyPath=/mt5/policy||0||0||0||N",
             f"KMFXApiKey={config.connection_key}||0||0||0||N",
             f"connection_key={config.connection_key}||0||0||0||N",
+            "KMFXTimerMs=2000||0||0||0||N",
+            "KMFXPolicyPollSeconds=12||0||0||0||N",
+            "KMFXStatePushSeconds=5||0||0||0||N",
+            "KMFXWebTimeoutMs=5000||0||0||0||N",
             "KMFXVerboseLog=true||0||0||0||N",
+            "KMFXEnableEnforce=true||0||0||0||N",
+            "KMFXSendClosedDeals=true||0||0||0||N",
+            "KMFXUseBrokerTime=true||0||0||0||N",
             "",
         ]
     )

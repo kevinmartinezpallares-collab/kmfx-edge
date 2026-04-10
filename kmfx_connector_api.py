@@ -246,6 +246,13 @@ def resolve_identity_key(connection_key: str, login: str) -> str:
     return connection_key or login
 
 
+def mask_connection_key(connection_key: str) -> str:
+    normalized = safe_str(connection_key)
+    if not normalized:
+        return ""
+    return f"{normalized[:8]}..."
+
+
 def journal_trades_for_identity(identity_key: str) -> list[dict[str, Any]]:
     return list(JOURNAL_TRADES_BY_IDENTITY.get(identity_key) or [])
 
@@ -1056,6 +1063,71 @@ async def create_account(request: Request) -> JSONResponse:
     )
 
 
+@app.post("/api/accounts/link")
+async def link_account(request: Request) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    user_id = safe_str(payload.get("user_id") or "local")
+    label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname") or "Nueva cuenta MT5")
+    platform = safe_str(payload.get("platform"), "mt5") or "mt5"
+    requested_account_id = safe_str(payload.get("account_id"))
+
+    registry = account_service.build_accounts_registry(user_id)
+    existing: dict[str, Any] | None = None
+    if requested_account_id:
+        existing = next((account for account in registry if account.get("account_id") == requested_account_id), None)
+    if existing is None:
+        existing = next(
+            (
+                account
+                for account in registry
+                if account.get("status") in {"pending_setup", "waiting_sync"}
+                and safe_str(account.get("alias")) == label
+                and safe_str(account.get("connection_key"))
+            ),
+            None,
+        )
+
+    if existing is not None and safe_str(existing.get("connection_key")):
+        connection_key = safe_str(existing.get("connection_key"))
+        account_id = safe_str(existing.get("account_id"))
+    else:
+        created = account_service.create_pending_account(
+            user_id=user_id,
+            alias=label,
+            platform=platform,
+        )
+        connection_key = created.api_key
+        account_id = created.account_id
+
+    launcher_config = {
+        "KMFXBackendBaseUrl": "http://127.0.0.1:8766",
+        "KMFXSyncPath": "/mt5/sync",
+        "KMFXJournalPath": "/mt5/journal",
+        "KMFXPolicyPath": "/mt5/policy",
+        "connection_key": connection_key,
+        "KMFXApiKey": connection_key,
+    }
+    log.info(
+        "ACCOUNT link issued | account_id=%s user_id=%s connection_key=%s",
+        account_id,
+        user_id,
+        mask_connection_key(connection_key),
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": account_id,
+            "connection_key": connection_key,
+            "launcher_config": launcher_config,
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.get("/accounts")
 async def list_accounts() -> JSONResponse:
     return connector_json_response(
@@ -1132,7 +1204,34 @@ async def mt5_sync(request: Request) -> JSONResponse:
         issues.extend(position_issues)
         issues.extend(trade_issues)
 
-        bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
+        bound_account = None
+        unverified_identity = False
+        if connection_key:
+            bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
+            if bound_account is None:
+                details = {
+                    "field": "connection_key",
+                    "problem": "unknown_connection_key",
+                    "connection_key": mask_connection_key(connection_key),
+                }
+                log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
+                return connector_json_response(
+                    {
+                        "ok": False,
+                        "received": False,
+                        "sync_id": sync_id,
+                        "disposition": "rejected",
+                        "reason": "unknown_connection_key",
+                        "error": "unknown_connection_key",
+                        "details": details,
+                        "timestamp": now_iso(),
+                    },
+                    status_code=401,
+                )
+        else:
+            unverified_identity = True
+            fallback_login = normalize_login(payload)
+            log.warning("SYNC received without connection_key, login=%s", fallback_login)
 
         login = normalize_login(payload)
         if not login and bound_account and safe_str(bound_account.login):
@@ -1238,9 +1337,11 @@ async def mt5_sync(request: Request) -> JSONResponse:
         dashboard_payload["daily_start_equity"] = equity_state["daily_start_equity"]
         dashboard_payload["daily_start_day_key"] = equity_state["daily_start_day_key"]
         dashboard_payload["last_sync_at"] = equity_state["last_sync_at"]
+        if unverified_identity:
+            dashboard_payload["identity_status"] = "unverified_identity"
         log.info(
             "SYNC equity peak persisted | connection_key=%s identity=%s stored_peak=%.2f incoming_peak=%.2f equity=%.2f resolved_peak=%.2f daily_start=%.2f",
-            connection_key,
+            mask_connection_key(connection_key),
             identity_key,
             safe_float(stored_payload.get("equity_peak")) if isinstance(stored_payload, dict) else 0.0,
             safe_float(payload.get("equity_peak")),

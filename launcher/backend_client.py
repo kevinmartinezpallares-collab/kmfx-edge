@@ -119,3 +119,10 @@ class BackendClient:
 
     def get_pending_accounts(self) -> BackendResponse:
         return self._request("GET", "/accounts/pending")
+
+    def link_account(self, *, user_id: str = "", label: str = "") -> BackendResponse:
+        return self._request(
+            "POST",
+            "/api/accounts/link",
+            payload={"user_id": user_id, "label": label},
+        )
