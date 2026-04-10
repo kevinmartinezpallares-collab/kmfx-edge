@@ -613,7 +613,7 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
 def load_persisted_account_state(connection_key: str, identity_key: str = "") -> dict[str, Any]:
     normalized_connection_key = safe_str(connection_key)
     if normalized_connection_key:
-        account = account_service.get_account_by_api_key(user_id="local", api_key=normalized_connection_key)
+        account = account_service.get_account_by_api_key_any_user(normalized_connection_key)
         if account and isinstance(account.latest_payload, dict):
             return deepcopy(account.latest_payload or {})
 
@@ -1207,7 +1207,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         bound_account = None
         unverified_identity = False
         if connection_key:
-            bound_account = account_service.get_account_by_api_key(user_id="local", api_key=connection_key)
+            bound_account = account_service.get_account_by_api_key_any_user(connection_key)
             if bound_account is None:
                 details = {
                     "field": "connection_key",

@@ -178,6 +178,20 @@ class AccountService:
         )
         return deepcopy(account) if account else None
 
+    def get_account_by_api_key_any_user(self, api_key: str) -> Account | None:
+        normalized = str(api_key or "").strip()
+        if not normalized:
+            return None
+        account = next(
+            (
+                account
+                for account in self.store.list_accounts()
+                if account.api_key == normalized
+            ),
+            None,
+        )
+        return deepcopy(account) if account else None
+
     def update_account_status(
         self,
         *,
