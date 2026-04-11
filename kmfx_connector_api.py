@@ -398,6 +398,15 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def safe_int_or_none(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def safe_timestamp(value: Any) -> str:
     parsed = _parse_datetime(value)
     if parsed is not None:
@@ -524,6 +533,7 @@ def sanitize_positions(raw_positions: Any) -> tuple[list[dict[str, Any]], list[d
                 "risk_pct": safe_float(position.get("risk_pct")),
                 "strategy_tag": safe_str(position.get("strategy_tag")),
                 "time": safe_timestamp(position.get("time")),
+                "time_unix": safe_int_or_none(position.get("time_unix")),
             }
         )
         if not safe_str(position.get("symbol")):
@@ -556,8 +566,15 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
                 "profit": safe_float(trade.get("profit")),
                 "commission": safe_float(trade.get("commission")),
                 "swap": safe_float(trade.get("swap")),
+                "net": round(
+                    safe_float(trade.get("profit"))
+                    + safe_float(trade.get("commission"))
+                    + safe_float(trade.get("swap")),
+                    2,
+                ),
                 "comment": safe_str(trade.get("comment")),
                 "time": safe_timestamp(trade.get("time")),
+                "time_unix": safe_int_or_none(trade.get("time_unix")),
             }
         )
         if not safe_str(trade.get("time")):
