@@ -18,6 +18,17 @@ class Account:
     status: str
     api_key: str
     last_sync_at: Optional[datetime] = None
+    mt5_login: str = ""
+    is_primary: bool = False
+    linked_at: Optional[datetime] = None
+    first_sync_at: Optional[datetime] = None
+    last_policy_at: Optional[datetime] = None
+    last_error_code: str = ""
+    last_error_message: str = ""
+    latest_report_metrics: dict[str, Any] = field(default_factory=dict)
+    connector_version: str = ""
+    archived_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
     is_default: bool = False
     nickname: Optional[str] = None
     latest_payload: dict[str, Any] = field(default_factory=dict)

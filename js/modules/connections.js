@@ -55,7 +55,7 @@ function relativeTime(value) {
 
 function accountStatusMeta(status = "", lastSyncAt = "") {
   const relative = relativeTime(lastSyncAt);
-  if (status === "connected") {
+  if (status === "connected" || status === "active") {
     return {
       label: "Conectada",
       tone: "connected",
@@ -64,7 +64,7 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       action: "use",
     };
   }
-  if (status === "waiting_sync") {
+  if (status === "waiting_sync" || status === "linked") {
     return {
       label: "Conectando…",
       tone: "waiting",
@@ -73,13 +73,22 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       action: "launcher",
     };
   }
-  if (status === "pending_setup" || status === "pending") {
+  if (status === "pending_setup" || status === "pending" || status === "pending_link" || status === "draft") {
     return {
       label: "Pendiente",
       tone: "pending",
       subtitle: "Abre el Launcher para vincular",
       actionLabel: "Abrir Launcher",
       action: "launcher",
+    };
+  }
+  if (status === "archived") {
+    return {
+      label: "Archivada",
+      tone: "neutral",
+      subtitle: "Fuera del Panel operativo",
+      actionLabel: "Ver detalle",
+      action: "none",
     };
   }
   if (status === "stale") {
@@ -313,9 +322,9 @@ function renderAccountAdminPanel(account, adminState) {
       <div class="kmfx-mt5-admin-actions">
         <button class="btn-secondary" type="button" data-admin-account-primary="${accountId}">Marcar primaria</button>
         <button class="btn-secondary" type="button" data-admin-account-inspect="${accountId}">Ver payload</button>
-        <button class="btn-secondary" type="button" disabled>Regenerar key</button>
-        <button class="btn-secondary" type="button" disabled>Archivar</button>
-        <button class="btn-secondary" type="button" disabled>Borrar</button>
+        <button class="btn-secondary" type="button" data-admin-account-regenerate="${accountId}">Regenerar key</button>
+        <button class="btn-secondary" type="button" data-admin-account-archive="${accountId}">Archivar</button>
+        <button class="btn-secondary" type="button" data-admin-account-delete="${accountId}">Borrar</button>
       </div>
       <div class="kmfx-mt5-admin-meta">
         <div><span>Account ID</span><strong>${escapeHtml(accountId || "sin account_id")}</strong></div>
@@ -334,6 +343,8 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
     ? `<button class="btn-primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
     : meta.action === "launcher"
       ? `<button class="btn-primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
+      : meta.action === "none"
+        ? `<button class="btn-secondary" type="button" disabled>${meta.actionLabel}</button>`
       : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
 
   return `
@@ -432,6 +443,76 @@ export function initConnections(store) {
         }
         await fetchAccountsRegistry(store);
         showToast("Cuenta marcada como primaria", "success");
+        renderConnections(root, store.getState());
+      } catch {
+        showToast("No pude conectar con el endpoint admin.", "error");
+      }
+      return;
+    }
+
+    const regenerateButton = event.target.closest("[data-admin-account-regenerate]");
+    if (regenerateButton) {
+      const accountId = regenerateButton.dataset.adminAccountRegenerate;
+      if (!accountId) return;
+      try {
+        const response = await fetch(resolveAdminAccountUrl(accountId, "regenerate-key"), {
+          method: "POST",
+          headers: buildAuthHeaders(store.getState()),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload?.ok === false) {
+          showToast(payload?.reason || "No pude regenerar la key.", "error");
+          return;
+        }
+        await fetchAccountsRegistry(store);
+        showToast("Key regenerada. Vuelve a vincular el Launcher.", "success");
+        renderConnections(root, store.getState());
+      } catch {
+        showToast("No pude conectar con el endpoint admin.", "error");
+      }
+      return;
+    }
+
+    const archiveButton = event.target.closest("[data-admin-account-archive]");
+    if (archiveButton) {
+      const accountId = archiveButton.dataset.adminAccountArchive;
+      if (!accountId) return;
+      try {
+        const response = await fetch(resolveAdminAccountUrl(accountId, "archive"), {
+          method: "POST",
+          headers: buildAuthHeaders(store.getState()),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload?.ok === false) {
+          showToast(payload?.reason || "No pude archivar la cuenta.", "error");
+          return;
+        }
+        await fetchAccountsRegistry(store);
+        showToast("Cuenta archivada", "success");
+        renderConnections(root, store.getState());
+      } catch {
+        showToast("No pude conectar con el endpoint admin.", "error");
+      }
+      return;
+    }
+
+    const deleteButton = event.target.closest("[data-admin-account-delete]");
+    if (deleteButton) {
+      const accountId = deleteButton.dataset.adminAccountDelete;
+      if (!accountId) return;
+      if (!window.confirm("Borrar esta cuenta de forma permanente?")) return;
+      try {
+        const response = await fetch(resolveAdminAccountUrl(accountId), {
+          method: "DELETE",
+          headers: buildAuthHeaders(store.getState()),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload?.ok === false) {
+          showToast(payload?.reason || "No pude borrar la cuenta.", "error");
+          return;
+        }
+        await fetchAccountsRegistry(store);
+        showToast("Cuenta borrada", "success");
         renderConnections(root, store.getState());
       } catch {
         showToast("No pude conectar con el endpoint admin.", "error");

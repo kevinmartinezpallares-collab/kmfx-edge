@@ -263,6 +263,15 @@ def resolve_account_by_connection_key(connection_key: str):
     return account_service.get_account_by_api_key_any_user(normalized)
 
 
+def log_connection_key_validation(endpoint: str, connection_key: str, found: bool) -> None:
+    log.info(
+        "[KMFX][CONNECTION_KEY_VALIDATION] endpoint=%s key=%s lookup=get_account_by_api_key_any_user found=%s",
+        endpoint,
+        mask_connection_key(connection_key),
+        found,
+    )
+
+
 def mask_connection_key(connection_key: str) -> str:
     normalized = safe_str(connection_key)
     if not normalized:
@@ -395,7 +404,15 @@ def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
         "api_key": getattr(account, "api_key", ""),
         "connection_key": getattr(account, "api_key", ""),
         "last_sync_at": getattr(account, "last_sync_at", None).isoformat() if getattr(account, "last_sync_at", None) else "",
-        "is_default": bool(getattr(account, "is_default", False)),
+        "is_default": bool(getattr(account, "is_default", False) or getattr(account, "is_primary", False)),
+        "is_primary": bool(getattr(account, "is_primary", False) or getattr(account, "is_default", False)),
+        "lifecycle_status": getattr(account, "status", "connected"),
+        "mt5_login": getattr(account, "mt5_login", "") or getattr(account, "login", ""),
+        "first_sync_at": getattr(account, "first_sync_at", None).isoformat() if getattr(account, "first_sync_at", None) else "",
+        "last_policy_at": getattr(account, "last_policy_at", None).isoformat() if getattr(account, "last_policy_at", None) else "",
+        "last_error_code": getattr(account, "last_error_code", ""),
+        "last_error_message": getattr(account, "last_error_message", ""),
+        "connector_version": getattr(account, "connector_version", ""),
         "nickname": getattr(account, "nickname", "") or "",
         "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
         "dashboard_payload": latest_payload,
@@ -413,6 +430,13 @@ def remember_live_account_snapshot(account: Any) -> None:
         entry["broker"],
         entry["last_sync_at"],
     )
+
+
+def forget_live_account_snapshot(account_id: str) -> None:
+    normalized = safe_str(account_id)
+    if not normalized:
+        return
+    RECENT_LIVE_ACCOUNTS.pop(normalized, None)
 
 
 def build_live_accounts_snapshot(user_id: str = "local") -> dict[str, Any]:
@@ -1171,11 +1195,22 @@ async def create_account(request: Request) -> JSONResponse:
             status_code=400,
         )
 
-    created = account_service.create_pending_account(
-        user_id="local",
-        alias=alias,
-        platform=platform or "mt5",
-    )
+    try:
+        created = account_service.create_pending_account(
+            user_id="local",
+            alias=alias,
+            platform=platform or "mt5",
+        )
+    except ValueError as exc:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": str(exc),
+                "details": {"field": "alias"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
     return connector_json_response(
         {
             "ok": True,
@@ -1212,7 +1247,7 @@ async def link_account(request: Request) -> JSONResponse:
             (
                 account
                 for account in registry
-                if account.get("status") in {"pending_setup", "waiting_sync"}
+                if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
                 and safe_str(account.get("alias")) == label
                 and safe_str(account.get("connection_key"))
             ),
@@ -1234,11 +1269,22 @@ async def link_account(request: Request) -> JSONResponse:
         connection_key = safe_str(existing.get("connection_key"))
         account_id = safe_str(existing.get("account_id"))
     else:
-        created = account_service.create_pending_account(
-            user_id=user_id,
-            alias=label,
-            platform=platform,
-        )
+        try:
+            created = account_service.create_pending_account(
+                user_id=user_id,
+                alias=label,
+                platform=platform,
+            )
+        except ValueError as exc:
+            return connector_json_response(
+                {
+                    "ok": False,
+                    "reason": str(exc),
+                    "details": {"field": "alias"},
+                    "timestamp": now_iso(),
+                },
+                status_code=400,
+            )
         connection_key = created.api_key
         account_id = created.account_id
 
@@ -1286,7 +1332,7 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
     pending_accounts = [
         account
         for account in account_service.build_accounts_registry("local")
-        if account.get("status") in {"pending_setup", "waiting_sync"}
+        if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
     ]
     return connector_json_response(
         {
@@ -1298,6 +1344,8 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
                     "platform": account.get("platform", "mt5"),
                     "user_id": account.get("user_id", "local"),
                     "connection_key": account.get("connection_key", ""),
+                    "status": account.get("status", ""),
+                    "lifecycle_status": account.get("lifecycle_status", account.get("status", "")),
                     "created_at": account.get("created_at", ""),
                 }
                 for account in pending_accounts
@@ -1349,14 +1397,15 @@ async def admin_mark_primary(account_id: str, request: Request) -> JSONResponse:
     selected = account_service.set_default_account(account.user_id, account.account_id)
     if selected is None:
         return connector_json_response(
-            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
-            status_code=404,
+            {"ok": False, "reason": "account_not_operational", "timestamp": now_iso()},
+            status_code=409,
         )
     return connector_json_response(
         {
             "ok": True,
             "account_id": selected.account_id,
             "is_default": True,
+            "is_primary": True,
             "timestamp": now_iso(),
         }
     )
@@ -1367,14 +1416,21 @@ async def admin_regenerate_key(account_id: str, request: Request) -> JSONRespons
     _, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
-    if find_account_by_id_any_user(account_id) is None:
+    account = account_service.regenerate_connection_key(account_id)
+    if account is None:
         return connector_json_response(
             {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
             status_code=404,
         )
+    forget_live_account_snapshot(account.account_id)
     return connector_json_response(
-        {"ok": False, "reason": "not_implemented", "action": "regenerate-key", "timestamp": now_iso()},
-        status_code=501,
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "connection_key": account.api_key,
+            "status": account.status,
+            "timestamp": now_iso(),
+        },
     )
 
 
@@ -1383,14 +1439,21 @@ async def admin_archive_account(account_id: str, request: Request) -> JSONRespon
     _, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
-    if find_account_by_id_any_user(account_id) is None:
+    account = account_service.archive_account(account_id)
+    if account is None:
         return connector_json_response(
             {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
             status_code=404,
         )
+    forget_live_account_snapshot(account.account_id)
     return connector_json_response(
-        {"ok": False, "reason": "not_implemented", "action": "archive", "timestamp": now_iso()},
-        status_code=501,
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "status": account.status,
+            "archived_at": account.archived_at.isoformat() if account.archived_at else "",
+            "timestamp": now_iso(),
+        },
     )
 
 
@@ -1399,14 +1462,20 @@ async def admin_delete_account(account_id: str, request: Request) -> JSONRespons
     _, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
-    if find_account_by_id_any_user(account_id) is None:
+    account = account_service.delete_account(account_id)
+    if account is None:
         return connector_json_response(
             {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
             status_code=404,
         )
+    forget_live_account_snapshot(account.account_id)
     return connector_json_response(
-        {"ok": False, "reason": "not_implemented", "action": "delete", "timestamp": now_iso()},
-        status_code=501,
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "deleted": True,
+            "timestamp": now_iso(),
+        },
     )
 
 
@@ -1469,6 +1538,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
                 }
                 log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
+                log_connection_key_validation("/api/mt5/sync", connection_key, False)
                 return connector_json_response(
                     {
                         "ok": False,
@@ -1482,6 +1552,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     },
                     status_code=401,
                 )
+            log_connection_key_validation("/api/mt5/sync", connection_key, True)
         else:
             unverified_identity = True
             fallback_login = normalize_login(payload)
@@ -1591,6 +1662,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
         dashboard_payload["daily_start_equity"] = equity_state["daily_start_equity"]
         dashboard_payload["daily_start_day_key"] = equity_state["daily_start_day_key"]
         dashboard_payload["last_sync_at"] = equity_state["last_sync_at"]
+        dashboard_payload["connector_version"] = connector_version
+        dashboard_payload["connectorVersion"] = connector_version
         if unverified_identity:
             dashboard_payload["identity_status"] = "unverified_identity"
         log.info(
@@ -1819,6 +1892,7 @@ async def mt5_policy(
             bool(bound_account),
         )
         if bound_account is None:
+            log_connection_key_validation("/api/mt5/policy", normalized_connection_key, False)
             return connector_json_response(
                 {
                     "ok": False,
@@ -1835,6 +1909,8 @@ async def mt5_policy(
                 },
                 status_code=401,
             )
+        log_connection_key_validation("/api/mt5/policy", normalized_connection_key, True)
+        account_service.record_policy_access(bound_account.account_id)
 
     persisted_state = load_persisted_account_state(normalized_connection_key, identity_key)
     policy = build_connector_policy_response(identity_key, persisted_state)

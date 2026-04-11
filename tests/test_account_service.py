@@ -43,26 +43,32 @@ class AccountServiceTests(unittest.TestCase):
         )
         snapshot = self.service.build_accounts_snapshot("local")
         self.assertEqual(ingested.account_id, snapshot["active_account_id"])
-        self.assertEqual("connected", snapshot["accounts"][0]["status"])
+        self.assertEqual("active", snapshot["accounts"][0]["status"])
         self.assertEqual("IC Markets", snapshot["accounts"][0]["broker"])
 
     def test_set_default_account_switches_single_default(self) -> None:
-        first = self.service.create_account(
+        first = self.service.ingest_account_snapshot(
             user_id="local",
-            broker="Broker A",
-            platform="mt5",
-            login="111",
-            server="A",
+            account_info={
+                "broker": "Broker A",
+                "platform": "mt5",
+                "login": "111",
+                "server": "A",
+            },
             connection_mode="bridge",
-            is_default=True,
+            payload={"balance": 100000, "equity": 100000},
         )
-        second = self.service.create_account(
+        second = self.service.ingest_account_snapshot(
             user_id="local",
-            broker="Broker B",
-            platform="mt5",
-            login="222",
-            server="B",
+            account_info={
+                "broker": "Broker B",
+                "platform": "mt5",
+                "login": "222",
+                "server": "B",
+            },
             connection_mode="bridge",
+            payload={"balance": 100000, "equity": 100000},
+            make_default_if_first=False,
         )
         self.service.set_default_account("local", second.account_id)
         accounts = self.service.list_accounts("local")
