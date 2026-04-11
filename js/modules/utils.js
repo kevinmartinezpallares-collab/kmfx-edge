@@ -47,9 +47,25 @@ function readPreferredCurrency() {
   return "USD";
 }
 
+const MT5_ACCOUNT_CURRENCIES = new Set(["USD", "EUR", "GBP", "JPY"]);
+
+function normalizeCurrencyCode(currency) {
+  const code = typeof currency === "string" ? currency.trim().toUpperCase() : "";
+  return MT5_ACCOUNT_CURRENCIES.has(code) ? code : "";
+}
+
 function getCurrencySymbol(currency) {
-  if (currency === "EUR") return "€";
+  const code = normalizeCurrencyCode(currency) || "USD";
+  if (code === "EUR") return "€";
+  if (code === "GBP") return "£";
+  if (code === "JPY") return "¥";
   return "$";
+}
+
+export function getCurrencyFromModel(model) {
+  const currency = normalizeCurrencyCode(model?.account?.currency);
+  if (currency) return currency;
+  return readPreferredCurrency();
 }
 
 function toLocalDayKey(dateLike) {
@@ -64,7 +80,7 @@ function toLocalMonthKey(dateLike) {
 
 export function formatCurrency(value, currencyOverride) {
   const amount = Number(value) || 0;
-  const currency = currencyOverride || readPreferredCurrency();
+  const currency = normalizeCurrencyCode(currencyOverride) || readPreferredCurrency();
   const symbol = getCurrencySymbol(currency);
   const sign = amount < 0 ? "-" : "";
   const abs = esNumber.format(Math.abs(amount));
@@ -601,6 +617,7 @@ export function buildDashboardModel(source) {
     : [];
 
   const payloadSource = source.payloadSource || source.profile?.payloadSource || "normalized";
+  const accountCurrency = normalizeCurrencyCode(source?.account?.currency) || "USD";
   const reportMetrics = normalizeReportMetricsShape(source.reportMetrics, {
     balance: source?.account?.balance ?? 0,
     equity: source?.account?.equity ?? source?.account?.balance ?? 0,
@@ -774,6 +791,7 @@ export function buildDashboardModel(source) {
     },
     account: {
       ...source.account,
+      currency: accountCurrency,
       balance: hasReportMetrics ? Number(reportMetrics.balance ?? source.account.balance) : source.account.balance,
       equity: hasReportMetrics ? Number(reportMetrics.equity ?? source.account.equity) : source.account.equity,
       floatingPnl: usedExplicitLivePayload

@@ -489,7 +489,7 @@ def sanitize_account(raw_account: Any) -> tuple[dict[str, Any], list[dict[str, A
         "name": safe_str(account.get("name")),
         "broker": safe_str(account.get("broker")),
         "server": safe_str(account.get("server")),
-        "currency": safe_str(account.get("currency")),
+        "currency": safe_str(account.get("currency") or "USD"),
         "balance": safe_float(account.get("balance")),
         "equity": safe_float(account.get("equity")),
         "margin": safe_float(account.get("margin")),
