@@ -554,6 +554,11 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
     sanitized: list[dict[str, Any]] = []
 
     for index, trade in enumerate(trades):
+        profit = safe_float(trade.get("profit"))
+        commission = safe_float(trade.get("commission"))
+        swap = safe_float(trade.get("swap"))
+        explicit_net = trade.get("net")
+        net = safe_float(explicit_net) if explicit_net not in (None, "") else round(profit + commission + swap, 2)
         sanitized.append(
             {
                 "trade_id": safe_str(trade.get("trade_id") or trade.get("ticket")),
@@ -569,15 +574,14 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
                 "open_time_unix": safe_int_or_none(trade.get("open_time_unix")),
                 "sl": safe_float(trade.get("sl")),
                 "tp": safe_float(trade.get("tp")),
-                "profit": safe_float(trade.get("profit")),
-                "commission": safe_float(trade.get("commission")),
-                "swap": safe_float(trade.get("swap")),
-                "net": round(
-                    safe_float(trade.get("profit"))
-                    + safe_float(trade.get("commission"))
-                    + safe_float(trade.get("swap")),
-                    2,
-                ),
+                "profit": profit,
+                "commission": commission,
+                "close_commission": safe_float(trade.get("close_commission")),
+                "entry_commission": safe_float(trade.get("entry_commission")),
+                "swap": swap,
+                "close_swap": safe_float(trade.get("close_swap")),
+                "entry_swap": safe_float(trade.get("entry_swap")),
+                "net": round(net, 2),
                 "comment": safe_str(trade.get("comment")),
                 "strategy_tag": safe_str(trade.get("strategy_tag") or ""),
                 "time": safe_timestamp(trade.get("time")),

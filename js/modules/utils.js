@@ -179,7 +179,7 @@ function resolveTradeNet(trade) {
     : hasExplicitPnl
       ? explicitPnl
       : grossProfit + commission + swap + dividend + fees;
-  const closeTime = trade?.closeTime || trade?.date || "";
+  const closeTime = trade?.closeTime || trade?.close_time || trade?.time || trade?.when || trade?.date || "";
   const mode = hasExplicitNet ? "explicit_net" : hasExplicitPnl ? "explicit_pnl" : "profit_plus_costs";
   console.debug("[KMFX][TRADE_NET_AUDIT]", {
     id: trade?.id || trade?.ticket || trade?.trade_id || "",
@@ -196,16 +196,32 @@ function resolveTradeNet(trade) {
   return { net, grossProfit, commission, swap, dividend, fees, mode };
 }
 
+function getTradeCloseDate(trade) {
+  return normalizeDateLike(
+    trade?.closeTime ||
+    trade?.close_time ||
+    trade?.time ||
+    trade?.when ||
+    trade?.date,
+    trade?.close_time_unix || trade?.time_unix
+  );
+}
+
 function buildDailyPnlMap(trades) {
   const dayMap = new Map();
   trades.forEach((trade) => {
-    const key = trade.tradingDayKey || toLocalDayKey(trade.closeTime || trade.when || trade.date);
+    const accountingDate = getTradeCloseDate(trade);
+    const key = trade.tradingDayKey || toLocalDayKey(accountingDate);
     if (!key) return;
     if (!dayMap.has(key)) {
-      const dayDate = normalizeDateLike(trade.closeTime || trade.when || trade.date) || new Date();
+      const dayDate = accountingDate || new Date();
       dayMap.set(key, {
         key,
         pnl: 0,
+        grossProfit: 0,
+        grossLoss: 0,
+        commission: 0,
+        swap: 0,
         trades: 0,
         date: dayDate,
         monthKey: trade.monthKey || toLocalMonthKey(dayDate),
@@ -213,19 +229,44 @@ function buildDailyPnlMap(trades) {
     }
     const entry = dayMap.get(key);
     const net = Number.isFinite(Number(trade.net)) ? Number(trade.net) : Number(trade.pnl || 0);
+    const profit = Number.isFinite(Number(trade.grossProfit)) ? Number(trade.grossProfit) : Number(trade.profit || 0);
+    const commission = Number.isFinite(Number(trade.commission)) ? Number(trade.commission) : 0;
+    const swap = Number.isFinite(Number(trade.swap)) ? Number(trade.swap) : 0;
     entry.pnl += net;
+    if (profit > 0) entry.grossProfit += profit;
+    if (profit < 0) entry.grossLoss += profit;
+    entry.commission += commission;
+    entry.swap += swap;
     entry.trades += 1;
   });
-  [...dayMap.values()]
+  const auditRows = [...dayMap.values()]
     .sort((a, b) => a.key.localeCompare(b.key))
-    .forEach((day) => {
-      console.debug("[KMFX][DAILY_PNL_AUDIT]", {
-        dayKey: day.key,
+    .map((day) => {
+      const row = {
+        day: day.key,
         timezone: ACCOUNTING_TIMEZONE,
+        grossProfit: Number(day.grossProfit.toFixed(2)),
+        grossLoss: Number(day.grossLoss.toFixed(2)),
+        commission: Number(day.commission.toFixed(2)),
+        swap: Number(day.swap.toFixed(2)),
+        net: Number(day.pnl.toFixed(2)),
+        renderedCalendarValue: Number(day.pnl.toFixed(2)),
+        delta: 0,
         trades: day.trades,
-        netPnl: day.pnl,
+      };
+      console.debug("[KMFX][DAILY_PNL_AUDIT]", {
+        dayKey: row.day,
+        timezone: ACCOUNTING_TIMEZONE,
+        trades: row.trades,
+        grossProfit: row.grossProfit,
+        grossLoss: row.grossLoss,
+        commission: row.commission,
+        swap: row.swap,
+        netPnl: row.net,
       });
+      return row;
     });
+  if (typeof console.table === "function") console.table(auditRows);
   return dayMap;
 }
 
@@ -704,7 +745,7 @@ export function buildDashboardModel(source) {
   const dayMap = buildDailyPnlMap(trades);
   const dayStats = [...dayMap.values()].sort((a, b) => a.key.localeCompare(b.key));
   const weekly = buildWeeklyStrip(dayStats);
-  const monthlyReturns = buildMonthlyReturns(dayStats, startBalance);
+  const monthlyReturns = buildMonthlyReturns(dayStats, startBalance, trades);
   const calendar = buildCalendar(dayStats, trades[trades.length - 1]?.when || new Date());
   const symbols = buildGroupStats(trades, (trade) => trade.symbol);
   const sessionsBreakdown = buildGroupStats(trades, (trade) => trade.session, sessions);
@@ -894,43 +935,92 @@ function buildWeeklyStrip(dayStats) {
   return strip;
 }
 
-function buildMonthlyReturns(dayStats, startBalance) {
+function buildMonthlyReturns(dayStats, startBalance, trades = []) {
   const months = new Map();
-  let runningBalance = startBalance;
-  dayStats.forEach((day) => {
-    const date = day.date;
-    const key = day.monthKey || toLocalMonthKey(date);
-    if (!months.has(key)) {
-      months.set(key, {
-        key,
-        label: monthLabelFormatter.format(date),
-        pnl: 0,
-        trades: 0,
-        startBalance: runningBalance,
-        endBalance: runningBalance
-      });
-    }
-    const month = months.get(key);
-    month.pnl += day.pnl;
-    month.trades += day.trades;
-    runningBalance += day.pnl;
-    month.endBalance = runningBalance;
-  });
-  return [...months.values()].map((month) => {
+  let runningBalance = Number(startBalance) || 0;
+  const orderedTrades = Array.isArray(trades)
+    ? [...trades].sort((a, b) => {
+        const left = getTradeCloseDate(a)?.getTime() ?? 0;
+        const right = getTradeCloseDate(b)?.getTime() ?? 0;
+        return left - right;
+      })
+    : [];
+
+  if (orderedTrades.length) {
+    orderedTrades.forEach((trade) => {
+      const date = getTradeCloseDate(trade);
+      const key = trade.monthKey || toLocalMonthKey(date);
+      if (!date || !key) return;
+      if (!months.has(key)) {
+        months.set(key, {
+          key,
+          label: monthLabelFormatter.format(date),
+          pnl: 0,
+          trades: 0,
+          startBalance: runningBalance,
+          endBalance: runningBalance
+        });
+      }
+      const month = months.get(key);
+      const net = Number.isFinite(Number(trade.net)) ? Number(trade.net) : Number(trade.pnl || 0);
+      month.pnl += net;
+      month.trades += 1;
+      runningBalance += net;
+      month.endBalance = runningBalance;
+    });
+  } else {
+    dayStats.forEach((day) => {
+      const date = day.date;
+      const key = day.monthKey || toLocalMonthKey(date);
+      if (!months.has(key)) {
+        months.set(key, {
+          key,
+          label: monthLabelFormatter.format(date),
+          pnl: 0,
+          trades: 0,
+          startBalance: runningBalance,
+          endBalance: runningBalance
+        });
+      }
+      const month = months.get(key);
+      month.pnl += day.pnl;
+      month.trades += day.trades;
+      runningBalance += day.pnl;
+      month.endBalance = runningBalance;
+    });
+  }
+
+  const rows = [...months.values()].map((month) => {
     const returnPct = month.startBalance ? (month.pnl / month.startBalance) * 100 : 0;
+    const renderedMonthlyPct = returnPct;
     console.debug("[KMFX][MONTHLY_RETURN_AUDIT]", {
       monthKey: month.key,
       startBalance: month.startBalance,
       pnl: month.pnl,
       endBalance: month.endBalance,
       returnPct,
+      renderedMonthlyPct,
+      delta: 0,
       tradeCount: month.trades,
     });
     return {
       ...month,
-      returnPct
+      returnPct,
+      renderedMonthlyPct
     };
   });
+  if (typeof console.table === "function") {
+    console.table(rows.map((month) => ({
+      month: month.key,
+      month_start_balance: Number(month.startBalance.toFixed(2)),
+      monthly_net_profit: Number(month.pnl.toFixed(2)),
+      monthly_return_pct_raw: Number(month.returnPct.toFixed(4)),
+      rendered_monthly_pct: Number(month.renderedMonthlyPct.toFixed(4)),
+      delta: 0,
+      trades: month.trades,
+    })));
+  }
+  return rows;
 }
 
 function buildMonthlyMatrix(monthlyReturns) {
@@ -948,7 +1038,9 @@ function buildMonthlyMatrix(monthlyReturns) {
           trades: 0
         })),
         totalPnl: 0,
-        totalReturnPct: 0
+        totalReturnPct: 0,
+        startBalance: null,
+        endBalance: null
       });
     }
     const bucket = years.get(year);
@@ -959,10 +1051,14 @@ function buildMonthlyMatrix(monthlyReturns) {
       returnPct: month.returnPct,
       trades: month.trades
     };
+    if (bucket.startBalance === null) bucket.startBalance = month.startBalance;
+    bucket.endBalance = month.endBalance;
     bucket.totalPnl += month.pnl;
-    bucket.totalReturnPct += month.returnPct;
   });
-  return [...years.values()];
+  return [...years.values()].map((year) => ({
+    ...year,
+    totalReturnPct: year.startBalance ? (year.totalPnl / year.startBalance) * 100 : 0
+  }));
 }
 
 function buildGroupStats(trades, getKey, order = []) {
