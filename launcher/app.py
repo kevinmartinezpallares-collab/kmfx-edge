@@ -8,7 +8,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from .backend_client import BackendClient
 from .config import LauncherConfig, load_config, mask_connection_key, save_bridge_config, save_config
@@ -116,6 +116,29 @@ class LauncherApp:
         if self.config.connection_key:
             save_bridge_config(self.config, user_id="local")
 
+    def reload_bridge_runtime(self) -> None:
+        if not self.fetch_json("/health"):
+            self.start_service()
+            return
+        try:
+            request = Request(self.service_url("/bridge/reload-config"), method="POST")
+            with urlopen(request, timeout=2) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            self.logger.info(
+                "[KMFX][LAUNCHER] bridge runtime reloaded key=%s",
+                body.get("connection_key") or mask_connection_key(self.config.connection_key),
+            )
+        except Exception as exc:
+            self.logger.warning("[KMFX][LAUNCHER] bridge reload failed; attempting safe restart error=%s", exc)
+            if self.service_process and self.service_process.poll() is None:
+                self.stop_service()
+                self.start_service()
+            else:
+                self.logger.warning(
+                    "[KMFX][LAUNCHER] bridge reload needs manual restart because the running service was not started by this launcher key=%s",
+                    mask_connection_key(self.config.connection_key),
+                )
+
     def ensure_remote_account_link(self) -> bool:
         response = self.backend.link_account(user_id="local", label="KMFX Launcher")
         if not response.ok:
@@ -159,6 +182,7 @@ class LauncherApp:
                 )
             return
         self.persist_launcher_config()
+        self.reload_bridge_runtime()
         self.refresh_pending_accounts()
         messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán el connection_key registrado en backend.")
 
@@ -190,6 +214,7 @@ class LauncherApp:
         self.config.selected_mt5_experts_path = installation.experts_path
         save_config(self.config.ensure_runtime_values())
         save_bridge_config(self.config, user_id=str(account.get("user_id") or "local"))
+        self.reload_bridge_runtime()
         result = install_connector(installation, self.config)
         self.store.save_binding(
             {

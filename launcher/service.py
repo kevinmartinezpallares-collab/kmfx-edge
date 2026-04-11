@@ -74,8 +74,25 @@ class LauncherServiceRuntime:
         self.stop_event = threading.Event()
         self.worker_thread: threading.Thread | None = None
 
+    def reload_bridge_config(self, force_log: bool = False) -> str:
+        previous_key = str(self.bridge_config.get("connection_key") or "").strip()
+        self.bridge_config = load_bridge_config()
+        next_key = str(self.bridge_config.get("connection_key") or "").strip()
+        self.config.connection_key = next_key
+        if next_key and next_key != previous_key:
+            self.logger.info(
+                "[KMFX][BRIDGE] connection_key reloaded previous=%s current=%s",
+                mask_connection_key(previous_key),
+                mask_connection_key(next_key),
+            )
+        elif next_key and force_log:
+            self.logger.info("[KMFX][BRIDGE] connection_key reload confirmed key=%s", mask_connection_key(next_key))
+        elif not next_key and force_log:
+            self.logger.warning("[KMFX][BRIDGE] WARNING: no connection_key config found after reload")
+        return next_key
+
     def effective_connection_key(self) -> str:
-        return str(self.bridge_config.get("connection_key") or "").strip()
+        return self.reload_bridge_config()
 
     def identity_key(self, payload: dict[str, Any] | None, login: str = "", connection_key: str = "") -> str:
         if connection_key:
@@ -97,8 +114,15 @@ class LauncherServiceRuntime:
     def inject_connection_key(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> dict[str, Any]:
         safe_payload = payload if isinstance(payload, dict) else {}
         explicit_key = str(header_connection_key or safe_payload.get("connection_key") or "").strip()
-        effective_key = explicit_key or self.effective_connection_key()
-        if effective_key and not explicit_key:
+        bridge_key = self.effective_connection_key()
+        effective_key = bridge_key or explicit_key
+        if effective_key and explicit_key and explicit_key != effective_key:
+            self.logger.info(
+                "[KMFX][BRIDGE] stale connection_key replaced payload_key=%s bridge_key=%s",
+                mask_connection_key(explicit_key),
+                mask_connection_key(effective_key),
+            )
+        if effective_key and safe_payload.get("connection_key") != effective_key:
             safe_payload["connection_key"] = effective_key
             self.logger.info("[KMFX][BRIDGE] connection_key injected into payload key=%s", mask_connection_key(effective_key))
         return safe_payload
@@ -380,6 +404,12 @@ async def status() -> JSONResponse:
     return json_response(runtime.status())
 
 
+@app.post("/bridge/reload-config")
+async def bridge_reload_config() -> JSONResponse:
+    connection_key = runtime.reload_bridge_config(force_log=True)
+    return json_response({"ok": True, "connection_key": mask_connection_key(connection_key)})
+
+
 @app.get("/logs")
 async def logs() -> PlainTextResponse:
     return PlainTextResponse(read_recent_logs())
@@ -387,7 +417,14 @@ async def logs() -> PlainTextResponse:
 
 @app.get("/mt5/policy")
 async def mt5_policy(login: str = Query("", min_length=0), connection_key: str = Query("", min_length=0)) -> JSONResponse:
-    effective_connection_key = connection_key or runtime.effective_connection_key()
+    bridge_connection_key = runtime.effective_connection_key()
+    effective_connection_key = bridge_connection_key or connection_key
+    if bridge_connection_key and connection_key and bridge_connection_key != connection_key:
+        runtime.logger.info(
+            "[KMFX][BRIDGE] stale policy connection_key replaced query_key=%s bridge_key=%s",
+            mask_connection_key(connection_key),
+            mask_connection_key(bridge_connection_key),
+        )
     identity_key = runtime.identity_key(None, login=login, connection_key=effective_connection_key)
     backend_response = runtime.backend.get_policy(login=login, connection_key=effective_connection_key)
     if backend_response.ok:
@@ -427,7 +464,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
     payload = await request.json()
     payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     sync_id = resolve_sync_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", "") or runtime.effective_connection_key())
+    identity_key = runtime.identity_key(payload, connection_key=str(payload.get("connection_key") or runtime.effective_connection_key()).strip())
     receipt = runtime.store.find_receipt("snapshot", sync_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate snapshot sync_id=%s", sync_id)
@@ -475,7 +512,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
     payload = await request.json()
     payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     batch_id = resolve_batch_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=request.headers.get("X-KMFX-Connection-Key", "") or runtime.effective_connection_key())
+    identity_key = runtime.identity_key(payload, connection_key=str(payload.get("connection_key") or runtime.effective_connection_key()).strip())
     receipt = runtime.store.find_receipt("journal", batch_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate journal batch_id=%s", batch_id)
