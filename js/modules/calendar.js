@@ -1,6 +1,7 @@
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
 import { formatCurrency, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { openModal } from "./modal-system.js?v=build-20260406-213500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -83,6 +84,20 @@ export function renderCalendar(root, state) {
           text: "Todavía no hay sesiones registradas. La vista queda preparada para cuando entren días operados."
         }
       : null;
+  const adminTracePanel = renderAdminTracePanel(state, {
+    title: "Calendario PnL authority",
+    subtitle: "Fuente de agrupación diaria y mensual visible.",
+    items: [
+      { label: "account_id", value: account?.id || "" },
+      { label: "payloadSource", value: authority.payloadSource || "" },
+      { label: "sourceUsed", value: authority.sourceUsed || "" },
+      { label: "selectedMonth", value: selectedMonth?.key || monthKey },
+      { label: "dayStats", value: dayStats.length },
+      { label: "monthlyReturns", value: months.length },
+      { label: "visibleTradingDays", value: tradedCells.length },
+      { label: "valueMode", value: valueMode },
+    ],
+  });
 
   if (!hasSelectedDay) root.__calendarSelectedDay = "";
 
@@ -109,6 +124,7 @@ export function renderCalendar(root, state) {
           <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}>›</button>
         </div>
       </header>
+      ${adminTracePanel}
 
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">

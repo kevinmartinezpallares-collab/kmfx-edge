@@ -2,6 +2,7 @@ import { formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, se
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-213500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-213500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
@@ -542,12 +543,27 @@ export function renderRisk(root, state) {
       noteTone: "neutral"
     }
   ] : [];
+  const adminTracePanel = renderAdminTracePanel(state, {
+    title: "Riesgo live snapshot trace",
+    subtitle: "Lectura de política, frescura y payload operativo.",
+    items: [
+      { label: "account_id", value: account?.id || activeAccountId || "" },
+      { label: "payloadSource", value: authority.payloadSource || "" },
+      { label: "sourceUsed", value: authority.sourceUsed || "" },
+      { label: "riskSnapshot", value: Boolean(liveSnapshot) },
+      { label: "freshness", value: liveState.status },
+      { label: "connected", value: liveState.connected },
+      { label: "lastSyncAt", value: lastSyncAt || "" },
+      { label: "policyStatus", value: liveSnapshot?.policy?.status || liveSnapshot?.status?.risk_status || "" },
+    ],
+  });
   root.innerHTML = `
     <div class="risk-page-stack">
     <div class="tl-page-header">
       <div class="tl-page-title">Gestor de Riesgo</div>
       <div class="tl-page-sub">Controles operativos, configuración de límites y lectura clara del estado de seguridad.</div>
     </div>
+    ${adminTracePanel}
     ${liveState.status === "empty" ? renderRiskStateCard("loading", "Risk snapshot no disponible", "La cuenta activa todavía no trae `dashboard_payload.riskSnapshot`.") : ""}
     ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Cuenta activa no disponible", "No se pudo resolver una cuenta activa válida.", liveState.lastError || "") : ""}
     ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último snapshot conocido", "La cuenta no ha refrescado el dashboard_payload dentro del umbral esperado.", `Último sync ${formatDateTime(lastSyncAt)}`) : ""}

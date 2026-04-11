@@ -255,8 +255,10 @@ function initSettings() {
 
   const syncAdminUI = (state = store.getState()) => {
     const isAdmin = isAdminUser(state);
+    document.documentElement.dataset.adminMode = isAdmin ? "true" : "false";
     adminOnlyNodes.forEach((node) => {
       node.hidden = !isAdmin;
+      node.setAttribute("aria-hidden", isAdmin ? "false" : "true");
     });
   };
 

@@ -2,6 +2,7 @@ import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthori
 import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
 import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
 const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -1249,9 +1250,24 @@ export function renderAnalytics(root, state) {
       tooltipBodyFormatter: (column) => `${column.point?.label || ""}`
     })
   ];
+  const adminTracePanel = renderAdminTracePanel(state, {
+    title: "Análisis source of truth",
+    subtitle: "Contrato operativo usado por las métricas técnicas.",
+    items: [
+      { label: "account_id", value: account?.id || activeAccountId || "" },
+      { label: "payloadSource", value: authority.payloadSource || "" },
+      { label: "sourceUsed", value: authority.sourceUsed || "" },
+      { label: "trades", value: authority.tradeCount || model.totals?.totalTrades || 0 },
+      { label: "history", value: authority.historyPoints || 0 },
+      { label: "sessions", value: model.sessions?.length || 0 },
+      { label: "symbols", value: model.symbols?.length || 0 },
+      { label: "riskScore", value: model.totals?.riskScore ?? "" },
+    ],
+  });
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-overview-shell">
+        ${adminTracePanel}
         <article class="tl-section-card analytics-overview-hero">
           <div class="analytics-overview-hero__grid">
             <div class="analytics-overview-copy">

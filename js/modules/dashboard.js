@@ -12,6 +12,7 @@ import {
   renderSymbolExposureTable,
   riskToneFromStatus,
 } from "./risk-panel-components.js?v=build-20260406-213500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
@@ -132,6 +133,20 @@ export function renderDashboard(root, state) {
   const axisStandard = getComputedStyle(document.documentElement).getPropertyValue("--chart-axis-text").trim() || undefined;
   const chartSpecs = [];
   const heroRange = root.dataset.heroRange || "1M";
+  const adminTracePanel = renderAdminTracePanel(state, {
+    title: "Panel source trace",
+    subtitle: "Resolución de cuenta y contrato usado para este render.",
+    items: [
+      { label: "account_id", value: account?.id || "" },
+      { label: "currentAccount", value: state.currentAccount || "" },
+      { label: "activeLiveAccountId", value: state.activeLiveAccountId || "" },
+      { label: "sourceType", value: account?.sourceType || "" },
+      { label: "payloadSource", value: authority.payloadSource || dashboardPayload?.payloadSource || "" },
+      { label: "sourceUsed", value: authority.sourceUsed || performanceView.sourceUsed || "" },
+      { label: "trades", value: authority.tradeCount || model?.totals?.totalTrades || 0 },
+      { label: "history", value: authority.historyPoints || 0 },
+    ],
+  });
   const baseCurve = Array.isArray(performanceView.chartSeries) && performanceView.chartSeries.length
     ? performanceView.chartSeries
     : [
@@ -406,6 +421,7 @@ export function renderDashboard(root, state) {
 
   root.innerHTML = `
     <div class="dashboard-premium-grid">
+      ${adminTracePanel}
       <section class="dashboard-hero-shell">
         <article class="account-banner account-banner--premium account-banner--hero-refined">
           <div class="account-banner-body">
