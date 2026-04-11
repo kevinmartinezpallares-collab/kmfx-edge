@@ -79,6 +79,35 @@ function chooseMostReliablePayload(...candidates) {
   return validCandidates[0]?.payload || {};
 }
 
+function buildAuthHeaders(state) {
+  const headers = { Accept: "application/json" };
+  const token = state?.auth?.session?.accessToken;
+  const email = state?.auth?.user?.email;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (email) headers["X-KMFX-User-Email"] = email;
+  return headers;
+}
+
+function applyAdminAccess(store, isAdmin) {
+  if (typeof isAdmin !== "boolean") return;
+  store.setState((state) => {
+    if (state.auth?.user?.is_admin === isAdmin && state.auth?.user?.role === (isAdmin ? "admin" : "user")) {
+      return state;
+    }
+    return {
+      ...state,
+      auth: {
+        ...(state.auth || {}),
+        user: {
+          ...(state.auth?.user || {}),
+          is_admin: isAdmin,
+          role: isAdmin ? "admin" : "user",
+        },
+      },
+    };
+  });
+}
+
 function normalizeBridgeUrl(rawUrl = "") {
   const value = String(rawUrl || "").trim();
   if (!value || value === "ws://localhost:8080/bridge") return "";
@@ -290,7 +319,7 @@ export function initAccountsLiveSnapshot(store) {
       return { ok: false, count: 0 };
     }
     try {
-      const response = await fetch(url, { headers: { Accept: "application/json" } });
+      const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
         store.setState((state) => ({
@@ -301,6 +330,7 @@ export function initAccountsLiveSnapshot(store) {
         return { ok: false, count: 0, status: response.status };
       }
       const payload = await response.json();
+      applyAdminAccess(store, payload?.is_admin);
       console.log("[KMFX][ACCOUNTS] http snapshot received", {
         count: Array.isArray(payload?.accounts) ? payload.accounts.length : 0,
         activeAccountId: payload?.active_account_id || "",

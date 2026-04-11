@@ -662,6 +662,113 @@ html[data-theme="dark"] .sidebar-section-label,
   justify-content: flex-start;
 }
 
+.kmfx-mt5-admin-panel {
+  margin-top: 2px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  background: color-mix(in srgb, var(--layer-1) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-1));
+  border-radius: 20px;
+}
+
+.kmfx-mt5-admin-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.kmfx-mt5-admin-panel__eyebrow,
+.kmfx-mt5-admin-panel__badge {
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.kmfx-mt5-admin-panel__eyebrow {
+  color: var(--text-2);
+}
+
+.kmfx-mt5-admin-panel__title {
+  margin-top: 4px;
+  color: var(--text-0);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.kmfx-mt5-admin-panel__badge {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  color: color-mix(in srgb, var(--accent) 82%, var(--text-0));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 999px;
+}
+
+.kmfx-mt5-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kmfx-mt5-admin-actions .btn-secondary:disabled {
+  opacity: 0.44;
+  cursor: not-allowed;
+}
+
+.kmfx-mt5-admin-meta {
+  display: grid;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.kmfx-mt5-admin-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-1);
+}
+
+.kmfx-mt5-admin-meta strong {
+  max-width: 70%;
+  color: var(--text-0);
+  font-family: var(--mono);
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.kmfx-mt5-admin-payload,
+.kmfx-mt5-admin-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-1);
+  border-radius: 16px;
+}
+
+.kmfx-mt5-admin-payload {
+  max-height: 240px;
+  overflow: auto;
+  color: var(--text-1);
+  background: rgba(0, 0, 0, 0.24);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.kmfx-mt5-admin-empty {
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--layer-2) 72%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .kmfx-mt5-empty {
   background: var(--layer-2);
   border: 1px solid var(--border-1);

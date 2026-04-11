@@ -14,7 +14,8 @@ export const DEFAULT_AUTH_USER = {
   avatar: null,
   initials: "KC",
   provider: "local",
-  role: "user"
+  role: "user",
+  is_admin: false
 };
 
 export const DEFAULT_AUTH_PROFILE = {
@@ -135,7 +136,8 @@ function sanitizeAuthUser(user = {}) {
   const email = String(user.email || "").trim();
   const fallbackName = email ? formatNameFromEmail(email) : DEFAULT_AUTH_USER.name;
   const name = String(user.name || fallbackName).trim() || fallbackName;
-  const role = user.role === "admin" ? "admin" : "user";
+  const isAdmin = user.is_admin === true || user.role === "admin";
+  const role = isAdmin ? "admin" : "user";
   return {
     id: String(user.id || DEFAULT_AUTH_USER.id),
     name,
@@ -143,7 +145,8 @@ function sanitizeAuthUser(user = {}) {
     avatar: user.avatar || null,
     initials: String(user.initials || getInitialsFromAuthName(name) || DEFAULT_AUTH_USER.initials).slice(0, 3).toUpperCase(),
     provider: AUTH_PROVIDER_IDS.includes(user.provider) ? user.provider : DEFAULT_AUTH_USER.provider,
-    role
+    role,
+    is_admin: isAdmin
   };
 }
 
@@ -337,6 +340,7 @@ export function selectVisibleUserProfile(state) {
     initials: auth.user.initials,
     provider: auth.user.provider,
     role: auth.user.role,
+    is_admin: auth.user.is_admin,
     discord: auth.profile.discord,
     defaultAccount: auth.profile.defaultAccount
   };
@@ -344,7 +348,7 @@ export function selectVisibleUserProfile(state) {
 
 export function isAdminUser(state) {
   const auth = sanitizeAuthState(state?.auth || DEFAULT_AUTH_STATE);
-  return auth.user.role === "admin";
+  return auth.user.is_admin === true;
 }
 
 export function initAuthSession(store) {

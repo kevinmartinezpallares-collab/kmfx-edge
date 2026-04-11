@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 from copy import deepcopy
+import hmac
 import hashlib
 import json
 import logging
@@ -25,6 +27,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("kmfx_connector_api")
 
 RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in str(os.getenv("KMFX_ADMIN_EMAILS") or "kevinmartinezpallares@gmail.com").split(",")
+    if email.strip()
+}
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
@@ -261,6 +268,87 @@ def mask_connection_key(connection_key: str) -> str:
     if not normalized:
         return ""
     return f"{normalized[:8]}..."
+
+
+def _decode_base64url_json(segment: str) -> dict[str, Any]:
+    padded = f"{segment}{'=' * (-len(segment) % 4)}"
+    try:
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii"))
+        payload = json.loads(decoded.decode("utf-8"))
+    except (ValueError, OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _extract_bearer_token(request: Request) -> str:
+    authorization = safe_str(request.headers.get("authorization"))
+    if not authorization.lower().startswith("bearer "):
+        return ""
+    return authorization.split(" ", 1)[1].strip()
+
+
+def _resolve_verified_bearer_email(request: Request) -> str:
+    token = _extract_bearer_token(request)
+    secret = safe_str(os.getenv("SUPABASE_JWT_SECRET"))
+    if not token or not secret:
+        return ""
+    parts = token.split(".")
+    if len(parts) != 3:
+        return ""
+    header = _decode_base64url_json(parts[0])
+    if safe_str(header.get("alg")).upper() != "HS256":
+        return ""
+    signing_input = f"{parts[0]}.{parts[1]}".encode("ascii")
+    expected = base64.urlsafe_b64encode(
+        hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
+    ).rstrip(b"=").decode("ascii")
+    if not hmac.compare_digest(expected, parts[2]):
+        return ""
+    claims = _decode_base64url_json(parts[1])
+    email = safe_str(claims.get("email") or ensure_dict(claims.get("user_metadata")).get("email")).lower()
+    return email
+
+
+def _resolve_trusted_header_email(request: Request) -> str:
+    client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
+    allow_header = safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
+    if not allow_header and client_host not in {"127.0.0.1", "::1", "localhost"}:
+        return ""
+    return safe_str(request.headers.get("x-kmfx-user-email")).lower()
+
+
+def resolve_authenticated_email(request: Request) -> str:
+    return _resolve_verified_bearer_email(request) or _resolve_trusted_header_email(request)
+
+
+def build_admin_context(request: Request) -> dict[str, Any]:
+    email = resolve_authenticated_email(request)
+    return {
+        "email": email,
+        "is_admin": bool(email and email in ADMIN_EMAILS),
+    }
+
+
+def require_admin(request: Request) -> tuple[dict[str, Any], JSONResponse | None]:
+    context = build_admin_context(request)
+    if context["is_admin"]:
+        return context, None
+    return context, connector_json_response(
+        {
+            "ok": False,
+            "reason": "admin_required",
+            "is_admin": False,
+            "timestamp": now_iso(),
+        },
+        status_code=403,
+    )
+
+
+def find_account_by_id_any_user(account_id: str):
+    normalized = safe_str(account_id)
+    if not normalized:
+        return None
+    return next((account for account in account_service.store.list_accounts() if account.account_id == normalized), None)
 
 
 def journal_trades_for_identity(identity_key: str) -> list[dict[str, Any]]:
@@ -1180,18 +1268,21 @@ async def link_account(request: Request) -> JSONResponse:
 
 
 @app.get("/accounts")
-async def list_accounts() -> JSONResponse:
+async def list_accounts(request: Request) -> JSONResponse:
+    admin_context = build_admin_context(request)
     return connector_json_response(
         {
             "ok": True,
             "accounts": account_service.build_accounts_registry("local"),
+            "is_admin": admin_context["is_admin"],
             "timestamp": now_iso(),
         }
     )
 
 
 @app.get("/accounts/pending")
-async def list_pending_accounts() -> JSONResponse:
+async def list_pending_accounts(request: Request) -> JSONResponse:
+    admin_context = build_admin_context(request)
     pending_accounts = [
         account
         for account in account_service.build_accounts_registry("local")
@@ -1211,8 +1302,111 @@ async def list_pending_accounts() -> JSONResponse:
                 }
                 for account in pending_accounts
             ],
+            "is_admin": admin_context["is_admin"],
             "timestamp": now_iso(),
         }
+    )
+
+
+@app.get("/api/admin/accounts/{account_id}/payload")
+async def admin_account_payload(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    account = find_account_by_id_any_user(account_id)
+    if account is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    payload = deepcopy(account.latest_payload or {})
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "user_id": account.user_id,
+            "status": account.status,
+            "connection_key_masked": mask_connection_key(account.api_key),
+            "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else "",
+            "sync_error": payload.get("last_sync_error") or payload.get("sync_error") or "",
+            "payload": payload,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/admin/accounts/{account_id}/primary")
+async def admin_mark_primary(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    account = find_account_by_id_any_user(account_id)
+    if account is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    selected = account_service.set_default_account(account.user_id, account.account_id)
+    if selected is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": selected.account_id,
+            "is_default": True,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/admin/accounts/{account_id}/regenerate-key")
+async def admin_regenerate_key(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    if find_account_by_id_any_user(account_id) is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    return connector_json_response(
+        {"ok": False, "reason": "not_implemented", "action": "regenerate-key", "timestamp": now_iso()},
+        status_code=501,
+    )
+
+
+@app.post("/api/admin/accounts/{account_id}/archive")
+async def admin_archive_account(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    if find_account_by_id_any_user(account_id) is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    return connector_json_response(
+        {"ok": False, "reason": "not_implemented", "action": "archive", "timestamp": now_iso()},
+        status_code=501,
+    )
+
+
+@app.delete("/api/admin/accounts/{account_id}")
+async def admin_delete_account(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    if find_account_by_id_any_user(account_id) is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    return connector_json_response(
+        {"ok": False, "reason": "not_implemented", "action": "delete", "timestamp": now_iso()},
+        status_code=501,
     )
 
 
@@ -1655,8 +1849,9 @@ async def mt5_policy(
 
 
 @app.get("/api/accounts/snapshot")
-async def accounts_snapshot() -> JSONResponse:
+async def accounts_snapshot(request: Request) -> JSONResponse:
     snapshot = build_live_accounts_snapshot("local")
+    snapshot["is_admin"] = build_admin_context(request)["is_admin"]
     log.info(
         "Accounts snapshot built | accounts=%s active_account_id=%s",
         len(snapshot.get("accounts") or []),

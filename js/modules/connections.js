@@ -123,6 +123,70 @@ function getWizardState(root) {
   return root.__accountWizardState;
 }
 
+function getAdminState(root) {
+  if (!root.__accountAdminState) {
+    root.__accountAdminState = {
+      open: false,
+      payloads: {},
+      loading: "",
+      error: "",
+    };
+  }
+  return root.__accountAdminState;
+}
+
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function isAdminUser(state) {
+  return state?.auth?.user?.is_admin === true;
+}
+
+function buildAuthHeaders(state, extra = {}) {
+  const headers = {
+    Accept: "application/json",
+    ...extra,
+  };
+  const token = state?.auth?.session?.accessToken;
+  const email = state?.auth?.user?.email;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (email) headers["X-KMFX-User-Email"] = email;
+  return headers;
+}
+
+function applyAdminAccess(store, isAdmin) {
+  if (typeof isAdmin !== "boolean") return;
+  store.setState((state) => {
+    if (state.auth?.user?.is_admin === isAdmin && state.auth?.user?.role === (isAdmin ? "admin" : "user")) {
+      return state;
+    }
+    return {
+      ...state,
+      auth: {
+        ...(state.auth || {}),
+        user: {
+          ...(state.auth?.user || {}),
+          is_admin: isAdmin,
+          role: isAdmin ? "admin" : "user",
+        },
+      },
+    };
+  });
+}
+
+function resolveAdminAccountUrl(accountId, action = "") {
+  const registryUrl = resolveAccountsRegistryUrl();
+  const url = new URL(registryUrl, window.location.origin);
+  url.pathname = url.pathname.replace(/\/accounts\/?$/, `/api/admin/accounts/${encodeURIComponent(accountId)}${action ? `/${action}` : ""}`);
+  return url.toString();
+}
+
 async function fetchAccountsRegistry(store) {
   const url = resolveAccountsRegistryUrl();
   if (!url) {
@@ -133,9 +197,10 @@ async function fetchAccountsRegistry(store) {
     return;
   }
   try {
-    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
     if (!response.ok) return;
     const payload = await response.json();
+    applyAdminAccess(store, payload?.is_admin);
     const accounts = Array.isArray(payload?.accounts) ? payload.accounts : [];
     const previousAccounts = Array.isArray(store.getState().managedAccounts) ? store.getState().managedAccounts : [];
     if (registrySignature(previousAccounts) === registrySignature(accounts)) {
@@ -228,7 +293,41 @@ function renderEmptyState(root) {
   `;
 }
 
-function renderAccountCard(account, { isActive }) {
+function renderAccountAdminPanel(account, adminState) {
+  const accountId = account.account_id || "";
+  const inspector = adminState.payloads?.[accountId];
+  const syncError = account.sync_error || account.last_sync_error || account.error || "Sin error técnico registrado";
+  const payloadMarkup = inspector
+    ? `<pre class="kmfx-mt5-admin-payload">${escapeHtml(JSON.stringify(inspector.payload || inspector, null, 2))}</pre>`
+    : `<div class="kmfx-mt5-admin-empty">Inspector preparado. Pulsa “Ver payload” para cargar el snapshot técnico.</div>`;
+
+  return `
+    <div class="kmfx-mt5-admin-panel">
+      <div class="kmfx-mt5-admin-panel__head">
+        <div>
+          <div class="kmfx-mt5-admin-panel__eyebrow">Admin tools</div>
+          <div class="kmfx-mt5-admin-panel__title">Capa técnica de cuenta</div>
+        </div>
+        <span class="kmfx-mt5-admin-panel__badge">solo admin</span>
+      </div>
+      <div class="kmfx-mt5-admin-actions">
+        <button class="btn-secondary" type="button" data-admin-account-primary="${accountId}">Marcar primaria</button>
+        <button class="btn-secondary" type="button" data-admin-account-inspect="${accountId}">Ver payload</button>
+        <button class="btn-secondary" type="button" disabled>Regenerar key</button>
+        <button class="btn-secondary" type="button" disabled>Archivar</button>
+        <button class="btn-secondary" type="button" disabled>Borrar</button>
+      </div>
+      <div class="kmfx-mt5-admin-meta">
+        <div><span>Account ID</span><strong>${escapeHtml(accountId || "sin account_id")}</strong></div>
+        <div><span>Sync error</span><strong>${escapeHtml(syncError)}</strong></div>
+      </div>
+      ${adminState.loading === accountId ? `<div class="kmfx-mt5-admin-empty">Cargando detalle técnico...</div>` : payloadMarkup}
+      ${adminState.error ? `<div class="kmfx-mt5-inline-error">${escapeHtml(adminState.error)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderAccountCard(account, { isActive, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const identityLine = [account.broker || null, account.login || null, account.server || null].filter(Boolean).join(" · ") || "Pendiente de primer sync";
   const actionMarkup = meta.action === "use"
@@ -258,6 +357,7 @@ function renderAccountCard(account, { isActive }) {
       <div class="kmfx-mt5-card__actions">
         ${actionMarkup}
       </div>
+      ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>
   `;
 }
@@ -281,6 +381,64 @@ export function initConnections(store) {
   });
 
   root.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-account-admin-toggle]")) {
+      const adminState = getAdminState(root);
+      adminState.open = !adminState.open;
+      adminState.error = "";
+      renderConnections(root, store.getState());
+      return;
+    }
+
+    const inspectButton = event.target.closest("[data-admin-account-inspect]");
+    if (inspectButton) {
+      const accountId = inspectButton.dataset.adminAccountInspect;
+      if (!accountId) return;
+      const adminState = getAdminState(root);
+      adminState.loading = accountId;
+      adminState.error = "";
+      renderConnections(root, store.getState());
+      try {
+        const response = await fetch(resolveAdminAccountUrl(accountId, "payload"), {
+          headers: buildAuthHeaders(store.getState()),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload?.ok === false) {
+          adminState.error = payload?.reason || "No pude cargar el detalle técnico.";
+        } else {
+          adminState.payloads[accountId] = payload;
+        }
+      } catch {
+        adminState.error = "No pude conectar con el endpoint admin.";
+      } finally {
+        adminState.loading = "";
+        renderConnections(root, store.getState());
+      }
+      return;
+    }
+
+    const primaryButton = event.target.closest("[data-admin-account-primary]");
+    if (primaryButton) {
+      const accountId = primaryButton.dataset.adminAccountPrimary;
+      if (!accountId) return;
+      try {
+        const response = await fetch(resolveAdminAccountUrl(accountId, "primary"), {
+          method: "POST",
+          headers: buildAuthHeaders(store.getState()),
+        });
+        const payload = await response.json();
+        if (!response.ok || payload?.ok === false) {
+          showToast(payload?.reason || "No pude marcar la cuenta como primaria.", "error");
+          return;
+        }
+        await fetchAccountsRegistry(store);
+        showToast("Cuenta marcada como primaria", "success");
+        renderConnections(root, store.getState());
+      } catch {
+        showToast("No pude conectar con el endpoint admin.", "error");
+      }
+      return;
+    }
+
     const useButton = event.target.closest("[data-account-use]");
     if (useButton) {
       const accountId = useButton.dataset.accountUse;
@@ -343,7 +501,7 @@ export function initConnections(store) {
         }
         const response = await fetch(registryUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          headers: buildAuthHeaders(store.getState(), { "Content-Type": "application/json" }),
           body: JSON.stringify({ alias, platform: "mt5" }),
         });
         const payload = await response.json();
@@ -380,6 +538,8 @@ export function renderConnections(root, state) {
   const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
   const activeAccountId = resolveActiveAccountId(state);
   const activeAccount = selectCurrentAccount(state);
+  const adminVisible = isAdminUser(state);
+  const adminState = getAdminState(root);
   const fallbackLiveAccounts = liveAccountIds
     .map((accountId) => accountDirectory[accountId])
     .filter(Boolean);
@@ -409,13 +569,18 @@ export function renderConnections(root, state) {
           <p class="kmfx-mt5-header__subtitle">Gestiona y conecta tus cuentas de trading</p>
         </div>
         <div class="kmfx-mt5-header__actions">
+          ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
           <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
           <button class="btn-primary" type="button" data-account-add="true">+ Añadir cuenta</button>
         </div>
       </header>
 
       <div class="kmfx-mt5-grid">
-        ${registryAccounts.map((account) => renderAccountCard(account, { isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id })).join("")}
+        ${registryAccounts.map((account) => renderAccountCard(account, {
+          isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+          adminOpen: adminVisible && adminState.open,
+          adminState,
+        })).join("")}
       </div>
 
       ${renderAccountWizard(root)}
