@@ -11,7 +11,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from .backend_client import BackendClient
-from .config import LauncherConfig, load_config, save_bridge_config, save_config
+from .config import LauncherConfig, load_config, mask_connection_key, save_bridge_config, save_config
 from .connector_installer import connector_installed, install_connector
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
@@ -116,9 +116,51 @@ class LauncherApp:
         if self.config.connection_key:
             save_bridge_config(self.config, user_id="local")
 
+    def ensure_remote_account_link(self) -> bool:
+        response = self.backend.link_account(user_id="local", label="KMFX Launcher")
+        if not response.ok:
+            self.logger.error(
+                "[KMFX][LAUNCHER] backend account link failed status=%s body=%s",
+                response.status_code,
+                response.body,
+            )
+            return False
+
+        connection_key = str(
+            response.body.get("connection_key")
+            or (response.body.get("launcher_config") or {}).get("connection_key")
+            or ""
+        ).strip()
+        if not connection_key:
+            self.logger.error("[KMFX][LAUNCHER] backend account link missing connection_key body=%s", response.body)
+            return False
+
+        self.config.connection_key = connection_key
+        self.connection_key.set(connection_key)
+        self.logger.info(
+            "[KMFX][LAUNCHER] backend account link ready account_id=%s key=%s",
+            response.body.get("account_id", ""),
+            mask_connection_key(connection_key),
+        )
+        return True
+
     def save_launcher_config(self) -> None:
+        if not self.ensure_remote_account_link():
+            if self.connection_key.get().strip():
+                self.persist_launcher_config()
+                messagebox.showwarning(
+                    "KMFX Launcher",
+                    "No pude registrar la cuenta en el backend remoto. Mantengo el connection_key manual como fallback.",
+                )
+            else:
+                messagebox.showerror(
+                    "KMFX Launcher",
+                    "No pude registrar la cuenta en el backend remoto. Revisa conexión y vuelve a intentar.",
+                )
+            return
         self.persist_launcher_config()
-        messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán este connection_key.")
+        self.refresh_pending_accounts()
+        messagebox.showinfo("KMFX Launcher", "Cuenta vinculada. El preset y los requests usarán el connection_key registrado en backend.")
 
     def refresh_pending_accounts(self) -> None:
         response = self.backend.get_pending_accounts()

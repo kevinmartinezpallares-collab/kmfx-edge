@@ -1102,6 +1102,17 @@ async def link_account(request: Request) -> JSONResponse:
             ),
             None,
         )
+    if existing is None:
+        existing = next(
+            (
+                account
+                for account in registry
+                if account.get("platform") == platform
+                and safe_str(account.get("alias")) == label
+                and safe_str(account.get("connection_key"))
+            ),
+            None,
+        )
 
     if existing is not None and safe_str(existing.get("connection_key")):
         connection_key = safe_str(existing.get("connection_key"))
@@ -1166,6 +1177,7 @@ async def list_pending_accounts() -> JSONResponse:
                     "account_id": account.get("account_id", ""),
                     "alias": account.get("alias", ""),
                     "platform": account.get("platform", "mt5"),
+                    "user_id": account.get("user_id", "local"),
                     "connection_key": account.get("connection_key", ""),
                     "created_at": account.get("created_at", ""),
                 }
