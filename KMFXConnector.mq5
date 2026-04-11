@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.72                                              |
+//| KMFXConnector v2.73                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,7 +10,7 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.72"
+#property version   "2.73"
 #property strict
 
 #include <Trade/Trade.mqh>
@@ -148,6 +148,18 @@ struct KMFXValidationResult
    string suggested_action;
   };
 
+struct KMFXEntryDealInfo
+  {
+   bool   found;
+   string direction;
+   double open_price;
+   long   open_time_unix;
+   string open_time;
+   double sl;
+   double tp;
+   string comment;
+  };
+
 CTrade           Trade;
 KMFXPolicyCache  Policy;
 KMFXRuntimeState Runtime;
@@ -183,6 +195,127 @@ string KMFXTrim(string value)
    StringTrimLeft(output);
    StringTrimRight(output);
    return output;
+  }
+
+void KMFXResetEntryDealInfo(KMFXEntryDealInfo &info)
+  {
+   info.found=false;
+   info.direction="";
+   info.open_price=0.0;
+   info.open_time_unix=0;
+   info.open_time="";
+   info.sl=0.0;
+   info.tp=0.0;
+   info.comment="";
+  }
+
+string KMFXCleanComment(string raw_comment)
+  {
+   string trimmed=KMFXTrim(raw_comment);
+   if(StringLen(trimmed)==0)
+      return "";
+
+   string lower=trimmed;
+   StringToLower(lower);
+
+   if(StringFind(lower,"[sl")>=0)
+      return "";
+   if(StringFind(lower,"[tp")>=0)
+      return "";
+   if(lower=="sl" || lower=="tp")
+      return "";
+   if(lower=="so" || lower=="so:")
+      return "";
+   if(lower=="mt5 sync")
+      return "";
+
+   return trimmed;
+  }
+
+string KMFXDealDirection(long deal_type)
+  {
+   if(deal_type==DEAL_TYPE_BUY)
+      return "BUY";
+   if(deal_type==DEAL_TYPE_SELL)
+      return "SELL";
+   return "";
+  }
+
+bool KMFXFindEntryDeal(string position_id,
+                       KMFXEntryDealInfo &entry_map[],
+                       string &position_ids[],
+                       int map_size,
+                       KMFXEntryDealInfo &result)
+  {
+   KMFXResetEntryDealInfo(result);
+   string needle=KMFXTrim(position_id);
+   if(StringLen(needle)==0 || map_size<=0)
+      return false;
+
+   for(int i=0;i<map_size;i++)
+     {
+      if(position_ids[i]==needle)
+        {
+         result=entry_map[i];
+         return true;
+        }
+     }
+
+   return false;
+  }
+
+void KMFXBuildEntryMap(datetime from_time,
+                       datetime to_time,
+                       KMFXEntryDealInfo &entry_map[],
+                       string &position_ids[],
+                       int &map_size)
+  {
+   ArrayResize(entry_map,0);
+   ArrayResize(position_ids,0);
+   map_size=0;
+
+   if(!HistorySelect(from_time,to_time))
+      return;
+
+   int total=HistoryDealsTotal();
+   for(int i=0;i<total;i++)
+     {
+      if(map_size>=2000)
+         break;
+
+      ulong ticket=HistoryDealGetTicket(i);
+      if(ticket==0)
+         continue;
+
+      if(HistoryDealGetInteger(ticket,DEAL_ENTRY)!=DEAL_ENTRY_IN)
+         continue;
+
+      long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
+      if(position_id_long<=0)
+         continue;
+
+      string position_id=IntegerToString(position_id_long);
+      KMFXEntryDealInfo existing;
+      if(KMFXFindEntryDeal(position_id,entry_map,position_ids,map_size,existing))
+         continue;
+
+      KMFXEntryDealInfo info;
+      KMFXResetEntryDealInfo(info);
+      info.found=true;
+      info.direction=KMFXDealDirection(HistoryDealGetInteger(ticket,DEAL_TYPE));
+      info.open_price=HistoryDealGetDouble(ticket,DEAL_PRICE);
+      info.open_time_unix=(long)HistoryDealGetInteger(ticket,DEAL_TIME);
+      info.open_time=TimeToString((datetime)info.open_time_unix,TIME_DATE|TIME_SECONDS);
+      info.sl=HistoryDealGetDouble(ticket,DEAL_SL);
+      info.tp=HistoryDealGetDouble(ticket,DEAL_TP);
+      info.comment=HistoryDealGetString(ticket,DEAL_COMMENT);
+
+      ArrayResize(entry_map,map_size+1);
+      ArrayResize(position_ids,map_size+1);
+      entry_map[map_size]=info;
+      position_ids[map_size]=position_id;
+      map_size++;
+     }
   }
 
 string KMFXEscapeJson(string value)
@@ -943,6 +1076,10 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
    bool first=true;
    int total=HistoryDealsTotal();
    int added=0;
+   KMFXEntryDealInfo entry_map[];
+   string position_ids[];
+   int entry_map_size=0;
+   KMFXBuildEntryMap(from_time,to_time,entry_map,position_ids,entry_map_size);
 
    for(int i=total-1;i>=0;i--)
      {
@@ -969,18 +1106,33 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
          trade_ids_csv+=",";
       trade_ids_csv+=trade_id;
 
+      long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
+      string position_id=IntegerToString(position_id_long);
+      KMFXEntryDealInfo entry_info;
+      KMFXFindEntryDeal(position_id,entry_map,position_ids,entry_map_size,entry_info);
+      string cleaned_comment=KMFXCleanComment(HistoryDealGetString(ticket,DEAL_COMMENT));
+      if(StringLen(cleaned_comment)==0 && entry_info.found)
+         cleaned_comment=KMFXCleanComment(entry_info.comment);
+
       json+="{";
       json+="\"trade_id\":"+KMFXQuote(trade_id)+",";
       json+="\"ticket\":"+IntegerToString((int)ticket)+",";
-      json+="\"position_id\":"+IntegerToString((int)HistoryDealGetInteger(ticket,DEAL_POSITION_ID))+",";
+      json+="\"position_id\":"+position_id+",";
       json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
       json+="\"type\":"+KMFXQuote(HistoryDealGetInteger(ticket,DEAL_TYPE)==DEAL_TYPE_BUY ? "BUY" : "SELL")+",";
+      json+="\"direction\":"+KMFXQuote(entry_info.found ? entry_info.direction : "")+",";
       json+="\"volume\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_VOLUME),2)+",";
       json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),_Digits)+",";
+      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,_Digits) : "0")+",";
+      json+="\"open_time\":"+(entry_info.found ? KMFXQuote(entry_info.open_time) : KMFXQuote(""))+",";
+      json+="\"open_time_unix\":"+(entry_info.found ? IntegerToString(entry_info.open_time_unix) : "0")+",";
+      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,_Digits) : "0")+",";
+      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,_Digits) : "0")+",";
       json+="\"profit\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PROFIT),2)+",";
       json+="\"commission\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_COMMISSION),2)+",";
       json+="\"swap\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_SWAP),2)+",";
-      json+="\"comment\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_COMMENT))+",";
+      json+="\"comment\":"+KMFXQuote(cleaned_comment)+",";
+      json+="\"strategy_tag\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"time\":"+KMFXQuote(TimeToString((datetime)HistoryDealGetInteger(ticket,DEAL_TIME),TIME_DATE|TIME_SECONDS))+",";
       json+="\"time_unix\":"+IntegerToString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
       json+="}";
@@ -1001,6 +1153,10 @@ string KMFXBuildSyncTradesJson(int max_count)
    bool first=true;
    int total=HistoryDealsTotal();
    int added=0;
+   KMFXEntryDealInfo entry_map[];
+   string position_ids[];
+   int entry_map_size=0;
+   KMFXBuildEntryMap(from_time,to_time,entry_map,position_ids,entry_map_size);
 
    for(int i=total-1;i>=0;i--)
      {
@@ -1020,18 +1176,33 @@ string KMFXBuildSyncTradesJson(int max_count)
       first=false;
       added++;
 
+      long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
+      string position_id=IntegerToString(position_id_long);
+      KMFXEntryDealInfo entry_info;
+      KMFXFindEntryDeal(position_id,entry_map,position_ids,entry_map_size,entry_info);
+      string cleaned_comment=KMFXCleanComment(HistoryDealGetString(ticket,DEAL_COMMENT));
+      if(StringLen(cleaned_comment)==0 && entry_info.found)
+         cleaned_comment=KMFXCleanComment(entry_info.comment);
+
       json+="{";
       json+="\"trade_id\":"+KMFXQuote((string)ticket)+",";
       json+="\"ticket\":"+IntegerToString((int)ticket)+",";
-      json+="\"position_id\":"+IntegerToString((int)HistoryDealGetInteger(ticket,DEAL_POSITION_ID))+",";
+      json+="\"position_id\":"+position_id+",";
       json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
       json+="\"type\":"+KMFXQuote(HistoryDealGetInteger(ticket,DEAL_TYPE)==DEAL_TYPE_BUY ? "BUY" : "SELL")+",";
+      json+="\"direction\":"+KMFXQuote(entry_info.found ? entry_info.direction : "")+",";
       json+="\"volume\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_VOLUME),2)+",";
       json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),_Digits)+",";
+      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,_Digits) : "0")+",";
+      json+="\"open_time\":"+(entry_info.found ? KMFXQuote(entry_info.open_time) : KMFXQuote(""))+",";
+      json+="\"open_time_unix\":"+(entry_info.found ? IntegerToString(entry_info.open_time_unix) : "0")+",";
+      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,_Digits) : "0")+",";
+      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,_Digits) : "0")+",";
       json+="\"profit\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PROFIT),2)+",";
       json+="\"commission\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_COMMISSION),2)+",";
       json+="\"swap\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_SWAP),2)+",";
-      json+="\"comment\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_COMMENT))+",";
+      json+="\"comment\":"+KMFXQuote(cleaned_comment)+",";
+      json+="\"strategy_tag\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"time\":"+KMFXQuote(TimeToString((datetime)HistoryDealGetInteger(ticket,DEAL_TIME),TIME_DATE|TIME_SECONDS))+",";
       json+="\"time_unix\":"+IntegerToString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
       json+="}";
@@ -1136,7 +1307,7 @@ string KMFXBuildSyncPayload(string sync_id)
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
-   json+="\"connector_version\":\"2.72\",";
+   json+="\"connector_version\":\"2.73\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -1164,7 +1335,7 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    string login_value=KMFXAccountLoginString();
    string json="{";
    json+="\"type\":\"kmfx_connector_journal\",";
-   json+="\"connector_version\":\"2.72\",";
+   json+="\"connector_version\":\"2.73\",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";

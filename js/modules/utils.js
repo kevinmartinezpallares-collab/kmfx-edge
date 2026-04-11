@@ -1185,10 +1185,22 @@ function enrichTrade(trade, index) {
     when,
     durationMin: Number.isFinite(Number(trade.durationMin)) ? Number(trade.durationMin) : null,
     volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
-    entry: Number.isFinite(Number(trade.entry)) ? roundPrice(Number(trade.entry)) : null,
-    exit: Number.isFinite(Number(trade.exit)) ? roundPrice(Number(trade.exit)) : null,
+    direction: trade.direction || trade.type || "",
+    entry: Number.isFinite(Number(trade.open_price)) && Number(trade.open_price) > 0
+      ? roundPrice(Number(trade.open_price))
+      : Number.isFinite(Number(trade.entry)) && Number(trade.entry) > 0
+        ? roundPrice(Number(trade.entry))
+        : null,
+    exit: Number.isFinite(Number(trade.price)) && Number(trade.price) > 0
+      ? roundPrice(Number(trade.price))
+      : Number.isFinite(Number(trade.exit)) && Number(trade.exit) > 0
+        ? roundPrice(Number(trade.exit))
+        : null,
+    openTime: trade.open_time || null,
+    openTimeUnix: trade.open_time_unix || null,
     sl: Number.isFinite(Number(trade.sl)) ? roundPrice(Number(trade.sl)) : null,
-    tp: Number.isFinite(Number(trade.tp)) ? roundPrice(Number(trade.tp)) : null
+    tp: Number.isFinite(Number(trade.tp)) ? roundPrice(Number(trade.tp)) : null,
+    strategyTag: trade.strategy_tag || ""
   };
 }
 
