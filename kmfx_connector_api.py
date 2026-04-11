@@ -24,6 +24,8 @@ from risk_policy_engine import build_policy_snapshot, evaluate_risk_policy
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("kmfx_connector_api")
 
+RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
+
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
@@ -33,7 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 log.info(
-    "Connector API startup configured | response_helper=connector_json_response routes=%s",
+    "Connector API startup configured | response_helper=connector_json_response marker=%s routes=%s",
+    RUNTIME_SYNC_KEY_LOOKUP_MARKER,
     ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot"],
 )
 
@@ -244,6 +247,13 @@ def resolve_connection_key(payload: dict[str, Any], request: Request | None = No
 
 def resolve_identity_key(connection_key: str, login: str) -> str:
     return connection_key or login
+
+
+def resolve_account_by_connection_key(connection_key: str):
+    normalized = safe_str(connection_key)
+    if not normalized:
+        return None
+    return account_service.get_account_by_api_key_any_user(normalized)
 
 
 def mask_connection_key(connection_key: str) -> str:
@@ -613,7 +623,7 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
 def load_persisted_account_state(connection_key: str, identity_key: str = "") -> dict[str, Any]:
     normalized_connection_key = safe_str(connection_key)
     if normalized_connection_key:
-        account = account_service.get_account_by_api_key_any_user(normalized_connection_key)
+        account = resolve_account_by_connection_key(normalized_connection_key)
         if account and isinstance(account.latest_payload, dict):
             return deepcopy(account.latest_payload or {})
 
@@ -1010,6 +1020,8 @@ def health_payload() -> dict[str, Any]:
     return {
         "ok": True,
         "service": "kmfx-edge-api",
+        "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+        "render_git_commit": safe_str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("RENDER_GIT_COMMIT_SHA")),
     }
 
 
@@ -1207,12 +1219,20 @@ async def mt5_sync(request: Request) -> JSONResponse:
         bound_account = None
         unverified_identity = False
         if connection_key:
-            bound_account = account_service.get_account_by_api_key_any_user(connection_key)
+            bound_account = resolve_account_by_connection_key(connection_key)
+            log.info(
+                "SYNC connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
+                RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+                mask_connection_key(connection_key),
+                bool(bound_account),
+            )
             if bound_account is None:
                 details = {
                     "field": "connection_key",
                     "problem": "unknown_connection_key",
                     "connection_key": mask_connection_key(connection_key),
+                    "lookup": "get_account_by_api_key_any_user",
+                    "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
                 }
                 log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
                 return connector_json_response(
@@ -1555,6 +1575,32 @@ async def mt5_policy(
             "details": {"field": "connection_key|login", "problem": "one identity value is required"},
             "timestamp": now_iso(),
         })
+
+    if normalized_connection_key:
+        bound_account = resolve_account_by_connection_key(normalized_connection_key)
+        log.info(
+            "POLICY connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
+            RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+            mask_connection_key(normalized_connection_key),
+            bool(bound_account),
+        )
+        if bound_account is None:
+            return connector_json_response(
+                {
+                    "ok": False,
+                    "reason": "unknown_connection_key",
+                    "error": "unknown_connection_key",
+                    "details": {
+                        "field": "connection_key",
+                        "problem": "unknown_connection_key",
+                        "connection_key": mask_connection_key(normalized_connection_key),
+                        "lookup": "get_account_by_api_key_any_user",
+                        "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+                    },
+                    "timestamp": now_iso(),
+                },
+                status_code=401,
+            )
 
     persisted_state = load_persisted_account_state(normalized_connection_key, identity_key)
     policy = build_connector_policy_response(identity_key, persisted_state)
