@@ -5,6 +5,7 @@ import platform
 import subprocess
 import sys
 import tkinter as tk
+from datetime import datetime, timezone
 from pathlib import Path
 from tkinter import messagebox, ttk
 from urllib.error import URLError
@@ -27,8 +28,8 @@ class LauncherApp:
         self.logger.info("[KMFX][LAUNCHER] backend target resolved url=%s", self.config.backend_base_url)
         self.root = tk.Tk()
         self.root.title("KMFX Launcher")
-        self.root.geometry("1180x820")
-        self.root.minsize(1040, 720)
+        self.root.geometry("880x760")
+        self.root.minsize(760, 620)
         self.service_process: subprocess.Popen[str] | None = None
         self.backend = BackendClient(self.config)
         self.store = LauncherStateStore()
@@ -42,6 +43,16 @@ class LauncherApp:
         self.account_status = tk.StringVar(value="Sin sincronización")
         self.connection_key = tk.StringVar(value=self.config.connection_key)
         self.overall_status = tk.StringVar(value="Iniciando")
+        self.service_display = tk.StringVar(value="Inactivo")
+        self.backend_display = tk.StringVar(value="Validando")
+        self.mt5_display = tk.StringVar(value="Detectando")
+        self.connector_display = tk.StringVar(value="No instalado")
+        self.account_display = tk.StringVar(value="No vinculada")
+        self.sync_display = tk.StringVar(value="Sin sync")
+        self.account_summary = tk.StringVar(value="Sin cuenta detectada")
+        self.account_login = tk.StringVar(value="—")
+        self.account_broker = tk.StringVar(value="—")
+        self.advanced_toggle_text = tk.StringVar(value="Diagnóstico avanzado ▸")
         self.key_propagation_status = tk.StringVar(value="Esperando vinculación")
         self.pending_status = tk.StringVar(value="Sin pendientes")
         self.mt5_path_value = tk.StringVar(value="No detectado")
@@ -68,19 +79,38 @@ class LauncherApp:
 
         self._build_header(shell)
 
-        content = ttk.Frame(shell, style="Shell.TFrame")
-        content.grid(row=1, column=0, sticky="nsew", pady=(22, 0))
-        content.columnconfigure(0, weight=7)
-        content.columnconfigure(1, weight=5)
-        content.rowconfigure(2, weight=1)
-
-        self._build_hero_status(content)
-        self._build_connection_card(content)
-        self._build_mt5_card(content)
-        self._build_pending_card(content)
-        self._build_activity_card(content)
-        self._build_advanced_card(content)
+        content = self._build_scroll_content(shell)
+        self._build_main_connector_card(content)
+        self._build_advanced_diagnostics(content)
         self._refresh_status_badges()
+
+    def _build_scroll_content(self, parent: ttk.Frame) -> ttk.Frame:
+        container = ttk.Frame(parent, style="Shell.TFrame")
+        container.grid(row=1, column=0, sticky="nsew", pady=(22, 0))
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(0, weight=1)
+
+        canvas = tk.Canvas(container, bg=self.colors["bg"], highlightthickness=0, bd=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        content = ttk.Frame(canvas, style="Shell.TFrame")
+
+        window_id = canvas.create_window((0, 0), window=content, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns", padx=(12, 0))
+
+        content.columnconfigure(0, weight=1)
+
+        def sync_scroll_region(_event: tk.Event) -> None:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def sync_content_width(event: tk.Event) -> None:
+            canvas.itemconfigure(window_id, width=event.width)
+
+        content.bind("<Configure>", sync_scroll_region)
+        canvas.bind("<Configure>", sync_content_width)
+        canvas.bind("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"))
+        return content
 
     def _status_row(self, parent: ttk.Widget, row: int, label: str, value_var: tk.StringVar) -> None:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=2)
@@ -154,6 +184,8 @@ class LauncherApp:
         self.style.map("Kmfx.TCombobox", fieldbackground=[("readonly", "#1D2025")], foreground=[("readonly", self.colors["text"])])
         self.style.configure("Primary.TButton", background=self.colors["blue"], foreground="#F7FAFF", borderwidth=0, focusthickness=0, padding=(16, 10), font=("SF Pro Text", 11, "bold"))
         self.style.map("Primary.TButton", background=[("active", "#77A8FF"), ("pressed", "#467DDF")])
+        self.style.configure("Hero.TButton", background=self.colors["blue"], foreground="#F7FAFF", borderwidth=0, focusthickness=0, padding=(24, 16), font=("SF Pro Display", 14, "bold"))
+        self.style.map("Hero.TButton", background=[("active", "#77A8FF"), ("pressed", "#467DDF")])
         self.style.configure("Secondary.TButton", background="#22262D", foreground=self.colors["text"], borderwidth=0, focusthickness=0, padding=(14, 10), font=("SF Pro Text", 11, "bold"))
         self.style.map("Secondary.TButton", background=[("active", "#2C313A"), ("pressed", "#1D2128")])
         self.style.configure("Ghost.TButton", background=self.colors["card"], foreground=self.colors["muted"], borderwidth=0, focusthickness=0, padding=(12, 9), font=("SF Pro Text", 10, "bold"))
@@ -187,13 +219,141 @@ class LauncherApp:
         logo.create_line(15, 34, 34, 15, fill="#D9E7FF", width=2)
 
         ttk.Label(header, text="KMFX Launcher", style="Title.TLabel").grid(row=0, column=1, sticky="sw")
-        ttk.Label(header, text="Bridge & account connection for KMFX Edge", style="Subtitle.TLabel").grid(row=1, column=1, sticky="nw", pady=(3, 0))
+        ttk.Label(header, text="Conecta MetaTrader con KMFX Edge", style="Subtitle.TLabel").grid(row=1, column=1, sticky="nw", pady=(3, 0))
 
         right = ttk.Frame(header, style="Shell.TFrame")
         right.grid(row=0, column=2, rowspan=2, sticky="e")
-        ttk.Label(right, text="Companion app", style="Subtitle.TLabel").pack(anchor="e")
         self.overall_pill = self._make_pill(right, self.overall_status)
         self.overall_pill.pack(anchor="e", pady=(8, 0))
+
+    def _build_main_connector_card(self, parent: ttk.Frame) -> None:
+        card = ttk.Frame(parent, style="Card.TFrame", padding=28)
+        card.grid(row=0, column=0, sticky="ew", pady=(0, 18))
+        card.columnconfigure(0, weight=1)
+
+        ttk.Label(card, text="Estado de conexión", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            card,
+            text="Todo lo necesario para dejar MetaTrader conectado y sincronizando con KMFX Edge.",
+            style="CardSubtitle.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(5, 20))
+
+        status = ttk.Frame(card, style="Card.TFrame")
+        status.grid(row=2, column=0, sticky="ew")
+        status.columnconfigure(0, weight=1)
+        status.columnconfigure(1, weight=1)
+        self.service_line_pill = self._connector_status_line(status, 0, "Servicio local", self.service_display)
+        self.mt5_line_pill = self._connector_status_line(status, 1, "MetaTrader", self.mt5_display)
+        self.connector_line_pill = self._connector_status_line(status, 2, "Connector", self.connector_display)
+        self.account_line_pill = self._connector_status_line(status, 3, "Cuenta", self.account_display)
+        self.sync_line_pill = self._connector_status_line(status, 4, "Último sync", self.sync_display)
+
+        ttk.Separator(card).grid(row=3, column=0, sticky="ew", pady=24)
+
+        cta_row = ttk.Frame(card, style="Card.TFrame")
+        cta_row.grid(row=4, column=0, sticky="ew")
+        cta_row.columnconfigure(0, weight=1)
+        ttk.Button(cta_row, text="Conectar MetaTrader", command=self.connect_metatrader, style="Hero.TButton").grid(row=0, column=0, sticky="ew")
+
+        secondary = ttk.Frame(card, style="Card.TFrame")
+        secondary.grid(row=5, column=0, sticky="ew", pady=(14, 0))
+        secondary.columnconfigure((0, 1, 2), weight=1)
+        ttk.Button(secondary, text="Instalar / Reparar connector", command=self.install_connector, style="Secondary.TButton").grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        ttk.Button(secondary, text="Abrir MetaTrader", command=self.open_mt5, style="Secondary.TButton").grid(row=0, column=1, sticky="ew", padx=8)
+        ttk.Button(secondary, text="Reintentar conexión", command=self.retry_connection, style="Secondary.TButton").grid(row=0, column=2, sticky="ew", padx=(8, 0))
+
+        mt5_picker = ttk.Frame(card, style="DeepCard.TFrame", padding=18)
+        mt5_picker.grid(row=6, column=0, sticky="ew", pady=(22, 0))
+        mt5_picker.columnconfigure(0, weight=1)
+        ttk.Label(mt5_picker, text="MetaTrader detectado", style="DeepTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(mt5_picker, text="Selecciona la instalación sobre la que instalar o reparar el connector.", style="DeepMuted.TLabel").grid(row=1, column=0, sticky="w", pady=(4, 12))
+        self.install_selector = ttk.Combobox(mt5_picker, textvariable=self.selected_installation_label, state="readonly", style="Kmfx.TCombobox")
+        self.install_selector.grid(row=2, column=0, sticky="ew")
+        ttk.Button(mt5_picker, text="Redetectar", command=self.refresh_installations, style="Ghost.TButton").grid(row=2, column=1, sticky="e", padx=(12, 0))
+
+        key_box = ttk.Frame(card, style="DeepCard.TFrame", padding=18)
+        key_box.grid(row=7, column=0, sticky="ew", pady=(14, 0))
+        key_box.columnconfigure(0, weight=1)
+        ttk.Label(key_box, text="Connection Key", style="DeepTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(key_box, textvariable=self.key_propagation_status, style="DeepMuted.TLabel").grid(row=1, column=0, sticky="w", pady=(4, 12))
+        ttk.Entry(key_box, textvariable=self.connection_key, show="•", style="Kmfx.TEntry").grid(row=2, column=0, sticky="ew")
+        ttk.Button(key_box, text="Aplicar key", command=self.apply_connection_key, style="Primary.TButton").grid(row=2, column=1, sticky="e", padx=(12, 0))
+
+        context = ttk.Frame(card, style="DeepCard.TFrame", padding=18)
+        context.grid(row=8, column=0, sticky="ew", pady=(14, 0))
+        context.columnconfigure((0, 1, 2), weight=1)
+        self._context_metric(context, 0, "Cuenta detectada", self.account_summary)
+        self._context_metric(context, 1, "Login", self.account_login)
+        self._context_metric(context, 2, "Broker", self.account_broker)
+
+    def _connector_status_line(self, parent: ttk.Frame, row: int, label: str, value_var: tk.StringVar) -> tk.Label:
+        parent.rowconfigure(row, weight=1)
+        ttk.Label(parent, text=label, style="Muted.TLabel").grid(row=row, column=0, sticky="w", pady=7)
+        pill = self._make_pill(parent, value_var)
+        pill.grid(row=row, column=1, sticky="e", pady=7)
+        return pill
+
+    def _context_metric(self, parent: ttk.Frame, column: int, label: str, value_var: tk.StringVar) -> None:
+        block = ttk.Frame(parent, style="DeepCard.TFrame")
+        block.grid(row=0, column=column, sticky="ew", padx=(0 if column == 0 else 14, 0))
+        ttk.Label(block, text=label.upper(), style="DeepMuted.TLabel").pack(anchor="w")
+        ttk.Label(block, textvariable=value_var, style="DeepTitle.TLabel", wraplength=220).pack(anchor="w", pady=(8, 0))
+
+    def _build_advanced_diagnostics(self, parent: ttk.Frame) -> None:
+        wrapper = ttk.Frame(parent, style="Card.TFrame", padding=22)
+        wrapper.grid(row=1, column=0, sticky="ew", pady=(0, 18))
+        wrapper.columnconfigure(0, weight=1)
+
+        ttk.Button(wrapper, textvariable=self.advanced_toggle_text, command=self.toggle_advanced_diagnostics, style="Ghost.TButton").grid(row=0, column=0, sticky="w")
+        self.advanced_body = ttk.Frame(wrapper, style="Card.TFrame")
+        self.advanced_body.grid(row=1, column=0, sticky="ew", pady=(18, 0))
+        self.advanced_body.columnconfigure(0, weight=1)
+
+        self._info_line(self.advanced_body, 0, "Ruta MT5", self.mt5_path_value)
+        self._info_line(self.advanced_body, 1, "Preset", self.preset_path_value)
+        self._info_line(self.advanced_body, 2, "Runtime file", self.runtime_file_value)
+        self._info_line(self.advanced_body, 3, "Bridge", self.bridge_url_value)
+        self._info_line(self.advanced_body, 4, "Connection key", self.connection_key)
+
+        actions = ttk.Frame(self.advanced_body, style="Card.TFrame")
+        actions.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(18, 10))
+        actions.columnconfigure((0, 1, 2, 3), weight=1)
+        ttk.Button(actions, text="Probar conexión", command=self.test_connection, style="Secondary.TButton").grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        ttk.Button(actions, text="Arrancar servicio", command=self.start_service, style="Secondary.TButton").grid(row=0, column=1, sticky="ew", padx=8)
+        ttk.Button(actions, text="Detener servicio", command=self.stop_service, style="Secondary.TButton").grid(row=0, column=2, sticky="ew", padx=8)
+        ttk.Button(actions, text="Instalar MT5", command=self.guided_mt5_install, style="Secondary.TButton").grid(row=0, column=3, sticky="ew", padx=(8, 0))
+
+        self.log_box = tk.Text(
+            self.advanced_body,
+            height=9,
+            wrap="word",
+            bg="#0D0F12",
+            fg=self.colors["muted"],
+            insertbackground=self.colors["text"],
+            relief="flat",
+            borderwidth=0,
+            padx=14,
+            pady=12,
+            font=("SF Mono", 10),
+        )
+        self.log_box.grid(row=6, column=0, columnspan=3, sticky="ew", pady=(8, 0))
+        self.log_box.insert("1.0", read_recent_logs())
+        self.log_box.configure(state="disabled")
+
+        log_actions = ttk.Frame(self.advanced_body, style="Card.TFrame")
+        log_actions.grid(row=7, column=0, sticky="w", pady=(12, 0))
+        ttk.Button(log_actions, text="Refrescar logs", command=self.show_logs, style="Secondary.TButton").grid(row=0, column=0, sticky="w")
+        ttk.Button(log_actions, text="Copiar logs", command=self.copy_logs, style="Ghost.TButton").grid(row=0, column=1, sticky="w", padx=(10, 0))
+
+        self.advanced_body.grid_remove()
+
+    def toggle_advanced_diagnostics(self) -> None:
+        if self.advanced_body.winfo_ismapped():
+            self.advanced_body.grid_remove()
+            self.advanced_toggle_text.set("Diagnóstico avanzado ▸")
+        else:
+            self.advanced_body.grid()
+            self.advanced_toggle_text.set("Diagnóstico avanzado ▾")
 
     def _build_hero_status(self, parent: ttk.Frame) -> None:
         card = self._make_card(parent, "Estado general", "Resumen operativo del bridge, MT5 y backend.", row=0, column=0, columnspan=2)
@@ -314,11 +474,11 @@ class LauncherApp:
 
     def _status_colors(self, value: str) -> tuple[str, str]:
         normalized = value.lower()
-        if any(token in normalized for token in ("off", "unreachable", "no detectado", "no instalado", "error", "rejected", "unknown")):
+        if any(token in normalized for token in ("off", "inactivo", "unreachable", "no detectado", "no instalado", "no vinculada", "error", "rejected", "unknown")):
             return self.colors["red_dim"], self.colors["red"]
-        if any(token in normalized for token in ("on", "reachable", "detectado", "instalado", "ok", "accepted", "conect", "ready")):
+        if any(token in normalized for token in ("on", "activo", "listo", "reachable", "detectado", "instalado", "vinculada", "ok", "accepted", "conect", "ready")):
             return self.colors["green_dim"], self.colors["green"]
-        if any(token in normalized for token in ("starting", "pendiente", "sync", "iniciando", "esperando")):
+        if any(token in normalized for token in ("starting", "pendiente", "sync", "iniciando", "esperando", "sin sync")):
             return self.colors["amber_dim"], self.colors["amber"]
         return self.colors["blue_dim"], self.colors["blue"]
 
@@ -331,12 +491,18 @@ class LauncherApp:
         connector_status = self.connector_status.get().lower()
         mt5_ok = "detectado" in mt5_status and "no detectado" not in mt5_status
         connector_ok = "instalado" in connector_status and "no instalado" not in connector_status
-        if service_ok and backend_ok and mt5_ok and connector_ok:
+        account_ok = bool(self.config.connection_key or self.connection_key.get().strip())
+        self.service_display.set("Activo" if service_ok else ("Iniciando" if self.service_status.get().upper() == "STARTING" else "Inactivo"))
+        self.backend_display.set("Reachable" if backend_ok else self.backend_status.get())
+        self.mt5_display.set("Detectado" if mt5_ok else "No detectado")
+        self.connector_display.set("Instalado" if connector_ok else "No instalado")
+        self.account_display.set("Vinculada" if account_ok else "No vinculada")
+        if service_ok and backend_ok and mt5_ok and connector_ok and account_ok:
             self.overall_status.set("Listo")
-        elif service_ok and (mt5_ok or backend_ok):
-            self.overall_status.set("Revisar")
+        elif self.backend_status.get().lower() == "unreachable":
+            self.overall_status.set("Error")
         else:
-            self.overall_status.set("Atención")
+            self.overall_status.set("Pendiente")
         for label, value in (
             (self.overall_pill, self.overall_status),
             (getattr(self, "service_pill", None), self.service_status),
@@ -344,11 +510,51 @@ class LauncherApp:
             (getattr(self, "mt5_pill", None), self.mt5_status),
             (getattr(self, "connector_pill", None), self.connector_status),
             (getattr(self, "sync_pill", None), self.account_status),
+            (getattr(self, "service_line_pill", None), self.service_display),
+            (getattr(self, "mt5_line_pill", None), self.mt5_display),
+            (getattr(self, "connector_line_pill", None), self.connector_display),
+            (getattr(self, "account_line_pill", None), self.account_display),
+            (getattr(self, "sync_line_pill", None), self.sync_display),
         ):
             if label is None:
                 continue
             bg, fg = self._status_colors(value.get())
             label.configure(bg=bg, fg=fg)
+
+    def _humanize_last_sync(self, last_sync: dict[str, object]) -> str:
+        raw = str(last_sync.get("updated_at") or last_sync.get("time") or last_sync.get("timestamp") or "").strip()
+        if not raw:
+            return "Recibido"
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            seconds = max(0, int((datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()))
+            if seconds < 60:
+                return f"hace {seconds}s"
+            minutes = seconds // 60
+            if minutes < 60:
+                return f"hace {minutes}m"
+            return f"hace {minutes // 60}h"
+        except ValueError:
+            return raw
+
+    def connect_metatrader(self) -> None:
+        if not self.connection_key.get().strip():
+            self.save_launcher_config()
+        else:
+            self.apply_connection_key()
+        if self.selected_installation() is None:
+            self.refresh_installations()
+        if self.selected_installation() is not None:
+            self.install_connector()
+        self.ensure_service_started()
+        self.refresh_status(schedule=False)
+
+    def retry_connection(self) -> None:
+        self.refresh_installations()
+        self.ensure_service_started()
+        self.refresh_status(schedule=False)
 
     def apply_connection_key(self) -> None:
         self.persist_launcher_config()
@@ -446,10 +652,11 @@ class LauncherApp:
 
     def refresh_pending_accounts(self) -> None:
         response = self.backend.get_pending_accounts()
-        self.pending_tree.delete(*self.pending_tree.get_children())
         self.pending_accounts = response.body.get("accounts", []) if response.ok else []
-        for account in self.pending_accounts:
-            self.pending_tree.insert("", "end", iid=account.get("account_id", ""), values=(account.get("alias", "—"), account.get("created_at", "")))
+        if hasattr(self, "pending_tree"):
+            self.pending_tree.delete(*self.pending_tree.get_children())
+            for account in self.pending_accounts:
+                self.pending_tree.insert("", "end", iid=account.get("account_id", ""), values=(account.get("alias", "—"), account.get("created_at", "")))
         count = len(self.pending_accounts)
         self.pending_status.set(f"{count} cuenta{'s' if count != 1 else ''} pendiente{'s' if count != 1 else ''}" if count else "Sin cuentas pendientes")
 
@@ -557,7 +764,7 @@ class LauncherApp:
         except Exception:
             return None
 
-    def refresh_status(self) -> None:
+    def refresh_status(self, schedule: bool = True) -> None:
         status = self.fetch_json("/status")
         if status:
             self.service_status.set("ON")
@@ -565,20 +772,32 @@ class LauncherApp:
             self.bridge_url_value.set(f"Backend target · {status.get('backend_base_url') or self.config.backend_base_url}")
             last_sync = status.get("last_sync") or {}
             if isinstance(last_sync, dict) and last_sync:
-                self.account_status.set(f"{last_sync.get('identity_key','')} · {last_sync.get('status','')}")
+                login = str(last_sync.get("login") or last_sync.get("account_login") or last_sync.get("identity_key") or "—")
+                broker = str(last_sync.get("broker") or last_sync.get("server") or "—")
+                self.account_summary.set("Cuenta MT5 detectada")
+                self.account_login.set(login)
+                self.account_broker.set(broker)
+                self.sync_display.set(self._humanize_last_sync(last_sync))
+                self.account_status.set(f"{login} · {last_sync.get('status','')}")
                 self.last_sync_detail.set(
                     f"Último sync: {last_sync.get('status','')} · {last_sync.get('identity_key','')} · {last_sync.get('updated_at', last_sync.get('time', ''))}"
                 )
             else:
                 self.account_status.set("Sin sincronización")
+                self.sync_display.set("Sin sync")
+                self.account_summary.set("Esperando snapshot" if self.connection_key.get().strip() else "Sin cuenta detectada")
+                self.account_login.set("—")
+                self.account_broker.set("—")
                 self.last_sync_detail.set("Servicio activo. Esperando primer snapshot de MT5.")
         else:
             self.service_status.set("OFF")
             self.backend_status.set("Unknown")
+            self.sync_display.set("Sin sync")
             self.last_sync_detail.set("Servicio local no disponible todavía.")
         self.refresh_pending_accounts()
         self._refresh_status_badges()
-        self.root.after(2000, self.refresh_status)
+        if schedule:
+            self.root.after(2000, self.refresh_status)
 
     def install_connector(self) -> None:
         installation = self.selected_installation()
