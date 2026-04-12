@@ -15,6 +15,8 @@
 
 #include <Trade/Trade.mqh>
 
+#define KMFX_CONNECTOR_VERSION "2.74"
+
 // -------------------------------------------------------------------
 // Modos de enforcement
 // -------------------------------------------------------------------
@@ -1404,7 +1406,7 @@ string KMFXBuildSyncPayload(string sync_id)
    PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
-   json+="\"connector_version\":\"2.73\",";
+   json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -1432,7 +1434,7 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    string login_value=KMFXAccountLoginString();
    string json="{";
    json+="\"type\":\"kmfx_connector_journal\",";
-   json+="\"connector_version\":\"2.73\",";
+   json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
    json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
@@ -2389,11 +2391,12 @@ int OnInit()
    PrintFormat("[KMFX][INIT][PEAK_BOOTSTRAP] initial_peak=%.2f (will sync from backend)",
                Runtime.equity_peak);
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
+   PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
 
    // DEBUG
    PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
    PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
-   KMFXLog("INIT","KMFX Connector v2 iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
+   KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
    EventSetMillisecondTimer(KMFXTimerMs);
    KMFXRunCycle();
    return(INIT_SUCCEEDED);
