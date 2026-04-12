@@ -52,6 +52,7 @@ class LauncherApp:
         self.sync_display = tk.StringVar(value="Sin sync")
         self.simple_status = tk.StringVar(value="Buscando MetaTrader...")
         self.simple_status_hint = tk.StringVar(value="Preparando el servicio local y detectando MetaTrader.")
+        self.primary_action_text = tk.StringVar(value="Conectar MetaTrader")
         self.account_summary = tk.StringVar(value="Sin cuenta detectada")
         self.account_login = tk.StringVar(value="—")
         self.account_broker = tk.StringVar(value="—")
@@ -75,7 +76,7 @@ class LauncherApp:
         self.root.configure(bg=self.colors["bg"])
         self.root.option_add("*Font", ("SF Pro Display", 12))
 
-        shell = ttk.Frame(self.root, style="Shell.TFrame", padding=28)
+        shell = ttk.Frame(self.root, style="Shell.TFrame", padding=36)
         shell.pack(fill="both", expand=True)
         shell.columnconfigure(0, weight=1)
         shell.rowconfigure(0, weight=1)
@@ -85,33 +86,33 @@ class LauncherApp:
         self._center_window()
 
     def _build_assistant(self, parent: ttk.Frame) -> None:
-        panel = ttk.Frame(parent, style="Assistant.TFrame", padding=42)
+        panel = ttk.Frame(parent, style="Assistant.TFrame", padding=48)
         panel.grid(row=0, column=0, sticky="nsew")
         panel.columnconfigure(0, weight=1)
         panel.rowconfigure(7, weight=1)
 
-        logo = tk.Canvas(panel, width=58, height=58, bg=self.colors["card"], highlightthickness=0, bd=0)
-        logo.grid(row=0, column=0, pady=(2, 24))
-        logo.create_rectangle(6, 6, 52, 52, fill="#172033", outline="#25344C", width=1)
-        logo.create_line(21, 39, 39, 21, fill="#D9E7FF", width=2)
+        logo = tk.Canvas(panel, width=68, height=68, bg=self.colors["bg"], highlightthickness=0, bd=0)
+        logo.grid(row=0, column=0, pady=(2, 30))
+        logo.create_rectangle(6, 6, 62, 62, fill="#101722", outline="#1F2C40", width=1)
+        logo.create_text(34, 34, text="KM", fill="#F5F5F2", font=("SF Pro Display", 18, "bold"))
 
         ttk.Label(panel, text="Conecta tu MetaTrader con KMFX", style="AssistantTitle.TLabel").grid(row=1, column=0, sticky="ew")
         ttk.Label(panel, text="Configuraremos todo automáticamente en segundos.", style="AssistantSubtitle.TLabel").grid(
             row=2,
             column=0,
             sticky="ew",
-            pady=(12, 28),
+            pady=(12, 34),
         )
 
         self.simple_status_pill = self._make_pill(panel, self.simple_status)
         self.simple_status_pill.grid(row=3, column=0, pady=(0, 10))
         self.overall_pill = self.simple_status_pill
-        ttk.Label(panel, textvariable=self.simple_status_hint, style="AssistantHint.TLabel").grid(row=4, column=0, sticky="ew", pady=(0, 30))
+        ttk.Label(panel, textvariable=self.simple_status_hint, style="AssistantHint.TLabel").grid(row=4, column=0, sticky="ew", pady=(0, 38))
 
-        cta = tk.Button(
+        self.primary_action_button = tk.Button(
             panel,
-            text="Conectar MetaTrader",
-            command=self.connect_metatrader,
+            textvariable=self.primary_action_text,
+            command=self.run_primary_action,
             bg=self.colors["blue"],
             fg="#F7FAFF",
             activebackground="#77A8FF",
@@ -119,25 +120,39 @@ class LauncherApp:
             relief="flat",
             bd=0,
             padx=34,
-            pady=18,
+            pady=20,
             cursor="hand2",
-            font=("SF Pro Display", 16, "bold"),
+            font=("SF Pro Display", 17, "bold"),
         )
-        cta.grid(row=5, column=0, sticky="ew", padx=24)
+        self.primary_action_button.grid(row=5, column=0, sticky="ew", padx=12)
+
+        self.reconnect_button = tk.Button(
+            panel,
+            text="Reconectar",
+            command=self.connect_metatrader,
+            bg=self.colors["card"],
+            fg=self.colors["muted"],
+            activebackground=self.colors["card"],
+            activeforeground=self.colors["text"],
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            font=("SF Pro Text", 11, "bold"),
+        )
 
         ttk.Label(
             panel,
             text="Detectaremos tu MetaTrader y lo vincularemos automáticamente a tu cuenta KMFX.",
             style="AssistantFineprint.TLabel",
-        ).grid(row=6, column=0, sticky="ew", pady=(22, 18))
+        ).grid(row=6, column=0, sticky="ew", pady=(24, 24))
 
         diagnostics = tk.Button(
             panel,
             text="Ver diagnóstico",
             command=self.open_diagnostics_window,
-            bg=self.colors["card"],
+            bg=self.colors["bg"],
             fg=self.colors["muted"],
-            activebackground=self.colors["card"],
+            activebackground=self.colors["bg"],
             activeforeground=self.colors["text"],
             relief="flat",
             bd=0,
@@ -267,6 +282,24 @@ class LauncherApp:
         self.refresh_installations()
         self.show_logs()
 
+    def _is_connected(self) -> bool:
+        return self.simple_status.get() == "MetaTrader conectado"
+
+    def _sync_primary_action(self, connected: bool) -> None:
+        self.primary_action_text.set("Abrir MetaTrader" if connected else "Conectar MetaTrader")
+        if not self._widget_exists("reconnect_button"):
+            return
+        if connected:
+            self.reconnect_button.grid(row=7, column=0, pady=(18, 0))
+        else:
+            self.reconnect_button.grid_remove()
+
+    def run_primary_action(self) -> None:
+        if self._is_connected():
+            self.open_mt5()
+            return
+        self.connect_metatrader()
+
     def _build_scroll_content(self, parent: ttk.Frame) -> ttk.Frame:
         container = ttk.Frame(parent, style="Shell.TFrame")
         container.grid(row=1, column=0, sticky="nsew", pady=(22, 0))
@@ -333,10 +366,10 @@ class LauncherApp:
         self.style.configure("Shell.TLabel", background=self.colors["bg"], foreground=self.colors["text"])
         self.style.configure("Title.TLabel", background=self.colors["bg"], foreground=self.colors["text"], font=("SF Pro Display", 24, "bold"))
         self.style.configure("Subtitle.TLabel", background=self.colors["bg"], foreground=self.colors["muted"], font=("SF Pro Text", 12))
-        self.style.configure("Assistant.TFrame", background=self.colors["card"], borderwidth=1, relief="solid")
+        self.style.configure("Assistant.TFrame", background=self.colors["bg"], borderwidth=0, relief="flat")
         self.style.configure(
             "AssistantTitle.TLabel",
-            background=self.colors["card"],
+            background=self.colors["bg"],
             foreground=self.colors["text"],
             font=("SF Pro Display", 25, "bold"),
             anchor="center",
@@ -344,7 +377,7 @@ class LauncherApp:
         )
         self.style.configure(
             "AssistantSubtitle.TLabel",
-            background=self.colors["card"],
+            background=self.colors["bg"],
             foreground=self.colors["muted"],
             font=("SF Pro Text", 13),
             anchor="center",
@@ -352,7 +385,7 @@ class LauncherApp:
         )
         self.style.configure(
             "AssistantHint.TLabel",
-            background=self.colors["card"],
+            background=self.colors["bg"],
             foreground=self.colors["subtle"],
             font=("SF Pro Text", 11),
             anchor="center",
@@ -360,7 +393,7 @@ class LauncherApp:
         )
         self.style.configure(
             "AssistantFineprint.TLabel",
-            background=self.colors["card"],
+            background=self.colors["bg"],
             foreground=self.colors["muted"],
             font=("SF Pro Text", 11),
             anchor="center",
@@ -716,8 +749,8 @@ class LauncherApp:
         sync_ok = self.sync_display.get() != "Sin sync"
         if service_ok and backend_ok and mt5_ok and connector_ok and account_ok and sync_ok:
             self.overall_status.set("Listo")
-            self.simple_status.set("Conectado ✅")
-            self.simple_status_hint.set("MetaTrader está conectado y enviando datos a KMFX Edge.")
+            self.simple_status.set("MetaTrader conectado")
+            self.simple_status_hint.set("Tu cuenta está sincronizando correctamente con KMFX Edge.")
         elif self.backend_status.get().lower() == "unreachable":
             self.overall_status.set("Error")
             self.simple_status.set("Error de conexión")
@@ -734,6 +767,7 @@ class LauncherApp:
             self.overall_status.set("Pendiente")
             self.simple_status.set("No conectado")
             self.simple_status_hint.set("Pulsa el botón para detectar MetaTrader y aplicar la configuración.")
+        self._sync_primary_action(self.simple_status.get() == "MetaTrader conectado")
         for label, value in (
             (self.overall_pill, self.simple_status),
             (getattr(self, "service_pill", None), self.service_status),
