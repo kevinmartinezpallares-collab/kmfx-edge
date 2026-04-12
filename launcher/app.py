@@ -43,6 +43,7 @@ class LauncherApp:
         self.connector_status = tk.StringVar(value="No instalado")
         self.account_status = tk.StringVar(value="Sin sincronización")
         self.connection_key = tk.StringVar(value=self.config.connection_key)
+        self.logo_image: tk.PhotoImage | None = None
         self.overall_status = tk.StringVar(value="Iniciando")
         self.service_display = tk.StringVar(value="Inactivo")
         self.backend_display = tk.StringVar(value="Validando")
@@ -91,93 +92,81 @@ class LauncherApp:
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(1, weight=1)
 
-        logo = tk.Canvas(header, width=42, height=42, bg=self.colors["bg"], highlightthickness=0, bd=0)
-        logo.grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 14))
-        logo.create_rectangle(4, 4, 38, 38, fill=self.colors["ink"], outline=self.colors["line"], width=1)
-        logo.create_text(21, 21, text="K", fill=self.colors["bg"], font=("SF Pro Display", 16, "bold"))
+        logo = self._build_brand_logo(header)
+        logo.grid(row=0, column=0, rowspan=2, sticky="nw", padx=(0, 16))
 
-        ttk.Label(header, text="KMFX Launcher", style="AppTitle.TLabel").grid(row=0, column=1, sticky="sw")
-
-        self.overall_pill = self._make_pill(header, self.tool_install_status)
-        self.overall_pill.grid(row=0, column=2, sticky="e")
-
-        intro = ttk.Frame(parent, style="Shell.TFrame")
-        intro.grid(row=1, column=0, sticky="ew", pady=(46, 22))
-        intro.columnconfigure(0, weight=1)
-        ttk.Label(intro, text="Mis herramientas", style="PageTitle.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(intro, text="Gestiona tu instalación de KMFX", style="PageSubtitle.TLabel").grid(row=1, column=0, sticky="w", pady=(6, 0))
-
-        tab = tk.Label(
-            intro,
-            text="MT5",
-            bg=self.colors["ink"],
-            fg=self.colors["bg"],
-            padx=18,
-            pady=8,
-            font=("SF Pro Text", 11, "bold"),
+        ttk.Label(header, text="Mis herramientas", style="PageTitle.TLabel").grid(row=0, column=1, sticky="sw")
+        ttk.Label(header, text="Gestiona tus instalaciones de KMFX", style="PageSubtitle.TLabel").grid(
+            row=1,
+            column=1,
+            sticky="nw",
+            pady=(6, 0),
         )
-        tab.grid(row=2, column=0, sticky="w", pady=(24, 0))
 
-        card = ttk.Frame(parent, style="ToolCard.TFrame", padding=30)
-        card.grid(row=2, column=0, sticky="nsew")
-        card.columnconfigure(0, weight=1)
-        card.columnconfigure(1, weight=0)
+        tabs = ttk.Frame(parent, style="Shell.TFrame")
+        tabs.grid(row=1, column=0, sticky="w", pady=(36, 22))
+        self._make_filter_pill(tabs, "Todos", active=True).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self._make_filter_pill(tabs, "MT5", active=False).grid(row=0, column=1, sticky="w")
 
-        icon = tk.Canvas(card, width=54, height=54, bg=self.colors["card"], highlightthickness=0, bd=0)
-        icon.grid(row=0, column=0, sticky="w")
-        icon.create_rectangle(6, 6, 48, 48, fill="#F0F2F5", outline="#D8DEE7", width=1)
-        icon.create_text(27, 27, text="5", fill=self.colors["ink"], font=("SF Pro Display", 18, "bold"))
+        grid = ttk.Frame(parent, style="Shell.TFrame")
+        grid.grid(row=2, column=0, sticky="nsew")
+        grid.columnconfigure(0, weight=1)
 
-        self.tool_status_pill = self._make_pill(card, self.tool_install_status)
-        self.tool_status_pill.grid(row=0, column=1, sticky="e")
+        card = ttk.Frame(grid, style="ToolCard.TFrame", padding=28)
+        card.grid(row=0, column=0, sticky="new")
+        card.columnconfigure(1, weight=1)
 
-        ttk.Label(card, text="KMFX Connector MT5", style="ToolTitle.TLabel").grid(row=1, column=0, columnspan=2, sticky="w", pady=(24, 0))
-        ttk.Label(card, text="Conecta tu cuenta de MetaTrader 5 con KMFX", style="ToolDescription.TLabel").grid(
-            row=2,
-            column=0,
-            columnspan=2,
+        icon = tk.Canvas(card, width=56, height=56, bg=self.colors["card"], highlightthickness=0, bd=0)
+        icon.grid(row=0, column=0, rowspan=3, sticky="nw", padx=(0, 18))
+        icon.create_rectangle(5, 5, 51, 51, fill="#F3F6FB", outline="#E1E7F0", width=1)
+        icon.create_text(28, 28, text="MT5", fill=self.colors["blue"], font=("SF Pro Display", 14, "bold"))
+
+        ttk.Label(card, text="KMFX Connector MT5", style="ToolTitle.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(card, text="Conecta tu cuenta de MetaTrader 5 con KMFX Edge", style="ToolDescription.TLabel").grid(
+            row=1,
+            column=1,
             sticky="w",
-            pady=(8, 28),
+            pady=(7, 0),
         )
+        self.tool_status_pill = self._make_pill(card, self.tool_install_status)
+        self.tool_status_pill.grid(row=0, column=2, sticky="ne", padx=(18, 0))
 
         actions = ttk.Frame(card, style="ToolCard.TFrame")
-        actions.grid(row=3, column=0, columnspan=2, sticky="ew")
-        actions.columnconfigure(0, weight=1)
-        actions.columnconfigure(1, weight=1)
+        actions.grid(row=3, column=1, columnspan=2, sticky="w", pady=(26, 0))
 
         self.install_button = tk.Button(
             actions,
             text="Instalar",
             command=self.install_connector,
-            bg=self.colors["ink"],
-            fg=self.colors["bg"],
-            activebackground="#2E3440",
-            activeforeground=self.colors["bg"],
+            bg=self.colors["blue"],
+            fg="#FFFFFF",
+            activebackground="#255EC8",
+            activeforeground="#FFFFFF",
             relief="flat",
             bd=0,
-            padx=22,
-            pady=15,
+            padx=24,
+            pady=12,
             cursor="hand2",
-            font=("SF Pro Text", 12, "bold"),
+            font=("SF Pro Text", 11, "bold"),
         )
-        self.install_button.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.install_button.grid(row=0, column=0, sticky="w", padx=(0, 12))
 
         self.open_mt5_button = tk.Button(
             actions,
             text="Abrir MT5",
             command=self.open_mt5,
             bg=self.colors["button_secondary"],
-            fg=self.colors["ink"],
+            fg=self.colors["text"],
             activebackground="#E2E7EE",
-            activeforeground=self.colors["ink"],
+            activeforeground=self.colors["text"],
             relief="flat",
             bd=0,
-            padx=22,
-            pady=15,
+            padx=20,
+            pady=12,
             cursor="hand2",
-            font=("SF Pro Text", 12, "bold"),
+            font=("SF Pro Text", 11, "bold"),
         )
-        self.open_mt5_button.grid(row=0, column=1, sticky="ew", padx=(10, 0))
+        self.open_mt5_button.grid(row=0, column=1, sticky="w")
 
     def _center_window(self) -> None:
         self.root.update_idletasks()
@@ -188,6 +177,43 @@ class LauncherApp:
         x = max(0, (screen_width - width) // 2)
         y = max(0, (screen_height - height) // 2)
         self.root.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _build_brand_logo(self, parent: tk.Misc) -> tk.Widget:
+        repo_root = Path(__file__).resolve().parent.parent
+        candidates = (
+            repo_root / "assets" / "logos" / "logo-blanco-oscuro-120.png",
+            repo_root / "kmfx-logo-180.png",
+        )
+        for path in candidates:
+            if not path.exists():
+                continue
+            try:
+                image = tk.PhotoImage(file=str(path))
+                if image.width() > 54:
+                    factor = max(1, (max(image.width(), image.height()) + 43) // 44)
+                    image = image.subsample(factor, factor)
+                self.logo_image = image
+                return tk.Label(parent, image=self.logo_image, bg=self.colors["bg"], bd=0)
+            except tk.TclError:
+                continue
+
+        logo = tk.Canvas(parent, width=46, height=46, bg=self.colors["bg"], highlightthickness=0, bd=0)
+        logo.create_rectangle(3, 3, 43, 43, fill=self.colors["ink"], outline=self.colors["line"], width=1)
+        logo.create_text(23, 23, text="KM", fill="#FFFFFF", font=("SF Pro Display", 12, "bold"))
+        return logo
+
+    def _make_filter_pill(self, parent: tk.Misc, text: str, active: bool = False) -> tk.Label:
+        return tk.Label(
+            parent,
+            text=text,
+            bg=self.colors["ink"] if active else self.colors["card"],
+            fg="#FFFFFF" if active else self.colors["muted"],
+            bd=0,
+            padx=18,
+            pady=8,
+            font=("SF Pro Text", 10, "bold"),
+            cursor="hand2",
+        )
 
     def _widget_exists(self, attr: str) -> bool:
         widget = getattr(self, attr, None)
@@ -352,27 +378,27 @@ class LauncherApp:
 
     def _configure_styles(self) -> None:
         self.colors = {
-            "bg": "#F6F3EE",
-            "shell": "#F6F3EE",
-            "card": "#FFFEFB",
-            "card_alt": "#F1EEE8",
-            "card_deep": "#F8F6F1",
-            "border": "#E2DCD1",
-            "border_soft": "#EBE5DB",
-            "text": "#151515",
-            "muted": "#706A61",
-            "subtle": "#9A9288",
-            "ink": "#151719",
-            "line": "#DDD6CA",
-            "button_secondary": "#ECE8E0",
-            "blue": "#2B67D8",
-            "blue_dim": "#E7EEF9",
-            "green": "#147A49",
-            "green_dim": "#E6F4EC",
-            "amber": "#8A5C00",
-            "amber_dim": "#FFF3CE",
+            "bg": "#F7F8FA",
+            "shell": "#F7F8FA",
+            "card": "#FFFFFF",
+            "card_alt": "#F1F4F8",
+            "card_deep": "#F8FAFC",
+            "border": "#E4E7EC",
+            "border_soft": "#EEF0F3",
+            "text": "#111827",
+            "muted": "#667085",
+            "subtle": "#98A2B3",
+            "ink": "#111827",
+            "line": "#EAECF0",
+            "button_secondary": "#F2F4F7",
+            "blue": "#2563EB",
+            "blue_dim": "#EFF6FF",
+            "green": "#15803D",
+            "green_dim": "#ECFDF3",
+            "amber": "#B54708",
+            "amber_dim": "#FFFAEB",
             "red": "#B42318",
-            "red_dim": "#FDE8E5",
+            "red_dim": "#FEF3F2",
         }
         self.style = ttk.Style(self.root)
         try:
@@ -392,7 +418,7 @@ class LauncherApp:
         self.style.configure("AppSubtitle.TLabel", background=self.colors["bg"], foreground=self.colors["muted"], font=("SF Pro Text", 11))
         self.style.configure("PageTitle.TLabel", background=self.colors["bg"], foreground=self.colors["text"], font=("SF Pro Display", 30, "bold"))
         self.style.configure("PageSubtitle.TLabel", background=self.colors["bg"], foreground=self.colors["muted"], font=("SF Pro Text", 13))
-        self.style.configure("ToolTitle.TLabel", background=self.colors["card"], foreground=self.colors["text"], font=("SF Pro Display", 22, "bold"))
+        self.style.configure("ToolTitle.TLabel", background=self.colors["card"], foreground=self.colors["text"], font=("SF Pro Display", 18, "bold"))
         self.style.configure("ToolDescription.TLabel", background=self.colors["card"], foreground=self.colors["muted"], font=("SF Pro Text", 13))
         self.style.configure("Assistant.TFrame", background=self.colors["bg"], borderwidth=0, relief="flat")
         self.style.configure(
@@ -751,10 +777,10 @@ class LauncherApp:
 
     def _status_colors(self, value: str) -> tuple[str, str]:
         normalized = value.lower()
-        if "instalado correctamente" in normalized:
-            return self.colors["green_dim"], self.colors["green"]
         if "no instalado" in normalized or "instalando" in normalized:
             return self.colors["amber_dim"], self.colors["amber"]
+        if "instalado correctamente" in normalized or normalized == "instalado":
+            return self.colors["green_dim"], self.colors["green"]
         if any(token in normalized for token in ("off", "inactivo", "unreachable", "no conectado", "no detectado", "no vinculada", "error", "rejected", "unknown")):
             return self.colors["red_dim"], self.colors["red"]
         if any(token in normalized for token in ("on", "activo", "listo", "reachable", "detectado", "instalado", "vinculada", "ok", "accepted", "conect", "ready")):
@@ -764,7 +790,7 @@ class LauncherApp:
         return self.colors["blue_dim"], self.colors["blue"]
 
     def _refresh_status_badges(self) -> None:
-        if not hasattr(self, "overall_pill"):
+        if not hasattr(self, "tool_status_pill") and not hasattr(self, "overall_pill"):
             return
         service_ok = self.service_status.get().upper() == "ON"
         backend_ok = self.backend_status.get().lower() == "reachable"
@@ -774,7 +800,7 @@ class LauncherApp:
         connector_ok = "instalado" in connector_status and "no instalado" not in connector_status
         account_ok = bool(self.config.connection_key or self.connection_key.get().strip())
         if "instalando" not in self.tool_install_status.get().lower():
-            self.tool_install_status.set("Instalado correctamente" if connector_ok else "No instalado")
+            self.tool_install_status.set("Instalado" if connector_ok else "No instalado")
         self.service_display.set("Activo" if service_ok else ("Iniciando" if self.service_status.get().upper() == "STARTING" else "Inactivo"))
         self.backend_display.set("Reachable" if backend_ok else self.backend_status.get())
         self.mt5_display.set("Detectado" if mt5_ok else "No detectado")
@@ -803,7 +829,7 @@ class LauncherApp:
             self.simple_status_hint.set("Pulsa el botón para detectar MetaTrader y aplicar la configuración.")
         self._sync_primary_action(self.simple_status.get() == "MetaTrader conectado")
         for label, value in (
-            (self.overall_pill, self.tool_install_status),
+            (getattr(self, "overall_pill", None), self.tool_install_status),
             (getattr(self, "tool_status_pill", None), self.tool_install_status),
             (getattr(self, "service_pill", None), self.service_status),
             (getattr(self, "backend_pill", None), self.backend_status),
@@ -1042,7 +1068,7 @@ class LauncherApp:
             is_installed = connector_installed(preferred)
             self.connector_status.set("Instalado" if is_installed else "No instalado")
             if "instalando" not in self.tool_install_status.get().lower():
-                self.tool_install_status.set("Instalado correctamente" if is_installed else "No instalado")
+                self.tool_install_status.set("Instalado" if is_installed else "No instalado")
             self.mt5_path_value.set(preferred.data_path)
             self.preset_path_value.set(str(Path(preferred.data_path) / "MQL5" / "Profiles" / "Presets" / "KMFXConnector_Launcher.set"))
             self.runtime_file_value.set(str(Path(preferred.data_path) / "MQL5" / "Files" / "kmfx_connection.conf"))
@@ -1146,7 +1172,7 @@ class LauncherApp:
             save_bridge_config(self.config, user_id="local")
         result = install_connector(installation, self.config)
         self.connector_status.set("Instalado")
-        self.tool_install_status.set("Instalado correctamente")
+        self.tool_install_status.set("Instalado")
         self.key_propagation_status.set("Connector instalado. Preset y runtime file actualizados.")
         self.refresh_installations()
         messagebox.showinfo(
