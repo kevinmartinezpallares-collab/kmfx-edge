@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.74                                              |
+//| KMFXConnector v2.75                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,13 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.74"
+#property version   "2.75"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.74"
+#define KMFX_CONNECTOR_VERSION "2.75"
+#define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
 // Modos de enforcement
@@ -56,6 +57,9 @@ input bool              KMFXVerboseLog        = true;
 input bool              KMFXEnableEnforce     = true;
 input bool              KMFXSendClosedDeals   = true;
 input bool              KMFXUseBrokerTime     = true;
+
+string g_runtime_connection_key="";
+datetime g_last_connection_key_file_check_at=0;
 
 // -------------------------------------------------------------------
 // Estado runtime
@@ -377,9 +381,77 @@ string KMFXAccountLoginString()
    return helper_login;
   }
 
+string KMFXLoadConnectionKeyFromFile()
+  {
+   int handle=FileOpen(KMFX_CONNECTION_CONFIG_FILE,FILE_READ|FILE_TXT|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return "";
+
+   while(!FileIsEnding(handle))
+     {
+      string line=KMFXTrim(FileReadString(handle));
+      if(StringFind(line,"connection_key=")==0)
+        {
+         string file_key=KMFXTrim(StringSubstr(line,StringLen("connection_key=")));
+         FileClose(handle);
+         return file_key;
+        }
+     }
+
+   FileClose(handle);
+   return "";
+  }
+
+void KMFXInitializeRuntimeConnectionKey()
+  {
+   string explicit_key=KMFXTrim(connection_key);
+   if(StringLen(explicit_key)>0)
+     {
+      g_runtime_connection_key="";
+      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",explicit_key);
+      return;
+     }
+
+   g_runtime_connection_key=KMFXLoadConnectionKeyFromFile();
+   if(StringLen(g_runtime_connection_key)>0)
+     {
+      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",g_runtime_connection_key);
+      return;
+     }
+
+   string legacy_key=KMFXTrim(KMFXApiKey);
+   if(StringLen(legacy_key)>0)
+     {
+      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",legacy_key);
+      return;
+     }
+
+   Print("[KMFX][INIT][KEY_SOURCE] source=empty key=");
+  }
+
+void KMFXRefreshRuntimeConnectionKey()
+  {
+   if(StringLen(KMFXTrim(connection_key))>0)
+      return;
+
+   datetime now=KMFXNow();
+   if(g_last_connection_key_file_check_at>0 && (now-g_last_connection_key_file_check_at)<60)
+      return;
+   g_last_connection_key_file_check_at=now;
+
+   string file_key=KMFXLoadConnectionKeyFromFile();
+   if(StringLen(file_key)>0 && file_key!=g_runtime_connection_key)
+     {
+      string previous_key=g_runtime_connection_key;
+      g_runtime_connection_key=file_key;
+      PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",previous_key,g_runtime_connection_key);
+     }
+  }
+
 string KMFXBuildSyncId()
   {
-   string identity=StringLen(KMFXTrim(connection_key))>0 ? KMFXTrim(connection_key) : KMFXAccountLoginString();
+   string resolved_key=KMFXConnectionKeyValue();
+   string identity=StringLen(resolved_key)>0 ? resolved_key : KMFXAccountLoginString();
    return identity+"-"+IntegerToString((int)KMFXNow())+"-"+IntegerToString((int)GetTickCount());
   }
 
@@ -388,6 +460,10 @@ string KMFXConnectionKeyValue()
    string explicit_key=KMFXTrim(connection_key);
    if(StringLen(explicit_key)>0)
       return explicit_key;
+
+   string runtime_key=KMFXTrim(g_runtime_connection_key);
+   if(StringLen(runtime_key)>0)
+      return runtime_key;
 
    string legacy_key=KMFXTrim(KMFXApiKey);
    return legacy_key;
@@ -2361,6 +2437,7 @@ bool KMFXShouldRefreshPolicy()
 
 void KMFXRunCycle()
   {
+   KMFXRefreshRuntimeConnectionKey();
    KMFXResetDailyContextIfNeeded();
    KMFXProcessPendingSyncQueue();
    KMFXProcessPendingJournalQueue();
@@ -2392,6 +2469,7 @@ int OnInit()
                Runtime.equity_peak);
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
    PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
+   KMFXInitializeRuntimeConnectionKey();
 
    // DEBUG
    PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
