@@ -28,8 +28,8 @@ class LauncherApp:
         self.logger.info("[KMFX][LAUNCHER] backend target resolved url=%s", self.config.backend_base_url)
         self.root = tk.Tk()
         self.root.title("KMFX Launcher")
-        self.root.geometry("700x500")
-        self.root.minsize(640, 460)
+        self.root.geometry("920x640")
+        self.root.minsize(860, 560)
         self.service_process: subprocess.Popen[str] | None = None
         self.diagnostics_window: tk.Toplevel | None = None
         self.backend = BackendClient(self.config)
@@ -66,6 +66,9 @@ class LauncherApp:
         self.runtime_file_value = tk.StringVar(value="—")
         self.bridge_url_value = tk.StringVar(value=f"Servicio local · http://{self.config.local_host}:{self.config.local_port}")
         self.last_sync_detail = tk.StringVar(value="Sin actividad reciente")
+        self.current_view = "home"
+        self.nav_buttons: dict[str, tk.Button] = {}
+        self.diagnostics_expanded = False
         self._build_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.refresh_installations()
@@ -76,16 +79,395 @@ class LauncherApp:
     def _build_ui(self) -> None:
         self._configure_styles()
         self.root.configure(bg=self.colors["bg"])
-        self.root.option_add("*Font", ("SF Pro Display", 12))
+        self.root.option_add("*Font", ("SF Pro Text", 11))
 
-        shell = ttk.Frame(self.root, style="Shell.TFrame", padding=36)
-        shell.pack(fill="both", expand=True)
-        shell.columnconfigure(0, weight=1)
-        shell.rowconfigure(2, weight=1)
+        self.app_shell = tk.Frame(self.root, bg=self.colors["bg"])
+        self.app_shell.pack(fill="both", expand=True)
 
-        self._build_simple_launcher(shell)
+        self.sidebar = tk.Frame(
+            self.app_shell,
+            bg=self.colors["card"],
+            width=220,
+            highlightbackground=self.colors["border"],
+            highlightthickness=1,
+        )
+        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.pack_propagate(False)
+
+        self.main_area = ttk.Frame(self.app_shell, style="Shell.TFrame", padding=(30, 28))
+        self.main_area.pack(side="left", fill="both", expand=True)
+        self.main_area.columnconfigure(0, weight=1)
+        self.main_area.rowconfigure(0, weight=1)
+
+        self._build_sidebar(self.sidebar)
+        self._show_view("home")
         self._refresh_status_badges()
         self._center_window()
+
+    def _build_sidebar(self, parent: tk.Frame) -> None:
+        brand = tk.Frame(parent, bg=self.colors["card"])
+        brand.pack(fill="x", padx=22, pady=(28, 34))
+        brand.columnconfigure(1, weight=1)
+
+        logo = self._build_brand_logo(brand, background=self.colors["card"])
+        logo.grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 12))
+        tk.Label(
+            brand,
+            text="KMFX",
+            bg=self.colors["card"],
+            fg=self.colors["text"],
+            font=("SF Pro Display", 18, "bold"),
+        ).grid(row=0, column=1, sticky="w")
+        tk.Label(
+            brand,
+            text="Launcher",
+            bg=self.colors["card"],
+            fg=self.colors["muted"],
+            font=("SF Pro Text", 10),
+        ).grid(row=1, column=1, sticky="w", pady=(2, 0))
+
+        nav = tk.Frame(parent, bg=self.colors["card"])
+        nav.pack(fill="x", padx=16)
+        self._make_nav_button(nav, "home", "Inicio").pack(fill="x", pady=(0, 8))
+        self._make_nav_button(nav, "settings", "Configuración").pack(fill="x")
+
+        footer = tk.Frame(parent, bg=self.colors["card"])
+        footer.pack(side="bottom", fill="x", padx=16, pady=(0, 20))
+        tk.Frame(footer, bg=self.colors["border"], height=1).pack(fill="x", pady=(0, 18))
+
+        user = tk.Frame(footer, bg=self.colors["card"])
+        user.pack(fill="x", pady=(0, 14))
+        avatar = tk.Canvas(user, width=34, height=34, bg=self.colors["card"], highlightthickness=0, bd=0)
+        avatar.grid(row=0, column=0, rowspan=2, sticky="w", padx=(0, 10))
+        avatar.create_oval(2, 2, 32, 32, fill=self.colors["blue"], outline="")
+        avatar.create_text(17, 17, text="K", fill="#FFFFFF", font=("SF Pro Text", 11, "bold"))
+        tk.Label(
+            user,
+            text="Kevin Martínez",
+            bg=self.colors["card"],
+            fg=self.colors["text"],
+            font=("SF Pro Text", 11, "bold"),
+        ).grid(row=0, column=1, sticky="w")
+        tk.Label(
+            user,
+            text="kevinmartinez...",
+            bg=self.colors["card"],
+            fg=self.colors["muted"],
+            font=("SF Pro Text", 9),
+        ).grid(row=1, column=1, sticky="w", pady=(2, 0))
+
+        self._make_plain_button(
+            footer,
+            "Cerrar",
+            self.on_close,
+            bg=self.colors["card"],
+            fg=self.colors["muted"],
+            active_bg=self.colors["card_alt"],
+            padx=14,
+            pady=10,
+        ).pack(fill="x")
+
+    def _make_nav_button(self, parent: tk.Misc, key: str, text: str) -> tk.Button:
+        button = tk.Button(
+            parent,
+            text=text,
+            command=lambda: self._show_view(key),
+            anchor="w",
+            relief="flat",
+            bd=0,
+            padx=16,
+            pady=12,
+            cursor="hand2",
+            font=("SF Pro Text", 11, "bold"),
+        )
+        self.nav_buttons[key] = button
+        return button
+
+    def _sync_nav_state(self) -> None:
+        for key, button in self.nav_buttons.items():
+            active = key == self.current_view
+            button.configure(
+                bg=self.colors["nav_active"] if active else self.colors["card"],
+                fg=self.colors["text"] if active else self.colors["muted"],
+                activebackground=self.colors["nav_active"] if active else self.colors["card_alt"],
+                activeforeground=self.colors["text"],
+            )
+
+    def _show_view(self, view: str) -> None:
+        self.current_view = view
+        for child in self.main_area.winfo_children():
+            child.destroy()
+
+        if view == "settings":
+            self._build_settings_view(self.main_area)
+        else:
+            self._build_home_view(self.main_area)
+
+        self._sync_nav_state()
+        self._refresh_status_badges()
+
+    def _build_page_header(self, parent: tk.Misc, title: str, subtitle: str | None = None) -> ttk.Frame:
+        header = ttk.Frame(parent, style="Shell.TFrame")
+        header.grid(row=0, column=0, sticky="ew")
+        header.columnconfigure(0, weight=1)
+        ttk.Label(header, text=title, style="PageTitle.TLabel").grid(row=0, column=0, sticky="w")
+        if subtitle:
+            ttk.Label(header, text=subtitle, style="PageSubtitle.TLabel").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        return header
+
+    def _build_home_view(self, parent: ttk.Frame) -> None:
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(2, weight=1)
+        self._build_page_header(parent, "Mis herramientas", "Gestiona tus instalaciones de KMFX")
+
+        tabs = ttk.Frame(parent, style="Shell.TFrame")
+        tabs.grid(row=1, column=0, sticky="w", pady=(34, 22))
+        self._make_filter_pill(tabs, "Todos", active=True).grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self._make_filter_pill(tabs, "MT5").grid(row=0, column=1, sticky="w")
+
+        grid = ttk.Frame(parent, style="Shell.TFrame")
+        grid.grid(row=2, column=0, sticky="nsew")
+        grid.columnconfigure(0, weight=1)
+        self._build_tool_card(grid)
+
+    def _build_tool_card(self, parent: ttk.Frame) -> None:
+        card = ttk.Frame(parent, style="ToolCard.TFrame", padding=28)
+        card.grid(row=0, column=0, sticky="new")
+        card.columnconfigure(1, weight=1)
+
+        icon = tk.Canvas(card, width=58, height=58, bg=self.colors["card"], highlightthickness=0, bd=0)
+        icon.grid(row=0, column=0, rowspan=3, sticky="nw", padx=(0, 20))
+        icon.create_rectangle(6, 6, 52, 52, fill="#F1F6FF", outline="#DCE8FF", width=1)
+        icon.create_text(29, 29, text="MT5", fill=self.colors["blue"], font=("SF Pro Display", 14, "bold"))
+
+        ttk.Label(card, text="KMFX Connector MT5", style="ToolTitle.TLabel").grid(row=0, column=1, sticky="w")
+        ttk.Label(card, text="Conecta tu cuenta de MetaTrader 5 con KMFX Edge", style="ToolDescription.TLabel").grid(
+            row=1,
+            column=1,
+            sticky="w",
+            pady=(8, 0),
+        )
+        self.tool_status_pill = self._make_pill(card, self.tool_install_status)
+        self.tool_status_pill.grid(row=0, column=2, sticky="ne", padx=(18, 0))
+
+        actions = ttk.Frame(card, style="ToolCard.TFrame")
+        actions.grid(row=3, column=1, columnspan=2, sticky="w", pady=(28, 0))
+        self.install_button = self._make_plain_button(
+            actions,
+            self._install_button_text(),
+            self.install_connector,
+            bg=self.colors["blue"],
+            fg="#FFFFFF",
+            active_bg="#1D4ED8",
+            padx=26,
+            pady=12,
+        )
+        self.install_button.grid(row=0, column=0, sticky="w", padx=(0, 12))
+
+        self.open_mt5_button = self._make_plain_button(
+            actions,
+            "Abrir MT5",
+            self.open_mt5,
+            bg=self.colors["button_secondary"],
+            fg=self.colors["text"],
+            active_bg="#E2E7EE",
+            padx=22,
+            pady=12,
+        )
+        self.open_mt5_button.grid(row=0, column=1, sticky="w")
+
+    def _build_settings_view(self, parent: ttk.Frame) -> None:
+        parent.columnconfigure(0, weight=1)
+        self._build_page_header(parent, "Configuración", "Ajustes locales del launcher y detección de MetaTrader")
+
+        content = ttk.Frame(parent, style="Shell.TFrame")
+        content.grid(row=1, column=0, sticky="nsew", pady=(28, 0))
+        content.columnconfigure(0, weight=1)
+
+        self._build_detected_installations_card(content, row=0)
+        self._build_settings_actions_card(content, row=1)
+        self._build_info_card(content, row=2)
+        self._build_settings_diagnostics_card(content, row=3)
+
+    def _build_detected_installations_card(self, parent: ttk.Frame, row: int) -> None:
+        card = self._settings_card(parent, row, "Instalaciones detectadas", "Carpetas de MetaTrader encontradas en el sistema")
+        if not self.installations:
+            ttk.Label(card, text="No hay instalaciones detectadas.", style="Muted.TLabel").grid(row=2, column=0, sticky="w", pady=(18, 0))
+            return
+
+        ttk.Label(card, text="MetaTrader 5", style="Value.TLabel").grid(row=2, column=0, sticky="w", pady=(18, 8))
+        self.install_selector = ttk.Combobox(card, textvariable=self.selected_installation_label, state="readonly", style="Kmfx.TCombobox")
+        self.install_selector["values"] = [installation.label for installation in self.installations]
+        self.install_selector.grid(row=3, column=0, sticky="ew", pady=(0, 12))
+        for index, installation in enumerate(self.installations, start=4):
+            self._path_line(card, index, installation.data_path)
+
+    def _build_settings_actions_card(self, parent: ttk.Frame, row: int) -> None:
+        card = self._settings_card(parent, row, "Acciones", "Operaciones rápidas sobre la instalación local")
+        actions = ttk.Frame(card, style="Card.TFrame")
+        actions.grid(row=2, column=0, sticky="w", pady=(18, 0))
+        self._make_plain_button(
+            actions,
+            "Redetectar instalaciones",
+            self.redetect_installations,
+            bg=self.colors["blue"],
+            fg="#FFFFFF",
+            active_bg="#1D4ED8",
+            padx=22,
+            pady=11,
+        ).grid(row=0, column=0, sticky="w", padx=(0, 12))
+        self._make_plain_button(
+            actions,
+            "Abrir carpeta MT5",
+            self.open_mt5_folder,
+            bg=self.colors["button_secondary"],
+            fg=self.colors["text"],
+            active_bg="#E2E7EE",
+            padx=20,
+            pady=11,
+        ).grid(row=0, column=1, sticky="w")
+
+    def _build_info_card(self, parent: ttk.Frame, row: int) -> None:
+        card = self._settings_card(parent, row, "Información", "Estado local de la app de escritorio")
+        info = ttk.Frame(card, style="Card.TFrame")
+        info.grid(row=2, column=0, sticky="ew", pady=(18, 0))
+        info.columnconfigure((0, 1), weight=1)
+        self._info_value(info, 0, 0, "Versión del launcher", "KMFX Launcher")
+        self._info_value(info, 0, 1, "Estado del sistema", self.service_display.get())
+        self._info_value(info, 1, 0, "Backend", self.backend_display.get())
+        self._info_value(info, 1, 1, "Connector", self.connector_display.get())
+
+    def _build_settings_diagnostics_card(self, parent: ttk.Frame, row: int) -> None:
+        card = self._settings_card(parent, row, "Diagnóstico", "Información técnica para soporte")
+        toggle = tk.Button(
+            card,
+            text="Mostrar diagnóstico" if not self.diagnostics_expanded else "Ocultar diagnóstico",
+            command=self.toggle_settings_diagnostics,
+            bg=self.colors["card"],
+            fg=self.colors["muted"],
+            activebackground=self.colors["card_alt"],
+            activeforeground=self.colors["text"],
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+            font=("SF Pro Text", 10, "bold"),
+            padx=0,
+            pady=6,
+        )
+        toggle.grid(row=2, column=0, sticky="w", pady=(14, 0))
+        self.settings_diagnostics_toggle = toggle
+
+        body = ttk.Frame(card, style="Card.TFrame")
+        body.grid(row=3, column=0, sticky="ew", pady=(14, 0))
+        body.columnconfigure(0, weight=1)
+        self.settings_diagnostics_body = body
+
+        self._diagnostic_value(body, 0, "Ruta MT5", self.mt5_path_value.get())
+        self._diagnostic_value(body, 1, "Preset", self.preset_path_value.get())
+        self._diagnostic_value(body, 2, "Runtime file", self.runtime_file_value.get())
+        self._diagnostic_value(body, 3, "Bridge", self.bridge_url_value.get())
+
+        self.log_box = tk.Text(
+            body,
+            height=8,
+            wrap="word",
+            bg="#F8FAFC",
+            fg=self.colors["muted"],
+            relief="flat",
+            borderwidth=0,
+            padx=14,
+            pady=12,
+            font=("SF Mono", 10),
+        )
+        self.log_box.grid(row=4, column=0, sticky="ew", pady=(16, 0))
+        self.log_box.insert("1.0", read_recent_logs())
+        self.log_box.configure(state="disabled")
+
+        if not self.diagnostics_expanded:
+            body.grid_remove()
+
+    def _settings_card(self, parent: ttk.Frame, row: int, title: str, subtitle: str) -> ttk.Frame:
+        card = ttk.Frame(parent, style="Card.TFrame", padding=24)
+        card.grid(row=row, column=0, sticky="ew", pady=(0, 18))
+        card.columnconfigure(0, weight=1)
+        ttk.Label(card, text=title, style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(card, text=subtitle, style="CardSubtitle.TLabel").grid(row=1, column=0, sticky="w", pady=(5, 0))
+        return card
+
+    def _path_line(self, parent: ttk.Frame, row: int, value: str) -> None:
+        box = tk.Frame(parent, bg=self.colors["card_deep"], highlightbackground=self.colors["border_soft"], highlightthickness=1)
+        box.grid(row=row, column=0, sticky="ew", pady=(0, 8))
+        tk.Label(
+            box,
+            text=value,
+            bg=self.colors["card_deep"],
+            fg=self.colors["muted"],
+            anchor="w",
+            font=("SF Mono", 10),
+            padx=12,
+            pady=9,
+        ).pack(fill="x")
+
+    def _info_value(self, parent: ttk.Frame, row: int, column: int, label: str, value: str) -> None:
+        block = ttk.Frame(parent, style="Card.TFrame")
+        block.grid(row=row, column=column, sticky="ew", padx=(0 if column == 0 else 20, 0), pady=(0 if row == 0 else 16, 0))
+        ttk.Label(block, text=label.upper(), style="Eyebrow.TLabel").pack(anchor="w")
+        ttk.Label(block, text=value, style="Value.TLabel").pack(anchor="w", pady=(7, 0))
+
+    def _diagnostic_value(self, parent: ttk.Frame, row: int, label: str, value: str) -> None:
+        ttk.Label(parent, text=label.upper(), style="Eyebrow.TLabel").grid(row=row, column=0, sticky="w", pady=(0 if row == 0 else 12, 3))
+        ttk.Label(parent, text=value, style="Muted.TLabel", wraplength=680).grid(row=row, column=1, sticky="e", padx=(20, 0), pady=(0 if row == 0 else 12, 3))
+
+    def toggle_settings_diagnostics(self) -> None:
+        self.diagnostics_expanded = not self.diagnostics_expanded
+        if not self._widget_exists("settings_diagnostics_body"):
+            return
+        if self.diagnostics_expanded:
+            self.settings_diagnostics_body.grid()
+            self.settings_diagnostics_toggle.configure(text="Ocultar diagnóstico")
+            self.show_logs()
+        else:
+            self.settings_diagnostics_body.grid_remove()
+            self.settings_diagnostics_toggle.configure(text="Mostrar diagnóstico")
+
+    def _make_plain_button(
+        self,
+        parent: tk.Misc,
+        text: str,
+        command: object,
+        *,
+        bg: str,
+        fg: str,
+        active_bg: str,
+        padx: int,
+        pady: int,
+    ) -> tk.Button:
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg=bg,
+            fg=fg,
+            activebackground=active_bg,
+            activeforeground=fg,
+            relief="flat",
+            bd=0,
+            padx=padx,
+            pady=pady,
+            cursor="hand2",
+            font=("SF Pro Text", 11, "bold"),
+        )
+
+    def _is_tool_installed(self) -> bool:
+        value = self.tool_install_status.get().lower()
+        return "instalado" in value and "no instalado" not in value and "instalando" not in value
+
+    def _install_button_text(self) -> str:
+        return "Reinstalar" if self._is_tool_installed() else "Instalar"
+
+    def _sync_tool_actions(self) -> None:
+        if self._widget_exists("install_button"):
+            self.install_button.configure(text=self._install_button_text())
 
     def _build_simple_launcher(self, parent: ttk.Frame) -> None:
         header = ttk.Frame(parent, style="Shell.TFrame")
@@ -178,7 +560,8 @@ class LauncherApp:
         y = max(0, (screen_height - height) // 2)
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
-    def _build_brand_logo(self, parent: tk.Misc) -> tk.Widget:
+    def _build_brand_logo(self, parent: tk.Misc, background: str | None = None) -> tk.Widget:
+        bg = background or self.colors["bg"]
         repo_root = Path(__file__).resolve().parent.parent
         candidates = (
             repo_root / "assets" / "logos" / "logo-blanco-oscuro-120.png",
@@ -193,11 +576,11 @@ class LauncherApp:
                     factor = max(1, (max(image.width(), image.height()) + 43) // 44)
                     image = image.subsample(factor, factor)
                 self.logo_image = image
-                return tk.Label(parent, image=self.logo_image, bg=self.colors["bg"], bd=0)
+                return tk.Label(parent, image=self.logo_image, bg=bg, bd=0)
             except tk.TclError:
                 continue
 
-        logo = tk.Canvas(parent, width=46, height=46, bg=self.colors["bg"], highlightthickness=0, bd=0)
+        logo = tk.Canvas(parent, width=46, height=46, bg=bg, highlightthickness=0, bd=0)
         logo.create_rectangle(3, 3, 43, 43, fill=self.colors["ink"], outline=self.colors["line"], width=1)
         logo.create_text(23, 23, text="KM", fill="#FFFFFF", font=("SF Pro Display", 12, "bold"))
         return logo
@@ -390,6 +773,7 @@ class LauncherApp:
             "subtle": "#98A2B3",
             "ink": "#111827",
             "line": "#EAECF0",
+            "nav_active": "#F2F4F7",
             "button_secondary": "#F2F4F7",
             "blue": "#2563EB",
             "blue_dim": "#EFF6FF",
@@ -844,8 +1228,14 @@ class LauncherApp:
         ):
             if label is None:
                 continue
-            bg, fg = self._status_colors(value.get())
-            label.configure(bg=bg, fg=fg)
+            try:
+                if not label.winfo_exists():
+                    continue
+                bg, fg = self._status_colors(value.get())
+                label.configure(bg=bg, fg=fg)
+            except tk.TclError:
+                continue
+        self._sync_tool_actions()
 
     def _humanize_last_sync(self, last_sync: dict[str, object]) -> str:
         raw = str(last_sync.get("updated_at") or last_sync.get("time") or last_sync.get("timestamp") or "").strip()
@@ -1085,6 +1475,31 @@ class LauncherApp:
     def selected_installation(self) -> MT5Installation | None:
         label = self.selected_installation_label.get().strip()
         return next((installation for installation in self.installations if installation.label == label), None)
+
+    def redetect_installations(self) -> None:
+        self.refresh_installations()
+        if self.current_view == "settings":
+            self._show_view("settings")
+
+    def open_mt5_folder(self) -> None:
+        installation = self.selected_installation()
+        raw_folder = installation.data_path if installation else self.config.selected_mt5_data_path
+        if not raw_folder:
+            messagebox.showwarning("KMFX Launcher", "No hay carpeta MT5 detectada para abrir.")
+            return
+        folder = Path(raw_folder)
+        if not folder.exists():
+            messagebox.showwarning("KMFX Launcher", "No hay carpeta MT5 detectada para abrir.")
+            return
+        try:
+            if platform.system().lower() == "darwin":
+                subprocess.Popen(["open", str(folder)])
+            elif platform.system().lower() == "windows":
+                subprocess.Popen(["explorer", str(folder)])
+            else:
+                subprocess.Popen(["xdg-open", str(folder)])
+        except Exception:
+            messagebox.showerror("KMFX Launcher", "No pude abrir la carpeta MT5 automáticamente.")
 
     def start_service(self) -> None:
         if self.service_process and self.service_process.poll() is None:
