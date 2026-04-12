@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KMFX Launcher</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">K</div>
+          <div>
+            <p class="brand-title">KMFX</p>
+            <p class="brand-caption">Launcher</p>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Navegación principal">
+          <button class="nav-item is-active" data-view="home" type="button">
+            <span class="nav-icon">⌂</span>
+            <span>Inicio</span>
+          </button>
+          <button class="nav-item" data-view="settings" type="button">
+            <span class="nav-icon">⚙</span>
+            <span>Configuración</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-status" id="sidebarStatus">
+          <span class="status-dot status-pending"></span>
+          <div>
+            <p>Inicializando</p>
+            <small>Comprobando servicio local</small>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="view is-visible" id="view-home" aria-label="Inicio">
+          <header class="page-header">
+            <div>
+              <h1>Mis herramientas</h1>
+              <p>Gestiona la instalación local de KMFX</p>
+            </div>
+            <button class="icon-button" id="refreshHome" title="Refrescar estado" type="button">↻</button>
+          </header>
+
+          <div class="tabs" role="tablist" aria-label="Filtros">
+            <button class="tab is-active" type="button">Todos</button>
+            <button class="tab" type="button">MT5</button>
+          </div>
+
+          <div class="tool-grid">
+            <article class="tool-card" id="mt5Card">
+              <div class="tool-card-top">
+                <div class="tool-identity">
+                  <div class="tool-icon">MT5</div>
+                  <div>
+                    <div class="tool-title-row">
+                      <h2>KMFX Connector MT5</h2>
+                      <span class="mini-badge">MT5</span>
+                    </div>
+                    <p class="tool-version" id="connectorVersion">Connector v—</p>
+                  </div>
+                </div>
+                <span class="status-badge neutral" id="connectorBadge">Comprobando</span>
+              </div>
+
+              <p class="tool-description">Conecta tu cuenta de MetaTrader 5 con KMFX Edge.</p>
+
+              <div class="tool-status-lines" id="toolStatusLines">
+                <span>Sin sincronización reciente</span>
+              </div>
+
+              <div class="tool-actions" id="toolActions"></div>
+            </article>
+          </div>
+
+          <p class="helper-copy">El launcher detecta tu MetaTrader e instala el connector automáticamente.</p>
+        </section>
+
+        <section class="view" id="view-settings" aria-label="Configuración">
+          <header class="page-header">
+            <div>
+              <h1>Configuración</h1>
+              <p>Información local de la aplicación y de las instalaciones detectadas</p>
+            </div>
+          </header>
+
+          <div class="settings-stack">
+            <article class="card">
+              <div class="section-heading">
+                <div>
+                  <h2>Instalaciones Detectadas</h2>
+                  <p>Carpetas de MetaTrader encontradas en el sistema</p>
+                </div>
+                <div class="section-actions">
+                  <button class="secondary-button" id="redetectButton" type="button">Volver a detectar</button>
+                  <button class="secondary-button" id="openFolderButton" type="button">Abrir carpeta MT5</button>
+                </div>
+              </div>
+              <div class="installation-list" id="installationList"></div>
+            </article>
+
+            <article class="card">
+              <div class="section-heading">
+                <div>
+                  <h2>Sobre la Aplicación</h2>
+                  <p>Versiones y estado básico del servicio local</p>
+                </div>
+              </div>
+              <div class="info-grid" id="appInfo"></div>
+            </article>
+
+            <details class="card diagnostics" id="diagnosticsPanel">
+              <summary>Diagnóstico avanzado</summary>
+              <div class="diagnostics-body" id="diagnosticsBody"></div>
+            </details>
+          </div>
+        </section>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
