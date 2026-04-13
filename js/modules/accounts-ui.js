@@ -207,6 +207,23 @@ export function initAccountsUI(store) {
     const activeAccount = state.accounts?.[activeAccountId] || accounts[0] || selectCurrentAccount(state);
     const activeModel = activeAccount?.model || selectCurrentModel(state);
     const activeAuthority = resolveAccountDataAuthority(activeAccount);
+    const statusContext = { account: activeAccount, dashboardPayload: activeAccount?.dashboardPayload, authority: activeAuthority };
+    const connectionMeta = getConnectionStatusMeta(activeAccount?.connection, statusContext);
+    const riskMeta = getRiskStatusMeta(activeAccount?.compliance, statusContext);
+
+    console.log("[KMFX][PANEL_BADGE_RESOLUTION]", {
+      selectedAccountId: activeAccount?.id || activeAccountId || "",
+      currentAccount: state.currentAccount,
+      connectionState: activeAccount?.connection?.state || "",
+      connectionConnected: Boolean(activeAccount?.connection?.connected),
+      connectionBadge: connectionMeta,
+      riskStatus: activeAccount?.compliance?.riskStatus || "",
+      riskBadge: riskMeta,
+      sourceType: activeAccount?.sourceType || "",
+      payloadSource: activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "",
+      authoritySourceUsed: activeAuthority.sourceUsed || "",
+      hasUsableLiveSnapshot: Boolean(activeAuthority.hasUsableLiveSnapshot),
+    });
 
     if (!hasLiveAccounts) {
       root.innerHTML = `
@@ -254,8 +271,8 @@ export function initAccountsUI(store) {
               </select>
             </div>
             <div class="account-switcher-badges">
-              ${badgeMarkup(getConnectionStatusMeta(activeAccount?.connection))}
-              ${badgeMarkup(getRiskStatusMeta(activeAccount?.compliance))}
+              ${badgeMarkup(connectionMeta)}
+              ${badgeMarkup(riskMeta)}
               <span class="ui-badge ui-badge--compact">${activeAccountLabel}</span>
             </div>
           </div>

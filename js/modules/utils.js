@@ -494,7 +494,10 @@ export function resolveSelectedLiveAccount(state) {
 }
 
 export function hasLiveAccounts(state) {
-  return Array.isArray(state?.liveAccountIds) && state.liveAccountIds.length > 0;
+  if (Array.isArray(state?.liveAccountIds) && state.liveAccountIds.length > 0) return true;
+  const resolvedAccountId = resolveSelectedLiveAccountId(state);
+  const account = resolvedAccountId ? state?.accounts?.[resolvedAccountId] || null : null;
+  return isLiveAccountCandidate(account, resolvedAccountId, []);
 }
 
 export function resolveAccountPnlSummary(account) {

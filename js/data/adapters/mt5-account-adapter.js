@@ -58,6 +58,21 @@ function normalizeReportMetrics(rawMetrics = {}, context = {}) {
   return normalized;
 }
 
+function resolveMt5Connection(rawAccount = {}, dashboardPayload = {}) {
+  const lifecycleStatus = String(rawAccount.status || "").toLowerCase();
+  const payloadSource = dashboardPayload.payloadSource || dashboardPayload.profile?.payloadSource || "";
+  const lastSync = rawAccount.last_sync_at || dashboardPayload.timestamp || dashboardPayload.last_sync_at || null;
+  const hasLivePayload = payloadSource === "mt5_sync_live" && Object.keys(dashboardPayload || {}).length > 0;
+  const isConnected = ["connected", "active", "first_sync_received"].includes(lifecycleStatus)
+    || (Boolean(lastSync) && !["archived", "deleted", "error"].includes(lifecycleStatus))
+    || hasLivePayload;
+
+  if (lifecycleStatus === "error") return { state: "error", connected: false, lastSync };
+  if (isConnected) return { state: "connected", connected: true, lastSync };
+  if (["pending_link", "linked", "draft"].includes(lifecycleStatus)) return { state: "connecting", connected: false, lastSync };
+  return { state: "disconnected", connected: false, lastSync };
+}
+
 function toIsoString(value) {
   if (!value) return new Date().toISOString();
   if (typeof value === "string") {
@@ -386,6 +401,7 @@ export function adaptMt5Account(rawAccount = {}) {
       connectionMode: rawAccount.connection_mode || "bridge"
     }
   });
+  const connection = resolveMt5Connection(rawAccount, safeDashboardPayload);
 
   return {
     ...record,
@@ -401,10 +417,10 @@ export function adaptMt5Account(rawAccount = {}) {
       : {},
     connection: {
       ...record.connection,
-      state: rawAccount.status || "disconnected",
+      state: connection.state,
       source: rawAccount.connection_mode || "bridge",
-      lastSync: rawAccount.last_sync_at || null,
-      connected: rawAccount.status === "connected",
+      lastSync: connection.lastSync,
+      connected: connection.connected,
     }
   };
 }

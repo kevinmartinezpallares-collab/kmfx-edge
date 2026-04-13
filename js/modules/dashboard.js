@@ -339,6 +339,32 @@ export function renderDashboard(root, state) {
   );
   const riskHeadline = riskStatus.blockingRule || riskStatus.reasonCode || "Monitorización activa";
   const riskAction = riskStatus.actionRequired || "Sin acción requerida.";
+  console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
+    selectedAccountId: account?.id || activeAccountId || "",
+    currentAccount: state.currentAccount,
+    sourceType: account?.sourceType || "",
+    panelSourceUsed: authority.sourceUsed || "",
+    payloadSource: authority.payloadSource || dashboardPayload?.payloadSource || "",
+    hasLiveAccounts,
+    hasUsableLiveSnapshot: Boolean(authority.hasUsableLiveSnapshot),
+    sinConexionTrigger: {
+      connectionState: account?.connection?.state || "",
+      connected: Boolean(account?.connection?.connected),
+      lastSync: account?.connection?.lastSync || dashboardPayload?.timestamp || "",
+    },
+    riesgoFueraDeReglaTrigger: {
+      complianceRiskStatus: account?.compliance?.riskStatus || "",
+      riskSnapshotStatus: riskStatus.riskStatus,
+      severity: riskStatus.severity,
+      blockingRule: riskStatus.blockingRule,
+      reasonCode: riskStatus.reasonCode,
+      enforcement: {
+        blockNewTrades: riskStatus.blockNewTrades,
+        reduceSize: riskStatus.reduceSize,
+        closePositionsRequired: riskStatus.closePositionsRequired,
+      },
+    },
+  });
   const limitBars = [
     {
       label: "Max DD",
