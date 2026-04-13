@@ -175,6 +175,7 @@ class AccountService:
         while True:
             candidate = str(uuid4())
             if candidate not in existing_keys:
+                log.info("[KMFX][CONNECTION_KEY_VALIDATION] event=key_generated key=%s", candidate[:8])
                 return candidate
 
     def create_pending_account(
@@ -184,7 +185,7 @@ class AccountService:
         alias: str,
         platform: str = "mt5",
     ) -> Account:
-        return self.create_account(
+        created = self.create_account(
             user_id=user_id,
             alias=alias,
             broker="",
@@ -198,6 +199,65 @@ class AccountService:
             is_default=False,
             account_id=str(uuid4()),
         )
+        log.info(
+            "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=pending_link event=key_persisted key=%s",
+            created.account_id,
+            user_id,
+            created.api_key[:8],
+        )
+        return created
+
+    def create_pending_account_with_key(
+        self,
+        *,
+        user_id: str,
+        alias: str,
+        connection_key: str,
+        platform: str = "mt5",
+    ) -> Account | None:
+        normalized_key = str(connection_key or "").strip()
+        if not normalized_key:
+            raise ValueError("missing_connection_key")
+        existing = self.get_account_by_api_key_any_user(normalized_key)
+        if existing is not None:
+            return existing
+        blocked = next(
+            (
+                account
+                for account in self.store.list_accounts()
+                if account.api_key == normalized_key and _is_archived(account)
+            ),
+            None,
+        )
+        if blocked is not None:
+            log.warning(
+                "[KMFX][CONNECTION_KEY_VALIDATION] event=key_bootstrap_blocked reason=archived_key account_id=%s user_id=%s key=%s",
+                blocked.account_id,
+                blocked.user_id,
+                normalized_key[:8],
+            )
+            return None
+        created = self.create_account(
+            user_id=user_id,
+            alias=alias,
+            broker="",
+            platform=platform,
+            login="",
+            server="",
+            connection_mode="launcher",
+            status="pending_link",
+            api_key=normalized_key,
+            nickname=alias,
+            is_default=False,
+            account_id=str(uuid4()),
+        )
+        log.info(
+            "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=pending_link event=key_persisted key=%s",
+            created.account_id,
+            user_id,
+            normalized_key[:8],
+        )
+        return created
 
     def set_default_account(self, user_id: str, account_id: str) -> Account | None:
         accounts = self.store.list_accounts()
@@ -497,6 +557,12 @@ class AccountService:
                 target = account
                 log.info(
                     "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=pending_link event=admin_regenerate_key key=%s",
+                    account.account_id,
+                    account.user_id,
+                    new_key[:8],
+                )
+                log.info(
+                    "[KMFX][CONNECTION_KEY_VALIDATION] event=key_regenerated account_id=%s user_id=%s key=%s",
                     account.account_id,
                     account.user_id,
                     new_key[:8],

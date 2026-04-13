@@ -11,6 +11,7 @@ import tempfile
 import traceback
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -261,6 +262,46 @@ def resolve_account_by_connection_key(connection_key: str):
     if not normalized:
         return None
     return account_service.get_account_by_api_key_any_user(normalized)
+
+
+def is_bootstrap_connection_key(connection_key: str) -> bool:
+    normalized = safe_str(connection_key)
+    if not normalized:
+        return False
+    try:
+        return str(UUID(normalized)) == normalized.lower()
+    except ValueError:
+        return False
+
+
+def bootstrap_account_for_sync(connection_key: str, account: dict[str, Any]):
+    normalized = safe_str(connection_key)
+    login = safe_str(account.get("login"))
+    if not normalized or not login or not is_bootstrap_connection_key(normalized):
+        return None
+    broker = safe_str(account.get("broker"))
+    server = safe_str(account.get("server"))
+    alias_parts = [part for part in (broker, login) if part]
+    alias = " · ".join(alias_parts) or f"MT5 {login}"
+    created = account_service.create_pending_account_with_key(
+        user_id="local",
+        alias=alias,
+        connection_key=normalized,
+        platform="mt5",
+    )
+    if created is None:
+        return None
+    log.info(
+        "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s status=%s event=sync_key_bootstrap login=%s broker=%s server=%s key=%s",
+        created.account_id,
+        created.user_id,
+        created.status,
+        login,
+        broker,
+        server,
+        mask_connection_key(normalized),
+    )
+    return created
 
 
 def log_connection_key_validation(endpoint: str, connection_key: str, found: bool) -> None:
@@ -1524,34 +1565,50 @@ async def mt5_sync(request: Request) -> JSONResponse:
         if connection_key:
             bound_account = resolve_account_by_connection_key(connection_key)
             log.info(
-                "SYNC connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
+                "SYNC connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s account_id=%s user_id=%s status=%s",
                 RUNTIME_SYNC_KEY_LOOKUP_MARKER,
                 mask_connection_key(connection_key),
                 bool(bound_account),
+                bound_account.account_id if bound_account else "",
+                bound_account.user_id if bound_account else "",
+                bound_account.status if bound_account else "",
             )
             if bound_account is None:
-                details = {
-                    "field": "connection_key",
-                    "problem": "unknown_connection_key",
-                    "connection_key": mask_connection_key(connection_key),
-                    "lookup": "get_account_by_api_key_any_user",
-                    "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
-                }
-                log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
-                log_connection_key_validation("/api/mt5/sync", connection_key, False)
-                return connector_json_response(
-                    {
-                        "ok": False,
-                        "received": False,
-                        "sync_id": sync_id,
-                        "disposition": "rejected",
-                        "reason": "unknown_connection_key",
-                        "error": "unknown_connection_key",
-                        "details": details,
-                        "timestamp": now_iso(),
-                    },
-                    status_code=401,
+                bound_account = bootstrap_account_for_sync(connection_key, sanitized_account)
+                log.info(
+                    "SYNC connection_key bootstrap | key=%s allowed=%s found=%s account_id=%s user_id=%s status=%s",
+                    mask_connection_key(connection_key),
+                    is_bootstrap_connection_key(connection_key),
+                    bool(bound_account),
+                    bound_account.account_id if bound_account else "",
+                    bound_account.user_id if bound_account else "",
+                    bound_account.status if bound_account else "",
                 )
+                if bound_account is None:
+                    details = {
+                        "field": "connection_key",
+                        "problem": "unknown_connection_key",
+                        "connection_key": mask_connection_key(connection_key),
+                        "lookup": "get_account_by_api_key_any_user",
+                        "bootstrap_allowed": is_bootstrap_connection_key(connection_key),
+                        "has_login": bool(safe_str(sanitized_account.get("login"))),
+                        "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+                    }
+                    log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
+                    log_connection_key_validation("/api/mt5/sync", connection_key, False)
+                    return connector_json_response(
+                        {
+                            "ok": False,
+                            "received": False,
+                            "sync_id": sync_id,
+                            "disposition": "rejected",
+                            "reason": "unknown_connection_key",
+                            "error": "unknown_connection_key",
+                            "details": details,
+                            "timestamp": now_iso(),
+                        },
+                        status_code=401,
+                    )
             log_connection_key_validation("/api/mt5/sync", connection_key, True)
         else:
             unverified_identity = True
