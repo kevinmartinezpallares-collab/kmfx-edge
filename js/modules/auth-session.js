@@ -121,6 +121,30 @@ function resolveOAuthRedirectUrl() {
   return "https://dashboard.kmfxedge.com";
 }
 
+function normalizeAuthError(error, fallback = "No se pudo completar la autenticación.") {
+  const code = String(error?.code || error?.error_code || error?.name || "").toLowerCase();
+  const message = String(error?.message || error || "").trim();
+  const normalized = `${code} ${message}`.toLowerCase();
+
+  if (normalized.includes("invalid_credentials") || normalized.includes("invalid login credentials")) {
+    return "Email o contraseña incorrectos.";
+  }
+  if (normalized.includes("captcha") || normalized.includes("turnstile") || normalized.includes("hcaptcha") || normalized.includes("recaptcha") || normalized.includes("verification")) {
+    return "No se pudo validar la verificación. Revisa la configuración de captcha e inténtalo de nuevo.";
+  }
+  if (normalized.includes("already registered") || normalized.includes("already exists") || normalized.includes("user already") || normalized.includes("email already")) {
+    return "Este email ya está registrado. Inicia sesión o recupera la contraseña.";
+  }
+  if (normalized.includes("weak password") || (normalized.includes("password") && normalized.includes("weak"))) {
+    return "La contraseña es demasiado débil. Usa una contraseña más segura.";
+  }
+  if (normalized.includes("failed to fetch") || normalized.includes("network") || normalized.includes("load failed")) {
+    return "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.";
+  }
+
+  return message || fallback;
+}
+
 export function getInitialsFromAuthName(name = "") {
   return String(name || "")
     .split(" ")
@@ -494,7 +518,7 @@ export function initAuthSession(store) {
         password: normalizedPassword
       });
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo iniciar sesión." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo iniciar sesión.") };
       }
       const nextAuth = buildAuthStateFromSupabaseSession(data?.session || null, mergeAuthProfile(store.getState().auth, {
         user: {
@@ -504,28 +528,33 @@ export function initAuthSession(store) {
       const session = setAuthState(nextAuth);
       return { ok: true, session, user: session.user };
     },
-    signUpWithPassword: async ({ email, password, name } = {}) => {
+    signUpWithPassword: async ({ email, password, name, captchaToken } = {}) => {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       const normalizedPassword = String(password || "");
       const normalizedName = String(name || "").trim();
+      const normalizedCaptchaToken = String(captchaToken || "").trim();
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         return { ok: false, reason: "Introduce un email válido." };
       }
       if (normalizedPassword.length < 6) {
         return { ok: false, reason: "La contraseña debe tener al menos 6 caracteres." };
       }
+      const signUpOptions = {
+        data: {
+          full_name: normalizedName || undefined,
+          name: normalizedName || undefined
+        }
+      };
+      if (normalizedCaptchaToken) {
+        signUpOptions.captchaToken = normalizedCaptchaToken;
+      }
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: normalizedPassword,
-        options: {
-          data: {
-            full_name: normalizedName || undefined,
-            name: normalizedName || undefined
-          }
-        }
+        options: signUpOptions
       });
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo crear la cuenta." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo crear la cuenta.") };
       }
 
       const requiresEmailConfirmation = Boolean(data?.user && !data?.session);
@@ -570,7 +599,7 @@ export function initAuthSession(store) {
         }
       });
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo iniciar con Google." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo iniciar con Google.") };
       }
       return { ok: true, redirected: true, data };
     },
@@ -584,7 +613,7 @@ export function initAuthSession(store) {
         redirectTo: redirectUrl
       });
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo enviar el email de recuperación." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo enviar el email de recuperación.") };
       }
       return {
         ok: true,
@@ -602,7 +631,7 @@ export function initAuthSession(store) {
         password: normalizedPassword
       });
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo actualizar la contraseña." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo actualizar la contraseña.") };
       }
       setRecoveryState(DEFAULT_RECOVERY_STATE);
       await supabase.auth.signOut();
@@ -615,7 +644,7 @@ export function initAuthSession(store) {
     signOut: async () => {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        return { ok: false, reason: error.message || "No se pudo cerrar sesión." };
+        return { ok: false, reason: normalizeAuthError(error, "No se pudo cerrar sesión.") };
       }
       setRecoveryState(DEFAULT_RECOVERY_STATE);
       setAuthState(buildAnonymousAuthState(store.getState().auth));

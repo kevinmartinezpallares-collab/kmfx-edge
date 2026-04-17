@@ -49,11 +49,10 @@ export function initAuthUI(store) {
     if (!isProtectedTurnstileMode(mode)) return true;
     const siteKey = getTurnstileSiteKey();
     if (!siteKey) {
-      setUiState({
-        error: "No se pudo validar la verificación. Inténtalo de nuevo.",
-        notice: ""
+      console.warn("[KMFX][AUTH][CAPTCHA_CONFIG] Turnstile site key missing. Continuing without captchaToken; Supabase may reject protected auth actions.", {
+        mode
       });
-      return false;
+      return true;
     }
     const token = String(root.__turnstile?.tokens?.[mode] || "").trim();
     if (!token) {
@@ -64,6 +63,11 @@ export function initAuthUI(store) {
       return false;
     }
     return true;
+  };
+
+  const getTurnstileToken = (mode) => {
+    if (!isProtectedTurnstileMode(mode) || !getTurnstileSiteKey()) return "";
+    return String(root.__turnstile?.tokens?.[mode] || "").trim();
   };
 
   const mountTurnstileWidget = (mode) => {
@@ -200,7 +204,8 @@ export function initAuthUI(store) {
       return;
     }
     setUiState({ loading: true, error: "", notice: "", providerLoading: "signup" });
-    const result = await window.kmfxAuth?.signUpWithPassword?.({ name, email, password });
+    const captchaToken = getTurnstileToken("signup");
+    const result = await window.kmfxAuth?.signUpWithPassword?.({ name, email, password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("signup");
       setUiState({

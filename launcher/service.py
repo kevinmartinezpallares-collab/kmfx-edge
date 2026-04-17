@@ -20,7 +20,11 @@ from .log_utils import configure_logging, read_recent_logs
 from .state_store import LauncherStateStore
 
 
-LOCAL_OAUTH_REDIRECT_URL = "http://127.0.0.1:8766/auth/callback"
+LOCAL_OAUTH_REDIRECT_URL = "http://localhost:8766/auth/callback"
+LOCAL_OAUTH_ALLOWED_REDIRECT_URLS = (
+    LOCAL_OAUTH_REDIRECT_URL,
+    "http://127.0.0.1:8766/auth/callback",
+)
 
 
 def now_iso() -> str:
@@ -179,8 +183,9 @@ class LauncherServiceRuntime:
                 "session": self.auth_session_payload(),
             }
         self.logger.info(
-            "[KMFX][AUTH][GOOGLE] start redirect_to=%s external_browser=true",
+            "[KMFX][AUTH][GOOGLE] start redirect_to=%s external_browser=true allowed_redirects=%s",
             LOCAL_OAUTH_REDIRECT_URL,
+            ",".join(LOCAL_OAUTH_ALLOWED_REDIRECT_URLS),
         )
         self.logger.info("[KMFX][AUTH][GOOGLE] oauth_url=%s", auth_url)
         return {"ok": True, "auth_url": auth_url, "redirect_to": LOCAL_OAUTH_REDIRECT_URL}
