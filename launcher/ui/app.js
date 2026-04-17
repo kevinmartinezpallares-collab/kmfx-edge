@@ -277,6 +277,7 @@ async function handleGoogleLogin() {
     }
     state.oauthPending = true;
     oauthPollStartedAt = Date.now();
+    console.info("[KMFX][AUTH][GOOGLE] oauth_browser_opened pending=true");
     showToast(result.message || "Completa el acceso con Google en tu navegador.");
     startOAuthPolling();
   } catch (err) {
@@ -297,6 +298,7 @@ function startOAuthPolling() {
         stopOAuthPolling();
         state.session = status.session || { authenticated: true };
         setBusy(false);
+        console.info("[KMFX][AUTH][GOOGLE] transition login -> app");
         showToast(status.message || "Sesión iniciada con Google.");
         await loadAll();
         render();

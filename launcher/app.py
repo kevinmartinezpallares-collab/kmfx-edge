@@ -468,7 +468,7 @@ class KMFXApi:
         code = str(body.get("error_code") or body.get("code") or body.get("error") or "").strip().lower()
         normalized_raw = raw.lower()
         if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
-            return "Email o contraseña incorrectos"
+            return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
         if response.status_code == 0:
             return "No se pudo conectar con el servidor"
         if response.status_code in {400, 401, 403}:

@@ -154,7 +154,7 @@ class LauncherServiceRuntime:
         code = str(body.get("error_code") or body.get("code") or body.get("error") or "").strip().lower()
         normalized_raw = raw.lower()
         if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
-            return "Email o contraseña incorrectos"
+            return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
         if response.status_code == 0:
             return "No se pudo conectar con el servidor"
         if response.status_code in {400, 401, 403}:
@@ -182,6 +182,7 @@ class LauncherServiceRuntime:
             "[KMFX][AUTH][GOOGLE] start redirect_to=%s external_browser=true",
             LOCAL_OAUTH_REDIRECT_URL,
         )
+        self.logger.info("[KMFX][AUTH][GOOGLE] oauth_url=%s", auth_url)
         return {"ok": True, "auth_url": auth_url, "redirect_to": LOCAL_OAUTH_REDIRECT_URL}
 
     def oauth_status(self) -> dict[str, Any]:
@@ -195,6 +196,12 @@ class LauncherServiceRuntime:
         with self.oauth_lock:
             expected_state = str(self.oauth_state.get("state") or "")
             verifier = str(self.oauth_state.get("code_verifier") or "")
+        self.logger.info(
+            "[KMFX][AUTH][GOOGLE] callback received has_code=%s has_state=%s has_error=%s",
+            bool(code),
+            bool(state),
+            bool(error),
+        )
         if error:
             self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] error=%s detail=%s", error, error_description)
             with self.oauth_lock:
@@ -213,16 +220,18 @@ class LauncherServiceRuntime:
         response = self.backend.exchange_pkce_code(auth_code=code, code_verifier=verifier)
         if not response.ok:
             message = self.auth_error_message(response)
+            self.logger.warning("[KMFX][AUTH][GOOGLE] token_exchange=error status=%s", response.status_code)
             with self.oauth_lock:
                 self.oauth_state = {"status": "error", "message": message}
             return {"ok": False, "message": message}
 
+        self.logger.info("[KMFX][AUTH][GOOGLE] token_exchange=ok status=%s", response.status_code)
         self.store_auth_response(response.body)
         self.ensure_remote_account_link()
         session = self.auth_session_payload()
         with self.oauth_lock:
             self.oauth_state = {"status": "authenticated", "message": "Sesión iniciada con Google.", "session": session}
-        self.logger.info("[KMFX][AUTH][GOOGLE] callback exchanged user=%s", self.config.auth_email)
+        self.logger.info("[KMFX][AUTH][GOOGLE] session_saved user=%s", self.config.auth_email)
         return {"ok": True, "message": "Sesión iniciada con Google.", "session": session}
 
     def reload_bridge_config(self, force_log: bool = False) -> str:

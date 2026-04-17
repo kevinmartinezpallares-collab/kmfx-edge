@@ -10,17 +10,12 @@
   <body>
     <main id="auth-screen" class="auth-shell" aria-live="polite">
       <section class="auth-card">
-        <div class="brand-mark">
-          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="" />
-          <div>
-            <strong>KMFX Launcher</strong>
-            <span>KMFX Edge companion</span>
-          </div>
+        <div class="auth-logo">
+          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
         </div>
         <div class="auth-copy">
-          <p class="eyebrow">Acceso seguro</p>
-          <h1>Conecta MetaTrader con KMFX Edge</h1>
-          <p>Inicia sesión con la misma cuenta del dashboard para preparar el connector oficial en este equipo.</p>
+          <h1>Inicia sesión</h1>
+          <p>Accede al launcher con tu cuenta de KMFX Edge</p>
         </div>
         <form id="login-form" class="login-form">
           <label>
@@ -31,15 +26,16 @@
             Contraseña
             <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" required />
           </label>
-          <button id="login-submit" class="button primary wide" type="submit">Entrar en KMFX</button>
+          <button id="login-submit" class="button primary wide" type="submit">Iniciar sesión</button>
+          <div class="auth-divider" aria-hidden="true"><span></span><em>o</em><span></span></div>
           <button id="login-google" class="button secondary wide auth-google-button" type="button">
             <span class="google-dot" aria-hidden="true"></span>
-            Entrar con Google
+            Continuar con Google
           </button>
-          <p class="auth-hint">Google se abrirá en tu navegador para completar el acceso de forma segura.</p>
           <div class="password-recovery">
-            <p>¿Usas Google y prefieres entrar aquí directamente? Crea una contraseña para tu cuenta.</p>
-            <button id="password-reset-button" class="link-button" type="button">Crear / restablecer contraseña</button>
+            <button id="password-reset-button" class="link-button" type="button">
+              ¿Usas Google o no tienes contraseña? Crear o restablecer contraseña
+            </button>
           </div>
           <p id="login-error" class="form-error" role="alert"></p>
         </form>
