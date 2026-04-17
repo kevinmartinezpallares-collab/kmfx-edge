@@ -10,6 +10,13 @@ from typing import Any
 
 from .config import LauncherConfig
 
+SUPABASE_AUTH_URL = "https://uuhiqreifisppqkawzif.supabase.co/auth/v1"
+SUPABASE_ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGlxcmVpZmlzcHBxa2F3emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDY0MDIsImV4cCI6MjA4OTgyMjQwMn0."
+    "-9nOoN8smRXiYscUeNzOCkeDKSakv416JflmhnhVHfM"
+)
+
 
 @dataclass
 class BackendResponse:
@@ -100,6 +107,78 @@ class BackendClient:
                 request_url=url,
                 request_attempted=True,
             )
+
+    def _supabase_auth_request(self, path: str, payload: dict[str, Any] | None = None, *, access_token: str = "") -> BackendResponse:
+        url = SUPABASE_AUTH_URL.rstrip("/") + path
+        headers = {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {access_token or SUPABASE_ANON_KEY}",
+            "Content-Type": "application/json",
+            "Connection": "close",
+        }
+        data = json.dumps(payload or {}).encode("utf-8") if payload is not None else None
+        request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
+                body = response.read().decode("utf-8", errors="ignore")
+                parsed_body = json.loads(body) if body else {}
+                return BackendResponse(
+                    ok=200 <= response.status < 300,
+                    status_code=response.status,
+                    body=parsed_body,
+                    method="POST",
+                    request_url=url,
+                    request_attempted=True,
+                )
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="ignore")
+            try:
+                parsed = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                parsed = {"raw": body}
+            self.logger.warning(
+                "[KMFX][AUTH][ERROR] %s status=%s body=%s",
+                path,
+                exc.code,
+                self._summarize_body(parsed),
+            )
+            return BackendResponse(
+                ok=False,
+                status_code=exc.code,
+                body=parsed,
+                error=str(exc),
+                method="POST",
+                request_url=url,
+                request_attempted=True,
+            )
+        except Exception as exc:
+            self.logger.warning("[KMFX][AUTH][EXCEPTION] %s error=%s", path, exc)
+            return BackendResponse(
+                ok=False,
+                status_code=0,
+                body={},
+                error=str(exc),
+                method="POST",
+                request_url=url,
+                request_attempted=True,
+            )
+
+    def sign_in_with_password(self, *, email: str, password: str) -> BackendResponse:
+        return self._supabase_auth_request(
+            "/token?grant_type=password",
+            payload={"email": email, "password": password},
+        )
+
+    def refresh_auth_session(self, *, refresh_token: str) -> BackendResponse:
+        return self._supabase_auth_request(
+            "/token?grant_type=refresh_token",
+            payload={"refresh_token": refresh_token},
+        )
+
+    def sign_out(self, *, access_token: str) -> BackendResponse:
+        if not access_token:
+            return BackendResponse(ok=True, status_code=204, body={})
+        return self._supabase_auth_request("/logout", payload={}, access_token=access_token)
 
     def post_snapshot(self, payload: dict[str, Any]) -> BackendResponse:
         return self._request("POST", self.config.backend_sync_path, payload=payload)

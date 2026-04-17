@@ -65,6 +65,12 @@ class LauncherConfig:
     local_port: int = 8766
     backend_base_url: str = LOCAL_BACKEND_BASE_URL
     backend_token: str = ""
+    auth_access_token: str = ""
+    auth_refresh_token: str = ""
+    auth_expires_at: int = 0
+    auth_user_id: str = ""
+    auth_email: str = ""
+    auth_name: str = ""
     backend_sync_path: str = "/api/mt5/sync"
     backend_journal_path: str = "/api/mt5/journal"
     backend_policy_path: str = "/api/mt5/policy"
@@ -75,6 +81,7 @@ class LauncherConfig:
     max_attempts: int = 8
     debug: bool = True
     connection_key: str = ""
+    connection_key_user_id: str = ""
     selected_mt5_terminal_path: str = ""
     selected_mt5_data_path: str = ""
     selected_mt5_experts_path: str = ""

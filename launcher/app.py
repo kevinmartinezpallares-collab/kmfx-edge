@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ except ImportError as exc:  # pragma: no cover - depends on local runtime setup
     ) from exc
 
 from .config import LauncherConfig, load_config, mask_connection_key, save_bridge_config, save_config
+from .backend_client import BackendClient, BackendResponse
 from .connector_installer import connector_installed, install_connector
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
@@ -31,6 +33,8 @@ ROOT = Path(__file__).resolve().parent.parent
 UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
 LAUNCHER_VERSION = "1.0.0"
 DEFAULT_CONNECTOR_VERSION = "2.75"
+APP_ICON_PATH = ROOT / "assets" / "logos" / "kmfx-edge-icon-1024.png"
+STATUS_CACHE_TTL_SECONDS = 18
 
 
 def _read_connector_version() -> str:
@@ -97,11 +101,15 @@ class KMFXApi:
     def __init__(self) -> None:
         self.config: LauncherConfig = load_config().ensure_runtime_values()
         self.logger = configure_logging(self.config.debug)
+        self.backend = BackendClient(self.config)
         self.installations: list[MT5Installation] = []
         self.service_process: subprocess.Popen[str] | None = None
         self._lock = threading.RLock()
         self._last_service_status: dict[str, Any] = {}
+        self._last_service_seen_at = 0.0
+        self._last_sync: dict[str, Any] = {}
         self.refresh_installations()
+        self.ensure_session()
 
     def startup(self) -> dict[str, Any]:
         self.ensure_service_started()
@@ -114,6 +122,7 @@ class KMFXApi:
                 "status": self.get_status(),
                 "installations": self.get_installations(),
                 "app_info": self.get_app_info(),
+                "session": self.get_session(),
             }
 
     def refresh_installations(self) -> list[dict[str, Any]]:
@@ -124,11 +133,21 @@ class KMFXApi:
     def get_status(self) -> dict[str, Any]:
         with self._lock:
             service_status = self.fetch_json("/status") or {}
-            self._last_service_status = service_status if service_status else self._last_service_status
+            now = time.time()
+            if service_status:
+                self._last_service_status = service_status
+                self._last_service_seen_at = now
+                if isinstance(service_status.get("last_sync"), dict) and service_status.get("last_sync"):
+                    self._last_sync = service_status.get("last_sync", {})
+            elif self._last_service_status and now - self._last_service_seen_at <= STATUS_CACHE_TTL_SECONDS:
+                service_status = self._last_service_status
+
             installation = self.selected_installation()
             is_installed = connector_installed(installation) if installation else False
-            service_on = bool(service_status.get("ok"))
-            last_sync = service_status.get("last_sync") if isinstance(service_status.get("last_sync"), dict) else {}
+            service_on = bool(service_status.get("ok")) or (
+                bool(self._last_service_status.get("ok")) and now - self._last_service_seen_at <= STATUS_CACHE_TTL_SECONDS
+            )
+            last_sync = service_status.get("last_sync") if isinstance(service_status.get("last_sync"), dict) else self._last_sync
 
             return {
                 "service_on": service_on,
@@ -136,17 +155,101 @@ class KMFXApi:
                 "connector_installed": is_installed,
                 "repair_recommended": False,
                 "last_sync_ago": _humanize_last_sync(last_sync or {}),
+                "has_recent_sync": self._sync_is_recent(last_sync or {}),
                 "mt5_count": len(self.installations),
                 "selected_installation": installation.label if installation else "",
                 "backend_base_url": service_status.get("backend_base_url") or self.config.backend_base_url,
                 "status_code": service_status.get("backend_status_code", 0),
             }
 
+    def get_session(self) -> dict[str, Any]:
+        authenticated = bool(self.config.auth_access_token and self.config.auth_email)
+        return {
+            "authenticated": authenticated,
+            "user": {
+                "id": self.config.auth_user_id,
+                "email": self.config.auth_email,
+                "name": self.config.auth_name or self._name_from_email(self.config.auth_email),
+            },
+        }
+
+    def login(self, email: str, password: str) -> dict[str, Any]:
+        normalized_email = str(email or "").strip().lower()
+        if not normalized_email or not password:
+            return {"ok": False, "message": "Introduce tu email y contraseña de KMFX Edge."}
+        response = self.backend.sign_in_with_password(email=normalized_email, password=password)
+        if not response.ok:
+            return {"ok": False, "message": self._auth_error_message(response)}
+        self._store_auth_response(response.body)
+        self.ensure_remote_account_link()
+        return {"ok": True, "message": "Sesión iniciada.", "session": self.get_session(), "status": self.get_status()}
+
+    def logout(self) -> dict[str, Any]:
+        access_token = self.config.auth_access_token
+        if access_token:
+            self.backend.sign_out(access_token=access_token)
+        self.config.auth_access_token = ""
+        self.config.auth_refresh_token = ""
+        self.config.auth_expires_at = 0
+        self.config.auth_user_id = ""
+        self.config.auth_email = ""
+        self.config.auth_name = ""
+        self.config.backend_token = ""
+        self.config.connection_key = ""
+        self.config.connection_key_user_id = ""
+        save_config(self.config)
+        save_bridge_config(self.config, user_id="")
+        self.fetch_json("/bridge/reload-config")
+        return {"ok": True, "message": "Sesión cerrada.", "session": self.get_session()}
+
+    def ensure_session(self) -> dict[str, Any]:
+        if self.config.auth_access_token:
+            self.config.backend_token = self.config.auth_access_token
+        expires_at = int(self.config.auth_expires_at or 0)
+        if self.config.auth_refresh_token and expires_at and expires_at <= int(time.time()) + 90:
+            response = self.backend.refresh_auth_session(refresh_token=self.config.auth_refresh_token)
+            if response.ok:
+                self._store_auth_response(response.body)
+            else:
+                self.logger.warning("[KMFX][AUTH] refresh failed; keeping launcher session until logout")
+        return self.get_session()
+
+    def ensure_remote_account_link(self) -> dict[str, Any]:
+        if (
+            self.config.connection_key
+            and self.config.connection_key_user_id
+            and self.config.connection_key_user_id == self.config.auth_user_id
+        ):
+            save_bridge_config(self.config, user_id=self.config.auth_user_id)
+            self.fetch_json("/bridge/reload-config")
+            return {"ok": bool(self.config.connection_key), "connection_key": mask_connection_key(self.config.connection_key)}
+        if not self.config.auth_user_id:
+            return {"ok": False, "message": "Sesión no iniciada."}
+        response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
+        if not response.ok:
+            self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
+            return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
+
+        body = response.body or {}
+        connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
+        if not connection_key:
+            return {"ok": False, "message": "El backend no devolvió connection key."}
+        self.config.connection_key = connection_key
+        self.config.connection_key_user_id = self.config.auth_user_id
+        save_config(self.config)
+        save_bridge_config(self.config, user_id=self.config.auth_user_id)
+        self.fetch_json("/bridge/reload-config")
+        self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
+        return {"ok": True, "connection_key": mask_connection_key(connection_key)}
+
     def get_installations(self) -> list[dict[str, Any]]:
         return [self.serialize_installation(installation) for installation in self.installations]
 
     def install_connector(self, selected_installation: str | None = None) -> dict[str, Any]:
         with self._lock:
+            if not self.get_session().get("authenticated"):
+                return {"ok": False, "message": "Inicia sesión para instalar el connector."}
+            self.ensure_remote_account_link()
             installation = self.selected_installation(selected_installation)
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
@@ -156,7 +259,8 @@ class KMFXApi:
             self.config.selected_mt5_experts_path = installation.experts_path
             save_config(self.config)
             if self.config.connection_key:
-                save_bridge_config(self.config, user_id="local")
+                save_bridge_config(self.config, user_id=self.config.auth_user_id)
+                self.fetch_json("/bridge/reload-config")
 
             result = install_connector(installation, self.config)
             self.logger.info("[KMFX][LAUNCHER][INSTALL] connector installed target=%s", installation.label)
@@ -211,6 +315,7 @@ class KMFXApi:
             "connector_version": _read_connector_version(),
             "backend_url": self.config.backend_base_url,
             "service_url": self.service_url(""),
+            "app_icon_path": str(APP_ICON_PATH),
         }
 
     def get_diagnostics(self) -> dict[str, Any]:
@@ -293,6 +398,51 @@ class KMFXApi:
                 return json.loads(response.read().decode("utf-8"))
         except Exception:
             return None
+
+    def _store_auth_response(self, body: dict[str, Any]) -> None:
+        user = body.get("user") if isinstance(body.get("user"), dict) else {}
+        metadata = user.get("user_metadata") if isinstance(user.get("user_metadata"), dict) else {}
+        email = str(user.get("email") or self.config.auth_email or "").strip().lower()
+        name = str(metadata.get("full_name") or metadata.get("name") or self._name_from_email(email)).strip()
+        expires_at = int(body.get("expires_at") or (int(time.time()) + int(body.get("expires_in") or 3600)))
+        self.config.auth_access_token = str(body.get("access_token") or "")
+        self.config.auth_refresh_token = str(body.get("refresh_token") or self.config.auth_refresh_token or "")
+        self.config.auth_expires_at = expires_at
+        self.config.auth_user_id = str(user.get("id") or self.config.auth_user_id or "")
+        self.config.auth_email = email
+        self.config.auth_name = name
+        self.config.backend_token = self.config.auth_access_token
+        save_config(self.config)
+        self.backend.config = self.config
+
+    def _auth_error_message(self, response: BackendResponse) -> str:
+        body = response.body or {}
+        raw = str(body.get("msg") or body.get("message") or body.get("error_description") or body.get("error") or "").strip()
+        if raw:
+            return raw
+        if response.status_code in {400, 401, 403}:
+            return "No se pudo iniciar sesión. Revisa tus credenciales."
+        return "No se pudo conectar con el servicio de login."
+
+    def _name_from_email(self, email: str) -> str:
+        local = str(email or "").split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").strip()
+        return " ".join(part.capitalize() for part in local.split()[:2]) or "Usuario KMFX"
+
+    def _sync_is_recent(self, last_sync: dict[str, Any]) -> bool:
+        raw_time = (
+            last_sync.get("delivered_at")
+            or last_sync.get("updated_at")
+            or last_sync.get("received_at")
+            or last_sync.get("timestamp")
+            or last_sync.get("time")
+            or ""
+        )
+        parsed = _parse_iso(str(raw_time))
+        if not parsed:
+            return False
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds() < 120
 
 
 def main() -> None:
