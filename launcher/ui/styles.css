@@ -65,14 +65,16 @@ button:disabled {
 
 .auth-shell {
   display: grid;
+  height: 100%;
   min-height: 100%;
+  overflow: auto;
   place-items: center;
-  padding: 40px;
+  padding: 32px;
 }
 
 .auth-card {
-  width: min(460px, 100%);
-  padding: 34px;
+  width: min(500px, 100%);
+  padding: 32px;
   border: 1px solid var(--border);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(21, 26, 36, 0.96), rgba(12, 16, 24, 0.96));
@@ -86,8 +88,9 @@ button:disabled {
 }
 
 .brand-mark img {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
   border-radius: 14px;
 }
 
@@ -98,6 +101,7 @@ button:disabled {
 
 .brand-mark strong {
   font-size: 18px;
+  line-height: 1.15;
   letter-spacing: -0.03em;
 }
 
@@ -111,7 +115,7 @@ button:disabled {
 }
 
 .auth-copy {
-  margin-top: 30px;
+  margin-top: 28px;
 }
 
 .eyebrow {
@@ -131,7 +135,7 @@ p {
 
 h1 {
   margin-bottom: 12px;
-  font-size: 34px;
+  font-size: 32px;
   line-height: 1.04;
   letter-spacing: -0.045em;
 }
@@ -149,8 +153,8 @@ p {
 
 .login-form {
   display: grid;
-  gap: 14px;
-  margin-top: 26px;
+  gap: 13px;
+  margin-top: 24px;
 }
 
 .login-form label {
@@ -212,6 +216,38 @@ p {
   font-size: 12px;
   line-height: 1.45;
   text-align: center;
+}
+
+.password-recovery {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  text-align: center;
+}
+
+.password-recovery p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.link-button {
+  justify-self: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.link-button:hover {
+  color: #bfdbfe;
 }
 
 .app-shell {

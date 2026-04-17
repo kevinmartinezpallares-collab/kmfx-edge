@@ -25,7 +25,7 @@ async function callApi(method, ...args) {
 
 function setBusy(value) {
   state.busy = Boolean(value);
-  ["#login-submit", "#login-google", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#logout-button"].forEach((selector) => {
+  ["#login-submit", "#login-google", "#password-reset-button", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#logout-button"].forEach((selector) => {
     const element = $(selector);
     if (element) element.disabled = state.busy;
   });
@@ -254,6 +254,7 @@ async function handleLogin(event) {
 async function handleGoogleLogin() {
   const error = $("#login-error");
   if (error) error.textContent = "";
+  showToast("Abriendo Google en tu navegador...");
   setBusy(true);
   try {
     const result = await callApi("login_with_google");
@@ -266,6 +267,24 @@ async function handleGoogleLogin() {
     await loadAll();
   } catch (err) {
     if (error) error.textContent = err.message || "No se pudo iniciar sesión con Google.";
+  } finally {
+    setBusy(false);
+    render();
+  }
+}
+
+async function handlePasswordReset() {
+  const error = $("#login-error");
+  if (error) error.textContent = "";
+  setBusy(true);
+  try {
+    const result = await callApi("open_password_reset");
+    showToast(result.message || "Recuperación abierta en el navegador.");
+    if (!result.ok && error) {
+      error.textContent = result.message || "No se pudo abrir la recuperación de contraseña.";
+    }
+  } catch (err) {
+    if (error) error.textContent = err.message || "No se pudo abrir la recuperación de contraseña.";
   } finally {
     setBusy(false);
     render();
@@ -300,6 +319,7 @@ async function refreshEverything() {
 function bindEvents() {
   $("#login-form")?.addEventListener("submit", handleLogin);
   $("#login-google")?.addEventListener("click", handleGoogleLogin);
+  $("#password-reset-button")?.addEventListener("click", handlePasswordReset);
   $("#logout-button")?.addEventListener("click", async () => {
     setBusy(true);
     try {

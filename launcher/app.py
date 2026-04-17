@@ -41,6 +41,7 @@ LAUNCHER_VERSION = "1.0.0"
 DEFAULT_CONNECTOR_VERSION = "2.75"
 APP_ICON_PATH = ROOT / "assets" / "logos" / "kmfx-edge-icon-1024.png"
 STATUS_CACHE_TTL_SECONDS = 18
+DASHBOARD_RECOVERY_URL = "https://dashboard.kmfxedge.com?auth=recovery"
 
 
 def _read_connector_version() -> str:
@@ -242,12 +243,12 @@ class KMFXApi:
             state=state,
         )
         self.logger.info(
-            "[KMFX][AUTH][GOOGLE] base=%s redirect_host=127.0.0.1 endpoint=/authorize",
-            self.backend.config.backend_base_url,
+            "[KMFX][AUTH][GOOGLE] auth_base=https://uuhiqreifisppqkawzif.supabase.co/auth/v1 redirect_host=127.0.0.1 endpoint=/authorize external_browser=true",
         )
 
         server.timeout = 180
         try:
+            self.logger.info("[KMFX][AUTH][GOOGLE] opening system browser")
             if not webbrowser.open(auth_url):
                 return {"ok": False, "message": "No se pudo abrir el navegador para Google."}
             server.handle_request()
@@ -274,6 +275,19 @@ class KMFXApi:
         self._store_auth_response(response.body)
         self.ensure_remote_account_link()
         return {"ok": True, "message": "Sesión iniciada con Google.", "session": self.get_session(), "status": self.get_status()}
+
+    def open_password_reset(self) -> dict[str, Any]:
+        try:
+            opened = webbrowser.open(DASHBOARD_RECOVERY_URL)
+        except Exception as exc:
+            self.logger.warning("[KMFX][AUTH][RECOVERY] open failed error=%s", exc)
+            opened = False
+        return {
+            "ok": bool(opened),
+            "message": "Hemos abierto la recuperación de contraseña en tu navegador."
+            if opened
+            else "No se pudo abrir la recuperación de contraseña.",
+        }
 
     def logout(self) -> dict[str, Any]:
         access_token = self.config.auth_access_token
@@ -513,11 +527,11 @@ class KMFXApi:
         normalized_raw = raw.lower()
         if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
             return "Email o contraseña incorrectos"
-        if raw:
-            return raw
+        if response.status_code == 0:
+            return "No se pudo conectar con el servidor"
         if response.status_code in {400, 401, 403}:
             return "No se pudo iniciar sesión. Revisa tus credenciales."
-        return "No se pudo conectar con el servicio de login."
+        return "No se pudo conectar con el servidor"
 
     def _name_from_email(self, email: str) -> str:
         local = str(email or "").split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").strip()
