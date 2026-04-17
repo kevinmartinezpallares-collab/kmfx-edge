@@ -6,8 +6,12 @@ const state = {
   appInfo: {},
   diagnostics: {},
   busy: false,
+  oauthPending: false,
   message: ""
 };
+
+let oauthPollTimer = null;
+let oauthPollStartedAt = 0;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -29,6 +33,14 @@ function setBusy(value) {
     const element = $(selector);
     if (element) element.disabled = state.busy;
   });
+}
+
+function stopOAuthPolling() {
+  if (oauthPollTimer) {
+    window.clearInterval(oauthPollTimer);
+    oauthPollTimer = null;
+  }
+  state.oauthPending = false;
 }
 
 function showToast(message) {
@@ -260,17 +272,53 @@ async function handleGoogleLogin() {
     const result = await callApi("login_with_google");
     if (!result.ok) {
       if (error) error.textContent = result.message || "No se pudo iniciar sesión con Google.";
+      setBusy(false);
       return;
     }
-    state.session = result.session || { authenticated: true };
-    showToast("Sesión iniciada con Google.");
-    await loadAll();
+    state.oauthPending = true;
+    oauthPollStartedAt = Date.now();
+    showToast(result.message || "Completa el acceso con Google en tu navegador.");
+    startOAuthPolling();
   } catch (err) {
     if (error) error.textContent = err.message || "No se pudo iniciar sesión con Google.";
-  } finally {
     setBusy(false);
+  } finally {
     render();
   }
+}
+
+function startOAuthPolling() {
+  if (oauthPollTimer) return;
+  oauthPollTimer = window.setInterval(async () => {
+    const error = $("#login-error");
+    try {
+      const status = await callApi("get_oauth_status");
+      if (status?.status === "authenticated" || status?.session?.authenticated) {
+        stopOAuthPolling();
+        state.session = status.session || { authenticated: true };
+        setBusy(false);
+        showToast(status.message || "Sesión iniciada con Google.");
+        await loadAll();
+        render();
+        return;
+      }
+      if (status?.status === "error") {
+        stopOAuthPolling();
+        setBusy(false);
+        if (error) error.textContent = status.message || "No se pudo iniciar sesión con Google.";
+        render();
+        return;
+      }
+      if (Date.now() - oauthPollStartedAt > 180000) {
+        stopOAuthPolling();
+        setBusy(false);
+        if (error) error.textContent = "No se completó el acceso con Google. Inténtalo de nuevo.";
+        render();
+      }
+    } catch {
+      // Keep polling while the local callback service finishes the OAuth exchange.
+    }
+  }, 1000);
 }
 
 async function handlePasswordReset() {
@@ -324,6 +372,7 @@ function bindEvents() {
     setBusy(true);
     try {
       const result = await callApi("logout");
+      stopOAuthPolling();
       state.session = result.session || { authenticated: false };
       showToast(result.message || "Sesión cerrada.");
     } finally {

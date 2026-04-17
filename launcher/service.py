@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import base64
+import html
 import json
+import secrets
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -9,12 +12,15 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 from .backend_client import BackendClient
-from .config import LauncherConfig, load_bridge_config, mask_connection_key, load_config
+from .config import LauncherConfig, load_bridge_config, mask_connection_key, load_config, save_bridge_config, save_config
 from .log_utils import configure_logging, read_recent_logs
 from .state_store import LauncherStateStore
+
+
+LOCAL_OAUTH_REDIRECT_URL = "http://127.0.0.1:8766/auth/callback"
 
 
 def now_iso() -> str:
@@ -27,6 +33,11 @@ def parse_iso(value: str) -> datetime:
 
 def json_response(content: Any, status_code: int = 200) -> JSONResponse:
     return JSONResponse(status_code=status_code, content=content, headers={"Connection": "close"})
+
+
+def pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 def fallback_policy(identity_key: str) -> dict[str, Any]:
@@ -73,6 +84,146 @@ class LauncherServiceRuntime:
         self.backend = BackendClient(config)
         self.stop_event = threading.Event()
         self.worker_thread: threading.Thread | None = None
+        self.oauth_state: dict[str, Any] = {"status": "idle", "message": ""}
+        self.oauth_lock = threading.RLock()
+
+    def auth_session_payload(self) -> dict[str, Any]:
+        self.config = load_config().ensure_runtime_values()
+        self.backend.config = self.config
+        authenticated = bool(self.config.auth_access_token and self.config.auth_email)
+        return {
+            "authenticated": authenticated,
+            "user": {
+                "id": self.config.auth_user_id,
+                "email": self.config.auth_email,
+                "name": self.config.auth_name or self.name_from_email(self.config.auth_email),
+            },
+        }
+
+    def name_from_email(self, email: str) -> str:
+        local = str(email or "").split("@")[0].replace(".", " ").replace("_", " ").replace("-", " ").strip()
+        return " ".join(part.capitalize() for part in local.split()[:2]) or "Usuario KMFX"
+
+    def store_auth_response(self, body: dict[str, Any]) -> None:
+        user = body.get("user") if isinstance(body.get("user"), dict) else {}
+        metadata = user.get("user_metadata") if isinstance(user.get("user_metadata"), dict) else {}
+        email = str(user.get("email") or self.config.auth_email or "").strip().lower()
+        name = str(metadata.get("full_name") or metadata.get("name") or self.name_from_email(email)).strip()
+        expires_at = int(body.get("expires_at") or (int(time.time()) + int(body.get("expires_in") or 3600)))
+        self.config.auth_access_token = str(body.get("access_token") or "")
+        self.config.auth_refresh_token = str(body.get("refresh_token") or self.config.auth_refresh_token or "")
+        self.config.auth_expires_at = expires_at
+        self.config.auth_user_id = str(user.get("id") or self.config.auth_user_id or "")
+        self.config.auth_email = email
+        self.config.auth_name = name
+        self.config.backend_token = self.config.auth_access_token
+        save_config(self.config)
+        self.backend.config = self.config
+
+    def ensure_remote_account_link(self) -> dict[str, Any]:
+        if (
+            self.config.connection_key
+            and self.config.connection_key_user_id
+            and self.config.connection_key_user_id == self.config.auth_user_id
+        ):
+            save_bridge_config(self.config, user_id=self.config.auth_user_id)
+            self.reload_bridge_config(force_log=True)
+            return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
+        if not self.config.auth_user_id:
+            return {"ok": False, "message": "Sesión no iniciada."}
+        response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
+        if not response.ok:
+            self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
+            return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
+
+        body = response.body or {}
+        connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
+        if not connection_key:
+            return {"ok": False, "message": "El backend no devolvió connection key."}
+        self.config.connection_key = connection_key
+        self.config.connection_key_user_id = self.config.auth_user_id
+        save_config(self.config)
+        save_bridge_config(self.config, user_id=self.config.auth_user_id)
+        self.reload_bridge_config(force_log=True)
+        self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
+        return {"ok": True, "connection_key": mask_connection_key(connection_key)}
+
+    def auth_error_message(self, response: Any) -> str:
+        body = response.body or {}
+        raw = str(body.get("msg") or body.get("message") or body.get("error_description") or body.get("error") or "").strip()
+        code = str(body.get("error_code") or body.get("code") or body.get("error") or "").strip().lower()
+        normalized_raw = raw.lower()
+        if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
+            return "Email o contraseña incorrectos"
+        if response.status_code == 0:
+            return "No se pudo conectar con el servidor"
+        if response.status_code in {400, 401, 403}:
+            return "No se pudo iniciar sesión. Revisa tus credenciales."
+        return "No se pudo conectar con el servidor"
+
+    def begin_google_oauth(self) -> dict[str, Any]:
+        verifier = secrets.token_urlsafe(64)
+        state = secrets.token_urlsafe(24)
+        auth_url = self.backend.google_oauth_url(
+            redirect_to=LOCAL_OAUTH_REDIRECT_URL,
+            code_challenge=pkce_challenge(verifier),
+            state=state,
+        )
+        with self.oauth_lock:
+            self.oauth_state = {
+                "status": "pending",
+                "state": state,
+                "code_verifier": verifier,
+                "started_at": now_iso(),
+                "message": "Esperando autorización de Google.",
+                "session": self.auth_session_payload(),
+            }
+        self.logger.info(
+            "[KMFX][AUTH][GOOGLE] start redirect_to=%s external_browser=true",
+            LOCAL_OAUTH_REDIRECT_URL,
+        )
+        return {"ok": True, "auth_url": auth_url, "redirect_to": LOCAL_OAUTH_REDIRECT_URL}
+
+    def oauth_status(self) -> dict[str, Any]:
+        with self.oauth_lock:
+            safe_state = {key: value for key, value in self.oauth_state.items() if key not in {"state", "code_verifier"}}
+        safe_state.setdefault("status", "idle")
+        safe_state["session"] = self.auth_session_payload()
+        return safe_state
+
+    def complete_google_oauth(self, *, code: str, state: str, error: str = "", error_description: str = "") -> dict[str, Any]:
+        with self.oauth_lock:
+            expected_state = str(self.oauth_state.get("state") or "")
+            verifier = str(self.oauth_state.get("code_verifier") or "")
+        if error:
+            self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] error=%s detail=%s", error, error_description)
+            with self.oauth_lock:
+                self.oauth_state = {"status": "error", "message": "No se pudo iniciar sesión con Google."}
+            return {"ok": False, "message": "No se pudo iniciar sesión con Google."}
+        if not expected_state or not verifier or state != expected_state:
+            self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] state mismatch")
+            with self.oauth_lock:
+                self.oauth_state = {"status": "error", "message": "No se pudo validar la respuesta de Google."}
+            return {"ok": False, "message": "No se pudo validar la respuesta de Google."}
+        if not code:
+            with self.oauth_lock:
+                self.oauth_state = {"status": "error", "message": "Login con Google cancelado o sin respuesta."}
+            return {"ok": False, "message": "Login con Google cancelado o sin respuesta."}
+
+        response = self.backend.exchange_pkce_code(auth_code=code, code_verifier=verifier)
+        if not response.ok:
+            message = self.auth_error_message(response)
+            with self.oauth_lock:
+                self.oauth_state = {"status": "error", "message": message}
+            return {"ok": False, "message": message}
+
+        self.store_auth_response(response.body)
+        self.ensure_remote_account_link()
+        session = self.auth_session_payload()
+        with self.oauth_lock:
+            self.oauth_state = {"status": "authenticated", "message": "Sesión iniciada con Google.", "session": session}
+        self.logger.info("[KMFX][AUTH][GOOGLE] callback exchanged user=%s", self.config.auth_email)
+        return {"ok": True, "message": "Sesión iniciada con Google.", "session": session}
 
     def reload_bridge_config(self, force_log: bool = False) -> str:
         previous_key = str(self.bridge_config.get("connection_key") or "").strip()
@@ -413,6 +564,53 @@ async def bridge_reload_config() -> JSONResponse:
 @app.get("/logs")
 async def logs() -> PlainTextResponse:
     return PlainTextResponse(read_recent_logs())
+
+
+@app.get("/auth/google/start")
+async def auth_google_start() -> JSONResponse:
+    return json_response(runtime.begin_google_oauth())
+
+
+@app.get("/auth/status")
+async def auth_status() -> JSONResponse:
+    return json_response(runtime.oauth_status())
+
+
+@app.get("/auth/callback")
+async def auth_callback(
+    code: str = Query("", min_length=0),
+    state: str = Query("", min_length=0),
+    error: str = Query("", min_length=0),
+    error_description: str = Query("", min_length=0),
+) -> HTMLResponse:
+    result = runtime.complete_google_oauth(
+        code=code,
+        state=state,
+        error=error,
+        error_description=error_description,
+    )
+    title = "KMFX Launcher conectado" if result.get("ok") else "No se pudo conectar"
+    message = result.get("message") or ("Ya puedes volver a KMFX Launcher." if result.get("ok") else "Vuelve al launcher e inténtalo de nuevo.")
+    accent = "#4ade80" if result.get("ok") else "#fb7185"
+    html_body = f"""
+    <!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{html.escape(title)}</title>
+      </head>
+      <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07090d;color:#f5f7fb;display:grid;place-items:center;min-height:100vh;margin:0;">
+        <main style="max-width:440px;text-align:center;padding:32px;">
+          <div style="width:52px;height:52px;border-radius:18px;background:{accent};margin:0 auto 20px;"></div>
+          <h1 style="font-size:28px;margin:0 0 12px;">{html.escape(title)}</h1>
+          <p style="color:#a7b0c0;font-size:16px;line-height:1.6;margin:0;">{html.escape(str(message))}</p>
+          <p style="color:#667085;font-size:13px;margin-top:24px;">Puedes cerrar esta pestaña y volver al launcher.</p>
+        </main>
+      </body>
+    </html>
+    """
+    return HTMLResponse(content=html_body)
 
 
 @app.get("/mt5/policy")
