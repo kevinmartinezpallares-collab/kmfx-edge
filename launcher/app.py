@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import platform
 import re
+import secrets
 import subprocess
 import sys
 import threading
 import time
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
+import webbrowser
 
 try:
     import webview
@@ -95,6 +101,11 @@ def _humanize_last_sync(last_sync: dict[str, Any]) -> str:
         return f"Último sync hace {minutes}min"
     hours = minutes // 60
     return f"Último sync hace {hours}h"
+
+
+def _pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 class KMFXApi:
@@ -183,6 +194,86 @@ class KMFXApi:
         self._store_auth_response(response.body)
         self.ensure_remote_account_link()
         return {"ok": True, "message": "Sesión iniciada.", "session": self.get_session(), "status": self.get_status()}
+
+    def login_with_google(self) -> dict[str, Any]:
+        verifier = secrets.token_urlsafe(64)
+        state = secrets.token_urlsafe(24)
+        result: dict[str, str] = {}
+
+        class OAuthCallbackHandler(BaseHTTPRequestHandler):
+            def log_message(self, format: str, *args: Any) -> None:  # noqa: A003 - stdlib signature
+                return
+
+            def do_GET(self) -> None:  # noqa: N802 - stdlib callback name
+                parsed = urlparse(self.path)
+                query = parse_qs(parsed.query)
+                result["code"] = str((query.get("code") or [""])[0])
+                result["state"] = str((query.get("state") or [""])[0])
+                result["error"] = str((query.get("error") or [""])[0])
+                result["error_description"] = str((query.get("error_description") or [""])[0])
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(
+                    b"""
+                    <!doctype html>
+                    <html lang=\"es\">
+                      <head><meta charset=\"utf-8\"><title>KMFX Launcher</title></head>
+                      <body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07090d;color:#f5f7fb;display:grid;place-items:center;min-height:100vh;margin:0;\">
+                        <main style=\"max-width:420px;text-align:center;\">
+                          <h1>Sesion conectada</h1>
+                          <p>Ya puedes volver a KMFX Launcher.</p>
+                        </main>
+                      </body>
+                    </html>
+                    """
+                )
+
+        try:
+            server = HTTPServer(("127.0.0.1", 0), OAuthCallbackHandler)
+        except OSError as exc:
+            self.logger.warning("[KMFX][AUTH][GOOGLE] callback server failed error=%s", exc)
+            return {"ok": False, "message": "No se pudo preparar el login con Google."}
+
+        redirect_to = f"http://127.0.0.1:{server.server_port}/auth/callback"
+        auth_url = self.backend.google_oauth_url(
+            redirect_to=redirect_to,
+            code_challenge=_pkce_challenge(verifier),
+            state=state,
+        )
+        self.logger.info(
+            "[KMFX][AUTH][GOOGLE] base=%s redirect_host=127.0.0.1 endpoint=/authorize",
+            self.backend.config.backend_base_url,
+        )
+
+        server.timeout = 180
+        try:
+            if not webbrowser.open(auth_url):
+                return {"ok": False, "message": "No se pudo abrir el navegador para Google."}
+            server.handle_request()
+        finally:
+            server.server_close()
+
+        if result.get("error"):
+            self.logger.warning(
+                "[KMFX][AUTH][GOOGLE][ERROR] error=%s detail=%s",
+                result.get("error"),
+                result.get("error_description"),
+            )
+            return {"ok": False, "message": "No se pudo iniciar sesión con Google."}
+        if result.get("state") != state:
+            self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] state mismatch")
+            return {"ok": False, "message": "No se pudo validar la respuesta de Google."}
+        if not result.get("code"):
+            return {"ok": False, "message": "Login con Google cancelado o sin respuesta."}
+
+        response = self.backend.exchange_pkce_code(auth_code=result["code"], code_verifier=verifier)
+        if not response.ok:
+            return {"ok": False, "message": self._auth_error_message(response)}
+
+        self._store_auth_response(response.body)
+        self.ensure_remote_account_link()
+        return {"ok": True, "message": "Sesión iniciada con Google.", "session": self.get_session(), "status": self.get_status()}
 
     def logout(self) -> dict[str, Any]:
         access_token = self.config.auth_access_token
@@ -418,6 +509,10 @@ class KMFXApi:
     def _auth_error_message(self, response: BackendResponse) -> str:
         body = response.body or {}
         raw = str(body.get("msg") or body.get("message") or body.get("error_description") or body.get("error") or "").strip()
+        code = str(body.get("error_code") or body.get("code") or body.get("error") or "").strip().lower()
+        normalized_raw = raw.lower()
+        if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
+            return "Email o contraseña incorrectos"
         if raw:
             return raw
         if response.status_code in {400, 401, 403}:

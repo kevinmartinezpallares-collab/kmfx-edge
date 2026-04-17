@@ -16,6 +16,7 @@ SUPABASE_ANON_KEY = (
     "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGlxcmVpZmlzcHBxa2F3emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDY0MDIsImV4cCI6MjA4OTgyMjQwMn0."
     "-9nOoN8smRXiYscUeNzOCkeDKSakv416JflmhnhVHfM"
 )
+SUPABASE_GOOGLE_AUTHORIZE_PATH = "/authorize"
 
 
 @dataclass
@@ -118,10 +119,12 @@ class BackendClient:
         }
         data = json.dumps(payload or {}).encode("utf-8") if payload is not None else None
         request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
+        self.logger.info("[KMFX][AUTH][REQUEST] base=%s endpoint=%s method=POST", SUPABASE_AUTH_URL, path)
         try:
             with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
                 body = response.read().decode("utf-8", errors="ignore")
                 parsed_body = json.loads(body) if body else {}
+                self.logger.info("[KMFX][AUTH][RESPONSE] endpoint=%s status=%s", path, response.status)
                 return BackendResponse(
                     ok=200 <= response.status < 300,
                     status_code=response.status,
@@ -137,7 +140,8 @@ class BackendClient:
             except json.JSONDecodeError:
                 parsed = {"raw": body}
             self.logger.warning(
-                "[KMFX][AUTH][ERROR] %s status=%s body=%s",
+                "[KMFX][AUTH][ERROR] base=%s endpoint=%s status=%s body=%s",
+                SUPABASE_AUTH_URL,
                 path,
                 exc.code,
                 self._summarize_body(parsed),
@@ -167,6 +171,25 @@ class BackendClient:
         return self._supabase_auth_request(
             "/token?grant_type=password",
             payload={"email": email, "password": password},
+        )
+
+    def google_oauth_url(self, *, redirect_to: str, code_challenge: str, state: str) -> str:
+        query = urllib.parse.urlencode(
+            {
+                "provider": "google",
+                "redirect_to": redirect_to,
+                "code_challenge": code_challenge,
+                "code_challenge_method": "s256",
+                "state": state,
+                "prompt": "select_account",
+            }
+        )
+        return f"{SUPABASE_AUTH_URL.rstrip('/')}{SUPABASE_GOOGLE_AUTHORIZE_PATH}?{query}"
+
+    def exchange_pkce_code(self, *, auth_code: str, code_verifier: str) -> BackendResponse:
+        return self._supabase_auth_request(
+            "/token?grant_type=pkce",
+            payload={"auth_code": auth_code, "code_verifier": code_verifier},
         )
 
     def refresh_auth_session(self, *, refresh_token: str) -> BackendResponse:

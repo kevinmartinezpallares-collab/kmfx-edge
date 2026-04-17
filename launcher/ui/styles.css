@@ -183,6 +183,37 @@ p {
   font-size: 13px;
 }
 
+.auth-google-button {
+  display: inline-flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.google-dot {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background:
+    conic-gradient(from -45deg, #4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0 100%);
+}
+
+.google-dot::after {
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--card);
+  content: "";
+}
+
+.auth-hint {
+  margin: -2px 0 0;
+  color: var(--subtle);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .app-shell {
   display: grid;
   height: 100%;

@@ -25,7 +25,7 @@ async function callApi(method, ...args) {
 
 function setBusy(value) {
   state.busy = Boolean(value);
-  ["#login-submit", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#logout-button"].forEach((selector) => {
+  ["#login-submit", "#login-google", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#logout-button"].forEach((selector) => {
     const element = $(selector);
     if (element) element.disabled = state.busy;
   });
@@ -251,6 +251,27 @@ async function handleLogin(event) {
   }
 }
 
+async function handleGoogleLogin() {
+  const error = $("#login-error");
+  if (error) error.textContent = "";
+  setBusy(true);
+  try {
+    const result = await callApi("login_with_google");
+    if (!result.ok) {
+      if (error) error.textContent = result.message || "No se pudo iniciar sesión con Google.";
+      return;
+    }
+    state.session = result.session || { authenticated: true };
+    showToast("Sesión iniciada con Google.");
+    await loadAll();
+  } catch (err) {
+    if (error) error.textContent = err.message || "No se pudo iniciar sesión con Google.";
+  } finally {
+    setBusy(false);
+    render();
+  }
+}
+
 async function performAction(method, successMessage) {
   setBusy(true);
   try {
@@ -278,6 +299,7 @@ async function refreshEverything() {
 
 function bindEvents() {
   $("#login-form")?.addEventListener("submit", handleLogin);
+  $("#login-google")?.addEventListener("click", handleGoogleLogin);
   $("#logout-button")?.addEventListener("click", async () => {
     setBusy(true);
     try {
