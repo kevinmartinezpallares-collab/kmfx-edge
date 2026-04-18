@@ -7190,6 +7190,44 @@ body[data-theme="dark"] .dashboard-risk-panel {
   gap: 16px;
 }
 
+html[data-theme="dark"] .dashboard-header-card,
+body[data-theme="dark"] .dashboard-header-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px !important;
+}
+
+html[data-theme="dark"] .dashboard-header-card__copy,
+body[data-theme="dark"] .dashboard-header-card__copy {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .dashboard-header-card__meta,
+body[data-theme="dark"] .dashboard-header-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis,
+body[data-theme="dark"] .dashboard-summary-kpis {
+  margin-bottom: 0;
+}
+
+html[data-theme="dark"] .dashboard-main-grid--master,
+body[data-theme="dark"] .dashboard-main-grid--master {
+  align-items: start;
+}
+
+html[data-theme="dark"] .dashboard-side-stack,
+body[data-theme="dark"] .dashboard-side-stack {
+  display: grid;
+  gap: 16px;
+}
+
 html[data-theme="dark"] .dashboard-risk-overview,
 body[data-theme="dark"] .dashboard-risk-overview {
   padding: 18px 20px !important;
@@ -7830,7 +7868,11 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   html[data-theme="dark"] .dashboard-risk-block__grid,
   body[data-theme="dark"] .dashboard-risk-block__grid,
   html[data-theme="dark"] .dashboard-risk-grid,
-  body[data-theme="dark"] .dashboard-risk-grid {
+  body[data-theme="dark"] .dashboard-risk-grid,
+  html[data-theme="dark"] .dashboard-secondary-grid,
+  body[data-theme="dark"] .dashboard-secondary-grid,
+  html[data-theme="dark"] .dashboard-bottom-grid,
+  body[data-theme="dark"] .dashboard-bottom-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -7871,7 +7913,9 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   html[data-theme="dark"] .dashboard-risk-overview__head,
   body[data-theme="dark"] .dashboard-risk-overview__head,
   html[data-theme="dark"] .dashboard-risk-overview__foot,
-  body[data-theme="dark"] .dashboard-risk-overview__foot {
+  body[data-theme="dark"] .dashboard-risk-overview__foot,
+  html[data-theme="dark"] .dashboard-header-card,
+  body[data-theme="dark"] .dashboard-header-card {
     flex-direction: column;
     align-items: flex-start;
   }
