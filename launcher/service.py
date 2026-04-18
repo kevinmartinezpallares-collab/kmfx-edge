@@ -633,17 +633,17 @@ async def auth_callback(
           <h1 style="font-size:24px;line-height:1.15;letter-spacing:-.03em;margin:0 0 10px;">{html.escape(title)}</h1>
           <p style="color:rgba(255,255,255,.72);font-size:14px;line-height:1.5;margin:0;">Ya puedes volver al launcher.</p>
           <p style="color:rgba(255,255,255,.48);font-size:12px;line-height:1.5;margin:8px 0 0;">{html.escape(str(message))}</p>
-          <button onclick="closeKmfxTab()" style="margin-top:22px;height:40px;padding:0 16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#26262B;color:rgba(255,255,255,.96);font:inherit;font-weight:700;cursor:pointer;">Cerrar esta pestaña</button>
-          <p id="close-help" style="display:none;color:rgba(255,255,255,.48);font-size:12px;margin:14px 0 0;">Ya puedes cerrar esta pestaña.</p>
+          <button id="close-tab-button" onclick="closeKmfxTab()" style="margin-top:22px;height:40px;padding:0 16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#26262B;color:rgba(255,255,255,.96);font:inherit;font-weight:700;cursor:pointer;">Cerrar esta pestaña</button>
         </main>
         <script>
           function closeKmfxTab() {{
+            var button = document.getElementById('close-tab-button');
             window.close();
             setTimeout(function() {{
-              var help = document.getElementById('close-help');
-              if (help) help.style.display = 'block';
+              if (button) button.textContent = 'Puedes volver al launcher';
             }}, 250);
           }}
+          setTimeout(closeKmfxTab, 1000);
         </script>
       </body>
     </html>

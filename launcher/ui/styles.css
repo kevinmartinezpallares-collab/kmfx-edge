@@ -1570,8 +1570,8 @@ body,
 #logout-button:hover,
 #logout-button:focus-visible,
 #logout-button:active {
-  border-color: rgba(255, 138, 154, 0.22);
-  background: rgba(255, 138, 154, 0.08);
+  border-color: var(--border-0);
+  background: #18181A;
   color: var(--red-0);
 }
 
