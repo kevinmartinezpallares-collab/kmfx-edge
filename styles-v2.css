@@ -9819,7 +9819,7 @@ body[data-theme="dark"] .sidebar::after {
   gap: 10px;
 }
 
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
+  .app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
   margin-left: calc(var(--sidebar-vnext-collapsed-width) + var(--sidebar-vnext-main-gap));
 }
 
@@ -9927,8 +9927,266 @@ body[data-theme="dark"] .sidebar::after {
     display: none;
   }
 
-  .app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
     margin-left: 0;
     padding: 0;
+  }
+}
+
+/* Connections visual realignment — keep the setup flow inside the dashboard system. */
+.kmfx-connections-page {
+  gap: 14px;
+}
+
+.kmfx-connections-header {
+  padding-bottom: 0;
+}
+
+.kmfx-connections-header .kmfx-mt5-header__title {
+  font-size: clamp(24px, 2.4vw, 30px);
+  letter-spacing: -0.035em;
+}
+
+.kmfx-connections-header .kmfx-mt5-header__subtitle {
+  max-width: 680px;
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.kmfx-connections-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.kmfx-connections-system,
+.kmfx-connections-section,
+.kmfx-connections-setup,
+.kmfx-connections-platforms {
+  background: var(--layer-1-elevated);
+  border-color: var(--border-0);
+  border-radius: 18px;
+}
+
+.kmfx-connections-system {
+  grid-template-columns: auto minmax(0, 1fr) minmax(260px, 0.72fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.kmfx-connections-system__status {
+  gap: 8px;
+  padding: 7px 10px;
+  border-color: var(--border-0);
+  background: var(--layer-2);
+  font-size: 12px;
+}
+
+.kmfx-connections-status-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.kmfx-connections-system--connected .kmfx-connections-status-dot,
+.kmfx-connections-system--waiting .kmfx-connections-status-dot,
+.kmfx-connections-system--pending .kmfx-connections-status-dot {
+  box-shadow: none;
+}
+
+.kmfx-connections-system h2,
+.kmfx-connections-section h2,
+.kmfx-connections-setup h2,
+.kmfx-connections-platforms h2 {
+  font-size: clamp(17px, 1.55vw, 21px);
+  letter-spacing: -0.025em;
+  font-weight: 680;
+}
+
+.kmfx-connections-system p,
+.kmfx-connections-setup p {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.kmfx-connections-system__meta {
+  gap: 6px;
+}
+
+.kmfx-connections-system__meta div {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-color: var(--border-0);
+  border-radius: 10px;
+  background: var(--layer-2);
+}
+
+.kmfx-connections-section,
+.kmfx-connections-setup,
+.kmfx-connections-platforms {
+  padding: 16px;
+}
+
+.kmfx-connections-section {
+  gap: 12px;
+}
+
+.kmfx-connections-section__head {
+  align-items: center;
+  gap: 14px;
+}
+
+.kmfx-connections-section__head h2,
+.kmfx-connections-platforms h2 {
+  margin-top: 6px;
+}
+
+.kmfx-connections-page .kmfx-mt5-grid {
+  gap: 12px;
+}
+
+.kmfx-connections-page .kmfx-mt5-card {
+  padding: 16px;
+  gap: 13px;
+  border-radius: 16px;
+  background: var(--layer-2);
+  border-color: var(--border-0);
+}
+
+.kmfx-connections-page .kmfx-mt5-card.is-active {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-0));
+  box-shadow: none;
+}
+
+.kmfx-connections-page .kmfx-mt5-card__alias {
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.kmfx-connections-page .kmfx-mt5-card__identity {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.kmfx-connections-page .kmfx-mt5-card__status-row {
+  gap: 10px;
+}
+
+.kmfx-connections-page .kmfx-mt5-status {
+  gap: 10px;
+}
+
+.kmfx-connections-page .kmfx-mt5-status__dot {
+  width: 9px;
+  height: 9px;
+  flex-basis: 9px;
+  box-shadow: none;
+}
+
+.kmfx-connections-page .kmfx-mt5-status__label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.kmfx-connections-page .kmfx-mt5-status__subtitle,
+.kmfx-connections-page .kmfx-mt5-card__sync {
+  font-size: 12px;
+}
+
+.kmfx-connections-primary-pill {
+  padding: 4px 8px;
+  border-color: var(--border-0);
+  color: var(--text-1);
+  background: var(--layer-3);
+  font-size: 10px;
+}
+
+.kmfx-connections-setup {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 1.25fr) auto;
+  gap: 14px;
+  background: transparent;
+}
+
+.kmfx-connections-setup.is-compact {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 1.25fr) auto;
+}
+
+.kmfx-connections-steps {
+  gap: 6px;
+}
+
+.kmfx-connections-steps li {
+  min-height: 54px;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--layer-2);
+  font-size: 11px;
+}
+
+.kmfx-connections-steps span {
+  width: 18px;
+  height: 18px;
+  background: var(--layer-3);
+  font-size: 10px;
+}
+
+.kmfx-connections-platforms {
+  gap: 12px;
+  background: transparent;
+}
+
+.kmfx-connections-platform-grid {
+  gap: 10px;
+}
+
+.kmfx-connections-platform {
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--layer-2);
+}
+
+.kmfx-connections-platform__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--layer-3);
+  font-size: 11px;
+}
+
+.kmfx-connections-platform strong {
+  font-size: 13px;
+}
+
+.kmfx-connections-platform span,
+.kmfx-connections-platform em {
+  font-size: 11px;
+}
+
+.kmfx-connections-empty {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--layer-2);
+}
+
+.kmfx-connections-empty__mark {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+  border-radius: 14px;
+}
+
+@media (max-width: 1180px) {
+  .kmfx-connections-system,
+  .kmfx-connections-setup,
+  .kmfx-connections-setup.is-compact {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .kmfx-connections-section__head {
+    align-items: stretch;
   }
 }
