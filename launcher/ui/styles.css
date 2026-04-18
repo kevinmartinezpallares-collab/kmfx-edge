@@ -1087,3 +1087,372 @@ pre {
   border-color: var(--border-0);
   background: var(--bg-2);
 }
+
+/* Final Tradelio-like simplification: flat, quiet, utilitarian. */
+html,
+body {
+  background: #141413 !important;
+}
+
+body,
+.auth-shell,
+.app-shell,
+.content {
+  background: #141413 !important;
+  background-image: none !important;
+}
+
+.auth-shell {
+  padding: 36px;
+}
+
+.auth-card {
+  width: min(430px, 100%);
+  padding: 34px 38px 32px;
+  border: 1px solid var(--border-0);
+  border-radius: 18px;
+  background: #18181A !important;
+  box-shadow: none;
+}
+
+.auth-brand {
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.auth-brand img {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+}
+
+.auth-copy {
+  text-align: center;
+}
+
+.auth-copy h1 {
+  margin-bottom: 8px;
+  font-size: 24px;
+  letter-spacing: -0.035em;
+}
+
+.auth-copy p {
+  max-width: none !important;
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.login-form {
+  gap: 13px;
+  margin-top: 26px;
+}
+
+.login-form label {
+  color: var(--text-0);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-form input {
+  height: 42px;
+  border-color: var(--border-0);
+  border-radius: 10px;
+  background: #141413;
+}
+
+.login-form input:focus {
+  border-color: rgba(78, 123, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(78, 123, 255, 0.15);
+}
+
+.button.primary {
+  background: var(--blue-0);
+  box-shadow: none;
+}
+
+.button.primary:hover {
+  background: var(--blue-1);
+}
+
+.auth-google-button,
+.button.secondary,
+.button.ghost,
+.icon-button {
+  background: #18181A;
+  box-shadow: none;
+}
+
+.auth-google-button {
+  min-height: 42px;
+  color: var(--text-1);
+}
+
+.button:hover,
+.icon-button:hover {
+  transform: none;
+}
+
+.password-recovery {
+  justify-content: center;
+  text-align: center;
+}
+
+.form-error,
+.oauth-status {
+  text-align: center;
+}
+
+.app-shell {
+  grid-template-columns: 242px 1fr;
+}
+
+.sidebar {
+  overflow: hidden;
+  padding: 24px 18px;
+  border-right: 1px solid var(--border-0);
+  background: #18181A !important;
+}
+
+.sidebar-brand {
+  padding: 8px 8px 30px;
+}
+
+.nav-list {
+  gap: 7px;
+}
+
+.nav-item {
+  padding: 11px 14px;
+  border-radius: 10px;
+  color: var(--text-1);
+}
+
+.nav-item.is-active,
+.nav-item:hover {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.065);
+  color: var(--text-0);
+}
+
+.sidebar-footer {
+  min-width: 0;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-0);
+}
+
+.session-card {
+  grid-template-columns: 36px minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.session-card > div:last-child {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.session-card strong,
+.session-card span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-card strong {
+  font-size: 13px;
+}
+
+.session-card span {
+  font-size: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--blue-0);
+}
+
+#logout-button {
+  justify-content: center;
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+}
+
+.content {
+  padding: 34px 38px;
+}
+
+.view {
+  max-width: 920px;
+}
+
+.page-header {
+  margin-bottom: 22px;
+}
+
+.page-header h1 {
+  margin-bottom: 6px;
+  font-size: 30px;
+}
+
+.page-header p:not(.eyebrow) {
+  font-size: 14px;
+}
+
+.tabs {
+  margin-bottom: 22px;
+  padding: 4px;
+  border-color: var(--border-0);
+  background: #18181A;
+}
+
+.tab {
+  min-width: 70px;
+  padding: 8px 14px;
+}
+
+.tab.is-active {
+  background: var(--blue-0);
+  color: white;
+  box-shadow: none;
+}
+
+.tool-card,
+.settings-card,
+.diagnostics {
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: #18181A !important;
+  box-shadow: none;
+}
+
+.tool-card {
+  max-width: 560px;
+  padding: 22px;
+}
+
+.tool-header {
+  gap: 14px;
+}
+
+.tool-title {
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.tool-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #1F1F22;
+}
+
+.tool-icon img {
+  width: 34px;
+  height: 34px;
+}
+
+.tool-title-row {
+  gap: 8px;
+}
+
+.tool-title-row h2 {
+  font-size: 17px;
+}
+
+.tool-title p,
+.helper-text {
+  font-size: 14px;
+}
+
+.tool-type {
+  padding: 4px 8px;
+  background: #26262B;
+  color: var(--text-1);
+  font-size: 11px;
+}
+
+.status-badge,
+.signal {
+  padding: 6px 9px;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.signal-row {
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.tool-actions {
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.button {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.button.small {
+  min-height: 36px;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.settings-card,
+.diagnostics {
+  padding: 22px;
+}
+
+.section-title {
+  margin-bottom: 16px;
+}
+
+.section-title h2 {
+  font-size: 22px;
+}
+
+.installation-row,
+.info-row,
+.diagnostic-row {
+  padding: 12px;
+  border-radius: 10px;
+  background: #141413;
+}
+
+.installation-row span:first-of-type,
+.info-row strong,
+.diagnostic-row code {
+  max-width: min(52vw, 560px);
+}
+
+.diagnostics {
+  color: var(--text-1);
+}
+
+.diagnostics summary {
+  font-size: 14px;
+}
+
+.toast {
+  background: #18181A;
+  box-shadow: none;
+}

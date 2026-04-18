@@ -11,18 +11,11 @@
     <main id="auth-screen" class="auth-shell" aria-live="polite">
       <section class="auth-card">
         <div class="auth-brand">
-          <div class="auth-logo">
-            <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
-          </div>
-          <div>
-            <strong>KMFX Launcher</strong>
-            <span>KMFX Edge Companion</span>
-          </div>
+          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
         </div>
         <div class="auth-copy">
-          <p class="eyebrow">Acceso</p>
-          <h1>Conecta MetaTrader con KMFX Edge</h1>
-          <p>Inicia sesión con tu cuenta para preparar el connector en este equipo.</p>
+          <h1>KMFX Launcher</h1>
+          <p>Inicia sesión para usar el asistente de instalación de KMFX.</p>
         </div>
         <form id="login-form" class="login-form">
           <label>
@@ -81,9 +74,8 @@
         <section id="view-home" class="view is-active">
           <header class="page-header">
             <div>
-              <p class="eyebrow">Mis herramientas</p>
-              <h1>Gestiona tu instalación local de KMFX</h1>
-              <p>Instala el connector oficial y abre MetaTrader 5 desde un único lugar.</p>
+              <h1>Mis herramientas</h1>
+              <p>Gestiona tus instalaciones de KMFX.</p>
             </div>
             <button id="refresh-button" class="icon-button" type="button" aria-label="Refrescar">↻</button>
           </header>
@@ -121,16 +113,15 @@
               <button id="open-mt5-button" class="button secondary" type="button">Abrir MT5</button>
             </div>
 
-            <p id="status-message" class="helper-text">El launcher detecta MetaTrader e instala el connector automáticamente.</p>
+            <p id="status-message" class="helper-text">Instala el connector y abre MetaTrader 5.</p>
           </article>
         </section>
 
         <section id="view-settings" class="view">
           <header class="page-header compact">
             <div>
-              <p class="eyebrow">Configuración</p>
-              <h1>Aplicación e instalaciones detectadas</h1>
-              <p>Información local del launcher. El diagnóstico técnico queda oculto por defecto.</p>
+              <h1>Configuración</h1>
+              <p>Información local de la aplicación.</p>
             </div>
           </header>
 
@@ -138,7 +129,7 @@
             <div class="section-title">
               <div>
                 <h2>Instalaciones detectadas</h2>
-                <p>Carpetas de MetaTrader encontradas en este equipo.</p>
+                <p>Carpetas de MetaTrader encontradas.</p>
               </div>
               <button id="redetect-button" class="button secondary small" type="button">Volver a detectar</button>
             </div>
@@ -149,7 +140,7 @@
             <div class="section-title">
               <div>
                 <h2>Sobre la aplicación</h2>
-                <p>Versiones y estado operativo del helper local.</p>
+                <p>Versiones y conexión local.</p>
               </div>
             </div>
             <div id="app-info" class="info-grid"></div>
