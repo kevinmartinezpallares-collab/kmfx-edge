@@ -284,43 +284,21 @@ function renderMetricsRow(accounts = [], dataSource = "empty") {
       <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
         <div class="kmfx-ds-kpi-label">Último sync</div>
         <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${status.syncLabel}</div>
-        <div class="kmfx-ds-kpi-meta">${accountsCount ? "Estado recibido desde la cuenta conectada." : "Aún no se ha recibido actividad desde MT5."}</div>
+        <div class="kmfx-ds-kpi-meta">${accountsCount ? "Actividad reciente del connector." : "Pendiente de primer sync."}</div>
       </article>
 
       <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
         <div class="kmfx-ds-kpi-label">Fuente</div>
         <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${sourceLabel}</div>
-        <div class="kmfx-ds-kpi-meta">${status.copy}</div>
+        <div class="kmfx-ds-kpi-meta">${dataSource === "empty" ? "Sin datos operativos todavía." : "Lectura activa del sistema."}</div>
       </article>
 
       <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
         <div class="kmfx-ds-kpi-label">Cuentas conectadas</div>
         <div class="kmfx-ds-kpi-value">${accountsCount}</div>
-        <div class="kmfx-ds-kpi-meta">${accountsCount === 1 ? "1 cuenta detectada en el sistema." : `${accountsCount} cuentas detectadas en el sistema.`}</div>
+        <div class="kmfx-ds-kpi-meta">${accountsCount === 1 ? "1 cuenta activa en el registry." : `${accountsCount} cuentas registradas.`}</div>
       </article>
     </section>
-  `;
-}
-
-function renderSetupGuide(hasAccounts) {
-  return `
-    <article class="kmfx-connections-setup kmfx-ds-card kmfx-ds-section-card ${hasAccounts ? "is-compact" : ""}">
-      <div class="kmfx-connections-setup__copy">
-        <span class="kmfx-connections-eyebrow">Setup guiado</span>
-        <h2 class="kmfx-ds-title">${hasAccounts ? "Completa la sincronización" : "Conecta una cuenta en cuatro pasos"}</h2>
-        <p class="kmfx-ds-subtitle">${hasAccounts ? "Si la cuenta sigue pendiente, abre el Launcher para instalar o reparar el connector." : "El Launcher solo instala el connector. La conexión real aparece aquí cuando MT5 envía el primer sync."}</p>
-      </div>
-      <ol class="kmfx-connections-steps">
-        <li class="kmfx-ds-card kmfx-ds-card--compact"><span>1</span>Descargar</li>
-        <li class="kmfx-ds-card kmfx-ds-card--compact"><span>2</span>Instalar</li>
-        <li class="kmfx-ds-card kmfx-ds-card--compact"><span>3</span>Conectar</li>
-        <li class="kmfx-ds-card kmfx-ds-card--compact"><span>4</span>Volver al dashboard</li>
-      </ol>
-      <div class="kmfx-connections-setup__actions">
-        <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
-        <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-      </div>
-    </article>
   `;
 }
 
@@ -328,14 +306,17 @@ function renderPlatformsBlock(accounts = []) {
   const mt5Detected = platformDetected(accounts, "mt5") || accounts.length > 0;
   const mt4Detected = platformDetected(accounts, "mt4");
   return `
-    <article class="kmfx-connections-platforms kmfx-ds-card kmfx-ds-section-card">
-      <div>
+    <article class="kmfx-connections-platforms kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
+      <div class="kmfx-page__section-head">
+        <div class="kmfx-page__section-copy">
         <span class="kmfx-connections-eyebrow">Plataformas detectadas</span>
-        <h2 class="kmfx-ds-title">Terminales compatibles</h2>
+        <h2 class="kmfx-page__section-title">Terminales compatibles</h2>
+        <p class="kmfx-page__section-subtitle">Disponibilidad del entorno para conectar cuentas desde KMFX.</p>
+        </div>
       </div>
       <div class="kmfx-connections-platform-grid">
-        ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Cuenta o snapshot detectado" : "Listo para instalar connector")}
-        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Instalación detectada" : "Aún no disponible en esta cuenta")}
+        ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Disponible" : "Pendiente")}
+        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Disponible" : "No disponible")}
       </div>
     </article>
   `;
@@ -477,7 +458,7 @@ function renderEmptyState(root) {
         <div class="kmfx-page__copy">
           <div class="kmfx-page__eyebrow">Centro de conexión</div>
           <h1 class="kmfx-page__title">Conexiones</h1>
-          <p class="kmfx-page__subtitle">Instala, conecta y valida tus cuentas de trading desde un único lugar.</p>
+          <p class="kmfx-page__subtitle">Estado operativo de tus conectores y cuentas dentro de KMFX Edge.</p>
         </div>
         <div class="kmfx-page__actions">
           <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
@@ -487,29 +468,26 @@ function renderEmptyState(root) {
 
       ${renderMetricsRow([], "empty")}
 
-      <section class="kmfx-page__main kmfx-connections-main">
+      <section class="kmfx-page__main kmfx-page__main--single kmfx-connections-main">
         <div class="kmfx-page__primary">
           <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
             <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
               <div class="kmfx-page__section-copy">
                 <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
                 <h2 class="kmfx-page__section-title">Ninguna cuenta conectada todavía</h2>
+                <p class="kmfx-page__section-subtitle">Conecta una cuenta para empezar a sincronizar actividad real.</p>
               </div>
               <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
             </div>
             <article class="kmfx-connections-empty kmfx-ds-card kmfx-ds-card--compact">
               <div class="kmfx-connections-empty__mark">MT5</div>
               <div>
-                <h3 class="kmfx-page__section-title">Empieza conectando MetaTrader</h3>
-                <p class="kmfx-page__section-subtitle">Cuando el primer sync llegue al backend, la cuenta aparecerá aquí y podrá alimentar el Panel.</p>
+                <h3 class="kmfx-page__section-title">Sin cuentas conectadas</h3>
+                <p class="kmfx-page__section-subtitle">La cuenta aparecerá aquí en cuanto llegue el primer sync.</p>
               </div>
             </article>
           </section>
         </div>
-
-        <aside class="kmfx-page__secondary kmfx-page__secondary--compact">
-          ${renderSetupGuide(false)}
-        </aside>
       </section>
 
       <section class="kmfx-page__stack kmfx-connections-secondary">
@@ -526,9 +504,10 @@ function renderAccountsSection(registryAccounts, activeAccountId, activeAccount,
     <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
       <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
         <div class="kmfx-page__section-copy">
-            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
-            <h2 class="kmfx-page__section-title">${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
-          </div>
+          <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
+          <h2 class="kmfx-page__section-title">${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
+          <p class="kmfx-page__section-subtitle">Estado actual de las cuentas registradas en el sistema.</p>
+        </div>
         <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
       </div>
       <div class="kmfx-mt5-grid">
@@ -873,7 +852,7 @@ export function renderConnections(root, state) {
         <div class="kmfx-page__copy">
           <div class="kmfx-page__eyebrow">Centro de conexión</div>
           <h1 class="kmfx-page__title">Conexiones</h1>
-          <p class="kmfx-page__subtitle">Configura el sistema, valida tus cuentas y confirma que MT5 está sincronizando con KMFX Edge.</p>
+          <p class="kmfx-page__subtitle">Estado operativo de tus conectores y cuentas dentro de KMFX Edge.</p>
         </div>
         <div class="kmfx-page__actions">
           ${adminVisible ? `<button class="kmfx-ds-btn kmfx-ds-btn--ghost" type="button" data-account-admin-toggle="true">${adminState.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
@@ -884,14 +863,10 @@ export function renderConnections(root, state) {
 
       ${renderMetricsRow(registryAccounts, registrySource)}
 
-      <section class="kmfx-page__main kmfx-connections-main">
+      <section class="kmfx-page__main kmfx-page__main--single kmfx-connections-main">
         <div class="kmfx-page__primary">
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </div>
-
-        <aside class="kmfx-page__secondary kmfx-page__secondary--compact">
-          ${renderSetupGuide(true)}
-        </aside>
       </section>
 
       <section class="kmfx-page__stack kmfx-connections-secondary">
