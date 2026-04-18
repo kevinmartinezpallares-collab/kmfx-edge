@@ -1,4 +1,4 @@
-import { resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
@@ -53,9 +53,23 @@ function relativeTime(value) {
   return `hace ${days}d`;
 }
 
+function readDateMs(value) {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function isConnectedStatus(status = "") {
+  return ["connected", "active", "first_sync_received"].includes(String(status || "").toLowerCase());
+}
+
+function isPendingStatus(status = "") {
+  return ["waiting_sync", "linked", "pending_setup", "pending", "pending_link", "draft"].includes(String(status || "").toLowerCase());
+}
+
 function accountStatusMeta(status = "", lastSyncAt = "") {
   const relative = relativeTime(lastSyncAt);
-  if (status === "connected" || status === "active") {
+  if (status === "connected" || status === "active" || status === "first_sync_received") {
     return {
       label: "Conectada",
       tone: "connected",
@@ -151,6 +165,176 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function resolveRegistryAccounts(state) {
+  // Connections UI source order: backend registry first; live snapshot fallback only
+  // keeps the page useful while registry polling is unavailable or still loading.
+  const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
+  if (managedAccounts.length) return { accounts: managedAccounts, source: "registry" };
+
+  const liveAccountIds = selectLiveAccountIds(state);
+  const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
+  const fallbackAccounts = liveAccountIds
+    .map((accountId) => accountDirectory[accountId])
+    .filter(Boolean)
+    .map((account) => ({
+      account_id: account.accountId,
+      alias: account.displayName,
+      display_name: account.displayName,
+      platform: account.platform,
+      connection_mode: account.connectionMode,
+      status: account.status,
+      broker: account.broker,
+      login: account.login,
+      server: account.server,
+      last_sync_at: account.lastSyncAt,
+    }));
+
+  return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
+}
+
+function resolveLatestSyncAt(accounts = []) {
+  return accounts
+    .map((account) => account.last_sync_at || account.lastSyncAt || "")
+    .filter(Boolean)
+    .sort((left, right) => readDateMs(right) - readDateMs(left))[0] || "";
+}
+
+function resolveSystemStatus(accounts = []) {
+  const latestSyncAt = resolveLatestSyncAt(accounts);
+  const hasConnected = accounts.some((account) => isConnectedStatus(account.status));
+  const hasPending = accounts.some((account) => isPendingStatus(account.status));
+  const latestSyncMs = readDateMs(latestSyncAt);
+  const syncAgeSeconds = latestSyncMs ? Math.max(0, Math.round((Date.now() - latestSyncMs) / 1000)) : Infinity;
+
+  if (hasConnected && syncAgeSeconds <= 180) {
+    return {
+      label: "Conectado",
+      tone: "connected",
+      headline: "Sistema listo",
+      copy: "La cuenta activa está sincronizando datos reales con KMFX Edge.",
+      bridge: "Bridge operativo",
+      syncLabel: relativeTime(latestSyncAt),
+    };
+  }
+
+  if (hasConnected || latestSyncAt) {
+    return {
+      label: "Sincronización pendiente",
+      tone: "waiting",
+      headline: "Conexión sin actividad reciente",
+      copy: "La cuenta existe, pero necesitamos un nuevo sync del connector para confirmar estado live.",
+      bridge: "Esperando sync",
+      syncLabel: relativeTime(latestSyncAt),
+    };
+  }
+
+  if (hasPending || accounts.length) {
+    return {
+      label: "Pendiente",
+      tone: "pending",
+      headline: "Setup iniciado",
+      copy: "La cuenta está creada. Completa la instalación y vuelve cuando llegue el primer sync.",
+      bridge: "Esperando primer sync",
+      syncLabel: "Sin sincronización",
+    };
+  }
+
+  return {
+    label: "Sin conexión",
+    tone: "neutral",
+    headline: "Conecta tu primera cuenta",
+    copy: "Prepara MetaTrader, instala el connector y vuelve al dashboard con el flujo guiado.",
+    bridge: "Sin bridge activo",
+    syncLabel: "Sin sincronización",
+  };
+}
+
+function platformDetected(accounts = [], platform) {
+  return accounts.some((account) => String(account.platform || "").toLowerCase() === platform);
+}
+
+function renderSystemBlock(accounts = [], dataSource = "empty") {
+  const status = resolveSystemStatus(accounts);
+  return `
+    <article class="kmfx-connections-system kmfx-connections-system--${status.tone}">
+      <div class="kmfx-connections-system__status">
+        <span class="kmfx-connections-status-dot"></span>
+        <span>${status.label}</span>
+      </div>
+      <div>
+        <h2>${status.headline}</h2>
+        <p>${status.copy}</p>
+      </div>
+      <div class="kmfx-connections-system__meta">
+        <div>
+          <span>Conexión</span>
+          <strong>${status.bridge}</strong>
+        </div>
+        <div>
+          <span>Último sync</span>
+          <strong>${status.syncLabel}</strong>
+        </div>
+        <div>
+          <span>Fuente</span>
+          <strong>${dataSource === "registry" ? "Registry" : dataSource === "snapshot" ? "Snapshot live" : "Sin datos"}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderSetupGuide(hasAccounts) {
+  return `
+    <article class="kmfx-connections-setup ${hasAccounts ? "is-compact" : ""}">
+      <div class="kmfx-connections-setup__copy">
+        <span class="kmfx-connections-eyebrow">Setup guiado</span>
+        <h2>${hasAccounts ? "Completa la sincronización" : "Conecta una cuenta en cuatro pasos"}</h2>
+        <p>${hasAccounts ? "Si la cuenta sigue pendiente, abre el Launcher para instalar o reparar el connector." : "El Launcher solo instala el connector. La conexión real aparece aquí cuando MT5 envía el primer sync."}</p>
+      </div>
+      <ol class="kmfx-connections-steps">
+        <li><span>1</span>Descargar</li>
+        <li><span>2</span>Instalar</li>
+        <li><span>3</span>Conectar</li>
+        <li><span>4</span>Volver al dashboard</li>
+      </ol>
+      <div class="kmfx-connections-setup__actions">
+        <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+        <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderPlatformsBlock(accounts = []) {
+  const mt5Detected = platformDetected(accounts, "mt5") || accounts.length > 0;
+  const mt4Detected = platformDetected(accounts, "mt4");
+  return `
+    <article class="kmfx-connections-platforms">
+      <div>
+        <span class="kmfx-connections-eyebrow">Plataformas detectadas</span>
+        <h2>Terminales compatibles</h2>
+      </div>
+      <div class="kmfx-connections-platform-grid">
+        ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Cuenta o snapshot detectado" : "Listo para instalar connector")}
+        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Instalación detectada" : "Aún no disponible en esta cuenta")}
+      </div>
+    </article>
+  `;
+}
+
+function renderPlatformCard(label, detected, subtitle) {
+  return `
+    <div class="kmfx-connections-platform ${detected ? "is-detected" : ""}">
+      <div class="kmfx-connections-platform__icon">${label}</div>
+      <div>
+        <strong>${label}</strong>
+        <span>${subtitle}</span>
+      </div>
+      <em>${detected ? "Detectado" : "No detectado"}</em>
+    </div>
+  `;
 }
 
 function isAdminUser(state) {
@@ -271,32 +455,40 @@ function renderAccountWizard(root) {
 
 function renderEmptyState(root) {
   root.innerHTML = `
-    <section class="kmfx-mt5-page">
-      <header class="kmfx-mt5-header">
+    <section class="kmfx-mt5-page kmfx-connections-page">
+      <header class="kmfx-mt5-header kmfx-connections-header">
         <div>
-          <h1 class="kmfx-mt5-header__title">Cuentas MT5</h1>
-          <p class="kmfx-mt5-header__subtitle">Gestiona y conecta tus cuentas de trading</p>
+          <div class="kmfx-connections-eyebrow">Centro de conexión</div>
+          <h1 class="kmfx-mt5-header__title">Conexiones</h1>
+          <p class="kmfx-mt5-header__subtitle">Instala, conecta y valida tus cuentas de trading desde un único lugar.</p>
         </div>
         <div class="kmfx-mt5-header__actions">
-          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
-          <button class="btn-primary" type="button" data-account-add="true">+ Añadir cuenta</button>
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
         </div>
       </header>
 
-      <article class="kmfx-mt5-empty">
-        <div class="kmfx-mt5-empty__icon">◎</div>
-        <div class="kmfx-mt5-empty__title">Conecta tu primera cuenta MT5</div>
-        <div class="kmfx-mt5-empty__copy">Descarga el Launcher y vincula tu cuenta en segundos</div>
-        <ol class="kmfx-mt5-empty__steps">
-          <li>Descarga KMFX Launcher</li>
-          <li>Crea una cuenta</li>
-          <li>Vincúlala automáticamente</li>
-        </ol>
-        <div class="kmfx-mt5-empty__actions">
-          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
-          <button class="btn-primary" type="button" data-account-add="true">Añadir cuenta</button>
+      ${renderSystemBlock([], "empty")}
+
+      <section class="kmfx-connections-section">
+        <div class="kmfx-connections-section__head">
+          <div>
+            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
+            <h2>Ninguna cuenta conectada todavía</h2>
+          </div>
+          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
         </div>
-      </article>
+        <article class="kmfx-connections-empty">
+          <div class="kmfx-connections-empty__mark">MT5</div>
+          <div>
+            <h3>Empieza conectando MetaTrader</h3>
+            <p>Cuando el primer sync llegue al backend, la cuenta aparecerá aquí y podrá alimentar el Panel.</p>
+          </div>
+        </article>
+      </section>
+
+      ${renderSetupGuide(false)}
+      ${renderPlatformsBlock([])}
       ${renderAccountWizard(root)}
     </section>
   `;
@@ -351,9 +543,10 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
     <article class="kmfx-mt5-card ${isActive ? "is-active" : ""}">
       <div class="kmfx-mt5-card__top">
         <div>
-          <div class="kmfx-mt5-card__alias">${account.alias || account.display_name || "Cuenta MT5"}</div>
-          <div class="kmfx-mt5-card__identity">${identityLine}</div>
+          <div class="kmfx-mt5-card__alias">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
+          <div class="kmfx-mt5-card__identity">${escapeHtml(identityLine)}</div>
         </div>
+        ${isActive ? `<span class="kmfx-connections-primary-pill">Cuenta activa</span>` : ""}
       </div>
       <div class="kmfx-mt5-card__status-row">
         <div class="kmfx-mt5-status kmfx-mt5-status--${meta.tone}">
@@ -608,34 +801,18 @@ export function initConnections(store) {
 }
 
 export function renderConnections(root, state) {
-  console.info("[KMFX][BOOT]", {
-    label: "render-connections",
-    mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
-    currentAccount: state.currentAccount,
-    liveAccountIds: state.liveAccountIds || [],
-  });
-  const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
-  const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
-  const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
-  const activeAccountId = resolveActiveAccountId(state);
-  const activeAccount = selectCurrentAccount(state);
+  const activeAccountId = selectActiveAccountId(state);
+  const activeAccount = selectActiveAccount(state);
+  const { accounts: registryAccounts, source: registrySource } = resolveRegistryAccounts(state);
   const adminVisible = isAdminUser(state);
   const adminState = getAdminState(root);
-  const fallbackLiveAccounts = liveAccountIds
-    .map((accountId) => accountDirectory[accountId])
-    .filter(Boolean);
-  const registryAccounts = managedAccounts.length ? managedAccounts : fallbackLiveAccounts.map((account) => ({
-    account_id: account.accountId,
-    alias: account.displayName,
-    display_name: account.displayName,
-    platform: account.platform,
-    connection_mode: account.connectionMode,
-    status: account.status,
-    broker: account.broker,
-    login: account.login,
-    server: account.server,
-    last_sync_at: account.lastSyncAt,
-  }));
+
+  console.info("[KMFX][BOOT]", {
+    label: "render-connections",
+    mode: selectLiveAccountIds(state).length > 0 ? "live" : "mock",
+    activeAccountId,
+    registrySource,
+  });
 
   if (!registryAccounts.length) {
     renderEmptyState(root);
@@ -643,26 +820,41 @@ export function renderConnections(root, state) {
   }
 
   root.innerHTML = `
-    <section class="kmfx-mt5-page">
-      <header class="kmfx-mt5-header">
+    <section class="kmfx-mt5-page kmfx-connections-page">
+      <header class="kmfx-mt5-header kmfx-connections-header">
         <div>
-          <h1 class="kmfx-mt5-header__title">Cuentas MT5</h1>
-          <p class="kmfx-mt5-header__subtitle">Gestiona y conecta tus cuentas de trading</p>
+          <div class="kmfx-connections-eyebrow">Centro de conexión</div>
+          <h1 class="kmfx-mt5-header__title">Conexiones</h1>
+          <p class="kmfx-mt5-header__subtitle">Configura el sistema, valida tus cuentas y confirma que MT5 está sincronizando con KMFX Edge.</p>
         </div>
         <div class="kmfx-mt5-header__actions">
           ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
-          <button class="btn-primary" type="button" data-account-add="true">+ Añadir cuenta</button>
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
         </div>
       </header>
 
-      <div class="kmfx-mt5-grid">
-        ${registryAccounts.map((account) => renderAccountCard(account, {
-          isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
-          adminOpen: adminVisible && adminState.open,
-          adminState,
-        })).join("")}
-      </div>
+      ${renderSystemBlock(registryAccounts, registrySource)}
+
+      <section class="kmfx-connections-section">
+        <div class="kmfx-connections-section__head">
+          <div>
+            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
+            <h2>${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
+          </div>
+          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+        </div>
+        <div class="kmfx-mt5-grid">
+          ${registryAccounts.map((account) => renderAccountCard(account, {
+            isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+            adminOpen: adminVisible && adminState.open,
+            adminState,
+          })).join("")}
+        </div>
+      </section>
+
+      ${renderSetupGuide(true)}
+      ${renderPlatformsBlock(registryAccounts)}
 
       ${renderAccountWizard(root)}
     </section>
