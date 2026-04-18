@@ -13,3 +13,7 @@ kmfx_equity_*.json
 kmfx_risk_*.json
 kmfx_bridge_*.log
 __pycache__/
+
+# Generated launcher packaging artifacts
+build/
+dist/

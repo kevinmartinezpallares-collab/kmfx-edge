@@ -7,16 +7,16 @@ from pathlib import Path
 
 from .config import LauncherConfig
 from .mt5_detector import MT5Installation
+from .resources import resource_path
 
 
-ROOT = Path(__file__).resolve().parent.parent
 LOGGER = logging.getLogger("kmfx_launcher")
 
 
 def connector_sources() -> list[Path]:
     candidates = [
-        ROOT / "KMFXConnector.ex5",
-        ROOT / "KMFXConnector.mq5",
+        resource_path("KMFXConnector.ex5"),
+        resource_path("KMFXConnector.mq5"),
     ]
     return [path for path in candidates if path.exists()]
 

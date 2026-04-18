@@ -792,7 +792,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
 
 
 def main() -> None:
-    uvicorn.run("launcher.service:app", host=config.local_host, port=config.local_port, reload=False, log_level="info")
+    uvicorn.run(app, host=config.local_host, port=config.local_port, reload=False, log_level="info")
 
 
 if __name__ == "__main__":

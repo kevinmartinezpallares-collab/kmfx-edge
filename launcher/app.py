@@ -28,19 +28,20 @@ from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
 from .platform_mac import open_mt5 as open_mt5_mac
 from .platform_windows import open_mt5 as open_mt5_windows
+from .resources import app_root, is_packaged, resource_path
 
 
-ROOT = Path(__file__).resolve().parent.parent
-UI_PATH = Path(__file__).resolve().parent / "ui" / "index.html"
+ROOT = app_root()
+UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
 DEFAULT_CONNECTOR_VERSION = "2.75"
-APP_ICON_PATH = ROOT / "assets" / "logos" / "kmfx-edge-icon-1024.png"
+APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-icon-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 DASHBOARD_RECOVERY_URL = "https://dashboard.kmfxedge.com?auth=recovery"
 
 
 def _read_connector_version() -> str:
-    source = ROOT / "KMFXConnector.mq5"
+    source = resource_path("KMFXConnector.mq5")
     if not source.exists():
         return DEFAULT_CONNECTOR_VERSION
     try:
@@ -106,6 +107,7 @@ class KMFXApi:
         self.backend = BackendClient(self.config)
         self.installations: list[MT5Installation] = []
         self.service_process: subprocess.Popen[str] | None = None
+        self.service_thread: threading.Thread | None = None
         self._lock = threading.RLock()
         self._last_service_status: dict[str, Any] = {}
         self._last_service_seen_at = 0.0
@@ -432,6 +434,20 @@ class KMFXApi:
         if self.service_process and self.service_process.poll() is None:
             return
         save_config(self.config)
+        if is_packaged():
+            if self.service_thread and self.service_thread.is_alive():
+                return
+            from . import service as launcher_service
+
+            self.service_thread = threading.Thread(
+                target=launcher_service.main,
+                name="KMFXLauncherService",
+                daemon=True,
+            )
+            self.service_thread.start()
+            self.logger.info("[KMFX][LAUNCHER] service thread started packaged=true")
+            return
+
         self.service_process = subprocess.Popen(
             [sys.executable, "-m", "launcher.service"],
             cwd=str(ROOT),
@@ -446,6 +462,8 @@ class KMFXApi:
         if self.service_process and self.service_process.poll() is None:
             self.service_process.terminate()
             self.logger.info("[KMFX][LAUNCHER] service process terminated")
+        if self.service_thread and self.service_thread.is_alive():
+            self.logger.info("[KMFX][LAUNCHER] packaged service thread will stop with app process")
 
     def service_url(self, path: str) -> str:
         return f"http://{self.config.local_host}:{self.config.local_port}{path}"
