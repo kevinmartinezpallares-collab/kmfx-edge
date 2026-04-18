@@ -262,32 +262,43 @@ function mapConnectionsToneToPill(tone) {
   return "neutral";
 }
 
-function renderSystemBlock(accounts = [], dataSource = "empty") {
+function resolveConnectionsSourceLabel(dataSource = "empty") {
+  return dataSource === "registry" ? "Registry" : dataSource === "snapshot" ? "Snapshot live" : "Sin datos";
+}
+
+function renderMetricsRow(accounts = [], dataSource = "empty") {
   const status = resolveSystemStatus(accounts);
+  const accountsCount = accounts.length;
+  const sourceLabel = resolveConnectionsSourceLabel(dataSource);
   return `
-    <article class="kmfx-connections-system kmfx-connections-system--${status.tone} kmfx-ds-card kmfx-ds-section-card">
-      <div class="kmfx-connections-system__status kmfx-ds-pill kmfx-ds-pill--${mapConnectionsToneToPill(status.tone)}">
-        <span>${status.label}</span>
-      </div>
-      <div>
-        <h2 class="kmfx-ds-title">${status.headline}</h2>
-        <p class="kmfx-ds-subtitle">${status.copy}</p>
-      </div>
-      <div class="kmfx-connections-system__meta">
-        <div class="kmfx-ds-card kmfx-ds-card--compact">
-          <span class="kmfx-ds-muted">Conexión</span>
-          <strong>${status.bridge}</strong>
+    <section class="kmfx-page__metrics kmfx-connections-metrics" aria-label="Estado del sistema">
+      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
+        <div class="kmfx-connections-metric__top">
+          <div class="kmfx-ds-kpi-label">Conexión</div>
+          <span class="kmfx-ds-pill kmfx-ds-pill--${mapConnectionsToneToPill(status.tone)}">${status.label}</span>
         </div>
-        <div class="kmfx-ds-card kmfx-ds-card--compact">
-          <span class="kmfx-ds-muted">Último sync</span>
-          <strong>${status.syncLabel}</strong>
-        </div>
-        <div class="kmfx-ds-card kmfx-ds-card--compact">
-          <span class="kmfx-ds-muted">Fuente</span>
-          <strong>${dataSource === "registry" ? "Registry" : dataSource === "snapshot" ? "Snapshot live" : "Sin datos"}</strong>
-        </div>
-      </div>
-    </article>
+        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${status.bridge}</div>
+        <div class="kmfx-ds-kpi-meta">${status.headline}</div>
+      </article>
+
+      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
+        <div class="kmfx-ds-kpi-label">Último sync</div>
+        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${status.syncLabel}</div>
+        <div class="kmfx-ds-kpi-meta">${accountsCount ? "Estado recibido desde la cuenta conectada." : "Aún no se ha recibido actividad desde MT5."}</div>
+      </article>
+
+      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
+        <div class="kmfx-ds-kpi-label">Fuente</div>
+        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${sourceLabel}</div>
+        <div class="kmfx-ds-kpi-meta">${status.copy}</div>
+      </article>
+
+      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
+        <div class="kmfx-ds-kpi-label">Cuentas conectadas</div>
+        <div class="kmfx-ds-kpi-value">${accountsCount}</div>
+        <div class="kmfx-ds-kpi-meta">${accountsCount === 1 ? "1 cuenta detectada en el sistema." : `${accountsCount} cuentas detectadas en el sistema.`}</div>
+      </article>
+    </section>
   `;
 }
 
@@ -461,41 +472,72 @@ function renderAccountWizard(root) {
 
 function renderEmptyState(root) {
   root.innerHTML = `
-    <section class="kmfx-mt5-page kmfx-connections-page">
-      <header class="kmfx-mt5-header kmfx-connections-header">
-        <div>
-          <div class="kmfx-connections-eyebrow">Centro de conexión</div>
-          <h1 class="kmfx-mt5-header__title kmfx-ds-title">Conexiones</h1>
-          <p class="kmfx-mt5-header__subtitle kmfx-ds-subtitle">Instala, conecta y valida tus cuentas de trading desde un único lugar.</p>
+    <section class="kmfx-page kmfx-page--compact kmfx-connections-page">
+      <header class="kmfx-page__header kmfx-connections-header">
+        <div class="kmfx-page__copy">
+          <div class="kmfx-page__eyebrow">Centro de conexión</div>
+          <h1 class="kmfx-page__title">Conexiones</h1>
+          <p class="kmfx-page__subtitle">Instala, conecta y valida tus cuentas de trading desde un único lugar.</p>
         </div>
-        <div class="kmfx-mt5-header__actions">
+        <div class="kmfx-page__actions">
           <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
           <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
         </div>
       </header>
 
-      ${renderSystemBlock([], "empty")}
+      ${renderMetricsRow([], "empty")}
 
-      <section class="kmfx-connections-section kmfx-ds-card kmfx-ds-section-card">
-        <div class="kmfx-connections-section__head kmfx-ds-section-head">
-          <div>
-            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
-            <h2 class="kmfx-ds-title">Ninguna cuenta conectada todavía</h2>
-          </div>
-          <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
+      <section class="kmfx-page__main kmfx-connections-main">
+        <div class="kmfx-page__primary">
+          <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
+            <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
+              <div class="kmfx-page__section-copy">
+                <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
+                <h2 class="kmfx-page__section-title">Ninguna cuenta conectada todavía</h2>
+              </div>
+              <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
+            </div>
+            <article class="kmfx-connections-empty kmfx-ds-card kmfx-ds-card--compact">
+              <div class="kmfx-connections-empty__mark">MT5</div>
+              <div>
+                <h3 class="kmfx-page__section-title">Empieza conectando MetaTrader</h3>
+                <p class="kmfx-page__section-subtitle">Cuando el primer sync llegue al backend, la cuenta aparecerá aquí y podrá alimentar el Panel.</p>
+              </div>
+            </article>
+          </section>
         </div>
-        <article class="kmfx-connections-empty kmfx-ds-card kmfx-ds-card--compact">
-          <div class="kmfx-connections-empty__mark">MT5</div>
-          <div>
-            <h3 class="kmfx-ds-title">Empieza conectando MetaTrader</h3>
-            <p class="kmfx-ds-subtitle">Cuando el primer sync llegue al backend, la cuenta aparecerá aquí y podrá alimentar el Panel.</p>
-          </div>
-        </article>
+
+        <aside class="kmfx-page__secondary kmfx-page__secondary--compact">
+          ${renderSetupGuide(false)}
+        </aside>
       </section>
 
-      ${renderSetupGuide(false)}
-      ${renderPlatformsBlock([])}
+      <section class="kmfx-page__stack kmfx-connections-secondary">
+        ${renderPlatformsBlock([])}
+      </section>
+
       ${renderAccountWizard(root)}
+    </section>
+  `;
+}
+
+function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState) {
+  return `
+    <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
+      <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
+        <div class="kmfx-page__section-copy">
+            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
+            <h2 class="kmfx-page__section-title">${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
+          </div>
+        <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
+      </div>
+      <div class="kmfx-mt5-grid">
+        ${registryAccounts.map((account) => renderAccountCard(account, {
+          isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+          adminOpen: adminVisible && adminState.open,
+          adminState,
+        })).join("")}
+      </div>
     </section>
   `;
 }
@@ -826,41 +868,35 @@ export function renderConnections(root, state) {
   }
 
   root.innerHTML = `
-    <section class="kmfx-mt5-page kmfx-connections-page">
-      <header class="kmfx-mt5-header kmfx-connections-header">
-        <div>
-          <div class="kmfx-connections-eyebrow">Centro de conexión</div>
-          <h1 class="kmfx-mt5-header__title kmfx-ds-title">Conexiones</h1>
-          <p class="kmfx-mt5-header__subtitle kmfx-ds-subtitle">Configura el sistema, valida tus cuentas y confirma que MT5 está sincronizando con KMFX Edge.</p>
+    <section class="kmfx-page kmfx-page--compact kmfx-connections-page">
+      <header class="kmfx-page__header kmfx-connections-header">
+        <div class="kmfx-page__copy">
+          <div class="kmfx-page__eyebrow">Centro de conexión</div>
+          <h1 class="kmfx-page__title">Conexiones</h1>
+          <p class="kmfx-page__subtitle">Configura el sistema, valida tus cuentas y confirma que MT5 está sincronizando con KMFX Edge.</p>
         </div>
-        <div class="kmfx-mt5-header__actions">
+        <div class="kmfx-page__actions">
           ${adminVisible ? `<button class="kmfx-ds-btn kmfx-ds-btn--ghost" type="button" data-account-admin-toggle="true">${adminState.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
           <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
           <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
         </div>
       </header>
 
-      ${renderSystemBlock(registryAccounts, registrySource)}
+      ${renderMetricsRow(registryAccounts, registrySource)}
 
-      <section class="kmfx-connections-section kmfx-ds-card kmfx-ds-section-card">
-        <div class="kmfx-connections-section__head kmfx-ds-section-head">
-          <div>
-            <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
-            <h2 class="kmfx-ds-title">${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
-          </div>
-          <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
+      <section class="kmfx-page__main kmfx-connections-main">
+        <div class="kmfx-page__primary">
+          ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </div>
-        <div class="kmfx-mt5-grid">
-          ${registryAccounts.map((account) => renderAccountCard(account, {
-            isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
-            adminOpen: adminVisible && adminState.open,
-            adminState,
-          })).join("")}
-        </div>
+
+        <aside class="kmfx-page__secondary kmfx-page__secondary--compact">
+          ${renderSetupGuide(true)}
+        </aside>
       </section>
 
-      ${renderSetupGuide(true)}
-      ${renderPlatformsBlock(registryAccounts)}
+      <section class="kmfx-page__stack kmfx-connections-secondary">
+        ${renderPlatformsBlock(registryAccounts)}
+      </section>
 
       ${renderAccountWizard(root)}
     </section>
