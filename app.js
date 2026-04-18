@@ -23,6 +23,7 @@ import "./js/modules/modal-system.js?v=build-20260406-213500";
 import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260406-213500";
 import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260406-213500";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260406-213500";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260406-213500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260406-213500";
 import {
   DEFAULT_AUTH_PROFILE,
@@ -712,6 +713,7 @@ async function bootstrapApp() {
   initAuthUI(store);
   initTopbarStatus(store);
   initSidebarUI(store);
+  initSidebarVNext();
   initSettings();
   startClock();
   store.subscribe(() => renderActivePage());

@@ -9378,3 +9378,180 @@ body[data-theme="dark"] .sidebar::after {
   content: none !important;
   display: none !important;
 }
+
+/* Sidebar v-next collapsible layer, scoped away from legacy sidebar behavior. */
+.app-shell.sidebar-vnext {
+  --sidebar-vnext-expanded-width: 212px;
+  --sidebar-vnext-collapsed-width: 72px;
+  --sidebar-vnext-main-gap: 30px;
+}
+
+.app-shell.sidebar-vnext .sidebar,
+.app-shell.sidebar-vnext .main-panel,
+.app-shell.sidebar-vnext .brand-copy,
+.app-shell.sidebar-vnext .nav-group-label,
+.app-shell.sidebar-vnext .nav-item-label,
+.app-shell.sidebar-vnext .sidebar-profile-copy,
+.app-shell.sidebar-vnext .sidebar-admin-badge,
+.app-shell.sidebar-vnext .sidebar-vnext-toggle svg {
+  transition:
+    width 0.22s ease,
+    margin-left 0.22s ease,
+    opacity 0.16s ease,
+    transform 0.18s ease,
+    color 0.16s ease,
+    background 0.16s ease;
+}
+
+.app-shell.sidebar-vnext .sidebar {
+  width: var(--sidebar-vnext-expanded-width);
+}
+
+.app-shell.sidebar-vnext .sidebar-topbar {
+  min-width: 0;
+}
+
+.app-shell.sidebar-vnext .brand-copy {
+  flex: 1 1 auto;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-toggle:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-0);
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-toggle svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
+  width: var(--sidebar-vnext-collapsed-width);
+  padding-inline: 10px;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
+  margin-left: calc(var(--sidebar-vnext-collapsed-width) + var(--sidebar-vnext-main-gap));
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-topbar {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-copy,
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-label,
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item-label,
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-copy,
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-admin-badge {
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-4px);
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-toggle {
+  width: 26px;
+  height: 26px;
+  margin-left: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-toggle svg {
+  transform: rotate(180deg);
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav {
+  padding-inline: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list {
+  align-items: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group {
+  width: 100%;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-icon,
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item svg {
+  margin: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-footer {
+  align-items: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile {
+  display: grid;
+  justify-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding-inline: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-main {
+  justify-content: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu-btn {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 920px) {
+  .app-shell.sidebar-vnext .sidebar-vnext-toggle {
+    display: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
+    display: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
+    margin-left: 0;
+    padding: 0;
+  }
+}
