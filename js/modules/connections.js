@@ -1,6 +1,7 @@
 import { selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
+import { renderRiskMetricCard, renderRiskStatusBadge } from "./risk-panel-components.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
@@ -255,50 +256,68 @@ function platformDetected(accounts = [], platform) {
   return accounts.some((account) => String(account.platform || "").toLowerCase() === platform);
 }
 
-function mapConnectionsToneToPill(tone) {
-  if (tone === "connected") return "success";
-  if (tone === "pending" || tone === "waiting" || tone === "stale") return "warning";
-  if (tone === "error") return "danger";
-  return "neutral";
-}
-
 function resolveConnectionsSourceLabel(dataSource = "empty") {
   return dataSource === "registry" ? "Registry" : dataSource === "snapshot" ? "Snapshot live" : "Sin datos";
 }
 
-function renderMetricsRow(accounts = [], dataSource = "empty") {
+function resolveDashboardStatus(statusTone = "neutral") {
+  if (statusTone === "connected") return { status: "ok", severity: "info", tone: "ok" };
+  if (statusTone === "pending" || statusTone === "waiting" || statusTone === "stale") {
+    return { status: "warning", severity: "warning", tone: "warning" };
+  }
+  if (statusTone === "error") return { status: "blocked", severity: "critical", tone: "blocked" };
+  return { status: "active_monitoring", severity: "info", tone: "ok" };
+}
+
+function renderOverviewPanel(accounts = [], dataSource = "empty", { adminVisible = false, adminState = null } = {}) {
   const status = resolveSystemStatus(accounts);
   const accountsCount = accounts.length;
   const sourceLabel = resolveConnectionsSourceLabel(dataSource);
+  const dashboardStatus = resolveDashboardStatus(status.tone);
   return `
-    <section class="kmfx-page__metrics kmfx-connections-metrics" aria-label="Estado del sistema">
-      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
-        <div class="kmfx-connections-metric__top">
-          <div class="kmfx-ds-kpi-label">Conexión</div>
-          <span class="kmfx-ds-pill kmfx-ds-pill--${mapConnectionsToneToPill(status.tone)}">${status.label}</span>
+    <article class="tl-section-card dashboard-risk-overview dashboard-risk-overview--${dashboardStatus.tone}">
+      <div class="dashboard-risk-overview__head">
+        <div>
+          <div class="tl-section-title">Conexiones</div>
+          <div class="dashboard-risk-overview__sub">Estado operativo de conectores y cuentas dentro de KMFX Edge.</div>
         </div>
-        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${status.bridge}</div>
-        <div class="kmfx-ds-kpi-meta">${status.headline}</div>
-      </article>
-
-      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
-        <div class="kmfx-ds-kpi-label">Último sync</div>
-        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${status.syncLabel}</div>
-        <div class="kmfx-ds-kpi-meta">${accountsCount ? "Actividad reciente del connector." : "Pendiente de primer sync."}</div>
-      </article>
-
-      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
-        <div class="kmfx-ds-kpi-label">Fuente</div>
-        <div class="kmfx-ds-kpi-value kmfx-connections-metric__value">${sourceLabel}</div>
-        <div class="kmfx-ds-kpi-meta">${dataSource === "empty" ? "Sin datos operativos todavía." : "Lectura activa del sistema."}</div>
-      </article>
-
-      <article class="kmfx-connections-metric kmfx-ds-card kmfx-ds-card--metric">
-        <div class="kmfx-ds-kpi-label">Cuentas conectadas</div>
-        <div class="kmfx-ds-kpi-value">${accountsCount}</div>
-        <div class="kmfx-ds-kpi-meta">${accountsCount === 1 ? "1 cuenta activa en el registry." : `${accountsCount} cuentas registradas.`}</div>
-      </article>
-    </section>
+        <div>
+          ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
+          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+        </div>
+      </div>
+      <div class="dashboard-risk-overview__grid">
+        ${renderRiskMetricCard({
+          label: "Conexión",
+          value: status.bridge,
+          meta: status.label,
+          tone: dashboardStatus.tone,
+        })}
+        ${renderRiskMetricCard({
+          label: "Último sync",
+          value: status.syncLabel,
+          meta: accountsCount ? "Actividad reciente del connector." : "Pendiente de primer sync.",
+          tone: dashboardStatus.tone,
+        })}
+        ${renderRiskMetricCard({
+          label: "Fuente",
+          value: sourceLabel,
+          meta: dataSource === "empty" ? "Sin datos operativos todavía." : "Lectura activa del sistema.",
+          tone: "neutral",
+        })}
+        ${renderRiskMetricCard({
+          label: "Cuentas conectadas",
+          value: accountsCount,
+          meta: accountsCount === 1 ? "1 cuenta activa en el registry." : `${accountsCount} cuentas registradas.`,
+          tone: "neutral",
+        })}
+      </div>
+      <div class="dashboard-risk-overview__foot">
+        <span>Centro de conexión</span>
+        <span>${status.headline}</span>
+      </div>
+    </article>
   `;
 }
 
@@ -306,15 +325,12 @@ function renderPlatformsBlock(accounts = []) {
   const mt5Detected = platformDetected(accounts, "mt5") || accounts.length > 0;
   const mt4Detected = platformDetected(accounts, "mt4");
   return `
-    <article class="kmfx-connections-platforms kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
-      <div class="kmfx-page__section-head">
-        <div class="kmfx-page__section-copy">
-        <span class="kmfx-connections-eyebrow">Plataformas detectadas</span>
-        <h2 class="kmfx-page__section-title">Terminales compatibles</h2>
-        <p class="kmfx-page__section-subtitle">Disponibilidad del entorno para conectar cuentas desde KMFX.</p>
-        </div>
+    <article class="widget-card dashboard-risk-block">
+      <div class="dashboard-risk-block__head">
+        <div class="dashboard-risk-block__title">Terminales compatibles</div>
+        <div class="dashboard-risk-block__sub">Disponibilidad del entorno para conectar cuentas desde KMFX.</div>
       </div>
-      <div class="kmfx-connections-platform-grid">
+      <div class="dashboard-risk-block__grid">
         ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Disponible" : "Pendiente")}
         ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Disponible" : "No disponible")}
       </div>
@@ -323,16 +339,13 @@ function renderPlatformsBlock(accounts = []) {
 }
 
 function renderPlatformCard(label, detected, subtitle) {
-  return `
-    <div class="kmfx-connections-platform kmfx-ds-card kmfx-ds-card--compact ${detected ? "is-detected" : ""}">
-      <div class="kmfx-connections-platform__icon">${label}</div>
-      <div>
-        <strong>${label}</strong>
-        <span class="kmfx-ds-muted">${subtitle}</span>
-      </div>
-      <em class="kmfx-ds-muted">${detected ? "Detectado" : "No detectado"}</em>
-    </div>
-  `;
+  const tone = detected ? "ok" : "neutral";
+  return renderRiskMetricCard({
+    label,
+    value: detected ? "Disponible" : "No disponible",
+    meta: subtitle,
+    tone,
+  });
 }
 
 function isAdminUser(state) {
@@ -453,71 +466,38 @@ function renderAccountWizard(root) {
 
 function renderEmptyState(root) {
   root.innerHTML = `
-    <section class="kmfx-page kmfx-page--compact kmfx-connections-page">
-      <header class="kmfx-page__header kmfx-connections-header">
-        <div class="kmfx-page__copy">
-          <div class="kmfx-page__eyebrow">Centro de conexión</div>
-          <h1 class="kmfx-page__title">Conexiones</h1>
-          <p class="kmfx-page__subtitle">Estado operativo de tus conectores y cuentas dentro de KMFX Edge.</p>
+    <div class="dashboard-premium-grid">
+      ${renderOverviewPanel([], "empty")}
+      <section class="dashboard-risk-panel">
+        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
+          <div class="dashboard-risk-block__head">
+            <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+            <div class="dashboard-risk-block__sub">Aun no hay cuentas activas en el sistema.</div>
+          </div>
+          <div class="dashboard-risk-overview__foot">
+            <span>Sin cuentas conectadas</span>
+            <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+          </div>
+        </article>
+        <div class="dashboard-risk-grid">
+          ${renderPlatformsBlock([])}
         </div>
-        <div class="kmfx-page__actions">
-          <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-          <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
-        </div>
-      </header>
-
-      ${renderMetricsRow([], "empty")}
-
-      <section class="kmfx-page__main kmfx-page__main--single kmfx-connections-main">
-        <div class="kmfx-page__primary">
-          <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
-            <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
-              <div class="kmfx-page__section-copy">
-                <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
-                <h2 class="kmfx-page__section-title">Ninguna cuenta conectada todavía</h2>
-                <p class="kmfx-page__section-subtitle">Conecta una cuenta para empezar a sincronizar actividad real.</p>
-              </div>
-              <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
-            </div>
-            <article class="kmfx-connections-empty kmfx-ds-card kmfx-ds-card--compact">
-              <div class="kmfx-connections-empty__mark">MT5</div>
-              <div>
-                <h3 class="kmfx-page__section-title">Sin cuentas conectadas</h3>
-                <p class="kmfx-page__section-subtitle">La cuenta aparecerá aquí en cuanto llegue el primer sync.</p>
-              </div>
-            </article>
-          </section>
-        </div>
-      </section>
-
-      <section class="kmfx-page__stack kmfx-connections-secondary">
-        ${renderPlatformsBlock([])}
       </section>
 
       ${renderAccountWizard(root)}
-    </section>
+    </div>
   `;
 }
 
 function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState) {
   return `
-    <section class="kmfx-connections-section kmfx-page__section kmfx-ds-card kmfx-ds-section-card">
-      <div class="kmfx-connections-section__head kmfx-page__section-head kmfx-ds-section-head">
-        <div class="kmfx-page__section-copy">
-          <span class="kmfx-connections-eyebrow">Cuentas conectadas</span>
-          <h2 class="kmfx-page__section-title">${registryAccounts.length === 1 ? "1 cuenta gestionada" : `${registryAccounts.length} cuentas gestionadas`}</h2>
-          <p class="kmfx-page__section-subtitle">Estado actual de las cuentas registradas en el sistema.</p>
-        </div>
-        <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
-      </div>
-      <div class="kmfx-mt5-grid">
-        ${registryAccounts.map((account) => renderAccountCard(account, {
+    <div class="dashboard-risk-grid">
+      ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           adminOpen: adminVisible && adminState.open,
           adminState,
         })).join("")}
-      </div>
-    </section>
+    </div>
   `;
 }
 
@@ -557,35 +537,47 @@ function renderAccountAdminPanel(account, adminState) {
 
 function renderAccountCard(account, { isActive, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const dashboardStatus = resolveDashboardStatus(meta.tone);
   const identityLine = [account.broker || null, account.login || null, account.server || null].filter(Boolean).join(" · ") || "Pendiente de primer sync";
   const actionMarkup = meta.action === "use"
-    ? `<button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
+    ? `<button class="btn-primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
     : meta.action === "launcher"
-      ? `<button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
+      ? `<button class="btn-primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
       : meta.action === "none"
-        ? `<button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" disabled>${meta.actionLabel}</button>`
-      : `<button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
+        ? `<button class="btn-secondary" type="button" disabled>${meta.actionLabel}</button>`
+      : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
 
   return `
-    <article class="kmfx-mt5-card kmfx-ds-card kmfx-ds-card--compact kmfx-ds-card--interactive ${isActive ? "is-active" : ""}">
-      <div class="kmfx-mt5-card__top">
+    <article class="widget-card dashboard-risk-block">
+      <div class="dashboard-risk-block__head">
         <div>
-          <div class="kmfx-mt5-card__alias">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
-          <div class="kmfx-mt5-card__identity kmfx-ds-muted">${escapeHtml(identityLine)}</div>
+          <div class="dashboard-risk-block__title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
+          <div class="dashboard-risk-block__sub">${escapeHtml(identityLine)}</div>
         </div>
-        ${isActive ? `<span class="kmfx-connections-primary-pill kmfx-ds-pill kmfx-ds-pill--accent">Cuenta activa</span>` : ""}
+        ${renderRiskStatusBadge(dashboardStatus.status, dashboardStatus.severity)}
       </div>
-      <div class="kmfx-mt5-card__status-row">
-        <div class="kmfx-mt5-status kmfx-mt5-status--${meta.tone}">
-          <span class="kmfx-mt5-status__dot"></span>
-          <div>
-            <div class="kmfx-mt5-status__label">${meta.label}</div>
-            <div class="kmfx-mt5-status__subtitle">${meta.subtitle}</div>
-          </div>
-        </div>
-        <div class="kmfx-mt5-card__sync">${account.last_sync_at || account.lastSyncAt ? relativeTime(account.last_sync_at || account.lastSyncAt) : "Sin sync"}</div>
+      <div class="dashboard-risk-block__grid">
+        ${renderRiskMetricCard({
+          label: "Estado",
+          value: meta.label,
+          meta: meta.subtitle,
+          tone: dashboardStatus.tone,
+        })}
+        ${renderRiskMetricCard({
+          label: "Último sync",
+          value: account.last_sync_at || account.lastSyncAt ? relativeTime(account.last_sync_at || account.lastSyncAt) : "Sin sync",
+          meta: isActive ? "Usada actualmente en panel." : "Disponible en el registry.",
+          tone: "neutral",
+        })}
+        ${renderRiskMetricCard({
+          label: "Cuenta",
+          value: isActive ? "Activa" : "Disponible",
+          meta: account.account_id || "sin account_id",
+          tone: isActive ? "ok" : "neutral",
+        })}
       </div>
-      <div class="kmfx-mt5-card__actions">
+      <div class="dashboard-risk-overview__foot">
+        <span>${isActive ? "Cuenta activa" : "Cuenta registrada"}</span>
         ${actionMarkup}
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
@@ -847,33 +839,22 @@ export function renderConnections(root, state) {
   }
 
   root.innerHTML = `
-    <section class="kmfx-page kmfx-page--compact kmfx-connections-page">
-      <header class="kmfx-page__header kmfx-connections-header">
-        <div class="kmfx-page__copy">
-          <div class="kmfx-page__eyebrow">Centro de conexión</div>
-          <h1 class="kmfx-page__title">Conexiones</h1>
-          <p class="kmfx-page__subtitle">Estado operativo de tus conectores y cuentas dentro de KMFX Edge.</p>
-        </div>
-        <div class="kmfx-page__actions">
-          ${adminVisible ? `<button class="kmfx-ds-btn kmfx-ds-btn--ghost" type="button" data-account-admin-toggle="true">${adminState.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-          <button class="kmfx-ds-btn kmfx-ds-btn--secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-          <button class="kmfx-ds-btn kmfx-ds-btn--primary" type="button" data-account-add="true">Conectar cuenta</button>
-        </div>
-      </header>
-
-      ${renderMetricsRow(registryAccounts, registrySource)}
-
-      <section class="kmfx-page__main kmfx-page__main--single kmfx-connections-main">
-        <div class="kmfx-page__primary">
+    <div class="dashboard-premium-grid">
+      ${renderOverviewPanel(registryAccounts, registrySource, { adminVisible, adminState })}
+      <section class="dashboard-risk-panel">
+        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
+          <div class="dashboard-risk-block__head">
+            <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+            <div class="dashboard-risk-block__sub">Estado actual de las cuentas registradas en el sistema.</div>
+          </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
+        </article>
+        <div class="dashboard-risk-grid">
+          ${renderPlatformsBlock(registryAccounts)}
         </div>
-      </section>
-
-      <section class="kmfx-page__stack kmfx-connections-secondary">
-        ${renderPlatformsBlock(registryAccounts)}
       </section>
 
       ${renderAccountWizard(root)}
-    </section>
+    </div>
   `;
 }
