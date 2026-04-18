@@ -617,7 +617,8 @@ async def auth_callback(
     )
     title = "KMFX Launcher conectado" if result.get("ok") else "No se pudo conectar"
     message = result.get("message") or ("Ya puedes volver a KMFX Launcher." if result.get("ok") else "Vuelve al launcher e inténtalo de nuevo.")
-    accent = "#4ade80" if result.get("ok") else "#fb7185"
+    accent = "#55D38A" if result.get("ok") else "#fb7185"
+    mark = "✓" if result.get("ok") else "!"
     html_body = f"""
     <!doctype html>
     <html lang="es">
@@ -626,12 +627,13 @@ async def auth_callback(
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{html.escape(title)}</title>
       </head>
-      <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07090d;color:#f5f7fb;display:grid;place-items:center;min-height:100vh;margin:0;">
-        <main style="max-width:440px;text-align:center;padding:32px;">
-          <div style="width:52px;height:52px;border-radius:18px;background:{accent};margin:0 auto 20px;"></div>
-          <h1 style="font-size:28px;margin:0 0 12px;">{html.escape(title)}</h1>
-          <p style="color:#a7b0c0;font-size:16px;line-height:1.6;margin:0;">{html.escape(str(message))}</p>
-          <p style="color:#667085;font-size:13px;margin-top:24px;">Puedes cerrar esta pestaña y volver al launcher.</p>
+      <body style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:radial-gradient(circle at 75% 15%,rgba(78,123,255,.16),transparent 34%),#141413;color:rgba(255,255,255,.96);display:grid;place-items:center;min-height:100vh;margin:0;">
+        <main style="width:min(420px,calc(100vw - 40px));text-align:center;padding:34px 30px;border:1px solid rgba(255,255,255,.08);border-radius:26px;background:linear-gradient(180deg,#18181A,#1F1F22);box-shadow:0 18px 44px rgba(0,0,0,.34);">
+          <div style="display:grid;width:56px;height:56px;place-items:center;border-radius:20px;background:rgba(85,211,138,.14);color:{accent};font-size:30px;font-weight:900;margin:0 auto 20px;border:1px solid rgba(85,211,138,.24);">{mark}</div>
+          <h1 style="font-size:27px;line-height:1.12;letter-spacing:-.04em;margin:0 0 12px;">{html.escape(title)}</h1>
+          <p style="color:rgba(255,255,255,.72);font-size:15px;line-height:1.55;margin:0;">Ya puedes volver al launcher.</p>
+          <p style="color:rgba(255,255,255,.48);font-size:13px;line-height:1.5;margin:10px 0 0;">{html.escape(str(message))}</p>
+          <button onclick="window.close()" style="margin-top:24px;height:42px;padding:0 18px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:#26262B;color:rgba(255,255,255,.96);font:inherit;font-weight:800;cursor:pointer;">Cerrar esta pestaña</button>
         </main>
       </body>
     </html>

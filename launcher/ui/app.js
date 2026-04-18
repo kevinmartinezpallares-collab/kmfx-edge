@@ -12,6 +12,11 @@ const state = {
 
 let oauthPollTimer = null;
 let oauthPollStartedAt = 0;
+let lastHomeSignature = "";
+let lastInstallationsSignature = "";
+let lastAppInfoSignature = "";
+let lastDiagnosticsSignature = "";
+let initStarted = false;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -41,6 +46,27 @@ function stopOAuthPolling() {
     oauthPollTimer = null;
   }
   state.oauthPending = false;
+  setOAuthStatus("");
+}
+
+function setOAuthStatus(message = "") {
+  const element = $("#oauth-status");
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle("is-visible", Boolean(message));
+}
+
+function setGoogleButtonLabel(label) {
+  const googleLabel = $("#login-google [data-google-label]");
+  if (googleLabel) googleLabel.textContent = label;
+}
+
+function stableStringify(value) {
+  try {
+    return JSON.stringify(value || {});
+  } catch {
+    return String(Date.now());
+  }
 }
 
 function showToast(message) {
@@ -96,6 +122,9 @@ function setPill(selector, text, kind) {
 
 function renderHome() {
   const status = state.status || {};
+  const nextSignature = stableStringify({ status, busy: state.busy });
+  if (nextSignature === lastHomeSignature) return;
+  lastHomeSignature = nextSignature;
   const installed = Boolean(status.connector_installed);
   const hasMt5 = Number(status.mt5_count || 0) > 0;
   const serviceOn = Boolean(status.service_on);
@@ -133,28 +162,37 @@ function renderHome() {
 function renderInstallations() {
   const container = $("#installations-list");
   if (!container) return;
+  const nextSignature = stableStringify(state.installations);
+  if (nextSignature === lastInstallationsSignature) return;
+  lastInstallationsSignature = nextSignature;
   if (!state.installations.length) {
     container.innerHTML = `<div class="empty-state">No se detectaron instalaciones de MetaTrader 5.</div>`;
     return;
   }
   container.innerHTML = state.installations
-    .map((installation) => `
+    .map((installation) => {
+      const path = installation.data_path || installation.terminal_path || "";
+      return `
       <article class="installation-row">
         <div>
           <strong>${escapeHtml(installation.label || "MetaTrader 5")}</strong>
-          <span>${escapeHtml(installation.data_path || installation.terminal_path || "")}</span>
+          <span title="${escapeHtml(path)}">${escapeHtml(path)}</span>
         </div>
         <span class="status-badge ${installation.connector_installed ? "success" : "neutral"}">
           ${installation.connector_installed ? "Connector instalado" : "Sin connector"}
         </span>
       </article>
-    `)
+    `;
+    })
     .join("");
 }
 
 function renderAppInfo() {
   const container = $("#app-info");
   if (!container) return;
+  const nextSignature = stableStringify({ appInfo: state.appInfo, service_on: state.status?.service_on });
+  if (nextSignature === lastAppInfoSignature) return;
+  lastAppInfoSignature = nextSignature;
   const rows = [
     ["Launcher", state.appInfo.launcher_version || "1.0.0"],
     ["Connector", state.appInfo.connector_version || "—"],
@@ -175,6 +213,9 @@ function renderDiagnostics() {
   const panel = $("#diagnostics-panel");
   if (!panel) return;
   const diagnostics = state.diagnostics || {};
+  const nextSignature = stableStringify(diagnostics);
+  if (nextSignature === lastDiagnosticsSignature) return;
+  lastDiagnosticsSignature = nextSignature;
   const rows = [
     ["Connection key", diagnostics.connection_key || "No disponible"],
     ["Backend reachable", diagnostics.backend_reachable ? "Sí" : "No"],
@@ -189,7 +230,7 @@ function renderDiagnostics() {
       ${rows.map(([label, value]) => `
         <div class="diagnostic-row">
           <span>${escapeHtml(label)}</span>
-          <code>${escapeHtml(String(value))}</code>
+          <code title="${escapeHtml(String(value))}">${escapeHtml(String(value))}</code>
         </div>
       `).join("")}
     </div>
@@ -266,6 +307,7 @@ async function handleLogin(event) {
 async function handleGoogleLogin() {
   const error = $("#login-error");
   if (error) error.textContent = "";
+  setGoogleButtonLabel("Entrar con Google");
   showToast("Abriendo Google en tu navegador...");
   setBusy(true);
   try {
@@ -278,6 +320,7 @@ async function handleGoogleLogin() {
     state.oauthPending = true;
     oauthPollStartedAt = Date.now();
     console.info("[KMFX][AUTH][GOOGLE] oauth_browser_opened pending=true");
+    setOAuthStatus("Esperando autorización de Google...");
     showToast(result.message || "Completa el acceso con Google en tu navegador.");
     startOAuthPolling();
   } catch (err) {
@@ -290,6 +333,7 @@ async function handleGoogleLogin() {
 
 function startOAuthPolling() {
   if (oauthPollTimer) return;
+  setOAuthStatus("Esperando autorización de Google...");
   oauthPollTimer = window.setInterval(async () => {
     const error = $("#login-error");
     try {
@@ -315,6 +359,7 @@ function startOAuthPolling() {
         stopOAuthPolling();
         setBusy(false);
         if (error) error.textContent = "No se completó el acceso con Google. Inténtalo de nuevo.";
+        setGoogleButtonLabel("Reintentar con Google");
         render();
       }
     } catch {
@@ -385,10 +430,12 @@ function bindEvents() {
   $$(".nav-item").forEach((item) => {
     item.addEventListener("click", async () => {
       state.view = item.dataset.view || "home";
+      renderShell();
       if (state.view === "settings") {
-        await refreshEverything();
+        refreshEverything()
+          .then(() => render())
+          .catch(() => {});
       }
-      render();
     });
   });
   $("#refresh-button")?.addEventListener("click", () => performAction("refresh", "Estado actualizado."));
@@ -408,6 +455,8 @@ function bindEvents() {
 }
 
 async function init() {
+  if (initStarted) return;
+  initStarted = true;
   bindEvents();
   try {
     await loadAll();
@@ -420,7 +469,7 @@ async function init() {
     }
     render();
   }
-  window.setInterval(refreshStatusOnly, 3000);
+  window.setInterval(refreshStatusOnly, 5000);
 }
 
 window.addEventListener("pywebviewready", init);

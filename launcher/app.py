@@ -89,7 +89,7 @@ def _humanize_last_sync(last_sync: dict[str, Any]) -> str:
         parsed = parsed.replace(tzinfo=timezone.utc)
     seconds = max(0, int((now - parsed.astimezone(timezone.utc)).total_seconds()))
     if seconds < 5:
-        return "Último sync ahora"
+        return "Último sync hace 0s"
     if seconds < 60:
         return f"Último sync hace {seconds}s"
     minutes = seconds // 60
@@ -109,6 +109,8 @@ class KMFXApi:
         self._lock = threading.RLock()
         self._last_service_status: dict[str, Any] = {}
         self._last_service_seen_at = 0.0
+        self._service_failure_count = 0
+        self._stable_service_on = False
         self._last_sync: dict[str, Any] = {}
         self.refresh_installations()
         self.ensure_session()
@@ -135,20 +137,29 @@ class KMFXApi:
     def get_status(self) -> dict[str, Any]:
         with self._lock:
             service_status = self.fetch_json("/status") or {}
+            fetched_service_status = bool(service_status)
             now = time.time()
-            if service_status:
+            if fetched_service_status:
+                self._service_failure_count = 0
                 self._last_service_status = service_status
                 self._last_service_seen_at = now
                 if isinstance(service_status.get("last_sync"), dict) and service_status.get("last_sync"):
                     self._last_sync = service_status.get("last_sync", {})
-            elif self._last_service_status and now - self._last_service_seen_at <= STATUS_CACHE_TTL_SECONDS:
-                service_status = self._last_service_status
+            else:
+                self._service_failure_count += 1
+                if self._last_service_status and now - self._last_service_seen_at <= STATUS_CACHE_TTL_SECONDS:
+                    service_status = self._last_service_status
 
             installation = self.selected_installation()
             is_installed = connector_installed(installation) if installation else False
-            service_on = bool(service_status.get("ok")) or (
-                bool(self._last_service_status.get("ok")) and now - self._last_service_seen_at <= STATUS_CACHE_TTL_SECONDS
+            raw_service_on = bool(service_status.get("ok")) if fetched_service_status else (
+                bool(self._last_service_status.get("ok")) and self._service_failure_count < 3
             )
+            if raw_service_on:
+                self._stable_service_on = True
+            elif self._service_failure_count >= 3:
+                self._stable_service_on = False
+            service_on = self._stable_service_on
             last_sync = service_status.get("last_sync") if isinstance(service_status.get("last_sync"), dict) else self._last_sync
 
             return {

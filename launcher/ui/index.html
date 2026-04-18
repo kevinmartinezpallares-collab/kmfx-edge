@@ -10,12 +10,19 @@
   <body>
     <main id="auth-screen" class="auth-shell" aria-live="polite">
       <section class="auth-card">
-        <div class="auth-logo">
-          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
+        <div class="auth-brand">
+          <div class="auth-logo">
+            <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
+          </div>
+          <div>
+            <strong>KMFX Launcher</strong>
+            <span>KMFX Edge Companion</span>
+          </div>
         </div>
         <div class="auth-copy">
-          <h1>Inicia sesión</h1>
-          <p>Accede al launcher con tu cuenta de KMFX Edge</p>
+          <p class="eyebrow">Acceso</p>
+          <h1>Conecta MetaTrader con KMFX Edge</h1>
+          <p>Inicia sesión con tu cuenta para preparar el connector en este equipo.</p>
         </div>
         <form id="login-form" class="login-form">
           <label>
@@ -30,7 +37,7 @@
           <div class="auth-divider" aria-hidden="true"><span></span><em>o</em><span></span></div>
           <button id="login-google" class="button secondary wide auth-google-button" type="button">
             <span class="google-dot" aria-hidden="true"></span>
-            Continuar con Google
+            <span data-google-label>Entrar con Google</span>
           </button>
           <div class="password-recovery">
             <button id="password-reset-button" class="link-button" type="button">
@@ -38,6 +45,7 @@
             </button>
           </div>
           <p id="login-error" class="form-error" role="alert"></p>
+          <p id="oauth-status" class="oauth-status" aria-live="polite"></p>
         </form>
       </section>
     </main>
