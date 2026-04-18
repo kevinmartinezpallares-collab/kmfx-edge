@@ -167,16 +167,14 @@ class LauncherServiceRuntime:
 
     def begin_google_oauth(self) -> dict[str, Any]:
         verifier = secrets.token_urlsafe(64)
-        state = secrets.token_urlsafe(24)
+        code_challenge = pkce_challenge(verifier)
         auth_url = self.backend.google_oauth_url(
             redirect_to=LOCAL_OAUTH_REDIRECT_URL,
-            code_challenge=pkce_challenge(verifier),
-            state=state,
+            code_challenge=code_challenge,
         )
         with self.oauth_lock:
             self.oauth_state = {
                 "status": "pending",
-                "state": state,
                 "code_verifier": verifier,
                 "started_at": now_iso(),
                 "message": "Esperando autorización de Google.",
@@ -186,6 +184,10 @@ class LauncherServiceRuntime:
             "[KMFX][AUTH][GOOGLE] start redirect_to=%s external_browser=true allowed_redirects=%s",
             LOCAL_OAUTH_REDIRECT_URL,
             ",".join(LOCAL_OAUTH_ALLOWED_REDIRECT_URLS),
+        )
+        self.logger.info(
+            "[KMFX][AUTH][GOOGLE] oauth_params state_sent=false code_challenge=%s",
+            code_challenge,
         )
         self.logger.info("[KMFX][AUTH][GOOGLE] oauth_url=%s", auth_url)
         return {"ok": True, "auth_url": auth_url, "redirect_to": LOCAL_OAUTH_REDIRECT_URL}
@@ -199,29 +201,30 @@ class LauncherServiceRuntime:
 
     def complete_google_oauth(self, *, code: str, state: str, error: str = "", error_description: str = "") -> dict[str, Any]:
         with self.oauth_lock:
-            expected_state = str(self.oauth_state.get("state") or "")
             verifier = str(self.oauth_state.get("code_verifier") or "")
         self.logger.info(
-            "[KMFX][AUTH][GOOGLE] callback received has_code=%s has_state=%s has_error=%s",
+            "[KMFX][AUTH][GOOGLE] callback received has_code=%s has_state=%s has_error=%s query_state_ignored=%s",
             bool(code),
             bool(state),
             bool(error),
+            bool(state),
         )
         if error:
             self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] error=%s detail=%s", error, error_description)
             with self.oauth_lock:
                 self.oauth_state = {"status": "error", "message": "No se pudo iniciar sesión con Google."}
             return {"ok": False, "message": "No se pudo iniciar sesión con Google."}
-        if not expected_state or not verifier or state != expected_state:
-            self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] state mismatch")
+        if not verifier:
+            self.logger.warning("[KMFX][AUTH][GOOGLE][ERROR] missing PKCE verifier")
             with self.oauth_lock:
-                self.oauth_state = {"status": "error", "message": "No se pudo validar la respuesta de Google."}
-            return {"ok": False, "message": "No se pudo validar la respuesta de Google."}
+                self.oauth_state = {"status": "error", "message": "No se pudo validar la sesión OAuth."}
+            return {"ok": False, "message": "No se pudo validar la sesión OAuth."}
         if not code:
             with self.oauth_lock:
                 self.oauth_state = {"status": "error", "message": "Login con Google cancelado o sin respuesta."}
             return {"ok": False, "message": "Login con Google cancelado o sin respuesta."}
 
+        self.logger.info("[KMFX][AUTH][GOOGLE] token_exchange=start grant_type=pkce")
         response = self.backend.exchange_pkce_code(auth_code=code, code_verifier=verifier)
         if not response.ok:
             message = self.auth_error_message(response)
@@ -597,6 +600,15 @@ async def auth_callback(
     error: str = Query("", min_length=0),
     error_description: str = Query("", min_length=0),
 ) -> HTMLResponse:
+    runtime.logger.info(
+        "[KMFX][AUTH][GOOGLE] callback hit query_keys=%s",
+        ",".join(key for key, value in {
+            "code": code,
+            "state": state,
+            "error": error,
+            "error_description": error_description,
+        }.items() if value) or "none",
+    )
     result = runtime.complete_google_oauth(
         code=code,
         state=state,

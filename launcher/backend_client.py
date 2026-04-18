@@ -173,14 +173,13 @@ class BackendClient:
             payload={"email": email, "password": password},
         )
 
-    def google_oauth_url(self, *, redirect_to: str, code_challenge: str, state: str) -> str:
+    def google_oauth_url(self, *, redirect_to: str, code_challenge: str) -> str:
         query = urllib.parse.urlencode(
             {
                 "provider": "google",
                 "redirect_to": redirect_to,
                 "code_challenge": code_challenge,
                 "code_challenge_method": "s256",
-                "state": state,
                 "prompt": "select_account",
             }
         )
