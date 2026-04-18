@@ -10419,3 +10419,222 @@ body[data-theme="dark"] .sidebar::after {
   height: 1px;
   background: var(--border-0);
 }
+
+/* --------------------------------------------------------------------------
+   KMFX Page Grammar v1
+   Extracted from the strongest existing internal pages:
+   - Dashboard: metric strip + asymmetric content blocks
+   - Calendar: page header + metric row + primary panel + secondary stack
+   - Insights: dense section rhythm + panel headings
+
+   Usage target for new pages and gradual refactors:
+
+   <section class="kmfx-page">
+     <header class="kmfx-page__header">
+       <div class="kmfx-page__copy">
+         <div class="kmfx-page__eyebrow">...</div>
+         <h1 class="kmfx-page__title">...</h1>
+         <p class="kmfx-page__subtitle">...</p>
+       </div>
+       <div class="kmfx-page__actions">...</div>
+     </header>
+
+     <section class="kmfx-page__metrics">...</section>
+
+     <section class="kmfx-page__main">
+       <div class="kmfx-page__primary">...</div>
+       <aside class="kmfx-page__secondary">...</aside>
+     </section>
+   </section>
+-------------------------------------------------------------------------- */
+
+:where(.kmfx-page) {
+  display: grid;
+  gap: 18px;
+}
+
+:where(.kmfx-page--compact) {
+  gap: 14px;
+}
+
+:where(.kmfx-page--spacious) {
+  gap: 24px;
+}
+
+:where(.kmfx-page__header) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+:where(.kmfx-page__copy) {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+:where(.kmfx-page__eyebrow) {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:where(.kmfx-page__title) {
+  margin: 6px 0 0;
+  color: var(--text-0);
+  font-size: clamp(28px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+:where(.kmfx-page__subtitle) {
+  max-width: 640px;
+  margin: 8px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+:where(.kmfx-page__actions) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+:where(.kmfx-page__metrics) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:where(.kmfx-page__metrics--dense) {
+  gap: 10px;
+}
+
+:where(.kmfx-page__metrics--three) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:where(.kmfx-page__metrics--two) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:where(.kmfx-page__main) {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+:where(.kmfx-page__main--equal) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:where(.kmfx-page__main--single) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:where(.kmfx-page__primary),
+:where(.kmfx-page__secondary) {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+:where(.kmfx-page__secondary--compact) {
+  gap: 12px;
+}
+
+:where(.kmfx-page__stack) {
+  display: grid;
+  gap: 14px;
+}
+
+:where(.kmfx-page__stack--compact) {
+  gap: 10px;
+}
+
+:where(.kmfx-page__section) {
+  min-width: 0;
+}
+
+:where(.kmfx-page__section-head) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+:where(.kmfx-page__section-copy) {
+  min-width: 0;
+}
+
+:where(.kmfx-page__section-title) {
+  margin: 0;
+  color: var(--text-0);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+:where(.kmfx-page__section-subtitle) {
+  margin: 5px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+:where(.kmfx-page__section-actions) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 980px) {
+  :where(.kmfx-page__header),
+  :where(.kmfx-page__section-head),
+  :where(.kmfx-page__main) {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :where(.kmfx-page__metrics) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :where(.kmfx-page__actions),
+  :where(.kmfx-page__section-actions) {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  :where(.kmfx-page) {
+    gap: 14px;
+  }
+
+  :where(.kmfx-page__metrics),
+  :where(.kmfx-page__metrics--three),
+  :where(.kmfx-page__metrics--two) {
+    grid-template-columns: 1fr;
+  }
+
+  :where(.kmfx-page__title) {
+    font-size: clamp(24px, 7vw, 30px);
+  }
+}
