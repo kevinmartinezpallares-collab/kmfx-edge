@@ -1456,3 +1456,186 @@ body,
   background: #18181A;
   box-shadow: none;
 }
+
+/* Final HIG pass: fewer states, tighter hierarchy, no loud badges. */
+[hidden] {
+  display: none !important;
+}
+
+.tool-card {
+  max-width: 520px;
+}
+
+.tool-header {
+  align-items: flex-start;
+}
+
+.tool-icon {
+  width: 56px;
+  height: 56px;
+  border-color: var(--border-0);
+  border-radius: 15px;
+  background: #202024;
+}
+
+.tool-icon img {
+  width: 42px;
+  height: 42px;
+  filter: saturate(0.92) contrast(1.04);
+}
+
+.tool-title {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.tool-title-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tool-title-row h2 {
+  color: var(--text-0);
+  font-size: 18px;
+}
+
+.tool-type {
+  border: 1px solid var(--border-0);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.status-badge {
+  position: relative;
+  gap: 6px;
+  padding: 5px 8px 5px 18px;
+  border: 1px solid var(--border-0);
+  background: transparent !important;
+  color: var(--text-2) !important;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.status-badge::before {
+  position: absolute;
+  left: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--text-2);
+  content: "";
+}
+
+.status-badge.success::before {
+  background: #8EA0C8;
+}
+
+.status-badge.warning::before {
+  background: var(--amber-0);
+}
+
+.status-badge.neutral::before {
+  background: var(--text-2);
+}
+
+.tool-actions {
+  margin-top: 18px;
+}
+
+.helper-text {
+  margin-top: 14px;
+  color: var(--text-2);
+}
+
+.button {
+  min-height: 39px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.button.secondary {
+  color: var(--text-1);
+}
+
+.button.secondary:hover {
+  color: var(--text-0);
+}
+
+#logout-button {
+  border-color: var(--border-0);
+  color: var(--text-1);
+}
+
+#logout-button:hover,
+#logout-button:focus-visible,
+#logout-button:active {
+  border-color: rgba(255, 138, 154, 0.22);
+  background: rgba(255, 138, 154, 0.08);
+  color: var(--red-0);
+}
+
+.nav-item:focus-visible,
+.tab:focus-visible,
+.button:focus-visible,
+.icon-button:focus-visible,
+.link-button:focus-visible {
+  outline: 2px solid rgba(78, 123, 255, 0.72);
+  outline-offset: 2px;
+}
+
+.tabs {
+  gap: 4px;
+  padding: 3px;
+}
+
+.tab {
+  min-width: 62px;
+  padding: 7px 13px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.tab:hover {
+  color: var(--text-0);
+}
+
+.settings-card {
+  max-width: 760px;
+}
+
+.section-title {
+  align-items: center;
+}
+
+.section-title h2 {
+  margin-bottom: 4px;
+  font-size: 21px;
+}
+
+.installations-list,
+.info-grid {
+  gap: 8px;
+}
+
+.installation-row,
+.info-row {
+  min-width: 0;
+}
+
+.installation-row div {
+  min-width: 0;
+}
+
+.installation-row strong,
+.info-row span {
+  color: var(--text-0);
+}
+
+.installation-row span:first-of-type {
+  max-width: min(44vw, 470px);
+}
+
+.info-row strong {
+  max-width: min(40vw, 440px);
+}

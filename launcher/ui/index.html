@@ -81,11 +81,11 @@
           </header>
 
           <div class="tabs" role="tablist" aria-label="Filtro de herramientas">
-            <button class="tab is-active" type="button">Todos</button>
-            <button class="tab" type="button">MT5</button>
+            <button class="tab is-active" data-filter="all" type="button">Todos</button>
+            <button class="tab" data-filter="mt5" type="button">MT5</button>
           </div>
 
-          <article class="tool-card">
+          <article class="tool-card" data-tool="mt5">
             <div class="tool-header">
               <div class="tool-title">
                 <div class="tool-icon">
@@ -100,12 +100,6 @@
                 </div>
               </div>
               <span id="install-badge" class="status-badge neutral">Comprobando</span>
-            </div>
-
-            <div class="signal-row" aria-label="Estado">
-              <span id="service-chip" class="signal neutral">Servicio local</span>
-              <span id="mt5-chip" class="signal neutral">MetaTrader</span>
-              <span id="sync-chip" class="signal neutral">Último sync</span>
             </div>
 
             <div class="tool-actions">
@@ -145,11 +139,6 @@
             </div>
             <div id="app-info" class="info-grid"></div>
           </section>
-
-          <details class="diagnostics">
-            <summary>Diagnóstico avanzado</summary>
-            <div id="diagnostics-panel" class="diagnostics-panel"></div>
-          </details>
         </section>
       </section>
     </main>

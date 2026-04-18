@@ -4,7 +4,7 @@ const state = {
   status: {},
   installations: [],
   appInfo: {},
-  diagnostics: {},
+  toolFilter: "all",
   busy: false,
   oauthPending: false,
   message: ""
@@ -15,7 +15,6 @@ let oauthPollStartedAt = 0;
 let lastHomeSignature = "";
 let lastInstallationsSignature = "";
 let lastAppInfoSignature = "";
-let lastDiagnosticsSignature = "";
 let initStarted = false;
 
 const $ = (selector) => document.querySelector(selector);
@@ -122,21 +121,19 @@ function setPill(selector, text, kind) {
 
 function renderHome() {
   const status = state.status || {};
-  const nextSignature = stableStringify({ status, busy: state.busy });
+  const nextSignature = stableStringify({ status, busy: state.busy, toolFilter: state.toolFilter });
   if (nextSignature === lastHomeSignature) return;
   lastHomeSignature = nextSignature;
   const installed = Boolean(status.connector_installed);
   const hasMt5 = Number(status.mt5_count || 0) > 0;
-  const serviceOn = Boolean(status.service_on);
   const recentSync = Boolean(status.has_recent_sync);
   const needsRepair = Boolean(status.repair_recommended);
+  const toolCard = $('[data-tool="mt5"]');
+  if (toolCard) toolCard.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
 
   const badgeText = installed ? (needsRepair ? "Reparación recomendada" : "Instalado") : "No instalado";
   const badgeKind = installed ? (needsRepair ? "warning" : "success") : "neutral";
   setPill("#install-badge", badgeText, badgeKind);
-  setPill("#service-chip", serviceOn ? "Servicio local activo" : "Servicio local pendiente", statusClass(serviceOn, !serviceOn));
-  setPill("#mt5-chip", hasMt5 ? "MetaTrader detectado" : "MetaTrader no detectado", statusClass(hasMt5, !hasMt5));
-  setPill("#sync-chip", status.last_sync_ago || "Sin sincronización reciente", statusClass(recentSync, !recentSync));
 
   const installButton = $("#install-button");
   const openButton = $("#open-mt5-button");
@@ -149,13 +146,13 @@ function renderHome() {
   const message = $("#status-message");
   if (!message) return;
   if (!hasMt5) {
-    message.textContent = "No hemos encontrado MetaTrader 5 en este equipo. Instálalo o vuelve a detectar desde Configuración.";
+    message.textContent = "No se ha detectado MetaTrader 5.";
   } else if (!installed) {
-    message.textContent = "MetaTrader está detectado. Instala el connector para empezar a sincronizar con KMFX Edge.";
+    message.textContent = "MetaTrader detectado. Instala el connector para continuar.";
   } else if (recentSync) {
-    message.textContent = "Tu cuenta está sincronizando correctamente con KMFX Edge.";
+    message.textContent = "Connector instalado y listo.";
   } else {
-    message.textContent = "Connector instalado. Abre MetaTrader 5 y asegúrate de que el EA esté activo.";
+    message.textContent = "Connector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
   }
 }
 
@@ -195,9 +192,7 @@ function renderAppInfo() {
   lastAppInfoSignature = nextSignature;
   const rows = [
     ["Launcher", state.appInfo.launcher_version || "1.0.0"],
-    ["Connector", state.appInfo.connector_version || "—"],
-    ["Backend", state.appInfo.backend_url || "—"],
-    ["Servicio local", state.status.service_on ? "Activo" : "Pendiente"]
+    ["Connector", state.appInfo.connector_version || "—"]
   ];
   container.innerHTML = rows
     .map(([label, value]) => `
@@ -209,42 +204,12 @@ function renderAppInfo() {
     .join("");
 }
 
-function renderDiagnostics() {
-  const panel = $("#diagnostics-panel");
-  if (!panel) return;
-  const diagnostics = state.diagnostics || {};
-  const nextSignature = stableStringify(diagnostics);
-  if (nextSignature === lastDiagnosticsSignature) return;
-  lastDiagnosticsSignature = nextSignature;
-  const rows = [
-    ["Connection key", diagnostics.connection_key || "No disponible"],
-    ["Backend reachable", diagnostics.backend_reachable ? "Sí" : "No"],
-    ["Backend status", diagnostics.backend_status_code || "—"],
-    ["Service URL", diagnostics.service_url || state.appInfo.service_url || "—"],
-    ["Terminal", diagnostics.selected_terminal_path || "—"],
-    ["Data path", diagnostics.selected_data_path || "—"],
-    ["Experts", diagnostics.selected_experts_path || "—"]
-  ];
-  panel.innerHTML = `
-    <div class="diagnostic-grid">
-      ${rows.map(([label, value]) => `
-        <div class="diagnostic-row">
-          <span>${escapeHtml(label)}</span>
-          <code title="${escapeHtml(String(value))}">${escapeHtml(String(value))}</code>
-        </div>
-      `).join("")}
-    </div>
-    <pre>${escapeHtml((diagnostics.logs || []).join("\n"))}</pre>
-  `;
-}
-
 function render() {
   renderShell();
   if (!state.session?.authenticated) return;
   renderHome();
   renderInstallations();
   renderAppInfo();
-  renderDiagnostics();
 }
 
 function escapeHtml(value = "") {
@@ -262,9 +227,6 @@ async function loadAll() {
   state.installations = payload.installations || [];
   state.appInfo = payload.app_info || {};
   state.session = payload.session || state.session;
-  if (state.session.authenticated) {
-    state.diagnostics = await callApi("get_diagnostics");
-  }
   render();
 }
 
@@ -408,7 +370,6 @@ async function refreshEverything() {
   state.installations = payload.installations || state.installations;
   state.appInfo = payload.app_info || state.appInfo;
   state.session = payload.session || state.session;
-  state.diagnostics = await callApi("get_diagnostics");
 }
 
 function bindEvents() {
@@ -436,6 +397,13 @@ function bindEvents() {
           .then(() => render())
           .catch(() => {});
       }
+    });
+  });
+  $$(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.toolFilter = tab.dataset.filter || "all";
+      $$(".tab").forEach((item) => item.classList.toggle("is-active", item === tab));
+      renderHome();
     });
   });
   $("#refresh-button")?.addEventListener("click", () => performAction("refresh", "Estado actualizado."));
