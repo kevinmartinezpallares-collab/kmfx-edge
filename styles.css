@@ -9518,6 +9518,10 @@ html:not([data-theme="dark"]) .modal-close {
   font-weight: 700;
   text-align: center;
   line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bnav-more-top-item.active {
@@ -9593,6 +9597,10 @@ html:not([data-theme="dark"]) .modal-close {
 
 .bnav-more-item-label {
   display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bnav-more-item.active,

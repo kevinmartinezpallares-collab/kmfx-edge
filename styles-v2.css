@@ -115,6 +115,14 @@ body::after {
   border: none;
   text-decoration: none;
   width: 100%;
+  min-width: 0;
+}
+
+.nav-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-item svg {

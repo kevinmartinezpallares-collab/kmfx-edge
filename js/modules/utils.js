@@ -468,13 +468,19 @@ function isLiveAccountCandidate(account, accountId, liveIds = []) {
   return Boolean(dashboardPayload && typeof dashboardPayload === "object" && Object.keys(dashboardPayload).length > 0);
 }
 
-export function resolveSelectedLiveAccountId(state) {
+function resolveLiveAccountIds(state) {
   const accounts = state?.accounts && typeof state.accounts === "object" ? state.accounts : {};
   const explicitLiveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds.filter((id) => accounts[id]) : [];
-  const inferredLiveIds = Object.entries(accounts)
+  if (explicitLiveIds.length > 0) return explicitLiveIds;
+
+  return Object.entries(accounts)
     .filter(([accountId, account]) => isLiveAccountCandidate(account, accountId, explicitLiveIds))
     .map(([accountId]) => accountId);
-  const liveIds = explicitLiveIds.length > 0 ? explicitLiveIds : inferredLiveIds;
+}
+
+export function resolveSelectedLiveAccountId(state) {
+  const accounts = state?.accounts && typeof state.accounts === "object" ? state.accounts : {};
+  const liveIds = resolveLiveAccountIds(state);
   const activeLiveAccountId = state?.activeLiveAccountId;
   const currentAccount = state?.currentAccount;
 
@@ -498,6 +504,36 @@ export function hasLiveAccounts(state) {
   const resolvedAccountId = resolveSelectedLiveAccountId(state);
   const account = resolvedAccountId ? state?.accounts?.[resolvedAccountId] || null : null;
   return isLiveAccountCandidate(account, resolvedAccountId, []);
+}
+
+// Public active-account selector API.
+// New pages and future refactors should depend on these wrappers instead of
+// reading state.currentAccount directly. They intentionally preserve the
+// current live/mock resolution behavior for backwards compatibility.
+export function selectActiveAccountId(state) {
+  return resolveSelectedLiveAccountId(state);
+}
+
+export function selectActiveAccount(state) {
+  const resolvedAccountId = selectActiveAccountId(state);
+  return resolvedAccountId ? state?.accounts?.[resolvedAccountId] || null : null;
+}
+
+export function selectActiveAccountModel(state) {
+  return selectActiveAccount(state)?.model || null;
+}
+
+export function selectActiveDashboardPayload(state) {
+  const account = selectActiveAccount(state);
+  return account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+}
+
+export function selectLiveAccountIds(state) {
+  return resolveLiveAccountIds(state);
+}
+
+export function selectHasLiveAccount(state) {
+  return hasLiveAccounts(state);
 }
 
 export function resolveAccountPnlSummary(account) {
@@ -886,9 +922,12 @@ export function buildDashboardModel(source) {
   };
 }
 
+// Deprecated compatibility selectors.
+// Keep these exports stable until existing modules are migrated to the public
+// active-account selector API above.
 export function selectCurrentAccount(state) {
-  const resolvedAccountId = resolveSelectedLiveAccountId(state);
-  const account = resolvedAccountId ? state?.accounts?.[resolvedAccountId] || null : null;
+  const resolvedAccountId = selectActiveAccountId(state);
+  const account = selectActiveAccount(state);
   const isLive = isLiveAccountCandidate(
     account,
     resolvedAccountId,
