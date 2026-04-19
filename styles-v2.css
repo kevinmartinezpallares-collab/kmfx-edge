@@ -10531,7 +10531,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard {
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__section,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__section {
-  gap: 16px !important;
+  gap: 24px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__section-head,
@@ -10555,7 +10555,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__subtitle {
   margin: 0 !important;
   max-width: 42ch !important;
   color: var(--text-secondary) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
   line-height: 1.45 !important;
 }
@@ -10633,6 +10633,20 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid {
   gap: 12px !important;
 }
 
+html[data-theme="dark"] .connection-wizard-modal .form-stack,
+body[data-theme="dark"] .connection-wizard-modal .form-stack {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .form-stack > span,
+body[data-theme="dark"] .connection-wizard-modal .form-stack > span {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+}
+
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning,
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-error,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning,
@@ -10657,6 +10671,13 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card
   padding: 16px !important;
   gap: 8px !important;
   box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-actions,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-actions,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-actions,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-actions {
+  gap: 12px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist,
@@ -10688,14 +10709,15 @@ html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-val
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-value,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-value,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-value {
-  color: var(--text-secondary) !important;
+  color: var(--text-primary) !important;
   font-size: 13px !important;
+  line-height: 1.45 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-title,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-title {
   color: var(--text-primary) !important;
-  font-size: 16px !important;
+  font-size: 18px !important;
   font-weight: 600 !important;
   letter-spacing: -0.3px !important;
 }
@@ -10711,6 +10733,21 @@ body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):no
   background: var(--layer-2) !important;
   border: 1px solid var(--border-subtle) !important;
   box-shadow: none !important;
+  border-radius: 10px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]):focus {
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-primary,
+html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
+html[data-theme="dark"] .connection-wizard-modal .btn-ghost,
+body[data-theme="dark"] .connection-wizard-modal .btn-primary {
+  min-height: 44px !important;
+  border-radius: 12px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .btn-primary,
