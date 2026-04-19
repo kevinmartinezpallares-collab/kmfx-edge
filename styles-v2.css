@@ -1250,7 +1250,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .connection-wizard__option-icon {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9774,21 +9774,21 @@ html[data-theme="dark"] .sidebar-account-switcher__icon,
 body[data-theme="dark"] .sidebar-account-switcher__icon {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
+  overflow: hidden;
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  background: var(--layer-2);
   color: var(--text-0);
-  font-size: 18px;
-  font-weight: 650;
+  padding: 0;
 }
 
 html[data-theme="dark"] .sidebar-account-switcher__icon-image,
 body[data-theme="dark"] .sidebar-account-switcher__icon-image {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
