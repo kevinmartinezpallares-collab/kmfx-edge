@@ -588,13 +588,11 @@ export function renderConnections(root, state) {
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader({ adminVisible, adminState })}
       ${renderConnectionsKpis(registryAccounts)}
-      <section class="connections-shell__main">
-        <article class="tl-section-card connections-main-card ${isSingleAccount ? "connections-main-card--single" : ""}">
-          <div class="calendar-panel-head">
-            <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-          </div>
-          ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
-        </article>
+      <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
+        <div class="calendar-panel-head">
+          <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+        </div>
+        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
       </section>
     </div>
   `;
