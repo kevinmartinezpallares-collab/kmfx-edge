@@ -550,13 +550,11 @@ export function renderDashboard(root, state) {
           <div class="dashboard-header-card__copy">
             <div class="banner-kicker">Cuenta activa</div>
             <div class="banner-title">${display.title}</div>
-            <div class="banner-sub">${[display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `ledger desde ${authority.firstTradeLabel}` : "", riskHeadline].filter(Boolean).join(" · ")}</div>
+            <div class="banner-sub">${[display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</div>
           </div>
           <div class="dashboard-header-card__meta">
             ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             <span class="widget-pill">${accountTypeLabel}</span>
-            <span class="widget-pill">${performanceView.openPositionsCount} posiciones activas</span>
-            <span class="widget-pill">Heat ${formatRiskValuePct(riskSummary.totalOpenRiskPct, 2)}</span>
           </div>
         </article>
       </section>
@@ -608,27 +606,21 @@ export function renderDashboard(root, state) {
                 </div>
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
-                    <span class="metric-line-label">Balance</span>
-                    <strong>${formatCurrency(model.account.balance)}</strong>
-                  </div>
-
-                  <div class="metric-line">
-                    <span class="metric-line-label">${panelSecondMetricLabel}</span>
-                    <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
-                      ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
-                    </strong>
-                  </div>
-
-                  <div class="metric-line">
                     <span class="metric-line-label">Rango (${heroRangeLabel})</span>
                     <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
                       ${heroRangeValueDisplay} (${heroRangePctDisplay})
                     </strong>
                   </div>
-                </div>
-                <div class="account-banner-badges">
-                  <span class="widget-pill">Fuente ${authority.payloadSource || authority.sourceUsed || "live"}</span>
-                  <span class="widget-pill">${performanceView.openPositionsCount} posiciones</span>
+
+                  <div class="metric-line">
+                    <span class="metric-line-label">Posiciones abiertas</span>
+                    <strong>${performanceView.openPositionsCount}</strong>
+                  </div>
+
+                  <div class="metric-line">
+                    <span class="metric-line-label">Fuente</span>
+                    <strong>${authority.payloadSource || authority.sourceUsed || "live"}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -659,12 +651,6 @@ export function renderDashboard(root, state) {
             </div>
 
             <div class="dashboard-risk-block__grid">
-              ${renderRiskMetricCard({
-                label: "Drawdown actual",
-                value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
-                meta: `Flotante ${formatRiskValuePct(riskSummary.floatingDrawdownPct, 2)}`,
-                tone: riskTone,
-              })}
               ${renderRiskMetricCard({
                 label: "Daily DD",
                 value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
@@ -711,7 +697,7 @@ export function renderDashboard(root, state) {
           <div class="dashboard-risk-block__head">
             <div>
               <div class="dashboard-risk-block__title">Risk posture</div>
-              <div class="dashboard-risk-block__sub">Heat real, riesgo por trade y límites críticos en una sola lectura compacta.</div>
+              <div class="dashboard-risk-block__sub">Riesgo abierto y riesgo máximo por trade como lectura compacta del posture actual.</div>
             </div>
           </div>
           <div class="dashboard-risk-block__grid">
@@ -719,11 +705,6 @@ export function renderDashboard(root, state) {
               label: "Total open risk",
               value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
               meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
-            })}
-            ${renderRiskMetricCard({
-              label: "Heat usage",
-              value: riskSummary.heatUsageRatioPct == null ? "—" : formatRiskValuePct(riskSummary.heatUsageRatioPct, 1),
-              meta: riskSummary.portfolioHeatLimitPct == null ? "Sin límite explícito" : `Límite ${formatRiskValuePct(riskSummary.portfolioHeatLimitPct, 2)}`,
             })}
             ${renderRiskMetricCard({
               label: "Max trade risk",
