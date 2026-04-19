@@ -639,32 +639,32 @@ export function renderDashboard(root, state) {
               <span>${hasEnforcementSignal ? riskAction : riskHeadline}</span>
             </div>
           </article>
+
+          <article class="widget-card dashboard-risk-block dashboard-risk-posture-card">
+            <div class="dashboard-risk-block__head">
+              <div>
+                <div class="dashboard-risk-block__title">Risk posture</div>
+                <div class="dashboard-risk-block__sub">Riesgo abierto y riesgo máximo por trade como lectura compacta del posture actual.</div>
+              </div>
+            </div>
+            <div class="dashboard-risk-block__grid">
+              ${renderRiskMetricCard({
+                label: "Total open risk",
+                value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
+                meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
+              })}
+              ${renderRiskMetricCard({
+                label: "Max trade risk",
+                value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
+                meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
+              })}
+            </div>
+          </article>
         </div>
       </section>
 
+      ${hasExposureSignal ? `
       <section class="dashboard-secondary-grid dashboard-secondary-grid--master">
-        <article class="widget-card dashboard-risk-block dashboard-risk-posture-card">
-          <div class="dashboard-risk-block__head">
-            <div>
-              <div class="dashboard-risk-block__title">Risk posture</div>
-              <div class="dashboard-risk-block__sub">Riesgo abierto y riesgo máximo por trade como lectura compacta del posture actual.</div>
-            </div>
-          </div>
-          <div class="dashboard-risk-block__grid">
-            ${renderRiskMetricCard({
-              label: "Total open risk",
-              value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
-              meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
-            })}
-            ${renderRiskMetricCard({
-              label: "Max trade risk",
-              value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
-              meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
-            })}
-          </div>
-        </article>
-
-        ${hasExposureSignal ? `
           <article class="widget-card dashboard-risk-block">
             <div class="dashboard-risk-block__head">
               <div class="dashboard-risk-block__title">Exposición</div>
@@ -672,8 +672,8 @@ export function renderDashboard(root, state) {
             </div>
             ${renderSymbolExposureTable(riskExposure.symbolExposure)}
           </article>
-        ` : ""}
       </section>
+      ` : ""}
 
       ${hasEnforcementSignal ? `
         <section class="dashboard-bottom-grid dashboard-bottom-grid--master">

@@ -7195,8 +7195,8 @@ body[data-theme="dark"] .dashboard-header-card {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px !important;
+  gap: 8px;
+  padding: 8px 12px !important;
 }
 
 html[data-theme="dark"] .dashboard-header-card__copy,
@@ -7206,20 +7206,20 @@ body[data-theme="dark"] .dashboard-header-card__copy {
 
 html[data-theme="dark"] .dashboard-header-card .banner-kicker,
 body[data-theme="dark"] .dashboard-header-card .banner-kicker {
-  margin-bottom: 4px !important;
+  margin-bottom: 2px !important;
 }
 
 html[data-theme="dark"] .dashboard-header-card .banner-title,
 body[data-theme="dark"] .dashboard-header-card .banner-title {
-  font-size: 17px !important;
-  line-height: 1.06 !important;
+  font-size: 16px !important;
+  line-height: 1.04 !important;
 }
 
 html[data-theme="dark"] .dashboard-header-card .banner-sub,
 body[data-theme="dark"] .dashboard-header-card .banner-sub {
-  margin-top: 3px !important;
+  margin-top: 2px !important;
   font-size: 11px !important;
-  line-height: 1.22 !important;
+  line-height: 1.18 !important;
 }
 
 html[data-theme="dark"] .dashboard-header-card__meta,
@@ -7227,7 +7227,7 @@ body[data-theme="dark"] .dashboard-header-card__meta {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis,
@@ -7244,7 +7244,7 @@ body[data-theme="dark"] .dashboard-main-grid--master {
 html[data-theme="dark"] .dashboard-side-stack,
 body[data-theme="dark"] .dashboard-side-stack {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 html[data-theme="dark"] .dashboard-ops-card,
@@ -7269,11 +7269,6 @@ body[data-theme="dark"] .dashboard-risk-posture-card__limits {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-html[data-theme="dark"] .dashboard-secondary-grid--master,
-body[data-theme="dark"] .dashboard-secondary-grid--master {
-  margin-top: -6px;
 }
 
 html[data-theme="dark"] .dashboard-risk-overview,
@@ -7392,6 +7387,11 @@ body[data-theme="dark"] .dashboard-risk-grid {
 html[data-theme="dark"] .dashboard-risk-block,
 body[data-theme="dark"] .dashboard-risk-block {
   padding: 14px !important;
+}
+
+html[data-theme="dark"] .dashboard-risk-posture-card,
+body[data-theme="dark"] .dashboard-risk-posture-card {
+  padding: 12px !important;
 }
 
 html[data-theme="dark"] .dashboard-risk-block--wide,
