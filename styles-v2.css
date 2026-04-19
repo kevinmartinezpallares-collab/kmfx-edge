@@ -7521,7 +7521,7 @@ body[data-theme="dark"] .connections-account-modal .modal-head > div {
 
 html[data-theme="dark"] .connections-account-modal .modal-body,
 body[data-theme="dark"] .connections-account-modal .modal-body {
-  padding: 0 24px 24px;
+  padding: 20px 24px 24px;
 }
 
 html[data-theme="dark"] .connections-account-modal__form,
@@ -7529,7 +7529,7 @@ body[data-theme="dark"] .connections-account-modal__form,
 html[data-theme="dark"] .connections-account-modal__info,
 body[data-theme="dark"] .connections-account-modal__info {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 html[data-theme="dark"] .connections-account-modal__stack,
@@ -7553,13 +7553,17 @@ body[data-theme="dark"] .connections-account-modal__label {
 }
 
 html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]),
-body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]) {
+body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .connections-account-modal select,
+body[data-theme="dark"] .connections-account-modal select {
   background: var(--layer-2);
   border: 1px solid var(--border-subtle);
 }
 
 html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus,
-body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus {
+body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+html[data-theme="dark"] .connections-account-modal select:focus,
+body[data-theme="dark"] .connections-account-modal select:focus {
   border-color: var(--accent);
 }
 
@@ -7586,7 +7590,7 @@ body[data-theme="dark"] .connections-account-modal__info-grid {
 html[data-theme="dark"] .connections-account-modal__info-block,
 body[data-theme="dark"] .connections-account-modal__info-block {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .connections-account-modal__value,

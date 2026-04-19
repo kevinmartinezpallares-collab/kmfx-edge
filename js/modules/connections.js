@@ -317,6 +317,7 @@ function copyText(value, successLabel = "Copiado") {
 }
 
 function openAccountEditModal({ account, store, root }) {
+  const selectedLabel = resolveAccountSecondaryLabel(account);
   openModal({
     title: "Actualizar Cuenta",
     subtitle: "Ajusta la información visible de esta cuenta.",
@@ -336,6 +337,14 @@ function openAccountEditModal({ account, store, root }) {
             <span>Servidor</span>
             <input type="text" name="server" value="${escapeHtml(account.server || "")}">
           </label>
+          <label class="form-stack connections-account-modal__field">
+            <span>Etiqueta</span>
+            <select name="accountLabel">
+              ${["Real", "Funded", "Challenge"].map((option) => `
+                <option value="${option}" ${selectedLabel === option ? "selected" : ""}>${option}</option>
+              `).join("")}
+            </select>
+          </label>
         </div>
         <div class="connections-account-modal__actions">
           <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
@@ -354,6 +363,8 @@ function openAccountEditModal({ account, store, root }) {
           display_name: String(payload.alias || "").trim(),
           login: String(payload.login || "").trim(),
           server: String(payload.server || "").trim(),
+          label: String(payload.accountLabel || "").trim(),
+          account_type: String(payload.accountLabel || "").trim(),
         });
         closeModal();
         renderConnections(root, store.getState());
@@ -633,7 +644,8 @@ function resolveAccountSecondaryLabel(account, activeAccount = null) {
 function resolveAccountMetaLine(account, activeAccount = null) {
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const alias = String(account.alias || account.display_name || "").trim();
-  if (alias && alias !== primaryLabel) return alias;
+  if (account.server && String(account.server).trim() !== primaryLabel) return String(account.server).trim();
+  if (alias && alias !== primaryLabel && alias.length <= 28) return alias;
   if (account.server) return String(account.server).trim();
   if (account.platform) return `Plataforma ${String(account.platform).toUpperCase()}`;
   return "Cuenta disponible";
