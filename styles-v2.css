@@ -7332,8 +7332,16 @@ body[data-theme="dark"] .connections-account-card {
 html[data-theme="dark"] .connections-account-card__layout,
 body[data-theme="dark"] .connections-account-card__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) repeat(5, minmax(96px, 1fr)) auto;
-  gap: 24px;
+  grid-template-columns:
+    minmax(180px, 1.2fr)
+    minmax(100px, 0.8fr)
+    minmax(140px, 1fr)
+    minmax(160px, 1fr)
+    minmax(140px, 1fr)
+    minmax(120px, 1fr)
+    auto;
+  column-gap: 24px;
+  row-gap: 0;
   align-items: start;
 }
 
@@ -7634,7 +7642,11 @@ body[data-theme="dark"] .connections-account-modal__key-value {
 @media (max-width: 1180px) {
   html[data-theme="dark"] .connections-account-card__layout,
   body[data-theme="dark"] .connections-account-card__layout {
-    grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(118px, 1fr));
+    grid-template-columns:
+      minmax(180px, 1.2fr)
+      minmax(100px, 0.8fr)
+      minmax(140px, 1fr)
+      minmax(160px, 1fr);
     gap: 20px;
     align-items: start;
   }
