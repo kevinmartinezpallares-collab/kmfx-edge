@@ -1348,21 +1348,18 @@ html .btn-ghost {
 }
 
 html .btn-primary {
-  background: var(--layer-3);
-  color: var(--text-0);
-  border: 1px solid var(--border-2);
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
 }
 
 html .btn-primary:hover {
-  background: color-mix(in srgb, var(--layer-3) 84%, white 16%);
-  border-color: rgba(255, 255, 255, 0.18);
-  filter: none;
+  filter: brightness(1.08);
 }
 
 html .btn-primary:active {
   transform: scale(0.97);
-  opacity: 0.82;
-  filter: none;
+  filter: brightness(0.96);
 }
 
 html .btn-secondary {
@@ -1956,9 +1953,9 @@ select:focus {
 
 /* ── BOTONES ── */
 .btn-primary {
-  background: var(--layer-3);
-  color: var(--text-0);
-  border: 1px solid var(--border-2);
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
   border-radius: 12px;
   min-height: 44px;
   padding: 10px 18px;
@@ -1970,11 +1967,7 @@ select:focus {
   transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-.btn-primary:hover  {
-  background: color-mix(in srgb, var(--layer-3) 84%, white 16%);
-  border-color: rgba(255, 255, 255, 0.18);
-  opacity: 1;
-}
+.btn-primary:hover  { opacity: 0.88; }
 .btn-primary:active { transform: scale(0.97); opacity: 0.82; }
 
 .btn-secondary {
@@ -7435,7 +7428,7 @@ body[data-theme="dark"] .connections-account-card__menu-trigger {
   justify-content: center;
   border-radius: 12px;
   border: 1px solid var(--border-subtle) !important;
-  background: var(--layer-2) !important;
+  background: transparent !important;
   color: var(--text-secondary) !important;
   font-size: 18px;
   font-weight: 600;
@@ -7448,7 +7441,7 @@ html[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 body[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 html[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible,
 body[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible {
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   border-color: var(--border-medium);
   color: var(--text-primary) !important;
   outline: none;
@@ -7565,8 +7558,8 @@ html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):
 body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]),
 html[data-theme="dark"] .connections-account-modal select,
 body[data-theme="dark"] .connections-account-modal select {
-  background: var(--layer-2);
-  border: 1px solid var(--border-subtle);
+  background: var(--layer-1);
+  border: 1px solid var(--border-medium);
 }
 
 html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -7627,7 +7620,8 @@ body[data-theme="dark"] .connections-account-modal__key-block {
   gap: 16px;
   padding: 20px;
   border-radius: 14px;
-  background: var(--layer-2);
+  background: var(--layer-1);
+  border: 1px solid var(--border-subtle);
 }
 
 html[data-theme="dark"] .connections-account-modal__key-value,
@@ -10910,8 +10904,8 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
-  background: var(--layer-2) !important;
-  border: 1px solid var(--border-subtle) !important;
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-medium) !important;
   border-radius: 14px !important;
   outline: 1px solid transparent !important;
   outline-offset: 0 !important;
@@ -10924,13 +10918,13 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled),
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled) {
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   border-color: var(--border-medium) !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected {
-  background: var(--layer-2) !important;
+  background: var(--layer-1) !important;
   border-color: var(--border-medium) !important;
   outline-color: rgba(255, 255, 255, 0.12) !important;
 }
@@ -10995,8 +10989,8 @@ html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-car
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card {
-  background: var(--layer-2) !important;
-  border: none !important;
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-subtle) !important;
   border-radius: 10px !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   align-items: center !important;
@@ -11062,8 +11056,8 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-sub
 
 html[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]),
 body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]) {
-  background: var(--layer-2) !important;
-  border: 1px solid var(--border-subtle) !important;
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-medium) !important;
   box-shadow: none !important;
   border-radius: 10px !important;
 }
@@ -11084,14 +11078,14 @@ body[data-theme="dark"] .connection-wizard-modal .btn-primary {
 
 html[data-theme="dark"] .connection-wizard-modal .btn-primary,
 body[data-theme="dark"] .connection-wizard-modal .btn-primary {
-  background: var(--layer-3) !important;
-  border: 1px solid var(--border-medium) !important;
-  color: var(--text-primary) !important;
+  background: var(--accent) !important;
+  border: none !important;
+  color: #fff !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
 body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
-  background: var(--layer-2) !important;
+  background: var(--layer-1) !important;
   border: 1px solid var(--border-subtle) !important;
   color: var(--text-primary) !important;
   box-shadow: none !important;
