@@ -7230,6 +7230,14 @@ body[data-theme="dark"] .dashboard-header-card__meta {
   gap: 5px;
 }
 
+html[data-theme="dark"] .dashboard-empty-actions,
+body[data-theme="dark"] .dashboard-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 html[data-theme="dark"] .dashboard-summary-kpis,
 body[data-theme="dark"] .dashboard-summary-kpis {
   margin-bottom: 0;
