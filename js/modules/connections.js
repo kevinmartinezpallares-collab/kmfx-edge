@@ -407,33 +407,24 @@ function resolveAccountBalanceLabel(account, activeAccount = null) {
 
 function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
-  const dashboardStatus = resolveDashboardStatus(meta.tone);
-  const identityLine = [account.broker || null, account.server || null].filter(Boolean).join(" · ") || "Cuenta pendiente";
   const platformLabel = String(account.platform || "MT5").toUpperCase();
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const actionMarkup = isActive
     ? ""
     : `<button class="btn-secondary" type="button" data-account-use-panel="${escapeHtml(account.account_id || "")}">Usar en panel</button>`;
+  const statusLine = isActive ? "Activa en panel" : meta.label;
 
   return `
     <article class="widget-card connections-account-card">
       <div class="widget-card-head">
         <div>
           <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
-          <div class="row-sub">${escapeHtml(identityLine)}</div>
-        </div>
-        ${renderRiskStatusBadge(dashboardStatus.status, dashboardStatus.severity)}
-      </div>
-      <div class="connections-account-card__summary">
-        <div class="metric-label">Balance</div>
-        <div class="metric-value">${escapeHtml(balanceLabel)}</div>
-        <div class="widget-card-meta">${escapeHtml(platformLabel)} · ${escapeHtml(meta.label)}${isActive ? " · Activa" : ""}</div>
-      </div>
-      <div class="connections-account-card__footer">
-        <div class="connections-account-card__status">
-          <span>${escapeHtml(isActive ? "Activa en panel" : "Disponible")}</span>
         </div>
         ${actionMarkup}
+      </div>
+      <div class="connections-account-card__summary">
+        <div class="metric-value">${escapeHtml(balanceLabel)}</div>
+        <div class="row-sub">${escapeHtml(statusLine)}${!isActive && platformLabel ? ` · ${escapeHtml(platformLabel)}` : ""}</div>
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>
