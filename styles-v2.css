@@ -11421,9 +11421,9 @@ body[data-theme="dark"] .dashboard-screen__actions .btn-inline {
 
 html[data-theme="dark"] .dashboard-screen__actions .dashboard-screen__add-account,
 body[data-theme="dark"] .dashboard-screen__actions .dashboard-screen__add-account {
-  color: var(--text-0);
-  background: var(--layer-2);
-  border-color: var(--border-subtle);
+  min-height: 38px;
+  padding-inline: 14px;
+  font-size: 13px;
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis,

@@ -38,38 +38,6 @@ function renderDashboardKpiCard({ label, value, valueClass = "", meta = "", tren
   `;
 }
 
-function getDeltaForWindow(points, count) {
-  if (!Array.isArray(points) || points.length < 2) return null;
-  const last = Number(points.at(-1)?.value);
-  const firstIndex = Math.max(0, points.length - count);
-  const first = Number(points[firstIndex]?.value);
-  if (!Number.isFinite(last) || !Number.isFinite(first)) return null;
-  return last - first;
-}
-
-function formatSignedCompactCurrency(value) {
-  const amount = Number(value || 0);
-  const sign = amount >= 0 ? "+" : "-";
-  return `${sign}${formatCurrency(Math.abs(amount))}`;
-}
-
-function buildTemporalContext(points) {
-  const windows = [
-    ["Hoy", 2],
-    ["7d", 7],
-    ["1m", 14],
-  ];
-
-  return windows
-    .map(([label, count]) => {
-      const delta = getDeltaForWindow(points, count);
-      if (delta === null) return null;
-      return `${label} ${formatSignedCompactCurrency(delta)}`;
-    })
-    .filter(Boolean)
-    .join(" · ");
-}
-
 function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsCount }) {
   const normalized = String(riskStatus?.riskStatus || "").toLowerCase();
   if (normalized === "blocked" || normalized === "breach") {
@@ -79,7 +47,7 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
     };
   }
 
-  if (normalized === "warning" || primaryDistanceToLimit <= 1.5) {
+  if (normalized === "warning") {
     return {
       summary: "Vigilancia necesaria.",
       detail: "El margen operativo se está estrechando.",
@@ -88,14 +56,14 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
 
   if (openPositionsCount > 0) {
     return {
-      summary: "Todo bajo control.",
-      detail: "Mantén disciplina y monitorización.",
+      summary: "Bajo control.",
+      detail: "Sin alertas relevantes en el riesgo vivo.",
     };
   }
 
   return {
-    summary: "Sin alertas relevantes.",
-    detail: "No hay señales críticas activas.",
+    summary: "Bajo control.",
+    detail: "Sin alertas relevantes.",
   };
 }
 
@@ -490,7 +458,6 @@ export function renderDashboard(root, state) {
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
-  const temporalContext = buildTemporalContext(baseCurve);
   const riskSummary = selectRiskSummary(state);
   const riskStatus = selectRiskStatus(state);
   const riskLimits = selectRiskLimits(state);
@@ -602,7 +569,7 @@ export function renderDashboard(root, state) {
           <p class="calendar-screen__subtitle">Capital, riesgo y estado operativo de un vistazo.</p>
         </div>
         <div class="dashboard-screen__actions">
-          <button class="btn-secondary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
+          <button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
         </div>
       </header>
 
@@ -610,7 +577,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: temporalContext || `Balance ${formatCurrency(model.account.balance)}`,
+          meta: `Balance ${formatCurrency(model.account.balance)}`,
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
@@ -621,7 +588,9 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Drawdown actual",
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
-          valueClass: primaryDistanceToLimit <= 1.5 ? "metric-warning" : "",
+          valueClass: Number(riskSummary.peakToEquityDrawdownPct || 0) > 0 && String(riskStatus.riskStatus || "").toLowerCase() === "warning"
+            ? "metric-warning"
+            : "",
           meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)}`,
         })}
         ${renderDashboardKpiCard({
