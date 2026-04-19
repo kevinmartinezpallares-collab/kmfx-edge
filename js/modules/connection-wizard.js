@@ -60,92 +60,79 @@ function copyText(value, successLabel = "Copiado") {
   complete();
 }
 
-function renderStepDots(currentStep) {
-  const labels = ["Plataforma", "Método", "Configuración", "Confirmación"];
+function renderStepFrame(title, subtitle, content, tone = "") {
   return `
-    <div class="connection-wizard__steps" aria-label="Progreso de conexión">
-      ${labels.map((label, index) => {
-        const step = index + 1;
-        const active = currentStep === step;
-        const complete = currentStep > step;
-        return `
-          <div class="connection-wizard__step ${active ? "is-active" : ""} ${complete ? "is-complete" : ""}">
-            <span class="connection-wizard__step-dot">${complete ? "✓" : step}</span>
-            <span class="connection-wizard__step-label">${label}</span>
-          </div>
-        `;
-      }).join("")}
-    </div>
+    <section class="connection-wizard__section">
+      <div class="connection-wizard__section-head">
+        <h3 class="connection-wizard__title">${title}</h3>
+        <p class="connection-wizard__subtitle">${subtitle}</p>
+      </div>
+      <article class="widget-card connection-wizard__card ${tone ? `connection-wizard__card--${tone}` : ""}">
+        ${content}
+      </article>
+    </section>
   `;
 }
 
 function renderPlatformStep(state) {
   const selectedPlatform = state.platform;
-  return `
-    <section class="connection-wizard__section">
-      <div class="connection-wizard__section-head">
-        <h3 class="connection-wizard__title">Elige la plataforma</h3>
-        <p class="connection-wizard__subtitle">Selecciona el entorno.</p>
-      </div>
+  return renderStepFrame(
+    "Plataforma",
+    "Elige la plataforma para esta cuenta.",
+    `
       <div class="connection-wizard__option-grid">
-        <button class="connection-wizard__option widget-card ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
+        <button class="connection-wizard__option ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedPlatform === "mt5" ? "✓" : ""}</span>
-          <span class="connection-wizard__option-badge">Principal</span>
           <div class="connection-wizard__option-icon">MT5</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 5</div>
-            <div class="connection-wizard__option-subtitle">Listo para continuar ahora.</div>
+            <div class="connection-wizard__option-subtitle">Disponible ahora.</div>
           </div>
         </button>
-        <button class="connection-wizard__option connection-wizard__option--muted widget-card" type="button" disabled aria-disabled="true">
-          <span class="connection-wizard__option-badge connection-wizard__option-badge--neutral">Próximamente</span>
+        <button class="connection-wizard__option connection-wizard__option--muted" type="button" disabled aria-disabled="true">
+          <span class="connection-wizard__option-check" aria-hidden="true"></span>
           <div class="connection-wizard__option-icon">MT4</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 4</div>
-            <div class="connection-wizard__option-subtitle">Disponible más adelante.</div>
+            <div class="connection-wizard__option-subtitle">Próximamente.</div>
           </div>
         </button>
       </div>
-    </section>
-  `;
+    `
+  );
 }
 
 function renderMethodStep(state) {
   const selectedMethod = state.method;
-  return `
-    <section class="connection-wizard__section">
-      <div class="connection-wizard__section-head">
-        <h3 class="connection-wizard__title">Elige el método</h3>
-        <p class="connection-wizard__subtitle">Selecciona cómo quieres conectar la cuenta.</p>
-      </div>
+  return renderStepFrame(
+    "Método",
+    "Elige cómo quieres conectar la cuenta.",
+    `
       <div class="connection-wizard__option-grid">
-        <button class="connection-wizard__option widget-card ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
+        <button class="connection-wizard__option ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "direct" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Conexión directa</div>
-            <div class="connection-wizard__option-subtitle">Cuenta, password y servidor.</div>
+            <div class="connection-wizard__option-subtitle">Cuenta, contraseña y servidor.</div>
           </div>
         </button>
-        <button class="connection-wizard__option widget-card ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
+        <button class="connection-wizard__option ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "ea" ? "✓" : ""}</span>
-          <span class="connection-wizard__option-badge">Recomendado</span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Expert Advisor (EA)</div>
-            <div class="connection-wizard__option-subtitle">Más seguro para cuentas fondeadas.</div>
+            <div class="connection-wizard__option-subtitle">Recomendado para cuentas fondeadas.</div>
           </div>
         </button>
       </div>
-    </section>
-  `;
+    `
+  );
 }
 
 function renderDirectStep(state) {
-  return `
-    <section class="connection-wizard__section">
-      <div class="connection-wizard__section-head">
-        <h3 class="connection-wizard__title">Conexión directa</h3>
-        <p class="connection-wizard__subtitle">Introduce los datos de acceso.</p>
-      </div>
+  return renderStepFrame(
+    "Configuración",
+    "Completa los datos de acceso.",
+    `
       <div class="connection-wizard__form-grid">
         <label class="form-stack">
           <span>Account Number</span>
@@ -162,23 +149,20 @@ function renderDirectStep(state) {
       </div>
       <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
-    </section>
-  `;
+    `
+  );
 }
 
 function renderEaStep(state) {
   const webRequestUrl = resolveApiBaseUrl();
-  return `
-    <section class="connection-wizard__section">
-      <div class="connection-wizard__section-head">
-        <h3 class="connection-wizard__title">Expert Advisor</h3>
-        <p class="connection-wizard__subtitle">Deja el launcher listo y genera la clave.</p>
-      </div>
+  return renderStepFrame(
+    "Configuración",
+    "Prepara el launcher y genera la clave.",
+    `
       <div class="connection-wizard__checklist">
         <div class="connection-wizard__checklist-item">Cerrar MT5</div>
         <div class="connection-wizard__checklist-item">Iniciar sesión en Launcher</div>
         <div class="connection-wizard__checklist-item">Instalar connector</div>
-        <div class="connection-wizard__checklist-item">Permitir WebRequest</div>
       </div>
       <div class="connection-wizard__utility-card">
         <div>
@@ -187,27 +171,44 @@ function renderEaStep(state) {
         </div>
         <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar</button>
       </div>
+      <div class="connection-wizard__inline-actions">
+        <button class="btn-secondary" type="button" data-wizard-download-launcher="true">Descargar instalador</button>
+        <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir launcher</button>
+      </div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
-    </section>
-  `;
+    `
+  );
 }
 
 function renderConfirmationStep(state) {
   if (state.method === "direct") {
-    return `
-      <section class="connection-wizard__section connection-wizard__section--success">
-        <div class="connection-wizard__success-icon">✓</div>
-        <h3 class="connection-wizard__title">Cuenta conectada</h3>
-        <p class="connection-wizard__subtitle">La conexión directa queda lista para integrarse con backend.</p>
-      </section>
-    `;
+    return renderStepFrame(
+      "Confirmación",
+      "La cuenta queda lista para continuar.",
+      `
+        <div class="connection-wizard__success">
+          <div class="connection-wizard__success-icon">✓</div>
+          <div class="connection-wizard__success-copy">
+            <div class="connection-wizard__success-title">Cuenta conectada</div>
+            <div class="connection-wizard__success-subtitle">La conexión directa ya está preparada.</div>
+          </div>
+        </div>
+      `,
+      "success"
+    );
   }
 
-  return `
-    <section class="connection-wizard__section connection-wizard__section--success">
-      <div class="connection-wizard__success-icon">✓</div>
-      <h3 class="connection-wizard__title">Cuenta conectada</h3>
-      <p class="connection-wizard__subtitle">Usa esta clave en el flujo del launcher.</p>
+  return renderStepFrame(
+    "Confirmación",
+    "Usa esta clave en el launcher.",
+    `
+      <div class="connection-wizard__success">
+        <div class="connection-wizard__success-icon">✓</div>
+        <div class="connection-wizard__success-copy">
+          <div class="connection-wizard__success-title">Cuenta conectada</div>
+          <div class="connection-wizard__success-subtitle">La clave ya está lista para copiar.</div>
+        </div>
+      </div>
       <div class="connection-wizard__secret-card">
         <div class="connection-wizard__utility-label">Connection Key</div>
         <div class="connection-wizard__secret-value">${state.showSecret ? escapeHtml(state.generatedKey) : "••••••••-••••-••••-••••-••••••••••••"}</div>
@@ -216,8 +217,9 @@ function renderConfirmationStep(state) {
           <button class="btn-primary" type="button" data-wizard-copy-secret="true">Copiar</button>
         </div>
       </div>
-    </section>
-  `;
+    `,
+    "success"
+  );
 }
 
 function renderActions(state) {
@@ -244,8 +246,7 @@ function renderActions(state) {
 
   if (state.step === 3 && state.method === "ea") {
     return `
-      <button class="btn-secondary" type="button" data-wizard-download-launcher="true">Descargar instalador</button>
-      <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir launcher</button>
+      <button class="btn-secondary" type="button" data-wizard-back="true">Volver</button>
       <button class="btn-primary" type="button" data-wizard-generate-key="true">Generar clave de conexión</button>
     `;
   }
@@ -269,7 +270,6 @@ function renderWizardMarkup(state) {
 
   return `
     <div class="connection-wizard">
-      ${renderStepDots(state.step)}
       ${body}
       <div class="connection-wizard__actions">
         ${renderActions(state)}
