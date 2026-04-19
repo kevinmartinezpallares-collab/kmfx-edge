@@ -67,6 +67,31 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
   };
 }
 
+function getRiskPostureRead({ totalOpenRiskPct, maxOpenTradeRiskPct, maxRiskPerTradePct }) {
+  const totalOpenRisk = Number(totalOpenRiskPct || 0);
+  const maxTradeRisk = Number(maxOpenTradeRiskPct || 0);
+  const policyRisk = Number(maxRiskPerTradePct || 0);
+
+  if (totalOpenRisk <= 0 && maxTradeRisk <= 0) {
+    return {
+      summary: "Exposicion contenida.",
+      detail: "No hay riesgo abierto relevante en cartera.",
+    };
+  }
+
+  if (policyRisk > 0 && maxTradeRisk >= policyRisk * 0.8) {
+    return {
+      summary: "Vigila el riesgo por posicion.",
+      detail: "Alguna posicion se acerca al maximo permitido por trade.",
+    };
+  }
+
+  return {
+    summary: "Riesgo abierto bajo control.",
+    detail: "La exposicion actual sigue dentro del rango operativo esperado.",
+  };
+}
+
 function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, openPositionsCount }) {
   const profitFactor = Number(model?.totals?.profitFactor || 0);
   const winRate = Number(model?.totals?.winRate || 0);
@@ -458,6 +483,8 @@ export function renderDashboard(root, state) {
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
+  const heroRangeSignedValue = `${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay}`;
+  const heroRangeSignedPct = `${heroDeltaPct >= 0 ? "+" : "-"}${heroRangePctDisplay}`;
   const riskSummary = selectRiskSummary(state);
   const riskStatus = selectRiskStatus(state);
   const riskLimits = selectRiskLimits(state);
@@ -481,6 +508,11 @@ export function renderDashboard(root, state) {
     riskStatus,
     primaryDistanceToLimit,
     openPositionsCount: performanceView.openPositionsCount,
+  });
+  const riskPostureRead = getRiskPostureRead({
+    totalOpenRiskPct: riskSummary.totalOpenRiskPct,
+    maxOpenTradeRiskPct: riskSummary.maxOpenTradeRiskPct,
+    maxRiskPerTradePct: riskSummary.maxRiskPerTradePct,
   });
   const hasEnforcementSignal = hasActiveEnforcementSignal(riskStatus);
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
@@ -577,7 +609,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: `Balance ${formatCurrency(model.account.balance)}`,
+          meta: `Balance ${formatCurrency(model.account.balance)} · ${heroRangeLabel} ${heroRangeSignedValue} (${heroRangeSignedPct})`,
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
@@ -591,7 +623,7 @@ export function renderDashboard(root, state) {
           valueClass: Number(riskSummary.peakToEquityDrawdownPct || 0) > 0 && String(riskStatus.riskStatus || "").toLowerCase() === "warning"
             ? "metric-warning"
             : "",
-          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)}`,
+          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} · Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
         })}
         ${renderDashboardKpiCard({
           label: "Edge",
@@ -607,6 +639,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
+              <div class="calendar-panel-sub">${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["1D", "1W", "1M", "YTD"].map((range) => `
@@ -662,7 +695,7 @@ export function renderDashboard(root, state) {
             <div class="calendar-panel-head">
               <div>
                 <div class="calendar-panel-title">Risk posture</div>
-                <div class="calendar-panel-sub">Riesgo abierto y riesgo máximo por trade.</div>
+                <div class="calendar-panel-sub">${riskPostureRead.summary}</div>
               </div>
             </div>
             <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
@@ -676,6 +709,9 @@ export function renderDashboard(root, state) {
                 value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
                 meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
               })}
+            </div>
+            <div class="dashboard-secondary-card__foot">
+              <span>${riskPostureRead.detail}</span>
             </div>
           </article>
         </div>
