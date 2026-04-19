@@ -67,7 +67,7 @@ function renderStepFrame(title, subtitle, content) {
         <h3 class="connection-wizard__title">${title}</h3>
         <p class="connection-wizard__subtitle">${subtitle}</p>
       </div>
-      <article class="widget-card connection-wizard__card">
+      <article class="connection-wizard__card">
         ${content}
       </article>
     </section>
@@ -84,7 +84,7 @@ function renderStepper(state) {
 
   return `
     <div class="connection-wizard__steps" aria-label="Progreso del asistente">
-      ${steps.map((step) => {
+      ${steps.map((step, index) => {
         const stateClass = step.index < state.step
           ? "is-complete"
           : step.index === state.step
@@ -92,9 +92,12 @@ function renderStepper(state) {
             : "is-pending";
         const marker = step.index < state.step ? "✓" : String(step.index);
         return `
-          <div class="connection-wizard__step ${stateClass}">
-            <span class="connection-wizard__step-marker" aria-hidden="true">${marker}</span>
-            <span class="connection-wizard__step-label">${step.label}</span>
+          <div class="connection-wizard__step-wrap">
+            <div class="connection-wizard__step ${stateClass}">
+              <span class="connection-wizard__step-marker" aria-hidden="true">${marker}</span>
+              <span class="connection-wizard__step-label">${step.label}</span>
+            </div>
+            ${index < steps.length - 1 ? '<span class="connection-wizard__step-separator" aria-hidden="true"></span>' : ""}
           </div>
         `;
       }).join("")}
@@ -105,10 +108,10 @@ function renderStepper(state) {
 function renderPlatformStep(state) {
   const selectedPlatform = state.platform;
   return renderStepFrame(
-    "Plataforma",
-    "Elige la plataforma para esta cuenta.",
+    "Selecciona una plataforma",
+    "Conecta tu plataforma de trading para esta cuenta.",
     `
-      <div class="connection-wizard__option-grid">
+      <div class="connection-wizard__option-grid connection-wizard__option-grid--stacked">
         <button class="connection-wizard__option ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedPlatform === "mt5" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
@@ -131,10 +134,10 @@ function renderPlatformStep(state) {
 function renderMethodStep(state) {
   const selectedMethod = state.method;
   return renderStepFrame(
-    "Método",
-    "Elige cómo quieres conectar la cuenta.",
+    "Selecciona el método de conexión",
+    "Elige cómo quieres conectar esta cuenta.",
     `
-      <div class="connection-wizard__option-grid">
+      <div class="connection-wizard__option-grid connection-wizard__option-grid--methods">
         <button class="connection-wizard__option ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "direct" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
@@ -159,6 +162,7 @@ function renderDirectStep(state) {
     "Configuración",
     "Completa los datos de acceso.",
     `
+      <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
       <div class="connection-wizard__form-grid">
         <label class="form-stack">
           <span>Account Number</span>
@@ -173,7 +177,6 @@ function renderDirectStep(state) {
           <input type="text" data-wizard-field="server" value="${escapeHtml(state.form.server)}" placeholder="Darwinex-Live">
         </label>
       </div>
-      <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
     `
   );
@@ -186,10 +189,10 @@ function renderEaStep(state) {
     "Prepara el launcher y genera la clave.",
     `
       <div class="connection-wizard__checklist">
-        <div class="connection-wizard__checklist-item">Cerrar MT5</div>
-        <div class="connection-wizard__checklist-item">Iniciar sesión en Launcher</div>
-        <div class="connection-wizard__checklist-item">Instalar connector</div>
-        <div class="connection-wizard__checklist-item">Generar la clave</div>
+        <div class="connection-wizard__checklist-item">1. Cierra MetaTrader 5 antes de continuar.</div>
+        <div class="connection-wizard__checklist-item">2. Inicia sesión en Launcher e instala el connector.</div>
+        <div class="connection-wizard__checklist-item">3. Añade la URL a WebRequest y vuelve aquí.</div>
+        <div class="connection-wizard__checklist-item">4. Genera la clave de conexión.</div>
       </div>
       <div class="connection-wizard__utility-row">
         <div>
