@@ -89,6 +89,7 @@ function renderPlatformStep(state) {
       </div>
       <div class="connection-wizard__option-grid">
         <button class="connection-wizard__option widget-card ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
+          <span class="connection-wizard__option-check" aria-hidden="true">${selectedPlatform === "mt5" ? "✓" : ""}</span>
           <span class="connection-wizard__option-badge">Principal</span>
           <div class="connection-wizard__option-icon">MT5</div>
           <div class="connection-wizard__option-copy">
@@ -119,12 +120,14 @@ function renderMethodStep(state) {
       </div>
       <div class="connection-wizard__option-grid">
         <button class="connection-wizard__option widget-card ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
+          <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "direct" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Conexión directa</div>
             <div class="connection-wizard__option-subtitle">Cuenta, password y servidor.</div>
           </div>
         </button>
         <button class="connection-wizard__option widget-card ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
+          <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "ea" ? "✓" : ""}</span>
           <span class="connection-wizard__option-badge">Recomendado</span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Expert Advisor (EA)</div>

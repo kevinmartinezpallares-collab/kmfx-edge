@@ -1175,6 +1175,7 @@ html[data-theme="dark"] .sidebar-section-label,
 }
 
 .connection-wizard__option {
+  position: relative;
   display: grid;
   gap: 10px;
   text-align: left;
@@ -1184,19 +1185,48 @@ html[data-theme="dark"] .sidebar-section-label,
 }
 
 .connection-wizard__option:hover:not(:disabled) {
-  border-color: rgba(255,255,255,0.16);
+  border-color: rgba(255,255,255,0.18);
   background: var(--layer-3);
 }
 
 .connection-wizard__option.is-selected {
-  border-color: rgba(78, 123, 255, 0.32);
-  background: rgba(78, 123, 255, 0.10);
+  border-color: rgba(78, 123, 255, 0.48);
+  background: rgba(78, 123, 255, 0.08);
+}
+
+.connection-wizard__option.is-selected .connection-wizard__option-title {
+  color: var(--text-0);
+  font-weight: 700;
 }
 
 .connection-wizard__option--muted,
 .connection-wizard__option:disabled {
-  opacity: 0.72;
+  opacity: 0.58;
   cursor: not-allowed;
+}
+
+.connection-wizard__option-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border-1);
+  background: var(--layer-1);
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.connection-wizard__option.is-selected .connection-wizard__option-check {
+  border-color: rgba(78, 123, 255, 0.42);
+  background: rgba(78, 123, 255, 0.18);
+  color: var(--blue-2);
 }
 
 .connection-wizard__option-badge {
@@ -1367,6 +1397,36 @@ html[data-theme="dark"] .sidebar-section-label,
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 2px;
+}
+
+.connection-wizard-modal .btn-primary,
+.connection-wizard-modal .btn-secondary {
+  min-height: 40px;
+  border-radius: 12px;
+}
+
+.connection-wizard-modal .btn-secondary {
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-1) !important;
+  color: var(--text-1) !important;
+  box-shadow: none !important;
+}
+
+.connection-wizard-modal .btn-secondary:hover:not(:disabled) {
+  background: var(--layer-2) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  color: var(--text-0) !important;
+}
+
+.connection-wizard-modal .btn-secondary:active:not(:disabled) {
+  background: var(--layer-2) !important;
+  border-color: rgba(255,255,255,0.16) !important;
+}
+
+.connection-wizard-modal .btn-secondary:focus-visible,
+.connection-wizard-modal .btn-primary:focus-visible {
+  outline: 2px solid rgba(78, 123, 255, 0.38);
+  outline-offset: 2px;
 }
 
 @media (max-width: 980px) {
