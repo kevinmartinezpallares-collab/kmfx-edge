@@ -28,11 +28,11 @@ function riskStateDisplayLabel(riskState) {
   return "OK";
 }
 
-function renderDashboardKpiCard({ label, value, meta = "", trend = "", trendTone = "" }) {
+function renderDashboardKpiCard({ label, value, valueClass = "", meta = "", trend = "", trendTone = "" }) {
   return `
     <article class="widget-card widget-card--kpi">
       <div class="tl-kpi-label">${label}</div>
-      <div class="tl-kpi-val">${value}</div>
+      <div class="tl-kpi-val ${valueClass}">${value}</div>
       ${(meta || trend) ? `<div class="widget-card-meta">${[meta, trend].filter(Boolean).join(" · ")}</div>` : ""}
     </article>
   `;
@@ -548,6 +548,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
           value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(panelSecondMetricValue))}`,
+          valueClass: panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative",
           meta: `Retorno ${formatPercent(currentReturnPct)}`,
         })}
         ${renderDashboardKpiCard({
@@ -567,7 +568,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub">${panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : "Lectura principal del capital."}</div>
+              <div class="calendar-panel-sub">Lectura principal del capital.</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["1D", "1W", "1M", "YTD"].map((range) => `
@@ -583,13 +584,13 @@ export function renderDashboard(root, state) {
                 <div class="dashboard-primary-card__line">
                   <span>${panelSecondMetricLabel}</span>
                   <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
+                    ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">(${totalReturnDisplay})</span>
                   </strong>
                 </div>
                 <div class="dashboard-primary-card__line">
-                  <span>Balance</span>
+                  <span>Rango ${heroRangeLabel}</span>
                   <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${formatCurrency(model.account.balance)}
+                    ${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay} <span class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">(${heroRangePctDisplay})</span>
                   </strong>
                 </div>
               </div>

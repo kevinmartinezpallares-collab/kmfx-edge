@@ -11423,10 +11423,21 @@ body[data-theme="dark"] .dashboard-summary-kpis {
   margin-bottom: 0;
 }
 
+html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi,
+body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 136px;
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+}
+
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val,
 body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val {
   font-size: 34px;
   line-height: 1;
+  color: var(--text-1);
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta,
@@ -11506,7 +11517,7 @@ html[data-theme="dark"] .dashboard-primary-card__summary,
 body[data-theme="dark"] .dashboard-primary-card__summary {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -11522,7 +11533,7 @@ body[data-theme="dark"] .dashboard-primary-card__metric {
 html[data-theme="dark"] .dashboard-primary-card__lines,
 body[data-theme="dark"] .dashboard-primary-card__lines {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__line,
@@ -11544,6 +11555,20 @@ body[data-theme="dark"] .dashboard-primary-card__line strong {
   line-height: 1.15;
   font-weight: 600;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .dashboard-primary-card__line .metric-positive,
+body[data-theme="dark"] .dashboard-primary-card__line .metric-positive,
+html[data-theme="dark"] .dashboard-summary-kpis .metric-positive,
+body[data-theme="dark"] .dashboard-summary-kpis .metric-positive {
+  color: var(--positive) !important;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__line .metric-negative,
+body[data-theme="dark"] .dashboard-primary-card__line .metric-negative,
+html[data-theme="dark"] .dashboard-summary-kpis .metric-negative,
+body[data-theme="dark"] .dashboard-summary-kpis .metric-negative {
+  color: var(--negative) !important;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart,
