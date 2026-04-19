@@ -357,8 +357,8 @@ function buildBaseOptions(spec) {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 480,
-      easing: "easeOutQuart"
+      duration: spec.animationDuration ?? 480,
+      easing: spec.animationEasing || "easeOutQuart"
     },
     interaction: {
       mode: spec.interactionMode || "index",
@@ -888,6 +888,7 @@ function createSparklineChart(ChartLib, canvas, spec) {
 function createLineAreaChart(ChartLib, canvas, spec) {
   const mobile = isMobileViewport();
   const { start, end } = toneColors(spec.tone || "blue");
+  const labels = spec.points.map((point) => point.label);
   const datasets = [{
     data: spec.points.map((point) => point.value),
     borderColor(context) {
@@ -944,7 +945,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
   return new ChartLib(canvas, {
     type: "line",
     data: {
-      labels: spec.points.map((point) => point.label),
+      labels,
       datasets
     },
     options: {
@@ -969,10 +970,16 @@ function createLineAreaChart(ChartLib, canvas, spec) {
             color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.9),
             font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
             padding: spec.xTickPadding ?? 10,
-            autoSkip: mobile,
+            autoSkip: spec.autoSkipXTicks ?? true,
             maxRotation: 0,
             minRotation: 0,
-            maxTicksLimit: spec.maxXTicks || (mobile ? 4 : undefined)
+            maxTicksLimit: spec.maxXTicks || (mobile ? 4 : undefined),
+            callback: (value, index, ticks) => {
+              if (typeof spec.xAxisFormatter === "function") {
+                return spec.xAxisFormatter(labels[index], index, labels, value, ticks);
+              }
+              return labels[index];
+            }
           },
           grid: {
             display: spec.showXGrid ?? false,

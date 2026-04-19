@@ -20,6 +20,40 @@ function getHeroRangePoints(range, curve) {
   return curve.slice(-14);
 }
 
+function parseChartAxisDate(label) {
+  const raw = String(label || "").trim();
+  if (!raw) return null;
+  const mt5Like = raw.match(/^(\d{4})\.(\d{2})\.(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (mt5Like) {
+    const [, y, m, d, hh = "00", mm = "00", ss = "00"] = mt5Like;
+    const parsed = new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function createHeroXAxisFormatter(range, total) {
+  const desiredTicks = range === "YTD" ? 6 : range === "1M" ? 6 : range === "1W" ? 5 : 4;
+  const step = Math.max(1, Math.round((Math.max(total - 1, 1)) / Math.max(desiredTicks - 1, 1)));
+  return (label, index) => {
+    const isEdge = index === 0 || index === total - 1;
+    const isStep = index % step === 0;
+    if (!isEdge && !isStep) return "";
+    const parsed = parseChartAxisDate(label);
+    if (parsed) {
+      if (range === "1D") {
+        return parsed.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      }
+      if (range === "YTD") {
+        return parsed.toLocaleDateString("es-ES", { month: "short" });
+      }
+      return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+    }
+    return isEdge || isStep ? String(label || "") : "";
+  };
+}
+
 function riskStateDisplayLabel(riskState) {
   const normalized = String(riskState || "").toLowerCase();
   if (normalized === "blocked") return "Bloqueado";
@@ -310,6 +344,7 @@ export function renderDashboard(root, state) {
         { label: "Ahora", value: model.account.equity },
       ];
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
+  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve.length);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
@@ -557,6 +592,8 @@ export function renderDashboard(root, state) {
       showXAxis: true,
       showYAxis: true,
       maxYTicks: 4,
+      autoSkipXTicks: true,
+      xAxisFormatter: heroXAxisFormatter,
       borderWidth: 2.35,
       pointRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 3.5 : 0),
       pointHoverRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4.25 : 3.1),
@@ -566,6 +603,7 @@ export function renderDashboard(root, state) {
       fillAlphaEnd: 0,
       glowAlpha: 0,
       tension: 0.9,
+      animationDuration: 0,
       axisColor: axisStandard,
       axisFontSize: 10,
       axisFontWeight: "600",
