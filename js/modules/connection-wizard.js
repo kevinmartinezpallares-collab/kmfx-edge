@@ -74,6 +74,34 @@ function renderStepFrame(title, subtitle, content) {
   `;
 }
 
+function renderStepper(state) {
+  const steps = [
+    { index: 1, label: "Plataforma" },
+    { index: 2, label: "Método" },
+    { index: 3, label: "Configuración" },
+    { index: 4, label: "Confirmación" },
+  ];
+
+  return `
+    <div class="connection-wizard__steps" aria-label="Progreso del asistente">
+      ${steps.map((step) => {
+        const stateClass = step.index < state.step
+          ? "is-complete"
+          : step.index === state.step
+            ? "is-current"
+            : "is-pending";
+        const marker = step.index < state.step ? "✓" : String(step.index);
+        return `
+          <div class="connection-wizard__step ${stateClass}">
+            <span class="connection-wizard__step-marker" aria-hidden="true">${marker}</span>
+            <span class="connection-wizard__step-label">${step.label}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderPlatformStep(state) {
   const selectedPlatform = state.platform;
   return renderStepFrame(
@@ -83,7 +111,6 @@ function renderPlatformStep(state) {
       <div class="connection-wizard__option-grid">
         <button class="connection-wizard__option ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedPlatform === "mt5" ? "✓" : ""}</span>
-          <div class="connection-wizard__option-icon">MT5</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 5</div>
             <div class="connection-wizard__option-subtitle">Disponible ahora.</div>
@@ -91,7 +118,6 @@ function renderPlatformStep(state) {
         </button>
         <button class="connection-wizard__option connection-wizard__option--muted" type="button" disabled aria-disabled="true">
           <span class="connection-wizard__option-check" aria-hidden="true"></span>
-          <div class="connection-wizard__option-icon">MT4</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 4</div>
             <div class="connection-wizard__option-subtitle">Próximamente.</div>
@@ -119,7 +145,7 @@ function renderMethodStep(state) {
         <button class="connection-wizard__option ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "ea" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
-            <div class="connection-wizard__option-title">Expert Advisor (EA)</div>
+            <div class="connection-wizard__option-title">Expert Advisor (EA) <span class="connection-wizard__option-note">Recomendado</span></div>
             <div class="connection-wizard__option-subtitle">Recomendado para cuentas fondeadas.</div>
           </div>
         </button>
@@ -139,12 +165,12 @@ function renderDirectStep(state) {
           <input type="text" data-wizard-field="accountNumber" value="${escapeHtml(state.form.accountNumber)}" placeholder="12345678">
         </label>
         <label class="form-stack">
-          <span>Server</span>
-          <input type="text" data-wizard-field="server" value="${escapeHtml(state.form.server)}" placeholder="Darwinex-Live">
-        </label>
-        <label class="form-stack connection-wizard__form-grid--full">
           <span>Password</span>
           <input type="password" data-wizard-field="password" value="${escapeHtml(state.form.password)}" placeholder="••••••••">
+        </label>
+        <label class="form-stack connection-wizard__form-grid--full">
+          <span>Server</span>
+          <input type="text" data-wizard-field="server" value="${escapeHtml(state.form.server)}" placeholder="Darwinex-Live">
         </label>
       </div>
       <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
@@ -163,8 +189,9 @@ function renderEaStep(state) {
         <div class="connection-wizard__checklist-item">Cerrar MT5</div>
         <div class="connection-wizard__checklist-item">Iniciar sesión en Launcher</div>
         <div class="connection-wizard__checklist-item">Instalar connector</div>
+        <div class="connection-wizard__checklist-item">Generar la clave</div>
       </div>
-      <div class="connection-wizard__utility-card">
+      <div class="connection-wizard__utility-row">
         <div>
           <div class="connection-wizard__utility-label">WebRequest URL</div>
           <div class="connection-wizard__utility-value">${escapeHtml(webRequestUrl)}</div>
@@ -208,9 +235,11 @@ function renderConfirmationStep(state) {
           <div class="connection-wizard__success-subtitle">La clave ya está lista para copiar.</div>
         </div>
       </div>
-      <div class="connection-wizard__secret-card">
-        <div class="connection-wizard__utility-label">Connection Key</div>
-        <div class="connection-wizard__secret-value">${state.showSecret ? escapeHtml(state.generatedKey) : "••••••••-••••-••••-••••-••••••••••••"}</div>
+      <div class="connection-wizard__secret-row">
+        <div class="connection-wizard__secret-copy">
+          <div class="connection-wizard__utility-label">Connection Key</div>
+          <div class="connection-wizard__secret-value">${state.showSecret ? escapeHtml(state.generatedKey) : "••••••••-••••-••••-••••-••••••••••••"}</div>
+        </div>
         <div class="connection-wizard__secret-actions">
           <button class="btn-ghost" type="button" data-wizard-toggle-secret="true">${state.showSecret ? "Ocultar" : "Mostrar"}</button>
           <button class="btn-ghost" type="button" data-wizard-copy-secret="true">Copiar</button>
@@ -268,6 +297,7 @@ function renderWizardMarkup(state) {
 
   return `
     <div class="connection-wizard">
+      ${renderStepper(state)}
       ${body}
       <div class="connection-wizard__actions">
         ${renderActions(state)}

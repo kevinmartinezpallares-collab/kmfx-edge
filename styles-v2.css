@@ -10868,7 +10868,7 @@ body[data-theme="dark"] .sidebar::after {
 /* INICIO BLOQUE: wizard-runtime */
 html[data-theme="dark"] .connection-wizard-modal,
 body[data-theme="dark"] .connection-wizard-modal {
-  max-width: 640px !important;
+  max-width: 720px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .modal-head,
@@ -10885,7 +10885,59 @@ body[data-theme="dark"] .modal-body.connection-wizard-modal__body {
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard {
   display: grid !important;
-  gap: 0 !important;
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__steps,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__steps {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__step,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__step {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 999px !important;
+  background: var(--layer-1) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__step.is-current,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__step.is-current {
+  color: var(--text-primary) !important;
+  border-color: var(--border-medium) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__step.is-complete,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__step.is-complete {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__step-marker,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__step-marker {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 999px !important;
+  background: var(--layer-2) !important;
+  color: currentColor !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__step-label,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__step-label {
+  white-space: nowrap !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__section,
@@ -10937,16 +10989,17 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
-  background: var(--layer-1) !important;
+  background: var(--layer-2) !important;
   border: 1px solid var(--border-medium) !important;
   border-radius: 14px !important;
   outline: 1px solid transparent !important;
   outline-offset: 0 !important;
   box-shadow: none !important;
-  gap: 8px !important;
-  min-height: 88px !important;
+  gap: 10px !important;
+  min-height: 76px !important;
   padding: 16px !important;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-align: left !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled),
@@ -10957,15 +11010,22 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hove
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected {
-  background: var(--layer-1) !important;
-  border-color: var(--border-medium) !important;
-  outline-color: rgba(255, 255, 255, 0.12) !important;
+  background: var(--layer-2) !important;
+  border-color: var(--accent) !important;
+  outline-color: color-mix(in srgb, var(--accent) 26%, transparent) !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check {
-  color: var(--text-primary) !important;
+  color: var(--accent) !important;
   opacity: 0 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-copy,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-copy {
+  display: grid !important;
+  gap: 4px !important;
+  min-width: 0 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected .connection-wizard__option-check,
@@ -10985,6 +11045,13 @@ html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-subt
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-subtitle {
   color: var(--text-secondary) !important;
   font-size: 13px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-note,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-note {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid,
@@ -11018,18 +11085,25 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning {
   color: var(--text-muted) !important;
 }
 
-html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
-html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card,
-body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
-body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card {
-  background: var(--layer-1) !important;
-  border: 1px solid var(--border-subtle) !important;
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row {
+  background: var(--layer-2) !important;
+  border: none !important;
   border-radius: 10px !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   align-items: center !important;
   padding: 16px !important;
   gap: 8px !important;
   box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy {
+  display: grid !important;
+  gap: 6px !important;
+  min-width: 0 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-actions,
@@ -11041,17 +11115,26 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-acti
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist {
-  gap: 8px !important;
+  gap: 10px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist-item,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist-item {
   color: var(--text-secondary) !important;
   font-size: 13px !important;
+  padding-left: 16px !important;
+  position: relative !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist-item::before,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__checklist-item::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 7px !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 999px !important;
   background: var(--text-secondary) !important;
 }
 
@@ -11089,8 +11172,8 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-sub
 
 html[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]),
 body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]) {
-  background: var(--layer-1) !important;
-  border: 1px solid var(--border-medium) !important;
+  background: var(--layer-2) !important;
+  border: 1px solid var(--border-subtle) !important;
   box-shadow: none !important;
   border-radius: 10px !important;
 }
@@ -11118,7 +11201,7 @@ body[data-theme="dark"] .connection-wizard-modal .btn-primary {
 
 html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
 body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
-  background: var(--layer-1) !important;
+  background: var(--layer-2) !important;
   border: 1px solid var(--border-subtle) !important;
   color: var(--text-primary) !important;
   box-shadow: none !important;
@@ -11165,10 +11248,10 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
     grid-template-columns: 1fr !important;
   }
 
-  html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
-  html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card,
-  body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
-  body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card {
+  html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
+  html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row,
+  body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
+  body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row {
     grid-template-columns: 1fr !important;
   }
 
