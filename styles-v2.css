@@ -7202,6 +7202,8 @@ body[data-theme="dark"] .dashboard-risk-panel {
 html[data-theme="dark"] .connections-shell,
 body[data-theme="dark"] .connections-shell {
   gap: 32px;
+  min-height: calc(100dvh - 240px);
+  align-content: start;
 }
 
 html[data-theme="dark"] .connections-shell__header,
@@ -7271,6 +7273,7 @@ html[data-theme="dark"] .connections-shell__main,
 body[data-theme="dark"] .connections-shell__main {
   display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 html[data-theme="dark"] .connections-shell__main--single,
@@ -7282,6 +7285,7 @@ html[data-theme="dark"] .connections-account-list,
 body[data-theme="dark"] .connections-account-list {
   display: grid;
   gap: 16px;
+  align-content: start;
 }
 
 html[data-theme="dark"] .connections-account-list--single,
@@ -7333,14 +7337,14 @@ html[data-theme="dark"] .connections-account-card__layout,
 body[data-theme="dark"] .connections-account-card__layout {
   display: grid;
   grid-template-columns:
-    minmax(180px, 1.2fr)
-    minmax(100px, 0.8fr)
-    minmax(140px, 1fr)
-    minmax(160px, 1fr)
-    minmax(140px, 1fr)
-    minmax(120px, 1fr)
+    minmax(180px, 1.35fr)
+    minmax(92px, 0.8fr)
+    minmax(120px, 0.9fr)
+    minmax(150px, 1fr)
+    minmax(132px, 1fr)
+    minmax(116px, 0.85fr)
     auto;
-  column-gap: 24px;
+  column-gap: 20px;
   row-gap: 0;
   align-items: start;
 }
@@ -7417,9 +7421,10 @@ body[data-theme="dark"] .connections-account-card__pnl--neutral {
 html[data-theme="dark"] .connections-account-card__actions,
 body[data-theme="dark"] .connections-account-card__actions {
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: flex-end;
   position: relative;
+  min-width: 40px;
 }
 
 html[data-theme="dark"] .connections-account-card__menu-trigger,
@@ -7643,11 +7648,12 @@ body[data-theme="dark"] .connections-account-modal__key-value {
   html[data-theme="dark"] .connections-account-card__layout,
   body[data-theme="dark"] .connections-account-card__layout {
     grid-template-columns:
-      minmax(180px, 1.2fr)
-      minmax(100px, 0.8fr)
-      minmax(140px, 1fr)
-      minmax(160px, 1fr);
-    gap: 20px;
+      minmax(180px, 1.3fr)
+      minmax(92px, 0.8fr)
+      minmax(120px, 0.9fr)
+      minmax(150px, 1fr);
+    column-gap: 20px;
+    row-gap: 16px;
     align-items: start;
   }
 
