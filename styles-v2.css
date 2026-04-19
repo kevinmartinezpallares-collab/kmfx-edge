@@ -11412,10 +11412,18 @@ body[data-theme="dark"] .dashboard-screen__actions {
   gap: 12px;
 }
 
-html[data-theme="dark"] .dashboard-screen__actions .btn-primary,
-body[data-theme="dark"] .dashboard-screen__actions .btn-primary {
-  padding-inline: 18px;
-  min-height: 42px;
+html[data-theme="dark"] .dashboard-screen__actions .btn-inline,
+body[data-theme="dark"] .dashboard-screen__actions .btn-inline {
+  min-height: 40px;
+  padding-inline: 16px;
+  font-size: 14px;
+}
+
+html[data-theme="dark"] .dashboard-screen__actions .dashboard-screen__add-account,
+body[data-theme="dark"] .dashboard-screen__actions .dashboard-screen__add-account {
+  color: var(--text-0);
+  background: var(--layer-2);
+  border-color: var(--border-subtle);
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis,
@@ -11465,6 +11473,11 @@ body[data-theme="dark"] .dashboard-summary-kpis .widget-card-meta {
   color: var(--text-1);
 }
 
+html[data-theme="dark"] .dashboard-summary-kpis .dashboard-kpi-support .widget-card-meta,
+body[data-theme="dark"] .dashboard-summary-kpis .dashboard-kpi-support .widget-card-meta {
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .dashboard-summary-kpis .metric-positive-soft,
 body[data-theme="dark"] .dashboard-summary-kpis .metric-positive-soft {
   color: var(--text-0) !important;
@@ -11473,6 +11486,16 @@ body[data-theme="dark"] .dashboard-summary-kpis .metric-positive-soft {
 html[data-theme="dark"] .dashboard-summary-kpis .metric-negative-soft,
 body[data-theme="dark"] .dashboard-summary-kpis .metric-negative-soft {
   color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .dashboard-kpi-muted-value,
+body[data-theme="dark"] .dashboard-summary-kpis .dashboard-kpi-muted-value {
+  color: var(--text-1) !important;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .metric-warning,
+body[data-theme="dark"] .dashboard-summary-kpis .metric-warning {
+  color: color-mix(in srgb, var(--warning) 82%, var(--text-0)) !important;
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta,
