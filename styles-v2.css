@@ -7219,19 +7219,19 @@ body[data-theme="dark"] .connections-shell__copy {
 
 html[data-theme="dark"] .connections-shell__title,
 body[data-theme="dark"] .connections-shell__title {
-  font-size: 28px;
-  line-height: 1.04;
-  letter-spacing: -0.04em;
-  font-weight: 680;
-  color: var(--text-0);
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.4px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 html[data-theme="dark"] .connections-shell__subtitle,
 body[data-theme="dark"] .connections-shell__subtitle {
   margin-top: 0;
-  max-width: 62ch;
+  max-width: 58ch;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
@@ -7241,6 +7241,7 @@ body[data-theme="dark"] .connections-shell__actions {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
 html[data-theme="dark"] .connections-shell__utility-btn,
@@ -7248,6 +7249,8 @@ body[data-theme="dark"] .connections-shell__utility-btn {
   background: var(--layer-2);
   border-color: var(--border-subtle);
   color: var(--text-secondary);
+  min-height: 44px;
+  border-radius: 12px;
 }
 
 html[data-theme="dark"] .connections-shell__utility-btn:hover,
@@ -7291,7 +7294,7 @@ body[data-theme="dark"] .connections-main-card {
 
 html[data-theme="dark"] .connections-main-card .dashboard-risk-block__head,
 body[data-theme="dark"] .connections-main-card .dashboard-risk-block__head {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 html[data-theme="dark"] .connections-empty-card,
@@ -7303,7 +7306,7 @@ body[data-theme="dark"] .connections-empty-card {
 
 html[data-theme="dark"] .connections-empty-card .dashboard-risk-block__head,
 body[data-theme="dark"] .connections-empty-card .dashboard-risk-block__head {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 html[data-theme="dark"] .connections-empty-card__actions,
@@ -7315,7 +7318,7 @@ body[data-theme="dark"] .connections-empty-card__actions {
 
 html[data-theme="dark"] .connections-account-card,
 body[data-theme="dark"] .connections-account-card {
-  gap: 16px;
+  gap: 20px;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -7324,7 +7327,6 @@ body[data-theme="dark"] .connections-account-card__meta {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 8px;
 }
 
 html[data-theme="dark"] .connections-account-card__meta-item,
@@ -7347,10 +7349,10 @@ body[data-theme="dark"] .connections-account-card__meta-item {
 html[data-theme="dark"] .connections-account-card__footer,
 body[data-theme="dark"] .connections-account-card__footer {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 8px;
+  padding-top: 4px;
 }
 
 html[data-theme="dark"] .connections-account-card__status,
@@ -7359,13 +7361,18 @@ body[data-theme="dark"] .connections-account-card__status {
   gap: 6px;
   min-width: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 html[data-theme="dark"] .connections-account-card__status span:first-child,
 body[data-theme="dark"] .connections-account-card__status span:first-child {
   color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .connections-account-card__status span:last-child,
+body[data-theme="dark"] .connections-account-card__status span:last-child {
+  color: var(--text-muted);
 }
 
 html[data-theme="dark"] .connections-shell__download-btn,
