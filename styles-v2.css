@@ -11809,6 +11809,11 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   box-shadow: none !important;
 }
 
+html[data-theme="dark"] .app-shell.sidebar-vnext .main-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext .main-panel {
+  padding-left: 24px !important;
+}
+
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider {
   left: calc(var(--sidebar-vnext-expanded-width) + var(--sidebar-vnext-divider-offset));
