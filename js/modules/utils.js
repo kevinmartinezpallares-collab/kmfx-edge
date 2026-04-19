@@ -595,9 +595,17 @@ export function resolvePerformanceViewModel(account) {
         .map((point, index) => {
           const numericValue = Number(point?.value);
           if (!Number.isFinite(numericValue)) return null;
+          const timestamp =
+            point?.timestamp ||
+            point?.time ||
+            point?.date ||
+            point?.datetime ||
+            point?.when ||
+            null;
           return {
             label: point?.label || `P${index + 1}`,
             value: numericValue,
+            timestamp,
           };
         })
         .filter(Boolean)
@@ -688,9 +696,17 @@ export function buildDashboardModel(source) {
         .map((point, index) => {
           const numericValue = Number(point?.value);
           if (!Number.isFinite(numericValue)) return null;
+          const timestamp =
+            point?.timestamp ||
+            point?.time ||
+            point?.date ||
+            point?.datetime ||
+            point?.when ||
+            null;
           return {
             label: point?.label || `P${index + 1}`,
             value: numericValue,
+            timestamp,
           };
         })
         .filter(Boolean)
@@ -775,7 +791,11 @@ export function buildDashboardModel(source) {
   let equity = startBalance;
   const generatedEquityCurve = trades.map((trade) => {
     equity += trade.pnl;
-    return { label: trade.when.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }), value: equity };
+    return {
+      label: trade.when.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+      value: equity,
+      timestamp: trade.when.toISOString(),
+    };
   });
   const equityCurve = explicitHistory.length >= generatedEquityCurve.length && explicitHistory.length
     ? explicitHistory

@@ -13,15 +13,11 @@ import {
 } from "./risk-panel-components.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
-function getHeroRangePoints(range, curve) {
-  if (range === "1D") return curve.slice(-5);
-  if (range === "1W") return curve.slice(-7);
-  if (range === "YTD") return curve;
-  return curve.slice(-14);
-}
-
-function parseChartAxisDate(label) {
-  const raw = String(label || "").trim();
+function parseChartAxisDate(pointOrLabel) {
+  const rawValue = typeof pointOrLabel === "object" && pointOrLabel !== null
+    ? (pointOrLabel.timestamp || pointOrLabel.time || pointOrLabel.date || pointOrLabel.datetime || pointOrLabel.when || pointOrLabel.label || "")
+    : pointOrLabel;
+  const raw = String(rawValue || "").trim();
   if (!raw) return null;
   const mt5Like = raw.match(/^(\d{4})\.(\d{2})\.(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
   if (mt5Like) {
@@ -33,59 +29,122 @@ function parseChartAxisDate(label) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function createHeroXAxisFormatter(range, labels) {
-  const total = labels.length;
-  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 6 : range === "1W" ? 5 : 4;
-  const pickEvenly = (indices, target) => {
-    if (!indices.length) return new Set();
-    if (indices.length <= target) return new Set(indices);
-    const picked = new Set();
-    for (let i = 0; i < target; i += 1) {
-      const position = Math.round((i * (indices.length - 1)) / Math.max(target - 1, 1));
-      picked.add(indices[position]);
-    }
-    return picked;
-  };
+function getHeroRangePoints(range, curve) {
+  const points = Array.isArray(curve) ? curve : [];
+  if (!points.length) return [];
+  const datedPoints = points
+    .map((point) => ({ point, date: parseChartAxisDate(point) }))
+    .filter((entry) => entry.date);
 
-  const parsedDates = labels.map((label) => parseChartAxisDate(label));
-  let candidates = [];
-
-  if (range === "YTD") {
-    let lastMonthKey = "";
-    parsedDates.forEach((date, index) => {
-      if (!date) return;
-      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-      if (monthKey !== lastMonthKey) {
-        candidates.push(index);
-        lastMonthKey = monthKey;
-      }
-    });
-  } else {
-    const step = Math.max(1, Math.round((Math.max(total - 1, 1)) / Math.max(targetTicks - 1, 1)));
-    candidates = Array.from({ length: total }, (_, index) => index).filter((index) => (
-      index === 0 || index === total - 1 || index % step === 0
-    ));
+  if (!datedPoints.length) {
+    if (range === "1D") return points.slice(-5);
+    if (range === "1W") return points.slice(-7);
+    if (range === "YTD") return points;
+    return points.slice(-14);
   }
 
-  const visibleTicks = pickEvenly(
-    [...new Set([0, total - 1, ...candidates])].filter((index) => index >= 0 && index < total).sort((a, b) => a - b),
-    targetTicks,
-  );
+  const endDate = datedPoints[datedPoints.length - 1].date;
+  const startDate = new Date(endDate);
+  if (range === "1D") startDate.setHours(startDate.getHours() - 24);
+  else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
+  else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
+  else if (range === "YTD") startDate.setMonth(0, 1);
 
-  return (label, index) => {
-    if (!visibleTicks.has(index)) return "";
-    const parsed = parsedDates[index];
-    if (!parsed) return String(label || "");
+  const filtered = datedPoints.filter(({ date }) => date >= startDate).map(({ point }) => point);
+  if (filtered.length >= 2) return filtered;
+
+  if (range === "1D") return points.slice(-5);
+  if (range === "1W") return points.slice(-7);
+  if (range === "YTD") return points;
+  return points.slice(-14);
+}
+
+function createHeroXAxisFormatter(range, points) {
+  const total = points.length;
+  const parsedDates = points.map((point) => parseChartAxisDate(point));
+  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 5 : range === "1W" ? 4 : 4;
+  const validDates = parsedDates.filter(Boolean);
+  const firstDate = validDates[0] || null;
+  const lastDate = validDates[validDates.length - 1] || null;
+  const spanHours = firstDate && lastDate ? Math.max(0, (lastDate.getTime() - firstDate.getTime()) / 36e5) : 0;
+  const spanDays = spanHours / 24;
+
+  const formatLabel = (date) => {
+    if (!date) return "";
     if (range === "1D") {
-      return parsed.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     }
     if (range === "1W") {
-      return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+      if (spanDays <= 2) {
+        return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      }
+      return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
     }
     if (range === "1M") {
-      return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+      if (spanDays <= 7) {
+        return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", hour: "2-digit" }).replace(",", "");
+      }
+      return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
     }
-    return parsed.toLocaleDateString("es-ES", { month: "short" });
+    if (spanDays <= 45) {
+      return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+    }
+    return date.toLocaleDateString("es-ES", { month: "short" });
+  };
+
+  const getBucketKey = (date) => {
+    if (!date) return "";
+    if (range === "1D") {
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+    }
+    if (range === "1W") {
+      if (spanDays <= 2) {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+      }
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+    if (range === "1M") {
+      if (spanDays <= 7) {
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      }
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+    if (spanDays <= 45) {
+      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    }
+    return `${date.getFullYear()}-${date.getMonth()}`;
+  };
+
+  const candidateIndices = [];
+  const seenBuckets = new Set();
+  parsedDates.forEach((date, index) => {
+    const key = getBucketKey(date);
+    if (!key || seenBuckets.has(key)) return;
+    seenBuckets.add(key);
+    candidateIndices.push(index);
+  });
+
+  const baseIndices = [...new Set([0, total - 1, ...candidateIndices])]
+    .filter((index) => index >= 0 && index < total)
+    .sort((a, b) => a - b);
+  const visibleIndices = new Set();
+
+  if (baseIndices.length <= targetTicks) {
+    baseIndices.forEach((index) => visibleIndices.add(index));
+  } else {
+    for (let i = 0; i < targetTicks; i += 1) {
+      const position = Math.round((i * (baseIndices.length - 1)) / Math.max(targetTicks - 1, 1));
+      visibleIndices.add(baseIndices[position]);
+    }
+  }
+
+  let previousRendered = "";
+  return (_, index) => {
+    if (!visibleIndices.has(index)) return "";
+    const label = formatLabel(parsedDates[index]);
+    if (!label || label === previousRendered) return "";
+    previousRendered = label;
+    return label;
   };
 }
 
@@ -379,7 +438,7 @@ export function renderDashboard(root, state) {
         { label: "Ahora", value: model.account.equity },
       ];
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
-  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve.map((point) => point.label));
+  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
@@ -638,12 +697,13 @@ export function renderDashboard(root, state) {
       fillAlphaEnd: 0,
       glowAlpha: 0,
       tension: 0.9,
+      animationDisabled: true,
       animationDuration: 0,
       axisColor: axisStandard,
       axisFontSize: 10,
       axisFontWeight: "600",
       yTickPadding: 6,
-      xTickPadding: 8,
+      xTickPadding: 16,
       maxXTicks: 7,
       showYGrid: false,
       gridAlpha: isDarkTheme ? 0.02 : 0.045,

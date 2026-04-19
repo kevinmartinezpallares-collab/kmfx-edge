@@ -356,10 +356,12 @@ function buildBaseOptions(spec) {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: spec.animationDuration ?? 480,
-      easing: spec.animationEasing || "easeOutQuart"
-    },
+    animation: spec.animationDisabled
+      ? false
+      : {
+          duration: spec.animationDuration ?? 480,
+          easing: spec.animationEasing || "easeOutQuart"
+        },
     interaction: {
       mode: spec.interactionMode || "index",
       intersect: false
