@@ -2124,10 +2124,10 @@ html[data-theme="dark"] body {
 
 /* Shell base continuity override */
 :root {
-  --layer-0: #0B0B0C !important;
-  --layer-1: #1C1C1E !important;
-  --layer-2: #2C2C2E !important;
-  --border-0: #38383A !important;
+  --layer-0: #0a0a0a !important;
+  --layer-1: #111111 !important;
+  --layer-2: #1a1a1a !important;
+  --border-0: rgba(255,255,255,0.05) !important;
 }
 
 html,
