@@ -683,11 +683,11 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">Balance actual</div>
-          <div class="metric-value connections-account-card__metric-value">${escapeHtml(balanceLabel)}</div>
+          <div class="connections-account-card__metric-value">${escapeHtml(balanceLabel)}</div>
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">PnL actual</div>
-          <div class="metric-value connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
+          <div class="connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
         </div>
         <div class="connections-account-card__actions">
           <button
