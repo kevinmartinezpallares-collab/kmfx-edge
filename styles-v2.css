@@ -11443,7 +11443,7 @@ body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi {
 
 html[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-label,
 body[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-label {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.15;
   font-weight: 600;
   letter-spacing: 0.06em;
