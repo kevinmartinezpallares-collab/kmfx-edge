@@ -158,6 +158,15 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   };
 }
 
+function hasActiveEnforcementSignal(riskStatus) {
+  return Boolean(
+    riskStatus?.blockNewTrades ||
+    riskStatus?.reduceSize ||
+    riskStatus?.closePositionsRequired ||
+    ["blocked", "breach", "warning"].includes(String(riskStatus?.riskStatus || "").toLowerCase())
+  );
+}
+
 export function renderDashboard(root, state) {
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const activeAccountId = resolveSelectedLiveAccountId(state);
@@ -424,6 +433,9 @@ export function renderDashboard(root, state) {
     model,
     openPositionsCount: performanceView.openPositionsCount,
   });
+  const hasEnforcementSignal = hasActiveEnforcementSignal(riskStatus);
+  const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
+  const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
   console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
     selectedAccountId: account?.id || activeAccountId || "",
     currentAccount: state.currentAccount,
@@ -637,16 +649,16 @@ export function renderDashboard(root, state) {
         </article>
 
         <div class="dashboard-side-stack">
-          <article class="tl-section-card dashboard-risk-overview dashboard-risk-overview--${riskTone}">
-            <div class="dashboard-risk-overview__head">
+          <article class="widget-card dashboard-risk-block dashboard-ops-card">
+            <div class="dashboard-risk-block__head">
               <div>
-                <div class="tl-section-title">Risk Overview</div>
-                <div class="dashboard-risk-overview__sub">${riskHeadline}</div>
+                <div class="dashboard-risk-block__title">Operational state</div>
+                <div class="dashboard-risk-block__sub">${dashboardInsight.summary}</div>
               </div>
               ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             </div>
 
-            <div class="dashboard-risk-overview__grid">
+            <div class="dashboard-risk-block__grid">
               ${renderRiskMetricCard({
                 label: "Drawdown actual",
                 value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
@@ -673,29 +685,34 @@ export function renderDashboard(root, state) {
               })}
             </div>
 
+            <div class="dashboard-ops-card__insight">
+              <div class="dashboard-risk-block__head dashboard-ops-card__insight-head">
+                <div>
+                  <div class="dashboard-risk-block__title">Insight principal</div>
+                  <div class="dashboard-risk-block__sub">${dashboardInsight.title}</div>
+                </div>
+                ${hasEnforcementSignal ? `<span class="widget-pill">acción activa</span>` : ""}
+              </div>
+              <div class="dashboard-risk-block__grid">
+                ${dashboardInsight.metrics.map((item) => renderRiskMetricCard(item)).join("")}
+              </div>
+            </div>
+
             <div class="dashboard-risk-overview__foot">
               <span>${riskStatus.blockingRule || "Sin regla bloqueante activa"}</span>
-              <span>${riskStatus.reasonCode}</span>
-            </div>
-          </article>
-
-          <article class="widget-card dashboard-risk-block">
-            <div class="dashboard-risk-block__head">
-              <div class="dashboard-risk-block__title">Insight principal</div>
-              <div class="dashboard-risk-block__sub">${dashboardInsight.summary}</div>
-            </div>
-            <div class="dashboard-risk-block__grid">
-              ${dashboardInsight.metrics.map((item) => renderRiskMetricCard(item)).join("")}
+              <span>${hasEnforcementSignal ? riskAction : riskHeadline}</span>
             </div>
           </article>
         </div>
       </section>
 
       <section class="dashboard-secondary-grid dashboard-secondary-grid--master">
-        <article class="widget-card dashboard-risk-block">
+        <article class="widget-card dashboard-risk-block dashboard-risk-posture-card">
           <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Risk Usage</div>
-            <div class="dashboard-risk-block__sub">Heat real, riesgo abierto y posición más expuesta.</div>
+            <div>
+              <div class="dashboard-risk-block__title">Risk posture</div>
+              <div class="dashboard-risk-block__sub">Heat real, riesgo por trade y límites críticos en una sola lectura compacta.</div>
+            </div>
           </div>
           <div class="dashboard-risk-block__grid">
             ${renderRiskMetricCard({
@@ -714,37 +731,35 @@ export function renderDashboard(root, state) {
               meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
             })}
           </div>
-        </article>
-
-        <article class="widget-card dashboard-risk-block">
-          <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Limits</div>
-            <div class="dashboard-risk-block__sub">Uso actual de los límites que realmente mandan.</div>
-          </div>
-          <div class="dashboard-risk-limits">
+          <div class="dashboard-risk-posture-card__limits">
             ${limitBars.map((item) => renderRiskLimitBar(item)).join("")}
           </div>
         </article>
+
+        ${hasExposureSignal ? `
+          <article class="widget-card dashboard-risk-block">
+            <div class="dashboard-risk-block__head">
+              <div class="dashboard-risk-block__title">Exposición</div>
+              <div class="dashboard-risk-block__sub">Lectura institucional por símbolo y riesgo abierto.</div>
+            </div>
+            ${renderSymbolExposureTable(riskExposure.symbolExposure)}
+          </article>
+        ` : ""}
       </section>
 
-      <section class="dashboard-bottom-grid dashboard-bottom-grid--master">
-        <article class="widget-card dashboard-risk-block">
-          <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Enforcement</div>
-            <div class="dashboard-risk-block__sub">Decisión operativa del motor institucional.</div>
-          </div>
-          ${renderEnforcementPanel(riskStatus)}
-        </article>
+      ${hasEnforcementSignal ? `
+        <section class="dashboard-bottom-grid dashboard-bottom-grid--master">
+          <article class="widget-card dashboard-risk-block">
+            <div class="dashboard-risk-block__head">
+              <div class="dashboard-risk-block__title">Enforcement</div>
+              <div class="dashboard-risk-block__sub">Decisión operativa del motor institucional.</div>
+            </div>
+            ${renderEnforcementPanel(riskStatus)}
+          </article>
+        </section>
+      ` : ""}
 
-        <article class="widget-card dashboard-risk-block">
-          <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Exposición</div>
-            <div class="dashboard-risk-block__sub">Lectura institucional por símbolo y riesgo abierto.</div>
-          </div>
-          ${renderSymbolExposureTable(riskExposure.symbolExposure)}
-        </article>
-      </section>
-
+      ${hasOpenTradeRisk ? `
       <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
           <div class="dashboard-risk-block__head">
             <div class="dashboard-risk-block__title">Riesgo por posición</div>
@@ -752,6 +767,7 @@ export function renderDashboard(root, state) {
           </div>
           ${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}
       </article>
+      ` : ""}
     </div>
   `;
   mountCharts(root, chartSpecs);

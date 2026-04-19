@@ -7195,8 +7195,8 @@ body[data-theme="dark"] .dashboard-header-card {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 18px !important;
+  gap: 12px;
+  padding: 12px 16px !important;
 }
 
 html[data-theme="dark"] .dashboard-header-card__copy,
@@ -7220,12 +7220,37 @@ body[data-theme="dark"] .dashboard-summary-kpis {
 html[data-theme="dark"] .dashboard-main-grid--master,
 body[data-theme="dark"] .dashboard-main-grid--master {
   align-items: start;
+  grid-template-columns: minmax(0, 1.68fr) minmax(320px, 0.82fr);
 }
 
 html[data-theme="dark"] .dashboard-side-stack,
 body[data-theme="dark"] .dashboard-side-stack {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .dashboard-ops-card,
+body[data-theme="dark"] .dashboard-ops-card {
+  padding: 16px !important;
+}
+
+html[data-theme="dark"] .dashboard-ops-card__insight,
+body[data-theme="dark"] .dashboard-ops-card__insight {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="dark"] .dashboard-ops-card__insight-head,
+body[data-theme="dark"] .dashboard-ops-card__insight-head {
+  margin-bottom: 12px;
+}
+
+html[data-theme="dark"] .dashboard-risk-posture-card__limits,
+body[data-theme="dark"] .dashboard-risk-posture-card__limits {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 html[data-theme="dark"] .dashboard-risk-overview,
@@ -7343,18 +7368,18 @@ body[data-theme="dark"] .dashboard-risk-grid {
 
 html[data-theme="dark"] .dashboard-risk-block,
 body[data-theme="dark"] .dashboard-risk-block {
-  padding: 18px !important;
+  padding: 16px !important;
 }
 
 html[data-theme="dark"] .dashboard-risk-block--wide,
 body[data-theme="dark"] .dashboard-risk-block--wide {
-  padding: 18px !important;
-  margin-top: 16px;
+  padding: 16px !important;
+  margin-top: 10px;
 }
 
 html[data-theme="dark"] .dashboard-risk-block__head,
 body[data-theme="dark"] .dashboard-risk-block__head {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 html[data-theme="dark"] .dashboard-risk-block__title,
@@ -7918,6 +7943,11 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   body[data-theme="dark"] .dashboard-header-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  html[data-theme="dark"] .dashboard-main-grid--master,
+  body[data-theme="dark"] .dashboard-main-grid--master {
+    grid-template-columns: 1fr;
   }
 
   html[data-theme="dark"] .dashboard-risk-overview__grid,
