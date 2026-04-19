@@ -11670,6 +11670,15 @@ body[data-theme="dark"] .dashboard-primary-card__chart canvas {
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
 body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
   min-height: 292px !important;
+  padding: 20px !important;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(61, 124, 255, 0.014) 0%,
+      rgba(61, 124, 255, 0.008) 30%,
+      rgba(61, 124, 255, 0.028) 100%
+    ) !important;
 }
 
 html[data-theme="dark"] .dashboard-primary-card .widget-segmented,
