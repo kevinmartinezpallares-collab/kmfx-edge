@@ -10867,3 +10867,113 @@ body[data-theme="dark"] .sidebar::after {
     font-size: clamp(24px, 7vw, 30px);
   }
 }
+
+/* Wizard runtime cascade fix — must stay after global controls/card rules */
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__section,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__section {
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__section-head,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__section-head {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__card,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__card {
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-0) !important;
+  padding: 20px !important;
+  gap: 16px !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid {
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
+  background: var(--layer-2) !important;
+  border: 1px solid transparent !important;
+  outline: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled),
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled) {
+  background: var(--layer-3) !important;
+  border-color: var(--border-1) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected {
+  background: var(--layer-2) !important;
+  border-color: var(--accent) !important;
+  outline-color: rgba(47, 107, 255, 0.35) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check {
+  color: var(--accent) !important;
+  opacity: 0 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected .connection-wizard__option-check,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected .connection-wizard__option-check {
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid {
+  gap: 12px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-error,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-error {
+  margin-top: 12px !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-card,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card {
+  background: var(--layer-2) !important;
+  border: none !important;
+  padding: 16px !important;
+  gap: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]),
+body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]) {
+  background: var(--layer-2) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-primary,
+body[data-theme="dark"] .connection-wizard-modal .btn-primary {
+  background: var(--accent) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
+body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
+  background: var(--layer-2) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-0) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-ghost,
+body[data-theme="dark"] .connection-wizard-modal .btn-ghost {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-1) !important;
+  box-shadow: none !important;
+}
