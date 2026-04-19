@@ -11801,7 +11801,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext {
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   width: var(--sidebar-vnext-expanded-width);
-  padding: 18px 14px 16px;
+  padding: 16px 12px;
   gap: 14px;
   background: transparent !important;
   border: 0 !important;
