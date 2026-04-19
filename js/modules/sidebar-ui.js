@@ -40,8 +40,9 @@ function resolveAccountBalance(account) {
 
 function resolveAccountIcon(account) {
   const platform = String(account?.platform || account?.sourceType || "mt5").toLowerCase();
-  if (platform === "mt4") return "4";
-  return "5";
+  if (platform === "mt4") return { kind: "chevron", value: "▾" };
+  if (platform === "mt5") return { kind: "image", value: "./assets/logos/mt5-logo.png", alt: "MT5" };
+  return { kind: "chevron", value: "▾" };
 }
 
 export function initSidebarUI(store) {
@@ -121,11 +122,16 @@ export function initSidebarUI(store) {
     const activeAccountName = activeAccount ? resolveAccountDisplayName(activeAccount) : "";
     const activeAccountBalance = activeAccount ? resolveAccountBalance(activeAccount) : "";
     const activeAccountIcon = activeAccount ? resolveAccountIcon(activeAccount) : "+";
+    const accountIconMarkup = typeof activeAccountIcon === "object" && activeAccountIcon.kind === "image"
+      ? `<img class="sidebar-account-switcher__icon-image" src="${escapeHtml(activeAccountIcon.value)}" alt="${escapeHtml(activeAccountIcon.alt || "")}">`
+      : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof activeAccountIcon === "object" ? activeAccountIcon.value : activeAccountIcon)}</span>`;
     const showAccountSelect = accounts.length > 1;
     const accountBlock = !accounts.length
       ? `
         <button class="sidebar-account-switcher sidebar-account-switcher--empty" type="button" data-open-connection-wizard="true" data-connection-source="sidebar">
-          <span class="sidebar-account-switcher__icon" aria-hidden="true">+</span>
+          <span class="sidebar-account-switcher__icon" aria-hidden="true">
+            <span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">+</span>
+          </span>
           <span class="sidebar-account-switcher__copy">
             <span class="sidebar-account-switcher__title">Añadir cuenta</span>
           </span>
@@ -134,7 +140,7 @@ export function initSidebarUI(store) {
       : showAccountSelect
         ? `
           <div class="sidebar-account-switcher">
-            <div class="sidebar-account-switcher__icon" aria-hidden="true">${escapeHtml(activeAccountIcon)}</div>
+            <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
               ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
@@ -145,7 +151,7 @@ export function initSidebarUI(store) {
         `
         : `
           <div class="sidebar-account-switcher">
-            <div class="sidebar-account-switcher__icon" aria-hidden="true">${escapeHtml(activeAccountIcon)}</div>
+            <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>

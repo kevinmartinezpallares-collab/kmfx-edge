@@ -9784,6 +9784,21 @@ body[data-theme="dark"] .sidebar-account-switcher__icon {
   font-weight: 650;
 }
 
+html[data-theme="dark"] .sidebar-account-switcher__icon-image,
+body[data-theme="dark"] .sidebar-account-switcher__icon-image {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+
+html[data-theme="dark"] .sidebar-account-switcher__icon-glyph,
+body[data-theme="dark"] .sidebar-account-switcher__icon-glyph {
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-1);
+}
+
 html[data-theme="dark"] .sidebar-account-switcher__copy,
 body[data-theme="dark"] .sidebar-account-switcher__copy {
   display: grid;
