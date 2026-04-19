@@ -1096,7 +1096,7 @@ html[data-theme="dark"] .sidebar-section-label,
 
 .connection-wizard__section-head {
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .connection-wizard__title {
@@ -1222,7 +1222,7 @@ html[data-theme="dark"] .sidebar-section-label,
 .connection-wizard__form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .connection-wizard__form-grid--full {
@@ -1240,6 +1240,7 @@ html[data-theme="dark"] .sidebar-section-label,
 }
 
 .connection-wizard__warning {
+  margin-top: 12px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1356,6 +1357,7 @@ html[data-theme="dark"] .sidebar-section-label,
 }
 
 .connection-wizard__inline-error {
+  margin-top: 12px;
   color: var(--negative);
   font-size: 12px;
   line-height: 1.4;
@@ -1370,14 +1372,15 @@ html[data-theme="dark"] .sidebar-section-label,
 }
 
 .connection-wizard-modal .btn-primary,
-.connection-wizard-modal .btn-secondary {
+.connection-wizard-modal .btn-secondary,
+.connection-wizard-modal .btn-ghost {
   min-height: 40px;
   border-radius: 12px;
 }
 
 .connection-wizard-modal .btn-secondary {
   background: var(--layer-2) !important;
-  border: 1px solid var(--border-1) !important;
+  border: 1px solid var(--border-subtle) !important;
   color: var(--text-1) !important;
   box-shadow: none !important;
 }
@@ -1393,10 +1396,34 @@ html[data-theme="dark"] .sidebar-section-label,
   border-color: rgba(255,255,255,0.16) !important;
 }
 
+.connection-wizard-modal .btn-ghost {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-1) !important;
+  box-shadow: none !important;
+}
+
+.connection-wizard-modal .btn-ghost:hover:not(:disabled) {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--text-0) !important;
+}
+
+.connection-wizard-modal .btn-ghost:active:not(:disabled) {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 .connection-wizard-modal .btn-secondary:focus-visible,
-.connection-wizard-modal .btn-primary:focus-visible {
+.connection-wizard-modal .btn-primary:focus-visible,
+.connection-wizard-modal .btn-ghost:focus-visible {
   outline: 2px solid rgba(78, 123, 255, 0.38);
   outline-offset: 2px;
+}
+
+.connection-wizard__card input {
+  background: var(--layer-2);
+  border: 1px solid var(--border-subtle);
 }
 
 @media (max-width: 980px) {

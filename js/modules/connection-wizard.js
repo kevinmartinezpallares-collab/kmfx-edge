@@ -169,7 +169,7 @@ function renderEaStep(state) {
           <div class="connection-wizard__utility-label">WebRequest URL</div>
           <div class="connection-wizard__utility-value">${escapeHtml(webRequestUrl)}</div>
         </div>
-        <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar</button>
+        <button class="btn-ghost" type="button" data-wizard-copy-webrequest="true">Copiar</button>
       </div>
       <div class="connection-wizard__inline-actions">
         <button class="btn-secondary" type="button" data-wizard-download-launcher="true">Descargar instalador</button>
@@ -212,8 +212,8 @@ function renderConfirmationStep(state) {
         <div class="connection-wizard__utility-label">Connection Key</div>
         <div class="connection-wizard__secret-value">${state.showSecret ? escapeHtml(state.generatedKey) : "••••••••-••••-••••-••••-••••••••••••"}</div>
         <div class="connection-wizard__secret-actions">
-          <button class="btn-secondary" type="button" data-wizard-toggle-secret="true">${state.showSecret ? "Ocultar" : "Mostrar"}</button>
-          <button class="btn-primary" type="button" data-wizard-copy-secret="true">Copiar</button>
+          <button class="btn-ghost" type="button" data-wizard-toggle-secret="true">${state.showSecret ? "Ocultar" : "Mostrar"}</button>
+          <button class="btn-ghost" type="button" data-wizard-copy-secret="true">Copiar</button>
         </div>
       </div>
     `
