@@ -11448,6 +11448,7 @@ body[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-label {
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--text-2);
+  text-transform: none !important;
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-val,
@@ -12127,7 +12128,14 @@ body[data-theme="dark"] .sidebar-profile-menu {
 }
 
 html[data-theme="dark"] .topbar-time-stack,
-body[data-theme="dark"] .topbar-time-stack,
+body[data-theme="dark"] .topbar-time-stack {
+  background: rgba(255, 255, 255, 0.022);
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 html[data-theme="dark"] .theme-toggle-badge,
 body[data-theme="dark"] .theme-toggle-badge,
 html[data-theme="dark"] .topbar-user-card,
