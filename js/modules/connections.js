@@ -370,17 +370,78 @@ function resolveAccountBalanceLabel(account, activeAccount = null) {
   return "Sin balance";
 }
 
+function resolveAccountPnlValue(account, activeAccount = null) {
+  const registryPnl = Number(
+    account.total_pnl ??
+    account.totalPnl ??
+    account.pnl ??
+    account.open_pnl ??
+    account.openPnl
+  );
+  if (Number.isFinite(registryPnl)) return registryPnl;
+
+  if (activeAccount?.id === account.account_id) {
+    const livePnl = Number(
+      activeAccount?.model?.totals?.pnl ??
+      activeAccount?.dashboardPayload?.totalPnl ??
+      activeAccount?.dashboardPayload?.pnl
+    );
+    if (Number.isFinite(livePnl)) return livePnl;
+  }
+
+  return null;
+}
+
+function resolveAccountPnlLabel(account, activeAccount = null) {
+  const pnlValue = resolveAccountPnlValue(account, activeAccount);
+  if (!Number.isFinite(pnlValue)) return { label: "—", tone: "neutral" };
+  return {
+    label: formatCurrency(pnlValue, account.currency || account.account_currency || activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency),
+    tone: pnlValue > 0 ? "positive" : pnlValue < 0 ? "negative" : "neutral",
+  };
+}
+
 function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
+  const pnl = resolveAccountPnlLabel(account, activeAccount);
   const statusLine = isActive ? "Activa en panel" : meta.label;
+  const secondaryLabel = account.broker || account.server || account.platform || "";
+  const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
+  const canUseInPanel = !isActive && meta.tone !== "error" && meta.tone !== "neutral";
 
   return `
     <article class="widget-card connections-account-card">
-      <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
-      <div class="connections-account-card__summary">
-        <div class="metric-value">${escapeHtml(balanceLabel)}</div>
-        <div class="row-sub">${escapeHtml(statusLine)}</div>
+      <div class="connections-account-card__layout">
+        <div class="connections-account-card__identity">
+          <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
+          ${secondaryLabel ? `<div class="row-sub">${escapeHtml(secondaryLabel)}</div>` : ""}
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Estado</div>
+          <div class="row-sub">${escapeHtml(statusLine)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Última sincronización</div>
+          <div class="row-sub">${escapeHtml(lastSyncLabel)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Balance actual</div>
+          <div class="metric-value">${escapeHtml(balanceLabel)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">PnL actual</div>
+          <div class="metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
+        </div>
+        <div class="connections-account-card__actions">
+          <button
+            class="btn-secondary"
+            type="button"
+            ${canUseInPanel ? `data-account-use-panel="${escapeHtml(account.account_id || "")}"` : "disabled"}
+          >${isActive ? "En panel" : "Usar en panel"}</button>
+          <button class="btn-ghost" type="button" disabled>Editar</button>
+          <button class="btn-ghost connections-account-card__danger" type="button" disabled>Eliminar</button>
+        </div>
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>

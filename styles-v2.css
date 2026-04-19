@@ -7284,8 +7284,7 @@ body[data-theme="dark"] .connections-account-list {
 
 html[data-theme="dark"] .connections-account-list--single,
 body[data-theme="dark"] .connections-account-list--single {
-  gap: 0;
-  justify-items: center;
+  gap: 16px;
 }
 
 html[data-theme="dark"] .connections-empty-card,
@@ -7297,8 +7296,7 @@ body[data-theme="dark"] .connections-account-card {
 
 html[data-theme="dark"] .connections-account-list--single .connections-account-card,
 body[data-theme="dark"] .connections-account-list--single .connections-account-card {
-  width: min(100%, 520px);
-  gap: 16px;
+  width: 100%;
 }
 
 html[data-theme="dark"] .connections-empty-card,
@@ -7322,63 +7320,119 @@ body[data-theme="dark"] .connections-empty-card__actions {
 
 html[data-theme="dark"] .connections-account-card,
 body[data-theme="dark"] .connections-account-card {
-  width: min(100%, 420px);
-  justify-self: start;
-  gap: 20px;
+  width: 100%;
+  justify-self: stretch;
+  gap: 16px;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-html[data-theme="dark"] .connections-account-card__summary,
-body[data-theme="dark"] .connections-account-card__summary {
+html[data-theme="dark"] .connections-account-card__layout,
+body[data-theme="dark"] .connections-account-card__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) repeat(4, minmax(120px, 1fr)) auto;
+  gap: 16px;
+  align-items: center;
+}
+
+html[data-theme="dark"] .connections-account-card__identity,
+body[data-theme="dark"] .connections-account-card__identity,
+html[data-theme="dark"] .connections-account-card__metric,
+body[data-theme="dark"] .connections-account-card__metric {
   display: grid;
   gap: 12px;
-}
-
-html[data-theme="dark"] .connections-account-card__balance,
-body[data-theme="dark"] .connections-account-card__balance {
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  line-height: 1.1;
-}
-
-html[data-theme="dark"] .connections-account-card__summary-copy,
-body[data-theme="dark"] .connections-account-card__summary-copy {
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-html[data-theme="dark"] .connections-account-card__footer,
-body[data-theme="dark"] .connections-account-card__footer {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 4px;
-}
-
-html[data-theme="dark"] .connections-account-card__status,
-body[data-theme="dark"] .connections-account-card__status {
-  display: grid;
-  gap: 6px;
   min-width: 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
-html[data-theme="dark"] .connections-account-card__status span:first-child,
-body[data-theme="dark"] .connections-account-card__status span:first-child {
+html[data-theme="dark"] .connections-account-card__identity .calendar-panel-title,
+body[data-theme="dark"] .connections-account-card__identity .calendar-panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="dark"] .connections-account-card__metric .metric-label,
+body[data-theme="dark"] .connections-account-card__metric .metric-label {
+  margin: 0;
+}
+
+html[data-theme="dark"] .connections-account-card__metric .metric-value,
+body[data-theme="dark"] .connections-account-card__metric .metric-value {
+  margin: 0;
+  font-size: 18px;
+}
+
+html[data-theme="dark"] .connections-account-card__metric .row-sub,
+body[data-theme="dark"] .connections-account-card__metric .row-sub,
+html[data-theme="dark"] .connections-account-card__identity .row-sub,
+body[data-theme="dark"] .connections-account-card__identity .row-sub {
+  margin: 0;
+}
+
+html[data-theme="dark"] .connections-account-card__pnl--positive,
+body[data-theme="dark"] .connections-account-card__pnl--positive {
+  color: var(--positive);
+}
+
+html[data-theme="dark"] .connections-account-card__pnl--negative,
+body[data-theme="dark"] .connections-account-card__pnl--negative {
+  color: var(--negative);
+}
+
+html[data-theme="dark"] .connections-account-card__pnl--neutral,
+body[data-theme="dark"] .connections-account-card__pnl--neutral {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .connections-account-card__actions,
+body[data-theme="dark"] .connections-account-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+html[data-theme="dark"] .connections-account-card__actions .btn-ghost,
+body[data-theme="dark"] .connections-account-card__actions .btn-ghost {
   color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
 }
 
-html[data-theme="dark"] .connections-account-card__status span:last-child,
-body[data-theme="dark"] .connections-account-card__status span:last-child {
-  color: var(--text-muted);
+html[data-theme="dark"] .connections-account-card__danger,
+body[data-theme="dark"] .connections-account-card__danger {
+  color: var(--negative);
+}
+
+@media (max-width: 1180px) {
+  html[data-theme="dark"] .connections-account-card__layout,
+  body[data-theme="dark"] .connections-account-card__layout {
+    grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(140px, 1fr));
+    align-items: start;
+  }
+
+  html[data-theme="dark"] .connections-account-card__actions,
+  body[data-theme="dark"] .connections-account-card__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    padding-top: 4px;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .connections-account-card,
+  body[data-theme="dark"] .connections-account-card {
+    padding: 20px;
+  }
+
+  html[data-theme="dark"] .connections-account-card__layout,
+  body[data-theme="dark"] .connections-account-card__layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  html[data-theme="dark"] .connections-account-card__metric,
+  body[data-theme="dark"] .connections-account-card__metric {
+    gap: 8px;
+  }
 }
 
 html[data-theme="dark"] .connections-shell__download-btn,
