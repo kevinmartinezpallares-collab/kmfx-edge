@@ -526,14 +526,12 @@ export function renderDashboard(root, state) {
         <div class="calendar-screen__copy">
           <div class="calendar-screen__eyebrow">Dashboard</div>
           <h1 class="calendar-screen__title">Dashboard</h1>
-          <p class="calendar-screen__subtitle">${[display.title, display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `Ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</p>
+          <p class="calendar-screen__subtitle">Lectura rápida de capital, riesgo y estado operativo.</p>
         </div>
         <div class="dashboard-screen__actions">
           <button class="btn-primary btn-inline" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
         </div>
       </header>
-
-      ${adminTracePanel}
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
@@ -563,7 +561,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub">${[display.title, panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : ""].filter(Boolean).join(" · ")}</div>
+              <div class="calendar-panel-sub">${panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : "Capital actual y evolución reciente."}</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["1D", "1W", "1M", "YTD"].map((range) => `

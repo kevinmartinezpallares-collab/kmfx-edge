@@ -11445,16 +11445,36 @@ body[data-theme="dark"] .dashboard-section-card {
   box-shadow: none !important;
 }
 
+html[data-theme="dark"] .dashboard-primary-card,
+body[data-theme="dark"] .dashboard-primary-card {
+  padding: 28px !important;
+}
+
 html[data-theme="dark"] .dashboard-primary-card__head,
 body[data-theme="dark"] .dashboard-primary-card__head {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+html[data-theme="dark"] .dashboard-primary-card .calendar-panel-title,
+body[data-theme="dark"] .dashboard-primary-card .calendar-panel-title {
+  font-size: 20px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+html[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub,
+body[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__body,
 body[data-theme="dark"] .dashboard-primary-card__body {
   display: grid;
   grid-template-columns: minmax(240px, 0.88fr) minmax(0, 1.32fr);
-  gap: 16px;
+  gap: 20px;
   align-items: stretch;
 }
 
@@ -11462,15 +11482,15 @@ html[data-theme="dark"] .dashboard-primary-card__summary,
 body[data-theme="dark"] .dashboard-primary-card__summary {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 18px;
   min-width: 0;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__metric,
 body[data-theme="dark"] .dashboard-primary-card__metric {
-  font-size: clamp(38px, 4vw, 46px);
-  line-height: 0.96;
-  letter-spacing: -0.05em;
+  font-size: clamp(44px, 4.5vw, 54px);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
   font-weight: 700;
   color: var(--text-0);
 }
@@ -11518,7 +11538,12 @@ body[data-theme="dark"] .dashboard-primary-card__chart canvas {
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
 body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
-  min-height: 240px !important;
+  min-height: 264px !important;
+}
+
+html[data-theme="dark"] .dashboard-secondary-card,
+body[data-theme="dark"] .dashboard-secondary-card {
+  padding: 20px !important;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__head,
