@@ -183,7 +183,11 @@ function normalizeHistory(rawHistory = [], balance = 0, equity = 0) {
       const label = parsedDate && !Number.isNaN(parsedDate.getTime())
         ? parsedDate.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })
         : `P${index + 1}`;
-      return { label, value: numericValue };
+      return {
+        label,
+        value: numericValue,
+        timestamp: parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : null,
+      };
     })
     .filter(Boolean);
 
@@ -192,8 +196,8 @@ function normalizeHistory(rawHistory = [], balance = 0, equity = 0) {
   const normalizedBalance = toFiniteNumber(balance);
   const normalizedEquity = toFiniteNumber(equity, normalizedBalance);
   return [
-    { label: "Balance", value: normalizedBalance },
-    { label: "Equity", value: normalizedEquity },
+    { label: "Balance", value: normalizedBalance, timestamp: null },
+    { label: "Equity", value: normalizedEquity, timestamp: null },
   ];
 }
 

@@ -138,14 +138,16 @@ function createHeroXAxisFormatter(range, points) {
     }
   }
 
-  let previousRendered = "";
-  return (_, index) => {
-    if (!visibleIndices.has(index)) return "";
+  const labelByIndex = new Map();
+  const usedLabels = new Set();
+  [...visibleIndices].sort((a, b) => a - b).forEach((index) => {
     const label = formatLabel(parsedDates[index]);
-    if (!label || label === previousRendered) return "";
-    previousRendered = label;
-    return label;
-  };
+    if (!label || usedLabels.has(label)) return;
+    usedLabels.add(label);
+    labelByIndex.set(index, label);
+  });
+
+  return (_, index) => labelByIndex.get(index) || "";
 }
 
 function riskStateDisplayLabel(riskState) {
@@ -431,12 +433,18 @@ export function renderDashboard(root, state) {
       { label: "history", value: authority.historyPoints || 0 },
     ],
   });
-  const baseCurve = Array.isArray(performanceView.chartSeries) && performanceView.chartSeries.length
+  const liveBaseCurve = Array.isArray(performanceView.chartSeries) && performanceView.chartSeries.length
     ? performanceView.chartSeries
     : [
         { label: "Base", value: model.account.balance },
         { label: "Ahora", value: model.account.equity },
       ];
+  const heroCurveCacheKey = `${account?.id || "dashboard"}:${account?.sourceType || ""}`;
+  if (root.__heroCurveCacheKey !== heroCurveCacheKey || !Array.isArray(root.__heroCurveCache) || !root.__heroCurveCache.length) {
+    root.__heroCurveCacheKey = heroCurveCacheKey;
+    root.__heroCurveCache = liveBaseCurve.map((point) => ({ ...point }));
+  }
+  const baseCurve = root.__heroCurveCache;
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
   const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
@@ -703,7 +711,7 @@ export function renderDashboard(root, state) {
       axisFontSize: 10,
       axisFontWeight: "600",
       yTickPadding: 6,
-      xTickPadding: 16,
+      xTickPadding: 20,
       maxXTicks: 7,
       showYGrid: false,
       gridAlpha: isDarkTheme ? 0.02 : 0.045,
@@ -711,7 +719,7 @@ export function renderDashboard(root, state) {
       yHeadroomRatio: 0.06,
       yBottomPaddingRatio: -0.01,
       layoutPaddingTop: 0,
-      layoutPaddingBottom: 0,
+      layoutPaddingBottom: -2,
       layoutPaddingLeft: 0,
       layoutPaddingRight: 0,
       showAxisBorder: false,
