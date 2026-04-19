@@ -411,12 +411,42 @@ function resolveAccountPnlLabel(account, activeAccount = null) {
   };
 }
 
+function resolveAccountPrimaryLabel(account, activeAccount = null) {
+  return (
+    account.login ||
+    activeAccount?.model?.account?.login ||
+    activeAccount?.dashboardPayload?.login ||
+    account.account_id ||
+    "Cuenta MT5"
+  );
+}
+
+function resolveAccountSecondaryLabel(account, activeAccount = null) {
+  const rawLabel = (
+    account.label ||
+    account.account_type ||
+    account.mode ||
+    activeAccount?.model?.account?.accountType ||
+    activeAccount?.dashboardPayload?.accountType ||
+    ""
+  );
+
+  const normalized = String(rawLabel).trim().toLowerCase();
+  if (normalized.includes("demo")) return "Demo";
+  if (normalized.includes("fund") || normalized.includes("chall") || normalized.includes("eval")) return "Fondeada";
+  if (normalized.includes("real") || normalized.includes("live")) return "Real";
+
+  if (rawLabel) return String(rawLabel).trim();
+  return account.platform ? `Cuenta ${String(account.platform).toUpperCase()}` : "Cuenta MT5";
+}
+
 function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
   const statusLine = isActive ? "Activa en panel" : meta.label;
-  const secondaryLabel = account.broker || account.server || account.platform || "";
+  const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
+  const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
   const canUseInPanel = !isActive && meta.tone !== "error" && meta.tone !== "neutral";
 
@@ -424,7 +454,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
     <article class="widget-card connections-account-card">
       <div class="connections-account-card__layout">
         <div class="connections-account-card__identity">
-          <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
+          <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
           ${secondaryLabel ? `<div class="row-sub">${escapeHtml(secondaryLabel)}</div>` : ""}
         </div>
         <div class="connections-account-card__metric">

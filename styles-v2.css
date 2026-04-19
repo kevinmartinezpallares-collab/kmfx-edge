@@ -7323,6 +7323,7 @@ body[data-theme="dark"] .connections-account-card {
   width: 100%;
   justify-self: stretch;
   gap: 16px;
+  overflow: visible;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -7393,6 +7394,8 @@ body[data-theme="dark"] .connections-account-card__actions {
 
 html[data-theme="dark"] .connections-account-card__menu-trigger,
 body[data-theme="dark"] .connections-account-card__menu-trigger {
+  appearance: none;
+  box-shadow: none;
   width: 40px;
   height: 40px;
   display: inline-flex;
@@ -7413,6 +7416,7 @@ html[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 body[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 html[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible,
 body[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible {
+  background: var(--layer-2);
   border-color: var(--border-medium);
   color: var(--text-primary);
   outline: none;
