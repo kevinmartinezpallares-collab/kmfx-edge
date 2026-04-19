@@ -9748,17 +9748,20 @@ body[data-theme="dark"] .sidebar-profile-menu-btn {
 html[data-theme="dark"] .sidebar-account-slot,
 body[data-theme="dark"] .sidebar-account-slot {
   display: grid;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 html[data-theme="dark"] .sidebar-account-switcher,
 body[data-theme="dark"] .sidebar-account-switcher {
   display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.03);
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 8px 4px 8px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 html[data-theme="dark"] .sidebar-account-switcher--empty,
@@ -9767,54 +9770,67 @@ body[data-theme="dark"] .sidebar-account-switcher--empty {
   cursor: pointer;
 }
 
-html[data-theme="dark"] .sidebar-account-switcher__eyebrow,
-body[data-theme="dark"] .sidebar-account-switcher__eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-2);
+html[data-theme="dark"] .sidebar-account-switcher__icon,
+body[data-theme="dark"] .sidebar-account-switcher__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-0);
+  font-size: 18px;
+  font-weight: 650;
+}
+
+html[data-theme="dark"] .sidebar-account-switcher__copy,
+body[data-theme="dark"] .sidebar-account-switcher__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
 }
 
 html[data-theme="dark"] .sidebar-account-switcher__title,
 body[data-theme="dark"] .sidebar-account-switcher__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 620;
   line-height: 1.2;
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .sidebar-account-switcher__meta,
-body[data-theme="dark"] .sidebar-account-switcher__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .sidebar-account-switcher__meta span,
-body[data-theme="dark"] .sidebar-account-switcher__meta span {
-  display: inline-flex;
-  align-items: center;
+html[data-theme="dark"] .sidebar-account-switcher__balance,
+body[data-theme="dark"] .sidebar-account-switcher__balance {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .sidebar-account-switcher__select,
 body[data-theme="dark"] .sidebar-account-switcher__select {
   width: 100%;
   min-width: 0;
-  min-height: 38px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-0);
-  font: inherit;
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.2;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
+  text-overflow: ellipsis;
 }
 
 html[data-theme="dark"] .sidebar-account-switcher__select:focus-visible,
@@ -9827,8 +9843,7 @@ body[data-theme="dark"] .sidebar-account-switcher--empty:focus-visible {
 
 html[data-theme="dark"] .sidebar-account-switcher--empty:hover,
 body[data-theme="dark"] .sidebar-account-switcher--empty:hover {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.12);
+  background: transparent;
 }
 
 /* Main content refinement — dark only */

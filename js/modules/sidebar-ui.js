@@ -1,4 +1,4 @@
-import { selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260406-213500";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260406-213500";
 import { applyAvatarContent } from "./avatar-utils.js?v=build-20260406-213500";
 
 function escapeHtml(value = "") {
@@ -18,16 +18,30 @@ function resolveSidebarAccounts(state) {
 }
 
 function resolveAccountOptionLabel(account) {
-  const alias = account?.meta?.nickname || account?.dashboardPayload?.nickname || account?.name || "Cuenta";
-  const platform = String(account?.platform || account?.sourceType || "MT5").toUpperCase();
-  const detail = account?.broker || account?.login || "";
-  return [alias, platform, detail].filter(Boolean).join(" · ");
+  return resolveAccountDisplayName(account);
 }
 
-function resolveAccountSummary(account) {
-  const platform = String(account?.platform || account?.sourceType || "MT5").toUpperCase();
-  const detail = account?.broker || account?.login || account?.server || "Lista para usar";
-  return { platform, detail };
+function resolveAccountDisplayName(account) {
+  return account?.server
+    || account?.broker
+    || account?.meta?.nickname
+    || account?.dashboardPayload?.nickname
+    || account?.name
+    || "Cuenta";
+}
+
+function resolveAccountBalance(account) {
+  const modelBalance = Number(account?.model?.account?.balance);
+  if (Number.isFinite(modelBalance)) return formatCurrency(modelBalance, account?.model?.account?.currency);
+  const payloadBalance = Number(account?.dashboardPayload?.balance);
+  if (Number.isFinite(payloadBalance)) return formatCurrency(payloadBalance, account?.dashboardPayload?.currency);
+  return formatCurrency(0);
+}
+
+function resolveAccountIcon(account) {
+  const platform = String(account?.platform || account?.sourceType || "mt5").toLowerCase();
+  if (platform === "mt4") return "4";
+  return "5";
 }
 
 export function initSidebarUI(store) {
@@ -104,35 +118,37 @@ export function initSidebarUI(store) {
     const accounts = resolveSidebarAccounts(state);
     const activeAccountId = selectActiveAccountId(state);
     const activeAccount = selectActiveAccount(state) || accounts[0] || null;
-    const activeAccountSummary = activeAccount ? resolveAccountSummary(activeAccount) : null;
+    const activeAccountName = activeAccount ? resolveAccountDisplayName(activeAccount) : "";
+    const activeAccountBalance = activeAccount ? resolveAccountBalance(activeAccount) : "";
+    const activeAccountIcon = activeAccount ? resolveAccountIcon(activeAccount) : "+";
     const showAccountSelect = accounts.length > 1;
     const accountBlock = !accounts.length
       ? `
         <button class="sidebar-account-switcher sidebar-account-switcher--empty" type="button" data-open-connection-wizard="true" data-connection-source="sidebar">
-          <span class="sidebar-account-switcher__eyebrow">Cuenta activa</span>
-          <span class="sidebar-account-switcher__title">Añadir cuenta</span>
+          <span class="sidebar-account-switcher__icon" aria-hidden="true">+</span>
+          <span class="sidebar-account-switcher__copy">
+            <span class="sidebar-account-switcher__title">Añadir cuenta</span>
+          </span>
         </button>
       `
       : showAccountSelect
         ? `
           <div class="sidebar-account-switcher">
-            <div class="sidebar-account-switcher__eyebrow">Cuenta activa</div>
-            <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
+            <div class="sidebar-account-switcher__icon" aria-hidden="true">${escapeHtml(activeAccountIcon)}</div>
+            <div class="sidebar-account-switcher__copy">
+              <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
               ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
-            </select>
-            <div class="sidebar-account-switcher__meta">
-              <span>${escapeHtml(activeAccountSummary?.platform || "")}</span>
-              <span>${escapeHtml(activeAccountSummary?.detail || "")}</span>
+              </select>
+              <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
         `
         : `
           <div class="sidebar-account-switcher">
-            <div class="sidebar-account-switcher__eyebrow">Cuenta activa</div>
-            <div class="sidebar-account-switcher__title">${escapeHtml(activeAccount?.name || "Cuenta")}</div>
-            <div class="sidebar-account-switcher__meta">
-              <span>${escapeHtml(activeAccountSummary?.platform || "")}</span>
-              <span>${escapeHtml(activeAccountSummary?.detail || "")}</span>
+            <div class="sidebar-account-switcher__icon" aria-hidden="true">${escapeHtml(activeAccountIcon)}</div>
+            <div class="sidebar-account-switcher__copy">
+              <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
+              <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
         `;
