@@ -7378,6 +7378,9 @@ body[data-theme="dark"] .connections-account-card__identity .calendar-panel-titl
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.15;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
 html[data-theme="dark"] .connections-account-card__tag-text,
@@ -7397,10 +7400,11 @@ body[data-theme="dark"] .connections-account-card__metric .metric-label {
 html[data-theme="dark"] .connections-account-card__metric-value,
 body[data-theme="dark"] .connections-account-card__metric-value {
   margin: 0;
-  font-size: 15px;
-  font-weight: 550;
+  font-size: 15px !important;
+  font-weight: 600 !important;
   letter-spacing: -0.2px;
   line-height: 1.2;
+  color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .connections-account-card__metric .row-sub,
@@ -7418,17 +7422,17 @@ body[data-theme="dark"] .connections-account-card__metric--tag {
 
 html[data-theme="dark"] .connections-account-card__pnl--positive,
 body[data-theme="dark"] .connections-account-card__pnl--positive {
-  color: var(--positive);
+  color: var(--positive) !important;
 }
 
 html[data-theme="dark"] .connections-account-card__pnl--negative,
 body[data-theme="dark"] .connections-account-card__pnl--negative {
-  color: var(--negative);
+  color: var(--negative) !important;
 }
 
 html[data-theme="dark"] .connections-account-card__pnl--neutral,
 body[data-theme="dark"] .connections-account-card__pnl--neutral {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .connections-account-card__actions,
