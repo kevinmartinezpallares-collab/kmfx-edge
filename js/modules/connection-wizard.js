@@ -148,7 +148,8 @@ function renderMethodStep(state) {
         <button class="connection-wizard__option ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
           <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "ea" ? "✓" : ""}</span>
           <div class="connection-wizard__option-copy">
-            <div class="connection-wizard__option-title">Expert Advisor (EA) <span class="connection-wizard__option-note">Recomendado</span></div>
+            <div class="connection-wizard__option-title">Expert Advisor (EA)</div>
+            <div class="connection-wizard__option-note">Recomendado</div>
             <div class="connection-wizard__option-subtitle">Recomendado para cuentas fondeadas.</div>
           </div>
         </button>

@@ -11005,6 +11005,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__subtitle {
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__card,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__card {
+  display: grid !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -11031,17 +11032,21 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
-  background: var(--layer-2) !important;
+  position: relative !important;
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid var(--border-subtle) !important;
   border-radius: 12px !important;
   outline: 1px solid transparent !important;
   outline-offset: 0 !important;
   box-shadow: none !important;
-  gap: 12px !important;
+  gap: 0 !important;
   min-height: 72px !important;
-  padding: 16px !important;
+  padding: 20px !important;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hover:not(:disabled),
@@ -11052,28 +11057,38 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option:hove
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected {
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   border-color: var(--accent) !important;
   outline-color: color-mix(in srgb, var(--accent) 18%, transparent) !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-check {
-  width: 18px !important;
-  height: 18px !important;
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 22px !important;
+  height: 22px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex-shrink: 0 !important;
-  color: var(--accent) !important;
+  border-radius: 999px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
   opacity: 0 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-copy,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-copy {
   display: grid !important;
-  gap: 4px !important;
+  gap: 6px !important;
   min-width: 0 !important;
+  justify-items: center !important;
+  max-width: 30ch !important;
+  margin: 0 auto !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option.is-selected .connection-wizard__option-check,
@@ -11093,12 +11108,14 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-titl
   font-size: 16px !important;
   font-weight: 600 !important;
   letter-spacing: -0.3px !important;
+  line-height: 1.2 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-subtitle,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-subtitle {
   color: var(--text-secondary) !important;
   font-size: 13px !important;
+  line-height: 1.45 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-note,
@@ -11106,7 +11123,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-note
   color: var(--text-secondary) !important;
   font-size: 12px !important;
   font-weight: 500 !important;
-  margin-left: 6px !important;
+  margin: 0 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid,
@@ -11141,17 +11158,18 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning {
   color: var(--text-muted) !important;
   font-size: 12px !important;
   line-height: 1.5 !important;
+  padding-top: 2px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row {
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid var(--border-subtle) !important;
   border-radius: 12px !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
-  align-items: end !important;
+  align-items: start !important;
   padding: 16px !important;
   gap: 12px !important;
   box-shadow: none !important;
@@ -11160,7 +11178,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy {
   display: grid !important;
-  gap: 6px !important;
+  gap: 8px !important;
   min-width: 0 !important;
 }
 
@@ -11228,6 +11246,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__success {
   display: flex !important;
   align-items: flex-start !important;
   gap: 12px !important;
+  margin-bottom: 4px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-icon,
@@ -11253,7 +11272,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__success-cop
 
 html[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]),
 body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):not([type="radio"]) {
-  background: var(--layer-1) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid var(--border-medium) !important;
   box-shadow: none !important;
   border-radius: 10px !important;
