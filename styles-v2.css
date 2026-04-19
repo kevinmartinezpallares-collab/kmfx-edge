@@ -11420,7 +11420,7 @@ body[data-theme="dark"] .dashboard-summary-kpis {
 html[data-theme="dark"] .dashboard-layout,
 body[data-theme="dark"] .dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.72fr) minmax(300px, 0.78fr);
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
 }
@@ -11431,6 +11431,11 @@ html[data-theme="dark"] .dashboard-section-stack,
 body[data-theme="dark"] .dashboard-section-stack {
   display: grid;
   gap: 16px;
+}
+
+html[data-theme="dark"] .dashboard-secondary-stack,
+body[data-theme="dark"] .dashboard-secondary-stack {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 html[data-theme="dark"] .dashboard-primary-card,
@@ -11634,8 +11639,8 @@ body[data-theme="dark"] .dashboard-screen .risk-exposure-table__row {
 }
 
 @media (max-width: 1100px) {
-  html[data-theme="dark"] .dashboard-layout,
-  body[data-theme="dark"] .dashboard-layout {
+  html[data-theme="dark"] .dashboard-secondary-stack,
+  body[data-theme="dark"] .dashboard-secondary-stack {
     grid-template-columns: 1fr;
   }
 }
