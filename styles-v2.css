@@ -10579,7 +10579,7 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__option {
   background: var(--layer-2) !important;
-  border: 1px solid transparent !important;
+  border: 1px solid var(--border-subtle) !important;
   border-radius: 14px !important;
   outline: 1px solid transparent !important;
   outline-offset: 0 !important;
@@ -10651,7 +10651,9 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-car
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-card {
   background: var(--layer-2) !important;
   border: none !important;
-  border-radius: 0 !important;
+  border-radius: 10px !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
   padding: 16px !important;
   gap: 8px !important;
   box-shadow: none !important;
@@ -10729,9 +10731,23 @@ body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
 html[data-theme="dark"] .connection-wizard-modal .btn-ghost,
 body[data-theme="dark"] .connection-wizard-modal .btn-ghost {
   background: transparent !important;
-  border: none !important;
+  border: 1px solid var(--border-subtle) !important;
   color: var(--text-secondary) !important;
   box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-secondary:hover:not(:disabled),
+body[data-theme="dark"] .connection-wizard-modal .btn-secondary:hover:not(:disabled) {
+  background: var(--layer-3) !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .btn-ghost:hover:not(:disabled),
+body[data-theme="dark"] .connection-wizard-modal .btn-ghost:hover:not(:disabled) {
+  background: transparent !important;
+  border-color: var(--border-medium) !important;
+  color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions,
