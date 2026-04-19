@@ -10182,14 +10182,18 @@ body[data-theme="dark"] .sidebar::after {
 .app-shell.sidebar-vnext .nav-item-label,
 .app-shell.sidebar-vnext .sidebar-profile-copy,
 .app-shell.sidebar-vnext .sidebar-admin-badge,
-.app-shell.sidebar-vnext .sidebar-vnext-toggle svg {
+.app-shell.sidebar-vnext .sidebar-vnext-divider,
+.app-shell.sidebar-vnext .sidebar-vnext-divider__handle,
+.app-shell.sidebar-vnext .sidebar-vnext-divider__handle svg {
   transition:
     width 0.22s ease,
     margin-left 0.22s ease,
+    left 0.22s ease,
     opacity 0.16s ease,
     transform 0.18s ease,
     color 0.16s ease,
-    background 0.16s ease;
+    background 0.16s ease,
+    border-color 0.16s ease;
 }
 
 .app-shell.sidebar-vnext .sidebar {
@@ -10198,7 +10202,7 @@ body[data-theme="dark"] .sidebar::after {
 
 .app-shell.sidebar-vnext .sidebar-topbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -10206,20 +10210,6 @@ body[data-theme="dark"] .sidebar::after {
 
 .app-shell.sidebar-vnext .brand-copy {
   flex: 1 1 auto;
-}
-
-.app-shell.sidebar-vnext .sidebar-vnext-toggle {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  margin-left: auto;
-  flex: 0 0 auto;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  background: rgba(255,255,255,0.03);
-  color: var(--text-1);
-  cursor: pointer;
 }
 
 .app-shell.sidebar-vnext .sidebar-footer,
@@ -10231,17 +10221,61 @@ body[data-theme="dark"] .sidebar::after {
   z-index: 90;
 }
 
-.app-shell.sidebar-vnext .sidebar-vnext-toggle:hover {
-  background: rgba(255,255,255,0.06);
+.app-shell.sidebar-vnext .sidebar-vnext-divider {
+  position: fixed;
+  top: 14px;
+  bottom: 14px;
+  left: calc(var(--sidebar-vnext-expanded-width) + (var(--sidebar-vnext-main-gap) / 2) - 9px);
+  width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  cursor: ew-resize;
+  z-index: 85;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider__line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border-subtle);
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider__handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 46px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.02);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
+  background: var(--border-medium);
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__handle {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
   color: var(--text-0);
 }
 
-.app-shell.sidebar-vnext .sidebar-vnext-toggle:focus-visible {
+.app-shell.sidebar-vnext .sidebar-vnext-divider:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
   outline-offset: 2px;
 }
 
-.app-shell.sidebar-vnext .sidebar-vnext-toggle svg {
+.app-shell.sidebar-vnext .sidebar-vnext-divider__handle svg {
   width: 16px;
   height: 16px;
   stroke-width: 2;
@@ -10253,6 +10287,10 @@ body[data-theme="dark"] .sidebar::after {
   width: var(--sidebar-vnext-collapsed-width);
   padding-inline: 10px;
   gap: 10px;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider {
+  left: calc(var(--sidebar-vnext-collapsed-width) + (var(--sidebar-vnext-main-gap) / 2) - 9px);
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
@@ -10286,16 +10324,6 @@ body[data-theme="dark"] .sidebar::after {
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-logo {
   width: 28px;
   height: 28px;
-}
-
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-toggle {
-  width: 26px;
-  height: 26px;
-  margin-left: 0;
-}
-
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-toggle svg {
-  transform: rotate(180deg);
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav {
@@ -10355,8 +10383,12 @@ body[data-theme="dark"] .sidebar::after {
   bottom: 0;
 }
 
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider__handle svg {
+  transform: rotate(180deg);
+}
+
 @media (max-width: 920px) {
-  .app-shell.sidebar-vnext .sidebar-vnext-toggle {
+  .app-shell.sidebar-vnext .sidebar-vnext-divider {
     display: none;
   }
 
