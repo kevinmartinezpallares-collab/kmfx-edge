@@ -11454,7 +11454,7 @@ html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .t
 body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val {
   font-size: 34px;
   line-height: 1;
-  color: var(--text-1);
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card-meta,
@@ -11463,6 +11463,16 @@ body[data-theme="dark"] .dashboard-summary-kpis .widget-card-meta {
   font-size: 12px;
   line-height: 1.32;
   color: var(--text-1);
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .metric-positive-soft,
+body[data-theme="dark"] .dashboard-summary-kpis .metric-positive-soft {
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .metric-negative-soft,
+body[data-theme="dark"] .dashboard-summary-kpis .metric-negative-soft {
+  color: var(--text-0) !important;
 }
 
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta,
@@ -11535,18 +11545,14 @@ body[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub {
 html[data-theme="dark"] .dashboard-primary-card__body,
 body[data-theme="dark"] .dashboard-primary-card__body {
   display: grid;
-  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.48fr);
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 0;
   align-items: stretch;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__summary,
 body[data-theme="dark"] .dashboard-primary-card__summary {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  min-width: 0;
-  padding-top: 4px;
+  display: none;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__metric,
@@ -11603,7 +11609,7 @@ html[data-theme="dark"] .dashboard-primary-card__chart,
 body[data-theme="dark"] .dashboard-primary-card__chart {
   min-width: 0;
   opacity: 0.96;
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,

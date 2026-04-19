@@ -543,7 +543,8 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: "",
+          meta: `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay}) · Balance ${formatCurrency(model.account.balance)}`,
+          valueClass: panelSecondMetricValue >= 0 ? "metric-positive-soft" : "metric-negative-soft",
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
@@ -568,7 +569,6 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub">Lectura principal del capital.</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["1D", "1W", "1M", "YTD"].map((range) => `
@@ -578,24 +578,6 @@ export function renderDashboard(root, state) {
           </div>
 
           <div class="dashboard-primary-card__body">
-            <div class="dashboard-primary-card__summary">
-              <div class="dashboard-primary-card__metric">${formatCurrency(model.account.equity)}</div>
-              <div class="dashboard-primary-card__lines">
-                <div class="dashboard-primary-card__line">
-                  <span>${panelSecondMetricLabel}</span>
-                  <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">(${totalReturnDisplay})</span>
-                  </strong>
-                </div>
-                <div class="dashboard-primary-card__line">
-                  <span>Rango ${heroRangeLabel}</span>
-                  <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay} <span class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">(${heroRangePctDisplay})</span>
-                  </strong>
-                </div>
-              </div>
-            </div>
-
             <div class="dashboard-primary-card__chart">
               ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
             </div>
