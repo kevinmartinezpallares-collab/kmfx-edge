@@ -182,10 +182,11 @@ function resolveDashboardStatus(statusTone = "neutral") {
 
 function renderConnectionsHeader({ adminVisible = false, adminState = null } = {}) {
   return `
-    <header class="connections-shell__header">
-      <div class="connections-shell__copy">
-        <div class="connections-shell__title">Cuentas</div>
-        <div class="connections-shell__subtitle">Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.</div>
+    <header class="calendar-screen__header">
+      <div class="calendar-screen__copy">
+        <div class="calendar-screen__eyebrow">Cuentas</div>
+        <h1 class="calendar-screen__title">Cuentas</h1>
+        <p class="calendar-screen__subtitle">Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.</p>
       </div>
       <div class="connections-shell__actions">
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
@@ -324,11 +325,11 @@ function renderEmptyState(root) {
       ${renderConnectionsHeader()}
       ${renderConnectionsKpis([], null)}
       <section class="connections-shell__main">
-        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-empty-card">
-          <div class="dashboard-risk-block__head">
+        <article class="tl-section-card connections-empty-card">
+          <div class="calendar-panel-head">
             <div>
-              <div class="dashboard-risk-block__title">Aún no tienes cuentas conectadas</div>
-              <div class="dashboard-risk-block__sub">Añade tu primera cuenta para empezar a operar con datos reales.</div>
+              <div class="calendar-panel-title">Aún no tienes cuentas conectadas</div>
+              <div class="calendar-panel-sub">Añade tu primera cuenta para empezar a operar con datos reales.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">
@@ -415,22 +416,22 @@ function renderAccountCard(account, { isActive, activeAccount = null, adminOpen 
     : `<button class="btn-secondary" type="button" data-account-use-panel="${escapeHtml(account.account_id || "")}">Usar en panel</button>`;
 
   return `
-    <article class="widget-card dashboard-risk-block connections-account-card">
-      <div class="dashboard-risk-block__head">
+    <article class="widget-card connections-account-card">
+      <div class="widget-card-head">
         <div>
-          <div class="dashboard-risk-block__title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
-          <div class="dashboard-risk-block__sub">${escapeHtml(identityLine)}</div>
+          <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
+          <div class="row-sub">${escapeHtml(identityLine)}</div>
         </div>
         ${renderRiskStatusBadge(dashboardStatus.status, dashboardStatus.severity)}
       </div>
       <div class="connections-account-card__summary">
-        <div class="connections-account-card__balance">${escapeHtml(balanceLabel)}</div>
-        <div class="connections-account-card__summary-copy">${escapeHtml(platformLabel)} · ${escapeHtml(meta.label)}${isActive ? " · Activa" : ""}</div>
+        <div class="metric-label">Balance</div>
+        <div class="metric-value">${escapeHtml(balanceLabel)}</div>
+        <div class="widget-card-meta">${escapeHtml(platformLabel)} · ${escapeHtml(meta.label)}${isActive ? " · Activa" : ""}</div>
       </div>
       <div class="connections-account-card__footer">
         <div class="connections-account-card__status">
-          <span>${escapeHtml(meta.label)}</span>
-          <span>${escapeHtml(isActive ? "Seleccionada en el panel" : "Lista para usar")}</span>
+          <span>${escapeHtml(isActive ? "Activa en panel" : "Disponible")}</span>
         </div>
         ${actionMarkup}
       </div>
@@ -632,10 +633,10 @@ export function renderConnections(root, state) {
       ${renderConnectionsHeader({ adminVisible, adminState })}
       ${renderConnectionsKpis(registryAccounts, activeAccount)}
       <section class="connections-shell__main">
-        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-main-card">
-          <div class="dashboard-risk-block__head">
+        <article class="tl-section-card connections-main-card">
+          <div class="calendar-panel-head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="dashboard-risk-block__sub">Revisa qué cuentas puedes usar ahora y activa otra cuando la necesites.</div>
+            <div class="calendar-panel-sub">Revisa qué cuentas puedes usar ahora y activa otra cuando la necesites.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
