@@ -7388,13 +7388,85 @@ body[data-theme="dark"] .connections-account-card__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+  position: relative;
 }
 
-html[data-theme="dark"] .connections-account-card__actions .btn-ghost,
-body[data-theme="dark"] .connections-account-card__actions .btn-ghost {
+html[data-theme="dark"] .connections-account-card__menu-trigger,
+body[data-theme="dark"] .connections-account-card__menu-trigger {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--layer-2);
   color: var(--text-secondary);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 1px;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-theme="dark"] .connections-account-card__menu-trigger:hover,
+body[data-theme="dark"] .connections-account-card__menu-trigger:hover,
+html[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible,
+body[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible {
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  outline: none;
+}
+
+html[data-theme="dark"] .connections-account-card__menu,
+body[data-theme="dark"] .connections-account-card__menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 184px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  background: var(--layer-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  z-index: 3;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item,
+body[data-theme="dark"] .connections-account-card__menu-item {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item:hover:not(:disabled),
+body[data-theme="dark"] .connections-account-card__menu-item:hover:not(:disabled),
+html[data-theme="dark"] .connections-account-card__menu-item:focus-visible,
+body[data-theme="dark"] .connections-account-card__menu-item:focus-visible {
+  background: var(--layer-2);
+  outline: none;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item:disabled,
+body[data-theme="dark"] .connections-account-card__menu-item:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item--danger,
+body[data-theme="dark"] .connections-account-card__menu-item--danger {
+  color: var(--negative);
 }
 
 html[data-theme="dark"] .connections-account-card__danger,
@@ -7414,6 +7486,12 @@ body[data-theme="dark"] .connections-account-card__danger {
     grid-column: 1 / -1;
     justify-content: flex-start;
     padding-top: 4px;
+  }
+
+  html[data-theme="dark"] .connections-account-card__menu,
+  body[data-theme="dark"] .connections-account-card__menu {
+    right: auto;
+    left: 0;
   }
 }
 

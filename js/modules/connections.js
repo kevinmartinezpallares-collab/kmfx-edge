@@ -135,6 +135,15 @@ function getAdminState(root) {
   return root.__accountAdminState;
 }
 
+function getConnectionsUiState(root) {
+  if (!root.__connectionsUiState) {
+    root.__connectionsUiState = {
+      openMenuAccountId: "",
+    };
+  }
+  return root.__connectionsUiState;
+}
+
 function escapeHtml(value = "") {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -307,12 +316,13 @@ function renderEmptyState(root) {
   `;
 }
 
-function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState) {
+function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, openMenuAccountId = "") {
   return `
     <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
       ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           activeAccount,
+          menuOpen: openMenuAccountId === account.account_id,
           adminOpen: adminVisible && adminState.open,
           adminState,
         })).join("")}
@@ -401,7 +411,7 @@ function resolveAccountPnlLabel(account, activeAccount = null) {
   };
 }
 
-function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
+function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
@@ -435,12 +445,24 @@ function renderAccountCard(account, { isActive, activeAccount = null, adminOpen 
         </div>
         <div class="connections-account-card__actions">
           <button
-            class="btn-secondary"
+            class="connections-account-card__menu-trigger"
             type="button"
-            ${canUseInPanel ? `data-account-use-panel="${escapeHtml(account.account_id || "")}"` : "disabled"}
-          >${isActive ? "En panel" : "Usar en panel"}</button>
-          <button class="btn-ghost" type="button" disabled>Editar</button>
-          <button class="btn-ghost connections-account-card__danger" type="button" disabled>Eliminar</button>
+            aria-label="Acciones de cuenta"
+            aria-expanded="${menuOpen ? "true" : "false"}"
+            data-account-menu-trigger="${escapeHtml(account.account_id || "")}"
+          >•••</button>
+          ${menuOpen ? `
+            <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
+              <button
+                class="connections-account-card__menu-item"
+                type="button"
+                role="menuitem"
+                ${canUseInPanel ? `data-account-use-panel="${escapeHtml(account.account_id || "")}"` : "disabled"}
+              >${isActive ? "En panel" : "Usar en panel"}</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" disabled>Editar</button>
+              <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" disabled>Eliminar</button>
+            </div>
+          ` : ""}
         </div>
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
@@ -452,6 +474,7 @@ export function initConnections(store) {
   const root = document.getElementById("connectionsRoot");
   if (!root) return;
   fetchAccountsRegistry(store);
+  getConnectionsUiState(root);
   const pollMs = isLocalRuntime() ? 5000 : 30000;
   console.info("[KMFX][ACCOUNTS]", {
     label: "registry-poll-config",
@@ -461,6 +484,24 @@ export function initConnections(store) {
   window.setInterval(() => fetchAccountsRegistry(store), pollMs);
 
   root.addEventListener("click", async (event) => {
+    const uiState = getConnectionsUiState(root);
+
+    const menuTrigger = event.target.closest("[data-account-menu-trigger]");
+    if (menuTrigger) {
+      const accountId = menuTrigger.dataset.accountMenuTrigger || "";
+      uiState.openMenuAccountId = uiState.openMenuAccountId === accountId ? "" : accountId;
+      renderConnections(root, store.getState());
+      return;
+    }
+
+    if (!event.target.closest(".connections-account-card__menu")) {
+      if (uiState.openMenuAccountId) {
+        uiState.openMenuAccountId = "";
+        renderConnections(root, store.getState());
+        return;
+      }
+    }
+
     if (event.target.closest("[data-account-admin-toggle]")) {
       const adminState = getAdminState(root);
       adminState.open = !adminState.open;
@@ -603,6 +644,7 @@ export function initConnections(store) {
     if (usePanelButton) {
       const accountId = usePanelButton.dataset.accountUsePanel;
       if (!accountId) return;
+      uiState.openMenuAccountId = "";
       store.setState((current) => ({
         ...current,
         currentAccount: accountId,
@@ -623,6 +665,7 @@ export function renderConnections(root, state) {
   const { accounts: registryAccounts, source: registrySource } = resolveRegistryAccounts(state);
   const adminVisible = isAdminUser(state);
   const adminState = getAdminState(root);
+  const uiState = getConnectionsUiState(root);
   const isSingleAccount = registryAccounts.length === 1;
 
   console.info("[KMFX][BOOT]", {
@@ -645,7 +688,7 @@ export function renderConnections(root, state) {
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>
         </div>
-        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
+        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState.openMenuAccountId)}
       </section>
     </div>
   `;
