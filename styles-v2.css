@@ -7637,17 +7637,15 @@ body[data-theme="dark"] .connections-shell__kpis {
 }
 
 html[data-theme="dark"] .connections-shell__main,
-body[data-theme="dark"] .connections-shell__main,
-html[data-theme="dark"] .connections-shell__secondary,
-body[data-theme="dark"] .connections-shell__secondary {
+body[data-theme="dark"] .connections-shell__main {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 html[data-theme="dark"] .connections-account-list,
 body[data-theme="dark"] .connections-account-list {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 html[data-theme="dark"] .connections-main-card,
@@ -7655,10 +7653,18 @@ body[data-theme="dark"] .connections-main-card,
 html[data-theme="dark"] .connections-empty-card,
 body[data-theme="dark"] .connections-empty-card,
 html[data-theme="dark"] .connections-account-card,
-body[data-theme="dark"] .connections-account-card,
-html[data-theme="dark"] .connections-platforms-card,
-body[data-theme="dark"] .connections-platforms-card {
-  padding: 18px;
+body[data-theme="dark"] .connections-account-card {
+  padding: 20px;
+}
+
+html[data-theme="dark"] .connections-main-card,
+body[data-theme="dark"] .connections-main-card {
+  padding: 22px;
+}
+
+html[data-theme="dark"] .connections-main-card .dashboard-risk-block__head,
+body[data-theme="dark"] .connections-main-card .dashboard-risk-block__head {
+  margin-bottom: 16px;
 }
 
 html[data-theme="dark"] .connections-empty-card,
@@ -7681,14 +7687,15 @@ body[data-theme="dark"] .connections-empty-card__actions {
 
 html[data-theme="dark"] .connections-account-card,
 body[data-theme="dark"] .connections-account-card {
-  gap: 14px;
+  gap: 16px;
 }
 
 html[data-theme="dark"] .connections-account-card__meta,
 body[data-theme="dark"] .connections-account-card__meta {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-top: 2px;
 }
 
 html[data-theme="dark"] .connections-account-card__meta-item,
@@ -7711,13 +7718,14 @@ body[data-theme="dark"] .connections-account-card__footer {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 14px;
+  gap: 18px;
+  padding-top: 4px;
 }
 
 html[data-theme="dark"] .connections-account-card__status,
 body[data-theme="dark"] .connections-account-card__status {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   color: var(--text-2);
   font-size: 13px;
@@ -7729,14 +7737,16 @@ body[data-theme="dark"] .connections-account-card__status span:first-child {
   color: var(--text-1);
 }
 
-html[data-theme="dark"] .connections-platforms-card,
-body[data-theme="dark"] .connections-platforms-card {
-  opacity: 0.94;
+html[data-theme="dark"] .connections-shell__download-btn,
+body[data-theme="dark"] .connections-shell__download-btn {
+  color: var(--accent);
 }
 
-html[data-theme="dark"] .connections-platforms-card .dashboard-risk-block__sub,
-body[data-theme="dark"] .connections-platforms-card .dashboard-risk-block__sub {
-  color: var(--text-2);
+html[data-theme="dark"] .connections-shell__download-btn:hover,
+body[data-theme="dark"] .connections-shell__download-btn:hover,
+html[data-theme="dark"] .connections-shell__download-btn:focus-visible,
+body[data-theme="dark"] .connections-shell__download-btn:focus-visible {
+  color: color-mix(in srgb, var(--accent) 84%, white 16%);
 }
 
 html[data-theme="dark"] .dashboard-header-card,

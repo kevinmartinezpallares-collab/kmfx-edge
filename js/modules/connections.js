@@ -171,10 +171,6 @@ function resolveRegistryAccounts(state) {
   return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
 }
 
-function platformDetected(accounts = [], platform) {
-  return accounts.some((account) => String(account.platform || "").toLowerCase() === platform);
-}
-
 function resolveDashboardStatus(statusTone = "neutral") {
   if (statusTone === "connected") return { status: "ok", severity: "info", tone: "ok" };
   if (statusTone === "pending" || statusTone === "waiting" || statusTone === "stale") {
@@ -193,7 +189,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
       </div>
       <div class="connections-shell__actions">
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-        <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
+        <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
         <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Añadir cuenta</button>
       </div>
     </header>
@@ -245,33 +241,6 @@ function renderConnectionsKpis(accounts = [], activeAccount = null) {
       })}
     </section>
   `;
-}
-
-function renderPlatformsBlock(accounts = []) {
-  const mt5Detected = platformDetected(accounts, "mt5") || accounts.length > 0;
-  const mt4Detected = platformDetected(accounts, "mt4");
-  return `
-    <article class="widget-card dashboard-risk-block connections-platforms-card">
-      <div class="dashboard-risk-block__head">
-        <div class="dashboard-risk-block__title">Terminales compatibles</div>
-        <div class="dashboard-risk-block__sub">Plataformas disponibles para conectar tus cuentas.</div>
-      </div>
-      <div class="dashboard-risk-block__grid">
-        ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Disponible" : "Pendiente")}
-        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Disponible" : "Próximamente")}
-      </div>
-    </article>
-  `;
-}
-
-function renderPlatformCard(label, detected, subtitle) {
-  const tone = detected ? "ok" : "neutral";
-  return renderRiskMetricCard({
-    label,
-    value: detected ? "Disponible" : "No disponible",
-    meta: subtitle,
-    tone,
-  });
 }
 
 function isAdminUser(state) {
@@ -364,12 +333,9 @@ function renderEmptyState(root) {
           </div>
           <div class="connections-empty-card__actions">
             <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar cuenta</button>
-            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
+            <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
           </div>
         </article>
-      </section>
-      <section class="connections-shell__secondary">
-        ${renderPlatformsBlock([])}
       </section>
     </div>
   `;
@@ -644,9 +610,6 @@ export function renderConnections(root, state) {
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
-      </section>
-      <section class="connections-shell__secondary">
-        ${renderPlatformsBlock(registryAccounts)}
       </section>
     </div>
   `;
