@@ -1,5 +1,34 @@
-import { selectVisibleUserProfile } from "./utils.js?v=build-20260406-213500";
+import { selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260406-213500";
 import { applyAvatarContent } from "./avatar-utils.js?v=build-20260406-213500";
+
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function resolveSidebarAccounts(state) {
+  const liveIds = selectLiveAccountIds(state);
+  return liveIds
+    .map((accountId) => state.accounts?.[accountId])
+    .filter((account) => account && typeof account === "object");
+}
+
+function resolveAccountOptionLabel(account) {
+  const alias = account?.meta?.nickname || account?.dashboardPayload?.nickname || account?.name || "Cuenta";
+  const platform = String(account?.platform || account?.sourceType || "MT5").toUpperCase();
+  const detail = account?.broker || account?.login || "";
+  return [alias, platform, detail].filter(Boolean).join(" · ");
+}
+
+function resolveAccountSummary(account) {
+  const platform = String(account?.platform || account?.sourceType || "MT5").toUpperCase();
+  const detail = account?.broker || account?.login || account?.server || "Lista para usar";
+  return { platform, detail };
+}
 
 export function initSidebarUI(store) {
   const shell = document.querySelector(".app-shell");
@@ -46,6 +75,23 @@ export function initSidebarUI(store) {
     }
   });
 
+  profileRoot?.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-sidebar-account-select]");
+    if (!select) return;
+    const accountId = select.value;
+    const state = store.getState();
+    const account = state.accounts?.[accountId];
+    if (!accountId || !account || accountId === state.currentAccount) return;
+
+    store.setState((current) => ({
+      ...current,
+      currentAccount: accountId,
+      activeLiveAccountId: accountId,
+      activeAccountId: accountId,
+      mode: Array.isArray(current.liveAccountIds) && current.liveAccountIds.length > 0 ? "live" : current.mode,
+    }));
+  });
+
   const renderProfile = (state) => {
     if (!profileRoot) return;
     const profile = selectVisibleUserProfile(state);
@@ -54,8 +100,44 @@ export function initSidebarUI(store) {
     const initials = profile.initials || "KM";
     const isAuthenticated = state.auth?.status === "authenticated";
     const isMenuOpen = Boolean(profileRoot.__menuOpen);
+    const accounts = resolveSidebarAccounts(state);
+    const activeAccountId = selectActiveAccountId(state);
+    const activeAccount = selectActiveAccount(state) || accounts[0] || null;
+    const activeAccountSummary = activeAccount ? resolveAccountSummary(activeAccount) : null;
+    const showAccountSelect = accounts.length > 1;
+    const accountBlock = !accounts.length
+      ? `
+        <button class="sidebar-account-switcher sidebar-account-switcher--empty" type="button" data-open-connection-wizard="true" data-connection-source="sidebar">
+          <span class="sidebar-account-switcher__eyebrow">Cuenta activa</span>
+          <span class="sidebar-account-switcher__title">Añadir cuenta</span>
+        </button>
+      `
+      : showAccountSelect
+        ? `
+          <div class="sidebar-account-switcher">
+            <div class="sidebar-account-switcher__eyebrow">Cuenta activa</div>
+            <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
+              ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
+            </select>
+            <div class="sidebar-account-switcher__meta">
+              <span>${escapeHtml(activeAccountSummary?.platform || "")}</span>
+              <span>${escapeHtml(activeAccountSummary?.detail || "")}</span>
+            </div>
+          </div>
+        `
+        : `
+          <div class="sidebar-account-switcher">
+            <div class="sidebar-account-switcher__eyebrow">Cuenta activa</div>
+            <div class="sidebar-account-switcher__title">${escapeHtml(activeAccount?.name || "Cuenta")}</div>
+            <div class="sidebar-account-switcher__meta">
+              <span>${escapeHtml(activeAccountSummary?.platform || "")}</span>
+              <span>${escapeHtml(activeAccountSummary?.detail || "")}</span>
+            </div>
+          </div>
+        `;
 
     profileRoot.innerHTML = `
+      ${accountBlock}
       <div class="sidebar-profile-main">
         <div class="sidebar-profile-avatar" data-user-avatar></div>
         <div class="sidebar-profile-copy">
