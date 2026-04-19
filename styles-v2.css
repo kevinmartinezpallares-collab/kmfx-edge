@@ -7332,9 +7332,9 @@ body[data-theme="dark"] .connections-account-card {
 html[data-theme="dark"] .connections-account-card__layout,
 body[data-theme="dark"] .connections-account-card__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) repeat(4, minmax(120px, 1fr)) auto;
+  grid-template-columns: minmax(0, 1.7fr) repeat(5, minmax(108px, 1fr)) auto;
   gap: 16px;
-  align-items: center;
+  align-items: start;
 }
 
 html[data-theme="dark"] .connections-account-card__identity,
@@ -7342,15 +7342,8 @@ body[data-theme="dark"] .connections-account-card__identity,
 html[data-theme="dark"] .connections-account-card__metric,
 body[data-theme="dark"] .connections-account-card__metric {
   display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-html[data-theme="dark"] .connections-account-card__title-row,
-body[data-theme="dark"] .connections-account-card__title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 6px;
+  align-content: start;
   min-width: 0;
 }
 
@@ -7361,19 +7354,12 @@ body[data-theme="dark"] .connections-account-card__identity .calendar-panel-titl
   text-overflow: ellipsis;
 }
 
-html[data-theme="dark"] .connections-account-card__tag,
-body[data-theme="dark"] .connections-account-card__tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
+html[data-theme="dark"] .connections-account-card__tag-text,
+body[data-theme="dark"] .connections-account-card__tag-text {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;
-  background: transparent;
-  flex-shrink: 0;
+  line-height: 1.35;
 }
 
 html[data-theme="dark"] .connections-account-card__metric .metric-label,
@@ -7381,10 +7367,13 @@ body[data-theme="dark"] .connections-account-card__metric .metric-label {
   margin: 0;
 }
 
-html[data-theme="dark"] .connections-account-card__metric .metric-value,
-body[data-theme="dark"] .connections-account-card__metric .metric-value {
+html[data-theme="dark"] .connections-account-card__metric-value,
+body[data-theme="dark"] .connections-account-card__metric-value {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  line-height: 1.15;
 }
 
 html[data-theme="dark"] .connections-account-card__metric .row-sub,
@@ -7392,6 +7381,11 @@ body[data-theme="dark"] .connections-account-card__metric .row-sub,
 html[data-theme="dark"] .connections-account-card__identity .row-sub,
 body[data-theme="dark"] .connections-account-card__identity .row-sub {
   margin: 0;
+}
+
+html[data-theme="dark"] .connections-account-card__metric--tag,
+body[data-theme="dark"] .connections-account-card__metric--tag {
+  min-width: 84px;
 }
 
 html[data-theme="dark"] .connections-account-card__pnl--positive,
@@ -7412,7 +7406,7 @@ body[data-theme="dark"] .connections-account-card__pnl--neutral {
 html[data-theme="dark"] .connections-account-card__actions,
 body[data-theme="dark"] .connections-account-card__actions {
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: flex-end;
   position: relative;
 }
@@ -7637,7 +7631,7 @@ body[data-theme="dark"] .connections-account-modal__key-value {
 @media (max-width: 1180px) {
   html[data-theme="dark"] .connections-account-card__layout,
   body[data-theme="dark"] .connections-account-card__layout {
-    grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(140px, 1fr));
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(130px, 1fr));
     align-items: start;
   }
 

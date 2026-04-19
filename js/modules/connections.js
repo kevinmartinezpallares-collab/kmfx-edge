@@ -658,6 +658,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const statusLine = isActive ? "Activa en panel" : meta.label;
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
+  const accountTag = secondaryLabel === "Funded" || secondaryLabel === "Challenge" ? secondaryLabel : "Real";
   const metaLine = resolveAccountMetaLine(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
 
@@ -665,11 +666,12 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
     <article class="widget-card connections-account-card">
       <div class="connections-account-card__layout">
         <div class="connections-account-card__identity">
-          <div class="connections-account-card__title-row">
-            <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
-            ${secondaryLabel ? `<span class="connections-account-card__tag">${escapeHtml(secondaryLabel)}</span>` : ""}
-          </div>
+          <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
           <div class="row-sub">${escapeHtml(metaLine)}</div>
+        </div>
+        <div class="connections-account-card__metric connections-account-card__metric--tag">
+          <div class="metric-label">Etiqueta</div>
+          <div class="row-sub connections-account-card__tag-text">${escapeHtml(accountTag)}</div>
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">Estado</div>
@@ -681,11 +683,11 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">Balance actual</div>
-          <div class="metric-value">${escapeHtml(balanceLabel)}</div>
+          <div class="metric-value connections-account-card__metric-value">${escapeHtml(balanceLabel)}</div>
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">PnL actual</div>
-          <div class="metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
+          <div class="metric-value connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
         </div>
         <div class="connections-account-card__actions">
           <button
