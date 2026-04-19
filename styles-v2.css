@@ -11794,7 +11794,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext,
 body[data-theme="dark"] .app-shell.sidebar-vnext {
   --sidebar-vnext-expanded-width: 224px;
   --sidebar-vnext-collapsed-width: 72px;
-  --sidebar-vnext-main-gap: 30px;
+  --sidebar-vnext-main-gap: 40px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
