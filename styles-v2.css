@@ -11542,7 +11542,7 @@ body[data-theme="dark"] .dashboard-section-card {
 
 html[data-theme="dark"] .dashboard-primary-card,
 body[data-theme="dark"] .dashboard-primary-card {
-  padding: 28px !important;
+  padding: 0 20px 20px !important;
   min-height: 440px;
   position: relative;
   overflow: hidden;
@@ -11568,6 +11568,7 @@ body[data-theme="dark"] .dashboard-primary-card::before {
 
 html[data-theme="dark"] .dashboard-primary-card__head,
 body[data-theme="dark"] .dashboard-primary-card__head {
+  padding-top: 20px;
   margin-bottom: 20px;
   align-items: flex-start;
 }
