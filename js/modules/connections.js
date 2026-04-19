@@ -1,4 +1,4 @@
-import { selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
 import { renderRiskMetricCard, renderRiskStatusBadge } from "./risk-panel-components.js?v=build-20260406-213500";
@@ -185,7 +185,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
     <header class="connections-shell__header">
       <div class="connections-shell__copy">
         <div class="connections-shell__title">Cuentas</div>
-        <div class="connections-shell__subtitle">Revisa tus cuentas conectadas y añade nuevas cuando lo necesites.</div>
+        <div class="connections-shell__subtitle">Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.</div>
       </div>
       <div class="connections-shell__actions">
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
@@ -332,7 +332,7 @@ function renderEmptyState(root) {
             </div>
           </div>
           <div class="connections-empty-card__actions">
-            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar cuenta</button>
+            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Añadir cuenta</button>
             <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
           </div>
         </article>
@@ -346,6 +346,7 @@ function renderAccountsSection(registryAccounts, activeAccountId, activeAccount,
     <div class="connections-account-list">
       ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+          activeAccount,
           adminOpen: adminVisible && adminState.open,
           adminState,
         })).join("")}
@@ -387,22 +388,31 @@ function renderAccountAdminPanel(account, adminState) {
   `;
 }
 
-function renderAccountCard(account, { isActive, adminOpen = false, adminState = null }) {
+function resolveAccountBalanceLabel(account, activeAccount = null) {
+  const registryBalance = Number(account.balance ?? account.equity ?? account.account_balance ?? account.account_equity);
+  if (Number.isFinite(registryBalance)) {
+    return formatCurrency(registryBalance, account.currency || account.account_currency);
+  }
+
+  if (activeAccount?.id === account.account_id) {
+    const liveBalance = Number(activeAccount?.model?.account?.balance ?? activeAccount?.dashboardPayload?.balance);
+    if (Number.isFinite(liveBalance)) {
+      return formatCurrency(liveBalance, activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency);
+    }
+  }
+
+  return "Sin balance";
+}
+
+function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const dashboardStatus = resolveDashboardStatus(meta.tone);
-  const identityLine = [account.broker || null, account.login || null].filter(Boolean).join(" · ") || "Cuenta pendiente";
+  const identityLine = [account.broker || null, account.server || null].filter(Boolean).join(" · ") || "Cuenta pendiente";
   const platformLabel = String(account.platform || "MT5").toUpperCase();
-  const lastSyncLabel = account.last_sync_at || account.lastSyncAt ? `Sync ${relativeTime(account.last_sync_at || account.lastSyncAt)}` : "Sin sincronización";
-  const secondaryStatus = isActive
-    ? "Cuenta seleccionada en el lateral."
-    : account.server
-      ? account.server
-      : meta.subtitle;
-  const actionMarkup = meta.action === "launcher"
-      ? `<button class="btn-primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
-      : meta.action === "none"
-        ? ""
-        : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
+  const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
+  const actionMarkup = isActive
+    ? ""
+    : `<button class="btn-secondary" type="button" data-account-use-panel="${escapeHtml(account.account_id || "")}">Usar en panel</button>`;
 
   return `
     <article class="widget-card dashboard-risk-block connections-account-card">
@@ -413,15 +423,14 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
         </div>
         ${renderRiskStatusBadge(dashboardStatus.status, dashboardStatus.severity)}
       </div>
-      <div class="connections-account-card__meta">
-        <span class="connections-account-card__meta-item">${escapeHtml(platformLabel)}</span>
-        <span class="connections-account-card__meta-item">${escapeHtml(meta.label)}</span>
-        ${isActive ? `<span class="connections-account-card__meta-item">${escapeHtml("Activa")}</span>` : ""}
+      <div class="connections-account-card__summary">
+        <div class="connections-account-card__balance">${escapeHtml(balanceLabel)}</div>
+        <div class="connections-account-card__summary-copy">${escapeHtml(platformLabel)} · ${escapeHtml(meta.label)}${isActive ? " · Activa" : ""}</div>
       </div>
       <div class="connections-account-card__footer">
         <div class="connections-account-card__status">
-          <span>${escapeHtml(lastSyncLabel)}</span>
-          <span>${escapeHtml(secondaryStatus)}</span>
+          <span>${escapeHtml(meta.label)}</span>
+          <span>${escapeHtml(isActive ? "Seleccionada en el panel" : "Lista para usar")}</span>
         </div>
         ${actionMarkup}
       </div>
@@ -580,6 +589,22 @@ export function initConnections(store) {
       downloadLauncher();
       return;
     }
+
+    const usePanelButton = event.target.closest("[data-account-use-panel]");
+    if (usePanelButton) {
+      const accountId = usePanelButton.dataset.accountUsePanel;
+      if (!accountId) return;
+      store.setState((current) => ({
+        ...current,
+        currentAccount: accountId,
+        activeLiveAccountId: accountId,
+        activeAccountId: accountId,
+        mode: Array.isArray(current.liveAccountIds) && current.liveAccountIds.includes(accountId) ? "live" : current.mode,
+      }));
+      showToast("Cuenta activada en el panel", "success");
+      renderConnections(root, store.getState());
+      return;
+    }
   });
 }
 
@@ -610,7 +635,7 @@ export function renderConnections(root, state) {
         <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-main-card">
           <div class="dashboard-risk-block__head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="dashboard-risk-block__sub">Consulta qué cuentas están listas y cuál está activa desde el selector lateral.</div>
+            <div class="dashboard-risk-block__sub">Revisa qué cuentas puedes usar ahora y activa otra cuando la necesites.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
