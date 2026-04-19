@@ -373,19 +373,11 @@ function resolveAccountBalanceLabel(account, activeAccount = null) {
 function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
-  const actionMarkup = isActive
-    ? ""
-    : `<button class="btn-secondary" type="button" data-account-use-panel="${escapeHtml(account.account_id || "")}">Usar en panel</button>`;
   const statusLine = isActive ? "Activa en panel" : meta.label;
 
   return `
     <article class="widget-card connections-account-card">
-      <div class="widget-card-head">
-        <div>
-          <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
-        </div>
-        ${actionMarkup}
-      </div>
+      <div class="calendar-panel-title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
       <div class="connections-account-card__summary">
         <div class="metric-value">${escapeHtml(balanceLabel)}</div>
         <div class="row-sub">${escapeHtml(statusLine)}</div>

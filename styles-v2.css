@@ -7322,6 +7322,8 @@ body[data-theme="dark"] .connections-empty-card__actions {
 
 html[data-theme="dark"] .connections-account-card,
 body[data-theme="dark"] .connections-account-card {
+  width: min(100%, 420px);
+  justify-self: start;
   gap: 20px;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -7329,7 +7331,7 @@ body[data-theme="dark"] .connections-account-card {
 html[data-theme="dark"] .connections-account-card__summary,
 body[data-theme="dark"] .connections-account-card__summary {
   display: grid;
-  gap: 6px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .connections-account-card__balance,
