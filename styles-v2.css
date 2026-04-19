@@ -10183,8 +10183,7 @@ body[data-theme="dark"] .sidebar::after {
 .app-shell.sidebar-vnext .sidebar-profile-copy,
 .app-shell.sidebar-vnext .sidebar-admin-badge,
 .app-shell.sidebar-vnext .sidebar-vnext-divider,
-.app-shell.sidebar-vnext .sidebar-vnext-divider__handle,
-.app-shell.sidebar-vnext .sidebar-vnext-divider__handle svg {
+.app-shell.sidebar-vnext .sidebar-vnext-divider__line {
   transition:
     width 0.22s ease,
     margin-left 0.22s ease,
@@ -10192,8 +10191,7 @@ body[data-theme="dark"] .sidebar::after {
     opacity 0.16s ease,
     transform 0.18s ease,
     color 0.16s ease,
-    background 0.16s ease,
-    border-color 0.16s ease;
+    background 0.16s ease;
 }
 
 .app-shell.sidebar-vnext .sidebar {
@@ -10225,12 +10223,11 @@ body[data-theme="dark"] .sidebar::after {
   position: fixed;
   top: 14px;
   bottom: 14px;
-  left: calc(var(--sidebar-vnext-expanded-width) + (var(--sidebar-vnext-main-gap) / 2) - 9px);
-  width: 18px;
+  left: calc(var(--sidebar-vnext-expanded-width) + (var(--sidebar-vnext-main-gap) / 2) - 6px);
+  width: 12px;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text-1);
   cursor: ew-resize;
   z-index: 85;
 }
@@ -10245,29 +10242,9 @@ body[data-theme="dark"] .sidebar::after {
   background: var(--border-subtle);
 }
 
-.app-shell.sidebar-vnext .sidebar-vnext-divider__handle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 46px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.02);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
 .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
   background: var(--border-medium);
-}
-
-.app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__handle {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.12);
-  color: var(--text-0);
+  width: 2px;
 }
 
 .app-shell.sidebar-vnext .sidebar-vnext-divider:focus-visible {
@@ -10275,22 +10252,14 @@ body[data-theme="dark"] .sidebar::after {
   outline-offset: 2px;
 }
 
-.app-shell.sidebar-vnext .sidebar-vnext-divider__handle svg {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
   width: var(--sidebar-vnext-collapsed-width);
-  padding-inline: 10px;
-  gap: 10px;
+  padding-inline: 12px;
+  gap: 8px;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider {
-  left: calc(var(--sidebar-vnext-collapsed-width) + (var(--sidebar-vnext-main-gap) / 2) - 9px);
+  left: calc(var(--sidebar-vnext-collapsed-width) + (var(--sidebar-vnext-main-gap) / 2) - 6px);
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .main-panel {
@@ -10298,10 +10267,11 @@ body[data-theme="dark"] .sidebar::after {
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-topbar {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+  gap: 8px;
   padding-inline: 0;
 }
 
@@ -10332,22 +10302,23 @@ body[data-theme="dark"] .sidebar::after {
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list {
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  gap: 8px;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group {
   width: 100%;
   display: grid;
-  gap: 4px;
+  gap: 6px;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item {
   justify-content: center;
   gap: 0;
-  min-height: 38px;
-  padding-inline: 0;
-  padding-block: 9px;
+  width: 44px;
+  min-height: 44px;
+  margin-inline: auto;
+  padding: 7px 0;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-icon,
@@ -10381,10 +10352,6 @@ body[data-theme="dark"] .sidebar::after {
   left: calc(100% + 10px);
   right: auto;
   bottom: 0;
-}
-
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider__handle svg {
-  transform: rotate(180deg);
 }
 
 @media (max-width: 920px) {
