@@ -7573,6 +7573,92 @@ body[data-theme="dark"] .dashboard-risk-panel {
   gap: 16px;
 }
 
+html[data-theme="dark"] .connections-shell,
+body[data-theme="dark"] .connections-shell {
+  gap: 16px;
+}
+
+html[data-theme="dark"] .connections-shell__header,
+body[data-theme="dark"] .connections-shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .connections-shell__copy,
+body[data-theme="dark"] .connections-shell__copy {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .connections-shell__title,
+body[data-theme="dark"] .connections-shell__title {
+  font-size: 28px;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  font-weight: 680;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .connections-shell__subtitle,
+body[data-theme="dark"] .connections-shell__subtitle {
+  margin-top: 6px;
+  max-width: 62ch;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] .connections-shell__actions,
+body[data-theme="dark"] .connections-shell__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+html[data-theme="dark"] .connections-shell__kpis,
+body[data-theme="dark"] .connections-shell__kpis {
+  margin-bottom: 0;
+}
+
+html[data-theme="dark"] .connections-shell__main,
+body[data-theme="dark"] .connections-shell__main,
+html[data-theme="dark"] .connections-shell__secondary,
+body[data-theme="dark"] .connections-shell__secondary {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .connections-main-card,
+body[data-theme="dark"] .connections-main-card,
+html[data-theme="dark"] .connections-empty-card,
+body[data-theme="dark"] .connections-empty-card,
+html[data-theme="dark"] .connections-account-card,
+body[data-theme="dark"] .connections-account-card,
+html[data-theme="dark"] .connections-platforms-card,
+body[data-theme="dark"] .connections-platforms-card {
+  padding: 18px;
+}
+
+html[data-theme="dark"] .connections-empty-card,
+body[data-theme="dark"] .connections-empty-card {
+  min-height: 220px;
+  align-content: center;
+}
+
+html[data-theme="dark"] .connections-empty-card .dashboard-risk-block__head,
+body[data-theme="dark"] .connections-empty-card .dashboard-risk-block__head {
+  margin-bottom: 18px;
+}
+
+html[data-theme="dark"] .connections-empty-card__actions,
+body[data-theme="dark"] .connections-empty-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 html[data-theme="dark"] .dashboard-header-card,
 body[data-theme="dark"] .dashboard-header-card {
   display: flex;
@@ -8310,6 +8396,26 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   html[data-theme="dark"] .dashboard-kpi-clusters,
   body[data-theme="dark"] .dashboard-kpi-clusters {
     grid-template-columns: 1fr !important;
+  }
+
+  html[data-theme="dark"] .connections-shell__header,
+  body[data-theme="dark"] .connections-shell__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-theme="dark"] .connections-shell__actions,
+  body[data-theme="dark"] .connections-shell__actions,
+  html[data-theme="dark"] .connections-empty-card__actions,
+  body[data-theme="dark"] .connections-empty-card__actions {
+    width: 100%;
+  }
+
+  html[data-theme="dark"] .connections-shell__actions > *,
+  body[data-theme="dark"] .connections-shell__actions > *,
+  html[data-theme="dark"] .connections-empty-card__actions > *,
+  body[data-theme="dark"] .connections-empty-card__actions > * {
+    flex: 1 1 220px;
   }
 
   html[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-cluster__items,

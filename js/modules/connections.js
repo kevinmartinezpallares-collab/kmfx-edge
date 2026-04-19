@@ -255,55 +255,54 @@ function resolveDashboardStatus(statusTone = "neutral") {
   return { status: "active_monitoring", severity: "info", tone: "ok" };
 }
 
-function renderOverviewPanel(accounts = [], dataSource = "empty", { adminVisible = false, adminState = null } = {}) {
+function renderConnectionsHeader({ adminVisible = false, adminState = null } = {}) {
+  return `
+    <header class="connections-shell__header">
+      <div class="connections-shell__copy">
+        <div class="connections-shell__title">Conexiones</div>
+        <div class="connections-shell__subtitle">Gestiona cuentas conectadas y el estado del bridge desde una sola vista.</div>
+      </div>
+      <div class="connections-shell__actions">
+        ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
+        <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar cuenta</button>
+      </div>
+    </header>
+  `;
+}
+
+function renderConnectionsKpis(accounts = [], dataSource = "empty") {
   const status = resolveSystemStatus(accounts);
   const accountsCount = accounts.length;
   const sourceLabel = resolveConnectionsSourceLabel(dataSource);
   const dashboardStatus = resolveDashboardStatus(status.tone);
   return `
-    <article class="tl-section-card dashboard-risk-overview dashboard-risk-overview--${dashboardStatus.tone}">
-      <div class="dashboard-risk-overview__head">
-        <div>
-          <div class="tl-section-title">Conexiones</div>
-          <div class="dashboard-risk-overview__sub">Estado operativo de conectores y cuentas dentro de KMFX Edge.</div>
-        </div>
-        <div>
-          ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-          <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-          <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar cuenta</button>
-        </div>
-      </div>
-      <div class="dashboard-risk-overview__grid">
-        ${renderRiskMetricCard({
-          label: "Conexión",
-          value: status.bridge,
-          meta: status.label,
-          tone: dashboardStatus.tone,
-        })}
-        ${renderRiskMetricCard({
-          label: "Último sync",
-          value: status.syncLabel,
-          meta: accountsCount ? "Actividad reciente del connector." : "Pendiente de primer sync.",
-          tone: dashboardStatus.tone,
-        })}
-        ${renderRiskMetricCard({
-          label: "Fuente",
-          value: sourceLabel,
-          meta: dataSource === "empty" ? "Sin datos operativos todavía." : "Lectura activa del sistema.",
-          tone: "neutral",
-        })}
-        ${renderRiskMetricCard({
-          label: "Cuentas conectadas",
-          value: accountsCount,
-          meta: accountsCount === 1 ? "1 cuenta activa en el registry." : `${accountsCount} cuentas registradas.`,
-          tone: "neutral",
-        })}
-      </div>
-      <div class="dashboard-risk-overview__foot">
-        <span>Centro de conexión</span>
-        <span>${status.headline}</span>
-      </div>
-    </article>
+    <section class="tl-kpi-row connections-shell__kpis">
+      ${renderRiskMetricCard({
+        label: "Bridge",
+        value: status.bridge,
+        meta: status.label,
+        tone: dashboardStatus.tone,
+      })}
+      ${renderRiskMetricCard({
+        label: "Último sync",
+        value: status.syncLabel,
+        meta: accountsCount ? "Actividad reciente" : "Sin primer sync",
+        tone: dashboardStatus.tone,
+      })}
+      ${renderRiskMetricCard({
+        label: "Fuente",
+        value: sourceLabel,
+        meta: dataSource === "empty" ? "Sin cuentas registradas" : "Lectura activa",
+        tone: "neutral",
+      })}
+      ${renderRiskMetricCard({
+        label: "Cuentas",
+        value: accountsCount,
+        meta: accountsCount === 1 ? "1 cuenta conectada" : `${accountsCount} cuentas`,
+        tone: "neutral",
+      })}
+    </section>
   `;
 }
 
@@ -311,14 +310,14 @@ function renderPlatformsBlock(accounts = []) {
   const mt5Detected = platformDetected(accounts, "mt5") || accounts.length > 0;
   const mt4Detected = platformDetected(accounts, "mt4");
   return `
-    <article class="widget-card dashboard-risk-block">
+    <article class="widget-card dashboard-risk-block connections-platforms-card">
       <div class="dashboard-risk-block__head">
         <div class="dashboard-risk-block__title">Terminales compatibles</div>
-        <div class="dashboard-risk-block__sub">Disponibilidad del entorno para conectar cuentas desde KMFX.</div>
+        <div class="dashboard-risk-block__sub">Disponibilidad de plataforma.</div>
       </div>
       <div class="dashboard-risk-block__grid">
         ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Disponible" : "Pendiente")}
-        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Disponible" : "No disponible")}
+        ${renderPlatformCard("MT4", mt4Detected, mt4Detected ? "Disponible" : "Próximamente")}
       </div>
     </article>
   `;
@@ -411,22 +410,25 @@ async function fetchAccountsRegistry(store) {
 
 function renderEmptyState(root) {
   root.innerHTML = `
-    <div class="dashboard-premium-grid">
-      ${renderOverviewPanel([], "empty")}
-      <section class="dashboard-risk-panel">
-        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
+    <div class="dashboard-premium-grid connections-shell">
+      ${renderConnectionsHeader()}
+      ${renderConnectionsKpis([], "empty")}
+      <section class="connections-shell__main">
+        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-empty-card">
           <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="dashboard-risk-block__sub">Aun no hay cuentas activas en el sistema.</div>
+            <div>
+              <div class="dashboard-risk-block__title">Aún no hay cuentas conectadas</div>
+              <div class="dashboard-risk-block__sub">Conecta tu primera cuenta para empezar a sincronizar.</div>
+            </div>
           </div>
-          <div class="dashboard-risk-overview__foot">
-            <span>Sin cuentas conectadas</span>
+          <div class="connections-empty-card__actions">
             <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar cuenta</button>
+            <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
           </div>
         </article>
-        <div class="dashboard-risk-grid">
-          ${renderPlatformsBlock([])}
-        </div>
+      </section>
+      <section class="connections-shell__secondary">
+        ${renderPlatformsBlock([])}
       </section>
     </div>
   `;
@@ -491,7 +493,7 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
       : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
 
   return `
-    <article class="widget-card dashboard-risk-block">
+    <article class="widget-card dashboard-risk-block connections-account-card">
       <div class="dashboard-risk-block__head">
         <div>
           <div class="dashboard-risk-block__title">${escapeHtml(account.alias || account.display_name || "Cuenta MT5")}</div>
@@ -720,19 +722,20 @@ export function renderConnections(root, state) {
   }
 
   root.innerHTML = `
-    <div class="dashboard-premium-grid">
-      ${renderOverviewPanel(registryAccounts, registrySource, { adminVisible, adminState })}
-      <section class="dashboard-risk-panel">
-        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
+    <div class="dashboard-premium-grid connections-shell">
+      ${renderConnectionsHeader({ adminVisible, adminState })}
+      ${renderConnectionsKpis(registryAccounts, registrySource)}
+      <section class="connections-shell__main">
+        <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-main-card">
           <div class="dashboard-risk-block__head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
             <div class="dashboard-risk-block__sub">Estado actual de las cuentas registradas en el sistema.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
-        <div class="dashboard-risk-grid">
-          ${renderPlatformsBlock(registryAccounts)}
-        </div>
+      </section>
+      <section class="connections-shell__secondary">
+        ${renderPlatformsBlock(registryAccounts)}
       </section>
     </div>
   `;
