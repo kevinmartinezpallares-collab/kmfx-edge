@@ -11392,3 +11392,242 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
   }
 }
 /* FIN BLOQUE: wizard-runtime */
+
+/* INICIO BLOQUE: dashboard-runtime */
+html[data-theme="dark"] .dashboard-screen,
+body[data-theme="dark"] .dashboard-screen {
+  display: grid;
+  gap: 32px;
+}
+
+html[data-theme="dark"] .dashboard-screen__header,
+body[data-theme="dark"] .dashboard-screen__header {
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] .dashboard-screen__actions,
+body[data-theme="dark"] .dashboard-screen__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis,
+body[data-theme="dark"] .dashboard-summary-kpis {
+  margin-bottom: 0;
+}
+
+html[data-theme="dark"] .dashboard-layout,
+body[data-theme="dark"] .dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  align-items: start;
+}
+
+html[data-theme="dark"] .dashboard-secondary-stack,
+body[data-theme="dark"] .dashboard-secondary-stack,
+html[data-theme="dark"] .dashboard-section-stack,
+body[data-theme="dark"] .dashboard-section-stack {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .dashboard-primary-card,
+html[data-theme="dark"] .dashboard-secondary-card,
+html[data-theme="dark"] .dashboard-section-card,
+body[data-theme="dark"] .dashboard-primary-card,
+body[data-theme="dark"] .dashboard-secondary-card,
+body[data-theme="dark"] .dashboard-section-card {
+  padding: 24px !important;
+  background: var(--layer-1) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__head,
+body[data-theme="dark"] .dashboard-primary-card__head {
+  margin-bottom: 16px;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__body,
+body[data-theme="dark"] .dashboard-primary-card__body {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.88fr) minmax(0, 1.32fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__summary,
+body[data-theme="dark"] .dashboard-primary-card__summary {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__metric,
+body[data-theme="dark"] .dashboard-primary-card__metric {
+  font-size: clamp(38px, 4vw, 46px);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+  font-weight: 700;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .dashboard-primary-card__lines,
+body[data-theme="dark"] .dashboard-primary-card__lines {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__line,
+body[data-theme="dark"] .dashboard-primary-card__line {
+  display: grid;
+  gap: 6px;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__line span,
+body[data-theme="dark"] .dashboard-primary-card__line span {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-primary-card__line strong,
+body[data-theme="dark"] .dashboard-primary-card__line strong {
+  font-size: 16px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .dashboard-primary-card__chart,
+body[data-theme="dark"] .dashboard-primary-card__chart {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
+html[data-theme="dark"] .dashboard-primary-card__chart canvas,
+body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
+body[data-theme="dark"] .dashboard-primary-card__chart canvas {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
+body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
+  min-height: 240px !important;
+}
+
+html[data-theme="dark"] .dashboard-secondary-card__head,
+body[data-theme="dark"] .dashboard-secondary-card__head {
+  margin-bottom: 16px;
+}
+
+html[data-theme="dark"] .dashboard-secondary-card__metrics,
+body[data-theme="dark"] .dashboard-secondary-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+html[data-theme="dark"] .dashboard-secondary-card__metrics--two,
+body[data-theme="dark"] .dashboard-secondary-card__metrics--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-theme="dark"] .dashboard-secondary-card__foot,
+body[data-theme="dark"] .dashboard-secondary-card__foot {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card {
+  padding: 16px !important;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--layer-2) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card__label,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card__label {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card__value,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card__value {
+  margin-top: 8px;
+  font-size: 18px;
+  line-height: 1.08;
+  font-weight: 650;
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card__meta,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel,
+body[data-theme="dark"] .dashboard-screen .risk-enforcement-panel {
+  gap: 12px;
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel__item,
+body[data-theme="dark"] .dashboard-screen .risk-enforcement-panel__item {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--layer-2);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-exposure-table__head,
+body[data-theme="dark"] .dashboard-screen .risk-exposure-table__head {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-exposure-table__row,
+body[data-theme="dark"] .dashboard-screen .risk-exposure-table__row {
+  min-height: 48px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 1100px) {
+  html[data-theme="dark"] .dashboard-layout,
+  body[data-theme="dark"] .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .dashboard-screen__header,
+  body[data-theme="dark"] .dashboard-screen__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-theme="dark"] .dashboard-primary-card__body,
+  body[data-theme="dark"] .dashboard-primary-card__body,
+  html[data-theme="dark"] .dashboard-secondary-card__metrics,
+  body[data-theme="dark"] .dashboard-secondary-card__metrics,
+  html[data-theme="dark"] .dashboard-secondary-card__metrics--two,
+  body[data-theme="dark"] .dashboard-secondary-card__metrics--two {
+    grid-template-columns: 1fr;
+  }
+}
+/* FIN BLOQUE: dashboard-runtime */

@@ -33,8 +33,7 @@ function renderDashboardKpiCard({ label, value, meta = "", trend = "", trendTone
     <article class="widget-card widget-card--kpi">
       <div class="tl-kpi-label">${label}</div>
       <div class="tl-kpi-val">${value}</div>
-      ${meta ? `<div class="widget-card-meta">${meta}</div>` : ""}
-      ${trend ? `<div class="widget-kpi-trend ${trendTone}">${trend}</div>` : ""}
+      ${(meta || trend) ? `<div class="widget-card-meta">${[meta, trend].filter(Boolean).join(" · ")}</div>` : ""}
     </article>
   `;
 }
@@ -56,7 +55,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (riskStatus?.severity === "critical" || ["blocked", "breach"].includes(String(riskStatus?.riskStatus || "").toLowerCase())) {
     return {
       title: "Riesgo dominante",
-      summary: riskStatus?.actionRequired || "El motor de riesgo ha detectado una condición operativa que requiere atención.",
+      summary: riskStatus?.actionRequired || "Atención inmediata requerida.",
       metrics: [
         {
           label: "Distance to limit",
@@ -77,7 +76,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.6) {
     return {
       title: "Presión diaria",
-      summary: "La pérdida diaria ya consume una parte relevante del margen disponible. Conviene priorizar defensa y ejecución limpia.",
+      summary: "El margen diario se está estrechando.",
       metrics: [
         {
           label: "Daily DD",
@@ -98,7 +97,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (totalTrades >= 10 && profitFactor >= 1.5 && winRate >= 50) {
     return {
       title: "Ventaja estable",
-      summary: "La cuenta mantiene una lectura sólida de ejecución: profit factor sano y win rate consistente sobre una muestra operativa útil.",
+      summary: "Profit factor y win rate sostienen la lectura.",
       metrics: [
         {
           label: "Profit factor",
@@ -119,7 +118,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (openPositionsCount > 0) {
     return {
       title: "Sesión en desarrollo",
-      summary: "La lectura principal ahora depende de cómo se gestione el riesgo abierto. El foco está en heat, exposición y disciplina de salida.",
+      summary: "El foco está en el riesgo vivo.",
       metrics: [
         {
           label: "Posiciones",
@@ -139,7 +138,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
 
   return {
     title: "Lectura neutral",
-    summary: "No hay una señal dominante más fuerte que el control del capital. La referencia útil sigue siendo la consistencia del ledger y la calidad del riesgo.",
+    summary: "Sin señal dominante fuera del control del capital.",
     metrics: [
       {
         label: "Profit factor",
@@ -522,120 +521,107 @@ export function renderDashboard(root, state) {
   );
 
   root.innerHTML = `
-    <div class="dashboard-premium-grid">
+    <section class="dashboard-screen dashboard-page-flow">
+      <header class="calendar-screen__header dashboard-screen__header">
+        <div class="calendar-screen__copy">
+          <div class="calendar-screen__eyebrow">Dashboard</div>
+          <h1 class="calendar-screen__title">Dashboard</h1>
+          <p class="calendar-screen__subtitle">${[display.title, display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `Ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</p>
+        </div>
+        <div class="dashboard-screen__actions">
+          <button class="btn-primary btn-inline" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
+        </div>
+      </header>
+
       ${adminTracePanel}
-      <section class="dashboard-hero-shell">
-        <article class="account-banner account-banner--premium dashboard-header-card">
-          <div class="dashboard-header-card__copy">
-            <div class="banner-kicker">Cuenta activa</div>
-            <div class="banner-title">${display.title}</div>
-            <div class="banner-sub">${[display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</div>
-          </div>
-          <div class="dashboard-header-card__meta">
-            <button class="btn-secondary btn-inline" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
-            ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
-            <span class="widget-pill">${accountTypeLabel}</span>
-          </div>
-        </article>
-      </section>
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
-          label: "Balance / Equity",
+          label: "Equity",
           value: formatCurrency(model.account.equity),
           meta: `Balance ${formatCurrency(model.account.balance)}`,
-          trend: model.account.equity >= model.account.balance ? "Equity por encima del balance" : "Equity por debajo del balance",
-          trendTone: model.account.equity >= model.account.balance ? "green" : "red",
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
           value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(panelSecondMetricValue))}`,
           meta: `Retorno ${formatPercent(currentReturnPct)}`,
-          trend: heroDelta >= 0 ? `Rango ${heroRangeLabel} +${heroRangeValueDisplay}` : `Rango ${heroRangeLabel} -${heroRangeValueDisplay}`,
-          trendTone: panelSecondMetricValue >= 0 ? "green" : "red",
         })}
         ${renderDashboardKpiCard({
           label: "Drawdown actual",
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
           meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)}`,
-          trend: primaryDistanceToLimit <= 0 ? "Límite consumido" : `Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
-          trendTone: primaryDistanceToLimit <= 1 ? "red" : primaryDistanceToLimit <= 3 ? "" : "green",
         })}
         ${renderDashboardKpiCard({
           label: "Edge",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-          meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)}`,
-          trend: `${Number(model?.totals?.totalTrades || 0)} trades`,
-          trendTone: Number(model?.totals?.profitFactor || 0) >= 1.5 ? "green" : "",
+          meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} · ${Number(model?.totals?.totalTrades || 0)} trades`,
         })}
       </section>
 
-      <section class="dashboard-main-grid dashboard-main-grid--master">
-        <article class="account-banner account-banner--premium account-banner--hero-refined dashboard-performance-hero">
-          <div class="account-banner-body">
-            <div class="account-banner-info">
-              <div class="account-banner-heading">
-                <div class="banner-kicker">Evolución de cuenta</div>
-                <div class="banner-title">Equity & balance</div>
-                <div class="banner-sub">${[display.title, display.subtitle || accountTypeLabel].filter(Boolean).join(" · ")}</div>
-              </div>
+      <section class="dashboard-layout">
+        <article class="tl-section-card dashboard-primary-card">
+          <div class="calendar-panel-head dashboard-primary-card__head">
+            <div>
+              <div class="calendar-panel-title">Equity y balance</div>
+              <div class="calendar-panel-sub">${[display.title, panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : ""].filter(Boolean).join(" · ")}</div>
+            </div>
+            <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
+              ${["1D", "1W", "1M", "YTD"].map((range) => `
+                <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
+              `).join("")}
+            </div>
+          </div>
 
-              <div class="account-banner-hero">
-                <div class="account-banner-metric">
-                  <span class="account-banner-metric-value">${formatCurrency(model.account.equity)}</span>
+          <div class="dashboard-primary-card__body">
+            <div class="dashboard-primary-card__summary">
+              <div class="dashboard-primary-card__metric">${formatCurrency(model.account.equity)}</div>
+              <div class="dashboard-primary-card__lines">
+                <div class="dashboard-primary-card__line">
+                  <span>Balance</span>
+                  <strong>${formatCurrency(model.account.balance)}</strong>
                 </div>
-                <div class="account-banner-metrics-block">
-                  <div class="metric-line">
-                    <span class="metric-line-label">Balance</span>
-                    <strong>${formatCurrency(model.account.balance)}</strong>
-                  </div>
-
-                  <div class="metric-line">
-                    <span class="metric-line-label">${panelSecondMetricLabel}</span>
-                    <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
-                      ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
-                    </strong>
-                  </div>
+                <div class="dashboard-primary-card__line">
+                  <span>${panelSecondMetricLabel}</span>
+                  <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
+                    ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
+                  </strong>
+                </div>
+                <div class="dashboard-primary-card__line">
+                  <span>Rango ${heroRangeLabel}</span>
+                  <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
+                    ${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay} (${heroRangePctDisplay})
+                  </strong>
                 </div>
               </div>
             </div>
 
-            <div class="account-banner-chart account-banner-chart--full">
-              <div class="account-banner-controls account-banner-controls--overlay">
-                <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
-                  ${["1D", "1W", "1M", "YTD"].map((range) => `
-                    <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
-                  `).join("")}
-                </div>
-              </div>
-              <div class="account-banner-viz">
-                ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
-              </div>
+            <div class="dashboard-primary-card__chart">
+              ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
             </div>
           </div>
         </article>
 
-        <div class="dashboard-side-stack">
-          <article class="widget-card dashboard-risk-block dashboard-ops-card">
-            <div class="dashboard-risk-block__head">
+        <div class="dashboard-secondary-stack">
+          <article class="tl-section-card dashboard-secondary-card">
+            <div class="calendar-panel-head dashboard-secondary-card__head">
               <div>
-                <div class="dashboard-risk-block__title">Operational state</div>
-                <div class="dashboard-risk-block__sub">${dashboardInsight.title} · ${dashboardInsight.summary}</div>
+                <div class="calendar-panel-title">Operational state</div>
+                <div class="calendar-panel-sub">${dashboardInsight.title} · ${dashboardInsight.summary}</div>
               </div>
               ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             </div>
 
-            <div class="dashboard-risk-block__grid">
+            <div class="dashboard-secondary-card__metrics">
               ${renderRiskMetricCard({
                 label: "Daily DD",
                 value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
-                meta: `Pico diario ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
+                meta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
                 tone: riskTone,
               })}
               ${renderRiskMetricCard({
                 label: "Distance to limit",
                 value: formatRiskValuePct(primaryDistanceToLimit, 2),
-                meta: `Max DD ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+                meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
                 tone: riskTone,
               })}
               ${renderRiskMetricCard({
@@ -646,20 +632,19 @@ export function renderDashboard(root, state) {
               })}
             </div>
 
-            <div class="dashboard-risk-overview__foot">
+            <div class="dashboard-secondary-card__foot">
               <span>${riskStatus.blockingRule || "Sin regla bloqueante activa"}</span>
-              <span>${hasEnforcementSignal ? riskAction : riskHeadline}</span>
             </div>
           </article>
 
-          <article class="widget-card dashboard-risk-block dashboard-risk-posture-card">
-            <div class="dashboard-risk-block__head">
+          <article class="tl-section-card dashboard-secondary-card">
+            <div class="calendar-panel-head">
               <div>
-                <div class="dashboard-risk-block__title">Risk posture</div>
-                <div class="dashboard-risk-block__sub">Riesgo abierto y riesgo máximo por trade como lectura compacta del posture actual.</div>
+                <div class="calendar-panel-title">Risk posture</div>
+                <div class="calendar-panel-sub">Riesgo abierto y riesgo máximo por trade.</div>
               </div>
             </div>
-            <div class="dashboard-risk-block__grid">
+            <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
               ${renderRiskMetricCard({
                 label: "Total open risk",
                 value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
@@ -676,23 +661,27 @@ export function renderDashboard(root, state) {
       </section>
 
       ${hasExposureSignal ? `
-      <section class="dashboard-secondary-grid dashboard-secondary-grid--master">
-          <article class="widget-card dashboard-risk-block">
-            <div class="dashboard-risk-block__head">
-              <div class="dashboard-risk-block__title">Exposición</div>
-              <div class="dashboard-risk-block__sub">Lectura institucional por símbolo y riesgo abierto.</div>
+        <section class="dashboard-section-stack">
+          <article class="tl-section-card dashboard-section-card">
+            <div class="calendar-panel-head">
+              <div>
+                <div class="calendar-panel-title">Exposición</div>
+                <div class="calendar-panel-sub">Riesgo abierto por símbolo.</div>
+              </div>
             </div>
             ${renderSymbolExposureTable(riskExposure.symbolExposure)}
           </article>
-      </section>
+        </section>
       ` : ""}
 
       ${hasEnforcementSignal ? `
-        <section class="dashboard-bottom-grid dashboard-bottom-grid--master">
-          <article class="widget-card dashboard-risk-block">
-            <div class="dashboard-risk-block__head">
-              <div class="dashboard-risk-block__title">Enforcement</div>
-              <div class="dashboard-risk-block__sub">Decisión operativa del motor institucional.</div>
+        <section class="dashboard-section-stack">
+          <article class="tl-section-card dashboard-section-card">
+            <div class="calendar-panel-head">
+              <div>
+                <div class="calendar-panel-title">Enforcement</div>
+                <div class="calendar-panel-sub">Decisión operativa del motor de riesgo.</div>
+              </div>
             </div>
             ${renderEnforcementPanel(riskStatus)}
           </article>
@@ -700,15 +689,19 @@ export function renderDashboard(root, state) {
       ` : ""}
 
       ${hasOpenTradeRisk ? `
-      <article class="widget-card dashboard-risk-block dashboard-risk-block--wide">
-          <div class="dashboard-risk-block__head">
-            <div class="dashboard-risk-block__title">Riesgo por posición</div>
-            <div class="dashboard-risk-block__sub">Detalle operativo de cada posición abierta con stop y P&amp;L.</div>
-          </div>
-          ${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}
-      </article>
+        <section class="dashboard-section-stack">
+          <article class="tl-section-card dashboard-section-card">
+            <div class="calendar-panel-head">
+              <div>
+                <div class="calendar-panel-title">Riesgo por posición</div>
+                <div class="calendar-panel-sub">Posiciones abiertas con stop y P&amp;L.</div>
+              </div>
+            </div>
+            ${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}
+          </article>
+        </section>
       ` : ""}
-    </div>
+    </section>
   `;
   mountCharts(root, chartSpecs);
 
