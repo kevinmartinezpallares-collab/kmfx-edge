@@ -11500,7 +11500,9 @@ body[data-theme="dark"] .dashboard-summary-kpis .metric-warning {
 
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta,
 body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta {
-  display: none;
+  display: block;
+  margin-top: 10px;
+  line-height: 1.4;
 }
 
 html[data-theme="dark"] .dashboard-layout,

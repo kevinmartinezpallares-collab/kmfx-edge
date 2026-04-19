@@ -609,7 +609,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: `Balance ${formatCurrency(model.account.balance)} · ${heroRangeLabel} ${heroRangeSignedValue} (${heroRangeSignedPct})`,
+          meta: `${panelSecondMetricLabel} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay})</span> · Balance ${formatCurrency(model.account.balance)}`,
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
