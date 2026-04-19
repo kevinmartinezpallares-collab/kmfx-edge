@@ -7617,6 +7617,20 @@ body[data-theme="dark"] .connections-shell__actions {
   justify-content: flex-end;
 }
 
+html[data-theme="dark"] .connections-shell__utility-btn,
+body[data-theme="dark"] .connections-shell__utility-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .connections-shell__utility-btn:hover,
+body[data-theme="dark"] .connections-shell__utility-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-0);
+}
+
 html[data-theme="dark"] .connections-shell__kpis,
 body[data-theme="dark"] .connections-shell__kpis {
   margin-bottom: 0;

@@ -65,8 +65,8 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       label: "Conectada",
       tone: "connected",
       subtitle: lastSyncAt ? `Último sync ${relative}` : "Sincronización activa",
-      actionLabel: "Usar en panel",
-      action: "use",
+      actionLabel: "",
+      action: "none",
     };
   }
   if (status === "waiting_sync" || status === "linked") {
@@ -101,8 +101,8 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       label: "Sin actualizar",
       tone: "stale",
       subtitle: lastSyncAt ? `Último sync ${relative}` : "Aún sin sync reciente",
-      actionLabel: "Usar en panel",
-      action: "use",
+      actionLabel: "",
+      action: "none",
     };
   }
   if (status === "error") {
@@ -189,11 +189,11 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
     <header class="connections-shell__header">
       <div class="connections-shell__copy">
         <div class="connections-shell__title">Cuentas</div>
-        <div class="connections-shell__subtitle">Gestiona tus cuentas conectadas y elige cuál usar en el panel.</div>
+        <div class="connections-shell__subtitle">Gestiona tus cuentas conectadas y revisa cuál está activa en el panel.</div>
       </div>
       <div class="connections-shell__actions">
-        ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-        <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+        ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
+        <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
         <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Añadir cuenta</button>
       </div>
     </header>
@@ -234,7 +234,7 @@ function renderConnectionsKpis(accounts = [], activeAccount = null) {
       ${renderRiskMetricCard({
         label: "Activa en panel",
         value: activeLabel,
-        meta: activeAccount ? "Cuenta seleccionada ahora mismo" : "Selecciona una cuenta conectada",
+        meta: activeAccount ? "Se cambia desde el selector lateral" : "Selecciona una desde el lateral",
         tone: "neutral",
       })}
       ${renderRiskMetricCard({
@@ -364,7 +364,7 @@ function renderEmptyState(root) {
           </div>
           <div class="connections-empty-card__actions">
             <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar cuenta</button>
-            <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
+            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
           </div>
         </article>
       </section>
@@ -427,13 +427,11 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
   const identityLine = [account.broker || null, account.login || null].filter(Boolean).join(" · ") || "Cuenta pendiente";
   const platformLabel = String(account.platform || "MT5").toUpperCase();
   const lastSyncLabel = account.last_sync_at || account.lastSyncAt ? `Último sync ${relativeTime(account.last_sync_at || account.lastSyncAt)}` : "Sin sync todavía";
-  const actionMarkup = meta.action === "use"
-    ? `<button class="btn-primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
-    : meta.action === "launcher"
+  const actionMarkup = meta.action === "launcher"
       ? `<button class="btn-primary" type="button" data-account-open-launcher="true">${meta.actionLabel}</button>`
       : meta.action === "none"
-        ? `<button class="btn-secondary" type="button" disabled>${meta.actionLabel}</button>`
-      : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
+        ? ""
+        : `<button class="btn-secondary" type="button" data-account-download-launcher="true">${meta.actionLabel}</button>`;
 
   return `
     <article class="widget-card dashboard-risk-block connections-account-card">
@@ -453,7 +451,7 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
       <div class="connections-account-card__footer">
         <div class="connections-account-card__status">
           <span>${escapeHtml(lastSyncLabel)}</span>
-          <span>${escapeHtml(meta.subtitle)}</span>
+          <span>${escapeHtml(isActive ? "La cuenta activa se cambia desde el selector lateral." : meta.subtitle)}</span>
         </div>
         ${actionMarkup}
       </div>
@@ -603,25 +601,6 @@ export function initConnections(store) {
       return;
     }
 
-    const useButton = event.target.closest("[data-account-use]");
-    if (useButton) {
-      const accountId = useButton.dataset.accountUse;
-      if (!accountId) return;
-      store.setState((state) => ({
-        ...state,
-        currentAccount: accountId,
-        activeLiveAccountId: accountId,
-        activeAccountId: accountId,
-        mode: state.accounts?.[accountId]?.sourceType === "mt5" || state.accountDirectory?.[accountId] ? "live" : state.mode,
-        ui: {
-          ...state.ui,
-          activePage: "dashboard",
-        },
-      }));
-      showToast("Cuenta activa actualizada", "success");
-      return;
-    }
-
     if (event.target.closest("[data-account-open-launcher]")) {
       openLauncher();
       return;
@@ -661,7 +640,7 @@ export function renderConnections(root, state) {
         <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-main-card">
           <div class="dashboard-risk-block__head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="dashboard-risk-block__sub">Revisa qué cuentas están listas, cuál está activa y qué puedes hacer ahora.</div>
+            <div class="dashboard-risk-block__sub">Revisa qué cuentas están listas y cuál está activa desde el selector lateral.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
