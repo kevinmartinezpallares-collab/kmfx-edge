@@ -11543,6 +11543,26 @@ html[data-theme="dark"] .dashboard-primary-card,
 body[data-theme="dark"] .dashboard-primary-card {
   padding: 28px !important;
   min-height: 440px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+html[data-theme="dark"] .dashboard-primary-card::before,
+body[data-theme="dark"] .dashboard-primary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.7;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.10) 0%,
+      rgba(255, 255, 255, 0.04) 22%,
+      rgba(255, 255, 255, 0.00) 48%
+    );
 }
 
 html[data-theme="dark"] .dashboard-primary-card__head,
