@@ -12072,3 +12072,108 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sideba
   gap: 0;
 }
 /* FIN BLOQUE: sidebar-runtime */
+
+/* INICIO BLOQUE: floating-surfaces-runtime */
+html[data-theme="dark"] .modal-overlay,
+body[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(6px) saturate(110%);
+  -webkit-backdrop-filter: blur(6px) saturate(110%);
+}
+
+html[data-theme="dark"] .modal-card,
+body[data-theme="dark"] .modal-card,
+html[data-theme="dark"] .connections-account-modal,
+body[data-theme="dark"] .connections-account-modal,
+html[data-theme="dark"] .connection-wizard-modal,
+body[data-theme="dark"] .connection-wizard-modal,
+html[data-theme="dark"] .kmfx-mt5-modal,
+body[data-theme="dark"] .kmfx-mt5-modal,
+html[data-theme="dark"] .connections-account-card__menu,
+body[data-theme="dark"] .connections-account-card__menu,
+html[data-theme="dark"] .risk-select-menu,
+body[data-theme="dark"] .risk-select-menu,
+html[data-theme="dark"] .custom-select-dropdown,
+body[data-theme="dark"] .custom-select-dropdown,
+html[data-theme="dark"] .bnav-more-menu,
+body[data-theme="dark"] .bnav-more-menu,
+html[data-theme="dark"] .sidebar-profile-menu,
+body[data-theme="dark"] .sidebar-profile-menu {
+  background: rgba(20, 20, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px) saturate(118%);
+  -webkit-backdrop-filter: blur(12px) saturate(118%);
+}
+
+html[data-theme="dark"] .topbar-time-stack,
+body[data-theme="dark"] .topbar-time-stack,
+html[data-theme="dark"] .theme-toggle-badge,
+body[data-theme="dark"] .theme-toggle-badge,
+html[data-theme="dark"] .topbar-user-card,
+body[data-theme="dark"] .topbar-user-card {
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+}
+
+html[data-theme="dark"] .btn-secondary,
+body[data-theme="dark"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.028);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .btn-secondary:hover,
+body[data-theme="dark"] .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.11);
+}
+
+html[data-theme="dark"] .btn-secondary:active,
+body[data-theme="dark"] .btn-secondary:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .btn-ghost,
+body[data-theme="dark"] .btn-ghost {
+  background: rgba(255, 255, 255, 0.012);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .btn-ghost:hover,
+body[data-theme="dark"] .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.09);
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .btn-ghost:active,
+body[data-theme="dark"] .btn-ghost:active {
+  background: rgba(255, 255, 255, 0.026);
+}
+
+html[data-theme="dark"] .modal-close,
+body[data-theme="dark"] .modal-close,
+html[data-theme="dark"] .sidebar-profile-menu-btn,
+body[data-theme="dark"] .sidebar-profile-menu-btn,
+html[data-theme="dark"] .connections-account-card__menu-trigger,
+body[data-theme="dark"] .connections-account-card__menu-trigger {
+  background: rgba(255, 255, 255, 0.018) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .modal-close:hover,
+body[data-theme="dark"] .modal-close:hover,
+html[data-theme="dark"] .sidebar-profile-menu-btn:hover,
+body[data-theme="dark"] .sidebar-profile-menu-btn:hover,
+html[data-theme="dark"] .connections-account-card__menu-trigger:hover,
+body[data-theme="dark"] .connections-account-card__menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+/* FIN BLOQUE: floating-surfaces-runtime */
