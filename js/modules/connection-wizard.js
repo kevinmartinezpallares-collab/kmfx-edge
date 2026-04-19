@@ -85,7 +85,7 @@ function renderPlatformStep(state) {
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
         <h3 class="connection-wizard__title">Elige la plataforma</h3>
-        <p class="connection-wizard__subtitle">Selecciona el entorno para esta cuenta.</p>
+        <p class="connection-wizard__subtitle">Selecciona el entorno.</p>
       </div>
       <div class="connection-wizard__option-grid">
         <button class="connection-wizard__option widget-card ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
@@ -114,8 +114,8 @@ function renderMethodStep(state) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
-        <h3 class="connection-wizard__title">Elige el método de conexión</h3>
-        <p class="connection-wizard__subtitle">Avanza con la ruta que prefieras.</p>
+        <h3 class="connection-wizard__title">Elige el método</h3>
+        <p class="connection-wizard__subtitle">Selecciona cómo quieres conectar la cuenta.</p>
       </div>
       <div class="connection-wizard__option-grid">
         <button class="connection-wizard__option widget-card ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
@@ -141,7 +141,7 @@ function renderDirectStep(state) {
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
         <h3 class="connection-wizard__title">Conexión directa</h3>
-        <p class="connection-wizard__subtitle">Completa los datos de acceso.</p>
+        <p class="connection-wizard__subtitle">Introduce los datos de acceso.</p>
       </div>
       <div class="connection-wizard__form-grid">
         <label class="form-stack">
@@ -169,7 +169,7 @@ function renderEaStep(state) {
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
         <h3 class="connection-wizard__title">Expert Advisor</h3>
-        <p class="connection-wizard__subtitle">Prepara la cuenta en unos pocos pasos.</p>
+        <p class="connection-wizard__subtitle">Deja el launcher listo y genera la clave.</p>
       </div>
       <div class="connection-wizard__checklist">
         <div class="connection-wizard__checklist-item">Cerrar MT5</div>
@@ -382,7 +382,7 @@ export function openConnectionWizard(options = {}) {
 
   openModal({
     title: "Añadir cuenta",
-    subtitle: "Conecta MetaTrader en unos pocos pasos.",
+    subtitle: "Configura la conexión de esta cuenta.",
     maxWidth: 760,
     content: `<div class="connection-wizard-shell"></div>`,
     onMount(card) {
