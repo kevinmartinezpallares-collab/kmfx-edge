@@ -11412,16 +11412,33 @@ body[data-theme="dark"] .dashboard-screen__actions {
   gap: 12px;
 }
 
+html[data-theme="dark"] .dashboard-screen__actions .btn-primary,
+body[data-theme="dark"] .dashboard-screen__actions .btn-primary {
+  padding-inline: 18px;
+  min-height: 42px;
+}
+
 html[data-theme="dark"] .dashboard-summary-kpis,
 body[data-theme="dark"] .dashboard-summary-kpis {
   margin-bottom: 0;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val,
+body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val {
+  font-size: 34px;
+  line-height: 1;
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta,
+body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .widget-card-meta {
+  display: none;
 }
 
 html[data-theme="dark"] .dashboard-layout,
 body[data-theme="dark"] .dashboard-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 32px;
   align-items: start;
 }
 
@@ -11430,12 +11447,13 @@ body[data-theme="dark"] .dashboard-secondary-stack,
 html[data-theme="dark"] .dashboard-section-stack,
 body[data-theme="dark"] .dashboard-section-stack {
   display: grid;
-  gap: 16px;
+  gap: 32px;
 }
 
 html[data-theme="dark"] .dashboard-secondary-stack,
 body[data-theme="dark"] .dashboard-secondary-stack {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card,
@@ -11488,7 +11506,7 @@ html[data-theme="dark"] .dashboard-primary-card__summary,
 body[data-theme="dark"] .dashboard-primary-card__summary {
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -11504,7 +11522,7 @@ body[data-theme="dark"] .dashboard-primary-card__metric {
 html[data-theme="dark"] .dashboard-primary-card__lines,
 body[data-theme="dark"] .dashboard-primary-card__lines {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__line,
@@ -11531,6 +11549,7 @@ body[data-theme="dark"] .dashboard-primary-card__line strong {
 html[data-theme="dark"] .dashboard-primary-card__chart,
 body[data-theme="dark"] .dashboard-primary-card__chart {
   min-width: 0;
+  opacity: 0.96;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
@@ -11584,7 +11603,7 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card {
   padding: 16px !important;
   border-radius: 14px;
   border: 1px solid var(--border-subtle) !important;
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
   box-shadow: none !important;
 }
 
@@ -11622,7 +11641,7 @@ body[data-theme="dark"] .dashboard-screen .risk-enforcement-panel__item {
   padding: 0 16px;
   border-radius: 14px;
   border: 1px solid var(--border-subtle);
-  background: var(--layer-2);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-exposure-table__head,

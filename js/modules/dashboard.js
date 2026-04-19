@@ -495,9 +495,9 @@ export function renderDashboard(root, state) {
       pointHoverRadius: 3.25,
       pointHitRadius: 20,
       fill: isDarkTheme,
-      fillAlphaStart: isDarkTheme ? 0.18 : 0.05,
+      fillAlphaStart: isDarkTheme ? 0.08 : 0.03,
       fillAlphaEnd: 0,
-      glowAlpha: 0.18,
+      glowAlpha: 0.06,
       tension: 0.82,
       axisColor: axisStandard,
       axisFontSize: 10,
@@ -543,7 +543,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: `Balance ${formatCurrency(model.account.balance)}`,
+          meta: "",
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
@@ -581,19 +581,15 @@ export function renderDashboard(root, state) {
               <div class="dashboard-primary-card__metric">${formatCurrency(model.account.equity)}</div>
               <div class="dashboard-primary-card__lines">
                 <div class="dashboard-primary-card__line">
-                  <span>Balance</span>
-                  <strong>${formatCurrency(model.account.balance)}</strong>
-                </div>
-                <div class="dashboard-primary-card__line">
                   <span>${panelSecondMetricLabel}</span>
                   <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
                     ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
                   </strong>
                 </div>
                 <div class="dashboard-primary-card__line">
-                  <span>Rango ${heroRangeLabel}</span>
+                  <span>Balance</span>
                   <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                    ${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay} (${heroRangePctDisplay})
+                    ${formatCurrency(model.account.balance)}
                   </strong>
                 </div>
               </div>
