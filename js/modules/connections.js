@@ -1,7 +1,7 @@
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
-import { renderRiskMetricCard, renderRiskStatusBadge } from "./risk-panel-components.js?v=build-20260406-213500";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
@@ -171,15 +171,6 @@ function resolveRegistryAccounts(state) {
   return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
 }
 
-function resolveDashboardStatus(statusTone = "neutral") {
-  if (statusTone === "connected") return { status: "ok", severity: "info", tone: "ok" };
-  if (statusTone === "pending" || statusTone === "waiting" || statusTone === "stale") {
-    return { status: "warning", severity: "warning", tone: "warning" };
-  }
-  if (statusTone === "error") return { status: "blocked", severity: "critical", tone: "blocked" };
-  return { status: "active_monitoring", severity: "info", tone: "ok" };
-}
-
 function renderConnectionsHeader({ adminVisible = false, adminState = null } = {}) {
   return `
     <header class="calendar-screen__header">
@@ -197,23 +188,10 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   `;
 }
 
-function resolvePlatformsSummary(accounts = []) {
-  const platforms = Array.from(
-    new Set(
-      accounts
-        .map((account) => String(account.platform || "").trim().toUpperCase())
-        .filter(Boolean)
-    )
-  );
-  if (!platforms.length) return "MT5";
-  return platforms.join(" · ");
-}
-
 function renderConnectionsKpis(accounts = [], activeAccount = null) {
   const accountsCount = accounts.length;
   const connectedCount = accounts.filter((account) => isConnectedStatus(account.status)).length;
   const activeLabel = activeAccount?.displayName || activeAccount?.alias || activeAccount?.broker || activeAccount?.login || "Sin activa";
-  const platformsLabel = resolvePlatformsSummary(accounts);
   return `
     <section class="tl-kpi-row connections-shell__kpis">
       ${renderRiskMetricCard({
@@ -232,12 +210,6 @@ function renderConnectionsKpis(accounts = [], activeAccount = null) {
         label: "Activa en panel",
         value: activeLabel,
         meta: activeAccount ? "Desde el lateral" : "Elige en el lateral",
-        tone: "neutral",
-      })}
-      ${renderRiskMetricCard({
-        label: "Plataformas",
-        value: platformsLabel,
-        meta: accounts.length ? "Disponibles" : "Empieza con MT5",
         tone: "neutral",
       })}
     </section>
@@ -407,7 +379,6 @@ function resolveAccountBalanceLabel(account, activeAccount = null) {
 
 function renderAccountCard(account, { isActive, activeAccount = null, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
-  const platformLabel = String(account.platform || "MT5").toUpperCase();
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const actionMarkup = isActive
     ? ""
@@ -424,7 +395,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, adminOpen 
       </div>
       <div class="connections-account-card__summary">
         <div class="metric-value">${escapeHtml(balanceLabel)}</div>
-        <div class="row-sub">${escapeHtml(statusLine)}${!isActive && platformLabel ? ` · ${escapeHtml(platformLabel)}` : ""}</div>
+        <div class="row-sub">${escapeHtml(statusLine)}</div>
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>
@@ -627,7 +598,6 @@ export function renderConnections(root, state) {
         <article class="tl-section-card connections-main-card">
           <div class="calendar-panel-head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="calendar-panel-sub">Revisa qué cuentas puedes usar ahora y activa otra cuando la necesites.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
