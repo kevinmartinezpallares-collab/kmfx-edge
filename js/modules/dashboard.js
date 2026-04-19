@@ -6,7 +6,6 @@ import {
   formatRiskValuePct,
   renderEnforcementPanel,
   renderOpenTradeRiskTable,
-  renderRiskLimitBar,
   renderRiskMetricCard,
   renderRiskStatusBadge,
   renderSymbolExposureTable,
@@ -462,37 +461,6 @@ export function renderDashboard(root, state) {
       },
     },
   });
-  const limitBars = [
-    {
-      label: "Max DD",
-      currentPct: riskSummary.peakToEquityDrawdownPct,
-      limitPct: riskSummary.maxDrawdownLimitPct,
-      distancePct: riskSummary.distanceToMaxDdLimitPct,
-      state: riskLimits.evaluation.limitsStatus?.max_drawdown?.state || "ok",
-    },
-    {
-      label: "Daily DD",
-      currentPct: riskSummary.dailyDrawdownPct,
-      limitPct: riskLimits.policy.dailyDdLimitPct,
-      distancePct: riskSummary.distanceToDailyDdLimitPct,
-      state: riskLimits.evaluation.limitsStatus?.daily_drawdown?.state || "ok",
-    },
-    {
-      label: "Heat",
-      currentPct: riskSummary.totalOpenRiskPct,
-      limitPct: riskSummary.portfolioHeatLimitPct,
-      distancePct: riskSummary.distanceToHeatLimitPct,
-      state: riskLimits.evaluation.limitsStatus?.portfolio_heat?.state || "ok",
-    },
-    {
-      label: "Risk / trade",
-      currentPct: riskSummary.maxOpenTradeRiskPct,
-      limitPct: riskSummary.maxRiskPerTradePct,
-      distancePct: Math.max(0, (riskSummary.maxRiskPerTradePct || 0) - (riskSummary.maxOpenTradeRiskPct || 0)),
-      state: riskLimits.evaluation.limitsStatus?.risk_per_trade?.state || "ok",
-    },
-  ].filter((item) => Number.isFinite(Number(item.limitPct)) && Number(item.limitPct) > 0);
-
   chartSpecs.push(
     lineAreaSpec("dashboard-hero-equity-chart", heroCurve, {
       tone: "blue",
@@ -606,20 +574,15 @@ export function renderDashboard(root, state) {
                 </div>
                 <div class="account-banner-metrics-block">
                   <div class="metric-line">
-                    <span class="metric-line-label">Rango (${heroRangeLabel})</span>
-                    <strong class="${heroDelta >= 0 ? "metric-positive" : "metric-negative"}">
-                      ${heroRangeValueDisplay} (${heroRangePctDisplay})
+                    <span class="metric-line-label">Balance</span>
+                    <strong>${formatCurrency(model.account.balance)}</strong>
+                  </div>
+
+                  <div class="metric-line">
+                    <span class="metric-line-label">${panelSecondMetricLabel}</span>
+                    <strong class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">
+                      ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${totalReturnDisplay})
                     </strong>
-                  </div>
-
-                  <div class="metric-line">
-                    <span class="metric-line-label">Posiciones abiertas</span>
-                    <strong>${performanceView.openPositionsCount}</strong>
-                  </div>
-
-                  <div class="metric-line">
-                    <span class="metric-line-label">Fuente</span>
-                    <strong>${authority.payloadSource || authority.sourceUsed || "live"}</strong>
                   </div>
                 </div>
               </div>
@@ -645,7 +608,7 @@ export function renderDashboard(root, state) {
             <div class="dashboard-risk-block__head">
               <div>
                 <div class="dashboard-risk-block__title">Operational state</div>
-                <div class="dashboard-risk-block__sub">${dashboardInsight.summary}</div>
+                <div class="dashboard-risk-block__sub">${dashboardInsight.title} · ${dashboardInsight.summary}</div>
               </div>
               ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             </div>
@@ -669,19 +632,6 @@ export function renderDashboard(root, state) {
                 meta: riskAction,
                 tone: riskTone,
               })}
-            </div>
-
-            <div class="dashboard-ops-card__insight">
-              <div class="dashboard-risk-block__head dashboard-ops-card__insight-head">
-                <div>
-                  <div class="dashboard-risk-block__title">Insight principal</div>
-                  <div class="dashboard-risk-block__sub">${dashboardInsight.title}</div>
-                </div>
-                ${hasEnforcementSignal ? `<span class="widget-pill">acción activa</span>` : ""}
-              </div>
-              <div class="dashboard-risk-block__grid">
-                ${dashboardInsight.metrics.map((item) => renderRiskMetricCard(item)).join("")}
-              </div>
             </div>
 
             <div class="dashboard-risk-overview__foot">
@@ -711,9 +661,6 @@ export function renderDashboard(root, state) {
               value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
               meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
             })}
-          </div>
-          <div class="dashboard-risk-posture-card__limits">
-            ${limitBars.map((item) => renderRiskLimitBar(item)).join("")}
           </div>
         </article>
 
