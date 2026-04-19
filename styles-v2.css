@@ -7630,6 +7630,12 @@ body[data-theme="dark"] .connections-shell__secondary {
   gap: 12px;
 }
 
+html[data-theme="dark"] .connections-account-list,
+body[data-theme="dark"] .connections-account-list {
+  display: grid;
+  gap: 12px;
+}
+
 html[data-theme="dark"] .connections-main-card,
 body[data-theme="dark"] .connections-main-card,
 html[data-theme="dark"] .connections-empty-card,
@@ -7643,7 +7649,7 @@ body[data-theme="dark"] .connections-platforms-card {
 
 html[data-theme="dark"] .connections-empty-card,
 body[data-theme="dark"] .connections-empty-card {
-  min-height: 220px;
+  min-height: 208px;
   align-content: center;
 }
 
@@ -7657,6 +7663,66 @@ body[data-theme="dark"] .connections-empty-card__actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+html[data-theme="dark"] .connections-account-card,
+body[data-theme="dark"] .connections-account-card {
+  gap: 14px;
+}
+
+html[data-theme="dark"] .connections-account-card__meta,
+body[data-theme="dark"] .connections-account-card__meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+html[data-theme="dark"] .connections-account-card__meta-item,
+body[data-theme="dark"] .connections-account-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 520;
+  letter-spacing: 0.01em;
+}
+
+html[data-theme="dark"] .connections-account-card__footer,
+body[data-theme="dark"] .connections-account-card__footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+html[data-theme="dark"] .connections-account-card__status,
+body[data-theme="dark"] .connections-account-card__status {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] .connections-account-card__status span:first-child,
+body[data-theme="dark"] .connections-account-card__status span:first-child {
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .connections-platforms-card,
+body[data-theme="dark"] .connections-platforms-card {
+  opacity: 0.94;
+}
+
+html[data-theme="dark"] .connections-platforms-card .dashboard-risk-block__sub,
+body[data-theme="dark"] .connections-platforms-card .dashboard-risk-block__sub {
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .dashboard-header-card,
@@ -8416,6 +8482,12 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-viz canvas
   html[data-theme="dark"] .connections-empty-card__actions > *,
   body[data-theme="dark"] .connections-empty-card__actions > * {
     flex: 1 1 220px;
+  }
+
+  html[data-theme="dark"] .connections-account-card__footer,
+  body[data-theme="dark"] .connections-account-card__footer {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   html[data-theme="dark"] .dashboard-kpi-cluster--performance .dashboard-kpi-cluster__items,

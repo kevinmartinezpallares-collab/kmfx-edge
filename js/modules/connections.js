@@ -54,18 +54,8 @@ function relativeTime(value) {
   return `hace ${days}d`;
 }
 
-function readDateMs(value) {
-  if (!value) return 0;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
 function isConnectedStatus(status = "") {
   return ["connected", "active", "first_sync_received"].includes(String(status || "").toLowerCase());
-}
-
-function isPendingStatus(status = "") {
-  return ["waiting_sync", "linked", "pending_setup", "pending", "pending_link", "draft"].includes(String(status || "").toLowerCase());
 }
 
 function accountStatusMeta(status = "", lastSyncAt = "") {
@@ -181,69 +171,8 @@ function resolveRegistryAccounts(state) {
   return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
 }
 
-function resolveLatestSyncAt(accounts = []) {
-  return accounts
-    .map((account) => account.last_sync_at || account.lastSyncAt || "")
-    .filter(Boolean)
-    .sort((left, right) => readDateMs(right) - readDateMs(left))[0] || "";
-}
-
-function resolveSystemStatus(accounts = []) {
-  const latestSyncAt = resolveLatestSyncAt(accounts);
-  const hasConnected = accounts.some((account) => isConnectedStatus(account.status));
-  const hasPending = accounts.some((account) => isPendingStatus(account.status));
-  const latestSyncMs = readDateMs(latestSyncAt);
-  const syncAgeSeconds = latestSyncMs ? Math.max(0, Math.round((Date.now() - latestSyncMs) / 1000)) : Infinity;
-
-  if (hasConnected && syncAgeSeconds <= 180) {
-    return {
-      label: "Conectado",
-      tone: "connected",
-      headline: "Sistema listo",
-      copy: "La cuenta activa está sincronizando datos reales con KMFX Edge.",
-      bridge: "Bridge operativo",
-      syncLabel: relativeTime(latestSyncAt),
-    };
-  }
-
-  if (hasConnected || latestSyncAt) {
-    return {
-      label: "Sincronización pendiente",
-      tone: "waiting",
-      headline: "Conexión sin actividad reciente",
-      copy: "La cuenta existe, pero necesitamos un nuevo sync del connector para confirmar estado live.",
-      bridge: "Esperando sync",
-      syncLabel: relativeTime(latestSyncAt),
-    };
-  }
-
-  if (hasPending || accounts.length) {
-    return {
-      label: "Pendiente",
-      tone: "pending",
-      headline: "Setup iniciado",
-      copy: "La cuenta está creada. Completa la instalación y vuelve cuando llegue el primer sync.",
-      bridge: "Esperando primer sync",
-      syncLabel: "Sin sincronización",
-    };
-  }
-
-  return {
-    label: "Sin conexión",
-    tone: "neutral",
-    headline: "Conecta tu primera cuenta",
-    copy: "Prepara MetaTrader, instala el connector y vuelve al dashboard con el flujo guiado.",
-    bridge: "Sin bridge activo",
-    syncLabel: "Sin sincronización",
-  };
-}
-
 function platformDetected(accounts = [], platform) {
   return accounts.some((account) => String(account.platform || "").toLowerCase() === platform);
-}
-
-function resolveConnectionsSourceLabel(dataSource = "empty") {
-  return dataSource === "registry" ? "Registry" : dataSource === "snapshot" ? "Snapshot live" : "Sin datos";
 }
 
 function resolveDashboardStatus(statusTone = "neutral") {
@@ -259,47 +188,59 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   return `
     <header class="connections-shell__header">
       <div class="connections-shell__copy">
-        <div class="connections-shell__title">Conexiones</div>
-        <div class="connections-shell__subtitle">Gestiona cuentas conectadas y el estado del bridge desde una sola vista.</div>
+        <div class="connections-shell__title">Cuentas</div>
+        <div class="connections-shell__subtitle">Gestiona tus cuentas conectadas y elige cuál usar en el panel.</div>
       </div>
       <div class="connections-shell__actions">
         ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
         <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar cuenta</button>
+        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Añadir cuenta</button>
       </div>
     </header>
   `;
 }
 
-function renderConnectionsKpis(accounts = [], dataSource = "empty") {
-  const status = resolveSystemStatus(accounts);
+function resolvePlatformsSummary(accounts = []) {
+  const platforms = Array.from(
+    new Set(
+      accounts
+        .map((account) => String(account.platform || "").trim().toUpperCase())
+        .filter(Boolean)
+    )
+  );
+  if (!platforms.length) return "MT5";
+  return platforms.join(" · ");
+}
+
+function renderConnectionsKpis(accounts = [], activeAccount = null) {
   const accountsCount = accounts.length;
-  const sourceLabel = resolveConnectionsSourceLabel(dataSource);
-  const dashboardStatus = resolveDashboardStatus(status.tone);
+  const connectedCount = accounts.filter((account) => isConnectedStatus(account.status)).length;
+  const activeLabel = activeAccount?.displayName || activeAccount?.alias || activeAccount?.broker || activeAccount?.login || "Sin activa";
+  const platformsLabel = resolvePlatformsSummary(accounts);
   return `
     <section class="tl-kpi-row connections-shell__kpis">
       ${renderRiskMetricCard({
-        label: "Bridge",
-        value: status.bridge,
-        meta: status.label,
-        tone: dashboardStatus.tone,
-      })}
-      ${renderRiskMetricCard({
-        label: "Último sync",
-        value: status.syncLabel,
-        meta: accountsCount ? "Actividad reciente" : "Sin primer sync",
-        tone: dashboardStatus.tone,
-      })}
-      ${renderRiskMetricCard({
-        label: "Fuente",
-        value: sourceLabel,
-        meta: dataSource === "empty" ? "Sin cuentas registradas" : "Lectura activa",
+        label: "Total cuentas",
+        value: accountsCount,
+        meta: accountsCount === 1 ? "1 cuenta registrada" : `${accountsCount} cuentas registradas`,
         tone: "neutral",
       })}
       ${renderRiskMetricCard({
-        label: "Cuentas",
-        value: accountsCount,
-        meta: accountsCount === 1 ? "1 cuenta conectada" : `${accountsCount} cuentas`,
+        label: "Conectadas",
+        value: connectedCount,
+        meta: connectedCount === 1 ? "Lista para usar" : `${connectedCount} listas para usar`,
+        tone: connectedCount > 0 ? "ok" : "neutral",
+      })}
+      ${renderRiskMetricCard({
+        label: "Activa en panel",
+        value: activeLabel,
+        meta: activeAccount ? "Cuenta seleccionada ahora mismo" : "Selecciona una cuenta conectada",
+        tone: "neutral",
+      })}
+      ${renderRiskMetricCard({
+        label: "Plataformas",
+        value: platformsLabel,
+        meta: accounts.length ? "Tipos disponibles" : "Empieza con MetaTrader",
         tone: "neutral",
       })}
     </section>
@@ -313,7 +254,7 @@ function renderPlatformsBlock(accounts = []) {
     <article class="widget-card dashboard-risk-block connections-platforms-card">
       <div class="dashboard-risk-block__head">
         <div class="dashboard-risk-block__title">Terminales compatibles</div>
-        <div class="dashboard-risk-block__sub">Disponibilidad de plataforma.</div>
+        <div class="dashboard-risk-block__sub">Plataformas disponibles para conectar tus cuentas.</div>
       </div>
       <div class="dashboard-risk-block__grid">
         ${renderPlatformCard("MT5", mt5Detected, mt5Detected ? "Disponible" : "Pendiente")}
@@ -412,13 +353,13 @@ function renderEmptyState(root) {
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader()}
-      ${renderConnectionsKpis([], "empty")}
+      ${renderConnectionsKpis([], null)}
       <section class="connections-shell__main">
         <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-empty-card">
           <div class="dashboard-risk-block__head">
             <div>
-              <div class="dashboard-risk-block__title">Aún no hay cuentas conectadas</div>
-              <div class="dashboard-risk-block__sub">Conecta tu primera cuenta para empezar a sincronizar.</div>
+              <div class="dashboard-risk-block__title">Aún no tienes cuentas conectadas</div>
+              <div class="dashboard-risk-block__sub">Añade tu primera cuenta para empezar a usar el panel con datos reales.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">
@@ -436,7 +377,7 @@ function renderEmptyState(root) {
 
 function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState) {
   return `
-    <div class="dashboard-risk-grid">
+    <div class="connections-account-list">
       ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           adminOpen: adminVisible && adminState.open,
@@ -483,7 +424,9 @@ function renderAccountAdminPanel(account, adminState) {
 function renderAccountCard(account, { isActive, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const dashboardStatus = resolveDashboardStatus(meta.tone);
-  const identityLine = [account.broker || null, account.login || null, account.server || null].filter(Boolean).join(" · ") || "Pendiente de primer sync";
+  const identityLine = [account.broker || null, account.login || null].filter(Boolean).join(" · ") || "Cuenta pendiente";
+  const platformLabel = String(account.platform || "MT5").toUpperCase();
+  const lastSyncLabel = account.last_sync_at || account.lastSyncAt ? `Último sync ${relativeTime(account.last_sync_at || account.lastSyncAt)}` : "Sin sync todavía";
   const actionMarkup = meta.action === "use"
     ? `<button class="btn-primary" type="button" data-account-use="${account.account_id}">${isActive ? "Usando en panel" : meta.actionLabel}</button>`
     : meta.action === "launcher"
@@ -501,28 +444,17 @@ function renderAccountCard(account, { isActive, adminOpen = false, adminState = 
         </div>
         ${renderRiskStatusBadge(dashboardStatus.status, dashboardStatus.severity)}
       </div>
-      <div class="dashboard-risk-block__grid">
-        ${renderRiskMetricCard({
-          label: "Estado",
-          value: meta.label,
-          meta: meta.subtitle,
-          tone: dashboardStatus.tone,
-        })}
-        ${renderRiskMetricCard({
-          label: "Último sync",
-          value: account.last_sync_at || account.lastSyncAt ? relativeTime(account.last_sync_at || account.lastSyncAt) : "Sin sync",
-          meta: isActive ? "Usada actualmente en panel." : "Disponible en el registry.",
-          tone: "neutral",
-        })}
-        ${renderRiskMetricCard({
-          label: "Cuenta",
-          value: isActive ? "Activa" : "Disponible",
-          meta: account.account_id || "sin account_id",
-          tone: isActive ? "ok" : "neutral",
-        })}
+      <div class="connections-account-card__meta">
+        <span class="connections-account-card__meta-item">${escapeHtml(platformLabel)}</span>
+        <span class="connections-account-card__meta-item">${escapeHtml(meta.label)}</span>
+        <span class="connections-account-card__meta-item">${escapeHtml(isActive ? "Activa en panel" : "Disponible")}</span>
+        ${account.server ? `<span class="connections-account-card__meta-item">${escapeHtml(account.server)}</span>` : ""}
       </div>
-      <div class="dashboard-risk-overview__foot">
-        <span>${isActive ? "Cuenta activa" : "Cuenta registrada"}</span>
+      <div class="connections-account-card__footer">
+        <div class="connections-account-card__status">
+          <span>${escapeHtml(lastSyncLabel)}</span>
+          <span>${escapeHtml(meta.subtitle)}</span>
+        </div>
         ${actionMarkup}
       </div>
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
@@ -724,12 +656,12 @@ export function renderConnections(root, state) {
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader({ adminVisible, adminState })}
-      ${renderConnectionsKpis(registryAccounts, registrySource)}
+      ${renderConnectionsKpis(registryAccounts, activeAccount)}
       <section class="connections-shell__main">
         <article class="widget-card dashboard-risk-block dashboard-risk-block--wide connections-main-card">
           <div class="dashboard-risk-block__head">
             <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-            <div class="dashboard-risk-block__sub">Estado actual de las cuentas registradas en el sistema.</div>
+            <div class="dashboard-risk-block__sub">Revisa qué cuentas están listas, cuál está activa y qué puedes hacer ahora.</div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>
