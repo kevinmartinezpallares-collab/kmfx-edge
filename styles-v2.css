@@ -11937,6 +11937,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group {
   display: grid;
   gap: 4px;
+  border-top: 0 !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group,
