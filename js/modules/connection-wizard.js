@@ -60,14 +60,14 @@ function copyText(value, successLabel = "Copiado") {
   complete();
 }
 
-function renderStepFrame(title, subtitle, content, tone = "") {
+function renderStepFrame(title, subtitle, content) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
         <h3 class="connection-wizard__title">${title}</h3>
         <p class="connection-wizard__subtitle">${subtitle}</p>
       </div>
-      <article class="widget-card connection-wizard__card ${tone ? `connection-wizard__card--${tone}` : ""}">
+      <article class="widget-card connection-wizard__card">
         ${content}
       </article>
     </section>
@@ -193,8 +193,7 @@ function renderConfirmationStep(state) {
             <div class="connection-wizard__success-subtitle">La conexión directa ya está preparada.</div>
           </div>
         </div>
-      `,
-      "success"
+      `
     );
   }
 
@@ -217,8 +216,7 @@ function renderConfirmationStep(state) {
           <button class="btn-primary" type="button" data-wizard-copy-secret="true">Copiar</button>
         </div>
       </div>
-    `,
-    "success"
+    `
   );
 }
 
