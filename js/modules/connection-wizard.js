@@ -200,7 +200,9 @@ function renderEaStep(state) {
           <div class="connection-wizard__utility-label">WebRequest URL</div>
           <div class="connection-wizard__utility-value">${escapeHtml(webRequestUrl)}</div>
         </div>
-        <button class="btn-ghost" type="button" data-wizard-copy-webrequest="true">Copiar</button>
+        <div class="connection-wizard__utility-actions">
+          <button class="btn-ghost" type="button" data-wizard-copy-webrequest="true">Copiar</button>
+        </div>
       </div>
       <div class="connection-wizard__inline-actions">
         <button class="btn-secondary" type="button" data-wizard-download-launcher="true">Descargar instalador</button>

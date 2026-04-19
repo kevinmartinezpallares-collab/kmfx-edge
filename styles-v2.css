@@ -11168,11 +11168,18 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-row 
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid var(--border-subtle) !important;
   border-radius: 12px !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
   align-items: start !important;
   padding: 16px !important;
   gap: 12px !important;
   box-shadow: none !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-actions,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy,
@@ -11183,8 +11190,10 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-copy
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-actions,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-actions,
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-actions,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-actions,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-actions,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-actions {
   display: flex !important;
   flex-wrap: wrap !important;
@@ -11287,9 +11296,13 @@ body[data-theme="dark"] .connection-wizard-modal input:not([type="checkbox"]):no
 html[data-theme="dark"] .connection-wizard-modal .btn-primary,
 html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
 html[data-theme="dark"] .connection-wizard-modal .btn-ghost,
-body[data-theme="dark"] .connection-wizard-modal .btn-primary {
+body[data-theme="dark"] .connection-wizard-modal .btn-primary,
+body[data-theme="dark"] .connection-wizard-modal .btn-secondary,
+body[data-theme="dark"] .connection-wizard-modal .btn-ghost {
   min-height: 44px !important;
   border-radius: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.2px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .btn-primary,
@@ -11301,7 +11314,7 @@ body[data-theme="dark"] .connection-wizard-modal .btn-primary {
 
 html[data-theme="dark"] .connection-wizard-modal .btn-secondary,
 body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
-  background: var(--layer-2) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   border: 1px solid var(--border-subtle) !important;
   color: var(--text-primary) !important;
   box-shadow: none !important;
@@ -11310,21 +11323,21 @@ body[data-theme="dark"] .connection-wizard-modal .btn-secondary {
 html[data-theme="dark"] .connection-wizard-modal .btn-ghost,
 body[data-theme="dark"] .connection-wizard-modal .btn-ghost {
   background: transparent !important;
-  border: 1px solid var(--border-subtle) !important;
-  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-medium) !important;
+  color: var(--text-primary) !important;
   box-shadow: none !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .btn-secondary:hover:not(:disabled),
 body[data-theme="dark"] .connection-wizard-modal .btn-secondary:hover:not(:disabled) {
-  background: var(--layer-3) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   border-color: var(--border-medium) !important;
   color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .btn-ghost:hover:not(:disabled),
 body[data-theme="dark"] .connection-wizard-modal .btn-ghost:hover:not(:disabled) {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   border-color: var(--border-medium) !important;
   color: var(--text-primary) !important;
 }
