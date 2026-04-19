@@ -11795,6 +11795,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext {
   --sidebar-vnext-expanded-width: 224px;
   --sidebar-vnext-collapsed-width: 72px;
   --sidebar-vnext-main-gap: 30px;
+  --sidebar-vnext-divider-offset: 6px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
@@ -11806,6 +11807,16 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider {
+  left: calc(var(--sidebar-vnext-expanded-width) + var(--sidebar-vnext-divider-offset));
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-vnext-divider {
+  left: calc(var(--sidebar-vnext-collapsed-width) + var(--sidebar-vnext-divider-offset));
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-header,
