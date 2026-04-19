@@ -11542,8 +11542,8 @@ body[data-theme="dark"] .dashboard-section-card {
 
 html[data-theme="dark"] .dashboard-primary-card,
 body[data-theme="dark"] .dashboard-primary-card {
-  padding: 0 20px 20px !important;
-  min-height: 440px;
+  padding: 24px !important;
+  min-height: 0;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -11556,7 +11556,7 @@ body[data-theme="dark"] .dashboard-primary-card::before {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.4;
   background:
     linear-gradient(
       135deg,
@@ -11568,8 +11568,8 @@ body[data-theme="dark"] .dashboard-primary-card::before {
 
 html[data-theme="dark"] .dashboard-primary-card__head,
 body[data-theme="dark"] .dashboard-primary-card__head {
-  padding-top: 20px;
-  margin-bottom: 20px;
+  padding-top: 0;
+  margin-bottom: 16px;
   align-items: flex-start;
 }
 
@@ -11591,10 +11591,8 @@ body[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub {
 
 html[data-theme="dark"] .dashboard-primary-card__body,
 body[data-theme="dark"] .dashboard-primary-card__body {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-  align-items: stretch;
+  display: block;
+  min-width: 0;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__summary,
@@ -11655,8 +11653,8 @@ body[data-theme="dark"] .dashboard-summary-kpis .metric-negative {
 html[data-theme="dark"] .dashboard-primary-card__chart,
 body[data-theme="dark"] .dashboard-primary-card__chart {
   min-width: 0;
-  opacity: 0.96;
-  padding: 0;
+  opacity: 1;
+  margin: 0 -2px -2px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
@@ -11670,7 +11668,7 @@ body[data-theme="dark"] .dashboard-primary-card__chart canvas {
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
 body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
-  min-height: 292px !important;
+  min-height: 288px !important;
   padding: 0 !important;
   border-radius: 0;
   background: transparent !important;
@@ -11678,7 +11676,8 @@ body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
 
 html[data-theme="dark"] .dashboard-primary-card .widget-segmented,
 body[data-theme="dark"] .dashboard-primary-card .widget-segmented {
-  margin-top: 2px;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card,

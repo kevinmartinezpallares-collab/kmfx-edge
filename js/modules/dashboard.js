@@ -448,6 +448,19 @@ export function renderDashboard(root, state) {
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
   const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
+  const heroChartValues = [...heroCurve, ...balanceCurve]
+    .map((point) => Number(point?.value))
+    .filter((value) => Number.isFinite(value));
+  const heroMinValue = heroChartValues.length ? Math.min(...heroChartValues) : model.account.balance;
+  const heroMaxValue = heroChartValues.length ? Math.max(...heroChartValues) : model.account.equity;
+  const heroValueSpan = Math.max(
+    heroMaxValue - heroMinValue,
+    Math.max(Math.abs(heroMaxValue), Math.abs(heroMinValue), 1) * 0.008,
+  );
+  const heroValuePadding = Math.max(
+    heroValueSpan * 0.22,
+    Math.max(Math.abs(heroMaxValue), Math.abs(heroMinValue), 1) * 0.002,
+  );
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
   const heroDelta = heroEnd - heroStart;
@@ -696,6 +709,8 @@ export function renderDashboard(root, state) {
       maxYTicks: 4,
       autoSkipXTicks: true,
       xAxisFormatter: heroXAxisFormatter,
+      yMin: heroMinValue - heroValuePadding,
+      yMax: heroMaxValue + heroValuePadding,
       borderWidth: 2.35,
       pointRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 3.5 : 0),
       pointHoverRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4.25 : 3.1),
@@ -704,22 +719,22 @@ export function renderDashboard(root, state) {
       fillAlphaStart: isDarkTheme ? 0.04 : 0.018,
       fillAlphaEnd: 0,
       glowAlpha: 0,
-      tension: 0.9,
+      tension: 0.78,
       animationDisabled: true,
       animationDuration: 0,
       axisColor: axisStandard,
       axisFontSize: 10,
       axisFontWeight: "600",
-      yTickPadding: 6,
-      xTickPadding: 20,
-      maxXTicks: 7,
+      yTickPadding: 4,
+      xTickPadding: 10,
+      maxXTicks: heroRange === "YTD" ? 6 : heroRange === "1M" ? 5 : 4,
       showYGrid: false,
       gridAlpha: isDarkTheme ? 0.02 : 0.045,
       crosshairAlpha: isDarkTheme ? 0.08 : 0.08,
-      yHeadroomRatio: 0.06,
-      yBottomPaddingRatio: -0.01,
+      yHeadroomRatio: 0,
+      yBottomPaddingRatio: 0,
       layoutPaddingTop: 0,
-      layoutPaddingBottom: -2,
+      layoutPaddingBottom: 0,
       layoutPaddingLeft: 0,
       layoutPaddingRight: 0,
       showAxisBorder: false,
@@ -792,7 +807,7 @@ export function renderDashboard(root, state) {
 
           <div class="dashboard-primary-card__body">
             <div class="dashboard-primary-card__chart">
-              ${chartCanvas("dashboard-hero-equity-chart", 216, "kmfx-chart-shell--hero")}
+              ${chartCanvas("dashboard-hero-equity-chart", 288, "kmfx-chart-shell--hero")}
             </div>
           </div>
         </article>

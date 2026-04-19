@@ -394,6 +394,15 @@ function collectNumericValues(spec) {
 }
 
 function computeYHeadroom(spec) {
+  const explicitMin = Number(spec.yMin);
+  const explicitMax = Number(spec.yMax);
+  if (Number.isFinite(explicitMin) || Number.isFinite(explicitMax)) {
+    return {
+      suggestedMin: Number.isFinite(explicitMin) ? explicitMin : undefined,
+      suggestedMax: Number.isFinite(explicitMax) ? explicitMax : undefined
+    };
+  }
+
   const values = collectNumericValues(spec);
   if (!values.length) return {};
 
