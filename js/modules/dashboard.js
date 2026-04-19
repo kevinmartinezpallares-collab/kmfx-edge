@@ -166,6 +166,12 @@ function hasActiveEnforcementSignal(riskStatus) {
 }
 
 export function renderDashboard(root, state) {
+  const accountSwitcher = document.getElementById("accountSwitcher");
+  if (accountSwitcher) {
+    accountSwitcher.innerHTML = "";
+    accountSwitcher.classList.add("is-empty");
+  }
+
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const activeAccountId = resolveSelectedLiveAccountId(state);
   const hasLiveAccounts = hasResolvedLiveAccounts(state);
@@ -526,7 +532,7 @@ export function renderDashboard(root, state) {
         <div class="calendar-screen__copy">
           <div class="calendar-screen__eyebrow">Dashboard</div>
           <h1 class="calendar-screen__title">Dashboard</h1>
-          <p class="calendar-screen__subtitle">Lectura rápida de capital, riesgo y estado operativo.</p>
+          <p class="calendar-screen__subtitle">Capital, riesgo y estado operativo de un vistazo.</p>
         </div>
         <div class="dashboard-screen__actions">
           <button class="btn-primary btn-inline" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
@@ -561,7 +567,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub">${panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : "Capital actual y evolución reciente."}</div>
+              <div class="calendar-panel-sub">${panelSecondMetricLabel ? `${panelSecondMetricLabel} ${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}` : "Lectura principal del capital."}</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["1D", "1W", "1M", "YTD"].map((range) => `

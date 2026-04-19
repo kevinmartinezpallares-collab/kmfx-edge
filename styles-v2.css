@@ -11420,7 +11420,7 @@ body[data-theme="dark"] .dashboard-summary-kpis {
 html[data-theme="dark"] .dashboard-layout,
 body[data-theme="dark"] .dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.72fr) minmax(300px, 0.78fr);
   gap: 16px;
   align-items: start;
 }
@@ -11448,6 +11448,7 @@ body[data-theme="dark"] .dashboard-section-card {
 html[data-theme="dark"] .dashboard-primary-card,
 body[data-theme="dark"] .dashboard-primary-card {
   padding: 28px !important;
+  min-height: 440px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__head,
@@ -11473,8 +11474,8 @@ body[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub {
 html[data-theme="dark"] .dashboard-primary-card__body,
 body[data-theme="dark"] .dashboard-primary-card__body {
   display: grid;
-  grid-template-columns: minmax(240px, 0.88fr) minmax(0, 1.32fr);
-  gap: 20px;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.48fr);
+  gap: 24px;
   align-items: stretch;
 }
 
@@ -11488,8 +11489,8 @@ body[data-theme="dark"] .dashboard-primary-card__summary {
 
 html[data-theme="dark"] .dashboard-primary-card__metric,
 body[data-theme="dark"] .dashboard-primary-card__metric {
-  font-size: clamp(44px, 4.5vw, 54px);
-  line-height: 0.92;
+  font-size: clamp(48px, 5vw, 60px);
+  line-height: 0.9;
   letter-spacing: -0.06em;
   font-weight: 700;
   color: var(--text-0);
@@ -11538,7 +11539,7 @@ body[data-theme="dark"] .dashboard-primary-card__chart canvas {
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
 body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
-  min-height: 264px !important;
+  min-height: 292px !important;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card,
