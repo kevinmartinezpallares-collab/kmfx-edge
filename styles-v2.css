@@ -11433,10 +11433,35 @@ body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi {
   padding-bottom: 18px !important;
 }
 
+html[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-label,
+body[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-label {
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-val,
+body[data-theme="dark"] .dashboard-summary-kpis .tl-kpi-val {
+  margin-top: 8px;
+  font-size: 42px;
+  line-height: 0.96;
+  letter-spacing: -0.045em;
+}
+
 html[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val,
 body[data-theme="dark"] .dashboard-summary-kpis .widget-card--kpi:first-child .tl-kpi-val {
   font-size: 34px;
   line-height: 1;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .dashboard-summary-kpis .widget-card-meta,
+body[data-theme="dark"] .dashboard-summary-kpis .widget-card-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.32;
   color: var(--text-1);
 }
 
@@ -11488,6 +11513,7 @@ body[data-theme="dark"] .dashboard-primary-card {
 html[data-theme="dark"] .dashboard-primary-card__head,
 body[data-theme="dark"] .dashboard-primary-card__head {
   margin-bottom: 20px;
+  align-items: flex-start;
 }
 
 html[data-theme="dark"] .dashboard-primary-card .calendar-panel-title,
@@ -11503,6 +11529,7 @@ body[data-theme="dark"] .dashboard-primary-card .calendar-panel-sub {
   margin-top: 4px;
   font-size: 13px;
   line-height: 1.35;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .dashboard-primary-card__body,
@@ -11519,12 +11546,13 @@ body[data-theme="dark"] .dashboard-primary-card__summary {
   align-content: start;
   gap: 12px;
   min-width: 0;
+  padding-top: 4px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__metric,
 body[data-theme="dark"] .dashboard-primary-card__metric {
   font-size: clamp(48px, 5vw, 60px);
-  line-height: 0.9;
+  line-height: 0.88;
   letter-spacing: -0.06em;
   font-weight: 700;
   color: var(--text-0);
@@ -11552,7 +11580,7 @@ body[data-theme="dark"] .dashboard-primary-card__line span {
 html[data-theme="dark"] .dashboard-primary-card__line strong,
 body[data-theme="dark"] .dashboard-primary-card__line strong {
   font-size: 16px;
-  line-height: 1.15;
+  line-height: 1.12;
   font-weight: 600;
   color: var(--text-0);
 }
@@ -11575,6 +11603,7 @@ html[data-theme="dark"] .dashboard-primary-card__chart,
 body[data-theme="dark"] .dashboard-primary-card__chart {
   min-width: 0;
   opacity: 0.96;
+  padding-top: 6px;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
@@ -11591,6 +11620,11 @@ body[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero {
   min-height: 292px !important;
 }
 
+html[data-theme="dark"] .dashboard-primary-card .widget-segmented,
+body[data-theme="dark"] .dashboard-primary-card .widget-segmented {
+  margin-top: 2px;
+}
+
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
   padding: 20px !important;
@@ -11599,6 +11633,14 @@ body[data-theme="dark"] .dashboard-secondary-card {
 html[data-theme="dark"] .dashboard-secondary-card__head,
 body[data-theme="dark"] .dashboard-secondary-card__head {
   margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] .dashboard-secondary-card .calendar-panel-sub,
+body[data-theme="dark"] .dashboard-secondary-card .calendar-panel-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__metrics,
@@ -11630,6 +11672,9 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card {
   border: 1px solid var(--border-subtle) !important;
   background: rgba(255, 255, 255, 0.02) !important;
   box-shadow: none !important;
+  min-height: 132px;
+  display: grid;
+  align-content: start;
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card__label,
@@ -11653,6 +11698,12 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card__meta {
   font-size: 12px;
   line-height: 1.35;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .app-disclaimer-footer,
+body[data-theme="dark"] .app-disclaimer-footer {
+  margin-top: 32px;
+  padding-top: 8px;
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel,
