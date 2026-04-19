@@ -33,6 +33,7 @@ function resolveAccountSummary(account) {
 export function initSidebarUI(store) {
   const shell = document.querySelector(".app-shell");
   const settingsShortcut = document.getElementById("sidebarSettingsShortcut");
+  const accountRoot = document.getElementById("sidebarAccountSlot");
   const profileRoot = document.getElementById("sidebarProfile");
 
   if (!shell) return;
@@ -75,7 +76,7 @@ export function initSidebarUI(store) {
     }
   });
 
-  profileRoot?.addEventListener("change", (event) => {
+  accountRoot?.addEventListener("change", (event) => {
     const select = event.target.closest("[data-sidebar-account-select]");
     if (!select) return;
     const accountId = select.value;
@@ -136,8 +137,11 @@ export function initSidebarUI(store) {
           </div>
         `;
 
+    if (accountRoot) {
+      accountRoot.innerHTML = accountBlock;
+    }
+
     profileRoot.innerHTML = `
-      ${accountBlock}
       <div class="sidebar-profile-main">
         <div class="sidebar-profile-avatar" data-user-avatar></div>
         <div class="sidebar-profile-copy">
