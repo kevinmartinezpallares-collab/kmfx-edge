@@ -33,24 +33,59 @@ function parseChartAxisDate(label) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function createHeroXAxisFormatter(range, total) {
-  const desiredTicks = range === "YTD" ? 6 : range === "1M" ? 6 : range === "1W" ? 5 : 4;
-  const step = Math.max(1, Math.round((Math.max(total - 1, 1)) / Math.max(desiredTicks - 1, 1)));
+function createHeroXAxisFormatter(range, labels) {
+  const total = labels.length;
+  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 6 : range === "1W" ? 5 : 4;
+  const pickEvenly = (indices, target) => {
+    if (!indices.length) return new Set();
+    if (indices.length <= target) return new Set(indices);
+    const picked = new Set();
+    for (let i = 0; i < target; i += 1) {
+      const position = Math.round((i * (indices.length - 1)) / Math.max(target - 1, 1));
+      picked.add(indices[position]);
+    }
+    return picked;
+  };
+
+  const parsedDates = labels.map((label) => parseChartAxisDate(label));
+  let candidates = [];
+
+  if (range === "YTD") {
+    let lastMonthKey = "";
+    parsedDates.forEach((date, index) => {
+      if (!date) return;
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      if (monthKey !== lastMonthKey) {
+        candidates.push(index);
+        lastMonthKey = monthKey;
+      }
+    });
+  } else {
+    const step = Math.max(1, Math.round((Math.max(total - 1, 1)) / Math.max(targetTicks - 1, 1)));
+    candidates = Array.from({ length: total }, (_, index) => index).filter((index) => (
+      index === 0 || index === total - 1 || index % step === 0
+    ));
+  }
+
+  const visibleTicks = pickEvenly(
+    [...new Set([0, total - 1, ...candidates])].filter((index) => index >= 0 && index < total).sort((a, b) => a - b),
+    targetTicks,
+  );
+
   return (label, index) => {
-    const isEdge = index === 0 || index === total - 1;
-    const isStep = index % step === 0;
-    if (!isEdge && !isStep) return "";
-    const parsed = parseChartAxisDate(label);
-    if (parsed) {
-      if (range === "1D") {
-        return parsed.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-      }
-      if (range === "YTD") {
-        return parsed.toLocaleDateString("es-ES", { month: "short" });
-      }
+    if (!visibleTicks.has(index)) return "";
+    const parsed = parsedDates[index];
+    if (!parsed) return String(label || "");
+    if (range === "1D") {
+      return parsed.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
+    if (range === "1W") {
       return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
     }
-    return isEdge || isStep ? String(label || "") : "";
+    if (range === "1M") {
+      return parsed.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+    }
+    return parsed.toLocaleDateString("es-ES", { month: "short" });
   };
 }
 
@@ -344,7 +379,7 @@ export function renderDashboard(root, state) {
         { label: "Ahora", value: model.account.equity },
       ];
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
-  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve.length);
+  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve.map((point) => point.label));
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroStart = heroCurve[0]?.value ?? model.account.balance;
   const heroEnd = heroCurve.at(-1)?.value ?? model.account.equity;
@@ -608,7 +643,7 @@ export function renderDashboard(root, state) {
       axisFontSize: 10,
       axisFontWeight: "600",
       yTickPadding: 8,
-      xTickPadding: 2,
+      xTickPadding: 10,
       maxXTicks: 7,
       showYGrid: false,
       gridAlpha: isDarkTheme ? 0.02 : 0.045,
@@ -619,9 +654,9 @@ export function renderDashboard(root, state) {
       layoutPaddingBottom: 0,
       layoutPaddingLeft: 2,
       layoutPaddingRight: 2,
-      showAxisBorder: true,
+      showAxisBorder: false,
       axisBorderColor: axisLine,
-      axisBorderWidth: 1,
+      axisBorderWidth: 0,
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
         const delta = value - prev;
