@@ -133,20 +133,6 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
   };
 }
 
-function getWizardState(root) {
-  if (!root.__accountWizardState) {
-    root.__accountWizardState = {
-      open: false,
-      step: 1,
-      alias: "",
-      created: null,
-      loading: false,
-      error: "",
-    };
-  }
-  return root.__accountWizardState;
-}
-
 function getAdminState(root) {
   if (!root.__accountAdminState) {
     root.__accountAdminState = {
@@ -284,7 +270,7 @@ function renderOverviewPanel(accounts = [], dataSource = "empty", { adminVisible
         <div>
           ${adminVisible ? `<button class="btn-secondary" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
           <button class="btn-secondary" type="button" data-account-download-launcher="true">Descargar instalador</button>
-          <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+          <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar cuenta</button>
         </div>
       </div>
       <div class="dashboard-risk-overview__grid">
@@ -423,47 +409,6 @@ async function fetchAccountsRegistry(store) {
   }
 }
 
-function renderAccountWizard(root) {
-  const wizard = getWizardState(root);
-  if (!wizard.open) return "";
-  return `
-    <div class="kmfx-modal-backdrop">
-      <div class="kmfx-mt5-modal">
-        <div class="kmfx-mt5-modal__header">
-          <div>
-            <div class="kmfx-mt5-modal__eyebrow">Nuevo onboarding</div>
-            <div class="kmfx-mt5-modal__title">Añadir cuenta MT5</div>
-            <div class="kmfx-mt5-modal__subtitle">${wizard.step === 1 ? "Crea la cuenta para generar su flujo de vinculación." : "La cuenta ya está lista. El siguiente paso ocurre en KMFX Launcher."}</div>
-          </div>
-          <button class="btn-secondary" type="button" data-account-close="true">Cerrar</button>
-        </div>
-        ${wizard.step === 1 ? `
-          <div class="kmfx-mt5-modal__body">
-            <label class="form-stack">
-              <span>Alias</span>
-              <input type="text" data-account-alias value="${wizard.alias || ""}" placeholder="Darwinex principal">
-            </label>
-            ${wizard.error ? `<div class="kmfx-mt5-inline-error">${wizard.error}</div>` : ""}
-          </div>
-          <div class="kmfx-mt5-modal__footer">
-            <button class="btn-primary" type="button" data-account-create="true" ${wizard.loading ? "disabled" : ""}>${wizard.loading ? "Creando..." : "Crear cuenta"}</button>
-          </div>
-        ` : `
-          <div class="kmfx-mt5-modal__success">
-            <div class="kmfx-mt5-modal__success-icon">✓</div>
-            <div class="kmfx-mt5-modal__success-title">Cuenta creada correctamente</div>
-            <div class="kmfx-mt5-modal__success-copy">Abre KMFX Launcher y pulsa Vincular para completar la conexión automática.</div>
-          </div>
-          <div class="kmfx-mt5-modal__footer">
-            <button class="btn-secondary" type="button" data-account-done="true">Cerrar</button>
-            <button class="btn-primary" type="button" data-account-open-launcher="true">Abrir Launcher</button>
-          </div>
-        `}
-      </div>
-    </div>
-  `;
-}
-
 function renderEmptyState(root) {
   root.innerHTML = `
     <div class="dashboard-premium-grid">
@@ -476,15 +421,13 @@ function renderEmptyState(root) {
           </div>
           <div class="dashboard-risk-overview__foot">
             <span>Sin cuentas conectadas</span>
-            <button class="btn-primary" type="button" data-account-add="true">Conectar cuenta</button>
+            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar cuenta</button>
           </div>
         </article>
         <div class="dashboard-risk-grid">
           ${renderPlatformsBlock([])}
         </div>
       </section>
-
-      ${renderAccountWizard(root)}
     </div>
   `;
 }
@@ -596,12 +539,6 @@ export function initConnections(store) {
     mode: isLocalRuntime() ? "local" : "production",
   });
   window.setInterval(() => fetchAccountsRegistry(store), pollMs);
-
-  root.addEventListener("input", (event) => {
-    const aliasInput = event.target.closest("[data-account-alias]");
-    if (!aliasInput) return;
-    getWizardState(root).alias = aliasInput.value;
-  });
 
   root.addEventListener("click", async (event) => {
     if (event.target.closest("[data-account-admin-toggle]")) {
@@ -760,62 +697,6 @@ export function initConnections(store) {
       downloadLauncher();
       return;
     }
-
-    if (event.target.closest("[data-account-add]")) {
-      root.__accountWizardState = { open: true, step: 1, alias: "", created: null, loading: false, error: "" };
-      renderConnections(root, store.getState());
-      return;
-    }
-
-    if (event.target.closest("[data-account-close]") || event.target.closest("[data-account-done]")) {
-      root.__accountWizardState = { open: false, step: 1, alias: "", created: null, loading: false, error: "" };
-      renderConnections(root, store.getState());
-      return;
-    }
-
-    if (event.target.closest("[data-account-create]")) {
-      const wizard = getWizardState(root);
-      const alias = String(wizard.alias || "").trim();
-      if (!alias) {
-        wizard.error = "El alias es obligatorio.";
-        renderConnections(root, store.getState());
-        return;
-      }
-      wizard.loading = true;
-      wizard.error = "";
-      renderConnections(root, store.getState());
-      try {
-        const registryUrl = resolveAccountsRegistryUrl();
-        if (!registryUrl) {
-          wizard.loading = false;
-          wizard.error = "Configura KMFX API Base URL para crear cuentas en producción.";
-          renderConnections(root, store.getState());
-          return;
-        }
-        const response = await fetch(registryUrl, {
-          method: "POST",
-          headers: buildAuthHeaders(store.getState(), { "Content-Type": "application/json" }),
-          body: JSON.stringify({ alias, platform: "mt5" }),
-        });
-        const payload = await response.json();
-        if (!response.ok || !payload?.account_id) {
-          wizard.loading = false;
-          wizard.error = payload?.reason || "No pude crear la cuenta.";
-          renderConnections(root, store.getState());
-          return;
-        }
-        wizard.loading = false;
-        wizard.step = 2;
-        wizard.created = payload;
-        await fetchAccountsRegistry(store);
-        renderConnections(root, store.getState());
-        showToast("Cuenta creada. Sigue en Launcher para vincularla.", "success");
-      } catch {
-        wizard.loading = false;
-        wizard.error = "No pude conectar con el backend.";
-        renderConnections(root, store.getState());
-      }
-    }
   });
 }
 
@@ -853,8 +734,6 @@ export function renderConnections(root, state) {
           ${renderPlatformsBlock(registryAccounts)}
         </div>
       </section>
-
-      ${renderAccountWizard(root)}
     </div>
   `;
 }

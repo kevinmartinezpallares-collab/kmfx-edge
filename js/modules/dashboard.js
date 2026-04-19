@@ -166,47 +166,6 @@ function hasActiveEnforcementSignal(riskStatus) {
   );
 }
 
-const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
-
-function navigateToConnectionsPage() {
-  const connectionsNavItem = document.querySelector('.nav-item[data-page="connections"]');
-  if (connectionsNavItem instanceof HTMLElement) {
-    connectionsNavItem.click();
-    return;
-  }
-
-  window.dispatchEvent(new CustomEvent("kmfx:navigate", {
-    detail: { page: "connections" }
-  }));
-}
-
-function downloadLauncherInstaller() {
-  window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener,noreferrer");
-}
-
-function renderDashboardEmptyState(root) {
-  root.innerHTML = `
-    <div class="dashboard-premium-grid">
-      <section class="dashboard-hero-shell">
-        <article class="account-banner account-banner--premium dashboard-header-card">
-          <div class="dashboard-header-card__copy">
-            <div class="banner-kicker">Dashboard</div>
-            <div class="banner-title">No hay cuentas conectadas</div>
-            <div class="banner-sub">Conecta tu cuenta MT5 para desbloquear métricas, curva de equity y estado operativo en tiempo real.</div>
-          </div>
-          <div class="dashboard-empty-actions">
-            <button class="btn-primary" type="button" data-dashboard-empty-action="connect">Conectar cuenta</button>
-            <button class="btn-secondary" type="button" data-dashboard-empty-action="download">Descargar instalador</button>
-          </div>
-        </article>
-      </section>
-    </div>
-  `;
-
-  root.querySelector('[data-dashboard-empty-action="connect"]')?.addEventListener("click", navigateToConnectionsPage);
-  root.querySelector('[data-dashboard-empty-action="download"]')?.addEventListener("click", downloadLauncherInstaller);
-}
-
 export function renderDashboard(root, state) {
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const activeAccountId = resolveSelectedLiveAccountId(state);
@@ -221,11 +180,6 @@ export function renderDashboard(root, state) {
   const account = selectCurrentAccount(state);
   const dashboardPayload = selectCurrentDashboardPayload(state);
   const performanceView = resolvePerformanceViewModel(account);
-  const hasSelectedLiveAccount = Boolean(
-    hasLiveAccounts &&
-    activeAccountId &&
-    (liveAccountIds.includes(activeAccountId) || state.activeLiveAccountId === activeAccountId)
-  );
   console.log("[KMFX][PANEL][TRACE]", {
     currentAccount: state.currentAccount,
     activeAccountId,
@@ -251,19 +205,6 @@ export function renderDashboard(root, state) {
       sourceTrace: model?.sourceTrace || null,
     },
   });
-  if (!hasSelectedLiveAccount || account?.sourceType !== "mt5") {
-    console.log("[KMFX][DASHBOARD_MODE]", {
-      mode: "empty",
-      activeAccountId,
-      activeLiveAccountId: state.activeLiveAccountId || "",
-      liveAccountIds,
-      hasLiveAccounts,
-      accountId: account?.id || "",
-      sourceType: account?.sourceType || "",
-    });
-    renderDashboardEmptyState(root);
-    return;
-  }
 
   if (!model || !account) {
     root.innerHTML = "";
@@ -271,7 +212,7 @@ export function renderDashboard(root, state) {
   }
 
   console.log("[KMFX][DASHBOARD_MODE]", {
-    mode: "live",
+    mode: account?.sourceType === "mt5" ? "live" : "sandbox",
     activeAccountId,
     activeLiveAccountId: state.activeLiveAccountId || "",
     liveAccountIds,
@@ -591,6 +532,7 @@ export function renderDashboard(root, state) {
             <div class="banner-sub">${[display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `ledger desde ${authority.firstTradeLabel}` : ""].filter(Boolean).join(" · ")}</div>
           </div>
           <div class="dashboard-header-card__meta">
+            <button class="btn-secondary btn-inline" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
             ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             <span class="widget-pill">${accountTypeLabel}</span>
           </div>
