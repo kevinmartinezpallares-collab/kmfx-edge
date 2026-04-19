@@ -7344,11 +7344,34 @@ body[data-theme="dark"] .connections-account-card__metric {
   min-width: 0;
 }
 
+html[data-theme="dark"] .connections-account-card__title-row,
+body[data-theme="dark"] .connections-account-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 html[data-theme="dark"] .connections-account-card__identity .calendar-panel-title,
 body[data-theme="dark"] .connections-account-card__identity .calendar-panel-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+html[data-theme="dark"] .connections-account-card__tag,
+body[data-theme="dark"] .connections-account-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: transparent;
+  flex-shrink: 0;
 }
 
 html[data-theme="dark"] .connections-account-card__metric .metric-label,
@@ -7402,9 +7425,9 @@ body[data-theme="dark"] .connections-account-card__menu-trigger {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background: var(--layer-2);
-  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--layer-2) !important;
+  color: var(--text-secondary) !important;
   font-size: 18px;
   font-weight: 600;
   line-height: 1;
@@ -7416,9 +7439,9 @@ html[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 body[data-theme="dark"] .connections-account-card__menu-trigger:hover,
 html[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible,
 body[data-theme="dark"] .connections-account-card__menu-trigger:focus-visible {
-  background: var(--layer-2);
+  background: var(--layer-2) !important;
   border-color: var(--border-medium);
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   outline: none;
 }
 
@@ -7428,9 +7451,9 @@ body[data-theme="dark"] .connections-account-card__menu {
   top: calc(100% + 10px);
   right: 0;
   min-width: 184px;
-  padding: 8px;
+  padding: 10px;
   display: grid;
-  gap: 4px;
+  gap: 6px;
   background: var(--layer-1);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
@@ -7440,7 +7463,7 @@ body[data-theme="dark"] .connections-account-card__menu {
 html[data-theme="dark"] .connections-account-card__menu-item,
 body[data-theme="dark"] .connections-account-card__menu-item {
   width: 100%;
-  min-height: 40px;
+  min-height: 42px;
   padding: 0 12px;
   display: inline-flex;
   align-items: center;
@@ -7476,6 +7499,131 @@ body[data-theme="dark"] .connections-account-card__menu-item--danger {
 html[data-theme="dark"] .connections-account-card__danger,
 body[data-theme="dark"] .connections-account-card__danger {
   color: var(--negative);
+}
+
+html[data-theme="dark"] .connections-account-modal,
+body[data-theme="dark"] .connections-account-modal {
+  background: var(--layer-1);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .connections-account-modal .modal-head,
+body[data-theme="dark"] .connections-account-modal .modal-head {
+  padding: 24px 24px 20px;
+}
+
+html[data-theme="dark"] .connections-account-modal .modal-head > div,
+body[data-theme="dark"] .connections-account-modal .modal-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-theme="dark"] .connections-account-modal .modal-body,
+body[data-theme="dark"] .connections-account-modal .modal-body {
+  padding: 0 24px 24px;
+}
+
+html[data-theme="dark"] .connections-account-modal__form,
+body[data-theme="dark"] .connections-account-modal__form,
+html[data-theme="dark"] .connections-account-modal__info,
+body[data-theme="dark"] .connections-account-modal__info {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .connections-account-modal__stack,
+body[data-theme="dark"] .connections-account-modal__stack {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .connections-account-modal__field,
+body[data-theme="dark"] .connections-account-modal__field {
+  gap: 12px;
+}
+
+html[data-theme="dark"] .connections-account-modal__field > span,
+body[data-theme="dark"] .connections-account-modal__field > span,
+html[data-theme="dark"] .connections-account-modal__label,
+body[data-theme="dark"] .connections-account-modal__label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]),
+body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]) {
+  background: var(--layer-2);
+  border: 1px solid var(--border-subtle);
+}
+
+html[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+body[data-theme="dark"] .connections-account-modal input:not([type="checkbox"]):not([type="radio"]):focus {
+  border-color: var(--accent);
+}
+
+html[data-theme="dark"] .connections-account-modal__actions,
+body[data-theme="dark"] .connections-account-modal__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+html[data-theme="dark"] .connections-account-modal__actions > *,
+body[data-theme="dark"] .connections-account-modal__actions > * {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .connections-account-modal__info-grid,
+body[data-theme="dark"] .connections-account-modal__info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+html[data-theme="dark"] .connections-account-modal__info-block,
+body[data-theme="dark"] .connections-account-modal__info-block {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .connections-account-modal__value,
+body[data-theme="dark"] .connections-account-modal__value {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+html[data-theme="dark"] .connections-account-modal__value--subtle,
+body[data-theme="dark"] .connections-account-modal__value--subtle {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+}
+
+html[data-theme="dark"] .connections-account-modal__key-block,
+body[data-theme="dark"] .connections-account-modal__key-block {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--layer-2);
+}
+
+html[data-theme="dark"] .connections-account-modal__key-value,
+body[data-theme="dark"] .connections-account-modal__key-value {
+  margin-top: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 @media (max-width: 1180px) {
@@ -7514,6 +7662,27 @@ body[data-theme="dark"] .connections-account-card__danger {
   html[data-theme="dark"] .connections-account-card__metric,
   body[data-theme="dark"] .connections-account-card__metric {
     gap: 8px;
+  }
+
+  html[data-theme="dark"] .connections-account-modal .modal-head,
+  body[data-theme="dark"] .connections-account-modal .modal-head,
+  html[data-theme="dark"] .connections-account-modal .modal-body,
+  body[data-theme="dark"] .connections-account-modal .modal-body {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  html[data-theme="dark"] .connections-account-modal__info-grid,
+  body[data-theme="dark"] .connections-account-modal__info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .connections-account-modal__key-block,
+  body[data-theme="dark"] .connections-account-modal__key-block,
+  html[data-theme="dark"] .connections-account-modal__actions,
+  body[data-theme="dark"] .connections-account-modal__actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

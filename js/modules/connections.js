@@ -290,32 +290,61 @@ function updateManagedAccountLocally(store, accountId, nextFields) {
   });
 }
 
+function copyText(value, successLabel = "Copiado") {
+  if (!value) return;
+  const complete = () => showToast(successLabel, "success");
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(value).then(complete).catch(() => {
+      const input = document.createElement("textarea");
+      input.value = value;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+      complete();
+    });
+    return;
+  }
+
+  const input = document.createElement("textarea");
+  input.value = value;
+  document.body.appendChild(input);
+  input.select();
+  document.execCommand("copy");
+  input.remove();
+  complete();
+}
+
 function openAccountEditModal({ account, store, root }) {
   openModal({
     title: "Actualizar Cuenta",
     subtitle: "Ajusta la información visible de esta cuenta.",
-    maxWidth: 560,
+    maxWidth: 640,
     content: `
-      <form class="modal-form-shell" data-account-edit-form>
-        <label class="form-stack">
-          <span>Alias</span>
-          <input type="text" name="alias" value="${escapeHtml(account.alias || account.display_name || account.login || "")}">
-        </label>
-        <label class="form-stack">
-          <span>Login</span>
-          <input type="text" name="login" value="${escapeHtml(account.login || "")}">
-        </label>
-        <label class="form-stack">
-          <span>Servidor</span>
-          <input type="text" name="server" value="${escapeHtml(account.server || "")}">
-        </label>
-        <div class="modal-actions">
+      <form class="connections-account-modal__form" data-account-edit-form>
+        <div class="connections-account-modal__stack">
+          <label class="form-stack connections-account-modal__field">
+            <span>Alias</span>
+            <input type="text" name="alias" value="${escapeHtml(account.alias || account.display_name || account.login || "")}">
+          </label>
+          <label class="form-stack connections-account-modal__field">
+            <span>Login</span>
+            <input type="text" name="login" value="${escapeHtml(account.login || "")}">
+          </label>
+          <label class="form-stack connections-account-modal__field">
+            <span>Servidor</span>
+            <input type="text" name="server" value="${escapeHtml(account.server || "")}">
+          </label>
+        </div>
+        <div class="connections-account-modal__actions">
           <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
           <button class="btn-primary" type="button" data-account-edit-save="true">Guardar cambios</button>
         </div>
       </form>
     `,
     onMount(card) {
+      card?.classList.add("connections-account-modal", "connections-account-modal--edit");
       card?.querySelector("[data-account-edit-save='true']")?.addEventListener("click", () => {
         const form = card.querySelector("[data-account-edit-form]");
         if (!form) return;
@@ -334,26 +363,69 @@ function openAccountEditModal({ account, store, root }) {
   });
 }
 
-function openAccountInfoModal(account) {
+function resolveAccountConnectionKey(account, state, activeAccount = null) {
+  const directoryAccount = state?.accountDirectory?.[account.account_id];
+  return (
+    account.connection_key ||
+    account.connectionKey ||
+    account.api_key ||
+    account.apiKey ||
+    directoryAccount?.apiKey ||
+    directoryAccount?.api_key ||
+    activeAccount?.apiKey ||
+    activeAccount?.model?.account?.apiKey ||
+    activeAccount?.dashboardPayload?.apiKey ||
+    ""
+  );
+}
+
+function openAccountInfoModal(account, state, activeAccount = null) {
+  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
   openModal({
-    title: "Connection Information",
-    subtitle: "Detalles de conexión disponibles para esta cuenta.",
-    maxWidth: 560,
+    title: "Info de conexión",
+    subtitle: "Revisa los datos visibles de esta cuenta y su estado actual.",
+    maxWidth: 640,
     content: `
-      <div class="modal-form-shell">
-        <div class="widget-card-meta">Login</div>
-        <div class="metric-value">${escapeHtml(account.login || "—")}</div>
-        <div class="widget-card-meta">Servidor</div>
-        <div class="metric-value">${escapeHtml(account.server || "—")}</div>
-        <div class="widget-card-meta">Estado</div>
-        <div class="row-sub">${escapeHtml(accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "").label)}</div>
-        <div class="widget-card-meta">Última sincronización</div>
-        <div class="row-sub">${escapeHtml(relativeTime(account.last_sync_at || account.lastSyncAt || ""))}</div>
-        <div class="modal-actions">
+      <div class="connections-account-modal__info">
+        <div class="connections-account-modal__info-grid">
+          <div class="connections-account-modal__info-block">
+            <div class="connections-account-modal__label">Login</div>
+            <div class="connections-account-modal__value">${escapeHtml(account.login || "—")}</div>
+          </div>
+          <div class="connections-account-modal__info-block">
+            <div class="connections-account-modal__label">Servidor</div>
+            <div class="connections-account-modal__value">${escapeHtml(account.server || "—")}</div>
+          </div>
+          <div class="connections-account-modal__info-block">
+            <div class="connections-account-modal__label">Estado</div>
+            <div class="connections-account-modal__value connections-account-modal__value--subtle">${escapeHtml(meta.label)}</div>
+          </div>
+          <div class="connections-account-modal__info-block">
+            <div class="connections-account-modal__label">Última sincronización</div>
+            <div class="connections-account-modal__value connections-account-modal__value--subtle">${escapeHtml(relativeTime(account.last_sync_at || account.lastSyncAt || ""))}</div>
+          </div>
+        </div>
+        ${connectionKey ? `
+          <div class="connections-account-modal__key-block">
+            <div>
+              <div class="connections-account-modal__label">Connection Key</div>
+              <div class="connections-account-modal__key-value">${escapeHtml(connectionKey)}</div>
+            </div>
+            <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar</button>
+          </div>
+        ` : ""}
+        <div class="connections-account-modal__actions">
           <button class="btn-primary" type="button" data-modal-dismiss="true">Cerrar</button>
         </div>
       </div>
     `,
+    onMount(card) {
+      card?.classList.add("connections-account-modal", "connections-account-modal--info");
+      card?.querySelector("[data-account-copy-key='true']")?.addEventListener("click", () => {
+        copyText(connectionKey, "Clave copiada");
+      });
+    },
   });
 }
 
@@ -550,11 +622,21 @@ function resolveAccountSecondaryLabel(account, activeAccount = null) {
 
   const normalized = String(rawLabel).trim().toLowerCase();
   if (normalized.includes("demo")) return "Demo";
-  if (normalized.includes("fund") || normalized.includes("chall") || normalized.includes("eval")) return "Fondeada";
+  if (normalized.includes("fund")) return "Funded";
+  if (normalized.includes("chall") || normalized.includes("eval")) return "Challenge";
   if (normalized.includes("real") || normalized.includes("live")) return "Real";
 
   if (rawLabel) return String(rawLabel).trim();
-  return account.platform ? `Cuenta ${String(account.platform).toUpperCase()}` : "Cuenta MT5";
+  return "Real";
+}
+
+function resolveAccountMetaLine(account, activeAccount = null) {
+  const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
+  const alias = String(account.alias || account.display_name || "").trim();
+  if (alias && alias !== primaryLabel) return alias;
+  if (account.server) return String(account.server).trim();
+  if (account.platform) return `Plataforma ${String(account.platform).toUpperCase()}`;
+  return "Cuenta disponible";
 }
 
 function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
@@ -564,15 +646,18 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const statusLine = isActive ? "Activa en panel" : meta.label;
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
+  const metaLine = resolveAccountMetaLine(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
-  const canUseInPanel = !isActive && meta.tone !== "error" && meta.tone !== "neutral";
 
   return `
     <article class="widget-card connections-account-card">
       <div class="connections-account-card__layout">
         <div class="connections-account-card__identity">
-          <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
-          ${secondaryLabel ? `<div class="row-sub">${escapeHtml(secondaryLabel)}</div>` : ""}
+          <div class="connections-account-card__title-row">
+            <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
+            ${secondaryLabel ? `<span class="connections-account-card__tag">${escapeHtml(secondaryLabel)}</span>` : ""}
+          </div>
+          <div class="row-sub">${escapeHtml(metaLine)}</div>
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">Estado</div>
@@ -600,12 +685,6 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
           >•••</button>
           ${menuOpen ? `
             <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
-              <button
-                class="connections-account-card__menu-item"
-                type="button"
-                role="menuitem"
-                ${canUseInPanel ? `data-account-use-panel="${escapeHtml(account.account_id || "")}"` : "disabled"}
-              >${isActive ? "En panel" : "Usar en panel"}</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(account.account_id || "")}">Editar</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(account.account_id || "")}">Info de conexión</button>
               <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(account.account_id || "")}">Eliminar</button>
@@ -680,7 +759,7 @@ export function initConnections(store) {
       if (!account) return;
       uiState.openMenuAccountId = "";
       renderConnections(root, state);
-      openAccountInfoModal(account);
+      openAccountInfoModal(account, state);
       return;
     }
 
