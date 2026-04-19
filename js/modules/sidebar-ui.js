@@ -122,6 +122,7 @@ export function initSidebarUI(store) {
     const traderName = profile.name || "Usuario";
     const email = profile.email || "Sin sesión";
     const initials = profile.initials || "KM";
+    const isAuthenticated = state.auth?.status === "authenticated";
     const isMenuOpen = Boolean(profileRoot.__menuOpen);
     const accounts = resolveSidebarAccounts(state);
     const activeAccountId = selectActiveAccountId(state);
@@ -186,6 +187,7 @@ export function initSidebarUI(store) {
       </button>
       <div class="sidebar-profile-menu ${isMenuOpen ? "is-open" : ""}" ${isMenuOpen ? "" : "hidden"}>
         <button class="sidebar-profile-menu-item" type="button" data-sidebar-action="settings">Ajustes</button>
+        ${isAuthenticated ? `<button class="sidebar-profile-menu-item danger" type="button" data-sidebar-action="logout">Cerrar sesión</button>` : ""}
       </div>
     `;
 
@@ -212,6 +214,13 @@ export function initSidebarUI(store) {
           activePage: "settings"
         }
       }));
+    });
+
+    profileRoot.querySelector('[data-sidebar-action="logout"]')?.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      profileRoot.__menuOpen = false;
+      syncMenuState();
+      await window.kmfxAuth?.signOut?.();
     });
 
   };
