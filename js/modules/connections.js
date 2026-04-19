@@ -188,10 +188,9 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   `;
 }
 
-function renderConnectionsKpis(accounts = [], activeAccount = null) {
+function renderConnectionsKpis(accounts = []) {
   const accountsCount = accounts.length;
   const connectedCount = accounts.filter((account) => isConnectedStatus(account.status)).length;
-  const activeLabel = activeAccount?.displayName || activeAccount?.alias || activeAccount?.broker || activeAccount?.login || "Sin activa";
   return `
     <section class="tl-kpi-row connections-shell__kpis">
       ${renderRiskMetricCard({
@@ -205,12 +204,6 @@ function renderConnectionsKpis(accounts = [], activeAccount = null) {
         value: connectedCount,
         meta: connectedCount === 1 ? "Lista para usar" : connectedCount > 1 ? "Listas para usar" : "Sin conexión activa",
         tone: connectedCount > 0 ? "ok" : "neutral",
-      })}
-      ${renderRiskMetricCard({
-        label: "Activa en panel",
-        value: activeLabel,
-        meta: activeAccount ? "Desde el lateral" : "Elige en el lateral",
-        tone: "neutral",
       })}
     </section>
   `;
@@ -316,7 +309,7 @@ function renderEmptyState(root) {
 
 function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState) {
   return `
-    <div class="connections-account-list">
+    <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
       ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           activeAccount,
@@ -577,6 +570,8 @@ export function renderConnections(root, state) {
   const { accounts: registryAccounts, source: registrySource } = resolveRegistryAccounts(state);
   const adminVisible = isAdminUser(state);
   const adminState = getAdminState(root);
+  const activeAccountLabel = activeAccount?.displayName || activeAccount?.alias || activeAccount?.broker || activeAccount?.login || "Sin cuenta activa";
+  const isSingleAccount = registryAccounts.length === 1;
 
   console.info("[KMFX][BOOT]", {
     label: "render-connections",
@@ -593,11 +588,14 @@ export function renderConnections(root, state) {
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader({ adminVisible, adminState })}
-      ${renderConnectionsKpis(registryAccounts, activeAccount)}
+      ${renderConnectionsKpis(registryAccounts)}
       <section class="connections-shell__main">
-        <article class="tl-section-card connections-main-card">
+        <article class="tl-section-card connections-main-card ${isSingleAccount ? "connections-main-card--single" : ""}">
           <div class="calendar-panel-head">
-            <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+            <div>
+              <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+              <div class="calendar-panel-sub">Activa en panel: ${escapeHtml(activeAccountLabel)}</div>
+            </div>
           </div>
           ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState)}
         </article>

@@ -7277,6 +7277,11 @@ body[data-theme="dark"] .connections-account-list {
   gap: 16px;
 }
 
+html[data-theme="dark"] .connections-account-list--single,
+body[data-theme="dark"] .connections-account-list--single {
+  gap: 0;
+}
+
 html[data-theme="dark"] .connections-main-card,
 body[data-theme="dark"] .connections-main-card,
 html[data-theme="dark"] .connections-empty-card,
@@ -7290,6 +7295,11 @@ html[data-theme="dark"] .connections-main-card,
 body[data-theme="dark"] .connections-main-card {
   padding: 24px;
   transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-theme="dark"] .connections-main-card--single,
+body[data-theme="dark"] .connections-main-card--single {
+  padding-bottom: 20px;
 }
 
 html[data-theme="dark"] .connections-main-card .dashboard-risk-block__head,
