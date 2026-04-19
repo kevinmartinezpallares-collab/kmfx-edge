@@ -84,25 +84,24 @@ function renderPlatformStep(state) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
-        <div class="connection-wizard__eyebrow">Paso 1</div>
         <h3 class="connection-wizard__title">Elige la plataforma</h3>
-        <p class="connection-wizard__subtitle">Selecciona el entorno que quieres conectar. MT5 queda listo para continuar hoy; MT4 queda visible como siguiente capa del sistema.</p>
+        <p class="connection-wizard__subtitle">Selecciona el entorno para esta cuenta.</p>
       </div>
       <div class="connection-wizard__option-grid">
-        <button class="connection-wizard__option ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
+        <button class="connection-wizard__option widget-card ${selectedPlatform === "mt5" ? "is-selected" : ""}" type="button" data-wizard-platform="mt5">
           <span class="connection-wizard__option-badge">Principal</span>
           <div class="connection-wizard__option-icon">MT5</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 5</div>
-            <div class="connection-wizard__option-subtitle">Flujo completo con conexión directa o vía Expert Advisor.</div>
+            <div class="connection-wizard__option-subtitle">Listo para continuar ahora.</div>
           </div>
         </button>
-        <button class="connection-wizard__option connection-wizard__option--muted" type="button" disabled aria-disabled="true">
+        <button class="connection-wizard__option connection-wizard__option--muted widget-card" type="button" disabled aria-disabled="true">
           <span class="connection-wizard__option-badge connection-wizard__option-badge--neutral">Próximamente</span>
           <div class="connection-wizard__option-icon">MT4</div>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">MetaTrader 4</div>
-            <div class="connection-wizard__option-subtitle">Visible para mantener la arquitectura preparada, sin activar aún el flujo técnico.</div>
+            <div class="connection-wizard__option-subtitle">Disponible más adelante.</div>
           </div>
         </button>
       </div>
@@ -115,22 +114,21 @@ function renderMethodStep(state) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
-        <div class="connection-wizard__eyebrow">Paso 2</div>
         <h3 class="connection-wizard__title">Elige el método de conexión</h3>
-        <p class="connection-wizard__subtitle">Ambos flujos quedan soportados visualmente. Para prop firms y fondeo, la ruta con EA es la recomendada.</p>
+        <p class="connection-wizard__subtitle">Avanza con la ruta que prefieras.</p>
       </div>
       <div class="connection-wizard__option-grid">
-        <button class="connection-wizard__option ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
+        <button class="connection-wizard__option widget-card ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Conexión directa</div>
-            <div class="connection-wizard__option-subtitle">Formulario rápido con número de cuenta, contraseña y servidor.</div>
+            <div class="connection-wizard__option-subtitle">Cuenta, password y servidor.</div>
           </div>
         </button>
-        <button class="connection-wizard__option ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
+        <button class="connection-wizard__option widget-card ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
           <span class="connection-wizard__option-badge">Recomendado</span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Expert Advisor (EA)</div>
-            <div class="connection-wizard__option-subtitle">Usa el launcher para instalar el connector, generar la key y mantener el flujo más seguro.</div>
+            <div class="connection-wizard__option-subtitle">Más seguro para cuentas fondeadas.</div>
           </div>
         </button>
       </div>
@@ -142,9 +140,8 @@ function renderDirectStep(state) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
-        <div class="connection-wizard__eyebrow">Paso 3</div>
         <h3 class="connection-wizard__title">Conexión directa</h3>
-        <p class="connection-wizard__subtitle">Introduce la cuenta para dejar preparado el wiring del flujo directo.</p>
+        <p class="connection-wizard__subtitle">Completa los datos de acceso.</p>
       </div>
       <div class="connection-wizard__form-grid">
         <label class="form-stack">
@@ -160,10 +157,7 @@ function renderDirectStep(state) {
           <input type="password" data-wizard-field="password" value="${escapeHtml(state.form.password)}" placeholder="••••••••">
         </label>
       </div>
-      <article class="connection-wizard__warning">
-        <div class="connection-wizard__warning-title">Aviso</div>
-        <div class="connection-wizard__warning-copy">La conexión directa puede exponer IP o no encajar con reglas de fondeo. Si trabajas con prop firms, usa EA siempre que sea posible.</div>
-      </article>
+      <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
     </section>
   `;
@@ -174,15 +168,14 @@ function renderEaStep(state) {
   return `
     <section class="connection-wizard__section">
       <div class="connection-wizard__section-head">
-        <div class="connection-wizard__eyebrow">Paso 3</div>
-        <h3 class="connection-wizard__title">Flujo con Expert Advisor</h3>
-        <p class="connection-wizard__subtitle">Mantén el proceso corto y ordenado. Todo el setup vive fuera del dashboard y aquí solo cerramos la preparación.</p>
+        <h3 class="connection-wizard__title">Expert Advisor</h3>
+        <p class="connection-wizard__subtitle">Prepara la cuenta en unos pocos pasos.</p>
       </div>
-      <div class="connection-wizard__instructions">
-        <div class="connection-wizard__instruction"><span>1</span><div>Cierra MetaTrader 5 antes de instalar o reparar el connector.</div></div>
-        <div class="connection-wizard__instruction"><span>2</span><div>Abre KMFX Launcher e inicia sesión con tu cuenta de KMFX Edge.</div></div>
-        <div class="connection-wizard__instruction"><span>3</span><div>Instala el connector y permite WebRequest cuando MT5 lo solicite.</div></div>
-        <div class="connection-wizard__instruction"><span>4</span><div>Genera una clave de conexión para vincular el EA con el backend.</div></div>
+      <div class="connection-wizard__checklist">
+        <div class="connection-wizard__checklist-item">Cerrar MT5</div>
+        <div class="connection-wizard__checklist-item">Iniciar sesión en Launcher</div>
+        <div class="connection-wizard__checklist-item">Instalar connector</div>
+        <div class="connection-wizard__checklist-item">Permitir WebRequest</div>
       </div>
       <div class="connection-wizard__utility-card">
         <div>
@@ -191,7 +184,6 @@ function renderEaStep(state) {
         </div>
         <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar</button>
       </div>
-      <div class="connection-wizard__footer-note">Para cuentas fondeadas, EA sigue siendo la ruta más segura y la que recomendamos por defecto.</div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
     </section>
   `;
@@ -202,18 +194,8 @@ function renderConfirmationStep(state) {
     return `
       <section class="connection-wizard__section connection-wizard__section--success">
         <div class="connection-wizard__success-icon">✓</div>
-        <h3 class="connection-wizard__title">Conexión preparada</h3>
-        <p class="connection-wizard__subtitle">Hemos dejado listo el flujo visual de conexión directa. El wiring con backend se activará en la integración final sin cambiar esta interfaz.</p>
-        <div class="connection-wizard__summary-grid">
-          <div class="connection-wizard__summary-item">
-            <span>Account Number</span>
-            <strong>${escapeHtml(state.form.accountNumber || "—")}</strong>
-          </div>
-          <div class="connection-wizard__summary-item">
-            <span>Server</span>
-            <strong>${escapeHtml(state.form.server || "—")}</strong>
-          </div>
-        </div>
+        <h3 class="connection-wizard__title">Cuenta conectada</h3>
+        <p class="connection-wizard__subtitle">La conexión directa queda lista para integrarse con backend.</p>
       </section>
     `;
   }
@@ -221,8 +203,8 @@ function renderConfirmationStep(state) {
   return `
     <section class="connection-wizard__section connection-wizard__section--success">
       <div class="connection-wizard__success-icon">✓</div>
-      <h3 class="connection-wizard__title">Clave de conexión generada</h3>
-      <p class="connection-wizard__subtitle">Guarda esta key para completar el flujo del EA desde el launcher y el connector.</p>
+      <h3 class="connection-wizard__title">Cuenta conectada</h3>
+      <p class="connection-wizard__subtitle">Usa esta clave en el flujo del launcher.</p>
       <div class="connection-wizard__secret-card">
         <div class="connection-wizard__utility-label">Connection Key</div>
         <div class="connection-wizard__secret-value">${state.showSecret ? escapeHtml(state.generatedKey) : "••••••••-••••-••••-••••-••••••••••••"}</div>
@@ -230,13 +212,6 @@ function renderConfirmationStep(state) {
           <button class="btn-secondary" type="button" data-wizard-toggle-secret="true">${state.showSecret ? "Ocultar" : "Mostrar"}</button>
           <button class="btn-primary" type="button" data-wizard-copy-secret="true">Copiar</button>
         </div>
-      </div>
-      <div class="connection-wizard__utility-card">
-        <div>
-          <div class="connection-wizard__utility-label">WebRequest URL</div>
-          <div class="connection-wizard__utility-value">${escapeHtml(resolveApiBaseUrl())}</div>
-        </div>
-        <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar</button>
       </div>
     </section>
   `;
@@ -407,7 +382,7 @@ export function openConnectionWizard(options = {}) {
 
   openModal({
     title: "Añadir cuenta",
-    subtitle: "Conecta MetaTrader sin sacar al usuario del dashboard operativo.",
+    subtitle: "Conecta MetaTrader en unos pocos pasos.",
     maxWidth: 760,
     content: `<div class="connection-wizard-shell"></div>`,
     onMount(card) {
