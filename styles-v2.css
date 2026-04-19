@@ -11656,7 +11656,7 @@ html[data-theme="dark"] .dashboard-primary-card__chart,
 body[data-theme="dark"] .dashboard-primary-card__chart {
   min-width: 0;
   opacity: 0.96;
-  padding: 0 20px 20px;
+  padding: 0;
 }
 
 html[data-theme="dark"] .dashboard-primary-card__chart .kmfx-chart-shell--hero,
