@@ -1,3 +1,4 @@
+import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
@@ -261,6 +262,122 @@ function resolveAdminAccountUrl(accountId, action = "") {
   return url.toString();
 }
 
+function updateManagedAccountLocally(store, accountId, nextFields) {
+  store.setState((state) => {
+    const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
+    const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
+    const nextManagedAccounts = managedAccounts.map((account) => (
+      account?.account_id === accountId
+        ? { ...account, ...nextFields }
+        : account
+    ));
+
+    const nextAccountDirectory = { ...accountDirectory };
+    if (nextAccountDirectory[accountId]) {
+      nextAccountDirectory[accountId] = {
+        ...nextAccountDirectory[accountId],
+        displayName: nextFields.alias ?? nextFields.display_name ?? nextAccountDirectory[accountId].displayName,
+        login: nextFields.login ?? nextAccountDirectory[accountId].login,
+        server: nextFields.server ?? nextAccountDirectory[accountId].server,
+      };
+    }
+
+    return {
+      ...state,
+      managedAccounts: nextManagedAccounts,
+      accountDirectory: nextAccountDirectory,
+    };
+  });
+}
+
+function openAccountEditModal({ account, store, root }) {
+  openModal({
+    title: "Actualizar Cuenta",
+    subtitle: "Ajusta la información visible de esta cuenta.",
+    maxWidth: 560,
+    content: `
+      <form class="modal-form-shell" data-account-edit-form>
+        <label class="form-stack">
+          <span>Alias</span>
+          <input type="text" name="alias" value="${escapeHtml(account.alias || account.display_name || account.login || "")}">
+        </label>
+        <label class="form-stack">
+          <span>Login</span>
+          <input type="text" name="login" value="${escapeHtml(account.login || "")}">
+        </label>
+        <label class="form-stack">
+          <span>Servidor</span>
+          <input type="text" name="server" value="${escapeHtml(account.server || "")}">
+        </label>
+        <div class="modal-actions">
+          <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
+          <button class="btn-primary" type="button" data-account-edit-save="true">Guardar cambios</button>
+        </div>
+      </form>
+    `,
+    onMount(card) {
+      card?.querySelector("[data-account-edit-save='true']")?.addEventListener("click", () => {
+        const form = card.querySelector("[data-account-edit-form]");
+        if (!form) return;
+        const payload = Object.fromEntries(new FormData(form).entries());
+        updateManagedAccountLocally(store, account.account_id, {
+          alias: String(payload.alias || "").trim(),
+          display_name: String(payload.alias || "").trim(),
+          login: String(payload.login || "").trim(),
+          server: String(payload.server || "").trim(),
+        });
+        closeModal();
+        renderConnections(root, store.getState());
+        showToast("Cuenta actualizada", "success");
+      });
+    },
+  });
+}
+
+function openAccountInfoModal(account) {
+  openModal({
+    title: "Connection Information",
+    subtitle: "Detalles de conexión disponibles para esta cuenta.",
+    maxWidth: 560,
+    content: `
+      <div class="modal-form-shell">
+        <div class="widget-card-meta">Login</div>
+        <div class="metric-value">${escapeHtml(account.login || "—")}</div>
+        <div class="widget-card-meta">Servidor</div>
+        <div class="metric-value">${escapeHtml(account.server || "—")}</div>
+        <div class="widget-card-meta">Estado</div>
+        <div class="row-sub">${escapeHtml(accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "").label)}</div>
+        <div class="widget-card-meta">Última sincronización</div>
+        <div class="row-sub">${escapeHtml(relativeTime(account.last_sync_at || account.lastSyncAt || ""))}</div>
+        <div class="modal-actions">
+          <button class="btn-primary" type="button" data-modal-dismiss="true">Cerrar</button>
+        </div>
+      </div>
+    `,
+  });
+}
+
+async function deleteManagedAccount({ store, root, accountId }) {
+  if (!accountId) return;
+  if (!window.confirm("Borrar esta cuenta de forma permanente?")) return;
+  try {
+    const response = await fetch(resolveAdminAccountUrl(accountId), {
+      method: "DELETE",
+      headers: buildAuthHeaders(store.getState()),
+    });
+    const payload = await response.json();
+    if (!response.ok || payload?.ok === false) {
+      showToast(payload?.reason || "No pude borrar la cuenta.", "error");
+      return;
+    }
+    await fetchAccountsRegistry(store);
+    showToast("Cuenta borrada", "success");
+    renderConnections(root, store.getState());
+  } catch {
+    showToast("No pude conectar con el endpoint admin.", "error");
+  }
+}
+
 async function fetchAccountsRegistry(store) {
   const url = resolveAccountsRegistryUrl();
   if (!url) {
@@ -489,8 +606,9 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
                 role="menuitem"
                 ${canUseInPanel ? `data-account-use-panel="${escapeHtml(account.account_id || "")}"` : "disabled"}
               >${isActive ? "En panel" : "Usar en panel"}</button>
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" disabled>Editar</button>
-              <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" disabled>Eliminar</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(account.account_id || "")}">Editar</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(account.account_id || "")}">Info de conexión</button>
+              <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(account.account_id || "")}">Eliminar</button>
             </div>
           ` : ""}
         </div>
@@ -505,6 +623,16 @@ export function initConnections(store) {
   if (!root) return;
   fetchAccountsRegistry(store);
   getConnectionsUiState(root);
+  if (!root.__connectionsMenuEscapeBound) {
+    root.__connectionsMenuEscapeBound = true;
+    window.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const uiState = getConnectionsUiState(root);
+      if (!uiState.openMenuAccountId) return;
+      uiState.openMenuAccountId = "";
+      renderConnections(root, store.getState());
+    });
+  }
   const pollMs = isLocalRuntime() ? 5000 : 30000;
   console.info("[KMFX][ACCOUNTS]", {
     label: "registry-poll-config",
@@ -515,6 +643,8 @@ export function initConnections(store) {
 
   root.addEventListener("click", async (event) => {
     const uiState = getConnectionsUiState(root);
+    const state = store.getState();
+    const { accounts: registryAccounts } = resolveRegistryAccounts(state);
 
     const menuTrigger = event.target.closest("[data-account-menu-trigger]");
     if (menuTrigger) {
@@ -530,6 +660,36 @@ export function initConnections(store) {
         renderConnections(root, store.getState());
         return;
       }
+    }
+
+    const editButton = event.target.closest("[data-account-edit]");
+    if (editButton) {
+      const accountId = editButton.dataset.accountEdit || "";
+      const account = registryAccounts.find((item) => item.account_id === accountId);
+      if (!account) return;
+      uiState.openMenuAccountId = "";
+      renderConnections(root, state);
+      openAccountEditModal({ account, store, root });
+      return;
+    }
+
+    const infoButton = event.target.closest("[data-account-info]");
+    if (infoButton) {
+      const accountId = infoButton.dataset.accountInfo || "";
+      const account = registryAccounts.find((item) => item.account_id === accountId);
+      if (!account) return;
+      uiState.openMenuAccountId = "";
+      renderConnections(root, state);
+      openAccountInfoModal(account);
+      return;
+    }
+
+    const accountDeleteButton = event.target.closest("[data-account-delete]");
+    if (accountDeleteButton) {
+      const accountId = accountDeleteButton.dataset.accountDelete || "";
+      uiState.openMenuAccountId = "";
+      await deleteManagedAccount({ store, root, accountId });
+      return;
     }
 
     if (event.target.closest("[data-account-admin-toggle]")) {
@@ -639,24 +799,7 @@ export function initConnections(store) {
     const deleteButton = event.target.closest("[data-admin-account-delete]");
     if (deleteButton) {
       const accountId = deleteButton.dataset.adminAccountDelete;
-      if (!accountId) return;
-      if (!window.confirm("Borrar esta cuenta de forma permanente?")) return;
-      try {
-        const response = await fetch(resolveAdminAccountUrl(accountId), {
-          method: "DELETE",
-          headers: buildAuthHeaders(store.getState()),
-        });
-        const payload = await response.json();
-        if (!response.ok || payload?.ok === false) {
-          showToast(payload?.reason || "No pude borrar la cuenta.", "error");
-          return;
-        }
-        await fetchAccountsRegistry(store);
-        showToast("Cuenta borrada", "success");
-        renderConnections(root, store.getState());
-      } catch {
-        showToast("No pude conectar con el endpoint admin.", "error");
-      }
+      await deleteManagedAccount({ store, root, accountId });
       return;
     }
 
