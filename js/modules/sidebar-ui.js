@@ -22,12 +22,20 @@ function resolveAccountOptionLabel(account) {
 }
 
 function resolveAccountDisplayName(account) {
-  return account?.server
+  return account?.login
+    || account?.server
     || account?.broker
     || account?.meta?.nickname
     || account?.dashboardPayload?.nickname
     || account?.name
     || "Cuenta";
+}
+
+function resolveAccountContextLabel(account) {
+  const platform = String(account?.platform || account?.sourceType || "").toUpperCase();
+  if (platform === "MT5" || platform === "MT4") return platform;
+  if (platform) return platform;
+  return "LIVE";
 }
 
 function resolveAccountBalance(account) {
@@ -114,13 +122,13 @@ export function initSidebarUI(store) {
     const traderName = profile.name || "Usuario";
     const email = profile.email || "Sin sesión";
     const initials = profile.initials || "KM";
-    const isAuthenticated = state.auth?.status === "authenticated";
     const isMenuOpen = Boolean(profileRoot.__menuOpen);
     const accounts = resolveSidebarAccounts(state);
     const activeAccountId = selectActiveAccountId(state);
     const activeAccount = selectActiveAccount(state) || accounts[0] || null;
     const activeAccountName = activeAccount ? resolveAccountDisplayName(activeAccount) : "";
     const activeAccountBalance = activeAccount ? resolveAccountBalance(activeAccount) : "";
+    const activeAccountContext = activeAccount ? resolveAccountContextLabel(activeAccount) : "";
     const activeAccountIcon = activeAccount ? resolveAccountIcon(activeAccount) : "+";
     const accountIconMarkup = typeof activeAccountIcon === "object" && activeAccountIcon.kind === "image"
       ? `<img class="sidebar-account-switcher__icon-image" src="${escapeHtml(activeAccountIcon.value)}" alt="${escapeHtml(activeAccountIcon.alt || "")}">`
@@ -145,6 +153,7 @@ export function initSidebarUI(store) {
               <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
               ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
               </select>
+              <div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
@@ -154,6 +163,7 @@ export function initSidebarUI(store) {
             <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
+              <div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
@@ -176,7 +186,6 @@ export function initSidebarUI(store) {
       </button>
       <div class="sidebar-profile-menu ${isMenuOpen ? "is-open" : ""}" ${isMenuOpen ? "" : "hidden"}>
         <button class="sidebar-profile-menu-item" type="button" data-sidebar-action="settings">Ajustes</button>
-        ${isAuthenticated ? `<button class="sidebar-profile-menu-item danger" type="button" data-sidebar-action="logout">Cerrar sesión</button>` : ""}
       </div>
     `;
 
@@ -205,12 +214,6 @@ export function initSidebarUI(store) {
       }));
     });
 
-    profileRoot.querySelector('[data-sidebar-action="logout"]')?.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      profileRoot.__menuOpen = false;
-      syncMenuState();
-      await window.kmfxAuth?.signOut?.();
-    });
   };
 
   renderProfile(store.getState());
