@@ -106,8 +106,9 @@ export function renderTrades(root, state) {
   root.innerHTML = `
     <section class="trades-screen">
     <div class="tl-page-header">
+      <div class="trades-page-eyebrow">Operaciones</div>
       <div class="tl-page-title">Operaciones</div>
-      <div class="tl-page-sub">Revisa la ejecución por símbolo, sesión y setup. ${authority.firstTradeLabel ? `Desde ${authority.firstTradeLabel} hasta ${authority.lastTradeLabel || authority.firstTradeLabel}.` : ""}</div>
+      <div class="tl-page-sub">Revisa la ejecución por símbolo, sesión y setup.</div>
     </div>
 
     <div class="tl-kpi-row five">
@@ -122,9 +123,9 @@ export function renderTrades(root, state) {
       <article class="tl-section-card">
         <div class="tl-section-header"><div class="tl-section-title">Resumen Operativo</div></div>
         <div class="breakdown-list">
-          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-chip">${bestSetup?.count || 0} trades</div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSetup?.key || "—"}</div></div>
-          <div class="list-row"><div><div class="row-title">Sesión más rentable</div><div class="row-sub">Mejor distribución de P&L</div></div><div class="row-chip">${bestSession?.count || 0} trades</div><div class="row-pnl ${bestSession?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSession?.key || "—"}</div></div>
-          <div class="list-row"><div><div class="row-title">Profit Factor</div><div class="row-sub">Curva de ejecución</div></div><div class="row-chip">Global</div><div class="row-pnl">${model.totals.profitFactor.toFixed(2)}</div></div>
+          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSetup?.key || "—"}</div></div>
+          <div class="list-row"><div><div class="row-title">Sesión más rentable</div><div class="row-sub">Mejor distribución de P&L</div></div><div class="row-pnl ${bestSession?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSession?.key || "—"}</div></div>
+          <div class="list-row"><div><div class="row-title">Profit factor</div><div class="row-sub">Eficiencia media de la ejecución</div></div><div class="row-pnl">${model.totals.profitFactor.toFixed(2)}</div></div>
         </div>
       </article>
       <article class="tl-section-card">
@@ -133,7 +134,6 @@ export function renderTrades(root, state) {
           ${model.symbols.slice(0, 4).map((symbol) => `
             <div class="list-row">
               <div><div class="row-title">${symbol.key}</div><div class="row-sub">${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%</div></div>
-              <div class="row-chip">${symbol.profitFactor.toFixed(2)} PF</div>
               <div class="row-pnl ${symbol.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(symbol.pnl)}</div>
             </div>
           `).join("")}
@@ -145,8 +145,7 @@ export function renderTrades(root, state) {
       <div class="tl-section-header">
         <div class="tl-section-title">Posiciones abiertas</div>
         <div class="trades-table-summary">
-          <span>${model.positions.length} abiertas</span>
-          <span>${formatCurrency(model.account.openPnl)}</span>
+          ${model.positions.length ? `<span>${model.positions.length} abiertas · ${formatCurrency(model.account.openPnl)}</span>` : ``}
         </div>
       </div>
       <div class="table-wrap widget-table-wrap">
@@ -182,9 +181,8 @@ export function renderTrades(root, state) {
       <div class="tl-section-header">
         <div class="tl-section-title">Historial de operaciones</div>
         <div class="trades-table-summary">
+          <span>${filteredTrades.length} operaciones</span>
           <span>${formatCurrency(filteredPnl)}</span>
-          <span>WR ${filteredWinRate.toFixed(0)}%</span>
-          <span>${filteredAvgR.toFixed(1)}R medio</span>
         </div>
       </div>
       <div class="trades-toolbar">
