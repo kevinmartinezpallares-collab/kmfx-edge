@@ -4505,6 +4505,45 @@ body[data-theme="dark"] .analytics-overview-shell {
   gap: 14px;
 }
 
+html[data-theme="dark"] .analytics-page-flow,
+body[data-theme="dark"] .analytics-page-flow {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+html[data-theme="dark"] .analytics-screen__header,
+body[data-theme="dark"] .analytics-screen__header {
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] .analytics-screen__tabs,
+body[data-theme="dark"] .analytics-screen__tabs {
+  width: fit-content;
+}
+
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__title,
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__title,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after {
+  margin: 0;
+}
+
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[data-theme="dark"] .analytics-screen__header .calendar-screen__subtitle,
+body[data-theme="dark"] .analytics-screen__header .calendar-screen__subtitle {
+  margin-top: 4px;
+}
+
 html[data-theme="dark"] .analytics-overview-hero,
 body[data-theme="dark"] .analytics-overview-hero,
 html[data-theme="dark"] .analytics-pattern-card,
