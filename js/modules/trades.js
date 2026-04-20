@@ -16,6 +16,11 @@ function normalizeTradeSetup(value) {
   return text;
 }
 
+function displayTradeSetup(value, fallback = "Sin setup definido") {
+  const normalized = normalizeTradeSetup(value);
+  return normalized === "—" ? fallback : normalized;
+}
+
 function positionRail(position, exposureBase) {
   return `
     <div class="metric-rail">
@@ -50,15 +55,21 @@ function showTradeContextMenu(trade) {
   if (!trade) return;
   openModal({
     title: `${trade.symbol} · ${trade.side}`,
-    subtitle: "Acciones rápidas de la operación",
+    subtitle: "Detalle de la operación",
     maxWidth: 420,
     content: `
       <div class="info-list compact">
         <div><strong>Fecha</strong><span>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span></div>
-        <div><strong>Setup</strong><span>${trade.setup}</span></div>
-        <div><strong>Sesión</strong><span>${trade.session}</span></div>
+        <div><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span></div>
+        <div><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
+        <div><strong>Stop Loss</strong><span>${formatTableValue(trade.sl)}</span></div>
+        <div><strong>Take Profit</strong><span>${formatTableValue(trade.tp)}</span></div>
+        <div><strong>Volumen</strong><span>${formatTableValue(trade.volume)}</span></div>
         <div><strong>P&L</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
         <div><strong>R-Multiple</strong><span>${trade.rMultiple.toFixed(1)}R</span></div>
+        <div><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+        <div><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span></div>
+        <div><strong>Sesión</strong><span>${trade.session}</span></div>
       </div>
       <div class="settings-actions">
         <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
@@ -130,14 +141,17 @@ export function renderTrades(root, state) {
   const filteredWinRate = filteredTrades.length ? (filteredTrades.filter((trade) => trade.pnl > 0).length / filteredTrades.length) * 100 : 0;
   const filteredAvgR = filteredTrades.length ? filteredTrades.reduce((sum, trade) => sum + trade.rMultiple, 0) / filteredTrades.length : 0;
   const exposureBase = model.positions.reduce((sum, position) => sum + Math.abs(position.pnl || 0), 0) || 1;
+  const bestSetupLabel = displayTradeSetup(bestSetup?.key);
 
   root.innerHTML = `
     <section class="trades-screen">
-    <div class="tl-page-header">
-      <div class="trades-page-eyebrow">Operaciones</div>
-      <div class="tl-page-title">Operaciones</div>
-      <div class="tl-page-sub">Revisa la ejecución por símbolo, sesión y setup.</div>
-    </div>
+    <header class="calendar-screen__header trades-screen__header">
+      <div class="calendar-screen__copy">
+        <div class="calendar-screen__eyebrow">Operaciones</div>
+        <h1 class="calendar-screen__title">Operaciones</h1>
+        <p class="calendar-screen__subtitle">Revisa la ejecución por símbolo, sesión y setup.</p>
+      </div>
+    </header>
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Trades filtrados</div><div class="tl-kpi-val">${filteredTrades.length}</div></article>
@@ -151,7 +165,7 @@ export function renderTrades(root, state) {
       <article class="tl-section-card">
         <div class="tl-section-header"><div class="tl-section-title">Resumen Operativo</div></div>
         <div class="breakdown-list">
-          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${normalizeTradeSetup(bestSetup?.key)}</div></div>
+          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : ""}">${bestSetupLabel}</div></div>
           <div class="list-row"><div><div class="row-title">Sesión más rentable</div><div class="row-sub">Mejor distribución de P&L</div></div><div class="row-pnl ${bestSession?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSession?.key || "—"}</div></div>
           <div class="list-row"><div><div class="row-title">Profit factor</div><div class="row-sub">Eficiencia media de la ejecución</div></div><div class="row-pnl">${model.totals.profitFactor.toFixed(2)}</div></div>
         </div>
@@ -318,6 +332,9 @@ export function renderTrades(root, state) {
 
   const tradesById = new Map(filteredTrades.map((trade) => [String(trade.id), trade]));
   root.querySelectorAll(".trade-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      showTradeContextMenu(tradesById.get(String(row.dataset.tradeId)));
+    });
     addLongPress(row, () => {
       showTradeContextMenu(tradesById.get(String(row.dataset.tradeId)));
     });

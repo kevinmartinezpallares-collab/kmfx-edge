@@ -11839,42 +11839,35 @@ body[data-theme="dark"] .trades-screen {
   gap: 32px;
 }
 
-html[data-theme="dark"] .trades-page-eyebrow,
-body[data-theme="dark"] .trades-page-eyebrow {
-  font-size: 11px;
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  margin-bottom: 4px;
+html[data-theme="dark"] .trades-screen .calendar-screen__header,
+body[data-theme="dark"] .trades-screen .calendar-screen__header {
+  align-items: flex-start;
 }
 
-html[data-theme="dark"] .trades-screen .tl-page-sub,
-body[data-theme="dark"] .trades-screen .tl-page-sub {
+html[data-theme="dark"] .trades-screen .calendar-screen__copy,
+body[data-theme="dark"] .trades-screen .calendar-screen__copy {
   max-width: 70ch;
 }
 
-html[data-theme="dark"] .trades-screen .tl-page-header,
-body[data-theme="dark"] .trades-screen .tl-page-header {
-  gap: 0;
-}
-
-html[data-theme="dark"] .trades-screen .tl-page-title,
-body[data-theme="dark"] .trades-screen .tl-page-title {
+html[data-theme="dark"] .trades-screen .calendar-screen__title,
+html[data-theme="dark"] .trades-screen .calendar-screen__title::before,
+html[data-theme="dark"] .trades-screen .calendar-screen__title::after,
+body[data-theme="dark"] .trades-screen .calendar-screen__title,
+body[data-theme="dark"] .trades-screen .calendar-screen__title::before,
+body[data-theme="dark"] .trades-screen .calendar-screen__title::after {
   margin: 0;
 }
 
-html[data-theme="dark"] .trades-screen .tl-page-title::before,
-html[data-theme="dark"] .trades-screen .tl-page-title::after,
-body[data-theme="dark"] .trades-screen .tl-page-title::before,
-body[data-theme="dark"] .trades-screen .tl-page-title::after {
+html[data-theme="dark"] .trades-screen .calendar-screen__title::before,
+html[data-theme="dark"] .trades-screen .calendar-screen__title::after,
+body[data-theme="dark"] .trades-screen .calendar-screen__title::before,
+body[data-theme="dark"] .trades-screen .calendar-screen__title::after {
   display: none !important;
   content: none !important;
 }
 
-html[data-theme="dark"] .trades-screen .tl-page-sub,
-body[data-theme="dark"] .trades-screen .tl-page-sub {
+html[data-theme="dark"] .trades-screen .calendar-screen__subtitle,
+body[data-theme="dark"] .trades-screen .calendar-screen__subtitle {
   margin-top: 4px;
 }
 
@@ -11882,6 +11875,16 @@ html[data-theme="dark"] .trades-screen .tl-kpi-card,
 body[data-theme="dark"] .trades-screen .tl-kpi-card {
   position: relative;
   overflow: hidden;
+}
+
+html[data-theme="dark"] .trades-screen .tl-kpi-card::after,
+body[data-theme="dark"] .trades-screen .tl-kpi-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.03), transparent 42%);
+  pointer-events: none;
 }
 
 html[data-theme="dark"] .trades-screen .tl-kpi-card::before,
@@ -11919,6 +11922,18 @@ body[data-theme="dark"] .trades-screen .tl-kpi-row .tl-kpi-card:nth-child(4)::be
 html[data-theme="dark"] .trades-screen .tl-kpi-row .tl-kpi-card:nth-child(5)::before,
 body[data-theme="dark"] .trades-screen .tl-kpi-row .tl-kpi-card:nth-child(5)::before {
   background: color-mix(in srgb, #9a8cff 28%, transparent);
+}
+
+html[data-theme="dark"] .trades-screen .tl-kpi-label,
+body[data-theme="dark"] .trades-screen .tl-kpi-label {
+  color: var(--text-2);
+  margin-bottom: 10px;
+}
+
+html[data-theme="dark"] .trades-screen .tl-kpi-val,
+body[data-theme="dark"] .trades-screen .tl-kpi-val {
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 html[data-theme="dark"] .trades-history-card,
@@ -12143,7 +12158,9 @@ body[data-theme="dark"] .trades-screen .trade-side {
 }
 
 html[data-theme="dark"] .trades-screen .open-position-row,
-body[data-theme="dark"] .trades-screen .open-position-row {
+html[data-theme="dark"] .trades-screen .trade-row,
+body[data-theme="dark"] .trades-screen .open-position-row,
+body[data-theme="dark"] .trades-screen .trade-row {
   cursor: pointer;
 }
 
