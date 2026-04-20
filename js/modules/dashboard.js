@@ -174,6 +174,7 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
     return {
       summary: "Actúa ahora.",
       detail: "Intervención requerida.",
+      footer: "Reduce riesgo.",
     };
   }
 
@@ -181,6 +182,7 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
     return {
       summary: "Vigilar.",
       detail: "Revisa el margen.",
+      footer: "Supervisa la sesión.",
     };
   }
 
@@ -188,12 +190,14 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
     return {
       summary: "Bajo control.",
       detail: "Sin acción requerida.",
+      footer: "",
     };
   }
 
   return {
     summary: "Bajo control.",
     detail: "Sin acción requerida.",
+    footer: "",
   };
 }
 
@@ -848,9 +852,11 @@ export function renderDashboard(root, state) {
               })}
             </div>
 
-            <div class="dashboard-secondary-card__foot">
-              <span>${riskAction}</span>
-            </div>
+            ${operationalRead.footer ? `
+              <div class="dashboard-secondary-card__foot">
+                <span>${operationalRead.footer}</span>
+              </div>
+            ` : ""}
           </article>
 
           <article class="tl-section-card dashboard-secondary-card">

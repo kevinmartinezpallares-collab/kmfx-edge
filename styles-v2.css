@@ -11682,12 +11682,12 @@ body[data-theme="dark"] .dashboard-primary-card .widget-segmented {
 
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
-  padding: 18px !important;
+  padding: 16px !important;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__head,
 body[data-theme="dark"] .dashboard-secondary-card__head {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   align-items: flex-start;
 }
 
@@ -11703,7 +11703,7 @@ html[data-theme="dark"] .dashboard-secondary-card__metrics,
 body[data-theme="dark"] .dashboard-secondary-card__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__metrics--two,
@@ -11713,8 +11713,8 @@ body[data-theme="dark"] .dashboard-secondary-card__metrics--two {
 
 html[data-theme="dark"] .dashboard-secondary-card__foot,
 body[data-theme="dark"] .dashboard-secondary-card__foot {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-subtle);
   font-size: 12px;
   line-height: 1.3;
@@ -11723,12 +11723,12 @@ body[data-theme="dark"] .dashboard-secondary-card__foot {
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card {
-  padding: 14px !important;
+  padding: 12px !important;
   border-radius: 14px;
   border: 1px solid var(--border-subtle) !important;
   background: rgba(255, 255, 255, 0.02) !important;
   box-shadow: none !important;
-  min-height: 116px;
+  min-height: 104px;
   display: grid;
   align-content: start;
 }
@@ -11742,7 +11742,7 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card__label {
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card__value,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card__value {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 18px;
   line-height: 1.08;
   font-weight: 650;
@@ -11750,7 +11750,7 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card__value {
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card__meta,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card__meta {
-  margin-top: 4px;
+  margin-top: 3px;
   font-size: 12px;
   line-height: 1.3;
   color: var(--text-2);
