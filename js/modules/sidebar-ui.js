@@ -36,6 +36,36 @@ function resolveAccountContextLabel(account) {
   return "";
 }
 
+function buildSidebarMenuIcon(kind) {
+  if (kind === "settings") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M12 2.8v2.1"></path>
+        <path d="M12 19.1v2.1"></path>
+        <path d="M4.9 4.9 6.4 6.4"></path>
+        <path d="M17.6 17.6 19.1 19.1"></path>
+        <path d="M2.8 12h2.1"></path>
+        <path d="M19.1 12h2.1"></path>
+        <path d="M4.9 19.1 6.4 17.6"></path>
+        <path d="M17.6 6.4 19.1 4.9"></path>
+      </svg>
+    `;
+  }
+
+  if (kind === "logout") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M10 6H6.8A1.8 1.8 0 0 0 5 7.8v8.4A1.8 1.8 0 0 0 6.8 18H10"></path>
+        <path d="M14 8l4 4-4 4"></path>
+        <path d="M18 12H9"></path>
+      </svg>
+    `;
+  }
+
+  return "";
+}
+
 function resolveAccountBalance(account) {
   const modelBalance = Number(account?.model?.account?.balance);
   if (Number.isFinite(modelBalance)) return formatCurrency(modelBalance, account?.model?.account?.currency);
@@ -261,12 +291,39 @@ export function initSidebarUI(store) {
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
       </button>
       <div class="sidebar-profile-menu ${isMenuOpen ? "is-open" : ""}" ${isMenuOpen ? "" : "hidden"}>
-        <button class="sidebar-profile-menu-item" type="button" data-sidebar-action="settings">Ajustes</button>
-        ${isAuthenticated ? `<button class="sidebar-profile-menu-item danger" type="button" data-sidebar-action="logout">Cerrar sesión</button>` : ""}
+        <div class="sidebar-profile-menu__identity">
+          <div class="sidebar-profile-menu__avatar" data-user-menu-avatar></div>
+          <div class="sidebar-profile-menu__identity-copy">
+            <div class="sidebar-profile-menu__identity-name">${traderName}</div>
+            <div class="sidebar-profile-menu__identity-email" title="${email}">${email}</div>
+          </div>
+        </div>
+        <div class="sidebar-profile-menu__divider" role="presentation"></div>
+        <div class="sidebar-profile-menu__section" aria-label="Acciones de cuenta">
+          <button class="sidebar-profile-menu-item" type="button" data-sidebar-action="settings">
+            <span class="sidebar-profile-menu-item__icon" aria-hidden="true">${buildSidebarMenuIcon("settings")}</span>
+            <span class="sidebar-profile-menu-item__label">Configuración</span>
+          </button>
+        </div>
+        ${isAuthenticated ? `
+          <div class="sidebar-profile-menu__divider" role="presentation"></div>
+          <div class="sidebar-profile-menu__section sidebar-profile-menu__section--danger" aria-label="Sesión">
+            <button class="sidebar-profile-menu-item danger" type="button" data-sidebar-action="logout">
+              <span class="sidebar-profile-menu-item__icon" aria-hidden="true">${buildSidebarMenuIcon("logout")}</span>
+              <span class="sidebar-profile-menu-item__label">Cerrar sesión</span>
+            </button>
+          </div>
+        ` : ""}
       </div>
     `;
 
     applyAvatarContent(profileRoot.querySelector("[data-user-avatar]"), {
+      avatarUrl: profile.avatar,
+      initials,
+      name: traderName
+    });
+
+    applyAvatarContent(profileRoot.querySelector("[data-user-menu-avatar]"), {
       avatarUrl: profile.avatar,
       initials,
       name: traderName
