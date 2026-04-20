@@ -32,10 +32,7 @@ function resolveAccountDisplayName(account) {
 }
 
 function resolveAccountContextLabel(account) {
-  const platform = String(account?.platform || account?.sourceType || "").toUpperCase();
-  if (platform === "MT5" || platform === "MT4") return platform;
-  if (platform) return platform;
-  return "LIVE";
+  return "";
 }
 
 function resolveAccountBalance(account) {
@@ -154,7 +151,7 @@ export function initSidebarUI(store) {
               <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
               ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
               </select>
-              <div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>
+              ${activeAccountContext ? `<div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>` : ""}
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
@@ -164,7 +161,7 @@ export function initSidebarUI(store) {
             <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
-              <div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>
+              ${activeAccountContext ? `<div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>` : ""}
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
           </div>
