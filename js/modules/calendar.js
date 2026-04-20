@@ -1,6 +1,6 @@
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
 import { formatCurrency, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
-import { openModal } from "./modal-system.js?v=build-20260406-213500";
+import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -15,6 +15,65 @@ function toLocalDayKey(dateLike) {
 
 function toLocalMonthKey(dateLike) {
   return toLocalDayKey(dateLike).slice(0, 7);
+}
+
+function buildDayCurve(dayTrades) {
+  const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
+  if (!ordered.length) return [];
+  let cumulative = 0;
+  return ordered.map((trade) => {
+    cumulative += Number(trade.pnl || 0);
+    return {
+      label: trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+      value: Number(cumulative.toFixed(2))
+    };
+  });
+}
+
+function buildDayMetrics(dayTrades) {
+  const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
+  const totalVolume = ordered.reduce((sum, trade) => sum + Number(trade.volume || 0), 0);
+  const avgR = ordered.length ? ordered.reduce((sum, trade) => sum + Number(trade.rMultiple || 0), 0) / ordered.length : 0;
+  const wins = ordered.filter((trade) => trade.pnl > 0).length;
+  const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
+  const worst = ordered.reduce((low, trade) => !low || trade.pnl < low.pnl ? trade : low, null);
+  return [
+    { label: "Trades", value: String(ordered.length) },
+    { label: "Win rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
+    { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: best?.pnl > 0 ? "metric-positive" : "" },
+    { label: "Peor trade", value: worst ? formatCurrency(worst.pnl) : "—", valueClass: worst?.pnl < 0 ? "metric-negative" : "" },
+    { label: "Volumen total", value: totalVolume ? `${totalVolume}` : "—" },
+    { label: "R medio", value: ordered.length ? `${avgR.toFixed(1)}R` : "—" },
+    { label: "Primera entrada", value: ordered[0]?.entry != null ? `${ordered[0].entry}` : "—" },
+    { label: "Última salida", value: ordered.at(-1)?.exit != null ? `${ordered.at(-1).exit}` : "—" }
+  ];
+}
+
+function renderDayTradeDisclosure(trade) {
+  return `
+    <details class="focus-panel-disclosure">
+      <summary class="focus-panel-disclosure__summary">
+        <div class="focus-panel-disclosure__lead">
+          <strong>${trade.symbol}</strong>
+          <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
+          <span>${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+        </div>
+        <div class="focus-panel-disclosure__value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
+      </summary>
+      <div class="focus-panel-disclosure__body">
+        <div class="focus-panel-fields">
+          <div><strong>Entrada</strong><span>${trade.entry ?? "—"}</span></div>
+          <div><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
+          <div><strong>SL</strong><span>${trade.sl ?? "—"}</span></div>
+          <div><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
+          <div><strong>Volumen</strong><span>${trade.volume ?? "—"}</span></div>
+          <div><strong>Setup</strong><span>${trade.setup || "—"}</span></div>
+          <div><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
+          <div><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+        </div>
+      </div>
+    </details>
+  `;
 }
 
 export function renderCalendar(root, state) {
@@ -291,42 +350,63 @@ export function renderCalendar(root, state) {
 
       const dayTrades = (model?.trades || []).filter((trade) => toLocalDayKey(trade.when) === key);
       const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-      openModal({
-        title: `Detalle del ${new Date(key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}`,
-        subtitle: `${dayTrades.length} trades · ${formatCurrency(dayPnl)}`,
-        maxWidth: 820,
+      const orderedDayTrades = [...dayTrades].sort((a, b) => a.when - b.when);
+      const dayChartKey = `calendar-day-focus-${key}`;
+      const firstTrade = orderedDayTrades[0];
+      const lastTrade = orderedDayTrades.at(-1);
+      openFocusPanel({
+        title: new Date(key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }),
+        status: "Operado",
+        statusTone: "neutral",
+        meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
+        pnl: formatCurrency(dayPnl),
+        pnlClass: dayPnl >= 0 ? "metric-positive" : "metric-negative",
+        metrics: buildDayMetrics(orderedDayTrades),
+        maxWidth: "84vw",
         content: `
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Hora</th>
-                  <th>Símbolo</th>
-                  <th>Dir</th>
-                  <th>Entrada</th>
-                  <th>Salida</th>
-                  <th>P&L $</th>
-                  <th>Setup</th>
-                  <th>Sesión</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${dayTrades.map((trade) => `
-                  <tr>
-                    <td>${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</td>
-                    <td>${trade.symbol}</td>
-                    <td>${trade.side}</td>
-                    <td>${trade.entry}</td>
-                    <td>${trade.exit}</td>
-                    <td class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</td>
-                    <td>${trade.setup}</td>
-                    <td>${trade.session}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        `
+          <section class="focus-panel-section">
+            <div class="focus-panel-section__head">
+              <div class="focus-panel-section__title">Resumen rápido</div>
+              <div class="focus-panel-section__subtitle">Curva acumulada del día para leer ritmo y cierre sin ensuciar el calendario.</div>
+            </div>
+            <div class="focus-panel-chart">
+              ${chartCanvas(dayChartKey, 240, "kmfx-chart-shell--feature")}
+            </div>
+          </section>
+          <section class="focus-panel-section">
+            <div class="focus-panel-section__head">
+              <div class="focus-panel-section__title">Trades del día</div>
+              <div class="focus-panel-section__subtitle">Expande cada ejecución solo cuando quieras ver el detalle operativo.</div>
+            </div>
+            <div class="focus-panel-disclosures">
+              ${orderedDayTrades.map(renderDayTradeDisclosure).join("")}
+            </div>
+          </section>
+        `,
+        onMount(card) {
+          mountCharts(card, [
+            lineAreaSpec(dayChartKey, buildDayCurve(orderedDayTrades), {
+              tone: dayPnl >= 0 ? "green" : "red",
+              showXAxis: true,
+              showYAxis: true,
+              showYGrid: false,
+              showAxisBorder: false,
+              axisFontSize: 10,
+              axisFontWeight: "600",
+              xTickPadding: 10,
+              yTickPadding: 10,
+              maxXTicks: 5,
+              maxYTicks: 4,
+              borderWidth: 2.1,
+              fill: true,
+              fillAlphaStart: 0.12,
+              fillAlphaEnd: 0,
+              glowAlpha: 0,
+              tension: 0.34,
+              animation: false
+            })
+          ]);
+        }
       });
     });
   });

@@ -34,21 +34,18 @@ export function closeModal() {
   document.body.classList.remove("modal-open");
 }
 
-export function openModal({ title, subtitle = "", maxWidth = 560, content = "", onMount } = {}) {
+function resolveModalWidth(maxWidth) {
+  return typeof maxWidth === "number" ? `${maxWidth}px` : (maxWidth || "560px");
+}
+
+function mountModal({ maxWidth = 560, overlayClass = "", cardClass = "", content = "", onMount } = {}) {
   const root = ensureRoot();
   if (!root) return;
 
   root.innerHTML = `
-    <div class="modal-overlay open" data-modal-dismiss="true">
-      <div class="modal-card" style="max-width:${maxWidth}px" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <div>
-            <div class="modal-title">${title || "KMFX Edge"}</div>
-            ${subtitle ? `<div class="modal-subtitle">${subtitle}</div>` : ""}
-          </div>
-          <button class="modal-close" type="button" aria-label="Cerrar">✕</button>
-        </div>
-        <div class="modal-body">${content}</div>
+    <div class="modal-overlay open ${overlayClass}" data-modal-dismiss="true">
+      <div class="modal-card ${cardClass}" style="max-width:${resolveModalWidth(maxWidth)}" role="dialog" aria-modal="true">
+        ${content}
       </div>
     </div>
   `;
@@ -79,4 +76,67 @@ export function openModal({ title, subtitle = "", maxWidth = 560, content = "", 
   });
 
   if (typeof onMount === "function") onMount(card);
+}
+
+export function openModal({ title, subtitle = "", maxWidth = 560, content = "", onMount } = {}) {
+  mountModal({
+    maxWidth,
+    content: `
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">${title || "KMFX Edge"}</div>
+          ${subtitle ? `<div class="modal-subtitle">${subtitle}</div>` : ""}
+        </div>
+        <button class="modal-close" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">${content}</div>
+    `,
+    onMount
+  });
+}
+
+export function openFocusPanel({
+  title,
+  status = "",
+  statusTone = "neutral",
+  meta = "",
+  pnl = "",
+  pnlClass = "",
+  metrics = [],
+  content = "",
+  maxWidth = "82vw",
+  onMount
+} = {}) {
+  const metricMarkup = metrics.map((metric) => `
+    <article class="focus-panel-metric">
+      <div class="focus-panel-metric__label">${metric.label}</div>
+      <div class="focus-panel-metric__value ${metric.valueClass || ""}">${metric.value}</div>
+    </article>
+  `).join("");
+
+  mountModal({
+    maxWidth,
+    overlayClass: "modal-overlay--focus-panel",
+    cardClass: "modal-card--focus-panel",
+    content: `
+      <div class="modal-body modal-body--focus-panel">
+        <button class="modal-close focus-panel-close" type="button" aria-label="Cerrar">✕</button>
+        <div class="focus-panel">
+          <header class="focus-panel__header">
+            <div class="focus-panel__identity">
+              <div class="focus-panel__title-row">
+                <h2 class="focus-panel__title">${title || "Detalle"}</h2>
+                ${status ? `<span class="focus-panel__status focus-panel__status--${statusTone}">${status}</span>` : ""}
+              </div>
+              ${meta ? `<div class="focus-panel__meta">${meta}</div>` : ""}
+            </div>
+            ${pnl ? `<div class="focus-panel__pnl ${pnlClass}">${pnl}</div>` : ""}
+          </header>
+          ${metricMarkup ? `<section class="focus-panel__metrics">${metricMarkup}</section>` : ""}
+          <div class="focus-panel__content">${content}</div>
+        </div>
+      </div>
+    `,
+    onMount
+  });
 }

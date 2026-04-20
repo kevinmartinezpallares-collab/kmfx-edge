@@ -1,4 +1,4 @@
-import { openModal } from "./modal-system.js?v=build-20260406-213500";
+import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
 function clampPercent(value) {
@@ -53,48 +53,88 @@ function addLongPress(element, callback, delay = 500) {
 
 function showTradeContextMenu(trade) {
   if (!trade) return;
-  openModal({
-    title: `${trade.symbol} · ${trade.side}`,
-    subtitle: "Detalle de la operación",
-    maxWidth: 420,
+  openFocusPanel({
+    title: trade.symbol,
+    status: trade.side,
+    statusTone: String(trade.side || "").toLowerCase() === "buy" ? "buy" : "sell",
+    meta: `${trade.when.toLocaleDateString("es-ES")} · ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
+    pnl: formatCurrency(trade.pnl),
+    pnlClass: trade.pnl >= 0 ? "metric-positive" : "metric-negative",
+    metrics: [
+      { label: "Entrada", value: formatTableValue(trade.entry) },
+      { label: "Salida", value: formatTableValue(trade.exit) },
+      { label: "Lote", value: formatTableValue(trade.volume) },
+      { label: "Duración", value: trade.durationMin == null ? "—" : `${trade.durationMin} min` },
+      { label: "SL", value: formatTableValue(trade.sl) },
+      { label: "TP", value: formatTableValue(trade.tp) },
+      { label: "Fees", value: "—" },
+      { label: "R multiple", value: `${trade.rMultiple.toFixed(1)}R`, valueClass: trade.rMultiple >= 0 ? "metric-positive" : "metric-negative" }
+    ],
+    maxWidth: "80vw",
     content: `
-      <div class="info-list compact">
-        <div><strong>Fecha</strong><span>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span></div>
-        <div><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span></div>
-        <div><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
-        <div><strong>Stop Loss</strong><span>${formatTableValue(trade.sl)}</span></div>
-        <div><strong>Take Profit</strong><span>${formatTableValue(trade.tp)}</span></div>
-        <div><strong>Volumen</strong><span>${formatTableValue(trade.volume)}</span></div>
-        <div><strong>P&L</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
-        <div><strong>R-Multiple</strong><span>${trade.rMultiple.toFixed(1)}R</span></div>
-        <div><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
-        <div><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span></div>
-        <div><strong>Sesión</strong><span>${trade.session}</span></div>
-      </div>
-      <div class="settings-actions">
-        <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
-      </div>
+      <section class="focus-panel-section">
+        <div class="focus-panel-section__head">
+          <div class="focus-panel-section__title">Resumen rápido</div>
+          <div class="focus-panel-section__subtitle">Lectura operativa clara para validar ejecución, resultado y contexto sin cargar la tabla.</div>
+        </div>
+        <div class="focus-panel-fields focus-panel-fields--wide">
+          <div><strong>Símbolo</strong><span>${trade.symbol}</span></div>
+          <div><strong>Dirección</strong><span>${trade.side}</span></div>
+          <div><strong>Fecha y hora</strong><span>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span></div>
+          <div><strong>P&L $</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
+        </div>
+      </section>
+      <section class="focus-panel-section">
+        <div class="focus-panel-section__head">
+          <div class="focus-panel-section__title">Detalles operativos</div>
+        </div>
+        <div class="focus-panel-blocks">
+          <div class="focus-panel-block">
+            <div class="focus-panel-block__label">Setup</div>
+            <div class="focus-panel-block__value">${displayTradeSetup(trade.setup)}</div>
+          </div>
+          <div class="focus-panel-block">
+            <div class="focus-panel-block__label">Sesión</div>
+            <div class="focus-panel-block__value">${trade.session || "—"}</div>
+          </div>
+        </div>
+      </section>
     `
   });
 }
 
 function showPositionContextMenu(position) {
   if (!position) return;
-  openModal({
-    title: `${position.symbol} · ${position.side}`,
-    subtitle: "Detalle de la posición abierta",
-    maxWidth: 420,
+  openFocusPanel({
+    title: position.symbol,
+    status: position.side,
+    statusTone: String(position.side || "").toLowerCase() === "buy" ? "buy" : "sell",
+    meta: "Posición abierta",
+    pnl: formatCurrency(position.pnl),
+    pnlClass: position.pnl >= 0 ? "metric-positive" : "metric-negative",
+    metrics: [
+      { label: "Entrada", value: formatTableValue(position.entry) },
+      { label: "Salida", value: "—" },
+      { label: "Lote", value: formatTableValue(position.volume) },
+      { label: "Duración", value: "Abierta" },
+      { label: "SL", value: formatTableValue(position.sl) },
+      { label: "TP", value: formatTableValue(position.tp) },
+      { label: "Fees", value: "—" },
+      { label: "R multiple", value: "—" }
+    ],
+    maxWidth: "80vw",
     content: `
-      <div class="info-list compact">
-        <div><strong>Volumen</strong><span>${formatTableValue(position.volume)}</span></div>
-        <div><strong>Entrada</strong><span>${formatTableValue(position.entry)}</span></div>
-        <div><strong>Stop Loss</strong><span>${formatTableValue(position.sl)}</span></div>
-        <div><strong>Take Profit</strong><span>${formatTableValue(position.tp)}</span></div>
-        <div><strong>P&L</strong><span class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</span></div>
-      </div>
-      <div class="settings-actions">
-        <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
-      </div>
+      <section class="focus-panel-section">
+        <div class="focus-panel-section__head">
+          <div class="focus-panel-section__title">Detalle de la posición</div>
+        </div>
+        <div class="focus-panel-fields focus-panel-fields--wide">
+          <div><strong>Símbolo</strong><span>${position.symbol}</span></div>
+          <div><strong>Dirección</strong><span>${position.side}</span></div>
+          <div><strong>Volumen</strong><span>${formatTableValue(position.volume)}</span></div>
+          <div><strong>P&L $</strong><span class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</span></div>
+        </div>
+      </section>
     `
   });
 }
