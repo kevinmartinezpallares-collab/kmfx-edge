@@ -43,6 +43,36 @@ function buildDayMetrics(dayTrades) {
   ];
 }
 
+function getTradePrimaryMoment(trade) {
+  return new Date(trade?.entryTime || trade?.openTime || trade?.open_time || trade?.when || trade?.closeTime || trade?.date || 0);
+}
+
+function buildDayExecutiveRead(dayTrades) {
+  const ordered = [...dayTrades].sort((a, b) => getTradePrimaryMoment(a) - getTradePrimaryMoment(b));
+  const topTrade = ordered.reduce((top, trade) => {
+    if (!top) return trade;
+    return Math.abs(Number(trade?.pnl || 0)) > Math.abs(Number(top?.pnl || 0)) ? trade : top;
+  }, null);
+  if (!topTrade) {
+    return { summary: "Sin operativa relevante en este día.", topTradeId: null };
+  }
+
+  const wins = ordered.filter((trade) => Number(trade?.pnl || 0) > 0).length;
+  const losses = ordered.length - wins;
+  const topDirection = Number(topTrade.pnl || 0) >= 0 ? "impulsó" : "arrastró";
+  const partialNote = Array.isArray(topTrade.executions) && topTrade.executions.length > 1
+    ? ` en ${topTrade.executions.length} cierres`
+    : "";
+  const balanceNote = ordered.length > 1
+    ? ` ${wins} ganadoras y ${losses} perdedoras completaron la sesión.`
+    : "";
+
+  return {
+    summary: `${topTrade.symbol} ${topTrade.side} ${topDirection} el resultado con ${formatCurrency(topTrade.pnl)}${partialNote}.${balanceNote}`.trim(),
+    topTradeId: String(topTrade.id),
+  };
+}
+
 function displayCalendarSetup(value) {
   const text = String(value || "").trim();
   if (!text || /mt5\s*sync/i.test(text)) return "—";
@@ -111,15 +141,17 @@ function renderTradeExecutions(trade) {
   `;
 }
 
-function renderDayTradeDisclosure(trade) {
+function renderDayTradeDisclosure(trade, options = {}) {
   const { entryTime, exitTime } = getTradeTimeRange(trade);
   const fees = resolveTradeFees(trade);
+  const isPrimary = options.isPrimary === true;
   return `
-    <details class="focus-panel-disclosure">
+    <details class="focus-panel-disclosure ${isPrimary ? "focus-panel-disclosure--primary" : ""}">
       <summary class="focus-panel-disclosure__summary">
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
             <strong>${trade.symbol}</strong>
+            ${isPrimary ? `<small class="focus-panel-disclosure__note">Trade principal del día</small>` : ""}
           </div>
           <div class="focus-panel-disclosure__cell">
             <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
@@ -422,6 +454,7 @@ export function renderCalendar(root, state) {
         const bTime = new Date(b.entryTime || b.openTime || b.when || b.closeTime || 0).getTime();
         return aTime - bTime;
       });
+      const executiveRead = buildDayExecutiveRead(orderedDayTrades);
       const dayChartKey = `calendar-day-focus-${key}`;
       const firstTrade = orderedDayTrades[0];
       const lastTrade = orderedDayTrades.at(-1);
@@ -434,6 +467,11 @@ export function renderCalendar(root, state) {
         metricStyle: "inline",
         maxWidth: "84vw",
         content: `
+          <section class="focus-panel-section focus-panel-section--lead">
+            <div class="focus-panel-read">
+              <p class="focus-panel-read__summary">${executiveRead.summary}</p>
+            </div>
+          </section>
           <section class="focus-panel-section">
             <div class="focus-panel-section__head">
               <div class="focus-panel-section__title">Resumen rápido</div>
@@ -454,7 +492,7 @@ export function renderCalendar(root, state) {
               <span>P&amp;L</span>
             </div>
             <div class="focus-panel-disclosures">
-              ${orderedDayTrades.map(renderDayTradeDisclosure).join("")}
+              ${orderedDayTrades.map((trade) => renderDayTradeDisclosure(trade, { isPrimary: String(trade.id) === executiveRead.topTradeId })).join("")}
             </div>
           </section>
         `,

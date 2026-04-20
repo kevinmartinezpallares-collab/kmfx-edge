@@ -21,6 +21,20 @@ function displayTradeSetup(value, fallback = "Sin setup definido") {
   return normalized === "—" ? fallback : normalized;
 }
 
+function buildTradeExecutiveRead(trade) {
+  const executions = Array.isArray(trade?.executions) ? trade.executions : [];
+  const bestExecution = executions.reduce((top, execution) => {
+    if (!top) return execution;
+    return Math.abs(Number(execution?.pnl || 0)) > Math.abs(Number(top?.pnl || 0)) ? execution : top;
+  }, null);
+
+  if (executions.length > 1 && bestExecution) {
+    return `${trade.side} ${trade.symbol} cerrada en ${executions.length} ejecuciones durante ${formatDurationHuman(trade.durationMin)}. El mayor parcial aportó ${formatCurrency(bestExecution.pnl)}.`;
+  }
+
+  return `${trade.side} ${trade.symbol} cerrada en ${formatDurationHuman(trade.durationMin)} con resultado final de ${formatCurrency(trade.pnl)}.`;
+}
+
 function renderTradeExecutions(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   if (!executions.length) return "";
@@ -92,6 +106,11 @@ function showTradeContextMenu(trade) {
     pnlClass: trade.pnl >= 0 ? "metric-positive" : "metric-negative",
     maxWidth: "80vw",
     content: `
+      <section class="focus-panel-section focus-panel-section--lead">
+        <div class="focus-panel-read">
+          <p class="focus-panel-read__summary">${buildTradeExecutiveRead(trade)}</p>
+        </div>
+      </section>
       <section class="focus-panel-section">
         <div class="focus-panel-section__head">
           <div class="focus-panel-section__title">Resumen rápido</div>
