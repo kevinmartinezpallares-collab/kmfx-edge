@@ -187,8 +187,12 @@ export function renderCalendar(root, state) {
   const hasTradingData = dayStats.length > 0 && months.length > 0;
   const monthlyMatrix = Array.isArray(model?.monthlyMatrix) ? model.monthlyMatrix : [];
   const latestMonthKey = months[months.length - 1]?.key || buildFallbackMonthRecord().key;
+  const currentMonthKey = toLocalMonthKey(new Date());
   const calendarMonths = months.length ? expandCalendarMonths(months) : [buildFallbackMonthRecord()];
-  const monthKey = getCalendarMonthKey(root, calendarMonths, latestMonthKey);
+  const initialMonthKey = calendarMonths.some((month) => month.key === currentMonthKey)
+    ? currentMonthKey
+    : latestMonthKey;
+  const monthKey = getCalendarMonthKey(root, calendarMonths, initialMonthKey);
   const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
   const selectedMonth = calendarMonths[monthIndex] || calendarMonths[calendarMonths.length - 1];
   const valueMode = getCalendarValueMode(root);

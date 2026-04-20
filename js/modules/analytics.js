@@ -662,8 +662,12 @@ export function renderAnalytics(root, state) {
   const consistencyRatio = calcConsistency(model.dayStats || []);
   const analyticsMonths = Array.isArray(model.monthlyReturns) && model.monthlyReturns.length ? expandAnalyticsMonths(model.monthlyReturns) : [buildFallbackMonthRecord()];
   const latestAnalyticsMonthKey = analyticsMonths[analyticsMonths.length - 1]?.key || buildFallbackMonthRecord().key;
+  const currentAnalyticsMonthKey = toLocalMonthKey(new Date());
+  const defaultAnalyticsMonthKey = analyticsMonths.some((month) => month.key === currentAnalyticsMonthKey)
+    ? currentAnalyticsMonthKey
+    : latestAnalyticsMonthKey;
   if (!root.__analyticsDailyMonthKey || !analyticsMonths.some((month) => month.key === root.__analyticsDailyMonthKey)) {
-    root.__analyticsDailyMonthKey = latestAnalyticsMonthKey;
+    root.__analyticsDailyMonthKey = defaultAnalyticsMonthKey;
   }
   const analyticsDailyMonthKey = root.__analyticsDailyMonthKey;
   const analyticsDailyMonth = analyticsMonths.find((month) => month.key === analyticsDailyMonthKey) || analyticsMonths[analyticsMonths.length - 1];
