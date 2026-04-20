@@ -12304,6 +12304,13 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher--empt
   border-radius: 0 !important;
 }
 
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher--button,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher--button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon {
   width: 36px;
@@ -12316,6 +12323,11 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy {
   gap: 3px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher--button:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher--button:hover {
+  opacity: 0.96;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__title,
@@ -12341,6 +12353,150 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__bala
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__balance {
   font-size: 12px;
   line-height: 1.15;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .sidebar-account-picker,
+body[data-theme="dark"] .sidebar-account-picker {
+  display: grid;
+  gap: 18px;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__list,
+body[data-theme="dark"] .sidebar-account-picker__list {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item,
+body[data-theme="dark"] .sidebar-account-picker__item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-0);
+  background: var(--layer-1);
+  color: var(--text-0);
+  text-align: left;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item:hover,
+body[data-theme="dark"] .sidebar-account-picker__item:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-0));
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item.is-active,
+body[data-theme="dark"] .sidebar-account-picker__item.is-active {
+  border-color: color-mix(in srgb, var(--accent) 54%, var(--border-0));
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item-icon,
+body[data-theme="dark"] .sidebar-account-picker__item-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item-copy,
+body[data-theme="dark"] .sidebar-account-picker__item-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item-title,
+body[data-theme="dark"] .sidebar-account-picker__item-title {
+  font-size: 16px;
+  line-height: 1.15;
+  font-weight: 650;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item-balance,
+body[data-theme="dark"] .sidebar-account-picker__item-balance {
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__item-check,
+body[data-theme="dark"] .sidebar-account-picker__item-check {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 20px;
+  line-height: 1;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__footer,
+body[data-theme="dark"] .sidebar-account-picker__footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add,
+body[data-theme="dark"] .sidebar-account-picker__add {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 18px 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: var(--text-0);
+  text-align: left;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add:hover,
+body[data-theme="dark"] .sidebar-account-picker__add:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add-icon,
+body[data-theme="dark"] .sidebar-account-picker__add-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  color: var(--text-0);
+  font-size: 30px;
+  line-height: 1;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add-copy,
+body[data-theme="dark"] .sidebar-account-picker__add-copy {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add-title,
+body[data-theme="dark"] .sidebar-account-picker__add-title {
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 650;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .sidebar-account-picker__add-subtitle,
+body[data-theme="dark"] .sidebar-account-picker__add-subtitle {
+  font-size: 13px;
+  line-height: 1.3;
   color: var(--text-1);
 }
 

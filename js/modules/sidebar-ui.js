@@ -1,4 +1,5 @@
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260406-213500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { applyAvatarContent } from "./avatar-utils.js?v=build-20260406-213500";
 
 function escapeHtml(value = "") {
@@ -48,6 +49,80 @@ function resolveAccountIcon(account) {
   if (platform === "mt4") return { kind: "chevron", value: "▾" };
   if (platform === "mt5") return { kind: "image", value: "./assets/logos/mt5-logo.png", alt: "MT5" };
   return { kind: "chevron", value: "▾" };
+}
+
+function dispatchOpenConnectionWizard(source = "sidebar") {
+  window.dispatchEvent(new CustomEvent("kmfx:open-connection-wizard", {
+    detail: {
+      source
+    }
+  }));
+}
+
+function openSidebarAccountPicker(store, state) {
+  const accounts = resolveSidebarAccounts(state);
+  const activeAccountId = selectActiveAccountId(state);
+
+  openModal({
+    title: "Cuentas de trading",
+    subtitle: "Selecciona la cuenta con la que quieres trabajar.",
+    maxWidth: 760,
+    content: `
+      <div class="sidebar-account-picker">
+        <div class="sidebar-account-picker__list">
+          ${accounts.map((account) => {
+            const accountIcon = resolveAccountIcon(account);
+            const iconMarkup = typeof accountIcon === "object" && accountIcon.kind === "image"
+              ? `<img class="sidebar-account-switcher__icon-image" src="${escapeHtml(accountIcon.value)}" alt="${escapeHtml(accountIcon.alt || "")}">`
+              : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof accountIcon === "object" ? accountIcon.value : accountIcon)}</span>`;
+            const isActive = account.id === activeAccountId;
+            return `
+              <button class="sidebar-account-picker__item ${isActive ? "is-active" : ""}" type="button" data-sidebar-account-option="${escapeHtml(account.id)}">
+                <span class="sidebar-account-picker__item-icon" aria-hidden="true">${iconMarkup}</span>
+                <span class="sidebar-account-picker__item-copy">
+                  <span class="sidebar-account-picker__item-title">${escapeHtml(resolveAccountDisplayName(account))}</span>
+                  <span class="sidebar-account-picker__item-balance">${escapeHtml(resolveAccountBalance(account))}</span>
+                </span>
+                ${isActive ? `<span class="sidebar-account-picker__item-check" aria-hidden="true">✓</span>` : ""}
+              </button>
+            `;
+          }).join("")}
+        </div>
+        <div class="sidebar-account-picker__footer">
+          <button class="sidebar-account-picker__add" type="button" data-sidebar-account-add="true">
+            <span class="sidebar-account-picker__add-icon" aria-hidden="true">+</span>
+            <span class="sidebar-account-picker__add-copy">
+              <span class="sidebar-account-picker__add-title">Añadir cuenta de trading</span>
+              <span class="sidebar-account-picker__add-subtitle">Conecta una nueva cuenta</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    `,
+    onMount(card) {
+      card?.querySelectorAll("[data-sidebar-account-option]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const accountId = button.getAttribute("data-sidebar-account-option");
+          const currentState = store.getState();
+          const account = currentState.accounts?.[accountId];
+          if (!accountId || !account) return;
+          store.setState((current) => ({
+            ...current,
+            currentAccount: accountId,
+            activeLiveAccountId: accountId,
+            activeAccountId: accountId,
+            mode: Array.isArray(current.liveAccountIds) && current.liveAccountIds.length > 0 ? "live" : current.mode,
+          }));
+          closeModal();
+        });
+      });
+
+      card?.querySelector("[data-sidebar-account-add]")?.addEventListener("click", () => {
+        closeModal();
+        dispatchOpenConnectionWizard("sidebar-account-picker");
+      });
+    }
+  });
 }
 
 export function initSidebarUI(store) {
@@ -113,6 +188,21 @@ export function initSidebarUI(store) {
     }));
   });
 
+  accountRoot?.addEventListener("click", (event) => {
+    const pickerTrigger = event.target.closest("[data-sidebar-account-picker]");
+    if (!pickerTrigger) return;
+    event.preventDefault();
+    openSidebarAccountPicker(store, store.getState());
+  });
+
+  accountRoot?.addEventListener("keydown", (event) => {
+    const pickerTrigger = event.target.closest("[data-sidebar-account-picker]");
+    if (!pickerTrigger) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openSidebarAccountPicker(store, store.getState());
+  });
+
   const renderProfile = (state) => {
     if (!profileRoot) return;
     const profile = selectVisibleUserProfile(state);
@@ -131,7 +221,6 @@ export function initSidebarUI(store) {
     const accountIconMarkup = typeof activeAccountIcon === "object" && activeAccountIcon.kind === "image"
       ? `<img class="sidebar-account-switcher__icon-image" src="${escapeHtml(activeAccountIcon.value)}" alt="${escapeHtml(activeAccountIcon.alt || "")}">`
       : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof activeAccountIcon === "object" ? activeAccountIcon.value : activeAccountIcon)}</span>`;
-    const showAccountSelect = accounts.length > 1;
     const accountBlock = !accounts.length
       ? `
         <button class="sidebar-account-switcher sidebar-account-switcher--empty" type="button" data-open-connection-wizard="true" data-connection-source="sidebar">
@@ -143,28 +232,15 @@ export function initSidebarUI(store) {
           </span>
         </button>
       `
-      : showAccountSelect
-        ? `
-          <div class="sidebar-account-switcher">
-            <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
-            <div class="sidebar-account-switcher__copy">
-              <select class="sidebar-account-switcher__select" data-sidebar-account-select aria-label="Seleccionar cuenta activa">
-              ${accounts.map((account) => `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(resolveAccountOptionLabel(account))}</option>`).join("")}
-              </select>
-              ${activeAccountContext ? `<div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>` : ""}
-              <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
-            </div>
-          </div>
-        `
-        : `
-          <div class="sidebar-account-switcher">
+      : `
+          <button class="sidebar-account-switcher sidebar-account-switcher--button" type="button" data-sidebar-account-picker="true" aria-label="Abrir selector de cuentas">
             <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
               ${activeAccountContext ? `<div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>` : ""}
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
-          </div>
+          </button>
         `;
 
     if (accountRoot) {
