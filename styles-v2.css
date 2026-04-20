@@ -6641,6 +6641,7 @@ body[data-theme="dark"] .calendar-value-toggle .widget-segmented-btn {
   padding: 5px 9px !important;
   font-size: 10px !important;
   letter-spacing: 0.06em !important;
+  border-radius: 999px !important;
 }
 
 html[data-theme="dark"] .calendar-view-toggle,
@@ -6657,6 +6658,14 @@ body[data-theme="dark"] .calendar-view-toggle .widget-segmented-btn {
   padding: 5px 11px !important;
   font-size: 10px !important;
   letter-spacing: 0.06em !important;
+  border-radius: 999px !important;
+}
+
+html[data-theme="dark"] .calendar-view-toggle .widget-segmented-btn.active,
+html[data-theme="dark"] .calendar-value-toggle .widget-segmented-btn.active,
+body[data-theme="dark"] .calendar-view-toggle .widget-segmented-btn.active,
+body[data-theme="dark"] .calendar-value-toggle .widget-segmented-btn.active {
+  border-radius: 999px !important;
 }
 
 html[data-theme="dark"] .calendar-summary-strip,
