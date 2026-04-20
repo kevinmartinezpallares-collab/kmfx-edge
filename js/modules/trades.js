@@ -1,5 +1,5 @@
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
-import { formatCurrency, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
 function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
@@ -99,7 +99,7 @@ function showTradeContextMenu(trade) {
         <div class="focus-panel-pairs">
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(trade.sl)}</span><strong>TP</strong><span>${formatTableValue(trade.tp)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(trade.volume)}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(trade.volume)}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
           <div class="focus-panel-pair-row"><strong>Fees</strong><span class="${Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0) < 0 ? "metric-negative" : ""}">${formatCurrency(Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0))}</span><strong>R múltiple</strong><span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${trade.rMultiple.toFixed(1)}R</span></div>
         </div>
       </section>
@@ -201,7 +201,7 @@ export function renderTrades(root, state) {
       <article class="tl-kpi-card"><div class="tl-kpi-label">PnL filtrado</div><div class="tl-kpi-val ${filteredPnl >= 0 ? "green" : "red"}">${formatCurrency(filteredPnl)}</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">Win Rate</div><div class="tl-kpi-val">${Math.round(filteredWinRate)}%</div></article>
       <article class="tl-kpi-card"><div class="tl-kpi-label">R medio</div><div class="tl-kpi-val">${filteredAvgR.toFixed(1)}R</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${avgDuration == null ? "—" : `${avgDuration}m`}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${formatDurationHuman(avgDuration)}</div></article>
     </div>
 
     <div class="grid-2 equal">
@@ -337,7 +337,7 @@ export function renderTrades(root, state) {
                 <td class="table-num">${formatTableValue(trade.volume)}</td>
                 <td class="table-num ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</td>
                 <td class="table-num">${trade.rMultiple.toFixed(1)}R</td>
-                <td class="table-num">${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</td>
+                <td class="table-num">${formatDurationHuman(trade.durationMin)}</td>
                 <td>${normalizeTradeSetup(trade.setup)}</td>
                 <td>${trade.session}</td>
               </tr>

@@ -108,6 +108,26 @@ export function formatDateTime(value) {
   });
 }
 
+export function formatDurationHuman(value) {
+  const totalMinutes = Number(value);
+  if (!Number.isFinite(totalMinutes) || totalMinutes < 0) return "—";
+
+  const rounded = Math.round(totalMinutes);
+  if (rounded < 60) return `${rounded} min`;
+
+  const minutesPerDay = 24 * 60;
+  const days = Math.floor(rounded / minutesPerDay);
+  const hours = Math.floor((rounded % minutesPerDay) / 60);
+  const minutes = rounded % 60;
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+
+  return parts.join(" ");
+}
+
 export function getInitialsFromName(name = "") {
   return String(name || "")
     .split(" ")

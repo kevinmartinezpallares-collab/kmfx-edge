@@ -1,5 +1,5 @@
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
-import { formatCurrency, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { formatCurrency, formatDurationHuman, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
@@ -81,6 +81,11 @@ function getTradeTimeRange(trade) {
   };
 }
 
+function getCalendarTradeDayKey(trade) {
+  const source = trade?.entryTime || trade?.openTime || trade?.open_time || trade?.date || trade?.when || trade?.closeTime;
+  return source ? toLocalDayKey(source) : "";
+}
+
 function renderTradeExecutions(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   if (executions.length <= 1) return "";
@@ -128,7 +133,7 @@ function renderDayTradeDisclosure(trade) {
         <div class="focus-panel-pairs focus-panel-pairs--plain">
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
-          <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
           <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
@@ -410,9 +415,13 @@ export function renderCalendar(root, state) {
       root.__calendarSelectedDay = key;
       renderCalendar(root, state);
 
-      const dayTrades = (model?.trades || []).filter((trade) => toLocalDayKey(trade.when) === key);
+      const dayTrades = (model?.trades || []).filter((trade) => getCalendarTradeDayKey(trade) === key);
       const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-      const orderedDayTrades = [...dayTrades].sort((a, b) => a.when - b.when);
+      const orderedDayTrades = [...dayTrades].sort((a, b) => {
+        const aTime = new Date(a.entryTime || a.openTime || a.when || a.closeTime || 0).getTime();
+        const bTime = new Date(b.entryTime || b.openTime || b.when || b.closeTime || 0).getTime();
+        return aTime - bTime;
+      });
       const dayChartKey = `calendar-day-focus-${key}`;
       const firstTrade = orderedDayTrades[0];
       const lastTrade = orderedDayTrades.at(-1);
