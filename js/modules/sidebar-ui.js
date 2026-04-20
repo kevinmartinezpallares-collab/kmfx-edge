@@ -249,7 +249,9 @@ export function initSidebarUI(store) {
 
     profileRoot.innerHTML = `
       <div class="sidebar-profile-main">
-        <div class="sidebar-profile-avatar" data-user-avatar></div>
+        <button class="sidebar-profile-avatar-button" type="button" aria-label="Abrir acciones de usuario" aria-expanded="${isMenuOpen ? "true" : "false"}" data-sidebar-menu-toggle>
+          <div class="sidebar-profile-avatar" data-user-avatar></div>
+        </button>
         <div class="sidebar-profile-copy">
           <div class="sidebar-profile-name">${traderName}</div>
           <div class="sidebar-profile-sub" title="${email}">${email}</div>
@@ -270,10 +272,12 @@ export function initSidebarUI(store) {
       name: traderName
     });
 
-    profileRoot.querySelector("[data-sidebar-menu-toggle]")?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      profileRoot.__menuOpen = !profileRoot.__menuOpen;
-      syncMenuState();
+    profileRoot.querySelectorAll("[data-sidebar-menu-toggle]").forEach((toggle) => {
+      toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        profileRoot.__menuOpen = !profileRoot.__menuOpen;
+        syncMenuState();
+      });
     });
 
     profileRoot.querySelector('[data-sidebar-action="settings"]')?.addEventListener("click", (event) => {

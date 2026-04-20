@@ -12261,7 +12261,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext {
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   width: var(--sidebar-vnext-expanded-width);
-  padding: 16px 16px;
+  padding: 16px 16px 16px 0;
   gap: 18px;
   background: transparent !important;
   border: 0 !important;
@@ -12295,6 +12295,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 12px;
   min-height: 36px;
+  padding-left: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup,
@@ -12328,6 +12329,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .brand-title-edge {
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot {
   margin-top: 0;
+  padding-left: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher,
@@ -12541,7 +12543,7 @@ body[data-theme="dark"] .sidebar-account-picker__add-subtitle {
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav {
-  padding: 4px 0 0;
+  padding: 4px 0 0 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-list,
@@ -12605,6 +12607,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item svg {
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer {
   margin-top: auto;
+  padding-left: 12px;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -12616,6 +12619,28 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile {
   background: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-main,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-avatar-button,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-avatar-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  flex: 0 0 auto;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-avatar,
@@ -12656,13 +12681,25 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-item {
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
   width: var(--sidebar-vnext-collapsed-width);
-  padding-inline: 14px;
+  padding-inline: 0;
   gap: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-topbar,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-topbar {
+  grid-template-columns: 1fr;
   gap: 0;
+  justify-items: center;
+  padding-left: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer {
+  padding-left: 0;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list,
@@ -12677,15 +12714,33 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-gr
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-item {
-  width: 40px;
-  min-height: 40px;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
   border-radius: 10px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile {
+  display: grid;
+  justify-items: center;
   gap: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-main,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-main {
+  justify-content: center;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-avatar-button,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-avatar-button {
+  width: 32px;
+  height: 32px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu-btn,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu-btn {
+  display: none !important;
 }
 /* FIN BLOQUE: sidebar-runtime */
 
