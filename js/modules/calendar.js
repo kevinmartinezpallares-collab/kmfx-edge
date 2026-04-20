@@ -32,8 +32,6 @@ function buildDayCurve(dayTrades) {
 
 function buildDayMetrics(dayTrades) {
   const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
-  const totalVolume = ordered.reduce((sum, trade) => sum + Number(trade.volume || 0), 0);
-  const avgR = ordered.length ? ordered.reduce((sum, trade) => sum + Number(trade.rMultiple || 0), 0) / ordered.length : 0;
   const wins = ordered.filter((trade) => trade.pnl > 0).length;
   const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
   const worst = ordered.reduce((low, trade) => !low || trade.pnl < low.pnl ? trade : low, null);
@@ -41,12 +39,14 @@ function buildDayMetrics(dayTrades) {
     { label: "Trades", value: String(ordered.length) },
     { label: "Win rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
     { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: best?.pnl > 0 ? "metric-positive" : "" },
-    { label: "Peor trade", value: worst ? formatCurrency(worst.pnl) : "—", valueClass: worst?.pnl < 0 ? "metric-negative" : "" },
-    { label: "Volumen total", value: totalVolume ? `${totalVolume}` : "—" },
-    { label: "R medio", value: ordered.length ? `${avgR.toFixed(1)}R` : "—" },
-    { label: "Primera entrada", value: ordered[0]?.entry != null ? `${ordered[0].entry}` : "—" },
-    { label: "Última salida", value: ordered.at(-1)?.exit != null ? `${ordered.at(-1).exit}` : "—" }
+    { label: "Peor trade", value: worst ? formatCurrency(worst.pnl) : "—", valueClass: worst?.pnl < 0 ? "metric-negative" : "" }
   ];
+}
+
+function displayCalendarSetup(value) {
+  const text = String(value || "").trim();
+  if (!text || /mt5\s*sync/i.test(text)) return "—";
+  return text;
 }
 
 function renderDayTradeDisclosure(trade) {
@@ -61,15 +61,11 @@ function renderDayTradeDisclosure(trade) {
         <div class="focus-panel-disclosure__value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
       </summary>
       <div class="focus-panel-disclosure__body">
-        <div class="focus-panel-fields">
-          <div><strong>Entrada</strong><span>${trade.entry ?? "—"}</span></div>
-          <div><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
-          <div><strong>SL</strong><span>${trade.sl ?? "—"}</span></div>
-          <div><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
-          <div><strong>Volumen</strong><span>${trade.volume ?? "—"}</span></div>
-          <div><strong>Setup</strong><span>${trade.setup || "—"}</span></div>
-          <div><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
-          <div><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+        <div class="focus-panel-pairs">
+          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
+          <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
+          <div class="focus-panel-pair-row"><strong>Volumen</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
       </div>
     </details>
@@ -355,19 +351,17 @@ export function renderCalendar(root, state) {
       const firstTrade = orderedDayTrades[0];
       const lastTrade = orderedDayTrades.at(-1);
       openFocusPanel({
-        title: new Date(key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }),
-        status: "Operado",
-        statusTone: "neutral",
+        title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
         meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
         pnl: formatCurrency(dayPnl),
         pnlClass: dayPnl >= 0 ? "metric-positive" : "metric-negative",
         metrics: buildDayMetrics(orderedDayTrades),
+        metricStyle: "inline",
         maxWidth: "84vw",
         content: `
           <section class="focus-panel-section">
             <div class="focus-panel-section__head">
               <div class="focus-panel-section__title">Resumen rápido</div>
-              <div class="focus-panel-section__subtitle">Curva acumulada del día para leer ritmo y cierre sin ensuciar el calendario.</div>
             </div>
             <div class="focus-panel-chart">
               ${chartCanvas(dayChartKey, 240, "kmfx-chart-shell--feature")}
@@ -376,7 +370,6 @@ export function renderCalendar(root, state) {
           <section class="focus-panel-section">
             <div class="focus-panel-section__head">
               <div class="focus-panel-section__title">Trades del día</div>
-              <div class="focus-panel-section__subtitle">Expande cada ejecución solo cuando quieras ver el detalle operativo.</div>
             </div>
             <div class="focus-panel-disclosures">
               ${orderedDayTrades.map(renderDayTradeDisclosure).join("")}

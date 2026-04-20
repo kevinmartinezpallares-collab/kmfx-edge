@@ -60,43 +60,25 @@ function showTradeContextMenu(trade) {
     meta: `${trade.when.toLocaleDateString("es-ES")} · ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
     pnl: formatCurrency(trade.pnl),
     pnlClass: trade.pnl >= 0 ? "metric-positive" : "metric-negative",
-    metrics: [
-      { label: "Entrada", value: formatTableValue(trade.entry) },
-      { label: "Salida", value: formatTableValue(trade.exit) },
-      { label: "Lote", value: formatTableValue(trade.volume) },
-      { label: "Duración", value: trade.durationMin == null ? "—" : `${trade.durationMin} min` },
-      { label: "SL", value: formatTableValue(trade.sl) },
-      { label: "TP", value: formatTableValue(trade.tp) },
-      { label: "Fees", value: "—" },
-      { label: "R multiple", value: `${trade.rMultiple.toFixed(1)}R`, valueClass: trade.rMultiple >= 0 ? "metric-positive" : "metric-negative" }
-    ],
     maxWidth: "80vw",
     content: `
       <section class="focus-panel-section">
         <div class="focus-panel-section__head">
           <div class="focus-panel-section__title">Resumen rápido</div>
-          <div class="focus-panel-section__subtitle">Lectura operativa clara para validar ejecución, resultado y contexto sin cargar la tabla.</div>
         </div>
-        <div class="focus-panel-fields focus-panel-fields--wide">
-          <div><strong>Símbolo</strong><span>${trade.symbol}</span></div>
-          <div><strong>Dirección</strong><span>${trade.side}</span></div>
-          <div><strong>Fecha y hora</strong><span>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span></div>
-          <div><strong>P&L $</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
+        <div class="focus-panel-pairs">
+          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
+          <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(trade.sl)}</span><strong>TP</strong><span>${formatTableValue(trade.tp)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(trade.volume)}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Fees</strong><span>—</span><strong>R múltiple</strong><span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${trade.rMultiple.toFixed(1)}R</span></div>
         </div>
       </section>
       <section class="focus-panel-section">
         <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Detalles operativos</div>
+          <div class="focus-panel-section__title">Contexto</div>
         </div>
-        <div class="focus-panel-blocks">
-          <div class="focus-panel-block">
-            <div class="focus-panel-block__label">Setup</div>
-            <div class="focus-panel-block__value">${displayTradeSetup(trade.setup)}</div>
-          </div>
-          <div class="focus-panel-block">
-            <div class="focus-panel-block__label">Sesión</div>
-            <div class="focus-panel-block__value">${trade.session || "—"}</div>
-          </div>
+        <div class="focus-panel-pairs">
+          <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
       </section>
     `
@@ -112,27 +94,17 @@ function showPositionContextMenu(position) {
     meta: "Posición abierta",
     pnl: formatCurrency(position.pnl),
     pnlClass: position.pnl >= 0 ? "metric-positive" : "metric-negative",
-    metrics: [
-      { label: "Entrada", value: formatTableValue(position.entry) },
-      { label: "Salida", value: "—" },
-      { label: "Lote", value: formatTableValue(position.volume) },
-      { label: "Duración", value: "Abierta" },
-      { label: "SL", value: formatTableValue(position.sl) },
-      { label: "TP", value: formatTableValue(position.tp) },
-      { label: "Fees", value: "—" },
-      { label: "R multiple", value: "—" }
-    ],
     maxWidth: "80vw",
     content: `
       <section class="focus-panel-section">
         <div class="focus-panel-section__head">
           <div class="focus-panel-section__title">Detalle de la posición</div>
         </div>
-        <div class="focus-panel-fields focus-panel-fields--wide">
-          <div><strong>Símbolo</strong><span>${position.symbol}</span></div>
-          <div><strong>Dirección</strong><span>${position.side}</span></div>
-          <div><strong>Volumen</strong><span>${formatTableValue(position.volume)}</span></div>
-          <div><strong>P&L $</strong><span class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</span></div>
+        <div class="focus-panel-pairs">
+          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(position.entry)}</span><strong>Salida</strong><span>—</span></div>
+          <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(position.sl)}</span><strong>TP</strong><span>${formatTableValue(position.tp)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(position.volume)}</span><strong>Duración</strong><span>Abierta</span></div>
+          <div class="focus-panel-pair-row"><strong>Fees</strong><span>—</span><strong>R múltiple</strong><span>—</span></div>
         </div>
       </section>
     `

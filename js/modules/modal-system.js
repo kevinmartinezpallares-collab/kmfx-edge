@@ -1,4 +1,5 @@
 let modalRoot = null;
+let activeEscapeHandler = null;
 
 function ensureRoot() {
   if (modalRoot) return modalRoot;
@@ -32,6 +33,10 @@ export function closeModal() {
   if (!root) return;
   root.innerHTML = "";
   document.body.classList.remove("modal-open");
+  if (activeEscapeHandler) {
+    document.removeEventListener("keydown", activeEscapeHandler);
+    activeEscapeHandler = null;
+  }
 }
 
 function resolveModalWidth(maxWidth) {
@@ -43,7 +48,7 @@ function mountModal({ maxWidth = 560, overlayClass = "", cardClass = "", content
   if (!root) return;
 
   root.innerHTML = `
-    <div class="modal-overlay open ${overlayClass}" data-modal-dismiss="true">
+    <div class="modal-overlay ${overlayClass}" data-modal-dismiss="true">
       <div class="modal-card ${cardClass}" style="max-width:${resolveModalWidth(maxWidth)}" role="dialog" aria-modal="true">
         ${content}
       </div>
@@ -56,6 +61,10 @@ function mountModal({ maxWidth = 560, overlayClass = "", cardClass = "", content
   const overlay = root.querySelector(".modal-overlay");
   const card = root.querySelector(".modal-card");
   const dismissButtons = root.querySelectorAll(".modal-close, [data-modal-dismiss='true']");
+
+  requestAnimationFrame(() => {
+    overlay?.classList.add("open");
+  });
 
   overlay?.addEventListener("click", (event) => {
     if (event.target === overlay) {
@@ -74,6 +83,14 @@ function mountModal({ maxWidth = 560, overlayClass = "", cardClass = "", content
       closeModal();
     });
   });
+
+  activeEscapeHandler = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeModal();
+    }
+  };
+  document.addEventListener("keydown", activeEscapeHandler);
 
   if (typeof onMount === "function") onMount(card);
 }
@@ -103,6 +120,7 @@ export function openFocusPanel({
   pnl = "",
   pnlClass = "",
   metrics = [],
+  metricStyle = "grid",
   content = "",
   maxWidth = "82vw",
   onMount
@@ -132,7 +150,7 @@ export function openFocusPanel({
             </div>
             ${pnl ? `<div class="focus-panel__pnl ${pnlClass}">${pnl}</div>` : ""}
           </header>
-          ${metricMarkup ? `<section class="focus-panel__metrics">${metricMarkup}</section>` : ""}
+          ${metricMarkup ? `<section class="focus-panel__metrics focus-panel__metrics--${metricStyle}">${metricMarkup}</section>` : ""}
           <div class="focus-panel__content">${content}</div>
         </div>
       </div>
