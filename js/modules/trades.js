@@ -9,6 +9,13 @@ function formatTableValue(value) {
   return value == null || value === "" ? "—" : value;
 }
 
+function normalizeTradeSetup(value) {
+  const text = String(value || "").trim();
+  if (!text) return "—";
+  if (/mt5\s*sync/i.test(text)) return "—";
+  return text;
+}
+
 function positionRail(position, exposureBase) {
   return `
     <div class="metric-rail">
@@ -52,6 +59,27 @@ function showTradeContextMenu(trade) {
         <div><strong>Sesión</strong><span>${trade.session}</span></div>
         <div><strong>P&L</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
         <div><strong>R-Multiple</strong><span>${trade.rMultiple.toFixed(1)}R</span></div>
+      </div>
+      <div class="settings-actions">
+        <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
+      </div>
+    `
+  });
+}
+
+function showPositionContextMenu(position) {
+  if (!position) return;
+  openModal({
+    title: `${position.symbol} · ${position.side}`,
+    subtitle: "Detalle de la posición abierta",
+    maxWidth: 420,
+    content: `
+      <div class="info-list compact">
+        <div><strong>Volumen</strong><span>${formatTableValue(position.volume)}</span></div>
+        <div><strong>Entrada</strong><span>${formatTableValue(position.entry)}</span></div>
+        <div><strong>Stop Loss</strong><span>${formatTableValue(position.sl)}</span></div>
+        <div><strong>Take Profit</strong><span>${formatTableValue(position.tp)}</span></div>
+        <div><strong>P&L</strong><span class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</span></div>
       </div>
       <div class="settings-actions">
         <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
@@ -123,7 +151,7 @@ export function renderTrades(root, state) {
       <article class="tl-section-card">
         <div class="tl-section-header"><div class="tl-section-title">Resumen Operativo</div></div>
         <div class="breakdown-list">
-          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSetup?.key || "—"}</div></div>
+          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${normalizeTradeSetup(bestSetup?.key)}</div></div>
           <div class="list-row"><div><div class="row-title">Sesión más rentable</div><div class="row-sub">Mejor distribución de P&L</div></div><div class="row-pnl ${bestSession?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSession?.key || "—"}</div></div>
           <div class="list-row"><div><div class="row-title">Profit factor</div><div class="row-sub">Eficiencia media de la ejecución</div></div><div class="row-pnl">${model.totals.profitFactor.toFixed(2)}</div></div>
         </div>
@@ -161,9 +189,9 @@ export function renderTrades(root, state) {
           </thead>
           <tbody>
             ${model.positions.map((position) => `
-              <tr>
+              <tr class="open-position-row" data-position-id="${position.id || `${position.symbol}-${position.side}-${position.entry}`}">
                 <td><span class="table-symbol">${position.symbol}</span></td>
-                <td><span class="row-chip">${position.side}</span></td>
+                <td><span class="trade-side trade-side--${String(position.side || "").toLowerCase()}">${position.side}</span></td>
                 <td>${position.volume}</td>
                 <td>${position.entry}</td>
                 <td class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</td>
@@ -253,7 +281,7 @@ export function renderTrades(root, state) {
                 <td class="table-num ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</td>
                 <td class="table-num">${trade.rMultiple.toFixed(1)}R</td>
                 <td class="table-num">${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</td>
-                <td>${trade.setup}</td>
+                <td>${normalizeTradeSetup(trade.setup)}</td>
                 <td>${trade.session}</td>
               </tr>
             `).join("")}
@@ -292,6 +320,13 @@ export function renderTrades(root, state) {
   root.querySelectorAll(".trade-row").forEach((row) => {
     addLongPress(row, () => {
       showTradeContextMenu(tradesById.get(String(row.dataset.tradeId)));
+    });
+  });
+
+  const positionsById = new Map(model.positions.map((position) => [String(position.id || `${position.symbol}-${position.side}-${position.entry}`), position]));
+  root.querySelectorAll(".open-position-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      showPositionContextMenu(positionsById.get(String(row.dataset.positionId)));
     });
   });
 }
