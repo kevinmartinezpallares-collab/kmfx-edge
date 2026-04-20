@@ -6639,15 +6639,16 @@ body[data-theme="dark"] .calendar-summary-card__label {
 html[data-theme="dark"] .calendar-summary-card__value,
 body[data-theme="dark"] .calendar-summary-card__value {
   margin-top: 10px;
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.02;
   color: var(--text-0);
 }
 
 html[data-theme="dark"] .calendar-summary-card--primary .calendar-summary-card__value,
 body[data-theme="dark"] .calendar-summary-card--primary .calendar-summary-card__value {
-  font-size: 24px;
+  font-size: 28px;
 }
 
 html[data-theme="dark"] .calendar-summary-card__meta,
