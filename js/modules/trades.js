@@ -77,7 +77,7 @@ function showTradeContextMenu(trade) {
         <div class="focus-panel-section__head">
           <div class="focus-panel-section__title">Contexto</div>
         </div>
-        <div class="focus-panel-pairs">
+        <div class="focus-panel-pairs focus-panel-pairs--plain">
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
       </section>

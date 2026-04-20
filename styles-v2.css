@@ -12495,8 +12495,15 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sideba
 /* FIN BLOQUE: sidebar-runtime */
 
 /* INICIO BLOQUE: floating-surfaces-runtime */
+#modalRoot {
+  position: relative;
+  z-index: 12000;
+  isolation: isolate;
+}
+
 html[data-theme="dark"] .modal-overlay,
 body[data-theme="dark"] .modal-overlay {
+  z-index: 12000 !important;
   background: rgba(0, 0, 0, 0.52);
   backdrop-filter: blur(6px) saturate(110%);
   -webkit-backdrop-filter: blur(6px) saturate(110%);
@@ -12607,7 +12614,8 @@ body[data-theme="dark"] .connections-account-card__menu-trigger:hover {
 
 html[data-theme="dark"] .modal-overlay--focus-panel,
 body[data-theme="dark"] .modal-overlay--focus-panel {
-  background: rgba(0, 0, 0, 0.72);
+  z-index: 12010 !important;
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   opacity: 0;
@@ -12623,6 +12631,8 @@ html[data-theme="dark"] .modal-card--focus-panel,
 body[data-theme="dark"] .modal-card--focus-panel {
   width: min(84vw, 1180px);
   max-width: min(84vw, 1180px) !important;
+  max-height: min(86vh, 920px);
+  overflow: auto;
   background: #1c1c1e !important;
   border: 1px solid #38383a !important;
   border-radius: 16px !important;
@@ -12643,13 +12653,13 @@ body[data-theme="dark"] .modal-overlay--focus-panel.open .modal-card--focus-pane
 html[data-theme="dark"] .modal-body--focus-panel,
 body[data-theme="dark"] .modal-body--focus-panel {
   position: relative;
-  padding: 28px;
+  padding: 24px;
 }
 
 html[data-theme="dark"] .focus-panel,
 body[data-theme="dark"] .focus-panel {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 html[data-theme="dark"] .focus-panel-close,
@@ -12664,14 +12674,14 @@ body[data-theme="dark"] .focus-panel__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 24px;
+  gap: 20px;
   padding-right: 56px;
 }
 
 html[data-theme="dark"] .focus-panel__identity,
 body[data-theme="dark"] .focus-panel__identity {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 html[data-theme="dark"] .focus-panel__title-row,
@@ -12742,7 +12752,7 @@ html[data-theme="dark"] .focus-panel__metrics,
 body[data-theme="dark"] .focus-panel__metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .focus-panel__metrics--inline,
@@ -12766,7 +12776,7 @@ body[data-theme="dark"] .focus-panel-metric {
 
 html[data-theme="dark"] .focus-panel__metrics--inline .focus-panel-metric,
 body[data-theme="dark"] .focus-panel__metrics--inline .focus-panel-metric {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-right: 1px solid #38383a;
 }
 
@@ -12788,7 +12798,7 @@ body[data-theme="dark"] .focus-panel-metric__label {
 html[data-theme="dark"] .focus-panel-metric__value,
 body[data-theme="dark"] .focus-panel-metric__value {
   color: var(--text-0);
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.15;
   font-weight: 650;
 }
@@ -12796,13 +12806,13 @@ body[data-theme="dark"] .focus-panel-metric__value {
 html[data-theme="dark"] .focus-panel__content,
 body[data-theme="dark"] .focus-panel__content {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 html[data-theme="dark"] .focus-panel-section,
 body[data-theme="dark"] .focus-panel-section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .focus-panel-section__head,
@@ -12840,7 +12850,7 @@ body[data-theme="dark"] .focus-panel-chart {
   background: #232326;
   border: 1px solid #38383a;
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px 12px 8px;
 }
 
 html[data-theme="dark"] .focus-panel-fields,
@@ -12906,6 +12916,14 @@ body[data-theme="dark"] .focus-panel-pairs {
   overflow: hidden;
 }
 
+html[data-theme="dark"] .focus-panel-pairs--plain,
+body[data-theme="dark"] .focus-panel-pairs--plain {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
 html[data-theme="dark"] .focus-panel-pair-row,
 body[data-theme="dark"] .focus-panel-pair-row {
   display: grid;
@@ -12914,6 +12932,12 @@ body[data-theme="dark"] .focus-panel-pair-row {
   align-items: center;
   padding: 14px 16px;
   border-bottom: 1px solid #38383a;
+}
+
+html[data-theme="dark"] .focus-panel-pairs--plain .focus-panel-pair-row,
+body[data-theme="dark"] .focus-panel-pairs--plain .focus-panel-pair-row {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 html[data-theme="dark"] .focus-panel-pair-row:last-child,
@@ -13015,7 +13039,7 @@ body[data-theme="dark"] .focus-panel-disclosure__value {
 
 html[data-theme="dark"] .focus-panel-disclosure__body,
 body[data-theme="dark"] .focus-panel-disclosure__body {
-  padding: 0 16px 16px;
+  padding: 0 16px 12px;
 }
 
 html[data-theme="dark"] .focus-panel-trade-side,

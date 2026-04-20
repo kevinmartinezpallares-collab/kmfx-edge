@@ -61,7 +61,7 @@ function renderDayTradeDisclosure(trade) {
         <div class="focus-panel-disclosure__value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
       </summary>
       <div class="focus-panel-disclosure__body">
-        <div class="focus-panel-pairs">
+        <div class="focus-panel-pairs focus-panel-pairs--plain">
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>Volumen</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
@@ -364,7 +364,7 @@ export function renderCalendar(root, state) {
               <div class="focus-panel-section__title">Resumen rápido</div>
             </div>
             <div class="focus-panel-chart">
-              ${chartCanvas(dayChartKey, 240, "kmfx-chart-shell--feature")}
+              ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
             </div>
           </section>
           <section class="focus-panel-section">
