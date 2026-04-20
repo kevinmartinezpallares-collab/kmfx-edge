@@ -173,27 +173,27 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
   if (normalized === "blocked" || normalized === "breach") {
     return {
       summary: "Actúa ahora.",
-      detail: "Reduce riesgo.",
+      detail: "Intervención requerida.",
     };
   }
 
   if (normalized === "warning") {
     return {
       summary: "Vigilar.",
-      detail: "Mira el margen.",
+      detail: "Revisa el margen.",
     };
   }
 
   if (openPositionsCount > 0) {
     return {
       summary: "Bajo control.",
-      detail: "Sin alertas.",
+      detail: "Sin acción requerida.",
     };
   }
 
   return {
     summary: "Bajo control.",
-    detail: "Sin alertas.",
+    detail: "Sin acción requerida.",
   };
 }
 
@@ -668,6 +668,7 @@ export function renderDashboard(root, state) {
     maxRiskPerTradePct: riskSummary.maxRiskPerTradePct,
   });
   const postureTone = riskPostureRead.tone || "neutral";
+  const operationalMarginTone = ["warning", "breach", "blocked"].includes(riskTone) ? riskTone : "neutral";
   const hasEnforcementSignal = hasActiveEnforcementSignal(riskStatus);
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
   const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
@@ -837,7 +838,7 @@ export function renderDashboard(root, state) {
                 label: "Margen",
                 value: formatRiskValuePct(primaryDistanceToLimit, 2),
                 meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
-                tone: riskTone,
+                tone: operationalMarginTone,
               })}
               ${renderRiskMetricCard({
                 label: "Estado",
