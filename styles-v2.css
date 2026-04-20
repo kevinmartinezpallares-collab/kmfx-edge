@@ -11682,12 +11682,12 @@ body[data-theme="dark"] .dashboard-primary-card .widget-segmented {
 
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
-  padding: 20px !important;
+  padding: 18px !important;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__head,
 body[data-theme="dark"] .dashboard-secondary-card__head {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   align-items: flex-start;
 }
 
@@ -11696,13 +11696,14 @@ body[data-theme="dark"] .dashboard-secondary-card .calendar-panel-sub {
   margin-top: 4px;
   font-size: 12px;
   line-height: 1.35;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__metrics,
 body[data-theme="dark"] .dashboard-secondary-card__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__metrics--two,
@@ -11712,22 +11713,22 @@ body[data-theme="dark"] .dashboard-secondary-card__metrics--two {
 
 html[data-theme="dark"] .dashboard-secondary-card__foot,
 body[data-theme="dark"] .dashboard-secondary-card__foot {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.3;
   color: var(--text-2);
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card {
-  padding: 16px !important;
+  padding: 14px !important;
   border-radius: 14px;
   border: 1px solid var(--border-subtle) !important;
   background: rgba(255, 255, 255, 0.02) !important;
   box-shadow: none !important;
-  min-height: 132px;
+  min-height: 116px;
   display: grid;
   align-content: start;
 }
@@ -11741,7 +11742,7 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card__label {
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card__value,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card__value {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 18px;
   line-height: 1.08;
   font-weight: 650;
@@ -11749,10 +11750,27 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card__value {
 
 html[data-theme="dark"] .dashboard-screen .risk-metric-card__meta,
 body[data-theme="dark"] .dashboard-screen .risk-metric-card__meta {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card--ok .risk-metric-card__value,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card--ok .risk-metric-card__value {
+  color: var(--positive);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card--warning .risk-metric-card__value,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card--warning .risk-metric-card__value {
+  color: var(--warning, #d6a24a);
+}
+
+html[data-theme="dark"] .dashboard-screen .risk-metric-card--breach .risk-metric-card__value,
+html[data-theme="dark"] .dashboard-screen .risk-metric-card--blocked .risk-metric-card__value,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card--breach .risk-metric-card__value,
+body[data-theme="dark"] .dashboard-screen .risk-metric-card--blocked .risk-metric-card__value {
+  color: var(--negative);
 }
 
 html[data-theme="dark"] .app-disclaimer-footer,

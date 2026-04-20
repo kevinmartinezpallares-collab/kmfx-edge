@@ -172,28 +172,28 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
   const normalized = String(riskStatus?.riskStatus || "").toLowerCase();
   if (normalized === "blocked" || normalized === "breach") {
     return {
-      summary: "Reducir riesgo ahora.",
-      detail: "Hay una condición activa que exige intervención.",
+      summary: "Actúa ahora.",
+      detail: "Reduce riesgo.",
     };
   }
 
   if (normalized === "warning") {
     return {
-      summary: "Vigilancia necesaria.",
-      detail: "El margen operativo se está estrechando.",
+      summary: "Vigilar.",
+      detail: "Mira el margen.",
     };
   }
 
   if (openPositionsCount > 0) {
     return {
       summary: "Bajo control.",
-      detail: "Sin alertas relevantes en el riesgo vivo.",
+      detail: "Sin alertas.",
     };
   }
 
   return {
     summary: "Bajo control.",
-    detail: "Sin alertas relevantes.",
+    detail: "Sin alertas.",
   };
 }
 
@@ -204,21 +204,24 @@ function getRiskPostureRead({ totalOpenRiskPct, maxOpenTradeRiskPct, maxRiskPerT
 
   if (totalOpenRisk <= 0 && maxTradeRisk <= 0) {
     return {
-      summary: "Exposicion contenida.",
-      detail: "No hay riesgo abierto relevante en cartera.",
+      summary: "Sin exposición.",
+      detail: "Sin riesgo abierto.",
+      tone: "neutral",
     };
   }
 
-  if (policyRisk > 0 && maxTradeRisk >= policyRisk * 0.8) {
+  if ((policyRisk > 0 && maxTradeRisk >= policyRisk * 0.8) || totalOpenRisk >= Math.max(policyRisk * 1.5, 1)) {
     return {
-      summary: "Vigila el riesgo por posicion.",
-      detail: "Alguna posicion se acerca al maximo permitido por trade.",
+      summary: "Reducir riesgo.",
+      detail: "Exposición alta.",
+      tone: "breach",
     };
   }
 
   return {
-    summary: "Riesgo abierto bajo control.",
-    detail: "La exposicion actual sigue dentro del rango operativo esperado.",
+    summary: "Vigilar exposición.",
+    detail: "Riesgo medio.",
+    tone: "warning",
   };
 }
 
@@ -664,6 +667,7 @@ export function renderDashboard(root, state) {
     maxOpenTradeRiskPct: riskSummary.maxOpenTradeRiskPct,
     maxRiskPerTradePct: riskSummary.maxRiskPerTradePct,
   });
+  const postureTone = riskPostureRead.tone || "neutral";
   const hasEnforcementSignal = hasActiveEnforcementSignal(riskStatus);
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
   const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
@@ -830,21 +834,21 @@ export function renderDashboard(root, state) {
                 tone: riskTone,
               })}
               ${renderRiskMetricCard({
-                label: "Distance to limit",
+                label: "Margen",
                 value: formatRiskValuePct(primaryDistanceToLimit, 2),
                 meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
                 tone: riskTone,
               })}
               ${renderRiskMetricCard({
-                label: "Acción requerida",
+                label: "Estado",
                 value: riskStateLabel,
-                meta: riskAction,
+                meta: operationalRead.detail,
                 tone: riskTone,
               })}
             </div>
 
             <div class="dashboard-secondary-card__foot">
-              <span>${operationalRead.detail}</span>
+              <span>${riskAction}</span>
             </div>
           </article>
 
@@ -857,14 +861,16 @@ export function renderDashboard(root, state) {
             </div>
             <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
               ${renderRiskMetricCard({
-                label: "Total open risk",
+                label: "Open risk",
                 value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
                 meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
+                tone: postureTone,
               })}
               ${renderRiskMetricCard({
-                label: "Max trade risk",
+                label: "Riesgo por trade",
                 value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
                 meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
+                tone: postureTone,
               })}
             </div>
             <div class="dashboard-secondary-card__foot">
