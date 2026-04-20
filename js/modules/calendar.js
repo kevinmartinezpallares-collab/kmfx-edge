@@ -175,6 +175,182 @@ function renderDayTradeDisclosure(trade, options = {}) {
   `;
 }
 
+function openCalendarDayFocus(root, state, model, key) {
+  const dayTrades = (model?.trades || []).filter((trade) => getCalendarTradeDayKey(trade) === key);
+  const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
+  const orderedDayTrades = [...dayTrades].sort((a, b) => {
+    const aTime = new Date(a.entryTime || a.openTime || a.when || a.closeTime || 0).getTime();
+    const bTime = new Date(b.entryTime || b.openTime || b.when || b.closeTime || 0).getTime();
+    return aTime - bTime;
+  });
+  const executiveRead = buildDayExecutiveRead(orderedDayTrades);
+  const dayChartKey = `calendar-day-focus-${key}`;
+  const firstTrade = orderedDayTrades[0];
+  const lastTrade = orderedDayTrades.at(-1);
+
+  openFocusPanel({
+    title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
+    meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
+    pnl: formatCurrency(dayPnl),
+    pnlClass: dayPnl >= 0 ? "metric-positive" : "metric-negative",
+    metrics: buildDayMetrics(orderedDayTrades),
+    metricStyle: "inline",
+    maxWidth: "84vw",
+    content: `
+      <section class="focus-panel-section focus-panel-section--lead">
+        <div class="focus-panel-read">
+          <p class="focus-panel-read__summary">${executiveRead.summary}</p>
+        </div>
+      </section>
+      <section class="focus-panel-section">
+        <div class="focus-panel-section__head">
+          <div class="focus-panel-section__title">Resumen rápido</div>
+        </div>
+        <div class="focus-panel-chart">
+          ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
+        </div>
+      </section>
+      <section class="focus-panel-section">
+        <div class="focus-panel-section__head">
+          <div class="focus-panel-section__title">Trades del día</div>
+        </div>
+        <div class="focus-panel-trades-head">
+          <span>Símbolo</span>
+          <span>Dirección</span>
+          <span>Entrada</span>
+          <span>Salida</span>
+          <span>P&amp;L</span>
+        </div>
+        <div class="focus-panel-disclosures">
+          ${orderedDayTrades.map((trade) => renderDayTradeDisclosure(trade, { isPrimary: String(trade.id) === executiveRead.topTradeId })).join("")}
+        </div>
+      </section>
+    `,
+    onMount(card) {
+      mountCharts(card, [
+        lineAreaSpec(dayChartKey, buildDayCurve(orderedDayTrades), {
+          tone: dayPnl >= 0 ? "green" : "red",
+          showXAxis: true,
+          showYAxis: true,
+          showYGrid: false,
+          showAxisBorder: false,
+          axisFontSize: 10,
+          axisFontWeight: "600",
+          xTickPadding: 10,
+          yTickPadding: 10,
+          maxXTicks: 5,
+          maxYTicks: 4,
+          borderWidth: 2.1,
+          fill: true,
+          fillAlphaStart: 0.12,
+          fillAlphaEnd: 0,
+          glowAlpha: 0,
+          tension: 0.34,
+          animation: false
+        })
+      ]);
+    }
+  });
+}
+
+function buildYearSummary(dayStats, calendarMonths, selectedYear) {
+  const yearKey = String(selectedYear);
+  const yearDays = (dayStats || []).filter((day) => day.key.startsWith(`${yearKey}-`));
+  const yearMonths = (calendarMonths || []).filter((month) => month.key.startsWith(`${yearKey}-`));
+  const activeMonths = yearMonths.filter((month) => Number(month.trades || 0) > 0).length;
+  const activeDays = yearDays.filter((day) => Number(day.trades || 0) > 0).length;
+  const winDays = yearDays.filter((day) => Number(day.pnl || 0) > 0).length;
+  const lossDays = yearDays.filter((day) => Number(day.pnl || 0) < 0).length;
+  const yearPnl = yearMonths.reduce((sum, month) => sum + Number(month.pnl || 0), 0);
+  const tradeCount = yearMonths.reduce((sum, month) => sum + Number(month.trades || 0), 0);
+  const startBalance = Number(yearMonths[0]?.startBalance || 0);
+  const consistencyPct = activeDays ? (winDays / activeDays) * 100 : 0;
+
+  return {
+    yearPnl,
+    tradeCount,
+    activeDays,
+    activeMonths,
+    winDays,
+    lossDays,
+    yearReturnPct: startBalance ? (yearPnl / startBalance) * 100 : 0,
+    consistencyPct,
+    consistencyLabel: activeMonths
+      ? winDays >= lossDays
+        ? "Más días a favor que en contra"
+        : "Año con presión operativa"
+      : "Todavía sin muestra suficiente"
+  };
+}
+
+function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, selectedMonthKey, hasModel) {
+  return calendarMonths
+    .filter((month) => month.key.startsWith(`${selectedYear}-`))
+    .map((monthRecord) => {
+      const monthView = buildMonthView(dayStats, monthRecord.key);
+      const tradeCount = Number(monthRecord.trades || monthView.cells.reduce((sum, cell) => sum + Number(cell.trades || 0), 0));
+      const monthValue = valueMode === "percent"
+        ? formatPercent(Number(monthRecord.returnPct || 0))
+        : formatCurrency(Number(monthRecord.pnl || 0));
+      const monthValueClass = Number(monthRecord.pnl || 0) > 0
+        ? "metric-positive"
+        : Number(monthRecord.pnl || 0) < 0
+          ? "metric-negative"
+          : "";
+      const cardClasses = [
+        "calendar-year-card",
+        monthRecord.key === selectedMonthKey ? "is-selected-month" : "",
+        tradeCount > 0 ? "has-trades" : "is-idle"
+      ].filter(Boolean).join(" ");
+
+      return `
+        <article class="${cardClasses}">
+          <div class="calendar-year-card__head">
+            <button class="calendar-year-card__month" type="button" data-calendar-open-month="${monthRecord.key}">${monthKeyToDate(monthRecord.key).toLocaleDateString("es-ES", { month: "long" })}</button>
+            <span class="calendar-year-card__badge ${monthValueClass}">${hasModel ? monthValue : "—"}</span>
+          </div>
+          <div class="calendar-year-card__weekdays">
+            ${CALENDAR_HEADERS.map((header) => `<span>${header.slice(0, 1)}</span>`).join("")}
+          </div>
+          <div class="calendar-year-card__grid">
+            ${monthView.cells.map((cell) => {
+              if (!cell.inMonth) {
+                return `<span class="calendar-year-day calendar-year-day--empty" aria-hidden="true"></span>`;
+              }
+              const dayClasses = [
+                "calendar-year-day",
+                cell.trades ? "has-trades" : "is-idle",
+                cell.state === "win" ? "is-win" : "",
+                cell.state === "loss" ? "is-loss" : "",
+                cell.isToday ? "is-today" : ""
+              ].filter(Boolean).join(" ");
+              if (cell.trades && hasModel) {
+                return `<button class="${dayClasses}" type="button" data-calendar-day="${cell.key}" aria-label="${cell.date.getDate()} · ${cell.trades} trades">${cell.date.getDate()}</button>`;
+              }
+              return `<span class="${dayClasses}">${cell.date.getDate()}</span>`;
+            }).join("")}
+          </div>
+          <div class="calendar-year-card__footer">${tradeCount ? `${tradeCount} trades` : "Sin operativa"}</div>
+        </article>
+      `;
+    }).join("");
+}
+
+function getCalendarViewMode(root) {
+  if (root.__calendarViewMode !== "year") {
+    root.__calendarViewMode = "month";
+  }
+  return root.__calendarViewMode;
+}
+
+function getCalendarYear(root, years, preferredYear) {
+  const fallbackYear = preferredYear || years[years.length - 1] || new Date().getFullYear();
+  if (!root.__calendarYear || !years.includes(Number(root.__calendarYear))) {
+    root.__calendarYear = fallbackYear;
+  }
+  return Number(root.__calendarYear);
+}
+
 export function renderCalendar(root, state) {
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
@@ -193,11 +369,17 @@ export function renderCalendar(root, state) {
     ? currentMonthKey
     : latestMonthKey;
   const monthKey = getCalendarMonthKey(root, calendarMonths, initialMonthKey);
+  const viewMode = getCalendarViewMode(root);
+  const calendarYears = [...new Set(calendarMonths.map((month) => Number(month.key.slice(0, 4))))].sort((a, b) => a - b);
+  const selectedYear = getCalendarYear(root, calendarYears, Number(monthKey.slice(0, 4)) || new Date().getFullYear());
+  const selectedYearIndex = calendarYears.findIndex((year) => year === selectedYear);
   const monthIndex = calendarMonths.findIndex((month) => month.key === monthKey);
   const selectedMonth = calendarMonths[monthIndex] || calendarMonths[calendarMonths.length - 1];
   const valueMode = getCalendarValueMode(root);
   const monthView = buildMonthView(dayStats, monthKey);
-  const summary = buildMonthSummary(monthView, selectedMonth);
+  const summary = viewMode === "year"
+    ? buildYearSummary(dayStats, calendarMonths, selectedYear)
+    : buildMonthSummary(monthView, selectedMonth);
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
   const cumulativeCurve = buildCalendarCurve(dayStats, selectedMonth);
@@ -274,30 +456,34 @@ export function renderCalendar(root, state) {
         </div>
 
         <div class="calendar-month-nav" aria-label="Selector de mes">
-          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}>‹</button>
+          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
           <div class="calendar-month-nav__label">
-            <strong>${monthView.label}</strong>
-            <span>${summary.activeDays} días operados</span>
+            <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
+            <span>${viewMode === "year" ? `${summary.activeMonths} meses operados` : `${summary.activeDays} días operados`}</span>
+          </div>
+          <div class="widget-segmented calendar-view-toggle" role="tablist" aria-label="Vista del calendario">
+            <button class="widget-segmented-btn ${viewMode === "month" ? "active" : ""}" type="button" data-calendar-view-mode="month">Mes</button>
+            <button class="widget-segmented-btn ${viewMode === "year" ? "active" : ""}" type="button" data-calendar-view-mode="year">Año</button>
           </div>
           <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
             <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
             <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
           </div>
-          <button class="calendar-month-nav__btn" type="button" data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}>›</button>
+          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
         </div>
       </header>
       ${adminTracePanel}
 
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">
-          <div class="calendar-summary-card__label">P&L del mes</div>
-          <div class="calendar-summary-card__value ${summary.monthPnl >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCalendarValue(summary.monthPnl, valueMode, selectedMonth?.startBalance) : "—"}</div>
-          <div class="calendar-summary-card__meta">${hasTradingData ? valueMode === "usd" ? `${formatPercent(summary.monthReturnPct)} sobre balance inicial del mes` : "Rentabilidad del mes sobre balance inicial" : "Sin muestra mensual todavía"}</div>
+          <div class="calendar-summary-card__label">${viewMode === "year" ? "P&L del año" : "P&L del mes"}</div>
+          <div class="calendar-summary-card__value ${(viewMode === "year" ? summary.yearPnl : summary.monthPnl) >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCalendarValue(viewMode === "year" ? summary.yearPnl : summary.monthPnl, valueMode, viewMode === "year" ? calendarMonths.find((month) => month.key.startsWith(`${selectedYear}-`))?.startBalance : selectedMonth?.startBalance) : "—"}</div>
+          <div class="calendar-summary-card__meta">${hasTradingData ? valueMode === "usd" ? `${formatPercent(viewMode === "year" ? summary.yearReturnPct : summary.monthReturnPct)} sobre balance inicial ${viewMode === "year" ? "del año" : "del mes"}` : `Rentabilidad ${viewMode === "year" ? "del año" : "del mes"} sobre balance inicial` : `Sin muestra ${viewMode === "year" ? "anual" : "mensual"} todavía`}</div>
         </article>
 
         <article class="calendar-summary-card">
-          <div class="calendar-summary-card__label">Días operados</div>
-          <div class="calendar-summary-card__value">${hasModel ? summary.activeDays : "—"}</div>
+          <div class="calendar-summary-card__label">${viewMode === "year" ? "Meses operados" : "Días operados"}</div>
+          <div class="calendar-summary-card__value">${hasModel ? (viewMode === "year" ? summary.activeMonths : summary.activeDays) : "—"}</div>
           <div class="calendar-summary-card__meta">${hasTradingData ? `${summary.tradeCount} trades cerrados` : "Actividad pendiente de cargar"}</div>
         </article>
 
@@ -314,116 +500,139 @@ export function renderCalendar(root, state) {
         </article>
       </section>
 
-      <section class="tl-section-card calendar-month-panel">
-        <div class="calendar-month-panel__head">
-          <div>
-            <div class="calendar-month-panel__title">${monthView.label}</div>
-            <div class="calendar-month-panel__sub">El foco es el ritmo diario: qué días ejecutaste, cómo cerraron y qué semanas sostuvieron la curva.</div>
-          </div>
+      ${viewMode === "year"
+        ? `
+          <section class="tl-section-card calendar-month-panel calendar-year-panel">
+            <div class="calendar-month-panel__head">
+              <div>
+                <div class="calendar-month-panel__title">${selectedYear} · vista anual</div>
+                <div class="calendar-month-panel__sub">Lee el año entero de un vistazo: meses fuertes, baches y días que merecen revisión sin salir del sistema KMFX.</div>
+              </div>
 
-          <div class="calendar-month-panel__legend" aria-label="Leyenda">
-            <span><i class="calendar-legend-dot calendar-legend-dot--win"></i>Positivo</span>
-            <span><i class="calendar-legend-dot calendar-legend-dot--loss"></i>Negativo</span>
-            <span><i class="calendar-legend-dot calendar-legend-dot--idle"></i>Sin operativa</span>
-            <span><i class="calendar-legend-dot calendar-legend-dot--today"></i>Hoy</span>
-          </div>
-        </div>
+              <div class="calendar-month-panel__legend" aria-label="Leyenda">
+                <span><i class="calendar-legend-dot calendar-legend-dot--win"></i>Positivo</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--loss"></i>Negativo</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--idle"></i>Sin operativa</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--today"></i>Hoy</span>
+              </div>
+            </div>
+            <div class="calendar-year-grid">
+              ${buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, monthKey, hasModel)}
+            </div>
+          </section>
+        `
+        : `
+          <section class="tl-section-card calendar-month-panel">
+            <div class="calendar-month-panel__head">
+              <div>
+                <div class="calendar-month-panel__title">${monthView.label}</div>
+                <div class="calendar-month-panel__sub">El foco es el ritmo diario: qué días ejecutaste, cómo cerraron y qué semanas sostuvieron la curva.</div>
+              </div>
 
-        <div class="calendar-month-grid ${!hasModel ? "calendar-month-grid--loading" : ""}">
-          ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
-          ${monthView.cells.map((cell) => {
-            const intensityClass = cell.trades ? getCalendarIntensityClass(cell.pnl, monthView.maxAbsPnl) : "";
-            const classes = [
-              "calendar-day",
-              !hasModel ? "calendar-day--skeleton skeleton" : "",
-              cell.inMonth ? "is-current-month" : "is-outside-month",
-              cell.trades ? "has-trades" : "is-idle",
-              cell.state === "win" ? "is-win" : "",
-              cell.state === "loss" ? "is-loss" : "",
-              intensityClass,
-              cell.isToday ? "is-today" : "",
-              root.__calendarSelectedDay === cell.key ? "is-selected" : ""
-            ].filter(Boolean).join(" ");
-            const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
-            return `
-              <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
-                <div class="calendar-day__top">
-                  <span class="calendar-day__date">${cell.date.getDate()}</span>
+              <div class="calendar-month-panel__legend" aria-label="Leyenda">
+                <span><i class="calendar-legend-dot calendar-legend-dot--win"></i>Positivo</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--loss"></i>Negativo</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--idle"></i>Sin operativa</span>
+                <span><i class="calendar-legend-dot calendar-legend-dot--today"></i>Hoy</span>
+              </div>
+            </div>
+
+            <div class="calendar-month-grid ${!hasModel ? "calendar-month-grid--loading" : ""}">
+              ${CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
+              ${monthView.cells.map((cell) => {
+                const intensityClass = cell.trades ? getCalendarIntensityClass(cell.pnl, monthView.maxAbsPnl) : "";
+                const classes = [
+                  "calendar-day",
+                  !hasModel ? "calendar-day--skeleton skeleton" : "",
+                  cell.inMonth ? "is-current-month" : "is-outside-month",
+                  cell.trades ? "has-trades" : "is-idle",
+                  cell.state === "win" ? "is-win" : "",
+                  cell.state === "loss" ? "is-loss" : "",
+                  intensityClass,
+                  cell.isToday ? "is-today" : "",
+                  root.__calendarSelectedDay === cell.key ? "is-selected" : ""
+                ].filter(Boolean).join(" ");
+                const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+                return `
+                  <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
+                    <div class="calendar-day__top">
+                      <span class="calendar-day__date">${cell.date.getDate()}</span>
+                    </div>
+                    <div class="calendar-day__body">
+                      ${cell.trades && hasModel
+                        ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance)}</div>
+                           <div class="calendar-day__meta">${tradesLabel}</div>`
+                        : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+
+            ${monthView.weeks.length
+              ? `
+                <div class="calendar-week-strip">
+                  ${monthView.weeks.map((week) => `
+                    <article class="calendar-week-chip">
+                      <div class="calendar-week-chip__label">${week.label}</div>
+                      <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">${formatCurrency(week.pnl)}</div>
+                      <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} trades</div>
+                    </article>
+                  `).join("")}
                 </div>
-                <div class="calendar-day__body">
-                  ${cell.trades && hasModel
-                    ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance)}</div>
-                       <div class="calendar-day__meta">${tradesLabel}</div>`
-                    : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+              `
+              : ""}
+          </section>
+
+          <section class="calendar-analytics-stack">
+            <article class="tl-section-card chart-card calendar-chart-panel">
+              <div class="calendar-panel-head">
+                <div>
+                  <div class="calendar-panel-title">Rentabilidad acumulada</div>
+                  <div class="calendar-panel-sub">${hasTradingData ? "Lectura acumulada para seguir la tracción del año sin competir con la vista mensual." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
                 </div>
-              </button>
-            `;
-          }).join("")}
-        </div>
+              </div>
+              <div class="calendar-chart-wrap">
+                ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature")}
+              </div>
+            </article>
 
-        ${monthView.weeks.length
-          ? `
-            <div class="calendar-week-strip">
-              ${monthView.weeks.map((week) => `
-                <article class="calendar-week-chip">
-                  <div class="calendar-week-chip__label">${week.label}</div>
-                  <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">${formatCurrency(week.pnl)}</div>
-                  <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} trades</div>
-                </article>
-              `).join("")}
-            </div>
-          `
-          : ""}
-      </section>
-
-      <section class="calendar-analytics-stack">
-        <article class="tl-section-card chart-card calendar-chart-panel">
-          <div class="calendar-panel-head">
-            <div>
-              <div class="calendar-panel-title">Rentabilidad acumulada</div>
-              <div class="calendar-panel-sub">${hasTradingData ? "Lectura acumulada para seguir la tracción del año sin competir con la vista mensual." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
-            </div>
-          </div>
-          <div class="calendar-chart-wrap">
-            ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature")}
-          </div>
-        </article>
-
-        <article class="tl-section-card table-card calendar-returns-panel">
-          <div class="calendar-panel-head">
-            <div>
-              <div class="calendar-panel-title">Tabla de rentabilidad</div>
-              <div class="calendar-panel-sub">${hasTradingData ? "Visión mensual y anual para leer progreso, baches y cierre del año de un vistazo." : "La matriz anual aparecerá aquí cuando existan meses cerrados."}</div>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Año</th>
-                  <th>Ene</th>
-                  <th>Feb</th>
-                  <th>Mar</th>
-                  <th>Abr</th>
-                  <th>May</th>
-                  <th>Jun</th>
-                  <th>Jul</th>
-                  <th>Ago</th>
-                  <th>Sep</th>
-                  <th>Oct</th>
-                  <th>Nov</th>
-                  <th>Dic</th>
-                  <th>Total año</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonth?.key)}
-              </tbody>
-              ${buildMonthlyMatrixFooter(monthlyMatrix, hasModel)}
-            </table>
-          </div>
-        </article>
-      </section>
+            <article class="tl-section-card table-card calendar-returns-panel">
+              <div class="calendar-panel-head">
+                <div>
+                  <div class="calendar-panel-title">Tabla de rentabilidad</div>
+                  <div class="calendar-panel-sub">${hasTradingData ? "Visión mensual y anual para leer progreso, baches y cierre del año de un vistazo." : "La matriz anual aparecerá aquí cuando existan meses cerrados."}</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Año</th>
+                      <th>Ene</th>
+                      <th>Feb</th>
+                      <th>Mar</th>
+                      <th>Abr</th>
+                      <th>May</th>
+                      <th>Jun</th>
+                      <th>Jul</th>
+                      <th>Ago</th>
+                      <th>Sep</th>
+                      <th>Oct</th>
+                      <th>Nov</th>
+                      <th>Dic</th>
+                      <th>Total año</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonth?.key)}
+                  </tbody>
+                  ${buildMonthlyMatrixFooter(monthlyMatrix, hasModel)}
+                </table>
+              </div>
+            </article>
+          </section>
+        `}
     </section>
   `;
 
@@ -437,10 +646,35 @@ export function renderCalendar(root, state) {
     });
   });
 
+  root.querySelectorAll("[data-calendar-year-shift]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const offset = Number(button.dataset.calendarYearShift);
+      const nextYear = calendarYears[selectedYearIndex + offset];
+      if (!nextYear) return;
+      root.__calendarYear = nextYear;
+      renderCalendar(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-calendar-view-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      root.__calendarViewMode = button.dataset.calendarViewMode === "year" ? "year" : "month";
+      renderCalendar(root, state);
+    });
+  });
+
   root.querySelectorAll("[data-calendar-value-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       const nextMode = button.dataset.calendarValueMode === "percent" ? "percent" : "usd";
       root.__calendarValueMode = nextMode;
+      renderCalendar(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-calendar-open-month]").forEach((button) => {
+    button.addEventListener("click", () => {
+      root.__calendarMonthKey = button.dataset.calendarOpenMonth;
+      root.__calendarViewMode = "month";
       renderCalendar(root, state);
     });
   });
@@ -450,81 +684,7 @@ export function renderCalendar(root, state) {
       const key = button.dataset.calendarDay;
       root.__calendarSelectedDay = key;
       renderCalendar(root, state);
-
-      const dayTrades = (model?.trades || []).filter((trade) => getCalendarTradeDayKey(trade) === key);
-      const dayPnl = dayTrades.reduce((sum, trade) => sum + trade.pnl, 0);
-      const orderedDayTrades = [...dayTrades].sort((a, b) => {
-        const aTime = new Date(a.entryTime || a.openTime || a.when || a.closeTime || 0).getTime();
-        const bTime = new Date(b.entryTime || b.openTime || b.when || b.closeTime || 0).getTime();
-        return aTime - bTime;
-      });
-      const executiveRead = buildDayExecutiveRead(orderedDayTrades);
-      const dayChartKey = `calendar-day-focus-${key}`;
-      const firstTrade = orderedDayTrades[0];
-      const lastTrade = orderedDayTrades.at(-1);
-      openFocusPanel({
-        title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
-        meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
-        pnl: formatCurrency(dayPnl),
-        pnlClass: dayPnl >= 0 ? "metric-positive" : "metric-negative",
-        metrics: buildDayMetrics(orderedDayTrades),
-        metricStyle: "inline",
-        maxWidth: "84vw",
-        content: `
-          <section class="focus-panel-section focus-panel-section--lead">
-            <div class="focus-panel-read">
-              <p class="focus-panel-read__summary">${executiveRead.summary}</p>
-            </div>
-          </section>
-          <section class="focus-panel-section">
-            <div class="focus-panel-section__head">
-              <div class="focus-panel-section__title">Resumen rápido</div>
-            </div>
-            <div class="focus-panel-chart">
-              ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
-            </div>
-          </section>
-          <section class="focus-panel-section">
-            <div class="focus-panel-section__head">
-              <div class="focus-panel-section__title">Trades del día</div>
-            </div>
-            <div class="focus-panel-trades-head">
-              <span>Símbolo</span>
-              <span>Dirección</span>
-              <span>Entrada</span>
-              <span>Salida</span>
-              <span>P&amp;L</span>
-            </div>
-            <div class="focus-panel-disclosures">
-              ${orderedDayTrades.map((trade) => renderDayTradeDisclosure(trade, { isPrimary: String(trade.id) === executiveRead.topTradeId })).join("")}
-            </div>
-          </section>
-        `,
-        onMount(card) {
-          mountCharts(card, [
-            lineAreaSpec(dayChartKey, buildDayCurve(orderedDayTrades), {
-              tone: dayPnl >= 0 ? "green" : "red",
-              showXAxis: true,
-              showYAxis: true,
-              showYGrid: false,
-              showAxisBorder: false,
-              axisFontSize: 10,
-              axisFontWeight: "600",
-              xTickPadding: 10,
-              yTickPadding: 10,
-              maxXTicks: 5,
-              maxYTicks: 4,
-              borderWidth: 2.1,
-              fill: true,
-              fillAlphaStart: 0.12,
-              fillAlphaEnd: 0,
-              glowAlpha: 0,
-              tension: 0.34,
-              animation: false
-            })
-          ]);
-        }
-      });
+      openCalendarDayFocus(root, state, model, key);
     });
   });
 
