@@ -11831,6 +11831,182 @@ body[data-theme="dark"] .dashboard-screen .risk-exposure-table__row {
 }
 /* FIN BLOQUE: dashboard-runtime */
 
+/* INICIO BLOQUE: trades-runtime */
+html[data-theme="dark"] .trades-screen,
+body[data-theme="dark"] .trades-screen {
+  display: grid;
+  gap: 32px;
+}
+
+html[data-theme="dark"] .trades-screen .tl-page-sub,
+body[data-theme="dark"] .trades-screen .tl-page-sub {
+  max-width: 70ch;
+}
+
+html[data-theme="dark"] .trades-history-card,
+body[data-theme="dark"] .trades-history-card {
+  padding: 20px !important;
+}
+
+html[data-theme="dark"] .trades-history-card .tl-section-header,
+body[data-theme="dark"] .trades-history-card .tl-section-header {
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] .trades-table-summary,
+body[data-theme="dark"] .trades-table-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+html[data-theme="dark"] .trades-table-summary span,
+body[data-theme="dark"] .trades-table-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+html[data-theme="dark"] .trades-toolbar,
+body[data-theme="dark"] .trades-toolbar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+html[data-theme="dark"] .trades-filter-field,
+body[data-theme="dark"] .trades-filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .trades-filter-field span,
+body[data-theme="dark"] .trades-filter-field span {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+html[data-theme="dark"] .trades-filter-field select,
+html[data-theme="dark"] .trades-filter-field input,
+body[data-theme="dark"] .trades-filter-field select,
+body[data-theme="dark"] .trades-filter-field input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--layer-2);
+  color: var(--text-0);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .trades-filter-field--search,
+body[data-theme="dark"] .trades-filter-field--search {
+  grid-column: span 2;
+}
+
+html[data-theme="dark"] .trades-table-wrap,
+html[data-theme="dark"] .trades-history-card .table-wrap,
+body[data-theme="dark"] .trades-table-wrap,
+body[data-theme="dark"] .trades-history-card .table-wrap {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: auto;
+}
+
+html[data-theme="dark"] .trades-table-wrap::before,
+html[data-theme="dark"] .trades-table-wrap::after,
+html[data-theme="dark"] .trades-history-card .table-wrap::before,
+html[data-theme="dark"] .trades-history-card .table-wrap::after,
+body[data-theme="dark"] .trades-table-wrap::before,
+body[data-theme="dark"] .trades-table-wrap::after,
+body[data-theme="dark"] .trades-history-card .table-wrap::before,
+body[data-theme="dark"] .trades-history-card .table-wrap::after {
+  display: none !important;
+}
+
+html[data-theme="dark"] .trades-history-card table,
+body[data-theme="dark"] .trades-history-card table {
+  min-width: 1120px;
+}
+
+html[data-theme="dark"] .trades-history-card thead th,
+body[data-theme="dark"] .trades-history-card thead th {
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+}
+
+html[data-theme="dark"] .trades-history-card tbody td,
+body[data-theme="dark"] .trades-history-card tbody td {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .trades-history-card tbody tr:last-child td,
+body[data-theme="dark"] .trades-history-card tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+html[data-theme="dark"] .trades-history-card tbody tr:hover td,
+body[data-theme="dark"] .trades-history-card tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+html[data-theme="dark"] .trades-empty-state,
+body[data-theme="dark"] .trades-empty-state {
+  padding: 28px 12px !important;
+  color: var(--text-2);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  html[data-theme="dark"] .trades-toolbar,
+  body[data-theme="dark"] .trades-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-theme="dark"] .trades-filter-field--search,
+  body[data-theme="dark"] .trades-filter-field--search {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .trades-toolbar,
+  body[data-theme="dark"] .trades-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .trades-filter-field--search,
+  body[data-theme="dark"] .trades-filter-field--search {
+    grid-column: auto;
+  }
+}
+/* FIN BLOQUE: trades-runtime */
+
 /* INICIO BLOQUE: sidebar-runtime */
 html[data-theme="dark"] .app-shell.sidebar-vnext,
 body[data-theme="dark"] .app-shell.sidebar-vnext {

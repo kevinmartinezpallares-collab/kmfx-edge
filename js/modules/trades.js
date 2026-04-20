@@ -104,9 +104,10 @@ export function renderTrades(root, state) {
   const exposureBase = model.positions.reduce((sum, position) => sum + Math.abs(position.pnl || 0), 0) || 1;
 
   root.innerHTML = `
+    <section class="trades-screen">
     <div class="tl-page-header">
-      <div class="tl-page-title">Historial de Trades</div>
-      <div class="tl-page-sub">Registro completo de ejecución para auditar setups, sesiones y consistencia operativa. ${authority.firstTradeLabel ? `Desde ${authority.firstTradeLabel} hasta ${authority.lastTradeLabel || authority.firstTradeLabel}.` : ""}</div>
+      <div class="tl-page-title">Operaciones</div>
+      <div class="tl-page-sub">Revisa la ejecución por símbolo, sesión y setup. ${authority.firstTradeLabel ? `Desde ${authority.firstTradeLabel} hasta ${authority.lastTradeLabel || authority.firstTradeLabel}.` : ""}</div>
     </div>
 
     <div class="tl-kpi-row five">
@@ -177,9 +178,9 @@ export function renderTrades(root, state) {
       </div>
     </div>
 
-    <div class="tl-section-card trades-history-surface">
+    <div class="tl-section-card trades-history-surface trades-history-card">
       <div class="tl-section-header">
-        <div class="tl-section-title">Tabla de ejecución</div>
+        <div class="tl-section-title">Historial de operaciones</div>
         <div class="trades-table-summary">
           <span>${formatCurrency(filteredPnl)}</span>
           <span>WR ${filteredWinRate.toFixed(0)}%</span>
@@ -267,6 +268,7 @@ export function renderTrades(root, state) {
         </table>
       </div>
     </div>
+    </section>
   `;
 
   root.querySelectorAll("[data-trades-filter]").forEach((input) => {
