@@ -34,12 +34,12 @@ function buildDayMetrics(dayTrades) {
   const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
   const wins = ordered.filter((trade) => trade.pnl > 0).length;
   const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
-  const worst = ordered.reduce((low, trade) => !low || trade.pnl < low.pnl ? trade : low, null);
+  const totalFees = ordered.reduce((sum, trade) => sum + resolveTradeFees(trade), 0);
   return [
     { label: "Trades", value: String(ordered.length) },
     { label: "Win rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
     { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: best?.pnl > 0 ? "metric-positive" : "" },
-    { label: "Peor trade", value: worst ? formatCurrency(worst.pnl) : "—", valueClass: worst?.pnl < 0 ? "metric-negative" : "" }
+    { label: "Comisiones", value: ordered.length ? formatCurrency(totalFees) : "—", valueClass: totalFees < 0 ? "metric-negative" : "" }
   ];
 }
 
@@ -49,22 +49,57 @@ function displayCalendarSetup(value) {
   return text;
 }
 
+function resolveTradeFees(trade) {
+  const commission = Number.isFinite(Number(trade?.commission)) ? Number(trade.commission) : 0;
+  const fees = Number.isFinite(Number(trade?.fees))
+    ? Number(trade.fees)
+    : Number.isFinite(Number(trade?.fee))
+      ? Number(trade.fee)
+      : 0;
+  const swap = Number.isFinite(Number(trade?.swap)) ? Number(trade.swap) : 0;
+  return commission + fees + swap;
+}
+
+function getTradeTimeRange(trade) {
+  const closeTime = trade?.when instanceof Date ? trade.when : new Date(trade?.when || trade?.closeTime || trade?.date || "");
+  const hasCloseTime = closeTime instanceof Date && !Number.isNaN(closeTime.getTime());
+  const durationMin = Number.isFinite(Number(trade?.durationMin)) ? Number(trade.durationMin) : null;
+  const openTime = hasCloseTime && durationMin != null
+    ? new Date(closeTime.getTime() - durationMin * 60000)
+    : closeTime;
+  const format = (date) => date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  return {
+    entryTime: format(openTime),
+    exitTime: format(closeTime)
+  };
+}
+
 function renderDayTradeDisclosure(trade) {
+  const { entryTime, exitTime } = getTradeTimeRange(trade);
+  const fees = resolveTradeFees(trade);
   return `
     <details class="focus-panel-disclosure">
       <summary class="focus-panel-disclosure__summary">
-        <div class="focus-panel-disclosure__lead">
-          <strong>${trade.symbol}</strong>
-          <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
-          <span>${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+        <div class="focus-panel-disclosure__grid">
+          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
+            <strong>${trade.symbol}</strong>
+          </div>
+          <div class="focus-panel-disclosure__cell">
+            <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
+          </div>
+          <div class="focus-panel-disclosure__cell">${entryTime}</div>
+          <div class="focus-panel-disclosure__cell">${exitTime}</div>
+          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
         </div>
-        <div class="focus-panel-disclosure__value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
       </summary>
       <div class="focus-panel-disclosure__body">
         <div class="focus-panel-pairs focus-panel-pairs--plain">
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>Volumen</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
       </div>
@@ -370,6 +405,13 @@ export function renderCalendar(root, state) {
           <section class="focus-panel-section">
             <div class="focus-panel-section__head">
               <div class="focus-panel-section__title">Trades del día</div>
+            </div>
+            <div class="focus-panel-trades-head">
+              <span>Símbolo</span>
+              <span>Dirección</span>
+              <span>Entrada</span>
+              <span>Salida</span>
+              <span>P&amp;L</span>
             </div>
             <div class="focus-panel-disclosures">
               ${orderedDayTrades.map(renderDayTradeDisclosure).join("")}
