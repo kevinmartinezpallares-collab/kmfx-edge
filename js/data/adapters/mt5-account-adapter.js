@@ -103,6 +103,60 @@ function durationMinutes(startValue, endValue) {
   return Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 }
 
+function normalizeMt5Side(value, fallback = "BUY") {
+  const side = String(value || fallback).trim().toUpperCase();
+  return side === "SELL" ? "SELL" : "BUY";
+}
+
+function invertMt5Side(value) {
+  return normalizeMt5Side(value) === "BUY" ? "SELL" : "BUY";
+}
+
+function resolveOriginalMt5Side(rawTrade = {}) {
+  const direct = rawTrade.position_side || rawTrade.position_type || rawTrade.parent_side || rawTrade.original_side || rawTrade.open_type;
+  if (direct) return normalizeMt5Side(direct);
+
+  const entryMode = String(
+    rawTrade.deal_entry
+    || rawTrade.entry_type
+    || rawTrade.entry
+    || rawTrade.deal_type
+    || ""
+  ).trim().toLowerCase();
+
+  const technicalSide = normalizeMt5Side(rawTrade.type || rawTrade.side || "BUY");
+  if (["out", "out_by", "close", "close_by", "partial_out"].includes(entryMode)) {
+    return invertMt5Side(technicalSide);
+  }
+
+  if (
+    (rawTrade.position_id || rawTrade.positionId || rawTrade.position)
+    && (rawTrade.close_time || rawTrade.time)
+    && (rawTrade.open_time || rawTrade.entry_price || rawTrade.open_price || rawTrade.price_open)
+  ) {
+    return invertMt5Side(technicalSide);
+  }
+
+  return technicalSide;
+}
+
+function resolveTradeGroupKey(rawTrade = {}, index = 0) {
+  return String(
+    rawTrade.position_id
+    || rawTrade.positionId
+    || rawTrade.position
+    || rawTrade.trade_id
+    || rawTrade.order
+    || rawTrade.ticket
+    || `mt5-trade-${index}`
+  );
+}
+
+function toWeightedAverage(totalValue, totalWeight) {
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) return null;
+  return totalValue / totalWeight;
+}
+
 function normalizeTrades(rawTrades = []) {
   const dayFormatter = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Andorra",
@@ -123,7 +177,7 @@ function normalizeTrades(rawTrades = []) {
     const parsed = value ? new Date(value) : null;
     return parsed && !Number.isNaN(parsed.getTime()) ? monthFormatter.format(parsed) : "";
   };
-  return (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
+  const normalizedDeals = (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
     const date = toIsoString(trade.close_time || trade.time || trade.open_time);
     const profit = Number(trade.profit || 0);
     const commission = Number(trade.commission || 0);
@@ -131,14 +185,25 @@ function normalizeTrades(rawTrades = []) {
     const dividend = Number(trade.dividend || 0);
     const fees = Number(trade.fees || trade.fee || 0);
     const netPnl = profit + commission + swap + dividend + fees;
+    const technicalSide = normalizeMt5Side(trade.type || trade.side || "BUY");
+    const originalSide = resolveOriginalMt5Side(trade);
+    const volume = Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null;
+    const entryPrice = Number.isFinite(Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open))
+      ? Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open)
+      : null;
+    const exitPrice = Number.isFinite(Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price))
+      ? Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price)
+      : null;
     return {
-      id: trade.position_id || trade.ticket || `mt5-trade-${index}`,
+      id: String(trade.ticket || `mt5-deal-${index}`),
+      parentId: resolveTradeGroupKey(trade, index),
       date,
       closeTime: date,
       tradingDayKey: toTradingDayKey(date),
       monthKey: toMonthKey(date),
       symbol: trade.symbol || "UNKNOWN",
-      side: String(trade.type || trade.side || "BUY").toUpperCase(),
+      side: originalSide,
+      technicalSide,
       pnl: netPnl,
       net: netPnl,
       grossProfit: profit,
@@ -151,13 +216,121 @@ function normalizeTrades(rawTrades = []) {
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
       durationMin: durationMinutes(trade.open_time, trade.close_time),
-      volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
-      entry: Number.isFinite(Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open)) ? Number(trade.entry || trade.entry_price || trade.open_price || trade.price_open) : null,
-      exit: Number.isFinite(Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price)) ? Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price) : null,
+      volume,
+      entry: entryPrice,
+      exit: exitPrice,
       sl: Number.isFinite(Number(trade.sl || trade.stop_loss)) ? Number(trade.sl || trade.stop_loss) : null,
       tp: Number.isFinite(Number(trade.tp || trade.take_profit)) ? Number(trade.tp || trade.take_profit) : null,
+      openTime: trade.open_time || null,
+      raw: trade,
     };
   });
+
+  const groupedTrades = new Map();
+  normalizedDeals.forEach((deal, index) => {
+    const key = deal.parentId || deal.id || `mt5-trade-${index}`;
+    if (!groupedTrades.has(key)) {
+      groupedTrades.set(key, {
+        id: key,
+        parentId: key,
+        date: deal.date,
+        closeTime: deal.closeTime,
+        tradingDayKey: deal.tradingDayKey,
+        monthKey: deal.monthKey,
+        symbol: deal.symbol,
+        side: deal.side,
+        pnl: 0,
+        net: 0,
+        grossProfit: 0,
+        profit: 0,
+        commission: 0,
+        swap: 0,
+        dividend: 0,
+        fees: 0,
+        rMultiple: 0,
+        setup: deal.setup,
+        session: deal.session || "—",
+        durationMin: deal.durationMin,
+        volume: 0,
+        entry: deal.entry,
+        exit: null,
+        sl: deal.sl,
+        tp: deal.tp,
+        openTime: deal.openTime || null,
+        partials: [],
+        executions: [],
+        __weightedExitSum: 0,
+        __weightedExitVolume: 0,
+      });
+    }
+
+    const aggregate = groupedTrades.get(key);
+    aggregate.pnl += deal.pnl;
+    aggregate.net += deal.net;
+    aggregate.grossProfit += deal.grossProfit;
+    aggregate.profit += deal.profit;
+    aggregate.commission += deal.commission;
+    aggregate.swap += deal.swap;
+    aggregate.dividend += deal.dividend;
+    aggregate.fees += deal.fees;
+    aggregate.rMultiple += deal.rMultiple;
+    aggregate.volume += Number.isFinite(Number(deal.volume)) ? Number(deal.volume) : 0;
+    aggregate.closeTime = !aggregate.closeTime || new Date(deal.closeTime) > new Date(aggregate.closeTime) ? deal.closeTime : aggregate.closeTime;
+    aggregate.date = aggregate.closeTime;
+    aggregate.tradingDayKey = deal.tradingDayKey || aggregate.tradingDayKey;
+    aggregate.monthKey = deal.monthKey || aggregate.monthKey;
+    aggregate.side = aggregate.side || deal.side;
+    if (!aggregate.entry && deal.entry != null) aggregate.entry = deal.entry;
+    if (!aggregate.openTime && deal.openTime) aggregate.openTime = deal.openTime;
+    if (aggregate.setup === "MT5 sync" && deal.setup !== "MT5 sync") aggregate.setup = deal.setup;
+    if ((!aggregate.session || aggregate.session === "—") && deal.session) aggregate.session = deal.session;
+    if (deal.exit != null && Number.isFinite(Number(deal.volume))) {
+      aggregate.__weightedExitSum += Number(deal.exit) * Number(deal.volume);
+      aggregate.__weightedExitVolume += Number(deal.volume);
+    }
+
+    const partial = {
+      id: deal.id,
+      parentId: key,
+      side: deal.technicalSide,
+      originalSide: deal.side,
+      when: new Date(deal.closeTime),
+      closeTime: deal.closeTime,
+      volume: deal.volume,
+      exit: deal.exit,
+      pnl: deal.pnl,
+      commission: deal.commission,
+      swap: deal.swap,
+      fees: deal.fees,
+      net: deal.net,
+      grossProfit: deal.grossProfit,
+      cumulativePnl: Number((aggregate.pnl).toFixed(2)),
+    };
+    aggregate.partials.push(partial);
+    aggregate.executions.push(partial);
+  });
+
+  return [...groupedTrades.values()]
+    .map((trade) => {
+      const partials = [...trade.partials].sort((a, b) => a.when - b.when);
+      const firstPartial = partials[0] || null;
+      const lastPartial = partials.at(-1) || null;
+      const weightedExit = toWeightedAverage(trade.__weightedExitSum, trade.__weightedExitVolume);
+      return {
+        ...trade,
+        date: trade.closeTime,
+        closeTime: trade.closeTime,
+        when: lastPartial?.when || new Date(trade.closeTime),
+        durationMin: durationMinutes(trade.openTime || firstPartial?.closeTime, trade.closeTime),
+        volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
+        exit: weightedExit,
+        partials,
+        executions: partials,
+        partialCount: partials.length,
+        entryTime: trade.openTime || null,
+      };
+    })
+    .sort((a, b) => new Date(a.closeTime) - new Date(b.closeTime));
 }
 
 function normalizePositions(rawPositions = []) {

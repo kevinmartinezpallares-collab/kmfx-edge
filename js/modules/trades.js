@@ -21,6 +21,36 @@ function displayTradeSetup(value, fallback = "Sin setup definido") {
   return normalized === "—" ? fallback : normalized;
 }
 
+function renderTradeExecutions(trade) {
+  const executions = Array.isArray(trade?.executions) ? trade.executions : [];
+  if (!executions.length) return "";
+  return `
+    <section class="focus-panel-section">
+      <div class="focus-panel-section__head">
+        <div class="focus-panel-section__title">${executions.length > 1 ? "Parciales y ejecuciones" : "Ejecución"}</div>
+      </div>
+      <div class="focus-panel-executions">
+        <div class="focus-panel-executions__head">
+          <span>Hora</span>
+          <span>Vol.</span>
+          <span>Salida</span>
+          <span>P&amp;L parcial</span>
+          <span>Acumulado</span>
+        </div>
+        ${executions.map((execution) => `
+          <div class="focus-panel-execution">
+            <span>${execution.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>${formatTableValue(execution.volume)}</span>
+            <span>${formatTableValue(execution.exit)}</span>
+            <span class="${execution.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.pnl)}</span>
+            <span class="${execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.cumulativePnl)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function positionRail(position, exposureBase) {
   return `
     <div class="metric-rail">
@@ -70,7 +100,7 @@ function showTradeContextMenu(trade) {
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(trade.sl)}</span><strong>TP</strong><span>${formatTableValue(trade.tp)}</span></div>
           <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(trade.volume)}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
-          <div class="focus-panel-pair-row"><strong>Fees</strong><span>—</span><strong>R múltiple</strong><span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${trade.rMultiple.toFixed(1)}R</span></div>
+          <div class="focus-panel-pair-row"><strong>Fees</strong><span class="${Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0) < 0 ? "metric-negative" : ""}">${formatCurrency(Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0))}</span><strong>R múltiple</strong><span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${trade.rMultiple.toFixed(1)}R</span></div>
         </div>
       </section>
       <section class="focus-panel-section">
@@ -81,6 +111,7 @@ function showTradeContextMenu(trade) {
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
       </section>
+      ${renderTradeExecutions(trade)}
     `
   });
 }

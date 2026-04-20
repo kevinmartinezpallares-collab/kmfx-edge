@@ -13073,6 +13073,56 @@ body[data-theme="dark"] .focus-panel-disclosure__body {
   padding: 0 16px 8px;
 }
 
+html[data-theme="dark"] .focus-panel-executions,
+body[data-theme="dark"] .focus-panel-executions {
+  display: grid;
+  gap: 0;
+  margin-top: 10px;
+  background: #232326;
+  border: 1px solid #38383a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .focus-panel-executions__head,
+body[data-theme="dark"] .focus-panel-executions__head {
+  display: grid;
+  grid-template-columns: 0.9fr 0.7fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 10px 16px;
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #38383a;
+}
+
+html[data-theme="dark"] .focus-panel-executions__head span:last-child,
+body[data-theme="dark"] .focus-panel-executions__head span:last-child,
+html[data-theme="dark"] .focus-panel-execution span:last-child,
+body[data-theme="dark"] .focus-panel-execution span:last-child {
+  text-align: right;
+}
+
+html[data-theme="dark"] .focus-panel-execution,
+body[data-theme="dark"] .focus-panel-execution {
+  display: grid;
+  grid-template-columns: 0.9fr 0.7fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 11px 16px;
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="dark"] .focus-panel-execution:last-child,
+body[data-theme="dark"] .focus-panel-execution:last-child {
+  border-bottom: 0;
+}
+
 html[data-theme="dark"] .focus-panel-trade-side,
 body[data-theme="dark"] .focus-panel-trade-side {
   display: inline-flex;
@@ -13158,6 +13208,13 @@ body[data-theme="dark"] .focus-panel-trade-side--sell {
     color: var(--text-2);
     font-size: 12px;
   }
+
+  html[data-theme="dark"] .focus-panel-executions__head,
+  body[data-theme="dark"] .focus-panel-executions__head,
+  html[data-theme="dark"] .focus-panel-execution,
+  body[data-theme="dark"] .focus-panel-execution {
+    grid-template-columns: 0.9fr 0.7fr 1fr 1fr 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -13204,6 +13261,17 @@ body[data-theme="dark"] .focus-panel__metrics--inline .focus-panel-metric {
   body[data-theme="dark"] .focus-panel-pair-row {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  html[data-theme="dark"] .focus-panel-executions__head,
+  body[data-theme="dark"] .focus-panel-executions__head {
+    display: none;
+  }
+
+  html[data-theme="dark"] .focus-panel-execution,
+  body[data-theme="dark"] .focus-panel-execution {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
   }
 }
 /* FIN BLOQUE: floating-surfaces-runtime */

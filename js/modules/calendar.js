@@ -63,10 +63,15 @@ function resolveTradeFees(trade) {
 function getTradeTimeRange(trade) {
   const closeTime = trade?.when instanceof Date ? trade.when : new Date(trade?.when || trade?.closeTime || trade?.date || "");
   const hasCloseTime = closeTime instanceof Date && !Number.isNaN(closeTime.getTime());
+  const openSource = trade?.entryTime || trade?.openTime || trade?.open_time || trade?.date;
+  const explicitOpenTime = openSource ? new Date(openSource) : null;
+  const hasExplicitOpenTime = explicitOpenTime instanceof Date && !Number.isNaN(explicitOpenTime.getTime());
   const durationMin = Number.isFinite(Number(trade?.durationMin)) ? Number(trade.durationMin) : null;
-  const openTime = hasCloseTime && durationMin != null
-    ? new Date(closeTime.getTime() - durationMin * 60000)
-    : closeTime;
+  const openTime = hasExplicitOpenTime
+    ? explicitOpenTime
+    : hasCloseTime && durationMin != null
+      ? new Date(closeTime.getTime() - durationMin * 60000)
+      : closeTime;
   const format = (date) => date instanceof Date && !Number.isNaN(date.getTime())
     ? date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
     : "—";
@@ -74,6 +79,31 @@ function getTradeTimeRange(trade) {
     entryTime: format(openTime),
     exitTime: format(closeTime)
   };
+}
+
+function renderTradeExecutions(trade) {
+  const executions = Array.isArray(trade?.executions) ? trade.executions : [];
+  if (executions.length <= 1) return "";
+  return `
+    <div class="focus-panel-executions">
+      <div class="focus-panel-executions__head">
+        <span>Hora</span>
+        <span>Vol.</span>
+        <span>Salida</span>
+        <span>P&amp;L parcial</span>
+        <span>Acumulado</span>
+      </div>
+      ${executions.map((execution) => `
+        <div class="focus-panel-execution">
+          <span>${execution.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span>${execution.volume ?? "—"}</span>
+          <span>${execution.exit ?? "—"}</span>
+          <span class="${execution.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.pnl)}</span>
+          <span class="${execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.cumulativePnl)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderDayTradeDisclosure(trade) {
@@ -98,10 +128,11 @@ function renderDayTradeDisclosure(trade) {
         <div class="focus-panel-pairs focus-panel-pairs--plain">
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
-          <div class="focus-panel-pair-row"><strong>Volumen</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
+          <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${trade.durationMin == null ? "—" : `${trade.durationMin} min`}</span></div>
           <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
+        ${renderTradeExecutions(trade)}
       </div>
     </details>
   `;
