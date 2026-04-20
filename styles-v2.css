@@ -4528,7 +4528,7 @@ html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after
 body[data-theme="dark"] .analytics-screen__header .calendar-screen__title,
 body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
 body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after {
-  margin: 0;
+  margin: 6px 0 0;
 }
 
 html[data-theme="dark"] .analytics-screen__header .calendar-screen__title::before,
@@ -4541,7 +4541,7 @@ body[data-theme="dark"] .analytics-screen__header .calendar-screen__title::after
 
 html[data-theme="dark"] .analytics-screen__header .calendar-screen__subtitle,
 body[data-theme="dark"] .analytics-screen__header .calendar-screen__subtitle {
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 html[data-theme="dark"] .analytics-overview-hero,
@@ -11894,7 +11894,7 @@ html[data-theme="dark"] .trades-screen .calendar-screen__title::after,
 body[data-theme="dark"] .trades-screen .calendar-screen__title,
 body[data-theme="dark"] .trades-screen .calendar-screen__title::before,
 body[data-theme="dark"] .trades-screen .calendar-screen__title::after {
-  margin: 0;
+  margin: 6px 0 0;
 }
 
 html[data-theme="dark"] .trades-screen .calendar-screen__title::before,
@@ -11907,7 +11907,7 @@ body[data-theme="dark"] .trades-screen .calendar-screen__title::after {
 
 html[data-theme="dark"] .trades-screen .calendar-screen__subtitle,
 body[data-theme="dark"] .trades-screen .calendar-screen__subtitle {
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
