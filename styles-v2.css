@@ -11972,25 +11972,25 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav {
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-list,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-list {
-  gap: 18px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   border-top: 0 !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group {
-  padding-top: 16px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label {
-  padding: 0 12px 8px;
+  padding: 0 12px 4px;
   font-size: 10px;
   line-height: 1.1;
   letter-spacing: 0.08em;
