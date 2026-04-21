@@ -486,6 +486,46 @@ const crosshairPlugin = {
   }
 };
 
+const endpointPulsePlugin = {
+  id: "kmfxEndpointPulse",
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    if (pluginOptions === false || !pluginOptions) return;
+    const datasetIndex = pluginOptions.datasetIndex ?? 0;
+    const meta = chart.getDatasetMeta(datasetIndex);
+    const element = meta?.data?.[meta.data.length - 1];
+    if (!element) return;
+
+    const { ctx } = chart;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const duration = Math.max(1800, pluginOptions.duration ?? 2600);
+    const phase = (now % duration) / duration;
+    const fade = 1 - phase;
+    const baseRadius = pluginOptions.radius ?? 4;
+    const pulseRadius = baseRadius + (pluginOptions.amplitude ?? 2.4) * phase;
+    const alpha = (pluginOptions.alpha ?? 0.12) * fade;
+    const color = pluginOptions.color || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", alpha);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(element.x, element.y, pulseRadius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+
+    if (pluginOptions.animate === false) return;
+    if (chart.$kmfxEndpointPulseFrame) cancelAnimationFrame(chart.$kmfxEndpointPulseFrame);
+    chart.$kmfxEndpointPulseFrame = requestAnimationFrame(() => {
+      chart.draw();
+    });
+  },
+  afterDestroy(chart) {
+    if (chart.$kmfxEndpointPulseFrame) {
+      cancelAnimationFrame(chart.$kmfxEndpointPulseFrame);
+      chart.$kmfxEndpointPulseFrame = null;
+    }
+  }
+};
+
 const barTrackPlugin = {
   id: "kmfxBarTracks",
   beforeDatasetsDraw(chart, args, pluginOptions) {
@@ -841,7 +881,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, areaMaskPlugin, crosshairPlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
+  ChartLib.register(glowLinePlugin, areaMaskPlugin, crosshairPlugin, endpointPulsePlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 
@@ -921,7 +961,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
     pointHoverBackgroundColor: withAlpha("#ffffff", 0.98),
     pointBackgroundColor: withAlpha("#ffffff", 0.95),
     pointBorderColor: start,
-    pointBorderWidth: 1.1,
+    pointBorderWidth: spec.pointBorderWidth ?? 1.1,
     borderWidth: spec.borderWidth || 2.05,
     borderCapStyle: "round",
     borderJoinStyle: "round",
@@ -1029,6 +1069,17 @@ function createLineAreaChart(ChartLib, canvas, spec) {
             }
           : false,
         kmfxCrosshair: spec.crosshair === false ? false : { color: withAlpha(start, spec.crosshairAlpha ?? 0.12), lineWidth: 0.85 },
+        kmfxEndpointPulse: spec.endpointPulse
+          ? {
+              datasetIndex: spec.endpointPulse.datasetIndex ?? 0,
+              radius: spec.endpointPulse.radius ?? 4,
+              amplitude: spec.endpointPulse.amplitude ?? 2.4,
+              alpha: spec.endpointPulse.alpha ?? 0.12,
+              duration: spec.endpointPulse.duration ?? 2600,
+              animate: spec.endpointPulse.animate !== false,
+              color: spec.endpointPulse.color || withAlpha(end, spec.endpointPulse.alpha ?? 0.12)
+            }
+          : false,
         tooltip: {
           ...buildBaseOptions(spec).plugins.tooltip,
           callbacks: spec.tooltipCallbacks || {
