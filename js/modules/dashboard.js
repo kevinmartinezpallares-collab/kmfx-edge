@@ -332,6 +332,12 @@ function updateDashboardLiveNodes(root, payload) {
     setNodeText(root, "[data-dashboard-risk-trade-meta]", payload.tradeRiskMeta);
     setNodeText(root, "[data-dashboard-risk-foot]", payload.riskFoot);
   }
+  if (payload.exposureTableHtml != null) {
+    setNodeHTML(root, "[data-dashboard-exposure-table]", payload.exposureTableHtml);
+  }
+  if (payload.openTradeRiskHtml != null) {
+    setNodeHTML(root, "[data-dashboard-open-trade-risk-table]", payload.openTradeRiskHtml);
+  }
 }
 
 function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutral", valueAttr = "", metaAttr = "" }) {
@@ -1002,6 +1008,19 @@ export function renderDashboard(root, state) {
     tradeRisk: Number(riskSummary.maxOpenTradeRiskPct || 0),
     dailyDd: Number(riskSummary.dailyDrawdownPct || 0),
     margin: Number(primaryDistanceToLimit || 0),
+    symbolExposure: (riskExposure.symbolExposure || []).map((item) => ({
+      symbol: item.symbol || "",
+      risk: Number(item.risk_pct || 0),
+      pnl: Number(item.open_pnl || 0),
+      direction: item.direction || "",
+    })),
+    openTradeRisks: (riskExposure.openTradeRisks || []).map((item) => ({
+      symbol: item.symbol || "",
+      side: item.side || "",
+      risk: Number(item.risk_pct || 0),
+      sl: Number(item.stop_loss || 0),
+      pnl: Number(item.open_pnl || 0),
+    })),
   });
   const liveBindings = {
     dashboardSubtitle,
@@ -1029,6 +1048,8 @@ export function renderDashboard(root, state) {
     tradeRiskValue: Number(riskSummary.maxOpenTradeRiskPct || 0),
     tradeRiskMeta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
     riskFoot: riskPostureRead.detail,
+    exposureTableHtml: hasExposureSignal ? renderSymbolExposureTable(riskExposure.symbolExposure) : null,
+    openTradeRiskHtml: hasOpenTradeRisk ? renderOpenTradeRiskTable(riskExposure.openTradeRisks) : null,
   };
 
   if (root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
@@ -1214,7 +1235,7 @@ export function renderDashboard(root, state) {
                 <div class="calendar-panel-sub">Riesgo abierto por símbolo.</div>
               </div>
             </div>
-            ${renderSymbolExposureTable(riskExposure.symbolExposure)}
+            <div data-dashboard-exposure-table>${renderSymbolExposureTable(riskExposure.symbolExposure)}</div>
           </article>
         </section>
       ` : ""}
@@ -1242,7 +1263,7 @@ export function renderDashboard(root, state) {
                 <div class="calendar-panel-sub">Posiciones abiertas con stop y P&amp;L.</div>
               </div>
             </div>
-            ${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}
+            <div data-dashboard-open-trade-risk-table>${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}</div>
           </article>
         </section>
       ` : ""}
