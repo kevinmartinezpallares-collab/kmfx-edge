@@ -756,11 +756,14 @@ export function renderDashboard(root, state) {
       axisBorderWidth: 0,
       endpointPulse: {
         radius: 4,
-        amplitude: 3.2,
-        alpha: isDarkTheme ? 0.16 : 0.12,
-        steadyAlpha: isDarkTheme ? 0.12 : 0.08,
+        amplitude: 4.4,
+        alpha: isDarkTheme ? 0.24 : 0.18,
+        minAlpha: isDarkTheme ? 0.1 : 0.08,
+        steadyAlpha: isDarkTheme ? 0.16 : 0.1,
         coreAmplitude: 0.55,
-        duration: 2400,
+        ringWidth: 1.35,
+        ringWidthActive: 0.8,
+        duration: 2200,
       },
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;

@@ -500,13 +500,13 @@ const endpointPulsePlugin = {
     const duration = Math.max(1800, pluginOptions.duration ?? 2600);
     const phase = (now % duration) / duration;
     const eased = 0.5 - (Math.cos(phase * Math.PI * 2) / 2);
-    const fade = 1 - phase;
     const baseRadius = pluginOptions.radius ?? 4;
-    const pulseRadius = baseRadius + (pluginOptions.amplitude ?? 2.8) * phase;
-    const alpha = (pluginOptions.alpha ?? 0.16) * fade;
-    const color = pluginOptions.color || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", alpha);
+    const pulseRadius = baseRadius + 1.6 + (pluginOptions.amplitude ?? 3.2) * eased;
+    const pulseAlpha = (pluginOptions.minAlpha ?? 0.06) + ((pluginOptions.alpha ?? 0.18) - (pluginOptions.minAlpha ?? 0.06)) * (1 - eased);
+    const ringColor = pluginOptions.color || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", pulseAlpha);
     const steadyColor = pluginOptions.steadyColor || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", pluginOptions.steadyAlpha ?? 0.12);
     const coreRadius = baseRadius + (pluginOptions.coreAmplitude ?? 0.45) * eased;
+    const ringWidth = (pluginOptions.ringWidth ?? 1.2) + ((pluginOptions.ringWidthActive ?? 0.65) * (1 - eased));
 
     ctx.save();
     ctx.beginPath();
@@ -516,8 +516,14 @@ const endpointPulsePlugin = {
 
     ctx.beginPath();
     ctx.arc(element.x, element.y, pulseRadius, 0, Math.PI * 2);
-    ctx.fillStyle = color;
+    ctx.fillStyle = withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", pulseAlpha * 0.26);
     ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(element.x, element.y, pulseRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = ringColor;
+    ctx.lineWidth = ringWidth;
+    ctx.stroke();
 
     ctx.beginPath();
     ctx.arc(element.x, element.y, coreRadius, 0, Math.PI * 2);
