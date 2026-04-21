@@ -499,16 +499,29 @@ const endpointPulsePlugin = {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const duration = Math.max(1800, pluginOptions.duration ?? 2600);
     const phase = (now % duration) / duration;
+    const eased = 0.5 - (Math.cos(phase * Math.PI * 2) / 2);
     const fade = 1 - phase;
     const baseRadius = pluginOptions.radius ?? 4;
-    const pulseRadius = baseRadius + (pluginOptions.amplitude ?? 2.4) * phase;
-    const alpha = (pluginOptions.alpha ?? 0.12) * fade;
+    const pulseRadius = baseRadius + (pluginOptions.amplitude ?? 2.8) * phase;
+    const alpha = (pluginOptions.alpha ?? 0.16) * fade;
     const color = pluginOptions.color || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", alpha);
+    const steadyColor = pluginOptions.steadyColor || withAlpha(getCssVar("--chart-blue-b") || "#6fa3ff", pluginOptions.steadyAlpha ?? 0.12);
+    const coreRadius = baseRadius + (pluginOptions.coreAmplitude ?? 0.45) * eased;
 
     ctx.save();
     ctx.beginPath();
+    ctx.arc(element.x, element.y, baseRadius + 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = steadyColor;
+    ctx.fill();
+
+    ctx.beginPath();
     ctx.arc(element.x, element.y, pulseRadius, 0, Math.PI * 2);
     ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(element.x, element.y, coreRadius, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha("#ffffff", pluginOptions.coreAlpha ?? 0.98);
     ctx.fill();
     ctx.restore();
 
