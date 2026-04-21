@@ -636,21 +636,7 @@ export function renderDashboard(root, state) {
     hasOpenPositions: Number(performanceView.openPositionsCount || 0) > 0,
   });
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
-  const heroXAxisFormatter = (label, index, allLabels, value, ticks) => {
-    if (!label) return "";
-    const d = new Date(label);
-    if (isNaN(d)) return label;
-    if (heroRange === "YTD" || heroRange === "1M") {
-      return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-    } else if (heroRange === "1W") {
-      return d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" });
-    } else if (heroRange === "1D") {
-      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-    } else if (heroRange === "4H" || heroRange === "H1") {
-      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-    }
-    return label;
-  };
+  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
     .map((point) => Number(point?.value))
@@ -937,8 +923,8 @@ export function renderDashboard(root, state) {
       pointHitRadius: 20,
       pointBorderWidth: 1.25,
       fill: true,
-      fillAlphaStart: 0.18,
-      fillAlphaEnd: 0.0,
+      fillAlphaStart: 0.20,
+      fillAlphaEnd: 0.001,
       glowAlpha: 0,
       tension: 0.68,
       animationDisabled: true,
