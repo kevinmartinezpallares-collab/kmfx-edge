@@ -630,7 +630,21 @@ export function renderDashboard(root, state) {
     hasOpenPositions: Number(performanceView.openPositionsCount || 0) > 0,
   });
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
-  const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
+  const heroXAxisFormatter = (label, index, allLabels, value, ticks) => {
+    if (!label) return "";
+    const d = new Date(label);
+    if (isNaN(d)) return label;
+    if (heroRange === "YTD" || heroRange === "1M") {
+      return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    } else if (heroRange === "1W") {
+      return d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" });
+    } else if (heroRange === "1D") {
+      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    } else if (heroRange === "4H" || heroRange === "H1") {
+      return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    }
+    return label;
+  };
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
     .map((point) => Number(point?.value))
@@ -916,7 +930,9 @@ export function renderDashboard(root, state) {
       pointHoverRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4.6 : 3),
       pointHitRadius: 20,
       pointBorderWidth: 1.25,
-      fill: false,
+      fill: true,
+      fillAlphaStart: 0.18,
+      fillAlphaEnd: 0.0,
       glowAlpha: 0,
       tension: 0.68,
       animationDisabled: true,
@@ -926,7 +942,7 @@ export function renderDashboard(root, state) {
       axisFontWeight: "500",
       yTickPadding: 4,
       xTickPadding: 10,
-      maxXTicks: heroRange === "YTD" ? 6 : heroRange === "1M" ? 5 : heroRange === "1W" ? 5 : heroRange === "1D" ? 5 : heroRange === "4H" ? 4 : 4,
+      maxXTicks: heroRange === "YTD" ? 5 : heroRange === "1M" ? 4 : heroRange === "1W" ? 5 : heroRange === "1D" ? 6 : heroRange === "4H" ? 5 : 4,
       showYGrid: true,
       gridAlpha: isDarkTheme ? 0.028 : 0.045,
       gridColor: isDarkTheme ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.08)",
