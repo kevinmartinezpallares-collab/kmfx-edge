@@ -56,7 +56,6 @@ function payloadSignature(payload = {}) {
     historyCount: history.length,
     positionsCount: positions.length,
     lastHistoryValue: toFiniteNumber(lastHistoryPoint.value ?? lastHistoryPoint.equity ?? lastHistoryPoint.balance),
-    timestamp: payloadTimestamp(payload),
     riskStatus: payload.riskSnapshot?.status?.risk_status || "",
     dailyDd: toFiniteNumber(riskSummary.daily_drawdown_pct),
     peakDd: toFiniteNumber(riskSummary.peak_to_equity_drawdown_pct),
