@@ -233,6 +233,236 @@ function createGradient(context, area, tone, alphaStart = 0.16, alphaEnd = 0.01,
   return gradient;
 }
 
+function buildLineAreaDatasets(spec) {
+  const { start, end } = toneColors(spec.tone || "blue");
+  const datasets = [{
+    data: spec.points.map((point) => point.value),
+    borderColor(context) {
+      const area = context.chart.chartArea;
+      if (!area) return start;
+      return createGradient(context.chart.ctx, area, spec.tone || "blue", 1, 1, true);
+    },
+    backgroundColor(context) {
+      const area = context.chart.chartArea;
+      if (!area) return withAlpha(start, 0.16);
+      return createGradient(context.chart.ctx, area, spec.tone || "blue", spec.fillAlphaStart || 0.16, spec.fillAlphaEnd || 0.01);
+    },
+    fill: spec.fill !== false,
+    cubicInterpolationMode: "monotone",
+    tension: spec.tension || 0.34,
+    pointRadius: spec.pointRadius ?? 0,
+    pointHoverRadius: spec.pointHoverRadius ?? 2.25,
+    pointHitRadius: spec.pointHitRadius ?? 16,
+    pointHoverBackgroundColor: withAlpha("#ffffff", 0.98),
+    pointBackgroundColor: withAlpha("#ffffff", 0.95),
+    pointBorderColor: start,
+    pointBorderWidth: spec.pointBorderWidth ?? 1.1,
+    borderWidth: spec.borderWidth || 2.05,
+    borderCapStyle: "round",
+    borderJoinStyle: "round",
+    glowColor: withAlpha(end, spec.glowAlpha ?? 0.05)
+  }];
+
+  (spec.extraDatasets || []).forEach((datasetSpec) => {
+    const overlayTone = datasetSpec.tone || "violet";
+    const overlayColors = toneColors(overlayTone);
+    datasets.push({
+      label: datasetSpec.label || "",
+      data: datasetSpec.points.map((point) => point.value),
+      borderColor(context) {
+        const area = context.chart.chartArea;
+        if (!area) return overlayColors.start;
+        return createGradient(context.chart.ctx, area, overlayTone, 0.9, 0.9, true);
+      },
+      backgroundColor: "transparent",
+      fill: false,
+      cubicInterpolationMode: "monotone",
+      tension: datasetSpec.tension ?? spec.tension ?? 0.34,
+      pointRadius: datasetSpec.pointRadius ?? 0,
+      pointHoverRadius: datasetSpec.pointHoverRadius ?? 0,
+      pointHitRadius: datasetSpec.pointHitRadius ?? 10,
+      borderWidth: datasetSpec.borderWidth ?? 1.55,
+      borderCapStyle: "round",
+      borderJoinStyle: "round",
+      borderDash: datasetSpec.borderDash || [6, 5],
+      glowColor: null
+    });
+  });
+
+  return datasets;
+}
+
+function buildLineAreaOptions(spec) {
+  return {
+    ...buildBaseOptions(spec),
+    layout: {
+      padding: {
+        left: spec.layoutPaddingLeft ?? 0,
+        right: spec.layoutPaddingRight ?? 0,
+        top: spec.layoutPaddingTop ?? 0,
+        bottom: spec.layoutPaddingBottom ?? 0
+      }
+    },
+    scales: {
+      x: {
+        display: spec.showXAxis ?? (spec.showAxes ?? true),
+        border: {
+          display: spec.showAxisBorder ?? false,
+          color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+          width: spec.axisBorderWidth ?? 1
+        },
+        ticks: {
+          color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.9),
+          font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
+          padding: spec.xTickPadding ?? 10,
+          autoSkip: spec.autoSkipXTicks ?? true,
+          maxRotation: 0,
+          minRotation: 0,
+          maxTicksLimit: spec.maxXTicks || (isMobileViewport() ? 4 : undefined),
+          callback: (value, index, ticks) => {
+            if (typeof spec.xAxisFormatter === "function") {
+              return spec.xAxisFormatter(spec.points.map((point) => point.label)[index], index, spec.points.map((point) => point.label), value, ticks);
+            }
+            return spec.points.map((point) => point.label)[index];
+          }
+        },
+        grid: {
+          display: spec.showXGrid ?? false,
+          drawBorder: false,
+          color: getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", spec.xGridAlpha ?? 0.03)
+        }
+      },
+      y: {
+        display: spec.showYAxis ?? (spec.showAxes ?? true),
+        ...computeYHeadroom(spec),
+        border: {
+          display: spec.showAxisBorder ?? false,
+          color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
+          width: spec.axisBorderWidth ?? 1
+        },
+        ticks: {
+          color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.88),
+          font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
+          padding: spec.yTickPadding ?? 12,
+          maxTicksLimit: spec.maxYTicks || (isMobileViewport() ? 3 : 4),
+          callback: spec.axisFormatter || ((value) => value)
+        },
+        grid: {
+          display: spec.showYGrid ?? false,
+          color: spec.gridColor || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.035),
+          drawBorder: false,
+          borderDash: spec.yGridDash || [],
+          lineWidth: spec.yGridWidth ?? 1
+        }
+      }
+    },
+    plugins: {
+      ...buildBaseOptions(spec).plugins,
+      kmfxAreaMask: spec.areaSideFade === true
+        ? {
+            innerStart: spec.areaSideFadeStart ?? 0.08,
+            innerEnd: spec.areaSideFadeEnd ?? 0.92
+          }
+        : false,
+      kmfxCrosshair: spec.crosshair === false ? false : { color: withAlpha(toneColors(spec.tone || "blue").start, spec.crosshairAlpha ?? 0.12), lineWidth: 0.85 },
+      kmfxEndpointPulse: spec.endpointPulse
+        ? {
+            datasetIndex: spec.endpointPulse.datasetIndex ?? 0,
+            radius: spec.endpointPulse.radius ?? 4,
+            amplitude: spec.endpointPulse.amplitude ?? 2.4,
+            alpha: spec.endpointPulse.alpha ?? 0.12,
+            minAlpha: spec.endpointPulse.minAlpha ?? 0.06,
+            steadyAlpha: spec.endpointPulse.steadyAlpha ?? 0.12,
+            coreAmplitude: spec.endpointPulse.coreAmplitude ?? 0.45,
+            coreAlpha: spec.endpointPulse.coreAlpha ?? 0.98,
+            ringWidth: spec.endpointPulse.ringWidth ?? 1.2,
+            ringWidthActive: spec.endpointPulse.ringWidthActive ?? 0.65,
+            duration: spec.endpointPulse.duration ?? 2600,
+            animate: spec.endpointPulse.animate !== false,
+            color: spec.endpointPulse.color || withAlpha(toneColors(spec.tone || "blue").end, spec.endpointPulse.alpha ?? 0.12),
+            steadyColor: spec.endpointPulse.steadyColor || withAlpha(toneColors(spec.tone || "blue").end, spec.endpointPulse.steadyAlpha ?? 0.12)
+          }
+        : false,
+      tooltip: {
+        ...buildBaseOptions(spec).plugins.tooltip,
+        callbacks: spec.tooltipCallbacks || {
+          title: (items) => items[0]?.label || "",
+          label: (context) => {
+            if (context.datasetIndex > 0) {
+              const overlayFormatter = spec.extraDatasets?.[context.datasetIndex - 1]?.formatter;
+              const overlayLabel = context.dataset.label ? `${context.dataset.label}: ` : "";
+              const overlayValue = overlayFormatter ? overlayFormatter(context.parsed.y, context) : `${context.parsed.y}`;
+              return `${overlayLabel}${overlayValue}`;
+            }
+            return spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`;
+          }
+        }
+      }
+    }
+  };
+}
+
+function cancelChartValueTween(chart) {
+  if (chart?.$kmfxValueTweenFrame) {
+    cancelAnimationFrame(chart.$kmfxValueTweenFrame);
+    chart.$kmfxValueTweenFrame = null;
+  }
+}
+
+function animateChartPointValue(chart, datasetIndex, pointIndex, targetValue, duration = 720) {
+  const dataset = chart?.data?.datasets?.[datasetIndex];
+  if (!dataset || pointIndex < 0 || !Number.isFinite(targetValue)) return;
+  cancelChartValueTween(chart);
+  const startValue = Number(dataset.data?.[pointIndex]);
+  if (!Number.isFinite(startValue) || Math.abs(startValue - targetValue) < 0.0001) {
+    dataset.data[pointIndex] = targetValue;
+    chart.update("none");
+    return;
+  }
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const easeOut = (t) => 1 - ((1 - t) * (1 - t) * (1 - t));
+  const step = (now) => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    dataset.data[pointIndex] = startValue + ((targetValue - startValue) * easeOut(progress));
+    chart.update("none");
+    if (progress < 1) {
+      chart.$kmfxValueTweenFrame = requestAnimationFrame(step);
+      return;
+    }
+    dataset.data[pointIndex] = targetValue;
+    chart.$kmfxValueTweenFrame = null;
+    chart.update("none");
+  };
+  chart.$kmfxValueTweenFrame = requestAnimationFrame(step);
+}
+
+function applyLineAreaSpecToChart(chart, spec) {
+  const labels = spec.points.map((point) => point.label);
+  const nextDatasets = buildLineAreaDatasets(spec);
+  const shouldSmoothLivePoint = Boolean(
+    spec.liveSmoothing
+    && spec.points?.length
+    && spec.points.at(-1)?.__live
+    && chart?.data?.datasets?.[0]?.data?.length === nextDatasets[0]?.data?.length
+  );
+  const livePointIndex = shouldSmoothLivePoint ? nextDatasets[0].data.length - 1 : -1;
+  const targetLiveValue = livePointIndex >= 0 ? Number(nextDatasets[0].data[livePointIndex]) : null;
+  const currentLiveValue = livePointIndex >= 0 ? Number(chart.data.datasets?.[0]?.data?.[livePointIndex]) : null;
+
+  chart.data.labels = labels;
+  chart.data.datasets = nextDatasets;
+  chart.options = buildLineAreaOptions(spec);
+
+  if (shouldSmoothLivePoint && Number.isFinite(currentLiveValue) && Number.isFinite(targetLiveValue)) {
+    chart.data.datasets[0].data[livePointIndex] = currentLiveValue;
+    animateChartPointValue(chart, 0, livePointIndex, targetLiveValue, spec.liveSmoothingDuration ?? 760);
+    return;
+  }
+
+  cancelChartValueTween(chart);
+  chart.update("none");
+}
+
 function createBarSurfaceGradient(context, area, tone, hover = false) {
   const { start, end } = toneColors(tone);
   const gradient = context.createLinearGradient(area.left, area.top, area.left, area.bottom);
@@ -956,175 +1186,15 @@ function createSparklineChart(ChartLib, canvas, spec) {
 }
 
 function createLineAreaChart(ChartLib, canvas, spec) {
-  const mobile = isMobileViewport();
-  const { start, end } = toneColors(spec.tone || "blue");
   const labels = spec.points.map((point) => point.label);
-  const datasets = [{
-    data: spec.points.map((point) => point.value),
-    borderColor(context) {
-      const area = context.chart.chartArea;
-      if (!area) return start;
-      return createGradient(context.chart.ctx, area, spec.tone || "blue", 1, 1, true);
-    },
-    backgroundColor(context) {
-      const area = context.chart.chartArea;
-      if (!area) return withAlpha(start, 0.16);
-      return createGradient(context.chart.ctx, area, spec.tone || "blue", spec.fillAlphaStart || 0.16, spec.fillAlphaEnd || 0.01);
-    },
-    fill: spec.fill !== false,
-    cubicInterpolationMode: "monotone",
-    tension: spec.tension || 0.34,
-    pointRadius: spec.pointRadius ?? 0,
-    pointHoverRadius: spec.pointHoverRadius ?? 2.25,
-    pointHitRadius: spec.pointHitRadius ?? 16,
-    pointHoverBackgroundColor: withAlpha("#ffffff", 0.98),
-    pointBackgroundColor: withAlpha("#ffffff", 0.95),
-    pointBorderColor: start,
-    pointBorderWidth: spec.pointBorderWidth ?? 1.1,
-    borderWidth: spec.borderWidth || 2.05,
-    borderCapStyle: "round",
-    borderJoinStyle: "round",
-    glowColor: withAlpha(end, spec.glowAlpha ?? 0.05)
-  }];
-
-  (spec.extraDatasets || []).forEach((datasetSpec) => {
-    const overlayTone = datasetSpec.tone || "violet";
-    const overlayColors = toneColors(overlayTone);
-    datasets.push({
-      label: datasetSpec.label || "",
-      data: datasetSpec.points.map((point) => point.value),
-      borderColor(context) {
-        const area = context.chart.chartArea;
-        if (!area) return overlayColors.start;
-        return createGradient(context.chart.ctx, area, overlayTone, 0.9, 0.9, true);
-      },
-      backgroundColor: "transparent",
-      fill: false,
-      cubicInterpolationMode: "monotone",
-      tension: datasetSpec.tension ?? spec.tension ?? 0.34,
-      pointRadius: datasetSpec.pointRadius ?? 0,
-      pointHoverRadius: datasetSpec.pointHoverRadius ?? 0,
-      pointHitRadius: datasetSpec.pointHitRadius ?? 10,
-      borderWidth: datasetSpec.borderWidth ?? 1.55,
-      borderCapStyle: "round",
-      borderJoinStyle: "round",
-      borderDash: datasetSpec.borderDash || [6, 5],
-      glowColor: null
-    });
-  });
+  const datasets = buildLineAreaDatasets(spec);
   return new ChartLib(canvas, {
     type: "line",
     data: {
       labels,
       datasets
     },
-    options: {
-      ...buildBaseOptions(spec),
-      layout: {
-        padding: {
-          left: spec.layoutPaddingLeft ?? 0,
-          right: spec.layoutPaddingRight ?? 0,
-          top: spec.layoutPaddingTop ?? 0,
-          bottom: spec.layoutPaddingBottom ?? 0
-        }
-      },
-      scales: {
-        x: {
-          display: spec.showXAxis ?? (spec.showAxes ?? true),
-          border: {
-            display: spec.showAxisBorder ?? false,
-            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
-            width: spec.axisBorderWidth ?? 1
-          },
-          ticks: {
-            color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.9),
-            font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
-            padding: spec.xTickPadding ?? 10,
-            autoSkip: spec.autoSkipXTicks ?? true,
-            maxRotation: 0,
-            minRotation: 0,
-            maxTicksLimit: spec.maxXTicks || (mobile ? 4 : undefined),
-            callback: (value, index, ticks) => {
-              if (typeof spec.xAxisFormatter === "function") {
-                return spec.xAxisFormatter(labels[index], index, labels, value, ticks);
-              }
-              return labels[index];
-            }
-          },
-          grid: {
-            display: spec.showXGrid ?? false,
-            drawBorder: false,
-            color: getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", spec.xGridAlpha ?? 0.03)
-          }
-        },
-        y: {
-          display: spec.showYAxis ?? (spec.showAxes ?? true),
-          ...computeYHeadroom(spec),
-          border: {
-            display: spec.showAxisBorder ?? false,
-            color: spec.axisBorderColor || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14),
-            width: spec.axisBorderWidth ?? 1
-          },
-          ticks: {
-            color: spec.axisColor || getCssVar("--chart-axis-text") || withAlpha(getCssVar("--text4") || "#94a3b8", 0.88),
-            font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
-            padding: spec.yTickPadding ?? 12,
-            maxTicksLimit: spec.maxYTicks || (mobile ? 3 : 4),
-            callback: spec.axisFormatter || ((value) => value)
-          },
-          grid: {
-            display: spec.showYGrid ?? false,
-            color: spec.gridColor || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.035),
-            drawBorder: false,
-            borderDash: spec.yGridDash || [],
-            lineWidth: spec.yGridWidth ?? 1
-          }
-        }
-      },
-      plugins: {
-        ...buildBaseOptions(spec).plugins,
-        kmfxAreaMask: spec.areaSideFade === true
-          ? {
-              innerStart: spec.areaSideFadeStart ?? 0.08,
-              innerEnd: spec.areaSideFadeEnd ?? 0.92
-            }
-          : false,
-        kmfxCrosshair: spec.crosshair === false ? false : { color: withAlpha(start, spec.crosshairAlpha ?? 0.12), lineWidth: 0.85 },
-        kmfxEndpointPulse: spec.endpointPulse
-          ? {
-              datasetIndex: spec.endpointPulse.datasetIndex ?? 0,
-              radius: spec.endpointPulse.radius ?? 4,
-              amplitude: spec.endpointPulse.amplitude ?? 2.4,
-              alpha: spec.endpointPulse.alpha ?? 0.12,
-              minAlpha: spec.endpointPulse.minAlpha ?? 0.06,
-              steadyAlpha: spec.endpointPulse.steadyAlpha ?? 0.12,
-              coreAmplitude: spec.endpointPulse.coreAmplitude ?? 0.45,
-              coreAlpha: spec.endpointPulse.coreAlpha ?? 0.98,
-              ringWidth: spec.endpointPulse.ringWidth ?? 1.2,
-              ringWidthActive: spec.endpointPulse.ringWidthActive ?? 0.65,
-              duration: spec.endpointPulse.duration ?? 2600,
-              animate: spec.endpointPulse.animate !== false,
-              color: spec.endpointPulse.color || withAlpha(end, spec.endpointPulse.alpha ?? 0.12),
-              steadyColor: spec.endpointPulse.steadyColor || withAlpha(end, spec.endpointPulse.steadyAlpha ?? 0.12)
-            }
-          : false,
-        tooltip: {
-          ...buildBaseOptions(spec).plugins.tooltip,
-          callbacks: spec.tooltipCallbacks || {
-            title: (items) => items[0]?.label || "",
-            label: (context) => {
-              if (context.datasetIndex > 0) {
-                const overlayFormatter = spec.extraDatasets?.[context.datasetIndex - 1]?.formatter;
-                const overlayLabel = context.dataset.label ? `${context.dataset.label}: ` : "";
-                const overlayValue = overlayFormatter ? overlayFormatter(context.parsed.y, context) : `${context.parsed.y}`;
-                return `${overlayLabel}${overlayValue}`;
-              }
-              return spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`;
-            }
-          }
-        }
-      }
-    }
+    options: buildLineAreaOptions(spec)
   });
 }
 
@@ -1507,5 +1577,42 @@ export function mountCharts(root, specs) {
   chartRegistry.set(root, charts);
   chartRoots.add(root);
   observeRootLayout(root);
+  refreshChartsForRoot(root);
+}
+
+export function updateCharts(root, specs) {
+  const ChartLib = getChartLib();
+  const charts = chartRegistry.get(root) || [];
+  if (!ChartLib || !specs?.length || !charts.length) {
+    mountCharts(root, specs);
+    return;
+  }
+  ensureDefaults(ChartLib);
+  bindLifecycleHooks();
+
+  const chartByKey = new Map(
+    charts
+      .filter((chart) => chart?.canvas?.dataset?.kmfxChart)
+      .map((chart) => [chart.canvas.dataset.kmfxChart, chart])
+  );
+
+  const canReuse = specs.length === charts.length
+    && specs.every((spec) => chartByKey.has(spec.key));
+
+  if (!canReuse) {
+    mountCharts(root, specs);
+    return;
+  }
+
+  specs.forEach((spec) => {
+    const chart = chartByKey.get(spec.key);
+    if (!chart) return;
+    if (spec.kind === "line-area") {
+      applyLineAreaSpecToChart(chart, spec);
+      return;
+    }
+    chart.update("none");
+  });
+
   refreshChartsForRoot(root);
 }

@@ -1,5 +1,5 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
@@ -220,12 +220,126 @@ function riskStateDisplayLabel(riskState) {
   return "Bajo control";
 }
 
-function renderDashboardKpiCard({ label, value, valueClass = "", meta = "", trend = "", trendTone = "", cardClass = "" }) {
+function renderDashboardKpiCard({ key = "", label, value, valueClass = "", meta = "", trend = "", trendTone = "", cardClass = "" }) {
   return `
-    <article class="widget-card widget-card--kpi ${cardClass}">
+    <article class="widget-card widget-card--kpi ${cardClass}" ${key ? `data-dashboard-kpi="${key}"` : ""}>
       <div class="tl-kpi-label">${label}</div>
-      <div class="tl-kpi-val ${valueClass}">${value}</div>
-      ${(meta || trend) ? `<div class="widget-card-meta">${[meta, trend].filter(Boolean).join(" · ")}</div>` : ""}
+      <div class="tl-kpi-val ${valueClass}" data-kpi-value>${value}</div>
+      ${(meta || trend) ? `<div class="widget-card-meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" · ")}</div>` : ""}
+    </article>
+  `;
+}
+
+function setNodeHTML(root, selector, value) {
+  const node = root.querySelector(selector);
+  if (node) node.innerHTML = value;
+}
+
+function setNodeText(root, selector, value) {
+  const node = root.querySelector(selector);
+  if (node) node.textContent = value;
+}
+
+function animateNumberContent(node, target, formatter, duration = 680) {
+  if (!node || !Number.isFinite(target) || typeof formatter !== "function") {
+    if (node && typeof formatter === "function") node.textContent = formatter(target);
+    return;
+  }
+  if (node.__kmfxNumberFrame) cancelAnimationFrame(node.__kmfxNumberFrame);
+  const startValue = Number(node.dataset.kmfxValue);
+  const initialValue = Number.isFinite(startValue) ? startValue : target;
+  node.dataset.kmfxValue = String(target);
+  if (Math.abs(initialValue - target) < 0.0001) {
+    node.textContent = formatter(target);
+    return;
+  }
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const easeOut = (t) => 1 - ((1 - t) * (1 - t) * (1 - t));
+  const step = (now) => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    const nextValue = initialValue + ((target - initialValue) * easeOut(progress));
+    node.textContent = formatter(nextValue);
+    if (progress < 1) {
+      node.__kmfxNumberFrame = requestAnimationFrame(step);
+      return;
+    }
+    node.textContent = formatter(target);
+    node.__kmfxNumberFrame = null;
+  };
+  node.__kmfxNumberFrame = requestAnimationFrame(step);
+}
+
+function updateDashboardLiveNodes(root, payload) {
+  setNodeText(root, "[data-dashboard-subtitle]", payload.dashboardSubtitle);
+  setNodeText(root, "[data-dashboard-hero-sub]", payload.heroSub);
+  animateNumberContent(
+    root.querySelector('[data-dashboard-kpi="equity"] [data-kpi-value]'),
+    payload.equityValue,
+    (value) => formatCurrency(value),
+    720,
+  );
+  setNodeHTML(root, '[data-dashboard-kpi="equity"] [data-kpi-meta]', payload.equityMeta);
+  animateNumberContent(
+    root.querySelector('[data-dashboard-kpi="pnl"] [data-kpi-value]'),
+    payload.pnlValue,
+    (value) => `${value >= 0 ? "+" : "-"}${formatCurrency(Math.abs(value))}`,
+    720,
+  );
+  setNodeText(root, '[data-dashboard-kpi="pnl"] [data-kpi-meta]', payload.pnlMeta);
+  animateNumberContent(
+    root.querySelector('[data-dashboard-kpi="dd"] [data-kpi-value]'),
+    payload.drawdownValue,
+    (value) => formatRiskValuePct(value, 2),
+    620,
+  );
+  setNodeText(root, '[data-dashboard-kpi="dd"] [data-kpi-meta]', payload.drawdownMeta);
+  setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-value]', payload.edgeValue);
+  setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-meta]', payload.edgeMeta);
+
+  setNodeText(root, "[data-dashboard-operational-summary]", payload.operationalSummary);
+  setNodeText(root, "[data-dashboard-risk-summary]", payload.riskSummary);
+  if (payload.hasOpenPositions) {
+    animateNumberContent(
+      root.querySelector("[data-dashboard-operational-dailydd-value]"),
+      payload.dailyDdValue,
+      (value) => formatRiskValuePct(value, 2),
+      620,
+    );
+    setNodeText(root, "[data-dashboard-operational-dailydd-meta]", payload.dailyDdMeta);
+    animateNumberContent(
+      root.querySelector("[data-dashboard-operational-margin-value]"),
+      payload.marginValue,
+      (value) => formatRiskValuePct(value, 2),
+      620,
+    );
+    setNodeText(root, "[data-dashboard-operational-margin-meta]", payload.marginMeta);
+    setNodeText(root, "[data-dashboard-operational-state-value]", payload.stateValue);
+    setNodeText(root, "[data-dashboard-operational-state-meta]", payload.stateMeta);
+    if (payload.operationalFoot != null) setNodeText(root, "[data-dashboard-operational-foot]", payload.operationalFoot);
+    animateNumberContent(
+      root.querySelector("[data-dashboard-risk-open-value]"),
+      payload.openRiskValue,
+      (value) => formatRiskValuePct(value, 2),
+      620,
+    );
+    setNodeText(root, "[data-dashboard-risk-open-meta]", payload.openRiskMeta);
+    animateNumberContent(
+      root.querySelector("[data-dashboard-risk-trade-value]"),
+      payload.tradeRiskValue,
+      (value) => formatRiskValuePct(value, 2),
+      620,
+    );
+    setNodeText(root, "[data-dashboard-risk-trade-meta]", payload.tradeRiskMeta);
+    setNodeText(root, "[data-dashboard-risk-foot]", payload.riskFoot);
+  }
+}
+
+function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutral", valueAttr = "", metaAttr = "" }) {
+  return `
+    <article class="risk-metric-card risk-metric-card--${tone}">
+      <div class="risk-metric-card__label">${label}</div>
+      <div class="risk-metric-card__value"${valueAttr ? ` ${valueAttr}` : ""}>${value}</div>
+      ${meta ? `<div class="risk-metric-card__meta"${metaAttr ? ` ${metaAttr}` : ""}>${meta}</div>` : ""}
     </article>
   `;
 }
@@ -828,6 +942,8 @@ export function renderDashboard(root, state) {
       showAxisBorder: false,
       axisBorderColor: axisLine,
       axisBorderWidth: 0,
+      liveSmoothing: hasOpenPositions,
+      liveSmoothingDuration: 840,
       endpointPulse: {
         radius: 4,
         amplitude: 4.4,
@@ -849,13 +965,72 @@ export function renderDashboard(root, state) {
     })
   );
 
+  const structureSignature = JSON.stringify({
+    accountId: account?.id || "",
+    heroRange,
+    hasOpenPositions,
+    riskStatus: String(riskStatus?.riskStatus || ""),
+    riskSeverity: String(riskStatus?.severity || ""),
+    hasExposureSignal,
+    hasOpenTradeRisk,
+    hasEnforcementSignal,
+  });
+  const liveSignature = JSON.stringify({
+    subtitle: dashboardSubtitle,
+    equity: Number(model.account.equity || 0),
+    pnl: Number(panelSecondMetricValue || 0),
+    drawdown: Number(riskSummary.peakToEquityDrawdownPct || 0),
+    edge: Number(model?.totals?.profitFactor || 0),
+    heroDelta: Number(heroDelta || 0),
+    openRisk: Number(riskSummary.totalOpenRiskPct || 0),
+    tradeRisk: Number(riskSummary.maxOpenTradeRiskPct || 0),
+    dailyDd: Number(riskSummary.dailyDrawdownPct || 0),
+    margin: Number(primaryDistanceToLimit || 0),
+  });
+  const liveBindings = {
+    dashboardSubtitle,
+    heroSub: `${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})`,
+    equityValue: Number(model.account.equity || 0),
+    equityMeta: `${panelSecondMetricLabel} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay})</span>`,
+    pnlValue: Number(panelSecondMetricValue || 0),
+    pnlMeta: `Retorno ${formatPercent(currentReturnPct)}`,
+    drawdownValue: Number(riskSummary.peakToEquityDrawdownPct || 0),
+    drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} · Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+    edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
+    edgeMeta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} · ${Number(model?.totals?.totalTrades || 0)} trades`,
+    operationalSummary: hasOpenPositions ? operationalRead.summary : "Sin riesgo activo",
+    riskSummary: hasOpenPositions ? riskPostureRead.summary : "Sin exposición",
+    hasOpenPositions,
+    dailyDdValue: Number(riskSummary.dailyDrawdownPct || 0),
+    dailyDdMeta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
+    marginValue: Number(primaryDistanceToLimit || 0),
+    marginMeta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+    stateValue: riskStateLabel,
+    stateMeta: operationalRead.detail,
+    operationalFoot: operationalRead.footer || "",
+    openRiskValue: Number(riskSummary.totalOpenRiskPct || 0),
+    openRiskMeta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
+    tradeRiskValue: Number(riskSummary.maxOpenTradeRiskPct || 0),
+    tradeRiskMeta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
+    riskFoot: riskPostureRead.detail,
+  };
+
+  if (root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
+    if (root.__dashboardLiveSignature !== liveSignature) {
+      updateDashboardLiveNodes(root, liveBindings);
+      updateCharts(root, chartSpecs);
+      root.__dashboardLiveSignature = liveSignature;
+    }
+    return;
+  }
+
   root.innerHTML = `
     <section class="dashboard-screen dashboard-page-flow">
       <header class="calendar-screen__header dashboard-screen__header">
         <div class="calendar-screen__copy">
           <div class="calendar-screen__eyebrow">Dashboard</div>
           <h1 class="calendar-screen__title">Dashboard</h1>
-          <p class="calendar-screen__subtitle">${dashboardSubtitle}</p>
+          <p class="calendar-screen__subtitle" data-dashboard-subtitle>${dashboardSubtitle}</p>
         </div>
         <div class="dashboard-screen__actions">
           <button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
@@ -864,17 +1039,20 @@ export function renderDashboard(root, state) {
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
+          key: "equity",
           label: "Equity",
           value: formatCurrency(model.account.equity),
           meta: `${panelSecondMetricLabel} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay})</span>`,
         })}
         ${renderDashboardKpiCard({
+          key: "pnl",
           label: panelSecondMetricLabel,
           value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(panelSecondMetricValue))}`,
           valueClass: panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative",
           meta: `Retorno ${formatPercent(currentReturnPct)}`,
         })}
         ${renderDashboardKpiCard({
+          key: "dd",
           label: "Drawdown actual",
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
           valueClass: Number(riskSummary.peakToEquityDrawdownPct || 0) > 0 && String(riskStatus.riskStatus || "").toLowerCase() === "warning"
@@ -883,6 +1061,7 @@ export function renderDashboard(root, state) {
           meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} · Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
         })}
         ${renderDashboardKpiCard({
+          key: "edge",
           label: "Edge",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
           meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} · ${Number(model?.totals?.totalTrades || 0)} trades`,
@@ -896,7 +1075,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub">${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})</div>
+              <div class="calendar-panel-sub" data-dashboard-hero-sub>${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["H1", "4H", "1D", "1W", "1M", "YTD"].map((range) => `
@@ -917,36 +1096,42 @@ export function renderDashboard(root, state) {
             <div class="calendar-panel-head dashboard-secondary-card__head">
               <div>
                 <div class="calendar-panel-title">Operational state</div>
-                <div class="calendar-panel-sub">${hasOpenPositions ? operationalRead.summary : "Sin riesgo activo"}</div>
+                <div class="calendar-panel-sub" data-dashboard-operational-summary>${hasOpenPositions ? operationalRead.summary : "Sin riesgo activo"}</div>
               </div>
               ${hasOpenPositions ? renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity) : ""}
             </div>
 
             ${hasOpenPositions ? `
               <div class="dashboard-secondary-card__metrics">
-                ${renderRiskMetricCard({
+                ${renderDashboardInlineRiskCard({
                   label: "Daily DD",
                   value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
                   meta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
                   tone: riskTone,
+                  valueAttr: 'data-dashboard-operational-dailydd-value',
+                  metaAttr: 'data-dashboard-operational-dailydd-meta',
                 })}
-                ${renderRiskMetricCard({
+                ${renderDashboardInlineRiskCard({
                   label: "Margen",
                   value: formatRiskValuePct(primaryDistanceToLimit, 2),
                   meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
                   tone: operationalMarginTone,
+                  valueAttr: 'data-dashboard-operational-margin-value',
+                  metaAttr: 'data-dashboard-operational-margin-meta',
                 })}
-                ${renderRiskMetricCard({
+                ${renderDashboardInlineRiskCard({
                   label: "Estado",
                   value: riskStateLabel,
                   meta: operationalRead.detail,
                   tone: riskTone,
+                  valueAttr: 'data-dashboard-operational-state-value',
+                  metaAttr: 'data-dashboard-operational-state-meta',
                 })}
               </div>
 
               ${operationalRead.footer ? `
                 <div class="dashboard-secondary-card__foot">
-                  <span>${operationalRead.footer}</span>
+                  <span data-dashboard-operational-foot>${operationalRead.footer}</span>
                 </div>
               ` : ""}
             ` : `
@@ -965,26 +1150,30 @@ export function renderDashboard(root, state) {
             <div class="calendar-panel-head">
               <div>
                 <div class="calendar-panel-title">Risk posture</div>
-                <div class="calendar-panel-sub">${hasOpenPositions ? riskPostureRead.summary : "Sin exposición"}</div>
+                <div class="calendar-panel-sub" data-dashboard-risk-summary>${hasOpenPositions ? riskPostureRead.summary : "Sin exposición"}</div>
               </div>
             </div>
             ${hasOpenPositions ? `
               <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderRiskMetricCard({
+                ${renderDashboardInlineRiskCard({
                   label: "Open risk",
                   value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
                   meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
                   tone: postureTone,
+                  valueAttr: 'data-dashboard-risk-open-value',
+                  metaAttr: 'data-dashboard-risk-open-meta',
                 })}
-                ${renderRiskMetricCard({
+                ${renderDashboardInlineRiskCard({
                   label: "Riesgo por trade",
                   value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
                   meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
                   tone: postureTone,
+                  valueAttr: 'data-dashboard-risk-trade-value',
+                  metaAttr: 'data-dashboard-risk-trade-meta',
                 })}
               </div>
               <div class="dashboard-secondary-card__foot">
-                <span>${riskPostureRead.detail}</span>
+                <span data-dashboard-risk-foot>${riskPostureRead.detail}</span>
               </div>
             ` : `
               <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
@@ -1044,6 +1233,9 @@ export function renderDashboard(root, state) {
     </section>
   `;
   mountCharts(root, chartSpecs);
+  root.__dashboardStructureSignature = structureSignature;
+  root.__dashboardLiveSignature = liveSignature;
+  root.__dashboardRendered = true;
 
   root.querySelectorAll("[data-hero-range]").forEach((button) => {
     button.addEventListener("click", () => {
