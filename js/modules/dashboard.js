@@ -750,7 +750,7 @@ export function renderDashboard(root, state) {
       layoutPaddingTop: 0,
       layoutPaddingBottom: 0,
       layoutPaddingLeft: 0,
-      layoutPaddingRight: 0,
+      layoutPaddingRight: 12,
       showAxisBorder: false,
       axisBorderColor: axisLine,
       axisBorderWidth: 0,
