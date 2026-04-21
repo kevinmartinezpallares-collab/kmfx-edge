@@ -59,6 +59,61 @@ function getHeroRangePoints(range, curve) {
   return points.slice(-14);
 }
 
+function normalizeHeroCurvePoints(points) {
+  return (Array.isArray(points) ? points : [])
+    .map((point, index) => {
+      const numericValue = Number(point?.value);
+      if (!Number.isFinite(numericValue)) return null;
+      return {
+        label: point?.label || `P${index + 1}`,
+        value: numericValue,
+        timestamp:
+          point?.timestamp ||
+          point?.time ||
+          point?.date ||
+          point?.datetime ||
+          point?.when ||
+          null,
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPositions }) {
+  const normalizedIncoming = normalizeHeroCurvePoints(incomingCurve);
+  if (!normalizedIncoming.length) return [];
+
+  if (root.__heroCurveBaseKey !== cacheKey || !Array.isArray(root.__heroCurveBase) || !root.__heroCurveBase.length) {
+    root.__heroCurveBaseKey = cacheKey;
+    root.__heroCurveBase = normalizedIncoming.map((point) => ({ ...point }));
+    root.__heroCurveLivePoint = null;
+  }
+
+  if (!hasOpenPositions) {
+    root.__heroCurveBase = normalizedIncoming.map((point) => ({ ...point }));
+    root.__heroCurveLivePoint = null;
+    return root.__heroCurveBase;
+  }
+
+  const baseCurve = root.__heroCurveBase;
+  const lastHistoricalPoint = baseCurve.at(-1) || normalizedIncoming.at(-1);
+  if (!lastHistoricalPoint) return normalizedIncoming;
+
+  const targetLiveValue = Number.isFinite(Number(liveValue)) ? Number(liveValue) : Number(lastHistoricalPoint.value || 0);
+  const previousLiveValue = Number.isFinite(Number(root.__heroCurveLivePoint?.value))
+    ? Number(root.__heroCurveLivePoint.value)
+    : Number(lastHistoricalPoint.value || 0);
+  const easedLiveValue = previousLiveValue + ((targetLiveValue - previousLiveValue) * 0.42);
+  const nextLivePoint = {
+    label: "Ahora",
+    value: easedLiveValue,
+    timestamp: new Date().toISOString(),
+    __live: true,
+  };
+  root.__heroCurveLivePoint = nextLivePoint;
+  return [...baseCurve, nextLivePoint];
+}
+
 function createHeroXAxisFormatter(range, points) {
   const total = points.length;
   const parsedDates = points.map((point) => parseChartAxisDate(point));
@@ -447,11 +502,12 @@ export function renderDashboard(root, state) {
         { label: "Ahora", value: model.account.equity },
       ];
   const heroCurveCacheKey = `${account?.id || "dashboard"}:${account?.sourceType || ""}`;
-  if (root.__heroCurveCacheKey !== heroCurveCacheKey || !Array.isArray(root.__heroCurveCache) || !root.__heroCurveCache.length) {
-    root.__heroCurveCacheKey = heroCurveCacheKey;
-    root.__heroCurveCache = liveBaseCurve.map((point) => ({ ...point }));
-  }
-  const baseCurve = root.__heroCurveCache;
+  const baseCurve = buildHeroCurve(root, {
+    cacheKey: heroCurveCacheKey,
+    incomingCurve: liveBaseCurve,
+    liveValue: performanceView.equity,
+    hasOpenPositions: Number(performanceView.openPositionsCount || 0) > 0,
+  });
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
   const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
