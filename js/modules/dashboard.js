@@ -676,6 +676,10 @@ export function renderDashboard(root, state) {
   const hasEnforcementSignal = hasActiveEnforcementSignal(riskStatus);
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
   const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
+  const hasOpenPositions = Number(performanceView.openPositionsCount || 0) > 0;
+  const dashboardSubtitle = hasOpenPositions
+    ? "Capital, riesgo y estado operativo de un vistazo."
+    : "Capital, riesgo y estado operativo de un vistazo. Sin posiciones abiertas.";
   console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
     selectedAccountId: account?.id || activeAccountId || "",
     currentAccount: state.currentAccount,
@@ -764,7 +768,7 @@ export function renderDashboard(root, state) {
         <div class="calendar-screen__copy">
           <div class="calendar-screen__eyebrow">Dashboard</div>
           <h1 class="calendar-screen__title">Dashboard</h1>
-          <p class="calendar-screen__subtitle">Capital, riesgo y estado operativo de un vistazo.</p>
+          <p class="calendar-screen__subtitle">${dashboardSubtitle}</p>
         </div>
         <div class="dashboard-screen__actions">
           <button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
@@ -775,7 +779,7 @@ export function renderDashboard(root, state) {
         ${renderDashboardKpiCard({
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: `${panelSecondMetricLabel} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay})</span> · Balance ${formatCurrency(model.account.balance)}`,
+          meta: `${panelSecondMetricLabel} <span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} (${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay})</span>`,
         })}
         ${renderDashboardKpiCard({
           label: panelSecondMetricLabel,
@@ -826,63 +830,85 @@ export function renderDashboard(root, state) {
             <div class="calendar-panel-head dashboard-secondary-card__head">
               <div>
                 <div class="calendar-panel-title">Operational state</div>
-                <div class="calendar-panel-sub">${operationalRead.summary}</div>
+                <div class="calendar-panel-sub">${hasOpenPositions ? operationalRead.summary : "Sin riesgo activo"}</div>
               </div>
-              ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
+              ${hasOpenPositions ? renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity) : ""}
             </div>
 
-            <div class="dashboard-secondary-card__metrics">
-              ${renderRiskMetricCard({
-                label: "Daily DD",
-                value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
-                meta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
-                tone: riskTone,
-              })}
-              ${renderRiskMetricCard({
-                label: "Margen",
-                value: formatRiskValuePct(primaryDistanceToLimit, 2),
-                meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
-                tone: operationalMarginTone,
-              })}
-              ${renderRiskMetricCard({
-                label: "Estado",
-                value: riskStateLabel,
-                meta: operationalRead.detail,
-                tone: riskTone,
-              })}
-            </div>
-
-            ${operationalRead.footer ? `
-              <div class="dashboard-secondary-card__foot">
-                <span>${operationalRead.footer}</span>
+            ${hasOpenPositions ? `
+              <div class="dashboard-secondary-card__metrics">
+                ${renderRiskMetricCard({
+                  label: "Daily DD",
+                  value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
+                  meta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
+                  tone: riskTone,
+                })}
+                ${renderRiskMetricCard({
+                  label: "Margen",
+                  value: formatRiskValuePct(primaryDistanceToLimit, 2),
+                  meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+                  tone: operationalMarginTone,
+                })}
+                ${renderRiskMetricCard({
+                  label: "Estado",
+                  value: riskStateLabel,
+                  meta: operationalRead.detail,
+                  tone: riskTone,
+                })}
               </div>
-            ` : ""}
+
+              ${operationalRead.footer ? `
+                <div class="dashboard-secondary-card__foot">
+                  <span>${operationalRead.footer}</span>
+                </div>
+              ` : ""}
+            ` : `
+              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+                ${renderRiskMetricCard({
+                  label: "Estado",
+                  value: "Sin riesgo activo",
+                  meta: "No hay posiciones abiertas ahora.",
+                  tone: "neutral",
+                })}
+              </div>
+            `}
           </article>
 
           <article class="tl-section-card dashboard-secondary-card">
             <div class="calendar-panel-head">
               <div>
                 <div class="calendar-panel-title">Risk posture</div>
-                <div class="calendar-panel-sub">${riskPostureRead.summary}</div>
+                <div class="calendar-panel-sub">${hasOpenPositions ? riskPostureRead.summary : "Sin exposición"}</div>
               </div>
             </div>
-            <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-              ${renderRiskMetricCard({
-                label: "Open risk",
-                value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
-                meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
-                tone: postureTone,
-              })}
-              ${renderRiskMetricCard({
-                label: "Riesgo por trade",
-                value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
-                meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
-                tone: postureTone,
-              })}
-            </div>
-            <div class="dashboard-secondary-card__foot">
-              <span>${riskPostureRead.detail}</span>
-            </div>
+            ${hasOpenPositions ? `
+              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+                ${renderRiskMetricCard({
+                  label: "Open risk",
+                  value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
+                  meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
+                  tone: postureTone,
+                })}
+                ${renderRiskMetricCard({
+                  label: "Riesgo por trade",
+                  value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
+                  meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
+                  tone: postureTone,
+                })}
+              </div>
+              <div class="dashboard-secondary-card__foot">
+                <span>${riskPostureRead.detail}</span>
+              </div>
+            ` : `
+              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+                ${renderRiskMetricCard({
+                  label: "Exposición",
+                  value: "Sin exposición",
+                  meta: "0% de riesgo abierto sobre capital.",
+                  tone: "neutral",
+                })}
+              </div>
+            `}
           </article>
         </div>
       </section>
