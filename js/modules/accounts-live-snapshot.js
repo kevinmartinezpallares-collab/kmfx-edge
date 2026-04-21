@@ -303,6 +303,45 @@ export function initAccountsLiveSnapshot(store) {
   let reconnectTimer = null;
   let httpPollTimer = null;
 
+  const clearHttpPollTimer = () => {
+    clearTimeout(httpPollTimer);
+    httpPollTimer = null;
+  };
+
+  const getActiveOpenPositionsCount = () => {
+    const state = store.getState();
+    const currentAccountId = state?.currentAccount || state?.activeLiveAccountId || state?.activeAccountId || "";
+    const currentAccount = currentAccountId ? state?.accounts?.[currentAccountId] : null;
+    const explicitCount = Number(currentAccount?.account?.openPositionsCount);
+    if (Number.isFinite(explicitCount)) return explicitCount;
+    const payloadCount = Number(currentAccount?.dashboardPayload?.openPositionsCount);
+    if (Number.isFinite(payloadCount)) return payloadCount;
+    if (Array.isArray(currentAccount?.positions)) return currentAccount.positions.length;
+    if (Array.isArray(currentAccount?.dashboardPayload?.positions)) return currentAccount.dashboardPayload.positions.length;
+    return 0;
+  };
+
+  const getHttpPollIntervalMs = () => {
+    const hasOpenPositions = getActiveOpenPositionsCount() > 0;
+    if (isLocalRuntime()) return hasOpenPositions ? 1000 : 5000;
+    return hasOpenPositions ? 3000 : 15000;
+  };
+
+  const scheduleNextHttpPoll = () => {
+    clearHttpPollTimer();
+    const intervalMs = getHttpPollIntervalMs();
+    console.info("[KMFX][ACCOUNTS]", {
+      label: "http-poll-config",
+      intervalMs,
+      mode: isLocalRuntime() ? "local" : "production",
+      hasOpenPositions: getActiveOpenPositionsCount() > 0,
+    });
+    httpPollTimer = window.setTimeout(async () => {
+      await pollHttpSnapshot();
+      scheduleNextHttpPoll();
+    }, intervalMs);
+  };
+
   const pollHttpSnapshot = async () => {
     const url = resolveAccountsSnapshotUrl();
     if (!url) {
@@ -386,14 +425,7 @@ export function initAccountsLiveSnapshot(store) {
   };
 
   const startHttpPolling = () => {
-    clearInterval(httpPollTimer);
-    const intervalMs = isLocalRuntime() ? 5000 : 30000;
-    console.info("[KMFX][ACCOUNTS]", {
-      label: "http-poll-config",
-      intervalMs,
-      mode: isLocalRuntime() ? "local" : "production",
-    });
-    httpPollTimer = window.setInterval(pollHttpSnapshot, intervalMs);
+    scheduleNextHttpPoll();
   };
 
   const connect = () => {
