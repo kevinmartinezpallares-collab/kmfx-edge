@@ -159,15 +159,34 @@ export function initSidebarUI(store) {
 
   const syncMenuState = () => {
     const menu = profileRoot?.querySelector(".sidebar-profile-menu");
-    const toggle = profileRoot?.querySelector("[data-sidebar-menu-toggle]");
     const isOpen = Boolean(profileRoot?.__menuOpen);
+    const toggles = profileRoot?.querySelectorAll("[data-sidebar-menu-toggle]") || [];
+    if (!menu) {
+      toggles.forEach((toggle) => {
+        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+      return;
+    }
+
+    clearTimeout(profileRoot.__menuCloseTimer);
     if (menu) {
-      menu.hidden = !isOpen;
-      menu.classList.toggle("is-open", isOpen);
+      if (isOpen) {
+        menu.hidden = false;
+        requestAnimationFrame(() => {
+          menu.classList.add("is-open");
+        });
+      } else {
+        menu.classList.remove("is-open");
+        profileRoot.__menuCloseTimer = window.setTimeout(() => {
+          if (!profileRoot?.__menuOpen) {
+            menu.hidden = true;
+          }
+        }, 140);
+      }
     }
-    if (toggle) {
+    toggles.forEach((toggle) => {
       toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    }
+    });
   };
 
   settingsShortcut?.addEventListener("click", () => {

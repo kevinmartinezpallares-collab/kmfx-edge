@@ -10429,7 +10429,24 @@ body[data-theme="dark"] .sidebar::after {
 }
 
 .app-shell.sidebar-vnext .sidebar-profile-menu {
-  z-index: 90;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  left: auto;
+  width: min(280px, calc(100vw - 48px));
+  max-width: min(280px, calc(100vw - 48px));
+  z-index: 120;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.985);
+  transform-origin: bottom right;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.app-shell.sidebar-vnext .sidebar-profile-menu.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
 }
 
 .app-shell.sidebar-vnext .sidebar-vnext-divider {
@@ -10562,9 +10579,10 @@ body[data-theme="dark"] .sidebar::after {
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu {
-  left: calc(100% + 10px);
+  left: calc(100% + 12px);
   right: auto;
   bottom: 0;
+  transform-origin: left bottom;
 }
 
 @media (max-width: 920px) {
@@ -12787,6 +12805,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer 
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile {
+  position: relative;
   padding: 0 !important;
   gap: 12px !important;
   background: transparent !important;
@@ -12846,6 +12865,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu {
   border: 1px solid var(--border-subtle);
   box-shadow: none;
   min-width: 260px;
+  margin-bottom: 6px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-item,
