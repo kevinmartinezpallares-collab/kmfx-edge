@@ -1094,9 +1094,16 @@ function createLineAreaChart(ChartLib, canvas, spec) {
               radius: spec.endpointPulse.radius ?? 4,
               amplitude: spec.endpointPulse.amplitude ?? 2.4,
               alpha: spec.endpointPulse.alpha ?? 0.12,
+              minAlpha: spec.endpointPulse.minAlpha ?? 0.06,
+              steadyAlpha: spec.endpointPulse.steadyAlpha ?? 0.12,
+              coreAmplitude: spec.endpointPulse.coreAmplitude ?? 0.45,
+              coreAlpha: spec.endpointPulse.coreAlpha ?? 0.98,
+              ringWidth: spec.endpointPulse.ringWidth ?? 1.2,
+              ringWidthActive: spec.endpointPulse.ringWidthActive ?? 0.65,
               duration: spec.endpointPulse.duration ?? 2600,
               animate: spec.endpointPulse.animate !== false,
-              color: spec.endpointPulse.color || withAlpha(end, spec.endpointPulse.alpha ?? 0.12)
+              color: spec.endpointPulse.color || withAlpha(end, spec.endpointPulse.alpha ?? 0.12),
+              steadyColor: spec.endpointPulse.steadyColor || withAlpha(end, spec.endpointPulse.steadyAlpha ?? 0.12)
             }
           : false,
         tooltip: {

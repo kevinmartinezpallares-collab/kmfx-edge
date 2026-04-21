@@ -37,6 +37,8 @@ function getHeroRangePoints(range, curve) {
     .filter((entry) => entry.date);
 
   if (!datedPoints.length) {
+    if (range === "H1") return points.slice(-4);
+    if (range === "4H") return points.slice(-6);
     if (range === "1D") return points.slice(-5);
     if (range === "1W") return points.slice(-7);
     if (range === "YTD") return points;
@@ -45,7 +47,9 @@ function getHeroRangePoints(range, curve) {
 
   const endDate = datedPoints[datedPoints.length - 1].date;
   const startDate = new Date(endDate);
-  if (range === "1D") startDate.setHours(startDate.getHours() - 24);
+  if (range === "H1") startDate.setHours(startDate.getHours() - 1);
+  else if (range === "4H") startDate.setHours(startDate.getHours() - 4);
+  else if (range === "1D") startDate.setHours(startDate.getHours() - 24);
   else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
   else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
   else if (range === "YTD") startDate.setMonth(0, 1);
@@ -53,6 +57,8 @@ function getHeroRangePoints(range, curve) {
   const filtered = datedPoints.filter(({ date }) => date >= startDate).map(({ point }) => point);
   if (filtered.length >= 2) return filtered;
 
+  if (range === "H1") return points.slice(-4);
+  if (range === "4H") return points.slice(-6);
   if (range === "1D") return points.slice(-5);
   if (range === "1W") return points.slice(-7);
   if (range === "YTD") return points;
@@ -103,11 +109,16 @@ function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPosit
   const previousLiveValue = Number.isFinite(Number(root.__heroCurveLivePoint?.value))
     ? Number(root.__heroCurveLivePoint.value)
     : Number(lastHistoricalPoint.value || 0);
-  const easedLiveValue = previousLiveValue + ((targetLiveValue - previousLiveValue) * 0.42);
+  const easedLiveValue = previousLiveValue + ((targetLiveValue - previousLiveValue) * 0.24);
+  const previousLiveTimestamp = root.__heroCurveLivePoint?.timestamp;
+  const lastHistoricalDate = parseChartAxisDate(lastHistoricalPoint);
+  const stableLiveTimestamp = previousLiveTimestamp || (lastHistoricalDate
+    ? new Date(lastHistoricalDate.getTime() + 60_000).toISOString()
+    : (lastHistoricalPoint.timestamp || null));
   const nextLivePoint = {
     label: "Ahora",
     value: easedLiveValue,
-    timestamp: new Date().toISOString(),
+    timestamp: stableLiveTimestamp,
     __live: true,
   };
   root.__heroCurveLivePoint = nextLivePoint;
@@ -117,7 +128,7 @@ function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPosit
 function createHeroXAxisFormatter(range, points) {
   const total = points.length;
   const parsedDates = points.map((point) => parseChartAxisDate(point));
-  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 5 : range === "1W" ? 4 : 4;
+  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 5 : range === "1W" ? 5 : range === "1D" ? 5 : range === "4H" ? 4 : 4;
   const validDates = parsedDates.filter(Boolean);
   const firstDate = validDates[0] || null;
   const lastDate = validDates[validDates.length - 1] || null;
@@ -126,7 +137,7 @@ function createHeroXAxisFormatter(range, points) {
 
   const formatLabel = (date) => {
     if (!date) return "";
-    if (range === "1D") {
+    if (range === "H1" || range === "4H" || range === "1D") {
       return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
     }
     if (range === "1W") {
@@ -149,7 +160,7 @@ function createHeroXAxisFormatter(range, points) {
 
   const getBucketKey = (date) => {
     if (!date) return "";
-    if (range === "1D") {
+    if (range === "H1" || range === "4H" || range === "1D") {
       return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
     }
     if (range === "1W") {
@@ -695,7 +706,17 @@ export function renderDashboard(root, state) {
   const totalReturnDisplay = formatPercent(Math.abs(currentReturnPct)).replace(/^[+-]/, "");
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
-  const heroRangeLabel = heroRange === "1D" ? "intradía" : heroRange === "1W" ? "1 semana" : heroRange === "YTD" ? "YTD" : "1 mes";
+  const heroRangeLabel = heroRange === "H1"
+    ? "1 hora"
+    : heroRange === "4H"
+      ? "4 horas"
+      : heroRange === "1D"
+        ? "intradía"
+        : heroRange === "1W"
+          ? "1 semana"
+          : heroRange === "YTD"
+            ? "YTD"
+            : "1 mes";
   const heroRangeSignedValue = `${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay}`;
   const heroRangeSignedPct = `${heroDeltaPct >= 0 ? "+" : "-"}${heroRangePctDisplay}`;
   const riskSummary = selectRiskSummary(state);
@@ -775,7 +796,7 @@ export function renderDashboard(root, state) {
       }],
       showXAxis: true,
       showYAxis: true,
-      maxYTicks: 4,
+      maxYTicks: 5,
       autoSkipXTicks: true,
       xAxisFormatter: heroXAxisFormatter,
       yMin: heroMinValue - heroValuePadding,
@@ -797,9 +818,9 @@ export function renderDashboard(root, state) {
       axisFontWeight: "500",
       yTickPadding: 4,
       xTickPadding: 10,
-      maxXTicks: heroRange === "YTD" ? 6 : heroRange === "1M" ? 5 : 4,
-      showYGrid: false,
-      gridAlpha: isDarkTheme ? 0.02 : 0.045,
+      maxXTicks: heroRange === "YTD" ? 6 : heroRange === "1M" ? 5 : heroRange === "1W" ? 5 : heroRange === "1D" ? 5 : heroRange === "4H" ? 4 : 4,
+      showYGrid: true,
+      gridAlpha: isDarkTheme ? 0.016 : 0.03,
       crosshairAlpha: isDarkTheme ? 0.08 : 0.08,
       yHeadroomRatio: 0,
       yBottomPaddingRatio: 0,
@@ -820,6 +841,7 @@ export function renderDashboard(root, state) {
         ringWidth: 1.35,
         ringWidthActive: 0.8,
         duration: 2200,
+        animate: false,
       },
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
@@ -880,7 +902,7 @@ export function renderDashboard(root, state) {
               <div class="calendar-panel-sub">${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
-              ${["1D", "1W", "1M", "YTD"].map((range) => `
+              ${["H1", "4H", "1D", "1W", "1M", "YTD"].map((range) => `
                 <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
               `).join("")}
             </div>

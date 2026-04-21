@@ -11911,6 +11911,13 @@ body[data-theme="dark"] .dashboard-primary-card .widget-segmented {
   flex-shrink: 0;
 }
 
+html[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn,
+body[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn,
+html[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn.active,
+body[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn.active {
+  border-radius: 999px !important;
+}
+
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
   padding: 16px !important;
