@@ -106,10 +106,6 @@ function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPosit
   if (!lastHistoricalPoint) return normalizedIncoming;
 
   const targetLiveValue = Number.isFinite(Number(liveValue)) ? Number(liveValue) : Number(lastHistoricalPoint.value || 0);
-  const previousLiveValue = Number.isFinite(Number(root.__heroCurveLivePoint?.value))
-    ? Number(root.__heroCurveLivePoint.value)
-    : Number(lastHistoricalPoint.value || 0);
-  const easedLiveValue = previousLiveValue + ((targetLiveValue - previousLiveValue) * 0.24);
   const previousLiveTimestamp = root.__heroCurveLivePoint?.timestamp;
   const lastHistoricalDate = parseChartAxisDate(lastHistoricalPoint);
   const stableLiveTimestamp = previousLiveTimestamp || (lastHistoricalDate
@@ -117,7 +113,7 @@ function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPosit
     : (lastHistoricalPoint.timestamp || null));
   const nextLivePoint = {
     label: "Ahora",
-    value: easedLiveValue,
+    value: targetLiveValue,
     timestamp: stableLiveTimestamp,
     __live: true,
   };
@@ -807,8 +803,11 @@ export function renderDashboard(root, state) {
       pointHitRadius: 20,
       pointBorderWidth: 1.25,
       fill: isDarkTheme,
-      fillAlphaStart: isDarkTheme ? 0.03 : 0.016,
+      fillAlphaStart: isDarkTheme ? 0.02 : 0.012,
       fillAlphaEnd: 0,
+      areaSideFade: true,
+      areaSideFadeStart: 0.03,
+      areaSideFadeEnd: 0.97,
       glowAlpha: 0,
       tension: 0.68,
       animationDisabled: true,
@@ -820,7 +819,10 @@ export function renderDashboard(root, state) {
       xTickPadding: 10,
       maxXTicks: heroRange === "YTD" ? 6 : heroRange === "1M" ? 5 : heroRange === "1W" ? 5 : heroRange === "1D" ? 5 : heroRange === "4H" ? 4 : 4,
       showYGrid: true,
-      gridAlpha: isDarkTheme ? 0.016 : 0.03,
+      gridAlpha: isDarkTheme ? 0.028 : 0.045,
+      gridColor: isDarkTheme ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.08)",
+      yGridDash: [3, 7],
+      yGridWidth: 0.8,
       crosshairAlpha: isDarkTheme ? 0.08 : 0.08,
       yHeadroomRatio: 0,
       yBottomPaddingRatio: 0,
@@ -841,7 +843,7 @@ export function renderDashboard(root, state) {
         ringWidth: 1.35,
         ringWidthActive: 0.8,
         duration: 2200,
-        animate: false,
+        animate: true,
       },
       formatter: (value, context) => {
         const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;

@@ -1074,8 +1074,10 @@ function createLineAreaChart(ChartLib, canvas, spec) {
           },
           grid: {
             display: spec.showYGrid ?? false,
-            color: getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.035),
-            drawBorder: false
+            color: spec.gridColor || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.035),
+            drawBorder: false,
+            borderDash: spec.yGridDash || [],
+            lineWidth: spec.yGridWidth ?? 1
           }
         }
       },
@@ -1261,8 +1263,10 @@ function createBarChart(ChartLib, canvas, spec) {
           },
           grid: {
             display: spec.showYGrid ?? false,
-            color: getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.025),
-            drawBorder: false
+            color: spec.gridColor || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.025),
+            drawBorder: false,
+            borderDash: spec.yGridDash || [],
+            lineWidth: spec.yGridWidth ?? 1
           }
         }
       },
