@@ -448,7 +448,7 @@ function renderDashboardKpiCard({ key = "", label, value, valueClass = "", meta 
     <article class="widget-card widget-card--kpi ${cardClass}" ${key ? `data-dashboard-kpi="${key}"` : ""}>
       <div class="tl-kpi-label">${label}</div>
       <div class="tl-kpi-val ${valueClass}" data-kpi-value>${value}</div>
-      ${(meta || trend) ? `<div class="widget-card-meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" · ")}</div>` : ""}
+      ${(meta || trend) ? `<div class="widget-card-meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" / ")}</div>` : ""}
     </article>
   `;
 }
@@ -893,9 +893,8 @@ export function renderDashboard(root, state) {
   const heroVisibleStartDate = (heroRange === "H1" || heroRange === "4H")
     ? getHeroRangeStartDate(heroRange, heroVisibleEndDate)
     : (heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
-  const heroAxisPadding = getHeroAxisPaddingMs(heroRange);
-  const heroXMin = heroVisibleStartDate.getTime() - heroAxisPadding;
-  const heroXMax = heroVisibleEndDate.getTime() + heroAxisPadding;
+  const heroXMin = heroVisibleStartDate.getTime();
+  const heroXMax = heroVisibleEndDate.getTime();
   const heroTickValues = buildHeroTickValues(heroRange, heroCurve, heroVisibleStartDate, heroVisibleEndDate);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
@@ -1182,7 +1181,7 @@ export function renderDashboard(root, state) {
       autoSkipXTicks: false,
       xAxisFormatter: heroXAxisFormatter,
       xScaleType: "linear",
-      xScaleOffset: true,
+      xScaleOffset: false,
       xValues: heroXValues,
       xMin: heroXMin,
       xMax: heroXMax,
@@ -1196,7 +1195,7 @@ export function renderDashboard(root, state) {
       yMax: heroMaxValue + heroValuePadding,
       borderWidth: 2.15,
       pointRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4 : 0),
-      pointHoverRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4.6 : 3),
+      pointHoverRadius: (context) => (context.dataIndex === heroCurve.length - 1 ? 4.6 : 0),
       pointHitRadius: 20,
       pointBorderWidth: 1.25,
       fill: true,
@@ -1213,11 +1212,11 @@ export function renderDashboard(root, state) {
       xTickPadding: 10,
       maxXTicks: getHeroTickTarget(heroRange),
       showYGrid: true,
-      gridAlpha: isDarkTheme ? 0.02 : 0.035,
-      gridColor: isDarkTheme ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.06)",
-      yGridDash: [2, 8],
-      yGridWidth: 0.7,
-      crosshairAlpha: isDarkTheme ? 0.08 : 0.08,
+      gridAlpha: isDarkTheme ? 0.018 : 0.03,
+      gridColor: isDarkTheme ? "rgba(255,255,255,0.035)" : "rgba(15,23,42,0.05)",
+      yGridDash: [3, 9],
+      yGridWidth: 0.65,
+      crosshairAlpha: isDarkTheme ? 0.06 : 0.06,
       yHeadroomRatio: 0,
       yBottomPaddingRatio: 0,
       layoutPaddingTop: 0,
@@ -1290,16 +1289,16 @@ export function renderDashboard(root, state) {
     pnlMeta: `Retorno ${formatPercent(currentReturnPct)}`,
     drawdownValue: Number(riskSummary.peakToEquityDrawdownPct || 0),
     drawdownTone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
-    drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} · Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+    drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
     edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-    edgeMeta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} · ${Number(model?.totals?.totalTrades || 0)} trades`,
+    edgeMeta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} / ${Number(model?.totals?.totalTrades || 0)} trades`,
     operationalSummary: operationalRead.summary,
     riskSummary: riskPostureRead.summary,
     hasOpenPositions,
     dailyDdValue: Number(riskSummary.dailyDrawdownPct || 0),
     dailyDdMeta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
     marginValue: Number(primaryDistanceToLimit || 0),
-    marginMeta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+    marginMeta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
     stateValue: riskStateLabel,
     stateMeta: operationalRead.detail,
     operationalFoot: operationalRead.footer || "",
@@ -1353,13 +1352,13 @@ export function renderDashboard(root, state) {
           label: "Drawdown actual",
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
           valueClass: getDrawdownValueClass(riskSummary.peakToEquityDrawdownPct),
-          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} · Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
         })}
         ${renderDashboardKpiCard({
           key: "edge",
           label: "Edge",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-          meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} · ${Number(model?.totals?.totalTrades || 0)} trades`,
+          meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} / ${Number(model?.totals?.totalTrades || 0)} trades`,
           valueClass: "dashboard-kpi-muted-value",
           cardClass: "dashboard-kpi-support",
         })}
@@ -1409,7 +1408,7 @@ export function renderDashboard(root, state) {
                 ${renderDashboardInlineRiskCard({
                   label: "Margen",
                   value: formatRiskValuePct(primaryDistanceToLimit, 2),
-                  meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} · Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+                  meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
                   tone: operationalMarginTone,
                   valueAttr: 'data-dashboard-operational-margin-value',
                   metaAttr: 'data-dashboard-operational-margin-meta',

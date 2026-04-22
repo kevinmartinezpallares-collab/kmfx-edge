@@ -752,6 +752,24 @@ const crosshairPlugin = {
     ctx.moveTo(targetX, chartArea.top + 8);
     ctx.lineTo(targetX, chartArea.bottom - 6);
     ctx.stroke();
+    if (interpolatedHover && Number.isFinite(interpolatedHover.y)) {
+      const pointRadius = pluginOptions?.pointRadius || 4.5;
+      ctx.beginPath();
+      ctx.arc(interpolatedHover.x, interpolatedHover.y, pointRadius + 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = pluginOptions?.pointHalo || withAlpha(getCssVar("--chart-blue-a") || "#2f6bff", 0.16);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(interpolatedHover.x, interpolatedHover.y, pointRadius, 0, Math.PI * 2);
+      ctx.fillStyle = pluginOptions?.pointFill || withAlpha("#ffffff", 0.98);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(interpolatedHover.x, interpolatedHover.y, pointRadius, 0, Math.PI * 2);
+      ctx.lineWidth = pluginOptions?.pointBorderWidth || 2;
+      ctx.strokeStyle = pluginOptions?.pointStroke || withAlpha(getCssVar("--chart-blue-a") || "#2f6bff", 0.92);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 };
