@@ -49,6 +49,11 @@ function getHeroRangePoints(range, curve) {
     return points.slice(-14);
   }
 
+  if (range === "1D") return aggregateHeroPointsByDay(datedPoints, 14);
+  if (range === "1W") return aggregateHeroPointsByWeek(datedPoints, 12);
+  if (range === "1M") return aggregateHeroPointsByMonth(datedPoints);
+  if (range === "YTD") return aggregateHeroPointsByMonth(datedPoints, { yearToDate: true });
+
   const endDate = datedPoints[datedPoints.length - 1].date;
   const startDate = getHeroRangeStartDate(range, endDate);
 
@@ -105,9 +110,9 @@ function getHeroRangeStartDate(range, endDate) {
   const startDate = new Date(endDate);
   if (range === "H1") startDate.setHours(startDate.getHours() - 1);
   else if (range === "4H") startDate.setHours(startDate.getHours() - 4);
-  else if (range === "1D") startDate.setHours(startDate.getHours() - 24);
-  else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
-  else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
+  else if (range === "1D") startDate.setDate(startDate.getDate() - 13);
+  else if (range === "1W") startDate.setDate(startDate.getDate() - 7 * 11);
+  else if (range === "1M") startDate.setMonth(startDate.getMonth() - 11, 1);
   else if (range === "YTD") startDate.setMonth(0, 1);
   return startDate;
 }
@@ -116,16 +121,90 @@ function formatHeroTimeTick(range, value) {
   if (!Number.isFinite(value)) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  if (range === "H1" || range === "4H" || range === "1D") {
+  if (range === "H1" || range === "4H") {
     return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   }
-  if (range === "1W") {
-    return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
-  }
-  if (range === "1M") {
+  if (range === "1D") {
     return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   }
+  if (range === "1W") {
+    const weekNumber = getWeekNumber(date);
+    return `S${String(weekNumber).padStart(2, "0")}`;
+  }
+  if (range === "1M") {
+    return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+  }
   return date.toLocaleDateString("es-ES", { month: "short" });
+}
+
+function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function startOfMonth(date) {
+  const next = new Date(date);
+  next.setDate(1);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function startOfWeek(date) {
+  const next = startOfDay(date);
+  const day = next.getDay();
+  const diff = (day + 6) % 7;
+  next.setDate(next.getDate() - diff);
+  return next;
+}
+
+function getWeekNumber(date) {
+  const target = startOfDay(date);
+  target.setDate(target.getDate() + 4 - (target.getDay() || 7));
+  const yearStart = new Date(target.getFullYear(), 0, 1);
+  return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+}
+
+function aggregateHeroPoints(entries, bucketKeyFn, bucketTimestampFn) {
+  const buckets = new Map();
+  entries.forEach(({ point, date }) => {
+    const key = bucketKeyFn(date);
+    buckets.set(key, { point, date });
+  });
+  return [...buckets.values()].map(({ point, date }) => ({
+    ...point,
+    label: bucketTimestampFn(date).toISOString(),
+    timestamp: bucketTimestampFn(date).toISOString(),
+  }));
+}
+
+function aggregateHeroPointsByDay(entries, days = 14) {
+  const aggregated = aggregateHeroPoints(
+    entries,
+    (date) => startOfDay(date).toISOString(),
+    (date) => startOfDay(date),
+  );
+  return aggregated.slice(-days);
+}
+
+function aggregateHeroPointsByWeek(entries, weeks = 12) {
+  const aggregated = aggregateHeroPoints(
+    entries,
+    (date) => startOfWeek(date).toISOString(),
+    (date) => startOfWeek(date),
+  );
+  return aggregated.slice(-weeks);
+}
+
+function aggregateHeroPointsByMonth(entries, { yearToDate = false } = {}) {
+  const scopedEntries = yearToDate
+    ? entries.filter(({ date }) => date.getFullYear() === entries.at(-1)?.date?.getFullYear())
+    : entries;
+  return aggregateHeroPoints(
+    scopedEntries,
+    (date) => `${date.getFullYear()}-${date.getMonth()}`,
+    (date) => startOfMonth(date),
+  );
 }
 
 function normalizeHeroCurvePoints(points) {
@@ -678,7 +757,9 @@ export function renderDashboard(root, state) {
     return parsed ? parsed.getTime() : index;
   });
   const heroVisibleEndDate = heroCurve.length ? (parseChartAxisDate(heroCurve.at(-1)) || new Date()) : new Date();
-  const heroVisibleStartDate = getHeroRangeStartDate(heroRange, heroVisibleEndDate);
+  const heroVisibleStartDate = (heroRange === "H1" || heroRange === "4H")
+    ? getHeroRangeStartDate(heroRange, heroVisibleEndDate)
+    : (heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
   const heroXMin = heroVisibleStartDate.getTime();
   const heroXMax = heroVisibleEndDate.getTime();
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
@@ -871,12 +952,12 @@ export function renderDashboard(root, state) {
     : heroRange === "4H"
       ? "4 horas"
       : heroRange === "1D"
-        ? "intradía"
+        ? "14 días"
         : heroRange === "1W"
-          ? "1 semana"
+          ? "12 semanas"
           : heroRange === "YTD"
             ? "YTD"
-            : "1 mes";
+            : "mensual";
   const heroRangeSignedValue = `${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay}`;
   const heroRangeSignedPct = `${heroDeltaPct >= 0 ? "+" : "-"}${heroRangePctDisplay}`;
   const riskSummary = selectRiskSummary(state);
