@@ -14047,8 +14047,36 @@ html[data-theme="dark"] .sidebar,
 body[data-theme="dark"] .sidebar,
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
-  background: #151515 !important;
-  background-color: #151515 !important;
+  background: #111111 !important;
+  background-color: #111111 !important;
   background-image: none !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-right: 0 !important;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider__line,
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line {
+  background: transparent !important;
+  width: 0 !important;
+}
+
+.app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
+  background: transparent !important;
+  width: 0 !important;
+}
+
+.main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel {
+  padding-bottom: 0 !important;
+}
+
+.content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content {
+  padding-bottom: 0 !important;
 }
