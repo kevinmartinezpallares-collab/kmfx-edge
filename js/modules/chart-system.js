@@ -126,6 +126,7 @@ function showTooltipEl(chart, { title = "", body = "", left = 0, top = 0, isBarC
 function externalTooltipHandler(context) {
   const { chart, tooltip } = context;
   if (chart?.config?.options?.plugins?.kmfxLiteralHistogram) return;
+  if (chart?.$kmfxInterpolatedHoverActive) return;
   const tooltipEl = ensureTooltipEl(chart);
   if (!tooltipEl) return;
 
@@ -382,6 +383,13 @@ function buildLineAreaOptions(spec) {
           }
         : false,
       kmfxCrosshair: spec.crosshair === false ? false : { color: withAlpha(toneColors(spec.tone || "blue").start, spec.crosshairAlpha ?? 0.12), lineWidth: 0.85 },
+      kmfxLineHover: spec.customLineHover
+        ? {
+            datasetIndex: spec.hoverDatasetIndex ?? 0,
+            titleFormatter: spec.hoverTitleFormatter,
+            bodyFormatter: spec.hoverBodyFormatter
+          }
+        : false,
       kmfxEndpointPulse: spec.endpointPulse
         ? {
             datasetIndex: spec.endpointPulse.datasetIndex ?? 0,
@@ -621,7 +629,8 @@ function buildBaseOptions(spec) {
           easing: spec.animationEasing || "easeOutQuart"
         },
     interaction: {
-      mode: spec.interactionMode || "index",
+      mode: spec.interactionMode || "nearest",
+      axis: spec.interactionAxis || "x",
       intersect: false
     },
     plugins: {
@@ -727,20 +736,105 @@ const areaMaskPlugin = {
 const crosshairPlugin = {
   id: "kmfxCrosshair",
   afterDatasetsDraw(chart, args, pluginOptions) {
+    const interpolatedHover = chart.$kmfxInterpolatedHover;
     const active = chart.tooltip?.getActiveElements?.() || [];
-    if (!active.length) return;
+    if (!interpolatedHover && !active.length) return;
     const { ctx, chartArea } = chart;
-    const element = active[0].element;
-    if (!element) return;
+    const targetX = interpolatedHover?.x ?? active[0]?.element?.x;
+    if (!Number.isFinite(targetX)) return;
     ctx.save();
     ctx.strokeStyle = pluginOptions?.color || withAlpha(getCssVar("--border") || "#334155", 0.16);
     ctx.lineWidth = pluginOptions?.lineWidth || 0.85;
     ctx.setLineDash(pluginOptions?.dash || []);
     ctx.beginPath();
-    ctx.moveTo(element.x, chartArea.top + 8);
-    ctx.lineTo(element.x, chartArea.bottom - 6);
+    ctx.moveTo(targetX, chartArea.top + 8);
+    ctx.lineTo(targetX, chartArea.bottom - 6);
     ctx.stroke();
     ctx.restore();
+  }
+};
+
+const lineHoverPlugin = {
+  id: "kmfxLineHover",
+  afterEvent(chart, args, pluginOptions) {
+    if (pluginOptions === false || !pluginOptions || chart.config.type !== "line") return;
+    const event = args?.event;
+    const chartArea = chart.chartArea;
+    if (!event || !chartArea) return;
+
+    const isLeaving = event.type === "mouseout" || event.type === "mouseleave";
+    const outsideChart = event.x < chartArea.left || event.x > chartArea.right || event.y < chartArea.top || event.y > chartArea.bottom;
+    if (isLeaving || outsideChart) {
+      chart.$kmfxInterpolatedHover = null;
+      chart.$kmfxInterpolatedHoverActive = false;
+      hideTooltipEl(chart);
+      chart.draw();
+      return;
+    }
+
+    const datasetIndex = pluginOptions.datasetIndex ?? 0;
+    const dataset = chart.data.datasets?.[datasetIndex];
+    const scaleX = chart.scales?.x;
+    const scaleY = chart.scales?.y;
+    if (!dataset?.data?.length || !scaleX || !scaleY) return;
+
+    const normalizedPoints = dataset.data
+      .map((point, index) => {
+        if (typeof point === "object" && point !== null) {
+          const x = Number(point.x);
+          const y = Number(point.y);
+          if (Number.isFinite(x) && Number.isFinite(y)) return { x, y, index };
+        }
+        const y = Number(point);
+        if (Number.isFinite(y)) return { x: index, y, index };
+        return null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.x - b.x);
+    if (!normalizedPoints.length) return;
+
+    const cursorXValue = Number(scaleX.getValueForPixel(event.x));
+    const clampedXValue = Math.max(normalizedPoints[0].x, Math.min(cursorXValue, normalizedPoints.at(-1).x));
+
+    let leftPoint = normalizedPoints[0];
+    let rightPoint = normalizedPoints.at(-1);
+    for (let i = 1; i < normalizedPoints.length; i += 1) {
+      if (normalizedPoints[i].x >= clampedXValue) {
+        rightPoint = normalizedPoints[i];
+        leftPoint = normalizedPoints[Math.max(0, i - 1)];
+        break;
+      }
+    }
+
+    const span = Math.max(rightPoint.x - leftPoint.x, 1);
+    const ratio = Math.min(1, Math.max(0, (clampedXValue - leftPoint.x) / span));
+    const interpolatedYValue = leftPoint.y + ((rightPoint.y - leftPoint.y) * ratio);
+    const pixelX = scaleX.getPixelForValue(clampedXValue);
+    const pixelY = scaleY.getPixelForValue(interpolatedYValue);
+    const title = typeof pluginOptions.titleFormatter === "function"
+      ? pluginOptions.titleFormatter(clampedXValue, interpolatedYValue, { leftPoint, rightPoint, ratio })
+      : "";
+    const body = typeof pluginOptions.bodyFormatter === "function"
+      ? pluginOptions.bodyFormatter(interpolatedYValue, clampedXValue, { leftPoint, rightPoint, ratio })
+      : "";
+
+    const host = chart.canvas.parentNode;
+    const positionX = chart.canvas.offsetLeft;
+    const positionY = chart.canvas.offsetTop;
+    const clientWidth = host?.clientWidth || chart.canvas.clientWidth;
+    const tooltipWidth = 188;
+    const tooltipHeight = 58;
+    const left = Math.max(10, Math.min(positionX + pixelX - tooltipWidth / 2, clientWidth - tooltipWidth - 10));
+    const top = Math.max(10, positionY + pixelY - tooltipHeight - 18);
+
+    chart.$kmfxInterpolatedHover = { x: pixelX, y: pixelY, value: interpolatedYValue, xValue: clampedXValue };
+    chart.$kmfxInterpolatedHoverActive = true;
+    showTooltipEl(chart, { title, body, left, top });
+    chart.draw();
+  },
+  afterDestroy(chart) {
+    chart.$kmfxInterpolatedHover = null;
+    chart.$kmfxInterpolatedHoverActive = false;
   }
 };
 
@@ -1158,7 +1252,7 @@ function ensureDefaults(ChartLib) {
   ChartLib.defaults.borderColor = getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.42);
   ChartLib.defaults.scale.grid.color = getCssVar("--chart-grid") || withAlpha(getCssVar("--border") || "#334155", 0.24);
   ChartLib.defaults.plugins.legend.display = false;
-  ChartLib.register(glowLinePlugin, areaMaskPlugin, crosshairPlugin, endpointPulsePlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
+  ChartLib.register(glowLinePlugin, areaMaskPlugin, crosshairPlugin, lineHoverPlugin, endpointPulsePlugin, doughnutCenterPlugin, barTrackPlugin, referencePillBarPlugin, literalHistogramBarPlugin, zeroDividerPlugin, literalAxesPlugin);
   ChartLib.__kmfxDefaultsApplied = true;
 }
 

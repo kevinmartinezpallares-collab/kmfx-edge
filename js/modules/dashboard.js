@@ -136,6 +136,19 @@ function formatHeroTimeTick(range, value) {
   return date.toLocaleDateString("es-ES", { month: "short" });
 }
 
+function formatHeroTooltipTitle(range, value) {
+  if (!Number.isFinite(value)) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  if (range === "H1" || range === "4H") {
+    return `${date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} · ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+  }
+  if (range === "1D" || range === "1W") {
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  return date.toLocaleDateString("es-ES", { month: "short", year: "numeric" });
+}
+
 function startOfDay(date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -164,6 +177,39 @@ function startOfWeek(date) {
   const diff = (day + 6) % 7;
   next.setDate(next.getDate() - diff);
   return next;
+}
+
+function buildDayTickRange(startDate, endDate, stepDays = 1) {
+  const tickValues = [];
+  const cursor = startOfDay(startDate);
+  const endValue = startOfDay(endDate).getTime();
+  while (cursor.getTime() <= endValue) {
+    tickValues.push(cursor.getTime());
+    cursor.setDate(cursor.getDate() + stepDays);
+  }
+  return tickValues;
+}
+
+function buildWeekTickRange(startDate, endDate, stepWeeks = 1) {
+  const tickValues = [];
+  const cursor = startOfWeek(startDate);
+  const endValue = startOfWeek(endDate).getTime();
+  while (cursor.getTime() <= endValue) {
+    tickValues.push(cursor.getTime());
+    cursor.setDate(cursor.getDate() + (stepWeeks * 7));
+  }
+  return tickValues;
+}
+
+function buildMonthTickRange(startDate, endDate) {
+  const tickValues = [];
+  const cursor = startOfMonth(startDate);
+  const endValue = startOfMonth(endDate).getTime();
+  while (cursor.getTime() <= endValue) {
+    tickValues.push(cursor.getTime());
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return tickValues;
 }
 
 function getWeekNumber(date) {
@@ -243,25 +289,21 @@ function buildTickRange(startDate, endDate, unitHours = 1) {
 }
 
 function buildHeroTickValues(range, heroCurve, startDate, endDate) {
-  const pointDates = heroCurve
-    .map((point) => parseChartAxisDate(point))
-    .filter(Boolean)
-    .map((date) => date.getTime());
-
   if (range === "H1") return buildTickRange(startDate, endDate, 1);
   if (range === "4H") return buildTickRange(startDate, endDate, 4);
-  if (range === "1D") return sampleTimeValues(pointDates, getHeroTickTarget(range));
-  if (range === "1W") return sampleTimeValues(pointDates, getHeroTickTarget(range));
-  if (range === "1M") return sampleTimeValues(pointDates, getHeroTickTarget(range));
+  if (range === "1D") return buildDayTickRange(startDate, endDate, 3);
+  if (range === "1W") return buildWeekTickRange(startDate, endDate, 2);
+  return buildMonthTickRange(startDate, endDate);
+}
 
-  const monthTicks = [];
-  const cursor = startOfMonth(startDate);
-  const endMonth = startOfMonth(endDate).getTime();
-  while (cursor.getTime() <= endMonth) {
-    monthTicks.push(cursor.getTime());
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-  return sampleTimeValues(monthTicks, getHeroTickTarget(range));
+function getHeroAxisPaddingMs(range) {
+  if (range === "H1") return 12 * 60 * 1000;
+  if (range === "4H") return 45 * 60 * 1000;
+  if (range === "1D") return 12 * 60 * 60 * 1000;
+  if (range === "1W") return 2 * 24 * 60 * 60 * 1000;
+  if (range === "1M") return 7 * 24 * 60 * 60 * 1000;
+  if (range === "YTD") return 10 * 24 * 60 * 60 * 1000;
+  return 0;
 }
 
 function normalizeHeroCurvePoints(points) {
@@ -842,8 +884,9 @@ export function renderDashboard(root, state) {
   const heroVisibleStartDate = (heroRange === "H1" || heroRange === "4H")
     ? getHeroRangeStartDate(heroRange, heroVisibleEndDate)
     : (heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
-  const heroXMin = heroVisibleStartDate.getTime();
-  const heroXMax = heroVisibleEndDate.getTime();
+  const heroAxisPadding = getHeroAxisPaddingMs(heroRange);
+  const heroXMin = heroVisibleStartDate.getTime() - heroAxisPadding;
+  const heroXMax = heroVisibleEndDate.getTime() + heroAxisPadding;
   const heroTickValues = buildHeroTickValues(heroRange, heroCurve, heroVisibleStartDate, heroVisibleEndDate);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
@@ -1130,6 +1173,10 @@ export function renderDashboard(root, state) {
       xMax: heroXMax,
       xTickValues: heroTickValues,
       xTickValueFormatter: (value) => formatHeroTimeTick(heroRange, value),
+      customLineHover: true,
+      hoverTitleFormatter: (value) => formatHeroTooltipTitle(heroRange, value),
+      hoverBodyFormatter: (value) => `Equity ${formatCurrency(value)}`,
+      tooltip: false,
       yMin: heroMinValue - heroValuePadding,
       yMax: heroMaxValue + heroValuePadding,
       borderWidth: 2.15,
@@ -1179,11 +1226,7 @@ export function renderDashboard(root, state) {
         duration: 2200,
         animate: true,
       },
-      formatter: (value, context) => {
-        const prev = heroCurve[Math.max(context.dataIndex - 1, 0)]?.value ?? value;
-        const delta = value - prev;
-        return `${formatCurrency(value)} / ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`;
-      },
+      formatter: (value) => `Equity ${formatCurrency(value)}`,
       axisFormatter: (value) => formatCompact(value)
     })
   );
@@ -1227,7 +1270,7 @@ export function renderDashboard(root, state) {
     dashboardSubtitle,
     heroSub: `${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})`,
     equityValue: Number(model.account.equity || 0),
-    equityMeta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} · ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
+    equityMeta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
     pnlValue: Number(panelSecondMetricValue || 0),
     pnlMeta: `Retorno ${formatPercent(currentReturnPct)}`,
     drawdownValue: Number(riskSummary.peakToEquityDrawdownPct || 0),
@@ -1281,7 +1324,7 @@ export function renderDashboard(root, state) {
           key: "equity",
           label: "Equity",
           value: formatCurrency(model.account.equity),
-          meta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} · ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
+          meta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
         })}
         ${renderDashboardKpiCard({
           key: "pnl",
