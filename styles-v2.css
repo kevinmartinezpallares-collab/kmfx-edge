@@ -14056,15 +14056,15 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
 .app-shell.sidebar-vnext .sidebar-vnext-divider__line,
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line {
-  background: transparent !important;
-  width: 0 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  width: 1px !important;
 }
 
 .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
-  background: transparent !important;
-  width: 0 !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  width: 1px !important;
 }
 
 .main-panel,
@@ -14194,7 +14194,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer {
   flex: 0 0 auto;
   margin-top: 0;
-  padding: 18px 12px 12px;
+  padding: 18px 12px 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -14239,7 +14239,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-li
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer {
-  padding: 18px 0 12px;
+  padding: 18px 0 4px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile,
