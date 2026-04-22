@@ -14103,7 +14103,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow: hidden;
+  overflow: visible;
   background: #111111 !important;
   width: auto;
   min-height: 100vh;
@@ -14160,13 +14160,13 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav::-webkit-scrollbar
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-list,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-list {
-  gap: 20px;
+  gap: 22px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group,
 body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group,
@@ -14223,6 +14223,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-items {
   display: grid;
   gap: 4px;
   overflow: hidden;
+  padding-top: 2px;
   max-height: 520px;
   opacity: 1;
   transition: max-height 0.2s ease, opacity 0.16s ease, transform 0.16s ease;
@@ -14270,6 +14271,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer 
   margin-top: 0;
   padding: 18px 12px 2px 14px;
   border-top: 0;
+  overflow: visible;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile,
@@ -14296,6 +14298,28 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-btn {
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu {
+  right: 0;
+  left: auto;
+  bottom: calc(100% + 10px);
+  min-width: 272px;
+  max-width: min(272px, calc(100vw - 32px));
+  max-height: min(320px, calc(100vh - 32px));
+  overflow: auto;
+  z-index: 200;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section {
+  gap: 4px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section--danger,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section--danger {
+  padding-top: 2px;
+}
+
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
   gap: 0;
@@ -14309,7 +14333,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sideba
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list {
-  gap: 18px;
+  gap: 16px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-trigger,
@@ -14329,6 +14353,42 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-gr
   gap: 6px;
 }
 
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-header {
+  padding: 0 0 16px;
+  justify-items: center;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher--empty {
+  display: inline-grid !important;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__copy {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items {
   max-height: none;
@@ -14346,6 +14406,14 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sideba
   padding: 0 !important;
   background: transparent !important;
   border: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu {
+  left: calc(100% + 12px);
+  right: auto;
+  bottom: 0;
+  transform-origin: left bottom;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .main-panel,
