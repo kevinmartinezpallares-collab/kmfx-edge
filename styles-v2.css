@@ -14016,3 +14016,39 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-item.dang
   color: color-mix(in srgb, var(--negative) 92%, #ffffff 8%) !important;
 }
 /* FIN BLOQUE: unified-menu-glass */
+
+/* Shell tonal finish — controlled base refinement only */
+html,
+html[data-theme="dark"],
+body,
+html[data-theme="dark"] body,
+body[data-theme="dark"],
+.app-shell,
+html[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .app-shell,
+.main-panel,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+[data-theme="dark"] .main-panel,
+.content,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content,
+[data-theme="dark"] .content,
+.topbar,
+html[data-theme="dark"] .topbar,
+body[data-theme="dark"] .topbar {
+  background: #111111 !important;
+  background-color: #111111 !important;
+  background-image: none !important;
+}
+
+.sidebar,
+html[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
+  background: #151515 !important;
+  background-color: #151515 !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
