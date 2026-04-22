@@ -14420,7 +14420,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .main-panel,
 body[data-theme="dark"] .app-shell.sidebar-vnext .main-panel {
   min-width: 0;
   margin-left: 0 !important;
-  padding: 16px 0 0 28px !important;
+  padding: 10px 28px 0 28px !important;
   background: #111111 !important;
 }
 
@@ -14428,6 +14428,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .content,
 body[data-theme="dark"] .app-shell.sidebar-vnext .content {
   min-height: 100vh;
   padding-left: 0;
+  padding-right: 0;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider,
