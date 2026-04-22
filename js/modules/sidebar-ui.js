@@ -157,6 +157,60 @@ export function initSidebarUI(store) {
   if (!shell) return;
   shell.classList.remove("sidebar-collapsed");
 
+  const positionProfileMenu = () => {
+    const menu = profileRoot?.querySelector(".sidebar-profile-menu");
+    const trigger = profileRoot?.querySelector("[data-sidebar-menu-toggle]");
+    if (!menu || !trigger || !profileRoot?.__menuOpen) return;
+
+    const viewportPadding = 16;
+    const sideOffset = 8;
+    const isCollapsed = shell.classList.contains("sidebar-vnext-collapsed");
+    const triggerRect = trigger.getBoundingClientRect();
+
+    menu.style.left = "0px";
+    menu.style.top = "0px";
+    menu.style.right = "auto";
+    menu.style.bottom = "auto";
+
+    const menuWidth = menu.offsetWidth || 272;
+    const menuHeight = menu.offsetHeight || 220;
+
+    let left = triggerRect.right - menuWidth;
+    let top = triggerRect.top - menuHeight - sideOffset;
+    let side = "top";
+
+    if (isCollapsed) {
+      left = triggerRect.right + 12;
+      top = triggerRect.bottom - menuHeight;
+      side = "right";
+    }
+
+    if (!isCollapsed && top < viewportPadding) {
+      top = triggerRect.bottom + sideOffset;
+      side = "bottom";
+    }
+
+    if (isCollapsed && top < viewportPadding) {
+      top = viewportPadding;
+    }
+
+    if (top + menuHeight > window.innerHeight - viewportPadding) {
+      top = Math.max(viewportPadding, window.innerHeight - menuHeight - viewportPadding);
+    }
+
+    if (left + menuWidth > window.innerWidth - viewportPadding) {
+      left = window.innerWidth - menuWidth - viewportPadding;
+    }
+
+    if (left < viewportPadding) {
+      left = viewportPadding;
+    }
+
+    menu.dataset.side = side;
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
+  };
+
   const syncMenuState = () => {
     const menu = profileRoot?.querySelector(".sidebar-profile-menu");
     const isOpen = Boolean(profileRoot?.__menuOpen);
@@ -173,6 +227,7 @@ export function initSidebarUI(store) {
       if (isOpen) {
         menu.hidden = false;
         requestAnimationFrame(() => {
+          positionProfileMenu();
           menu.classList.add("is-open");
         });
       } else {
@@ -212,6 +267,14 @@ export function initSidebarUI(store) {
       syncMenuState();
     }
   });
+
+  window.addEventListener("resize", () => {
+    positionProfileMenu();
+  });
+
+  window.addEventListener("scroll", () => {
+    positionProfileMenu();
+  }, true);
 
   accountRoot?.addEventListener("change", (event) => {
     const select = event.target.closest("[data-sidebar-account-select]");
@@ -366,6 +429,8 @@ export function initSidebarUI(store) {
       syncMenuState();
       await window.kmfxAuth?.signOut?.();
     });
+
+    syncMenuState();
 
   };
 
