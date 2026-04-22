@@ -39,6 +39,8 @@ const pageContext = {
 export function initNavigation(store) {
   const navButtons = document.querySelectorAll(".nav-item");
   const pages = document.querySelectorAll(".page");
+  const navGroups = document.querySelectorAll(".nav-group");
+  const navGroupTriggers = document.querySelectorAll("[data-nav-group-trigger]");
   const topbarTitle = document.getElementById("topbarTitle");
   const topbarContext = document.getElementById("topbarContext");
   const analyticsTabs = document.getElementById("analyticsTabs");
@@ -52,6 +54,15 @@ export function initNavigation(store) {
   const syncNavigation = (state) => {
     const { activePage, analyticsTab } = state.ui;
     navButtons.forEach((item) => item.classList.toggle("active", item.dataset.page === activePage));
+    navGroups.forEach((group) => {
+      const hasActiveChild = Boolean(group.querySelector(".nav-item.active"));
+      if (hasActiveChild) {
+        group.classList.add("is-open");
+        group.classList.remove("is-collapsed");
+        const trigger = group.querySelector("[data-nav-group-trigger]");
+        if (trigger) trigger.setAttribute("aria-expanded", "true");
+      }
+    });
 
     const nextPanel = document.getElementById(`page-${activePage}`);
     const previousPanel = document.getElementById(`page-${previousActivePage}`);
@@ -121,6 +132,26 @@ export function initNavigation(store) {
       }));
       console.log("[KMFX][ANALYTICS] tab", tab);
     });
+  });
+
+  navGroupTriggers.forEach((trigger) => {
+    trigger.addEventListener("click", () => {
+      const group = trigger.closest(".nav-group");
+      if (!group || document.querySelector(".app-shell.sidebar-vnext.sidebar-vnext-collapsed")) return;
+      const shouldOpen = trigger.getAttribute("aria-expanded") !== "true";
+      trigger.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      group.classList.toggle("is-open", shouldOpen);
+      group.classList.toggle("is-collapsed", !shouldOpen);
+    });
+  });
+
+  navGroups.forEach((group) => {
+    const hasActiveChild = Boolean(group.querySelector(".nav-item.active"));
+    const trigger = group.querySelector("[data-nav-group-trigger]");
+    const isOpen = hasActiveChild || trigger?.getAttribute("aria-expanded") !== "false";
+    group.classList.toggle("is-open", isOpen);
+    group.classList.toggle("is-collapsed", !isOpen);
+    if (trigger) trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
 
   syncNavigation(store.getState());
