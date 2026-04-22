@@ -14624,43 +14624,39 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
   justify-content: flex-start;
 }
 
-.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo {
-  display: none;
-  object-fit: contain;
-  flex: 0 0 auto;
-}
-
-.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark {
+.app-shell.sidebar-vnext .sidebar-brand-logo {
   display: block;
+  flex: 0 0 auto;
   width: auto;
-  height: 24px;
   max-width: 148px;
+  object-fit: contain;
 }
 
-.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--icon {
+.app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
+  height: 22px;
+}
+
+.app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
   display: none;
+  width: 32px;
+  height: 32px;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
   width: 32px;
   height: 32px;
-  display: grid;
-  place-items: center;
   max-width: none;
   min-height: 32px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  display: grid;
+  place-items: center;
 }
 
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive .brand-logo--wordmark {
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-brand-logo--expanded {
   display: none !important;
 }
 
-.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive .brand-logo--icon {
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed {
   display: block;
-  width: 32px;
-  height: 32px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
@@ -14681,8 +14677,8 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
   margin: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark,
-body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark {
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
   width: auto;
   height: 22px;
   max-width: 148px;
@@ -14699,4 +14695,10 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-
   background: transparent;
   border: 0;
   border-radius: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
+  width: 32px;
+  height: 32px;
 }
