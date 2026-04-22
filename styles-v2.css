@@ -14082,24 +14082,25 @@ body[data-theme="dark"] .content,
 }
 
 /* Sidebar refinement — shadcn structure / Apple HIG visual discipline */
-html[data-theme="dark"] .app-shell.sidebar-vnext,
-body[data-theme="dark"] .app-shell.sidebar-vnext {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
   --sidebar-vnext-current-width: var(--sidebar-vnext-expanded-width);
   display: grid;
   grid-template-columns: var(--sidebar-vnext-current-width) minmax(0, 1fr);
   column-gap: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   align-items: stretch;
   position: relative;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed {
   --sidebar-vnext-current-width: var(--sidebar-vnext-collapsed-width);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -14107,82 +14108,98 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
   background: #111111 !important;
   width: auto;
   min-height: 100vh;
+  min-height: 100dvh;
   height: 100vh;
-  padding: 18px 12px 12px 0;
+  padding: 16px 8px 8px 0;
   position: sticky;
   top: 0;
   align-self: start;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-header,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-header {
-  flex: 0 0 auto;
-  gap: 18px;
-  padding: 0 10px 22px 14px;
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-section,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-section {
+  min-width: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 16px;
+  padding: 0 10px 18px 12px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-topbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-topbar {
   min-height: 40px;
   padding-left: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot {
   padding-left: 0;
   padding-right: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon {
   background: rgba(255, 255, 255, 0.028);
   border-color: rgba(255, 255, 255, 0.065);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__copy {
   gap: 4px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-content.sidebar-section--content,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-content.sidebar-section--content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 10px 0 14px;
+  padding: 4px 10px 0 12px;
   scrollbar-width: none;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav::-webkit-scrollbar,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav::-webkit-scrollbar {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav::-webkit-scrollbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav::-webkit-scrollbar {
   display: none;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-list,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-list {
-  gap: 22px;
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list {
+  display: grid;
+  gap: 20px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group {
   display: grid;
   gap: 6px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group + .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group + .nav-group {
   padding-top: 0;
   border-top: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-trigger,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-trigger {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 0 14px;
+  padding: 0 12px;
   background: transparent;
   border: 0;
   color: rgba(255, 255, 255, 0.36);
@@ -14190,13 +14207,13 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-trigger {
   cursor: pointer;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-trigger:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-trigger:hover {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger:hover {
   color: rgba(255, 255, 255, 0.54);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label {
   padding: 0;
   font-size: 10px;
   line-height: 1.1;
@@ -14205,77 +14222,77 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label {
   color: rgba(255, 255, 255, 0.34);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-chevron,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-chevron {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron {
   width: 14px;
   height: 14px;
   opacity: 0.7;
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group.is-open .nav-group-chevron,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group.is-open .nav-group-chevron {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group.is-open .nav-group-chevron,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group.is-open .nav-group-chevron {
   transform: rotate(180deg);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-items,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-items {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items {
   display: grid;
   gap: 4px;
   overflow: hidden;
-  padding-top: 2px;
+  padding-top: 3px;
   max-height: 520px;
   opacity: 1;
   transition: max-height 0.2s ease, opacity 0.16s ease, transform 0.16s ease;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group.is-collapsed .nav-group-items,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group.is-collapsed .nav-group-items {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group.is-collapsed .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group.is-collapsed .nav-group-items {
   max-height: 0;
   opacity: 0;
   transform: translateY(-2px);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item {
   min-height: 42px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   gap: 12px;
   border-radius: 11px;
   background: transparent;
   color: rgba(255, 255, 255, 0.8);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item:hover {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover {
   background: rgba(255, 255, 255, 0.032);
   color: #ffffff;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item.active,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item.active {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active {
   background: rgba(255, 255, 255, 0.052) !important;
   border-radius: 11px !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-icon,
-html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item svg,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-icon,
-body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item svg {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg {
   opacity: 0.74;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer {
   flex: 0 0 auto;
-  margin-top: 0;
-  padding: 18px 12px 2px 14px;
+  margin-top: auto;
+  padding: 14px 10px 2px 12px;
   border-top: 0;
   overflow: visible;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile {
   padding: 10px 12px !important;
   gap: 12px !important;
   background: rgba(255, 255, 255, 0.024) !important;
@@ -14283,23 +14300,23 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile {
   border-radius: 14px !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile:hover {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile:hover {
   background: rgba(255, 255, 255, 0.035) !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-copy,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-copy {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-copy {
   gap: 3px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-btn,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-btn {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn {
   background: rgba(255, 255, 255, 0.03) !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu {
   right: 0;
   left: auto;
   bottom: calc(100% + 10px);
@@ -14310,66 +14327,66 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu {
   z-index: 200;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu__section,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu__section {
   gap: 4px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section--danger,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu__section--danger {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu__section--danger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu__section--danger {
   padding-top: 2px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel {
   gap: 0;
-  padding: 18px 0 12px;
+  padding: 16px 0 8px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-nav {
   padding: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list {
   gap: 16px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-trigger,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-trigger,
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-items,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-items {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items {
   padding-inline: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-trigger,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group-trigger {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger {
   display: none;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group {
   gap: 6px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-header,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-header {
-  padding: 0 0 16px;
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-header.sidebar-section--header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-header.sidebar-section--header {
+  padding: 0 0 14px;
   justify-items: center;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-slot {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-slot {
   display: grid;
   place-items: center;
   padding: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher,
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher--empty {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty {
   display: inline-grid !important;
   grid-template-columns: 1fr;
   justify-items: center;
@@ -14377,74 +14394,75 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sideba
   padding: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__copy {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__copy {
   display: none !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-account-switcher__icon {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon {
   width: 36px;
   height: 36px;
   border-radius: 11px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group.is-collapsed .nav-group-items {
   max-height: none;
   opacity: 1;
   transform: none;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer {
-  padding: 18px 0 2px;
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  padding: 14px 0 2px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile {
   padding: 0 !important;
   background: transparent !important;
   border: 0 !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile-menu {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-menu {
   left: calc(100% + 12px);
   right: auto;
   bottom: 0;
   transform-origin: left bottom;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .main-panel,
-body[data-theme="dark"] .app-shell.sidebar-vnext .main-panel {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset {
   min-width: 0;
   margin-left: 0 !important;
-  padding: 10px 28px 0 28px !important;
+  padding: 18px 32px 0 28px !important;
   background: #111111 !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .content,
-body[data-theme="dark"] .app-shell.sidebar-vnext .content {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
   min-height: 100vh;
+  min-height: 100dvh;
   padding-left: 0;
   padding-right: 0;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
   top: 0;
   bottom: 0;
   left: calc(var(--sidebar-vnext-current-width) - 6px);
   width: 12px;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider__line {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line {
   background: rgba(255, 255, 255, 0.055) !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
-body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
   background: rgba(255, 255, 255, 0.1) !important;
 }
