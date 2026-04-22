@@ -14603,3 +14603,100 @@ html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider:hover .sidebar-vnext-divider__line {
   background: rgba(255, 255, 255, 0.1) !important;
 }
+
+
+/* KMFX brand lockup: horizontal logo when expanded, contained icon when collapsed */
+.app-shell.sidebar-vnext .sidebar-topbar {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.app-shell.sidebar-vnext .brand-lockup--adaptive {
+  width: fit-content;
+  max-width: 148px;
+  min-height: 28px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo {
+  display: none;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark {
+  display: block;
+  width: auto;
+  height: 24px;
+  max-width: 148px;
+}
+
+.app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--icon {
+  display: none;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  min-height: 32px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive .brand-logo--wordmark {
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive .brand-logo--icon {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  min-height: 36px;
+  padding-left: 12px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
+  width: fit-content;
+  max-width: 148px;
+  min-height: 28px;
+  display: flex;
+  place-items: initial;
+  margin: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark,
+body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive .brand-logo--wordmark {
+  width: auto;
+  height: 22px;
+  max-width: 148px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  min-height: 32px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
