@@ -58,8 +58,13 @@ function getHeroRangePoints(range, curve) {
   else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
   else if (range === "YTD") startDate.setMonth(0, 1);
 
-  const filtered = datedPoints.filter(({ date }) => date >= startDate).map(({ point }) => point);
-  if (filtered.length >= 2) return filtered;
+  const filteredEntries = datedPoints.filter(({ date }) => date >= startDate);
+  if (filteredEntries.length >= 2) return filteredEntries.map(({ point }) => point);
+  if (filteredEntries.length === 1) {
+    const previousEntry = [...datedPoints].reverse().find(({ date }) => date < startDate);
+    if (previousEntry) return [previousEntry.point, filteredEntries[0].point];
+    return filteredEntries.map(({ point }) => point);
+  }
 
   if (range === "H1") return points.slice(-4);
   if (range === "4H") return points.slice(-6);
@@ -67,6 +72,16 @@ function getHeroRangePoints(range, curve) {
   if (range === "1W") return points.slice(-7);
   if (range === "YTD") return points;
   return points.slice(-14);
+}
+
+function getHeroTickTarget(range) {
+  if (range === "H1") return 5;
+  if (range === "4H") return 5;
+  if (range === "1D") return 6;
+  if (range === "1W") return 6;
+  if (range === "1M") return 5;
+  if (range === "YTD") return 6;
+  return 5;
 }
 
 function normalizeHeroCurvePoints(points) {
@@ -128,7 +143,7 @@ function buildHeroCurve(root, { cacheKey, incomingCurve, liveValue, hasOpenPosit
 function createHeroXAxisFormatter(range, points) {
   const total = points.length;
   const parsedDates = points.map((point) => parseChartAxisDate(point));
-  const targetTicks = range === "YTD" ? 6 : range === "1M" ? 5 : range === "1W" ? 5 : range === "1D" ? 5 : range === "4H" ? 4 : 4;
+  const targetTicks = getHeroTickTarget(range);
   const validDates = parsedDates.filter(Boolean);
   const firstDate = validDates[0] || null;
   const lastDate = validDates[validDates.length - 1] || null;
@@ -158,49 +173,22 @@ function createHeroXAxisFormatter(range, points) {
     return date.toLocaleDateString("es-ES", { month: "short" });
   };
 
-  const getBucketKey = (date) => {
-    if (!date) return "";
-    if (range === "H1" || range === "4H" || range === "1D") {
-      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
-    }
-    if (range === "1W") {
-      if (spanDays <= 2) {
-        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
-      }
-      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    }
-    if (range === "1M") {
-      if (spanDays <= 7) {
-        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-      }
-      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    }
-    if (spanDays <= 45) {
-      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    }
-    return `${date.getFullYear()}-${date.getMonth()}`;
-  };
-
-  const candidateIndices = [];
-  const seenBuckets = new Set();
-  parsedDates.forEach((date, index) => {
-    const key = getBucketKey(date);
-    if (!key || seenBuckets.has(key)) return;
-    seenBuckets.add(key);
-    candidateIndices.push(index);
-  });
-
-  const baseIndices = [...new Set([0, total - 1, ...candidateIndices])]
-    .filter((index) => index >= 0 && index < total)
-    .sort((a, b) => a - b);
-  const visibleIndices = new Set();
-
-  if (baseIndices.length <= targetTicks) {
-    baseIndices.forEach((index) => visibleIndices.add(index));
-  } else {
-    for (let i = 0; i < targetTicks; i += 1) {
-      const position = Math.round((i * (baseIndices.length - 1)) / Math.max(targetTicks - 1, 1));
-      visibleIndices.add(baseIndices[position]);
+  const visibleIndices = new Set([0, total - 1].filter((index) => index >= 0 && index < total));
+  if (firstDate && lastDate && total > 2 && targetTicks > 2) {
+    const spanMs = Math.max(lastDate.getTime() - firstDate.getTime(), 1);
+    for (let i = 1; i < targetTicks - 1; i += 1) {
+      const targetTime = firstDate.getTime() + ((spanMs * i) / (targetTicks - 1));
+      let bestIndex = -1;
+      let bestDelta = Number.POSITIVE_INFINITY;
+      parsedDates.forEach((date, index) => {
+        if (!date) return;
+        const delta = Math.abs(date.getTime() - targetTime);
+        if (delta < bestDelta) {
+          bestDelta = delta;
+          bestIndex = index;
+        }
+      });
+      if (bestIndex >= 0) visibleIndices.add(bestIndex);
     }
   }
 
@@ -938,7 +926,7 @@ export function renderDashboard(root, state) {
       axisFontWeight: "500",
       yTickPadding: 4,
       xTickPadding: 10,
-      maxXTicks: heroRange === "YTD" ? 5 : heroRange === "1M" ? 4 : heroRange === "1W" ? 5 : heroRange === "1D" ? 6 : heroRange === "4H" ? 5 : 4,
+      maxXTicks: getHeroTickTarget(heroRange),
       showYGrid: true,
       gridAlpha: isDarkTheme ? 0.028 : 0.045,
       gridColor: isDarkTheme ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.08)",
