@@ -313,6 +313,11 @@ function buildLineAreaOptions(spec) {
         type: spec.xScaleType === "linear" ? "linear" : undefined,
         min: spec.xScaleType === "linear" ? spec.xMin : undefined,
         max: spec.xScaleType === "linear" ? spec.xMax : undefined,
+        afterBuildTicks: spec.xScaleType === "linear" && Array.isArray(spec.xTickValues) && spec.xTickValues.length
+          ? (scale) => {
+              scale.ticks = spec.xTickValues.map((value) => ({ value }));
+            }
+          : undefined,
         display: spec.showXAxis ?? (spec.showAxes ?? true),
         border: {
           display: spec.showAxisBorder ?? false,
@@ -324,7 +329,7 @@ function buildLineAreaOptions(spec) {
           font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
           padding: spec.xTickPadding ?? 10,
           autoSkip: spec.autoSkipXTicks ?? true,
-          count: spec.xScaleType === "linear" ? spec.maxXTicks : undefined,
+          count: spec.xScaleType === "linear" && !(Array.isArray(spec.xTickValues) && spec.xTickValues.length) ? spec.maxXTicks : undefined,
           maxRotation: 0,
           minRotation: 0,
           maxTicksLimit: spec.maxXTicks || (isMobileViewport() ? 4 : undefined),

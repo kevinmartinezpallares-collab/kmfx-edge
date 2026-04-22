@@ -52,7 +52,7 @@ function getHeroRangePoints(range, curve) {
   if (range === "1D") return aggregateHeroPointsByDay(datedPoints, 14);
   if (range === "1W") return aggregateHeroPointsByWeek(datedPoints, 12);
   if (range === "1M") return aggregateHeroPointsByMonth(datedPoints);
-  if (range === "YTD") return aggregateHeroPointsByMonth(datedPoints, { yearToDate: true });
+  if (range === "YTD") return aggregateHeroPointsByWeek(datedPoints, null, { yearToDate: true });
 
   const endDate = datedPoints[datedPoints.length - 1].date;
   const startDate = getHeroRangeStartDate(range, endDate);
@@ -97,19 +97,19 @@ function getHeroRangePoints(range, curve) {
 }
 
 function getHeroTickTarget(range) {
-  if (range === "H1") return 5;
-  if (range === "4H") return 5;
+  if (range === "H1") return 6;
+  if (range === "4H") return 6;
   if (range === "1D") return 6;
   if (range === "1W") return 6;
-  if (range === "1M") return 5;
+  if (range === "1M") return 6;
   if (range === "YTD") return 6;
   return 5;
 }
 
 function getHeroRangeStartDate(range, endDate) {
   const startDate = new Date(endDate);
-  if (range === "H1") startDate.setHours(startDate.getHours() - 1);
-  else if (range === "4H") startDate.setHours(startDate.getHours() - 4);
+  if (range === "H1") startDate.setHours(startDate.getHours() - 5);
+  else if (range === "4H") startDate.setHours(startDate.getHours() - 20);
   else if (range === "1D") startDate.setDate(startDate.getDate() - 13);
   else if (range === "1W") startDate.setDate(startDate.getDate() - 7 * 11);
   else if (range === "1M") startDate.setMonth(startDate.getMonth() - 11, 1);
@@ -122,17 +122,16 @@ function formatHeroTimeTick(range, value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   if (range === "H1" || range === "4H") {
-    return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("es-ES", { hour: "2-digit" });
   }
   if (range === "1D") {
     return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   }
   if (range === "1W") {
-    const weekNumber = getWeekNumber(date);
-    return `S${String(weekNumber).padStart(2, "0")}`;
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
   }
   if (range === "1M") {
-    return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+    return date.toLocaleDateString("es-ES", { month: "short" });
   }
   return date.toLocaleDateString("es-ES", { month: "short" });
 }
@@ -140,6 +139,15 @@ function formatHeroTimeTick(range, value) {
 function startOfDay(date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function startOfHour(date, stepHours = 1) {
+  const next = new Date(date);
+  next.setMinutes(0, 0, 0);
+  if (stepHours > 1) {
+    next.setHours(next.getHours() - (next.getHours() % stepHours));
+  }
   return next;
 }
 
@@ -187,13 +195,16 @@ function aggregateHeroPointsByDay(entries, days = 14) {
   return aggregated.slice(-days);
 }
 
-function aggregateHeroPointsByWeek(entries, weeks = 12) {
+function aggregateHeroPointsByWeek(entries, weeks = 12, { yearToDate = false } = {}) {
+  const scopedEntries = yearToDate
+    ? entries.filter(({ date }) => date.getFullYear() === entries.at(-1)?.date?.getFullYear())
+    : entries;
   const aggregated = aggregateHeroPoints(
-    entries,
+    scopedEntries,
     (date) => startOfWeek(date).toISOString(),
     (date) => startOfWeek(date),
   );
-  return aggregated.slice(-weeks);
+  return Number.isFinite(weeks) ? aggregated.slice(-weeks) : aggregated;
 }
 
 function aggregateHeroPointsByMonth(entries, { yearToDate = false } = {}) {
@@ -205,6 +216,52 @@ function aggregateHeroPointsByMonth(entries, { yearToDate = false } = {}) {
     (date) => `${date.getFullYear()}-${date.getMonth()}`,
     (date) => startOfMonth(date),
   );
+}
+
+function sampleTimeValues(values, targetCount) {
+  const uniqueValues = [...new Set(values.filter((value) => Number.isFinite(value)))].sort((a, b) => a - b);
+  if (!uniqueValues.length) return [];
+  if (!targetCount || uniqueValues.length <= targetCount) return uniqueValues;
+
+  const sampled = [];
+  for (let i = 0; i < targetCount; i += 1) {
+    const index = Math.round((i * (uniqueValues.length - 1)) / Math.max(targetCount - 1, 1));
+    sampled.push(uniqueValues[index]);
+  }
+  return [...new Set(sampled)];
+}
+
+function buildTickRange(startDate, endDate, unitHours = 1) {
+  const tickValues = [];
+  const cursor = startOfHour(startDate, unitHours);
+  const alignedEnd = startOfHour(endDate, unitHours).getTime();
+  while (cursor.getTime() <= alignedEnd) {
+    tickValues.push(cursor.getTime());
+    cursor.setHours(cursor.getHours() + unitHours);
+  }
+  return tickValues;
+}
+
+function buildHeroTickValues(range, heroCurve, startDate, endDate) {
+  const pointDates = heroCurve
+    .map((point) => parseChartAxisDate(point))
+    .filter(Boolean)
+    .map((date) => date.getTime());
+
+  if (range === "H1") return buildTickRange(startDate, endDate, 1);
+  if (range === "4H") return buildTickRange(startDate, endDate, 4);
+  if (range === "1D") return sampleTimeValues(pointDates, getHeroTickTarget(range));
+  if (range === "1W") return sampleTimeValues(pointDates, getHeroTickTarget(range));
+  if (range === "1M") return sampleTimeValues(pointDates, getHeroTickTarget(range));
+
+  const monthTicks = [];
+  const cursor = startOfMonth(startDate);
+  const endMonth = startOfMonth(endDate).getTime();
+  while (cursor.getTime() <= endMonth) {
+    monthTicks.push(cursor.getTime());
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return sampleTimeValues(monthTicks, getHeroTickTarget(range));
 }
 
 function normalizeHeroCurvePoints(points) {
@@ -787,6 +844,7 @@ export function renderDashboard(root, state) {
     : (heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
   const heroXMin = heroVisibleStartDate.getTime();
   const heroXMax = heroVisibleEndDate.getTime();
+  const heroTickValues = buildHeroTickValues(heroRange, heroCurve, heroVisibleStartDate, heroVisibleEndDate);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
     .map((point) => Number(point?.value))
@@ -973,9 +1031,9 @@ export function renderDashboard(root, state) {
   const heroRangeValueDisplay = formatCurrency(Math.abs(heroDelta));
   const heroRangePctDisplay = formatPercent(Math.abs(heroDeltaPct)).replace(/^[+-]/, "");
   const heroRangeLabel = heroRange === "H1"
-    ? "1 hora"
+    ? "5 horas"
     : heroRange === "4H"
-      ? "4 horas"
+      ? "20 horas"
       : heroRange === "1D"
         ? "14 días"
         : heroRange === "1W"
@@ -1070,6 +1128,7 @@ export function renderDashboard(root, state) {
       xValues: heroXValues,
       xMin: heroXMin,
       xMax: heroXMax,
+      xTickValues: heroTickValues,
       xTickValueFormatter: (value) => formatHeroTimeTick(heroRange, value),
       yMin: heroMinValue - heroValuePadding,
       yMax: heroMaxValue + heroValuePadding,
