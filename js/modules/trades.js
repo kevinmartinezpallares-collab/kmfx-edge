@@ -282,28 +282,28 @@ export function renderTrades(root, state) {
         </div>
       </div>
       <div class="trades-toolbar">
-        <label class="trades-filter-field">
+        <label class="trades-filter-field ${filters.symbol !== "all" ? "is-active" : ""}">
           <span>Símbolo</span>
           <select data-trades-filter="symbol">
             <option value="all">Todos</option>
             ${symbols.map((symbol) => `<option value="${symbol}" ${filters.symbol === symbol ? "selected" : ""}>${symbol}</option>`).join("")}
           </select>
         </label>
-        <label class="trades-filter-field">
+        <label class="trades-filter-field ${filters.session !== "all" ? "is-active" : ""}">
           <span>Sesión</span>
           <select data-trades-filter="session">
             <option value="all">Todas</option>
             ${sessions.map((session) => `<option value="${session}" ${filters.session === session ? "selected" : ""}>${session}</option>`).join("")}
           </select>
         </label>
-        <label class="trades-filter-field">
+        <label class="trades-filter-field ${filters.setup !== "all" ? "is-active" : ""}">
           <span>Setup</span>
           <select data-trades-filter="setup">
             <option value="all">Todos</option>
             ${setups.map((setup) => `<option value="${setup}" ${filters.setup === setup ? "selected" : ""}>${setup}</option>`).join("")}
           </select>
         </label>
-        <label class="trades-filter-field">
+        <label class="trades-filter-field ${filters.side !== "all" ? "is-active" : ""}">
           <span>Dirección</span>
           <select data-trades-filter="side">
             <option value="all">Ambas</option>
@@ -311,9 +311,17 @@ export function renderTrades(root, state) {
             <option value="SELL" ${filters.side === "SELL" ? "selected" : ""}>SELL</option>
           </select>
         </label>
-        <label class="trades-filter-field trades-filter-field--search">
+        <label class="trades-filter-field trades-filter-field--search ${filters.queryRaw ? "is-active" : ""}">
           <span>Buscar</span>
-          <input type="search" value="${escapeHtml(filters.queryRaw)}" placeholder="Símbolo, setup o sesión" data-trades-filter="query">
+          <div class="trades-filter-search-shell">
+            <span class="trades-filter-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7" cy="7" r="4.5"></circle>
+                <path d="M10.5 10.5 14 14"></path>
+              </svg>
+            </span>
+            <input type="search" value="${escapeHtml(filters.queryRaw)}" placeholder="Buscar símbolo, setup o sesión" data-trades-filter="query">
+          </div>
         </label>
       </div>
       <div class="table-wrap trades-table-wrap">
@@ -355,7 +363,7 @@ export function renderTrades(root, state) {
             `).join("")}
             ${!filteredTrades.length ? `
               <tr>
-                <td colspan="13" class="trades-empty-state">No hay trades que coincidan con los filtros activos.</td>
+                <td colspan="13" class="trades-empty-state">No hay operaciones registradas</td>
               </tr>
             ` : ""}
           </tbody>

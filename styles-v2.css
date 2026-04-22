@@ -12224,6 +12224,11 @@ body[data-theme="dark"] .trades-filter-field {
   min-width: 0;
 }
 
+html[data-theme="dark"] .trades-filter-field.is-active,
+body[data-theme="dark"] .trades-filter-field.is-active {
+  color: var(--text-0);
+}
+
 html[data-theme="dark"] .trades-filter-field span,
 body[data-theme="dark"] .trades-filter-field span {
   font-size: 11px;
@@ -12246,6 +12251,7 @@ body[data-theme="dark"] .trades-filter-field input {
   background: color-mix(in srgb, var(--layer-1) 74%, black);
   color: var(--text-0);
   box-shadow: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
 }
 
 html[data-theme="dark"] .trades-filter-field select:hover,
@@ -12260,8 +12266,46 @@ html[data-theme="dark"] .trades-filter-field select:focus,
 html[data-theme="dark"] .trades-filter-field input:focus,
 body[data-theme="dark"] .trades-filter-field select:focus,
 body[data-theme="dark"] .trades-filter-field input:focus {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: none;
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 36%, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--layer-1) 66%, black);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+html[data-theme="dark"] .trades-filter-field.is-active select,
+html[data-theme="dark"] .trades-filter-field.is-active input,
+body[data-theme="dark"] .trades-filter-field.is-active select,
+body[data-theme="dark"] .trades-filter-field.is-active input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--layer-2) 72%, black);
+}
+
+html[data-theme="dark"] .trades-filter-search-shell,
+body[data-theme="dark"] .trades-filter-search-shell {
+  position: relative;
+}
+
+html[data-theme="dark"] .trades-filter-search-shell input,
+body[data-theme="dark"] .trades-filter-search-shell input {
+  padding-left: 38px;
+}
+
+html[data-theme="dark"] .trades-filter-search-icon,
+body[data-theme="dark"] .trades-filter-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 15px;
+  height: 15px;
+  transform: translateY(-50%);
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+html[data-theme="dark"] .trades-filter-search-icon svg,
+body[data-theme="dark"] .trades-filter-search-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 html[data-theme="dark"] .trades-filter-field--search,
@@ -12302,7 +12346,9 @@ body[data-theme="dark"] .trades-history-card thead th {
   padding: 10px 12px;
   font-size: 11px;
   line-height: 1.2;
-  color: var(--text-2);
+  color: color-mix(in srgb, var(--text-1) 92%, white);
+  font-weight: 650;
+  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border-subtle);
   background: transparent;
 }
@@ -12459,9 +12505,12 @@ body[data-theme="dark"] .trades-screen .trade-side--sell {
 
 html[data-theme="dark"] .trades-empty-state,
 body[data-theme="dark"] .trades-empty-state {
-  padding: 28px 12px !important;
-  color: var(--text-2);
+  padding: 32px 16px !important;
+  color: var(--text-1);
   text-align: center;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 @media (max-width: 1180px) {
