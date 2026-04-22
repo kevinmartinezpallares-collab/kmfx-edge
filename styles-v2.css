@@ -11627,8 +11627,11 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
 /* INICIO BLOQUE: dashboard-runtime */
 html[data-theme="dark"] .dashboard-screen,
 body[data-theme="dark"] .dashboard-screen {
+  --dashboard-space-sm: 16px;
+  --dashboard-space-md: 24px;
+  --dashboard-space-lg: 32px;
   display: grid;
-  gap: 32px;
+  gap: var(--dashboard-space-lg);
 }
 
 html[data-theme="dark"] .dashboard-screen__header,
@@ -11741,7 +11744,7 @@ html[data-theme="dark"] .dashboard-layout,
 body[data-theme="dark"] .dashboard-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 32px;
+  gap: var(--dashboard-space-lg);
   align-items: start;
 }
 
@@ -11750,13 +11753,13 @@ body[data-theme="dark"] .dashboard-secondary-stack,
 html[data-theme="dark"] .dashboard-section-stack,
 body[data-theme="dark"] .dashboard-section-stack {
   display: grid;
-  gap: 32px;
+  gap: var(--dashboard-space-lg);
 }
 
 html[data-theme="dark"] .dashboard-secondary-stack,
 body[data-theme="dark"] .dashboard-secondary-stack {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--dashboard-space-md);
 }
 
 html[data-theme="dark"] .dashboard-primary-card,
@@ -11800,7 +11803,7 @@ body[data-theme="dark"] .dashboard-primary-card::before {
 html[data-theme="dark"] .dashboard-primary-card__head,
 body[data-theme="dark"] .dashboard-primary-card__head {
   padding-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: var(--dashboard-space-sm);
   align-items: flex-start;
 }
 
@@ -11920,12 +11923,12 @@ body[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn.active {
 
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
-  padding: 16px !important;
+  padding: var(--dashboard-space-sm) !important;
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__head,
 body[data-theme="dark"] .dashboard-secondary-card__head {
-  margin-bottom: 12px;
+  margin-bottom: var(--dashboard-space-sm);
   align-items: flex-start;
 }
 
@@ -11941,7 +11944,7 @@ html[data-theme="dark"] .dashboard-secondary-card__metrics,
 body[data-theme="dark"] .dashboard-secondary-card__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--dashboard-space-sm);
 }
 
 html[data-theme="dark"] .dashboard-secondary-card__metrics--two,
@@ -11951,8 +11954,8 @@ body[data-theme="dark"] .dashboard-secondary-card__metrics--two {
 
 html[data-theme="dark"] .dashboard-secondary-card__foot,
 body[data-theme="dark"] .dashboard-secondary-card__foot {
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: var(--dashboard-space-sm);
+  padding-top: var(--dashboard-space-sm);
   border-top: 1px solid var(--border-subtle);
   font-size: 12px;
   line-height: 1.3;
@@ -12013,13 +12016,13 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card--blocked .risk-metri
 
 html[data-theme="dark"] .app-disclaimer-footer,
 body[data-theme="dark"] .app-disclaimer-footer {
-  margin-top: 32px;
-  padding-top: 8px;
+  margin-top: var(--dashboard-space-lg);
+  padding-top: var(--dashboard-space-sm);
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel,
 body[data-theme="dark"] .dashboard-screen .risk-enforcement-panel {
-  gap: 12px;
+  gap: var(--dashboard-space-sm);
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel__item,
