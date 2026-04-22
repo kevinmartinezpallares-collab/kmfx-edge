@@ -163,7 +163,7 @@ export function initSidebarUI(store) {
     if (!menu || !trigger || !profileRoot?.__menuOpen) return;
 
     const viewportPadding = 16;
-    const sideOffset = 6;
+    const sideOffset = 8;
     const isCollapsed = shell.classList.contains("sidebar-vnext-collapsed");
     const triggerRect = trigger.getBoundingClientRect();
 
@@ -171,31 +171,32 @@ export function initSidebarUI(store) {
     menu.style.top = "0px";
     menu.style.right = "auto";
     menu.style.bottom = "auto";
-    menu.style.width = `${Math.min(Math.max(Math.round(triggerRect.width), 224), window.innerWidth - viewportPadding * 2)}px`;
+    menu.style.width = isCollapsed
+      ? `${Math.min(280, window.innerWidth - viewportPadding * 2)}px`
+      : `${Math.round(triggerRect.width)}px`;
 
     const menuWidth = menu.offsetWidth || 272;
     const menuHeight = menu.offsetHeight || 220;
 
-    let left = triggerRect.right + 12;
-    let top = triggerRect.bottom - menuHeight;
-    let side = "right";
+    let left = triggerRect.left;
+    let top = triggerRect.top - menuHeight - sideOffset;
+    let side = "top";
 
-    if (isCollapsed && top < viewportPadding) {
-      top = viewportPadding;
+    if (isCollapsed) {
+      left = triggerRect.right + 12;
+      top = triggerRect.bottom - menuHeight;
+      side = "right";
+      if (left + menuWidth > window.innerWidth - viewportPadding) {
+        left = triggerRect.left - menuWidth - 12;
+        side = "left";
+      }
+    } else if (top < viewportPadding) {
+      top = triggerRect.bottom + sideOffset;
+      side = "bottom";
     }
 
-    if (top + menuHeight > window.innerHeight - viewportPadding) {
-      top = Math.max(viewportPadding, window.innerHeight - menuHeight - viewportPadding);
-    }
-
-    if (left + menuWidth > window.innerWidth - viewportPadding) {
-      left = triggerRect.left - menuWidth - 12;
-      side = "left";
-    }
-
-    if (left < viewportPadding) {
-      left = viewportPadding;
-    }
+    top = Math.max(viewportPadding, Math.min(top, window.innerHeight - menuHeight - viewportPadding));
+    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - menuWidth - viewportPadding));
 
     menu.dataset.side = side;
     menu.style.left = `${Math.round(left)}px`;
