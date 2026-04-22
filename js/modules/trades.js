@@ -1,10 +1,6 @@
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
-function clampPercent(value) {
-  return Math.max(0, Math.min(100, value));
-}
-
 function formatTableValue(value) {
   return value == null || value === "" ? "—" : value;
 }
@@ -65,17 +61,14 @@ function renderTradeExecutions(trade) {
   `;
 }
 
-function positionRail(position, exposureBase) {
+function positionRail(position) {
   return `
-    <div class="metric-rail">
-      <div class="metric-rail-copy">
-        <span>${position.symbol} / ${position.side}</span>
-        <strong class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</strong>
+    <div class="open-position-summary">
+      <div class="open-position-summary__copy">
+        <div class="open-position-summary__title">${position.symbol} · ${position.side}</div>
+        <div class="open-position-summary__meta">Vol ${formatTableValue(position.volume)} · Entrada ${formatTableValue(position.entry)}</div>
       </div>
-      <div class="metric-rail-track">
-        <div class="metric-rail-fill metric-rail-fill--${position.pnl >= 0 ? "green" : "red"}" style="width:${clampPercent((Math.abs(position.pnl) / Math.max(exposureBase, 1)) * 100)}%"></div>
-      </div>
-      <div class="metric-rail-hint">Vol ${position.volume} / Entrada ${position.entry}</div>
+      <div class="open-position-summary__pnl ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</div>
     </div>
   `;
 }
@@ -202,7 +195,6 @@ export function renderTrades(root, state) {
   const filteredPnl = filteredTrades.reduce((sum, trade) => sum + trade.pnl, 0);
   const filteredWinRate = filteredTrades.length ? (filteredTrades.filter((trade) => trade.pnl > 0).length / filteredTrades.length) * 100 : 0;
   const filteredAvgR = filteredTrades.length ? filteredTrades.reduce((sum, trade) => sum + trade.rMultiple, 0) / filteredTrades.length : 0;
-  const exposureBase = model.positions.reduce((sum, position) => sum + Math.abs(position.pnl || 0), 0) || 1;
   const bestSetupLabel = displayTradeSetup(bestSetup?.key);
 
   root.innerHTML = `
@@ -277,7 +269,7 @@ export function renderTrades(root, state) {
         </table>
       </div>
       <div class="widget-position-rails">
-        ${model.positions.map((position) => positionRail(position, exposureBase)).join("")}
+        ${model.positions.map((position) => positionRail(position)).join("")}
       </div>
     </div>
 
