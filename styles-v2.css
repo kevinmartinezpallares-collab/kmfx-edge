@@ -12075,8 +12075,27 @@ body[data-theme="dark"] .dashboard-screen .risk-exposure-table__row {
 /* INICIO BLOQUE: trades-runtime */
 html[data-theme="dark"] .trades-screen,
 body[data-theme="dark"] .trades-screen {
+  --trades-space-sm: 16px;
+  --trades-space-md: 24px;
+  --trades-space-lg: 32px;
   display: grid;
-  gap: 32px;
+  gap: var(--trades-space-lg);
+}
+
+html[data-theme="dark"] .trades-screen .tl-kpi-row,
+html[data-theme="dark"] .trades-screen .tl-kpi-row.five,
+body[data-theme="dark"] .trades-screen .tl-kpi-row,
+body[data-theme="dark"] .trades-screen .tl-kpi-row.five {
+  gap: var(--trades-space-sm);
+  margin-bottom: 0;
+}
+
+html[data-theme="dark"] .trades-screen .grid-2,
+html[data-theme="dark"] .trades-screen .grid-2.equal,
+body[data-theme="dark"] .trades-screen .grid-2,
+body[data-theme="dark"] .trades-screen .grid-2.equal {
+  gap: var(--trades-space-md);
+  margin-bottom: 0;
 }
 
 html[data-theme="dark"] .trades-screen .calendar-screen__header,
@@ -12178,12 +12197,12 @@ body[data-theme="dark"] .trades-screen .tl-kpi-val {
 
 html[data-theme="dark"] .trades-history-card,
 body[data-theme="dark"] .trades-history-card {
-  padding: 20px !important;
+  padding: var(--trades-space-md) !important;
 }
 
 html[data-theme="dark"] .trades-history-card .tl-section-header,
 body[data-theme="dark"] .trades-history-card .tl-section-header {
-  margin-bottom: 16px;
+  margin-bottom: var(--trades-space-sm);
   align-items: flex-start;
 }
 
@@ -12214,9 +12233,9 @@ html[data-theme="dark"] .trades-toolbar,
 body[data-theme="dark"] .trades-toolbar {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  gap: var(--trades-space-sm);
+  margin-bottom: var(--trades-space-sm);
+  padding-bottom: var(--trades-space-sm);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -12417,9 +12436,9 @@ body[data-theme="dark"] .trades-screen .row-pnl {
 
 html[data-theme="dark"] .trades-screen .widget-position-rails,
 body[data-theme="dark"] .trades-screen .widget-position-rails {
-  margin-top: 12px;
+  margin-top: var(--trades-space-sm);
   display: grid;
-  gap: 10px;
+  gap: var(--trades-space-sm);
 }
 
 html[data-theme="dark"] .trades-screen .open-position-summary,
@@ -12508,7 +12527,7 @@ body[data-theme="dark"] .trades-screen .trade-side--sell {
 
 html[data-theme="dark"] .trades-empty-state,
 body[data-theme="dark"] .trades-empty-state {
-  padding: 32px 16px !important;
+  padding: var(--trades-space-lg) var(--trades-space-sm) !important;
   color: var(--text-1);
   text-align: center;
   font-size: 14px;
