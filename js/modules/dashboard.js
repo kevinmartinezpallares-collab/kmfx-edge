@@ -50,19 +50,36 @@ function getHeroRangePoints(range, curve) {
   }
 
   const endDate = datedPoints[datedPoints.length - 1].date;
-  const startDate = new Date(endDate);
-  if (range === "H1") startDate.setHours(startDate.getHours() - 1);
-  else if (range === "4H") startDate.setHours(startDate.getHours() - 4);
-  else if (range === "1D") startDate.setHours(startDate.getHours() - 24);
-  else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
-  else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
-  else if (range === "YTD") startDate.setMonth(0, 1);
+  const startDate = getHeroRangeStartDate(range, endDate);
 
   const filteredEntries = datedPoints.filter(({ date }) => date >= startDate);
-  if (filteredEntries.length >= 2) return filteredEntries.map(({ point }) => point);
+  const previousEntry = [...datedPoints].reverse().find(({ date }) => date < startDate);
+  if (filteredEntries.length >= 2) {
+    if (previousEntry && filteredEntries[0].date > startDate) {
+      return [
+        {
+          ...previousEntry.point,
+          label: startDate.toISOString(),
+          timestamp: startDate.toISOString(),
+          __syntheticBoundary: true,
+        },
+        ...filteredEntries.map(({ point }) => point),
+      ];
+    }
+    return filteredEntries.map(({ point }) => point);
+  }
   if (filteredEntries.length === 1) {
-    const previousEntry = [...datedPoints].reverse().find(({ date }) => date < startDate);
-    if (previousEntry) return [previousEntry.point, filteredEntries[0].point];
+    if (previousEntry) {
+      return [
+        {
+          ...previousEntry.point,
+          label: startDate.toISOString(),
+          timestamp: startDate.toISOString(),
+          __syntheticBoundary: true,
+        },
+        filteredEntries[0].point,
+      ];
+    }
     return filteredEntries.map(({ point }) => point);
   }
 
@@ -82,6 +99,17 @@ function getHeroTickTarget(range) {
   if (range === "1M") return 5;
   if (range === "YTD") return 6;
   return 5;
+}
+
+function getHeroRangeStartDate(range, endDate) {
+  const startDate = new Date(endDate);
+  if (range === "H1") startDate.setHours(startDate.getHours() - 1);
+  else if (range === "4H") startDate.setHours(startDate.getHours() - 4);
+  else if (range === "1D") startDate.setHours(startDate.getHours() - 24);
+  else if (range === "1W") startDate.setDate(startDate.getDate() - 7);
+  else if (range === "1M") startDate.setDate(startDate.getDate() - 30);
+  else if (range === "YTD") startDate.setMonth(0, 1);
+  return startDate;
 }
 
 function formatHeroTimeTick(range, value) {
@@ -649,8 +677,10 @@ export function renderDashboard(root, state) {
     const parsed = parseChartAxisDate(point);
     return parsed ? parsed.getTime() : index;
   });
-  const heroXMin = heroXValues.length ? heroXValues[0] : undefined;
-  const heroXMax = heroXValues.length ? heroXValues[heroXValues.length - 1] : undefined;
+  const heroVisibleEndDate = heroCurve.length ? (parseChartAxisDate(heroCurve.at(-1)) || new Date()) : new Date();
+  const heroVisibleStartDate = getHeroRangeStartDate(heroRange, heroVisibleEndDate);
+  const heroXMin = heroVisibleStartDate.getTime();
+  const heroXMax = heroVisibleEndDate.getTime();
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
     .map((point) => Number(point?.value))
