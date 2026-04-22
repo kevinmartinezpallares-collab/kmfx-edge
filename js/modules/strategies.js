@@ -39,6 +39,14 @@ function scoreLabel(score) {
   return "C";
 }
 
+function sampleLabel(trades) {
+  const count = safeNumber(trades);
+  if (count >= 30) return "Muestra sólida";
+  if (count >= 12) return "Muestra media";
+  if (count > 0) return "Muestra baja";
+  return "Sin muestra";
+}
+
 function normalizeStrategy(item) {
   return {
     ...item,
@@ -209,42 +217,51 @@ export function renderStrategies(root, state) {
   const setupStats = buildSetupStats(journalEntries);
 
   root.innerHTML = `
-    <div class="strategies-page-stack">
-    <div class="tl-page-header">
-      <div class="tl-page-title">Estrategias</div>
-      <div class="tl-page-sub">Catálogo de setups, rendimiento derivado del diario y edición modular en modal.</div>
-      <div class="page-actions">
-        <button class="btn-primary" data-strategy-action="new">Nueva estrategia</button>
+    <section class="strategies-screen strategies-page-stack">
+    <header class="calendar-screen__header strategies-screen__header">
+      <div class="calendar-screen__copy">
+        <div class="calendar-screen__eyebrow">Estrategias</div>
+        <h1 class="calendar-screen__title">Estrategias</h1>
+        <p class="calendar-screen__subtitle">Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.</p>
       </div>
-    </div>
+      <div class="strategies-screen__actions">
+        <button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>
+      </div>
+    </header>
 
-    <article class="tl-section-card">
+    <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
         <div class="tl-section-title">Stats por Setup</div>
         <div class="pill">${setupStats.length} setups detectados</div>
       </div>
-      <div class="detail-metrics-grid">
+      <div class="strategies-setup-grid">
         ${setupStats.map((item) => `
-          <div class="metric-item">
-            <div class="metric-label">${item.name}</div>
-            <div class="metric-value">${item.trades} trades</div>
-            <div class="row-sub">${percent(item.winRate)} WR · <span class="${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(item.pnl)}</span></div>
+          <div class="strategies-setup-item">
+            <div class="strategies-setup-item__head">
+              <div class="strategies-setup-item__name">${item.name}</div>
+              <div class="strategies-setup-item__sample">${sampleLabel(item.trades)}</div>
+            </div>
+            <div class="strategies-setup-item__stats">
+              <span>${item.trades} trades</span>
+              <span>${percent(item.winRate)} WR</span>
+              <span class="${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(item.pnl)}</span>
+            </div>
           </div>
         `).join("") || `
-          <div class="metric-item">
-            <div class="metric-label">Sin setups detectados</div>
-            <div class="metric-value">0 trades</div>
+          <div class="strategies-setup-item strategies-setup-item--empty">
+            <div class="strategies-setup-item__name">Sin setups detectados</div>
             <div class="row-sub">El diario empezará a poblar este bloque cuando existan entradas con setup.</div>
           </div>
         `}
       </div>
     </article>
 
-    <article class="tl-section-card">
+    <article class="tl-section-card strategies-table-card">
       <div class="tl-section-header">
         <div class="tl-section-title">Lista de Estrategias</div>
         <div class="pill">${items.length} estrategias</div>
       </div>
+      ${items.length ? `
       <div class="table-wrap">
         <table>
           <thead>
@@ -265,9 +282,9 @@ export function renderStrategies(root, state) {
             ${items.map((item) => {
               const stats = deriveStrategyStats(item, journalEntries);
               return `
-                <tr>
+                <tr class="strategies-table-row">
                   <td>
-                    <div class="table-primary-cell">
+                    <div class="table-primary-cell strategy-primary-cell">
                       <strong>${item.name}</strong>
                       <div class="row-sub">${item.description || "Sin descripción operativa."}</div>
                     </div>
@@ -279,16 +296,16 @@ export function renderStrategies(root, state) {
                   <td class="num">${percent(stats.winRate)}</td>
                   <td class="num">${stats.rr ? stats.rr.toFixed(2) : "—"}</td>
                   <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(stats.pnl)}</td>
-                  <td>
-                    <div class="score-bar-row">
-                      <div class="score-bar-track"><div class="score-bar-fill" style="width:${Math.max(0, Math.min(stats.score * 10, 100))}%"></div></div>
-                      <span>${stats.score.toFixed(1)} · ${scoreLabel(stats.score)}</span>
+                  <td class="strategies-score-cell">
+                    <div class="strategies-score-read">
+                      <strong>${stats.score.toFixed(1)}</strong>
+                      <span>${scoreLabel(stats.score)} · ${sampleLabel(stats.trades)}</span>
                     </div>
                   </td>
                   <td>
-                    <div class="table-actions">
-                      <button class="btn-secondary btn-inline" data-strategy-action="edit" data-strategy-id="${item.id}">Editar</button>
-                      <button class="btn-secondary btn-inline" data-strategy-action="delete" data-strategy-id="${item.id}">Eliminar</button>
+                    <div class="table-actions strategies-table-actions">
+                      <button class="btn-secondary btn-inline strategies-action-btn" data-strategy-action="edit" data-strategy-id="${item.id}">Editar</button>
+                      <button class="btn-secondary btn-inline strategies-action-btn strategies-action-btn--danger" data-strategy-action="delete" data-strategy-id="${item.id}">Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -297,7 +314,16 @@ export function renderStrategies(root, state) {
           </tbody>
         </table>
       </div>
+      ` : `
+      <div class="strategies-empty-state">
+        <div class="strategies-empty-state__title">No hay estrategias registradas</div>
+        <div class="strategies-empty-state__copy">Añade un setup para empezar a comparar muestra, score y rendimiento.</div>
+        <div class="strategies-empty-state__actions">
+          <button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>
+        </div>
+      </div>
+      `}
     </article>
-    </div>
+    </section>
   `;
 }
