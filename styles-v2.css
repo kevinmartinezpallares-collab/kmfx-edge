@@ -14080,3 +14080,171 @@ body[data-theme="dark"] .content,
 [data-theme="dark"] .content {
   padding-bottom: 0 !important;
 }
+
+/* Sidebar refinement — shadcn structure / Apple HIG visual discipline */
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  background: #111111 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-header,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-header {
+  flex: 0 0 auto;
+  gap: 20px;
+  padding-bottom: 18px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
+  min-height: 40px;
+  padding-left: 12px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-slot {
+  padding-left: 12px;
+  padding-right: 8px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__icon {
+  background: rgba(255, 255, 255, 0.028);
+  border-color: rgba(255, 255, 255, 0.065);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-account-switcher__copy {
+  gap: 4px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 8px 0 12px;
+  scrollbar-width: none;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav::-webkit-scrollbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-list {
+  gap: 18px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group {
+  gap: 6px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group + .nav-group {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-group-label {
+  padding: 0 14px 6px;
+  font-size: 10px;
+  line-height: 1.1;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item {
+  min-height: 42px;
+  padding: 10px 14px;
+  gap: 12px;
+  border-radius: 11px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item:hover {
+  background: rgba(255, 255, 255, 0.032);
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item.active,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item.active {
+  background: rgba(255, 255, 255, 0.052) !important;
+  border-radius: 11px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-icon,
+html[data-theme="dark"] .app-shell.sidebar-vnext .nav-item svg,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext .nav-item svg {
+  opacity: 0.74;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-bottom.sidebar-footer {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: 18px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile {
+  padding: 10px 12px !important;
+  gap: 12px !important;
+  background: rgba(255, 255, 255, 0.024) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 14px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-copy {
+  gap: 3px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-btn,
+body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-btn {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar {
+  gap: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-nav {
+  padding: 10px 0 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .nav-list {
+  gap: 18px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer {
+  padding: 18px 0 12px;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .sidebar-profile {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
