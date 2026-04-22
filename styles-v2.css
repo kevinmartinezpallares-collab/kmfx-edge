@@ -14437,7 +14437,7 @@ html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.si
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset {
   min-width: 0;
   margin-left: 0 !important;
-  padding: 24px 36px 0 28px !important;
+  padding: 20px 28px 0 28px !important;
   background: #111111 !important;
 }
 
@@ -14451,15 +14451,15 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
-  top: 14px;
-  bottom: 14px;
-  left: calc(var(--sidebar-vnext-current-width) - 6px);
+  top: 18px;
+  bottom: 18px;
+  left: calc(var(--sidebar-vnext-current-width) + 2px);
   width: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line {
-  background: rgba(255, 255, 255, 0.042) !important;
+  background: rgba(255, 255, 255, 0.038) !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider:hover .sidebar-vnext-divider__line,
