@@ -163,7 +163,7 @@ export function initSidebarUI(store) {
     if (!menu || !trigger || !profileRoot?.__menuOpen) return;
 
     const viewportPadding = 16;
-    const sideOffset = 8;
+    const sideOffset = 6;
     const isCollapsed = shell.classList.contains("sidebar-vnext-collapsed");
     const triggerRect = trigger.getBoundingClientRect();
 
@@ -171,24 +171,14 @@ export function initSidebarUI(store) {
     menu.style.top = "0px";
     menu.style.right = "auto";
     menu.style.bottom = "auto";
+    menu.style.width = `${Math.min(Math.max(Math.round(triggerRect.width), 224), window.innerWidth - viewportPadding * 2)}px`;
 
     const menuWidth = menu.offsetWidth || 272;
     const menuHeight = menu.offsetHeight || 220;
 
-    let left = triggerRect.right - menuWidth;
-    let top = triggerRect.top - menuHeight - sideOffset;
-    let side = "top";
-
-    if (isCollapsed) {
-      left = triggerRect.right + 12;
-      top = triggerRect.bottom - menuHeight;
-      side = "right";
-    }
-
-    if (!isCollapsed && top < viewportPadding) {
-      top = triggerRect.bottom + sideOffset;
-      side = "bottom";
-    }
+    let left = triggerRect.right + 12;
+    let top = triggerRect.bottom - menuHeight;
+    let side = "right";
 
     if (isCollapsed && top < viewportPadding) {
       top = viewportPadding;
@@ -199,7 +189,8 @@ export function initSidebarUI(store) {
     }
 
     if (left + menuWidth > window.innerWidth - viewportPadding) {
-      left = window.innerWidth - menuWidth - viewportPadding;
+      left = triggerRect.left - menuWidth - 12;
+      side = "left";
     }
 
     if (left < viewportPadding) {
