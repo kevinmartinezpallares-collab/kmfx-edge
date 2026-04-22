@@ -278,7 +278,8 @@ function buildLineAreaDatasets(spec) {
       borderColor(context) {
         const area = context.chart.chartArea;
         if (!area) return overlayColors.start;
-        return createGradient(context.chart.ctx, area, overlayTone, 0.9, 0.9, true);
+        const borderAlpha = datasetSpec.borderAlpha ?? 0.9;
+        return createGradient(context.chart.ctx, area, overlayTone, borderAlpha, borderAlpha, true);
       },
       backgroundColor: "transparent",
       fill: false,
@@ -314,6 +315,7 @@ function buildLineAreaOptions(spec) {
         type: spec.xScaleType === "linear" ? "linear" : undefined,
         min: spec.xScaleType === "linear" ? spec.xMin : undefined,
         max: spec.xScaleType === "linear" ? spec.xMax : undefined,
+        offset: spec.xScaleType === "linear" ? (spec.xScaleOffset ?? false) : undefined,
         afterBuildTicks: spec.xScaleType === "linear" && Array.isArray(spec.xTickValues) && spec.xTickValues.length
           ? (scale) => {
               scale.ticks = spec.xTickValues.map((value) => ({ value }));

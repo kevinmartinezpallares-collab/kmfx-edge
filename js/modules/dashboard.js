@@ -149,6 +149,15 @@ function formatHeroTooltipTitle(range, value) {
   return date.toLocaleDateString("es-ES", { month: "short", year: "numeric" });
 }
 
+function getHeroRangeSummaryLabel(range) {
+  if (range === "H1") return "Últimas 5h";
+  if (range === "4H") return "Últimas 20h";
+  if (range === "1D") return "Últimos 14 días";
+  if (range === "1W") return "Últimas 12 semanas";
+  if (range === "1M") return "Histórico mensual";
+  return "Año en curso";
+}
+
 function startOfDay(date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -1086,6 +1095,10 @@ export function renderDashboard(root, state) {
             : "mensual";
   const heroRangeSignedValue = `${heroDelta >= 0 ? "+" : "-"}${heroRangeValueDisplay}`;
   const heroRangeSignedPct = `${heroDeltaPct >= 0 ? "+" : "-"}${heroRangePctDisplay}`;
+  const heroSummaryLabel = getHeroRangeSummaryLabel(heroRange);
+  const heroSummaryValue = Math.abs(heroDelta) < 0.005 && Math.abs(heroDeltaPct) < 0.005
+    ? "Sin cambio"
+    : `${heroRangeSignedValue} (${heroRangeSignedPct})`;
   const riskSummary = selectRiskSummary(state);
   const riskStatus = selectRiskStatus(state);
   const riskLimits = selectRiskLimits(state);
@@ -1158,8 +1171,9 @@ export function renderDashboard(root, state) {
         label: "Balance",
         points: balanceCurve,
         tone: "neutral",
-        borderDash: [2, 6],
-        borderWidth: 0.95,
+        borderDash: [3, 8],
+        borderWidth: 0.8,
+        borderAlpha: 0.42,
         formatter: (value) => formatCurrency(value)
       }],
       showXAxis: true,
@@ -1168,6 +1182,7 @@ export function renderDashboard(root, state) {
       autoSkipXTicks: false,
       xAxisFormatter: heroXAxisFormatter,
       xScaleType: "linear",
+      xScaleOffset: true,
       xValues: heroXValues,
       xMin: heroXMin,
       xMax: heroXMax,
@@ -1198,10 +1213,10 @@ export function renderDashboard(root, state) {
       xTickPadding: 10,
       maxXTicks: getHeroTickTarget(heroRange),
       showYGrid: true,
-      gridAlpha: isDarkTheme ? 0.028 : 0.045,
-      gridColor: isDarkTheme ? "rgba(255,255,255,0.055)" : "rgba(15,23,42,0.08)",
-      yGridDash: [3, 7],
-      yGridWidth: 0.8,
+      gridAlpha: isDarkTheme ? 0.02 : 0.035,
+      gridColor: isDarkTheme ? "rgba(255,255,255,0.04)" : "rgba(15,23,42,0.06)",
+      yGridDash: [2, 8],
+      yGridWidth: 0.7,
       crosshairAlpha: isDarkTheme ? 0.08 : 0.08,
       yHeadroomRatio: 0,
       yBottomPaddingRatio: 0,
@@ -1268,7 +1283,7 @@ export function renderDashboard(root, state) {
   });
   const liveBindings = {
     dashboardSubtitle,
-    heroSub: `${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})`,
+    heroSub: `${heroSummaryLabel} / ${heroSummaryValue}`,
     equityValue: Number(model.account.equity || 0),
     equityMeta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
     pnlValue: Number(panelSecondMetricValue || 0),
@@ -1355,7 +1370,7 @@ export function renderDashboard(root, state) {
           <div class="calendar-panel-head dashboard-primary-card__head">
             <div>
               <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub" data-dashboard-hero-sub>${heroRangeLabel} · ${heroRangeSignedValue} (${heroRangeSignedPct})</div>
+              <div class="calendar-panel-sub" data-dashboard-hero-sub>${heroSummaryLabel} / ${heroSummaryValue}</div>
             </div>
             <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
               ${["H1", "4H", "1D", "1W", "1M", "YTD"].map((range) => `
