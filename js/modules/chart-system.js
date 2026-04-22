@@ -234,9 +234,14 @@ function createGradient(context, area, tone, alphaStart = 0.16, alphaEnd = 0.01,
 }
 
 function buildLineAreaDatasets(spec) {
+  const toDatasetValue = (point, index, fallbackX = null) => {
+    if (spec.xScaleType !== "linear") return point.value;
+    const x = Number.isFinite(fallbackX) ? fallbackX : index;
+    return { x, y: point.value };
+  };
   const { start, end } = toneColors(spec.tone || "blue");
   const datasets = [{
-    data: spec.points.map((point) => point.value),
+    data: spec.points.map((point, index) => toDatasetValue(point, index, spec.xValues?.[index])),
     borderColor(context) {
       const area = context.chart.chartArea;
       if (!area) return start;
@@ -268,7 +273,7 @@ function buildLineAreaDatasets(spec) {
     const overlayColors = toneColors(overlayTone);
     datasets.push({
       label: datasetSpec.label || "",
-      data: datasetSpec.points.map((point) => point.value),
+      data: datasetSpec.points.map((point, index) => toDatasetValue(point, index, datasetSpec.xValues?.[index] ?? spec.xValues?.[index])),
       borderColor(context) {
         const area = context.chart.chartArea;
         if (!area) return overlayColors.start;
@@ -305,6 +310,9 @@ function buildLineAreaOptions(spec) {
     },
     scales: {
       x: {
+        type: spec.xScaleType === "linear" ? "linear" : undefined,
+        min: spec.xScaleType === "linear" ? spec.xMin : undefined,
+        max: spec.xScaleType === "linear" ? spec.xMax : undefined,
         display: spec.showXAxis ?? (spec.showAxes ?? true),
         border: {
           display: spec.showAxisBorder ?? false,
@@ -316,10 +324,14 @@ function buildLineAreaOptions(spec) {
           font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
           padding: spec.xTickPadding ?? 10,
           autoSkip: spec.autoSkipXTicks ?? true,
+          count: spec.xScaleType === "linear" ? spec.maxXTicks : undefined,
           maxRotation: 0,
           minRotation: 0,
           maxTicksLimit: spec.maxXTicks || (isMobileViewport() ? 4 : undefined),
           callback: (value, index, ticks) => {
+            if (spec.xScaleType === "linear" && typeof spec.xTickValueFormatter === "function") {
+              return spec.xTickValueFormatter(value, index, ticks);
+            }
             if (typeof spec.xAxisFormatter === "function") {
               return spec.xAxisFormatter(spec.points.map((point) => point.label)[index], index, spec.points.map((point) => point.label), value, ticks);
             }
@@ -413,9 +425,11 @@ function animateChartPointValue(chart, datasetIndex, pointIndex, targetValue, du
   const dataset = chart?.data?.datasets?.[datasetIndex];
   if (!dataset || pointIndex < 0 || !Number.isFinite(targetValue)) return;
   cancelChartValueTween(chart);
-  const startValue = Number(dataset.data?.[pointIndex]);
+  const currentDatum = dataset.data?.[pointIndex];
+  const startValue = Number(typeof currentDatum === "object" && currentDatum !== null ? currentDatum.y : currentDatum);
   if (!Number.isFinite(startValue) || Math.abs(startValue - targetValue) < 0.0001) {
-    dataset.data[pointIndex] = targetValue;
+    if (typeof dataset.data[pointIndex] === "object" && dataset.data[pointIndex] !== null) dataset.data[pointIndex].y = targetValue;
+    else dataset.data[pointIndex] = targetValue;
     chart.update("none");
     return;
   }
@@ -423,13 +437,16 @@ function animateChartPointValue(chart, datasetIndex, pointIndex, targetValue, du
   const easeOut = (t) => 1 - ((1 - t) * (1 - t) * (1 - t));
   const step = (now) => {
     const progress = Math.min(1, (now - startedAt) / duration);
-    dataset.data[pointIndex] = startValue + ((targetValue - startValue) * easeOut(progress));
+    const nextValue = startValue + ((targetValue - startValue) * easeOut(progress));
+    if (typeof dataset.data[pointIndex] === "object" && dataset.data[pointIndex] !== null) dataset.data[pointIndex].y = nextValue;
+    else dataset.data[pointIndex] = nextValue;
     chart.update("none");
     if (progress < 1) {
       chart.$kmfxValueTweenFrame = requestAnimationFrame(step);
       return;
     }
-    dataset.data[pointIndex] = targetValue;
+    if (typeof dataset.data[pointIndex] === "object" && dataset.data[pointIndex] !== null) dataset.data[pointIndex].y = targetValue;
+    else dataset.data[pointIndex] = targetValue;
     chart.$kmfxValueTweenFrame = null;
     chart.update("none");
   };
@@ -446,15 +463,21 @@ function applyLineAreaSpecToChart(chart, spec) {
     && chart?.data?.datasets?.[0]?.data?.length === nextDatasets[0]?.data?.length
   );
   const livePointIndex = shouldSmoothLivePoint ? nextDatasets[0].data.length - 1 : -1;
-  const targetLiveValue = livePointIndex >= 0 ? Number(nextDatasets[0].data[livePointIndex]) : null;
-  const currentLiveValue = livePointIndex >= 0 ? Number(chart.data.datasets?.[0]?.data?.[livePointIndex]) : null;
+  const nextLiveDatum = livePointIndex >= 0 ? nextDatasets[0].data[livePointIndex] : null;
+  const currentLiveDatum = livePointIndex >= 0 ? chart.data.datasets?.[0]?.data?.[livePointIndex] : null;
+  const targetLiveValue = livePointIndex >= 0 ? Number(typeof nextLiveDatum === "object" && nextLiveDatum !== null ? nextLiveDatum.y : nextLiveDatum) : null;
+  const currentLiveValue = livePointIndex >= 0 ? Number(typeof currentLiveDatum === "object" && currentLiveDatum !== null ? currentLiveDatum.y : currentLiveDatum) : null;
 
   chart.data.labels = labels;
   chart.data.datasets = nextDatasets;
   chart.options = buildLineAreaOptions(spec);
 
   if (shouldSmoothLivePoint && Number.isFinite(currentLiveValue) && Number.isFinite(targetLiveValue)) {
-    chart.data.datasets[0].data[livePointIndex] = currentLiveValue;
+    if (typeof chart.data.datasets[0].data[livePointIndex] === "object" && chart.data.datasets[0].data[livePointIndex] !== null) {
+      chart.data.datasets[0].data[livePointIndex].y = currentLiveValue;
+    } else {
+      chart.data.datasets[0].data[livePointIndex] = currentLiveValue;
+    }
     animateChartPointValue(chart, 0, livePointIndex, targetLiveValue, spec.liveSmoothingDuration ?? 760);
     return;
   }

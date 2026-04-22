@@ -84,6 +84,22 @@ function getHeroTickTarget(range) {
   return 5;
 }
 
+function formatHeroTimeTick(range, value) {
+  if (!Number.isFinite(value)) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  if (range === "H1" || range === "4H" || range === "1D") {
+    return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (range === "1W") {
+    return date.toLocaleDateString("es-ES", { weekday: "short", day: "2-digit" });
+  }
+  if (range === "1M") {
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  }
+  return date.toLocaleDateString("es-ES", { month: "short" });
+}
+
 function normalizeHeroCurvePoints(points) {
   return (Array.isArray(points) ? points : [])
     .map((point, index) => {
@@ -629,6 +645,12 @@ export function renderDashboard(root, state) {
   });
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
   const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
+  const heroXValues = heroCurve.map((point, index) => {
+    const parsed = parseChartAxisDate(point);
+    return parsed ? parsed.getTime() : index;
+  });
+  const heroXMin = heroXValues.length ? heroXValues[0] : undefined;
+  const heroXMax = heroXValues.length ? heroXValues[heroXValues.length - 1] : undefined;
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
     .map((point) => Number(point?.value))
@@ -905,8 +927,13 @@ export function renderDashboard(root, state) {
       showXAxis: true,
       showYAxis: true,
       maxYTicks: 5,
-      autoSkipXTicks: true,
+      autoSkipXTicks: false,
       xAxisFormatter: heroXAxisFormatter,
+      xScaleType: "linear",
+      xValues: heroXValues,
+      xMin: heroXMin,
+      xMax: heroXMax,
+      xTickValueFormatter: (value) => formatHeroTimeTick(heroRange, value),
       yMin: heroMinValue - heroValuePadding,
       yMax: heroMaxValue + heroValuePadding,
       borderWidth: 2.15,
