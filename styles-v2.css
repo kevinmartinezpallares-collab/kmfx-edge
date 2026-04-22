@@ -14628,12 +14628,12 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
   display: block;
   flex: 0 0 auto;
   width: auto;
-  max-width: 192px;
+  max-width: 168px;
   object-fit: contain;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
-  height: 28px;
+  height: 24px;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
@@ -14670,7 +14670,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
 html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive,
 body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
   width: fit-content;
-  max-width: 192px;
+  max-width: 168px;
   min-height: 32px;
   display: flex;
   place-items: initial;
@@ -14680,8 +14680,8 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
   width: auto;
-  height: 30px;
-  max-width: 192px;
+  height: 26px;
+  max-width: 168px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive,
