@@ -636,6 +636,35 @@ export function renderDashboard(root, state) {
     hasOpenPositions: Number(performanceView.openPositionsCount || 0) > 0,
   });
   const heroCurve = getHeroRangePoints(heroRange, baseCurve);
+  console.log("[KMFX][HERO_DEBUG]", heroRange, heroCurve.slice(0,2).map(p=>({label:p?.label,timestamp:p?.timestamp})));
+  console.log("[KMFX][BASE_CURVE_DEBUG]", {
+    range: heroRange,
+    total: baseCurve.length,
+    first3: baseCurve.slice(0, 3).map((p, i) => ({ i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+    last3: baseCurve.slice(-3).map((p, i) => ({ i: baseCurve.length - 3 + i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+  });
+  console.log("[KMFX][HERO_CURVE_DEBUG]", {
+    range: heroRange,
+    total: heroCurve.length,
+    first3: heroCurve.slice(0, 3).map((p, i) => ({ i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+    last3: heroCurve.slice(-3).map((p, i) => ({ i: heroCurve.length - 3 + i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+  });
+  const heroDebugInline = JSON.stringify({
+    range: heroRange,
+    baseCurve: {
+      total: baseCurve.length,
+      first2: baseCurve.slice(0, 2).map((p, i) => ({ i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+      last2: baseCurve.slice(-2).map((p, i) => ({ i: baseCurve.length - 2 + i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+    },
+    heroCurve: {
+      total: heroCurve.length,
+      first2: heroCurve.slice(0, 2).map((p, i) => ({ i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+      last2: heroCurve.slice(-2).map((p, i) => ({ i: heroCurve.length - 2 + i, label: p?.label, timestamp: p?.timestamp, value: p?.value })),
+    },
+  }, null, 2)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
   const heroXAxisFormatter = createHeroXAxisFormatter(heroRange, heroCurve);
   const balanceCurve = heroCurve.map((point) => ({ ...point, value: model.account.balance }));
   const heroChartValues = [...heroCurve, ...balanceCurve]
@@ -1111,6 +1140,7 @@ export function renderDashboard(root, state) {
             <div class="dashboard-primary-card__chart">
               ${chartCanvas("dashboard-hero-equity-chart", 288, "kmfx-chart-shell--hero")}
             </div>
+            <pre style="margin:12px 0 0; padding:12px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(0,0,0,0.16); color:rgba(255,255,255,0.72); font:12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; white-space:pre-wrap; word-break:break-word;">${heroDebugInline}</pre>
           </div>
         </article>
 
