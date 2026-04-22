@@ -221,6 +221,28 @@ function buildMonthTickRange(startDate, endDate) {
   return tickValues;
 }
 
+function buildExactHourTickRange(startDate, endDate, stepHours = 1) {
+  const tickValues = [];
+  const cursor = new Date(startDate);
+  const endValue = endDate.getTime();
+  while (cursor.getTime() <= endValue) {
+    tickValues.push(cursor.getTime());
+    cursor.setHours(cursor.getHours() + stepHours);
+  }
+  return tickValues;
+}
+
+function buildExactMonthTickRange(startDate, endDate) {
+  const tickValues = [];
+  const cursor = new Date(startDate);
+  const endValue = endDate.getTime();
+  while (cursor.getTime() <= endValue) {
+    tickValues.push(cursor.getTime());
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return tickValues;
+}
+
 function getWeekNumber(date) {
   const target = startOfDay(date);
   target.setDate(target.getDate() + 4 - (target.getDay() || 7));
@@ -298,10 +320,11 @@ function buildTickRange(startDate, endDate, unitHours = 1) {
 }
 
 function buildHeroTickValues(range, heroCurve, startDate, endDate) {
-  if (range === "H1") return buildTickRange(startDate, endDate, 1);
-  if (range === "4H") return buildTickRange(startDate, endDate, 4);
+  if (range === "H1") return buildExactHourTickRange(startDate, endDate, 1);
+  if (range === "4H") return buildExactHourTickRange(startDate, endDate, 4);
   if (range === "1D") return buildDayTickRange(startDate, endDate, 3);
   if (range === "1W") return buildWeekTickRange(startDate, endDate, 2);
+  if (range === "YTD") return buildExactMonthTickRange(startDate, endDate);
   return buildMonthTickRange(startDate, endDate);
 }
 
@@ -890,9 +913,10 @@ export function renderDashboard(root, state) {
     return parsed ? parsed.getTime() : index;
   });
   const heroVisibleEndDate = heroCurve.length ? (parseChartAxisDate(heroCurve.at(-1)) || new Date()) : new Date();
-  const heroVisibleStartDate = (heroRange === "H1" || heroRange === "4H")
-    ? getHeroRangeStartDate(heroRange, heroVisibleEndDate)
-    : (heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
+  const heroFirstPointDate = heroCurve.length ? (parseChartAxisDate(heroCurve[0]) || null) : null;
+  const heroVisibleStartDate = (heroRange === "H1" || heroRange === "4H" || heroRange === "YTD")
+    ? (heroFirstPointDate || getHeroRangeStartDate(heroRange, heroVisibleEndDate))
+    : (heroCurve.length ? (heroFirstPointDate || getHeroRangeStartDate(heroRange, heroVisibleEndDate)) : getHeroRangeStartDate(heroRange, heroVisibleEndDate));
   const heroXMin = heroVisibleStartDate.getTime();
   const heroXMax = heroVisibleEndDate.getTime();
   const heroTickValues = buildHeroTickValues(heroRange, heroCurve, heroVisibleStartDate, heroVisibleEndDate);
