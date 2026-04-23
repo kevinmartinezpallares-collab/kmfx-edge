@@ -41,10 +41,10 @@ function scoreLabel(score) {
 
 function sampleLabel(trades) {
   const count = safeNumber(trades);
-  if (count >= 30) return "Muestra sólida";
-  if (count >= 12) return "Muestra media";
-  if (count > 0) return "Muestra baja";
-  return "Sin muestra";
+  if (count >= 30) return "Histórico suficiente";
+  if (count >= 12) return "Datos insuficientes";
+  if (count > 0) return "Pocas operaciones";
+  return "Sin histórico suficiente";
 }
 
 function normalizeStrategy(item) {
@@ -57,14 +57,15 @@ function normalizeStrategy(item) {
   };
 }
 
-function buildSetupStats(entries) {
+function buildSetupStats(strategies, journalEntries) {
   const setups = new Map();
-  entries.forEach((entry) => {
-    const key = entry.setup?.trim() || "Sin setup";
+  strategies.forEach((strategy) => {
+    const key = strategy.name?.trim() || "Sin estrategia";
+    const stats = deriveStrategyStats(strategy, journalEntries);
     const current = setups.get(key) || { name: key, trades: 0, wins: 0, pnl: 0 };
-    current.trades += 1;
-    current.pnl += safeNumber(entry.pnl);
-    if (safeNumber(entry.pnl) > 0) current.wins += 1;
+    current.trades += stats.trades;
+    current.pnl += stats.pnl;
+    current.wins += Math.round((stats.winRate / 100) * stats.trades);
     setups.set(key, current);
   });
 
@@ -101,25 +102,54 @@ function deriveStrategyStats(strategy, journalEntries) {
 function renderStrategyEditor({ item, form, store }) {
   openModal({
     title: item ? "Editar estrategia" : "Nueva estrategia",
-    subtitle: "Catálogo de setups con parámetros operativos y validación local.",
+    subtitle: "Define el setup, su contexto operativo y el estado actual de validación.",
     content: `
-      <form class="modal-form-shell" data-modal-form>
-        <div class="form-grid-clean">
-          <label class="form-stack"><span>Nombre</span><input type="text" name="name" value="${form.name}"></label>
-          <label class="form-stack"><span>Par</span><input type="text" name="market" value="${form.market}"></label>
-          <label class="form-stack"><span>TF</span><select name="timeframe">${["M5", "M15", "M30", "H1", "H4"].map((value) => `<option value="${value}" ${form.timeframe === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
-          <label class="form-stack"><span>Sesión</span><select name="session">${["Asia", "London", "New York", "Overlap"].map((value) => `<option value="${value}" ${form.session === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
-          <label class="form-stack"><span>SL</span><input type="text" name="sl" value="${form.sl}"></label>
-          <label class="form-stack"><span>TP</span><input type="text" name="tp" value="${form.tp}"></label>
-          <label class="form-stack"><span>Estado</span><select name="status">${["testing", "active", "paused", "retired"].map((value) => `<option value="${value}" ${form.status === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>
-          <label class="form-stack"><span>Puntuación</span><input type="number" step="0.1" name="score" value="${form.score}"></label>
-          <label class="form-stack form-stack-wide"><span>Descripción</span><textarea rows="3" name="description">${form.description}</textarea></label>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
-          <button class="btn-primary" type="button" data-strategy-modal-save="true">${item ? "Guardar cambios" : "Guardar estrategia"}</button>
-        </div>
-      </form>
+      <div class="strategies-dialog">
+        <form class="strategies-dialog__form" data-modal-form>
+          <div class="strategies-dialog__grid">
+            <label class="strategies-dialog__field">
+              <span>Nombre</span>
+              <input type="text" name="name" value="${form.name}">
+            </label>
+            <label class="strategies-dialog__field">
+              <span>Par</span>
+              <input type="text" name="market" value="${form.market}">
+            </label>
+            <label class="strategies-dialog__field">
+              <span>TF</span>
+              <select name="timeframe">${["M5", "M15", "M30", "H1", "H4"].map((value) => `<option value="${value}" ${form.timeframe === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+            </label>
+            <label class="strategies-dialog__field">
+              <span>Sesión</span>
+              <select name="session">${["Asia", "London", "New York", "Overlap"].map((value) => `<option value="${value}" ${form.session === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+            </label>
+            <label class="strategies-dialog__field">
+              <span>SL</span>
+              <input type="text" name="sl" value="${form.sl}">
+            </label>
+            <label class="strategies-dialog__field">
+              <span>TP</span>
+              <input type="text" name="tp" value="${form.tp}">
+            </label>
+            <label class="strategies-dialog__field">
+              <span>Estado</span>
+              <select name="status">${["testing", "active", "paused", "retired"].map((value) => `<option value="${value}" ${form.status === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+            </label>
+            <label class="strategies-dialog__field">
+              <span>Puntuación</span>
+              <input type="number" step="0.1" name="score" value="${form.score}">
+            </label>
+            <label class="strategies-dialog__field strategies-dialog__field--full">
+              <span>Descripción</span>
+              <textarea rows="4" name="description" placeholder="Qué invalida el setup, cuándo entra y qué contexto necesita.">${form.description}</textarea>
+            </label>
+          </div>
+          <div class="strategies-dialog__footer">
+            <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
+            <button class="btn-primary" type="button" data-strategy-modal-save="true">${item ? "Guardar cambios" : "Guardar estrategia"}</button>
+          </div>
+        </form>
+      </div>
     `,
     onMount(card) {
       card.querySelector("[data-strategy-modal-save='true']")?.addEventListener("click", () => {
@@ -214,7 +244,7 @@ export function initStrategies(store) {
 export function renderStrategies(root, state) {
   const items = state.workspace.strategies.items.map(normalizeStrategy);
   const journalEntries = state.workspace.journal.entries || [];
-  const setupStats = buildSetupStats(journalEntries);
+  const setupStats = buildSetupStats(items, journalEntries);
 
   root.innerHTML = `
     <section class="strategies-screen strategies-page-stack">
@@ -232,7 +262,7 @@ export function renderStrategies(root, state) {
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
         <div class="tl-section-title">Stats por Setup</div>
-        <div class="pill">${setupStats.length} setups detectados</div>
+        <div class="pill">${setupStats.length} setups en lista</div>
       </div>
       <div class="strategies-setup-grid">
         ${setupStats.map((item) => `
@@ -249,8 +279,8 @@ export function renderStrategies(root, state) {
           </div>
         `).join("") || `
           <div class="strategies-setup-item strategies-setup-item--empty">
-            <div class="strategies-setup-item__name">Sin setups detectados</div>
-            <div class="row-sub">El diario empezará a poblar este bloque cuando existan entradas con setup.</div>
+            <div class="strategies-setup-item__name">No hay setups registrados</div>
+            <div class="row-sub">Añade una estrategia para empezar a comparar muestra, WR y P&amp;L.</div>
           </div>
         `}
       </div>

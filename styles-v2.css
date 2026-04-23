@@ -12587,8 +12587,11 @@ body[data-theme="dark"] .strategies-screen__actions .btn-inline {
 }
 
 html[data-theme="dark"] .strategies-setup-card,
+body[data-theme="dark"] .strategies-setup-card {
+  padding: 20px !important;
+}
+
 html[data-theme="dark"] .strategies-table-card,
-body[data-theme="dark"] .strategies-setup-card,
 body[data-theme="dark"] .strategies-table-card {
   padding: var(--strategies-space-md) !important;
 }
@@ -12611,9 +12614,9 @@ body[data-theme="dark"] .strategies-setup-grid {
 html[data-theme="dark"] .strategies-setup-item,
 body[data-theme="dark"] .strategies-setup-item {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
-  padding: 14px;
+  padding: 12px 14px;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.02);
@@ -12637,17 +12640,15 @@ body[data-theme="dark"] .strategies-setup-item__name {
 html[data-theme="dark"] .strategies-setup-item__sample,
 body[data-theme="dark"] .strategies-setup-item__sample {
   color: var(--text-2);
-  font-size: 11px;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 html[data-theme="dark"] .strategies-setup-item__stats,
 body[data-theme="dark"] .strategies-setup-item__stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 6px 10px;
   align-items: center;
   color: var(--text-1);
   font-size: 12px;
@@ -12702,7 +12703,7 @@ body[data-theme="dark"] .strategies-table-card tbody tr:last-child td {
 
 html[data-theme="dark"] .strategies-table-card tbody tr:hover td,
 body[data-theme="dark"] .strategies-table-card tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
 html[data-theme="dark"] .strategy-primary-cell,
@@ -12756,12 +12757,12 @@ body[data-theme="dark"] .strategies-score-read span {
 html[data-theme="dark"] .strategies-score-read__meta,
 body[data-theme="dark"] .strategies-score-read__meta {
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 html[data-theme="dark"] .strategies-score-read__grade,
 body[data-theme="dark"] .strategies-score-read__grade {
-  color: var(--text-1);
+  color: color-mix(in srgb, var(--text-1) 90%, white);
   font-size: 11px;
   line-height: 1.1;
   letter-spacing: 0.04em;
@@ -12771,8 +12772,8 @@ body[data-theme="dark"] .strategies-score-read__grade {
 html[data-theme="dark"] .strategies-score-read__sample,
 body[data-theme="dark"] .strategies-score-read__sample {
   color: var(--text-2);
-  font-size: 11px;
-  line-height: 1.3;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 html[data-theme="dark"] .strategies-table-actions,
@@ -12832,6 +12833,137 @@ body[data-theme="dark"] .strategies-empty-state__copy {
   line-height: 1.45;
 }
 
+html[data-theme="dark"] .modal-card:has(.strategies-dialog),
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) {
+  width: min(720px, calc(100vw - 32px));
+  max-width: min(720px, calc(100vw - 32px)) !important;
+  background: #171717 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-header,
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-header {
+  padding: 24px 24px 0;
+  border-bottom: 0;
+}
+
+html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-title,
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-title {
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-subtitle,
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-subtitle {
+  color: var(--text-1);
+  max-width: 54ch;
+}
+
+html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body,
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body {
+  padding: 0;
+}
+
+html[data-theme="dark"] .strategies-dialog,
+body[data-theme="dark"] .strategies-dialog {
+  padding: 20px 24px 24px;
+}
+
+html[data-theme="dark"] .strategies-dialog__form,
+body[data-theme="dark"] .strategies-dialog__form {
+  display: grid;
+  gap: var(--strategies-space-md);
+}
+
+html[data-theme="dark"] .strategies-dialog__grid,
+body[data-theme="dark"] .strategies-dialog__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--strategies-space-sm);
+}
+
+html[data-theme="dark"] .strategies-dialog__field,
+body[data-theme="dark"] .strategies-dialog__field {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .strategies-dialog__field--full,
+body[data-theme="dark"] .strategies-dialog__field--full {
+  grid-column: 1 / -1;
+}
+
+html[data-theme="dark"] .strategies-dialog__field > span,
+body[data-theme="dark"] .strategies-dialog__field > span {
+  color: var(--text-1);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .strategies-dialog__field input,
+html[data-theme="dark"] .strategies-dialog__field select,
+html[data-theme="dark"] .strategies-dialog__field textarea,
+body[data-theme="dark"] .strategies-dialog__field input,
+body[data-theme="dark"] .strategies-dialog__field select,
+body[data-theme="dark"] .strategies-dialog__field textarea {
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-0);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .strategies-dialog__field textarea,
+body[data-theme="dark"] .strategies-dialog__field textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+html[data-theme="dark"] .strategies-dialog__field input::placeholder,
+html[data-theme="dark"] .strategies-dialog__field textarea::placeholder,
+body[data-theme="dark"] .strategies-dialog__field input::placeholder,
+body[data-theme="dark"] .strategies-dialog__field textarea::placeholder {
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .strategies-dialog__field input:hover,
+html[data-theme="dark"] .strategies-dialog__field select:hover,
+html[data-theme="dark"] .strategies-dialog__field textarea:hover,
+body[data-theme="dark"] .strategies-dialog__field input:hover,
+body[data-theme="dark"] .strategies-dialog__field select:hover,
+body[data-theme="dark"] .strategies-dialog__field textarea:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.028);
+}
+
+html[data-theme="dark"] .strategies-dialog__field input:focus,
+html[data-theme="dark"] .strategies-dialog__field select:focus,
+html[data-theme="dark"] .strategies-dialog__field textarea:focus,
+body[data-theme="dark"] .strategies-dialog__field input:focus,
+body[data-theme="dark"] .strategies-dialog__field select:focus,
+body[data-theme="dark"] .strategies-dialog__field textarea:focus {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+html[data-theme="dark"] .strategies-dialog__footer,
+body[data-theme="dark"] .strategies-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: var(--strategies-space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 @media (max-width: 980px) {
   html[data-theme="dark"] .strategies-screen__header,
   body[data-theme="dark"] .strategies-screen__header {
@@ -12841,6 +12973,11 @@ body[data-theme="dark"] .strategies-empty-state__copy {
 
   html[data-theme="dark"] .strategies-setup-grid,
   body[data-theme="dark"] .strategies-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .strategies-dialog__grid,
+  body[data-theme="dark"] .strategies-dialog__grid {
     grid-template-columns: 1fr;
   }
 }
