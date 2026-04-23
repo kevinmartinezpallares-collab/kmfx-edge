@@ -27,15 +27,6 @@ function tradesPerDay(model) {
   return model.totals.totalTrades / activeDays;
 }
 
-function hourlyBehavior(model) {
-  const rows = model.hours || [];
-  const peak = [...rows].sort((a, b) => b.trades - a.trades)[0] || { hour: 0, trades: 0, pnl: 0 };
-  return {
-    peak,
-    concentration: model.totals.totalTrades ? (peak.trades / model.totals.totalTrades) * 100 : 0
-  };
-}
-
 function activeDayConsistency(model) {
   const activeDays = model.dailyReturns?.length || 0;
   const greenDays = model.weekdays?.filter((day) => day.pnl > 0).length || 0;
@@ -59,28 +50,27 @@ function buildDisciplineScore(model) {
 function resolveDisciplineLevel(score) {
   if (score >= 75) {
     return {
-      label: "Alto",
+      label: "Alta",
       title: "Disciplina alta",
-      copy: "Tu ejecución mantiene hábitos estables incluso cuando cambia el contexto."
+      copy: "Estás respetando tu plan con bastante regularidad."
     };
   }
   if (score >= 55) {
     return {
-      label: "Medio",
+      label: "Inestable",
       title: "Disciplina inestable",
-      copy: "La estructura existe, pero todavía cambias hábitos cuando el día se complica."
+      copy: "Hay sesiones ordenadas, pero todavía cambias hábitos cuando cambia el resultado."
     };
   }
   return {
-    label: "Bajo",
+    label: "Baja",
     title: "Disciplina baja",
-    copy: "Se repiten hábitos que te alejan del plan y erosionan la calidad de ejecución."
+    copy: "Estás rompiendo tu plan en momentos clave."
   };
 }
 
-function buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, avgRValue }) {
+function buildPatterns({ model, tradesDay, currentLosses, consistency, avgRValue }) {
   const drawdownPct = model.totals.drawdown.maxPct || 0;
-  const peakHourLabel = `${String(hourly.peak.hour).padStart(2, "0")}:00`;
   const patterns = [];
 
   if (currentLosses >= 2) {
@@ -88,14 +78,6 @@ function buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, a
       title: "Sobreoperación tras pérdidas",
       detail: `${currentLosses} pérdidas seguidas elevan la presión y hacen que suba la frecuencia mientras baja la calidad.`,
       short: `${currentLosses} pérdidas seguidas están disparando la urgencia por recuperar.`
-    });
-  }
-
-  if (hourly.concentration >= 30) {
-    patterns.push({
-      title: "Operativa demasiado concentrada",
-      detail: `${Math.round(hourly.concentration)}% de los trades cae en torno a ${peakHourLabel}. Si esa franja sale mal, arrastra el día entero.`,
-      short: `${Math.round(hourly.concentration)}% de la actividad cae en una sola franja.`
     });
   }
 
@@ -134,62 +116,71 @@ function buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, a
   return patterns.slice(0, 3);
 }
 
-function buildActions({ tradesDay, currentLosses, avgRValue, consistency, model }) {
-  const actions = [];
-  const drawdownPct = model.totals.drawdown.maxPct || 0;
-
-  if (tradesDay > 3.25) {
-    actions.push(`Limita el día a ${Math.max(2, Math.min(4, Math.round(tradesDay)))} trades con criterio claro.`);
-  } else {
-    actions.push("Mantén un tope simple de 2 a 3 trades para evitar operativa reactiva.");
+function buildPatternBullets(dominantPattern, { currentLosses, tradesDay, avgRValue, consistency }) {
+  if (dominantPattern.title === "Sobreoperación tras pérdidas") {
+    return [
+      `${currentLosses} pérdidas seguidas aumentan la urgencia por recuperar.`,
+      `La frecuencia sube hasta ${tradesDay.toFixed(1)} trades por día cuando baja la calidad.`,
+      "El día se alarga justo cuando el criterio debería estrecharse."
+    ];
   }
-
-  if (currentLosses >= 2) {
-    actions.push(`Corta la sesión tras ${Math.max(2, currentLosses)} pérdidas seguidas y vuelve solo con contexto nuevo.`);
-  } else {
-    actions.push("Define un corte automático tras 2 pérdidas seguidas para proteger la ejecución.");
+  if (dominantPattern.title === "Riesgo sin suficiente margen") {
+    return [
+      `El promedio por trade está en ${avgRValue.toFixed(2)}R y deja poco colchón para absorber error.`,
+      "El tamaño del riesgo cambia más rápido que la calidad de ejecución.",
+      "Una sesión floja tarda demasiado en estabilizarse."
+    ];
   }
-
-  if (drawdownPct >= 3 || avgRValue < 0.35 || consistency < 45) {
-    actions.push("Reduce el riesgo por trade hasta recuperar consistencia y promedio positivo por operación.");
-  } else {
-    actions.push("Mantén el riesgo estable y evita aumentarlo mientras la consistencia no mejore.");
+  if (dominantPattern.title === "Consistencia diaria débil") {
+    return [
+      `${Math.round(consistency)}% de días verdes no basta para consolidar rutina.`,
+      "La ejecución cambia demasiado de un día a otro.",
+      "Cuesta repetir el mismo criterio cuando el resultado se tuerce."
+    ];
   }
-
-  return actions.slice(0, 3);
+  if (dominantPattern.title === "Exceso de frecuencia") {
+    return [
+      `${tradesDay.toFixed(1)} trades por día empujan una operativa más reactiva que intencional.`,
+      "La selección pierde calidad cuando el día se acelera.",
+      "Entras más por necesidad de participar que por contexto."
+    ];
+  }
+  return [
+    "No aparece una desviación única, pero el hábito aún no es estable.",
+    "La calidad de ejecución cambia demasiado entre sesiones.",
+    "Conviene simplificar la rutina para repetir mejor el plan."
+  ];
 }
 
-function buildDisciplineHeroAlerts(patterns = []) {
-  return patterns.slice(0, 3).map((pattern) => pattern.title);
+function buildRepeatedErrors(patterns = []) {
+  return patterns.slice(1, 4).map((pattern) => ({
+    title: pattern.title,
+    copy: pattern.short || pattern.detail
+  }));
 }
 
-function buildDisciplineInsight(patterns = [], consistency = 0, tradesDay = 0) {
-  const dominant = patterns[0];
-  if (!dominant) return "No aparece un patrón dominante, pero conviene seguir observando cómo cambian tus hábitos.";
-  if (dominant.title === "Sobreoperación tras pérdidas") {
-    return "Cuando aparece una racha negativa, aumenta la frecuencia antes de que vuelva el criterio.";
-  }
-  if (dominant.title === "Riesgo sin suficiente margen") {
-    return "El tamaño del riesgo cambia más de lo que tu ejecución puede sostener con consistencia.";
-  }
-  if (dominant.title === "Consistencia diaria débil") {
-    return `La estructura no está siendo repetible: ${Math.round(consistency)}% de días verdes no basta para consolidar hábito.`;
-  }
-  return tradesDay > 4
-    ? "La actividad se vuelve reactiva y empieza a desplazar el criterio de entrada."
-    : dominant.short;
+function buildDisciplineRuleSet(tradesDay = 0, currentLosses = 0) {
+  const tradeCap = tradesDay > 3.25 ? 3 : 2;
+  const pauseAfterLosses = currentLosses >= 2 ? Math.max(2, currentLosses) : 2;
+  return [
+    `Máximo ${tradeCap} trades al día.`,
+    `Corta la sesión tras ${pauseAfterLosses} pérdidas seguidas.`,
+    "Mantén el mismo riesgo por trade durante toda la sesión."
+  ];
 }
 
-function buildDisciplineDecision(actions = [], tradesDay = 0, currentLosses = 0) {
-  const maxTrades = tradesDay > 3.25 ? Math.max(2, Math.min(4, Math.round(tradesDay))) : 3;
-  const stopLosses = currentLosses >= 2 ? Math.max(2, currentLosses) : 2;
-  return {
-    headline: `Te conviene recuperar una rutina simple: ${maxTrades} trades como tope y pausa tras ${stopLosses} pérdidas.`,
-    detail: [
-      "Usa estos límites como entrenamiento de ejecución, no como reacción al último resultado.",
-      ...actions.slice(0, 1)
-    ]
-  };
+function buildRecentDays(model, tradeCap = 3) {
+  const recent = [...(model.dailyReturns || [])].slice(-7);
+  return recent.map((day) => {
+    const disciplined = day.trades <= tradeCap && day.returnPct >= -0.25;
+    return {
+      key: day.key,
+      label: new Date(day.date || day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+      trades: day.trades,
+      pnl: day.pnl,
+      disciplined
+    };
+  });
 }
 
 export function renderDiscipline(root, state) {
@@ -217,32 +208,74 @@ export function renderDiscipline(root, state) {
   const disciplineLevel = resolveDisciplineLevel(disciplineScore);
   const currentLosses = currentLossStreak(model.trades);
   const tradesDay = tradesPerDay(model);
-  const hourly = hourlyBehavior(model);
   const consistency = activeDayConsistency(model);
   const avgRValue = avgR(model.trades);
-  const patterns = buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, avgRValue });
-  const actions = buildActions({ tradesDay, currentLosses, avgRValue, consistency, model });
-  const heroAlerts = buildDisciplineHeroAlerts(patterns);
-  const insight = buildDisciplineInsight(patterns, consistency, tradesDay);
-  const decision = buildDisciplineDecision(actions, tradesDay, currentLosses);
+  const patterns = buildPatterns({ model, tradesDay, currentLosses, consistency, avgRValue });
   const dominantPattern = patterns[0];
-  const secondaryPatterns = patterns.slice(1, 3);
+  const repeatedErrors = buildRepeatedErrors(patterns);
+  const disciplineRules = buildDisciplineRuleSet(tradesDay, currentLosses);
+  const recentDays = buildRecentDays(model, Number(disciplineRules[0].match(/\d+/)?.[0] || 3));
+  const disciplinedDays = recentDays.filter((day) => day.disciplined).length;
+  const undisciplinedDays = recentDays.length - disciplinedDays;
+  const patternBullets = buildPatternBullets(dominantPattern, { currentLosses, tradesDay, avgRValue, consistency });
 
   root.innerHTML = `
-    <div class="discipline-page-stack">
-      <article class="tl-section-card discipline-hero">
-        <div class="discipline-hero__copy">
-          <div class="eyebrow">Estado de disciplina</div>
-          <h3>${disciplineLevel.title}</h3>
-          <p>${disciplineLevel.copy}</p>
-          ${heroAlerts.length ? `<div class="discipline-hero__alerts">${heroAlerts.map((alert) => `<span class="analytics-risk-engine__state analytics-risk-engine__state--neutral">${alert}</span>`).join("")}</div>` : ""}
+    <div class="discipline-page-stack kmfx-page kmfx-page--spacious">
+      <header class="kmfx-page__header">
+        <div class="kmfx-page__copy">
+          <p class="kmfx-page__eyebrow">DISCIPLINA</p>
+          <h2 class="kmfx-page__title">Disciplina</h2>
+          <p class="kmfx-page__subtitle">Cómo estás ejecutando tu plan y qué hábitos afectan tu consistencia.</p>
         </div>
-        <div class="discipline-hero__signal">
-          <span class="discipline-hero__signal-label">Patrón observado</span>
-          <strong>${dominantPattern.title}</strong>
-          <small>${dominantPattern.short || dominantPattern.detail}</small>
-        </div>
+      </header>
+
+      <article class="tl-section-card discipline-status">
+        <div class="discipline-status__state">Disciplina: ${disciplineLevel.label}</div>
+        <p class="discipline-status__copy">${disciplineLevel.copy}</p>
       </article>
+
+      <div class="discipline-main-grid">
+        <article class="tl-section-card discipline-pattern">
+          <div class="tl-section-header discipline-section-header">
+            <div>
+              <div class="tl-section-title">Tu patrón actual</div>
+            </div>
+          </div>
+          <div class="discipline-pattern__hero">
+            <strong>${dominantPattern.title}</strong>
+            <p>${dominantPattern.short || dominantPattern.detail}</p>
+          </div>
+          <ul class="discipline-pattern__bullets">
+            ${patternBullets.map((bullet) => `<li>${bullet}</li>`).join("")}
+          </ul>
+        </article>
+
+        <article class="tl-section-card discipline-recent">
+          <div class="tl-section-header discipline-section-header">
+            <div>
+              <div class="tl-section-title">Últimos días</div>
+            </div>
+          </div>
+          <div class="discipline-recent__summary">
+            <div class="discipline-recent__metric">
+              <strong>${disciplinedDays}</strong>
+              <span>Días disciplinados</span>
+            </div>
+            <div class="discipline-recent__metric">
+              <strong>${undisciplinedDays}</strong>
+              <span>Días no disciplinados</span>
+            </div>
+          </div>
+          <div class="discipline-recent__days">
+            ${recentDays.length ? recentDays.map((day) => `
+              <div class="discipline-recent__day ${day.disciplined ? "is-disciplined" : "is-undisciplined"}">
+                <strong>${day.label}</strong>
+                <span>${day.trades} ${day.trades === 1 ? "trade" : "trades"}</span>
+              </div>
+            `).join("") : `<div class="discipline-recent__empty">Aún no hay días suficientes para detectar hábito.</div>`}
+          </div>
+        </article>
+      </div>
 
       <div class="discipline-kpis">
         <article class="tl-section-card discipline-kpi">
@@ -253,59 +286,37 @@ export function renderDiscipline(root, state) {
         <article class="tl-section-card discipline-kpi">
           <span class="discipline-kpi__label">Trades por día</span>
           <strong class="discipline-kpi__value">${tradesDay.toFixed(1)}</strong>
-          <small>${model.totals.totalTrades} trades en ${model.dailyReturns.length} días activos.</small>
+          <small>${model.totals.totalTrades} ${model.totals.totalTrades === 1 ? "trade" : "trades"} en ${model.dailyReturns.length} días activos.</small>
         </article>
       </div>
 
-      <div class="discipline-grid">
-        <article class="tl-section-card discipline-behavior">
+      <div class="discipline-support-grid">
+        <article class="tl-section-card discipline-rules">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Patrón dominante</div>
-              <div class="row-sub">Comportamiento que más se repite y hábitos asociados</div>
+              <div class="tl-section-title">Regla de disciplina</div>
             </div>
           </div>
-          <div class="discipline-behavior__list">
-            <div class="discipline-behavior-row discipline-behavior-row--dominant">
-              <div class="discipline-behavior-row__copy">
-                <strong>${dominantPattern.title}</strong>
-                <span>${dominantPattern.short || dominantPattern.detail}</span>
-              </div>
-            </div>
-            ${secondaryPatterns.map((pattern) => `
-              <div class="discipline-behavior-row">
-                <div class="discipline-behavior-row__copy">
-                  <strong>${pattern.title}</strong>
-                  <span>${pattern.short || pattern.detail}</span>
-                </div>
-              </div>
-            `).join("")}
-          </div>
+          <ul class="discipline-rules__list">
+            ${disciplineRules.map((rule) => `<li>${rule}</li>`).join("")}
+          </ul>
         </article>
 
-        <div class="discipline-side">
-          <article class="tl-section-card discipline-copy-card">
-            <div class="tl-section-header discipline-section-header">
-              <div>
-                <div class="tl-section-title">Insight</div>
-              </div>
+        <article class="tl-section-card discipline-errors">
+          <div class="tl-section-header discipline-section-header">
+            <div>
+              <div class="tl-section-title">Errores repetidos</div>
             </div>
-            <p>${insight}</p>
-          </article>
-          <article class="tl-section-card discipline-copy-card discipline-copy-card--decision">
-            <div class="tl-section-header discipline-section-header">
-              <div>
-                <div class="tl-section-title">Recomendación de disciplina</div>
+          </div>
+          <div class="discipline-errors__list">
+            ${repeatedErrors.length ? repeatedErrors.map((pattern) => `
+              <div class="discipline-errors__item">
+                <strong>${pattern.title}</strong>
+                <span>${pattern.copy}</span>
               </div>
-            </div>
-            <div class="discipline-decision">
-              <strong>${decision.headline}</strong>
-              <div class="discipline-decision__rules">
-                ${decision.detail.map((rule) => `<small>${rule}</small>`).join("")}
-              </div>
-            </div>
-          </article>
-        </div>
+            `).join("") : `<div class="discipline-errors__empty">No aparece un error repetido secundario claro.</div>`}
+          </div>
+        </article>
       </div>
     </div>
   `;
