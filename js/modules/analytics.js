@@ -766,26 +766,42 @@ export function renderAnalytics(root, state) {
     noteTail: "requiere filtro",
     noteTone: worstHour.pnl >= 0 ? "positive" : "negative"
   };
-  const summarySessions = [
-    { title: "Mejor sesión", note: "Sostiene el edge", session: strongestSession, toneClass: "analytics-session-row--strongest" },
-    ...(weakestSession.key !== strongestSession.key
-      ? [{ title: "Sesión a limitar", note: "Introduce fricción", session: weakestSession, toneClass: "analytics-session-row--weakest" }]
-      : [])
-  ];
-  const sessionRowsMarkup = summarySessions.map(({ title, note, session, toneClass }) => `
-    <article class="analytics-session-row analytics-session-row--elevated ${toneClass}">
-      <div class="analytics-session-main">
-        <div class="analytics-session-copy">
-          <div class="session-label">${title}</div>
-          <div class="row-sub">${session.key} · ${note}</div>
-        </div>
-        <div class="analytics-session-metrics">
-          <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
+  const sessionComparisonRows = sessionRanking
+    .filter((session) => Number(session.trades || 0) > 0 || Math.abs(Number(session.pnl || 0)) > 0)
+    .slice(0, 4);
+  const sessionChartRows = (sessionComparisonRows.length ? sessionComparisonRows : sessionRanking.slice(0, 4));
+  const maxSessionPnlAbs = Math.max(
+    1,
+    ...sessionChartRows.map((session) => Math.abs(Number(session.pnl || 0)))
+  );
+  const sessionRowsMarkup = sessionChartRows.map((session) => {
+    const pnl = Number(session.pnl || 0);
+    const widthPercent = Math.max(4, (Math.abs(pnl) / maxSessionPnlAbs) * 50);
+    const toneClass = pnl >= 0 ? "analytics-session-bar-row--positive" : "analytics-session-bar-row--negative";
+    const emphasisClass = session.key === strongestSession.key
+      ? "analytics-session-bar-row--best"
+      : session.key === weakestSession.key
+        ? "analytics-session-bar-row--worst"
+        : "";
+    const positionStyle = pnl >= 0
+      ? `--session-bar-left: 50%; --session-bar-width: ${widthPercent.toFixed(2)}%;`
+      : `--session-bar-left: calc(50% - ${widthPercent.toFixed(2)}%); --session-bar-width: ${widthPercent.toFixed(2)}%;`;
+    return `
+      <article class="analytics-session-bar-row ${toneClass} ${emphasisClass}">
+        <div class="analytics-session-bar-row__meta">
+          <strong>${session.key}</strong>
           <span>${formatTradeCount(session.trades)} · WR ${formatPercent(session.winRate)}</span>
         </div>
-      </div>
-    </article>
-  `).join("");
+        <div class="analytics-session-bar-row__track" aria-hidden="true">
+          <span class="analytics-session-bar-row__axis"></span>
+          <span class="analytics-session-bar-row__fill" style="${positionStyle}"></span>
+        </div>
+        <div class="analytics-session-bar-row__value ${pnl >= 0 ? "metric-positive" : "metric-negative"}">
+          ${formatCurrency(pnl)}
+        </div>
+      </article>
+    `;
+  }).join("");
   const symbolRowsMarkup = focusSymbols.map((row, index) => `
     <article class="analytics-symbol-row ${index === 0 ? "analytics-symbol-row--best" : index === 1 ? "analytics-symbol-row--worst" : index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
@@ -1318,22 +1334,27 @@ export function renderAnalytics(root, state) {
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Rendimiento por sesión</div>
-                <div class="row-sub">Qué bloque horario sostiene mejor el P&amp;L y cuál introduce fricción.</div>
+                <div class="row-sub">Comparación directa del P&amp;L por sesión para reforzar la franja útil y limitar la que drena.</div>
               </div>
             </div>
-            <div class="analytics-session-stack analytics-session-stack--focused">
+            <div class="analytics-session-chart">
               ${sessionRowsMarkup}
             </div>
-            <div class="analytics-pattern-footer">
+            <div class="analytics-pattern-footer analytics-pattern-footer--three">
               <div class="analytics-pattern-footer__item">
-                <span>Sesión más fuerte</span>
+                <span>Mejor sesión</span>
                 <strong>${strongestSession.key}</strong>
-                <small class="analytics-value-positive">${formatCurrency(strongestSession.pnl)}</small>
+                <small class="analytics-value-positive">${formatCurrency(strongestSession.pnl)} · ${formatTradeCount(strongestSession.trades)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
                 <span>Sesión a vigilar</span>
                 <strong>${weakestSession.key}</strong>
-                <small class="analytics-value-negative">${formatCurrency(weakestSession.pnl)}</small>
+                <small class="analytics-value-negative">${formatCurrency(weakestSession.pnl)} · ${formatTradeCount(weakestSession.trades)}</small>
+              </div>
+              <div class="analytics-pattern-footer__item">
+                <span>Decisión</span>
+                <strong>Refuerza ${strongestSession.key} y limita ${weakestSession.key}</strong>
+                <small>${formatPercent(strongestSession.winRate)} WR frente a ${formatPercent(weakestSession.winRate)} WR.</small>
               </div>
             </div>
           </article>

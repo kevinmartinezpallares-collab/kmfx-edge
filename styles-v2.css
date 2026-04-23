@@ -5146,6 +5146,100 @@ body[data-theme="dark"] .analytics-symbol-stack {
   gap: 10px;
 }
 
+html[data-theme="dark"] .analytics-session-chart,
+body[data-theme="dark"] .analytics-session-chart {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .analytics-session-bar-row,
+body[data-theme="dark"] .analytics-session-bar-row {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.8fr) minmax(180px, 1.4fr) max-content;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.014);
+  border: 1px solid rgba(255, 255, 255, 0.042);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row--best,
+body[data-theme="dark"] .analytics-session-bar-row--best,
+html[data-theme="dark"] .analytics-session-bar-row--worst,
+body[data-theme="dark"] .analytics-session-bar-row--worst {
+  background: rgba(255, 255, 255, 0.018);
+  border-color: rgba(255, 255, 255, 0.052);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__meta,
+body[data-theme="dark"] .analytics-session-bar-row__meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__meta strong,
+body[data-theme="dark"] .analytics-session-bar-row__meta strong {
+  font-size: 14px;
+  line-height: 1.1;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__meta span,
+body[data-theme="dark"] .analytics-session-bar-row__meta span {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__track,
+body[data-theme="dark"] .analytics-session-bar-row__track {
+  position: relative;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.016);
+  border: 1px solid rgba(255, 255, 255, 0.032);
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__axis,
+body[data-theme="dark"] .analytics-session-bar-row__axis {
+  position: absolute;
+  inset: 4px auto 4px 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__fill,
+body[data-theme="dark"] .analytics-session-bar-row__fill {
+  position: absolute;
+  top: 4px;
+  left: var(--session-bar-left, 50%);
+  width: var(--session-bar-width, 0%);
+  height: calc(100% - 8px);
+  border-radius: 999px;
+}
+
+html[data-theme="dark"] .analytics-session-bar-row--positive .analytics-session-bar-row__fill,
+body[data-theme="dark"] .analytics-session-bar-row--positive .analytics-session-bar-row__fill {
+  background: rgba(78, 183, 120, 0.78);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row--negative .analytics-session-bar-row__fill,
+body[data-theme="dark"] .analytics-session-bar-row--negative .analytics-session-bar-row__fill {
+  background: rgba(220, 97, 117, 0.72);
+}
+
+html[data-theme="dark"] .analytics-session-bar-row__value,
+body[data-theme="dark"] .analytics-session-bar-row__value {
+  min-width: 72px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 html[data-theme="dark"] .analytics-session-row--elevated,
 body[data-theme="dark"] .analytics-session-row--elevated,
 html[data-theme="dark"] .analytics-symbol-row,
@@ -5275,6 +5369,20 @@ body[data-theme="dark"] .analytics-pattern-footer__item small {
   margin-top: 5px;
   font-size: 11px;
   color: var(--text-2);
+}
+
+@media (max-width: 860px) {
+  html[data-theme="dark"] .analytics-session-bar-row,
+  body[data-theme="dark"] .analytics-session-bar-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  html[data-theme="dark"] .analytics-session-bar-row__value,
+  body[data-theme="dark"] .analytics-session-bar-row__value {
+    text-align: left;
+    min-width: 0;
+  }
 }
 
 html[data-theme="dark"] .analytics-winloss-card--compact,
