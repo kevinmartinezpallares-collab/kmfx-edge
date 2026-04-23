@@ -2031,7 +2031,7 @@ td {
 }
 
 tbody tr:hover td {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.018);
 }
 
 /* ── SCROLLBAR ── */
@@ -12391,7 +12391,7 @@ body[data-theme="dark"] .trades-history-card tbody tr:last-child td {
 
 html[data-theme="dark"] .trades-history-card tbody tr:hover td,
 body[data-theme="dark"] .trades-history-card tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.014);
 }
 
 html[data-theme="dark"] .trades-screen .tl-section-title::before,
