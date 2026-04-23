@@ -23,7 +23,7 @@ const secondarySections = [
   {
     label: "Control",
     items: [
-      { page: "discipline", label: "Disciplina", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
+      { page: "discipline", label: "Ejecución", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
       { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
     ]
   },
@@ -62,7 +62,7 @@ const moreListSections = [
   {
     label: "Control",
     items: [
-      { page: "discipline", label: "Disciplina", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
+      { page: "discipline", label: "Ejecución", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
       { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
     ]
   },

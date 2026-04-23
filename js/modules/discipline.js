@@ -105,19 +105,19 @@ function buildAdherenceMeta(model, consistency, tradesDay, currentLosses, avgRVa
 function resolveDisciplineLevel(score) {
   if (score >= 75) {
     return {
-      label: "Alta",
-      copy: "Buena adherencia al plan y hábitos recientes estables."
+      label: "Ejecución sólida",
+      copy: "Estás aplicando el sistema con estabilidad reciente."
     };
   }
   if (score >= 55) {
     return {
       label: "Inestable",
-      copy: "La adherencia existe, pero todavía cambia cuando el resultado aprieta."
+      copy: "Tu aplicación del sistema cambia cuando aparece presión."
     };
   }
   return {
-    label: "Baja",
-    copy: "El plan se rompe con frecuencia en momentos de presión."
+    label: "Ejecución deteriorada",
+    copy: "Tu operativa se desvía del modelo en momentos de presión."
   };
 }
 
@@ -181,12 +181,22 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   return violations.sort((a, b) => b.weight - a.weight).slice(0, 3);
 }
 
-function buildDisciplineRules(tradeCap, currentLosses) {
+function buildExecutionRules(tradeCap, currentLosses) {
   return [
     `Máx ${Math.max(2, tradeCap)} trades por sesión`,
     `Cortar tras ${Math.max(2, currentLosses || 2)} pérdidas`,
     "Mantener riesgo constante"
   ];
+}
+
+function buildExecutionPills(violations = []) {
+  const labels = violations.map((violation) => {
+    if (violation.title === "Operas fuera de tu ventana fuerte") return "Fuera de ventana fuerte";
+    if (violation.title === "Subes riesgo en días negativos") return "Riesgo inconsistente";
+    if (violation.title === "Sobreoperación tras pérdidas") return "Frecuencia tras pérdidas";
+    return violation.title;
+  });
+  return [...new Set(labels)].slice(0, 3);
 }
 
 function resolveRiskVisibility(account, model) {
@@ -211,15 +221,15 @@ function resolveRiskVisibility(account, model) {
 
 function buildInsight(dominantViolation) {
   if (dominantViolation.title === "Sobreoperación tras pérdidas") {
-    return "Tu problema no es el setup: es cómo reaccionas cuando el resultado se gira en contra.";
+    return "Tu problema no es el setup: es la ejecución cuando el resultado se gira en contra.";
   }
   if (dominantViolation.title === "Operas fuera de tu ventana fuerte") {
-    return "El edge cae cuando te sales de la ventana donde tu ejecución tiene mejor contexto.";
+    return "Tu problema no es el setup: es la ejecución fuera de contexto.";
   }
   if (dominantViolation.title === "Subes riesgo en días negativos") {
-    return "El daño no viene solo del día flojo, sino de cómo ajustas el riesgo cuando pierdes estabilidad.";
+    return "El daño no viene solo del día flojo: aparece cuando el riesgo deja de ser constante.";
   }
-  return "La disciplina mejora cuando repites una rutina simple, no cuando persigues compensar el último resultado.";
+  return "La ejecución mejora cuando repites el proceso, no cuando persigues compensar el último resultado.";
 }
 
 export function renderDiscipline(root, state) {
@@ -231,7 +241,7 @@ export function renderDiscipline(root, state) {
   }
 
   const authority = resolveAccountDataAuthority(account);
-  console.info("[KMFX][DISCIPLINE_AUTHORITY]", {
+  console.info("[KMFX][EXECUTION_AUTHORITY]", {
     account_id: account?.id || "",
     login: account?.login || "",
     broker: account?.broker || "",
@@ -251,48 +261,41 @@ export function renderDiscipline(root, state) {
   const disciplineLevel = resolveDisciplineLevel(adherenceMeta.score);
   const violations = buildViolations(model, { tradesDay, currentLosses, consistency, avgRValue });
   const dominantViolation = violations[0];
-  const disciplineRules = buildDisciplineRules(adherenceMeta.tradeCap, currentLosses);
+  const executionRules = buildExecutionRules(adherenceMeta.tradeCap, currentLosses);
+  const executionPills = buildExecutionPills(violations);
   const riskVisibility = resolveRiskVisibility(account, model);
-  const disciplinedDays = adherenceMeta.recentDays.filter((day) => day.state === "disciplined").length;
   const brokenDays = adherenceMeta.recentDays.filter((day) => day.state === "broken").length;
 
   root.innerHTML = `
     <div class="discipline-page-stack kmfx-page kmfx-page--spacious">
       <header class="kmfx-page__header">
         <div class="kmfx-page__copy">
-          <p class="kmfx-page__eyebrow">DISCIPLINA</p>
-          <h2 class="kmfx-page__title">Disciplina</h2>
-          <p class="kmfx-page__subtitle">Cómo estás ejecutando tu plan y qué hábitos están afectando tu edge.</p>
+          <p class="kmfx-page__eyebrow">EJECUCIÓN</p>
+          <h2 class="kmfx-page__title">Ejecución</h2>
+          <p class="kmfx-page__subtitle">Cómo estás aplicando tu sistema y dónde se degrada.</p>
         </div>
       </header>
 
       <article class="tl-section-card discipline-state">
         <div class="discipline-state__copy">
-          <span class="discipline-state__label">Disciplina operativa</span>
+          <span class="discipline-state__label">Estado</span>
           <strong class="discipline-state__title">${disciplineLevel.label}</strong>
           <p class="discipline-state__copy-text">${disciplineLevel.copy}</p>
+          ${executionPills.length ? `<div class="discipline-state__pills">${executionPills.map((pill) => `<span>${pill}</span>`).join("")}</div>` : ""}
         </div>
-      </article>
-
-      <article class="tl-section-card discipline-dominant">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Patrón dominante</div>
-          </div>
+        <div class="discipline-state__deviation">
+          <span>Desviación dominante</span>
+          <strong>${dominantViolation.title}</strong>
+          <p>${dominantViolation.pattern}</p>
         </div>
-        <strong class="discipline-dominant__title">${dominantViolation.title}</strong>
-        <p class="discipline-dominant__copy">${dominantViolation.pattern}</p>
       </article>
 
       <article class="tl-section-card discipline-trend">
         <div class="tl-section-header discipline-section-header">
           <div>
-            <div class="tl-section-title">Últimos 10 días</div>
+            <div class="tl-section-title">Comportamiento reciente</div>
+            <div class="row-sub">${brokenDays} de los últimos 10 días rompen el plan.</div>
           </div>
-        </div>
-        <div class="discipline-trend__summary">
-          <span>${disciplinedDays} cumplieron plan</span>
-          <span>${brokenDays} rompieron plan</span>
         </div>
         <div class="discipline-trend__strip">
           ${adherenceMeta.recentDays.map((day) => `
@@ -307,18 +310,18 @@ export function renderDiscipline(root, state) {
       <article class="tl-section-card discipline-adherence">
         <div class="tl-section-header discipline-section-header">
           <div>
-            <div class="tl-section-title">Adherencia al plan</div>
+            <div class="tl-section-title">Adherencia al proceso</div>
           </div>
         </div>
         <div class="discipline-adherence__value">${adherenceMeta.adherence}%</div>
-        <p class="discipline-adherence__copy">${adherenceMeta.brokenTradesPer10} de cada 10 trades rompen tu plan.</p>
+        <p class="discipline-adherence__copy">${adherenceMeta.brokenTradesPer10} de cada 10 trades no cumplen el playbook.</p>
       </article>
 
       <div class="discipline-detail-grid">
         <article class="tl-section-card discipline-violations">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Errores repetidos</div>
+              <div class="tl-section-title">Desviaciones del proceso</div>
             </div>
           </div>
           <div class="discipline-violations__list">
@@ -334,23 +337,12 @@ export function renderDiscipline(root, state) {
         <article class="tl-section-card discipline-rule-card">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Regla de disciplina</div>
+              <div class="tl-section-title">Regla de ejecución</div>
             </div>
           </div>
           <ul class="discipline-rule-card__list">
-            ${disciplineRules.map((rule) => `<li>${rule}</li>`).join("")}
+            ${executionRules.map((rule) => `<li>${rule}</li>`).join("")}
           </ul>
-        </article>
-      </div>
-
-      <div class="discipline-metrics">
-        <article class="tl-section-card discipline-metric-card">
-          <span class="discipline-metric-card__label">Consistencia</span>
-          <strong class="discipline-metric-card__value">${Math.round(consistency)}%</strong>
-        </article>
-        <article class="tl-section-card discipline-metric-card">
-          <span class="discipline-metric-card__label">Trades por día</span>
-          <strong class="discipline-metric-card__value">${tradesDay.toFixed(1)}</strong>
         </article>
       </div>
 
