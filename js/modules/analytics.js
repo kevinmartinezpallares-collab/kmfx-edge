@@ -1296,10 +1296,13 @@ export function renderAnalytics(root, state) {
       <div class="analytics-overview-shell">
         ${adminTracePanel}
         <article class="tl-section-card analytics-overview-hero">
-          <div class="analytics-overview-hero__grid">
+          <div class="analytics-overview-hero__stack">
             <div class="analytics-overview-copy">
               <div class="analytics-overview-kicker">Dónde está el edge</div>
               <h3 class="analytics-overview-title">Dónde insistir, qué activo reforzar y qué franja limitar.</h3>
+            </div>
+            <div class="analytics-overview-hero__grid">
+              <div>
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
@@ -1316,7 +1319,7 @@ export function renderAnalytics(root, state) {
                   <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryDrain.value} · ${summaryDrain.noteTail}</small>
                 </div>
               </div>
-            </div>
+              </div>
             <div class="analytics-overview-profile">
               <div class="analytics-overview-profile__head">
                 <span>Perfil operativo</span>
@@ -1325,6 +1328,7 @@ export function renderAnalytics(root, state) {
               <div class="analytics-profile-highlights">
                 ${profileHighlights}
               </div>
+            </div>
             </div>
           </div>
         </article>

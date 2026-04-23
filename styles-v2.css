@@ -4551,12 +4551,18 @@ body[data-theme="dark"] .analytics-pattern-card {
   padding: 18px !important;
 }
 
+html[data-theme="dark"] .analytics-overview-hero__stack,
+body[data-theme="dark"] .analytics-overview-hero__stack {
+  display: grid;
+  gap: 12px;
+}
+
 html[data-theme="dark"] .analytics-overview-hero__grid,
 body[data-theme="dark"] .analytics-overview-hero__grid {
   display: grid;
   grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.94fr);
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
 }
 
 html[data-theme="dark"] .analytics-overview-kicker,
@@ -4777,6 +4783,7 @@ body[data-theme="dark"] .analytics-overview-profile {
   display: grid;
   gap: 8px;
   align-content: start;
+  align-self: start;
 }
 
 html[data-theme="dark"] .analytics-overview-profile__head,
