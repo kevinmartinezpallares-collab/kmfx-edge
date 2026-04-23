@@ -299,7 +299,10 @@ export function renderStrategies(root, state) {
                   <td class="strategies-score-cell">
                     <div class="strategies-score-read">
                       <strong>${stats.score.toFixed(1)}</strong>
-                      <span>${scoreLabel(stats.score)} · ${sampleLabel(stats.trades)}</span>
+                      <div class="strategies-score-read__meta">
+                        <span class="strategies-score-read__grade">${scoreLabel(stats.score)}</span>
+                        <span class="strategies-score-read__sample">${sampleLabel(stats.trades)}</span>
+                      </div>
                     </div>
                   </td>
                   <td>
