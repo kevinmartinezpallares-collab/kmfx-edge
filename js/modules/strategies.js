@@ -262,7 +262,7 @@ export function renderStrategies(root, state) {
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
         <div class="tl-section-title">Stats por Setup</div>
-        <div class="pill">${setupStats.length} setups en lista</div>
+        <div class="pill">${items.length} estrategias registradas</div>
       </div>
       <div class="strategies-setup-grid">
         ${setupStats.map((item) => `

@@ -12694,6 +12694,7 @@ body[data-theme="dark"] .strategies-table-card tbody td {
   line-height: 1.35;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 html[data-theme="dark"] .strategies-table-card tbody tr:last-child td,
@@ -12703,7 +12704,12 @@ body[data-theme="dark"] .strategies-table-card tbody tr:last-child td {
 
 html[data-theme="dark"] .strategies-table-card tbody tr:hover td,
 body[data-theme="dark"] .strategies-table-card tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: rgba(255, 255, 255, 0.018) !important;
+}
+
+html[data-theme="dark"] .strategies-table-row:hover td,
+body[data-theme="dark"] .strategies-table-row:hover td {
+  background: rgba(255, 255, 255, 0.018) !important;
 }
 
 html[data-theme="dark"] .strategy-primary-cell,
@@ -12835,18 +12841,18 @@ body[data-theme="dark"] .strategies-empty-state__copy {
 
 html[data-theme="dark"] .modal-card:has(.strategies-dialog),
 body[data-theme="dark"] .modal-card:has(.strategies-dialog) {
-  width: min(720px, calc(100vw - 32px));
-  max-width: min(720px, calc(100vw - 32px)) !important;
-  background: #171717 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34) !important;
+  width: min(672px, calc(100vw - 32px));
+  max-width: min(672px, calc(100vw - 32px)) !important;
+  background: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.085) !important;
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.42) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-header,
 body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-header {
-  padding: 24px 24px 0;
+  padding: 24px 24px 4px;
   border-bottom: 0;
 }
 
@@ -12859,6 +12865,7 @@ html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-subtitle,
 body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-subtitle {
   color: var(--text-1);
   max-width: 54ch;
+  line-height: 1.45;
 }
 
 html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body,
@@ -12868,20 +12875,20 @@ body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body {
 
 html[data-theme="dark"] .strategies-dialog,
 body[data-theme="dark"] .strategies-dialog {
-  padding: 20px 24px 24px;
+  padding: 16px 24px 0;
 }
 
 html[data-theme="dark"] .strategies-dialog__form,
 body[data-theme="dark"] .strategies-dialog__form {
   display: grid;
-  gap: var(--strategies-space-md);
+  gap: 20px;
 }
 
 html[data-theme="dark"] .strategies-dialog__grid,
 body[data-theme="dark"] .strategies-dialog__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--strategies-space-sm);
+  gap: 16px;
 }
 
 html[data-theme="dark"] .strategies-dialog__field,
@@ -12911,18 +12918,18 @@ html[data-theme="dark"] .strategies-dialog__field textarea,
 body[data-theme="dark"] .strategies-dialog__field input,
 body[data-theme="dark"] .strategies-dialog__field select,
 body[data-theme="dark"] .strategies-dialog__field textarea {
-  min-height: 44px;
-  padding: 12px 14px;
+  min-height: 42px;
+  padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
+  background: #141416;
   color: var(--text-0);
   box-shadow: none;
 }
 
 html[data-theme="dark"] .strategies-dialog__field textarea,
 body[data-theme="dark"] .strategies-dialog__field textarea {
-  min-height: 104px;
+  min-height: 108px;
   resize: vertical;
 }
 
@@ -12939,8 +12946,8 @@ html[data-theme="dark"] .strategies-dialog__field textarea:hover,
 body[data-theme="dark"] .strategies-dialog__field input:hover,
 body[data-theme="dark"] .strategies-dialog__field select:hover,
 body[data-theme="dark"] .strategies-dialog__field textarea:hover {
-  border-color: rgba(255, 255, 255, 0.11);
-  background: rgba(255, 255, 255, 0.028);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #171719;
 }
 
 html[data-theme="dark"] .strategies-dialog__field input:focus,
@@ -12949,9 +12956,9 @@ html[data-theme="dark"] .strategies-dialog__field textarea:focus,
 body[data-theme="dark"] .strategies-dialog__field input:focus,
 body[data-theme="dark"] .strategies-dialog__field select:focus,
 body[data-theme="dark"] .strategies-dialog__field textarea:focus {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #18181b;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.045);
   outline: none;
 }
 
@@ -12960,8 +12967,10 @@ body[data-theme="dark"] .strategies-dialog__footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: var(--strategies-space-sm);
+  margin: 0 -24px;
+  padding: 16px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.018);
 }
 
 @media (max-width: 980px) {
