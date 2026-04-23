@@ -86,42 +86,48 @@ function buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, a
   if (currentLosses >= 2) {
     patterns.push({
       title: "Sobreoperación tras pérdidas",
-      detail: `${currentLosses} pérdidas seguidas elevan la presión y aumentan la probabilidad de forzar la siguiente entrada.`
+      detail: `${currentLosses} pérdidas seguidas elevan la presión y hacen que suba la frecuencia mientras baja la calidad.`,
+      short: `${currentLosses} pérdidas seguidas están disparando la urgencia por recuperar.`
     });
   }
 
   if (hourly.concentration >= 30) {
     patterns.push({
       title: "Operativa demasiado concentrada",
-      detail: `${Math.round(hourly.concentration)}% de los trades cae en torno a ${peakHourLabel}. Si esa franja sale mal, arrastra el día entero.`
+      detail: `${Math.round(hourly.concentration)}% de los trades cae en torno a ${peakHourLabel}. Si esa franja sale mal, arrastra el día entero.`,
+      short: `${Math.round(hourly.concentration)}% de la actividad cae en una sola franja.`
     });
   }
 
   if (drawdownPct >= 3 || avgRValue < 0.35) {
     patterns.push({
       title: "Riesgo sin suficiente margen",
-      detail: `El drawdown alcanza ${formatPercent(drawdownPct)} y el promedio por trade está en ${avgRValue.toFixed(2)}R. La ejecución no compensa el riesgo asumido.`
+      detail: `El drawdown alcanza ${formatPercent(drawdownPct)} y el promedio por trade está en ${avgRValue.toFixed(2)}R. La ejecución no compensa el riesgo asumido.`,
+      short: `El margen actual no compensa el riesgo que estás dejando entrar.`
     });
   }
 
   if (consistency < 45) {
     patterns.push({
       title: "Consistencia diaria débil",
-      detail: `Solo ${Math.round(consistency)}% de la actividad termina en verde. La disciplina cambia demasiado de un día a otro.`
+      detail: `Solo ${Math.round(consistency)}% de la actividad termina en verde. La disciplina cambia demasiado de un día a otro.`,
+      short: `La ejecución cambia demasiado de un día a otro.`
     });
   }
 
   if (tradesDay > 4.25) {
     patterns.push({
       title: "Exceso de frecuencia",
-      detail: `${tradesDay.toFixed(1)} trades por día sugiere una operativa demasiado reactiva para mantener criterio estable.`
+      detail: `${tradesDay.toFixed(1)} trades por día sugiere una operativa demasiado reactiva para mantener criterio estable.`,
+      short: `${tradesDay.toFixed(1)} trades por día está empujando una operativa reactiva.`
     });
   }
 
   if (!patterns.length) {
     patterns.push({
       title: "Sin patrón dominante claro",
-      detail: "No aparece una desviación dominante, pero conviene mantener límites simples para proteger la consistencia."
+      detail: "No aparece una desviación dominante, pero conviene mantener límites simples para proteger la consistencia.",
+      short: "No hay una desviación dominante, pero conviene mantener límites simples."
     });
   }
 
@@ -151,6 +157,36 @@ function buildActions({ tradesDay, currentLosses, avgRValue, consistency, model 
   }
 
   return actions.slice(0, 3);
+}
+
+function buildDisciplineHeroAlerts(patterns = []) {
+  return patterns.slice(0, 3).map((pattern) => pattern.title);
+}
+
+function buildDisciplineInsight(patterns = [], consistency = 0, tradesDay = 0) {
+  const dominant = patterns[0];
+  if (!dominant) return "La ejecución necesita límites simples para no degradarse bajo presión.";
+  if (dominant.title === "Sobreoperación tras pérdidas") {
+    return `Cuando llega una racha negativa, la frecuencia sube antes de que vuelva la calidad.`;
+  }
+  if (dominant.title === "Riesgo sin suficiente margen") {
+    return "La operativa está dejando entrar más riesgo del que la sesión puede absorber con consistencia.";
+  }
+  if (dominant.title === "Consistencia diaria débil") {
+    return `La estructura no está siendo repetible: ${Math.round(consistency)}% de días verdes no basta para sostener confianza.`;
+  }
+  return tradesDay > 4
+    ? "La actividad se vuelve reactiva y empieza a romper el criterio de entrada."
+    : dominant.short;
+}
+
+function buildDisciplineDecision(actions = [], tradesDay = 0, currentLosses = 0) {
+  const maxTrades = tradesDay > 3.25 ? Math.max(2, Math.min(4, Math.round(tradesDay))) : 3;
+  const stopLosses = currentLosses >= 2 ? Math.max(2, currentLosses) : 2;
+  return {
+    headline: `Hoy: máximo ${maxTrades} trades y sesión cerrada tras ${stopLosses} pérdidas.`,
+    detail: actions.slice(0, 2)
+  };
 }
 
 export function renderDiscipline(root, state) {
@@ -183,78 +219,91 @@ export function renderDiscipline(root, state) {
   const avgRValue = avgR(model.trades);
   const patterns = buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, avgRValue });
   const actions = buildActions({ tradesDay, currentLosses, avgRValue, consistency, model });
+  const heroAlerts = buildDisciplineHeroAlerts(patterns);
+  const insight = buildDisciplineInsight(patterns, consistency, tradesDay);
+  const decision = buildDisciplineDecision(actions, tradesDay, currentLosses);
   const dominantPattern = patterns[0];
   const secondaryPatterns = patterns.slice(1, 3);
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">${disciplineLevel.title}</div>
-      <div class="tl-page-sub">${disciplineLevel.copy}</div>
-    </div>
-
     <div class="discipline-page-stack">
-      <article class="tl-section-card discipline-section-card">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Problema principal</div>
-            <div class="tl-section-sub">${disciplineScore}/100 · ${disciplineLevel.label}</div>
-          </div>
+      <article class="tl-section-card discipline-hero">
+        <div class="discipline-hero__copy">
+          <div class="eyebrow">Estado de disciplina</div>
+          <h3>${disciplineLevel.title}</h3>
+          <p>${disciplineLevel.copy}</p>
+          ${heroAlerts.length ? `<div class="discipline-hero__alerts">${heroAlerts.map((alert) => `<span class="analytics-risk-engine__state analytics-risk-engine__state--neutral">${alert}</span>`).join("")}</div>` : ""}
         </div>
-        <div class="discipline-pattern-list discipline-pattern-list--hero">
-          <div class="discipline-pattern-item discipline-pattern-item--hero">
-            <strong>${dominantPattern.title}</strong>
-            <p>${dominantPattern.detail}</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="tl-section-card discipline-section-card discipline-section-card--action">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Qué hacer ahora</div>
-            <div class="tl-section-sub">Tres límites simples para proteger la sesión y recuperar estructura.</div>
-          </div>
-        </div>
-        <div class="discipline-action-list">
-          ${actions.slice(0, 2).map((action, index) => `
-            <div class="discipline-action-item">
-              <span>${index + 1}</span>
-              <p>${action}</p>
-            </div>
-          `).join("")}
+        <div class="discipline-hero__signal">
+          <span class="discipline-hero__signal-label">Señal dominante</span>
+          <strong>${dominantPattern.title}</strong>
+          <small>${dominantPattern.short || dominantPattern.detail}</small>
         </div>
       </article>
 
-      <div class="discipline-secondary-grid">
-        <article class="tl-kpi-card discipline-kpi-card">
-          <div class="tl-kpi-label">Consistencia</div>
-          <div class="tl-kpi-val">${Math.round(consistency)}%</div>
-          <div class="row-sub">Días con resultado verde sobre actividad registrada.</div>
+      <div class="discipline-kpis">
+        <article class="tl-section-card discipline-kpi">
+          <span class="discipline-kpi__label">Consistencia</span>
+          <strong class="discipline-kpi__value">${Math.round(consistency)}%</strong>
+          <small>Días verdes sobre actividad registrada.</small>
         </article>
-        <article class="tl-kpi-card discipline-kpi-card">
-          <div class="tl-kpi-label">Trades por día</div>
-          <div class="tl-kpi-val">${tradesDay.toFixed(1)}</div>
-          <div class="row-sub">${model.totals.totalTrades} trades en ${model.dailyReturns.length} días activos.</div>
+        <article class="tl-section-card discipline-kpi">
+          <span class="discipline-kpi__label">Trades por día</span>
+          <strong class="discipline-kpi__value">${tradesDay.toFixed(1)}</strong>
+          <small>${model.totals.totalTrades} trades en ${model.dailyReturns.length} días activos.</small>
         </article>
       </div>
 
-      ${secondaryPatterns.length ? `
-        <article class="tl-section-card discipline-section-card discipline-section-card--secondary">
+      <div class="discipline-grid">
+        <article class="tl-section-card discipline-behavior">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Señales secundarias</div>
+              <div class="tl-section-title">Qué está rompiendo la disciplina</div>
+              <div class="row-sub">Problema principal y fricciones secundarias</div>
             </div>
           </div>
-          <div class="discipline-pattern-list discipline-pattern-list--secondary">
+          <div class="discipline-behavior__list">
+            <div class="discipline-behavior-row discipline-behavior-row--dominant">
+              <div class="discipline-behavior-row__copy">
+                <strong>${dominantPattern.title}</strong>
+                <span>${dominantPattern.short || dominantPattern.detail}</span>
+              </div>
+            </div>
             ${secondaryPatterns.map((pattern) => `
-              <div class="discipline-pattern-item discipline-pattern-item--secondary">
-                <strong>${pattern.title}</strong>
-                <p>${pattern.detail}</p>
+              <div class="discipline-behavior-row">
+                <div class="discipline-behavior-row__copy">
+                  <strong>${pattern.title}</strong>
+                  <span>${pattern.short || pattern.detail}</span>
+                </div>
               </div>
             `).join("")}
           </div>
         </article>
-      ` : ""}
+
+        <div class="discipline-side">
+          <article class="tl-section-card discipline-copy-card">
+            <div class="tl-section-header discipline-section-header">
+              <div>
+                <div class="tl-section-title">Insight</div>
+              </div>
+            </div>
+            <p>${insight}</p>
+          </article>
+          <article class="tl-section-card discipline-copy-card discipline-copy-card--decision">
+            <div class="tl-section-header discipline-section-header">
+              <div>
+                <div class="tl-section-title">Decisión</div>
+              </div>
+            </div>
+            <div class="discipline-decision">
+              <strong>${decision.headline}</strong>
+              <div class="discipline-decision__rules">
+                ${decision.detail.map((rule) => `<small>${rule}</small>`).join("")}
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   `;
 }
