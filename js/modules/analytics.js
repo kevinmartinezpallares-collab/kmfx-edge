@@ -145,13 +145,13 @@ function buildAnalyticsMonthView(dayStats, monthKey) {
 function describeDayBehavior(day, trades, bestSessionKey, worstSessionKey, bestHour, worstHour) {
   const mainSession = dominantValue(trades.map((trade) => trade.session).filter(Boolean));
   const avgTrades = trades.length;
-  if (day.pnl > 0 && mainSession === bestSessionKey) return "ejecución limpia en sesión fuerte";
-  if (day.pnl < 0 && mainSession === worstSessionKey) return "sesión débil amplificó la pérdida";
-  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "entrada fuera de timing";
-  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "timing alineado con ventaja";
-  if (avgTrades >= 3 && day.pnl < 0) return "sobreoperación redujo calidad";
-  if (avgTrades === 1 && day.pnl > 0) return "paciencia y ejecución limpia";
-  return day.pnl >= 0 ? "sesión controlada" : "mala gestión del día";
+  if (day.pnl > 0 && mainSession === bestSessionKey) return "Sesión fuerte -> cierre limpio.";
+  if (day.pnl < 0 && mainSession === worstSessionKey) return "Sesión débil -> la pérdida se amplifica.";
+  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "Entrada fuera de timing -> cae la calidad.";
+  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "Timing a favor -> el día suma con claridad.";
+  if (avgTrades >= 3 && day.pnl < 0) return "Más frecuencia -> baja la calidad del día.";
+  if (avgTrades === 1 && day.pnl > 0) return "Menos fricción -> mejor ejecución.";
+  return day.pnl >= 0 ? "Control del día -> cierre favorable." : "Gestión débil -> cierre negativo.";
 }
 
 function dominantValue(values = []) {
@@ -704,7 +704,7 @@ export function renderAnalytics(root, state) {
   const selectedDay = monthDayStats.find((day) => day.key === selectedDayKey) || null;
   const selectedDayTrades = selectedDay ? (dayTradeMap.get(selectedDay.key) || []) : [];
   const selectedDaySession = dominantValue(selectedDayTrades.map((trade) => trade.session).filter(Boolean));
-  const selectedDayBehavior = selectedDay ? describeDayBehavior(selectedDay, selectedDayTrades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour) : "Sin detalle diario.";
+  const selectedDayBehavior = selectedDay ? describeDayBehavior(selectedDay, selectedDayTrades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour) : "Selecciona un día con operativa para leer su patrón.";
   const selectedDaySymbol = dominantValue(selectedDayTrades.map((trade) => trade.symbol).filter(Boolean));
   const positiveMonthDays = operatedMonthDays.filter((day) => day.pnl > 0);
   const positiveSessionCounts = positiveMonthDays.reduce((acc, day) => {
@@ -738,10 +738,10 @@ export function renderAnalytics(root, state) {
           : "Hay una señal útil, pero todavía necesita más repetición para consolidarse."
         : "El mes mezcla resultados y conviene validar más repeticiones antes de reforzar la lectura.";
   const dailyReadBullets = [
-    `${strongestSession.key} concentra los cierres más limpios`,
-    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción operativa`,
-    strongestSymbol.key !== "—" ? `${strongestSymbol.key} aporta la mayor tracción` : "Los mejores días vienen de setups simples",
-    selectedDayTrades.length >= 2 ? "Cuando sube el número de trades, baja la calidad" : "Los días con menos fricción se resuelven con menos trades"
+    `${strongestSession.key} -> concentra los cierres más limpios.`,
+    `${String(worstHour.hour).padStart(2, "0")}:00 -> introduce fricción operativa.`,
+    strongestSymbol.key !== "—" ? `${strongestSymbol.key} -> aporta la mayor tracción.` : "Setups simples -> mejor lectura del día.",
+    selectedDayTrades.length >= 2 ? "Más trades -> suele caer la calidad." : "Menos fricción -> mejor resolución del día."
   ].slice(0, 4);
   const topInsightCards = [
     {
@@ -1474,7 +1474,7 @@ export function renderAnalytics(root, state) {
                     ${cell.trades
                       ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
                          <div class="calendar-day__meta">${tradesLabel}</div>`
-                      : `<div class="calendar-day__meta">${cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
+                      : `<div class="calendar-day__meta">${cell.inMonth ? "Sin op." : "—"}</div>`}
                   </div>
                 </button>
               `;
@@ -1487,7 +1487,7 @@ export function renderAnalytics(root, state) {
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Días clave</div>
-                <div class="row-sub">Los días que más explican el mes, ordenados por impacto.</div>
+              <div class="row-sub">Los días que más explican el mes, ordenados por impacto real en P&amp;L.</div>
               </div>
             </div>
             <div class="analytics-key-days">
@@ -1531,7 +1531,7 @@ export function renderAnalytics(root, state) {
               <div class="tl-section-header">
                 <div>
                   <div class="tl-section-title">Detalle del día</div>
-                <div class="row-sub">${selectedDay ? new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" }) : "Selecciona un día operado"}</div>
+                <div class="row-sub">${selectedDay ? `Día seleccionado en calendario · ${new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}` : "Selecciona un día operado del calendario"}</div>
               </div>
             </div>
             ${selectedDay ? `
