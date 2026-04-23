@@ -6197,6 +6197,15 @@ body[data-theme="dark"] .analytics-risk-behavior-row__metric strong {
   font-variant-numeric: tabular-nums;
 }
 
+html[data-theme="dark"] .analytics-risk-behavior-row__metric strong span,
+body[data-theme="dark"] .analytics-risk-behavior-row__metric strong span {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .analytics-risk-behavior-row__metric small,
 body[data-theme="dark"] .analytics-risk-behavior-row__metric small {
   font-size: 11px;
@@ -6275,6 +6284,7 @@ html[data-theme="dark"] .analytics-risk-copy-card,
 body[data-theme="dark"] .analytics-risk-copy-card {
   display: grid;
   gap: 8px;
+  border-color: rgba(255,255,255,0.035);
 }
 
 html[data-theme="dark"] .analytics-risk-copy-card p,
@@ -6282,7 +6292,7 @@ body[data-theme="dark"] .analytics-risk-copy-card p {
   margin: 0;
   font-size: 13px;
   line-height: 1.48;
-  color: color-mix(in srgb, var(--text-2) 88%, var(--text-1));
+  color: color-mix(in srgb, var(--text-2) 94%, var(--text-1));
 }
 
 html[data-theme="dark"] .analytics-risk-copy-card--decision,
@@ -6290,6 +6300,17 @@ body[data-theme="dark"] .analytics-risk-copy-card--decision {
   background:
     linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012)),
     var(--card-surface);
+  border-color: rgba(255,255,255,0.05);
+}
+
+html[data-theme="dark"] .analytics-risk-copy-card .tl-section-title,
+body[data-theme="dark"] .analytics-risk-copy-card .tl-section-title {
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-copy-card--decision .tl-section-title,
+body[data-theme="dark"] .analytics-risk-copy-card--decision .tl-section-title {
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-risk-decision,

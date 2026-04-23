@@ -1003,7 +1003,7 @@ export function renderAnalytics(root, state) {
       ? "Control deteriorado"
       : "Control estable";
   const heroSignalTitle = lossStreak >= 4
-    ? `Racha de ${lossStreak} pérdidas`
+    ? `${lossStreak} pérdidas seguidas`
     : inconsistencyLevel !== "stable"
       ? "Ejecución deteriorada"
       : scalingLevel !== "stable"
@@ -1030,7 +1030,8 @@ export function renderAnalytics(root, state) {
       title: "Racha de pérdidas",
       tone: lossStreak >= 5 ? "critical" : lossStreak >= 3 ? "warning" : "stable",
       status: lossStreak >= 5 ? "Presión alta" : lossStreak >= 3 ? "En aumento" : "Contenida",
-      metric: `${lossStreak} seguidas`,
+      metric: `${lossStreak}`,
+      metricSuffix: "seguidas",
       note: lossStreak >= 4
         ? "La secuencia negativa ya está condicionando el siguiente trade."
         : "La secuencia aún no domina el proceso operativo.",
@@ -1077,7 +1078,7 @@ export function renderAnalytics(root, state) {
   const riskMetricCards = [
     {
       label: "Drawdown actual",
-      value: formatPercent(currentDrawdownPct),
+      value: formatPercent(-currentDrawdownPct),
       noteLead: formatCurrency(-currentDrawdownAmount),
       noteTail: "desde el último pico",
       tone: currentDrawdownPct > 0 ? "negative" : "",
@@ -1651,7 +1652,7 @@ export function renderAnalytics(root, state) {
                     <span>${row.note}</span>
                   </div>
                   <div class="analytics-risk-behavior-row__metric">
-                    <strong>${row.metric}</strong>
+                    <strong>${row.metric}${row.metricSuffix ? ` <span>${row.metricSuffix}</span>` : ""}</strong>
                     <small>${row.status}</small>
                   </div>
                   <div class="analytics-risk-behavior-row__track" aria-hidden="true">
