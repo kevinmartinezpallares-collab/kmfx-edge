@@ -4605,8 +4605,8 @@ body[data-theme="dark"] .analytics-insight-card {
   min-width: 0;
   padding: 13px 14px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: var(--layer-1-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.042);
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.008));
 }
 
 html[data-theme="dark"] .analytics-insight-card span,
@@ -4729,8 +4729,8 @@ html[data-theme="dark"] .analytics-focus-item,
 body[data-theme="dark"] .analytics-focus-item {
   padding: 13px 16px 15px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.058);
+  background: rgba(255, 255, 255, 0.026);
+  border: 1px solid rgba(255, 255, 255, 0.054);
 }
 
 html[data-theme="dark"] .analytics-focus-item span,
@@ -4763,10 +4763,8 @@ body[data-theme="dark"] .analytics-focus-item small {
 
 html[data-theme="dark"] .analytics-focus-item--warn,
 body[data-theme="dark"] .analytics-focus-item--warn {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.034), rgba(255,255,255,0.016)),
-    rgba(255, 255, 255, 0.022);
-  border-color: rgba(255, 255, 255, 0.065);
+  background: color-mix(in srgb, var(--layer-1-subtle) 91%, rgba(255,255,255,0.03));
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
 html[data-theme="dark"] .analytics-focus-item--positive,
