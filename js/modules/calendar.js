@@ -35,10 +35,11 @@ function buildDayMetrics(dayTrades) {
   const wins = ordered.filter((trade) => trade.pnl > 0).length;
   const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
   const totalFees = ordered.reduce((sum, trade) => sum + resolveTradeFees(trade), 0);
+  const bestValueClass = best?.pnl > 0 ? "metric-positive" : best?.pnl < 0 ? "metric-negative" : "";
   return [
     { label: "Trades", value: String(ordered.length) },
     { label: "Win rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
-    { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: best?.pnl > 0 ? "metric-positive" : "" },
+    { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: bestValueClass },
     { label: "Comisiones", value: ordered.length ? formatCurrency(totalFees) : "—", valueClass: totalFees < 0 ? "metric-negative" : "" }
   ];
 }
@@ -58,17 +59,26 @@ function buildDayExecutiveRead(dayTrades) {
   }
 
   const wins = ordered.filter((trade) => Number(trade?.pnl || 0) > 0).length;
-  const losses = ordered.length - wins;
-  const topDirection = Number(topTrade.pnl || 0) >= 0 ? "impulsó" : "arrastró";
+  const losses = ordered.filter((trade) => Number(trade?.pnl || 0) < 0).length;
+  const breakevens = ordered.filter((trade) => Number(trade?.pnl || 0) === 0).length;
+  const topPnl = Number(topTrade.pnl || 0);
+  const topDirection = topPnl > 0 ? "impulsó" : topPnl < 0 ? "arrastró" : "cerró en break-even";
   const partialNote = Array.isArray(topTrade.executions) && topTrade.executions.length > 1
     ? ` en ${topTrade.executions.length} cierres`
     : "";
-  const balanceNote = ordered.length > 1
-    ? ` ${wins} ganadoras y ${losses} perdedoras completaron la sesión.`
+  const balanceParts = [];
+  if (wins) balanceParts.push(`${wins} ganadoras`);
+  if (losses) balanceParts.push(`${losses} perdedoras`);
+  if (breakevens) balanceParts.push(`${breakevens} en break-even`);
+  const balanceNote = ordered.length > 1 && balanceParts.length
+    ? `${balanceParts.join(", ")} completaron la sesión.`
     : "";
+  const pnlText = topPnl === 0 ? "sin impacto neto" : formatCurrency(topPnl);
 
   return {
-    summary: `${topTrade.symbol} ${topTrade.side} ${topDirection} el resultado con ${formatCurrency(topTrade.pnl)}${partialNote}.${balanceNote}`.trim(),
+    summary: topPnl === 0
+      ? `${topTrade.symbol} ${topTrade.side} ${topDirection}${partialNote}. ${balanceNote || "El día terminó sin impacto neto por ese trade."}`.trim()
+      : `${topTrade.symbol} ${topTrade.side} ${topDirection} el resultado con ${pnlText}${partialNote}.${balanceNote ? ` ${balanceNote}` : ""}`.trim(),
     topTradeId: String(topTrade.id),
   };
 }
@@ -112,7 +122,7 @@ function getTradeTimeRange(trade) {
 }
 
 function getCalendarTradeDayKey(trade) {
-  const source = trade?.entryTime || trade?.openTime || trade?.open_time || trade?.date || trade?.when || trade?.closeTime;
+  const source = trade?.closeTime || trade?.close_time || trade?.time || trade?.when || trade?.date || trade?.entryTime || trade?.openTime || trade?.open_time;
   return source ? toLocalDayKey(source) : "";
 }
 
@@ -145,6 +155,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
   const { entryTime, exitTime } = getTradeTimeRange(trade);
   const fees = resolveTradeFees(trade);
   const isPrimary = options.isPrimary === true;
+  const pnlClass = trade.pnl > 0 ? "metric-positive" : trade.pnl < 0 ? "metric-negative" : "";
   return `
     <details class="focus-panel-disclosure ${isPrimary ? "focus-panel-disclosure--primary" : ""}">
       <summary class="focus-panel-disclosure__summary">
@@ -158,7 +169,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
           </div>
           <div class="focus-panel-disclosure__cell">${entryTime}</div>
           <div class="focus-panel-disclosure__cell">${exitTime}</div>
-          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</div>
+          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${pnlClass}">${formatCurrency(trade.pnl)}</div>
         </div>
       </summary>
       <div class="focus-panel-disclosure__body">
@@ -166,7 +177,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${pnlClass}">${formatCurrency(trade.pnl)}</span></div>
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
         ${renderTradeExecutions(trade)}
