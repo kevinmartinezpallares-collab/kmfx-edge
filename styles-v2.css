@@ -6316,7 +6316,8 @@ body[data-theme="dark"] .analytics-risk-copy-card--decision .tl-section-title {
 html[data-theme="dark"] .analytics-risk-decision,
 body[data-theme="dark"] .analytics-risk-decision {
   display: grid;
-  align-content: center;
+  align-content: start;
+  gap: 14px;
   min-height: 100%;
 }
 
@@ -6326,6 +6327,146 @@ body[data-theme="dark"] .analytics-risk-decision strong {
   line-height: 1.18;
   letter-spacing: -0.04em;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-risk-engine,
+body[data-theme="dark"] .analytics-risk-engine {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__meta,
+body[data-theme="dark"] .analytics-risk-engine__meta {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .analytics-risk-engine__state,
+body[data-theme="dark"] .analytics-risk-engine__state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .analytics-risk-engine__state--positive,
+body[data-theme="dark"] .analytics-risk-engine__state--positive {
+  color: color-mix(in srgb, var(--positive) 78%, var(--text-1));
+  border-color: rgba(52, 217, 123, 0.22);
+  background: rgba(52, 217, 123, 0.10);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__state--warning,
+body[data-theme="dark"] .analytics-risk-engine__state--warning {
+  color: color-mix(in srgb, var(--warning) 78%, var(--text-1));
+  border-color: rgba(255, 176, 32, 0.18);
+  background: rgba(255, 176, 32, 0.09);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__state--neutral,
+body[data-theme="dark"] .analytics-risk-engine__state--neutral,
+html[data-theme="dark"] .analytics-risk-engine__state--info,
+body[data-theme="dark"] .analytics-risk-engine__state--info {
+  color: var(--text-1);
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.035);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__meta small,
+body[data-theme="dark"] .analytics-risk-engine__meta small {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules-header,
+body[data-theme="dark"] .analytics-risk-engine__rules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules-header span,
+body[data-theme="dark"] .analytics-risk-engine__rules-header span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules-header em,
+body[data-theme="dark"] .analytics-risk-engine__rules-header em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules,
+body[data-theme="dark"] .analytics-risk-engine__rules {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules li,
+body[data-theme="dark"] .analytics-risk-engine__rules li {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.018);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules li span,
+body[data-theme="dark"] .analytics-risk-engine__rules li span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__rules li strong,
+body[data-theme="dark"] .analytics-risk-engine__rules li strong {
+  font-size: 14px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__footer,
+body[data-theme="dark"] .analytics-risk-engine__footer {
+  display: grid;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .analytics-risk-engine__footer small,
+body[data-theme="dark"] .analytics-risk-engine__footer small {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-risk-engine__action,
+body[data-theme="dark"] .analytics-risk-engine__action {
+  width: fit-content;
 }
 
 html[data-theme="dark"] .analytics-timing-hero,

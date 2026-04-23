@@ -219,6 +219,68 @@ function calcWinRate(trades = []) {
   return (trades.filter((trade) => trade.pnl > 0).length / trades.length) * 100;
 }
 
+function resolveRiskProtectionMeta({
+  account,
+  riskProfile,
+  riskSnapshot,
+  hasSuggestedRules
+}) {
+  const connectionConnected = Boolean(account?.connection?.connected);
+  const snapshotPolicy = riskSnapshot?.policy && typeof riskSnapshot.policy === "object" ? riskSnapshot.policy : {};
+  const profileAutoBlock = Boolean(riskProfile?.autoBlock);
+  const snapshotAutoBlock = Boolean(snapshotPolicy.auto_block_enabled);
+  const isConfigured = profileAutoBlock || snapshotAutoBlock;
+  const hasLocalSnapshot = Boolean(riskSnapshot);
+
+  if (hasLocalSnapshot && !connectionConnected) {
+    return {
+      state: "Error de sincronización",
+      tone: "warning",
+      rulesState: "Configuradas",
+      actionLabel: "Abrir Risk Engine",
+      note: "Hay una política conocida, pero no puedo confirmar si el motor local sigue aplicándola."
+    };
+  }
+
+  if (!connectionConnected && !hasLocalSnapshot) {
+    return {
+      state: "No conectado",
+      tone: "warning",
+      rulesState: hasSuggestedRules ? "Sugeridas" : "Pendientes",
+      actionLabel: "Activar protección automática local",
+      note: "Primero hay que enlazar el motor local para enviar y aplicar reglas de protección."
+    };
+  }
+
+  if (connectionConnected && snapshotAutoBlock) {
+    return {
+      state: "Activo localmente",
+      tone: "positive",
+      rulesState: "Activas",
+      actionLabel: "Gestionar protección automática",
+      note: "El Risk Engine ya tiene una política activa y puede cortar la operativa si la sesión se degrada."
+    };
+  }
+
+  if (isConfigured) {
+    return {
+      state: "Configurado",
+      tone: "info",
+      rulesState: "Configuradas",
+      actionLabel: "Enviar reglas al motor",
+      note: "La política ya existe, pero falta confirmación de aplicación en el entorno local."
+    };
+  }
+
+  return {
+    state: "OFF",
+    tone: "neutral",
+    rulesState: hasSuggestedRules ? "Sugeridas" : "Pendientes",
+    actionLabel: "Activar protección automática local",
+    note: "Todavía no hay una protección automática activa: el control depende de supervisión manual."
+  };
+}
+
 function calcAvgR(trades = []) {
   const validTrades = trades.filter((trade) => Number.isFinite(Number(trade.rMultiple)));
   if (!validTrades.length) return 0;
@@ -992,6 +1054,11 @@ export function renderAnalytics(root, state) {
     : (lossStreak >= 3 || overtradingLevel === "warning" || scalingLevel === "warning" || inconsistencyLevel === "warning")
       ? "warning"
       : "stable";
+  const riskSnapshot = account?.riskSnapshot && typeof account.riskSnapshot === "object"
+    ? account.riskSnapshot
+    : account?.dashboardPayload?.riskSnapshot && typeof account.dashboardPayload.riskSnapshot === "object"
+      ? account.dashboardPayload.riskSnapshot
+      : null;
   const riskHeroTone = riskAlerts.some((alert) => alert.tone === "error") || currentDdUsagePct >= 70 || lossStreak >= 6
     ? "critical"
     : riskAlerts.length || currentDdUsagePct >= 45 || lossStreak >= 4
@@ -1070,11 +1137,29 @@ export function renderAnalytics(root, state) {
     : dominantRiskIssue.kind === "pressure"
       ? "La presión tras las pérdidas está subiendo el tamaño o la frecuencia fuera de plan."
       : "La ejecución reciente ya no replica el patrón limpio que sí aparece en el resto del mes.";
-  const riskDecision = dominantRiskIssue.kind === "loss"
-    ? `Hoy: baja a ${Math.max(0.25, Math.min(currentRiskPct || 0.5, maxTradeRiskPct * 0.5)).toFixed(2)}% por trade y corta la sesión tras 2 pérdidas.`
+  const recommendedLossCut = dominantRiskIssue.kind === "loss" ? 2 : 3;
+  const recommendedRiskPct = dominantRiskIssue.kind === "loss"
+    ? Math.max(0.25, Math.min(currentRiskPct || 0.5, maxTradeRiskPct * 0.5))
     : dominantRiskIssue.kind === "pressure"
-      ? `Hoy: mantén ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% y no superes ${Math.max(2, Math.round(averageTradesPerDay || 2))} trades de calidad.`
-      : `Hoy: mantén ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y toma solo setups de máxima claridad hasta estabilizar la ejecución.`;
+      ? Math.max(0.25, Math.min(currentRiskPct || maxTradeRiskPct || 0.5, maxTradeRiskPct * 0.75))
+      : Math.max(0.25, currentRiskPct || 0.5);
+  const recommendedTradeLimit = Math.max(2, Math.round(averageTradesPerDay || 2));
+  const riskDecision = dominantRiskIssue.kind === "loss"
+    ? `Hoy: baja a ${recommendedRiskPct.toFixed(2)}% por trade y corta la sesión tras ${recommendedLossCut} pérdidas.`
+    : dominantRiskIssue.kind === "pressure"
+      ? `Hoy: mantén ${recommendedRiskPct.toFixed(2)}% y no superes ${recommendedTradeLimit} trades de calidad.`
+      : `Hoy: mantén ${recommendedRiskPct.toFixed(2)}% y toma solo setups de máxima claridad hasta estabilizar la ejecución.`;
+  const riskProtection = resolveRiskProtectionMeta({
+    account,
+    riskProfile,
+    riskSnapshot,
+    hasSuggestedRules: Boolean(lossStreak || currentRiskPct || averageTradesPerDay)
+  });
+  const riskProtectionRules = [
+    `Cortar sesión tras ${recommendedLossCut} pérdidas seguidas`,
+    `Reducir riesgo a ${recommendedRiskPct.toFixed(2)}% por trade`,
+    `Limitar a ${recommendedTradeLimit} trades de calidad`
+  ];
   const riskMetricCards = [
     {
       label: "Drawdown actual",
@@ -1680,6 +1765,28 @@ export function renderAnalytics(root, state) {
               </div>
               <div class="analytics-risk-decision">
                 <strong>${riskDecision}</strong>
+                <div class="analytics-risk-engine">
+                  <div class="analytics-risk-engine__meta">
+                    <span class="analytics-risk-engine__state analytics-risk-engine__state--${riskProtection.tone}">${riskProtection.state}</span>
+                    <small>${riskProtection.note}</small>
+                  </div>
+                  <div class="analytics-risk-engine__rules-header">
+                    <span>Control decide</span>
+                    <em>Reglas ${riskProtection.rulesState.toLowerCase()}</em>
+                  </div>
+                  <ul class="analytics-risk-engine__rules">
+                    ${riskProtectionRules.map((rule) => `
+                      <li>
+                        <span>${riskProtection.rulesState}</span>
+                        <strong>${rule}</strong>
+                      </li>
+                    `).join("")}
+                  </ul>
+                  <div class="analytics-risk-engine__footer">
+                    <small>Risk Engine ejecuta localmente solo cuando el motor está conectado y la política ha sido aplicada por el EA.</small>
+                    <button class="btn-primary btn-inline analytics-risk-engine__action" type="button" data-analytics-risk-engine-action="true">${riskProtection.actionLabel}</button>
+                  </div>
+                </div>
               </div>
             </article>
           </div>
@@ -1712,6 +1819,15 @@ export function renderAnalytics(root, state) {
       if (!nextMode || nextMode === root.__analyticsHourValueMode) return;
       root.__analyticsHourValueMode = nextMode;
       renderAnalytics(root, state);
+    });
+  });
+
+  root.querySelectorAll("[data-analytics-risk-engine-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const riskNavButton = document.querySelector('.nav-item[data-page="risk"]');
+      if (riskNavButton instanceof HTMLButtonElement) {
+        riskNavButton.click();
+      }
     });
   });
 
