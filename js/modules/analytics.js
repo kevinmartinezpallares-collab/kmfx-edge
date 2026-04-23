@@ -15,20 +15,21 @@ function inRange(value, start, end) {
 }
 
 function formatCompactSignedCurrency(value) {
-  const absolute = Math.abs(Number(value || 0));
-  if (absolute < 1000) return formatCurrency(value);
+  const numeric = Number(value || 0);
+  const absolute = Math.abs(numeric);
+  if (absolute < 1000) return `${numeric < 0 ? "-" : ""}$${Math.round(absolute)}`;
   const compact = absolute >= 10000 ? (absolute / 1000).toFixed(0) : (absolute / 1000).toFixed(1);
-  return `${value < 0 ? "-" : ""}€${compact}k`;
+  return `${numeric < 0 ? "-" : ""}$${compact}k`;
 }
 
-function formatCompactSignedMagnitude(value) {
+function formatCompactSignedUsdMagnitude(value) {
   const numeric = Number(value || 0);
   const absolute = Math.abs(numeric);
   if (absolute < 1000) {
-    return `${numeric < 0 ? "-" : ""}${Math.round(absolute)}`;
+    return `${numeric < 0 ? "-" : ""}$${Math.round(absolute)}`;
   }
   const compact = absolute >= 10000 ? (absolute / 1000).toFixed(0) : (absolute / 1000).toFixed(1);
-  return `${numeric < 0 ? "-" : ""}${compact}k`;
+  return `${numeric < 0 ? "-" : ""}$${compact}k`;
 }
 
 function formatCompactSignedPercent(value) {
@@ -876,7 +877,7 @@ export function renderAnalytics(root, state) {
     : formatCompactSignedCurrency(value);
   const formatHourlyOverviewValue = (value) => analyticsHourValueMode === "percent"
     ? formatCompactSignedPercent((Number(value || 0) / analyticsHourPctBase) * 100)
-    : formatCompactSignedMagnitude(value);
+    : formatCompactSignedUsdMagnitude(value);
   const hourOverviewMarkup = hourlyTimeline.map((hour) => {
     const toneClass = hour.trades
       ? (hour.pnl >= 0 ? "is-positive" : "is-negative")
@@ -905,7 +906,7 @@ export function renderAnalytics(root, state) {
       hour: bestHour.hour,
       pnl: bestHour.pnl,
       tone: bestHour.pnl >= 0 ? "positive" : "negative",
-      label: "mejor hora",
+      label: "mejor franja",
       rowType: "leader"
     },
     ...bestWindowSupportingHours
@@ -914,14 +915,14 @@ export function renderAnalytics(root, state) {
         hour: hour.hour,
         pnl: hour.pnl,
         tone: hour.pnl >= 0 ? "positive" : "negative",
-        label: "mantiene edge",
+        label: "sostiene el edge",
         rowType: "support"
       })),
     {
       hour: weakestTimingWindow.hour,
       pnl: weakestTimingWindow.pnl,
       tone: "negative",
-      label: "franja débil",
+      label: "franja a vigilar",
       rowType: "weak"
     },
     ...(secondaryPositiveHour ? [{
@@ -940,7 +941,7 @@ export function renderAnalytics(root, state) {
     </div>
   `).join("");
   const hourInsight = `${bestWindowLabel} concentra el edge; ${formatHourLabel(weakestTimingWindow.hour)} introduce la fricción a evitar.`;
-  const shortHourDecision = `Opera ${String(bestWindow.start).padStart(2, "0")}:00–${String(bestWindow.end).padStart(2, "0")}:00. Evita ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción.`;
+  const shortHourDecision = `Concentra la operativa entre ${String(bestWindow.start).padStart(2, "0")}:00 y ${String(bestWindow.end).padStart(2, "0")}:00. Filtra ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción muy clara.`;
   const startBalance = Number(account?.model?.account?.balance || model.account?.balance || 0) - Number(model.totals?.pnl || 0);
   let runningRiskBalance = startBalance;
   let riskPeak = startBalance;
@@ -1556,16 +1557,16 @@ export function renderAnalytics(root, state) {
           <div class="analytics-hour-hero__copy">
             <div class="analytics-overview-kicker">Ventana óptima</div>
             <h3 class="analytics-overview-title">${bestWindowLabel} es donde el sistema sostiene mejor el edge temporal.</h3>
-            <p class="analytics-overview-subtitle"><span class="${bestWindow.pnl >= 0 ? "analytics-value-positive" : "analytics-value-negative"}">${formatCurrency(bestWindow.pnl)}</span> en ${bestWindow.trades} trades. Fuera de esa ventana, la calidad cae especialmente al llegar a ${formatHourLabel(weakestTimingWindow.hour)}.</p>
+            <p class="analytics-overview-subtitle"><span class="${bestWindow.pnl >= 0 ? "analytics-value-positive" : "analytics-value-negative"}">${formatCompactSignedCurrency(bestWindow.pnl)}</span> en ${formatTradeCount(bestWindow.trades)}. Fuera de esa ventana, la calidad cae especialmente al llegar a ${formatHourLabel(weakestTimingWindow.hour)}.</p>
           </div>
           <div class="analytics-hour-hero__stats">
             <div class="analytics-hour-stat">
-              <span>Mejor hora</span>
+              <span>Mejor franja</span>
               <strong>${formatHourLabel(bestHour.hour)}</strong>
               <small class="analytics-value-positive">${formatHourlyValue(bestHour.pnl)}</small>
             </div>
             <div class="analytics-hour-stat">
-              <span>Franja débil</span>
+              <span>Franja a vigilar</span>
               <strong>${formatHourLabel(weakestTimingWindow.hour)}</strong>
               <small class="analytics-value-negative">${formatHourlyValue(weakestTimingWindow.pnl)}</small>
             </div>
@@ -1579,7 +1580,7 @@ export function renderAnalytics(root, state) {
               <div class="row-sub">Lectura visual rápida de actividad, continuidad y fricción horaria.</div>
             </div>
             <div class="analytics-hour-toggle" role="tablist" aria-label="Unidad de valor para hora">
-              <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "currency" ? "is-active" : ""}" type="button" data-analytics-hour-mode="currency">€</button>
+              <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "currency" ? "is-active" : ""}" type="button" data-analytics-hour-mode="currency">$</button>
               <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "percent" ? "is-active" : ""}" type="button" data-analytics-hour-mode="percent">%</button>
             </div>
           </div>

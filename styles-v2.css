@@ -4837,7 +4837,7 @@ body[data-theme="dark"] .analytics-overview-profile {
   gap: 10px;
   align-content: start;
   align-self: start;
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 html[data-theme="dark"] .analytics-overview-profile__head,
@@ -5520,14 +5520,14 @@ body[data-theme="dark"] .analytics-distribution-metric strong {
 html[data-theme="dark"] .analytics-hour-layout,
 body[data-theme="dark"] .analytics-hour-layout {
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 
 html[data-theme="dark"] .analytics-hour-hero,
 body[data-theme="dark"] .analytics-hour-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
-  gap: 14px;
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -5590,7 +5590,7 @@ html[data-theme="dark"] .analytics-hour-timeline-card,
 body[data-theme="dark"] .analytics-hour-timeline-card {
   overflow: hidden;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 html[data-theme="dark"] .analytics-hour-toggle,
@@ -5663,7 +5663,7 @@ body[data-theme="dark"] .analytics-hour-segment.is-positive {
 
 html[data-theme="dark"] .analytics-hour-segment.is-negative,
 body[data-theme="dark"] .analytics-hour-segment.is-negative {
-  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 40%)), rgba(154, 46, 60, 0.78) calc(var(--hour-intensity) * 40%));
+  background: color-mix(in srgb, var(--layer-1-subtle) calc(100% - (var(--hour-intensity) * 32%)), rgba(163, 76, 88, 0.58) calc(var(--hour-intensity) * 32%));
 }
 
 html[data-theme="dark"] .analytics-hour-segment.is-empty,
@@ -5704,13 +5704,23 @@ html[data-theme="dark"] .analytics-hour-insight-grid,
 body[data-theme="dark"] .analytics-hour-insight-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
-  gap: 14px;
+  gap: 18px;
 }
 
 html[data-theme="dark"] .analytics-hour-copy-card,
 body[data-theme="dark"] .analytics-hour-copy-card {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .analytics-hour-copy-card .tl-section-title,
+body[data-theme="dark"] .analytics-hour-copy-card .tl-section-title {
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-hour-copy-card--decision .tl-section-title,
+body[data-theme="dark"] .analytics-hour-copy-card--decision .tl-section-title {
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-hour-insights,
@@ -5730,7 +5740,7 @@ body[data-theme="dark"] .analytics-hour-insights p {
 html[data-theme="dark"] .analytics-hour-insights p.is-lead,
 body[data-theme="dark"] .analytics-hour-insights p.is-lead {
   color: var(--text-0);
-  font-weight: 600;
+  font-weight: 550;
 }
 
 html[data-theme="dark"] .analytics-hour-copy-card--decision,
@@ -5762,6 +5772,7 @@ body[data-theme="dark"] .analytics-hour-segment.is-window-mid,
 html[data-theme="dark"] .analytics-hour-segment.is-window-end,
 body[data-theme="dark"] .analytics-hour-segment.is-window-end {
   position: relative;
+  z-index: 1;
 }
 
 html[data-theme="dark"] .analytics-hour-segment.is-window-start::after,
@@ -5772,20 +5783,25 @@ html[data-theme="dark"] .analytics-hour-segment.is-window-end::after,
 body[data-theme="dark"] .analytics-hour-segment.is-window-end::after {
   content: "";
   position: absolute;
-  inset: 2px 1px;
-  border: 1px solid rgba(255,255,255,0.24);
-  background: rgba(255,255,255,0.036);
+  top: 2px;
+  bottom: 2px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.042);
   pointer-events: none;
 }
 
 html[data-theme="dark"] .analytics-hour-segment.is-window-start::after,
 body[data-theme="dark"] .analytics-hour-segment.is-window-start::after {
+  left: 2px;
+  right: -1px;
   border-right: 0;
   border-radius: 12px 0 0 12px;
 }
 
 html[data-theme="dark"] .analytics-hour-segment.is-window-mid::after,
 body[data-theme="dark"] .analytics-hour-segment.is-window-mid::after {
+  left: -1px;
+  right: -1px;
   border-left: 0;
   border-right: 0;
   border-radius: 0;
@@ -5793,6 +5809,8 @@ body[data-theme="dark"] .analytics-hour-segment.is-window-mid::after {
 
 html[data-theme="dark"] .analytics-hour-segment.is-window-end::after,
 body[data-theme="dark"] .analytics-hour-segment.is-window-end::after {
+  left: -1px;
+  right: 2px;
   border-left: 0;
   border-radius: 0 12px 12px 0;
 }
@@ -5800,8 +5818,8 @@ body[data-theme="dark"] .analytics-hour-segment.is-window-end::after {
 html[data-theme="dark"] .analytics-hour-segment.is-worst,
 body[data-theme="dark"] .analytics-hour-segment.is-worst {
   box-shadow:
-    inset 0 -3px 0 rgba(214, 86, 102, 0.52),
-    inset 0 0 0 1px rgba(214, 86, 102, 0.08);
+    inset 0 -3px 0 rgba(199, 100, 112, 0.38),
+    inset 0 0 0 1px rgba(199, 100, 112, 0.06);
 }
 
 html[data-theme="dark"] .analytics-hour-segment.is-best,
