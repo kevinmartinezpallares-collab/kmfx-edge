@@ -15802,15 +15802,33 @@ body[data-theme="dark"] .discipline-page-stack {
   gap: 24px;
 }
 
-html[data-theme="dark"] .discipline-status,
-body[data-theme="dark"] .discipline-status {
+html[data-theme="dark"] .discipline-state,
+body[data-theme="dark"] .discipline-state {
   display: grid;
-  gap: 10px;
-  max-width: 840px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
 }
 
-html[data-theme="dark"] .discipline-status__state,
-body[data-theme="dark"] .discipline-status__state {
+html[data-theme="dark"] .discipline-state__copy,
+body[data-theme="dark"] .discipline-state__copy {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .discipline-state__label,
+body[data-theme="dark"] .discipline-state__label,
+html[data-theme="dark"] .discipline-metric-card__label,
+body[data-theme="dark"] .discipline-metric-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .discipline-state__title,
+body[data-theme="dark"] .discipline-state__title {
   margin: 0;
   font-size: 34px;
   line-height: 0.98;
@@ -15818,8 +15836,8 @@ body[data-theme="dark"] .discipline-status__state {
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .discipline-status__copy,
-body[data-theme="dark"] .discipline-status__copy {
+html[data-theme="dark"] .discipline-state__copy-text,
+body[data-theme="dark"] .discipline-state__copy-text {
   margin: 0;
   max-width: 52ch;
   font-size: 14px;
@@ -15827,22 +15845,55 @@ body[data-theme="dark"] .discipline-status__copy {
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .discipline-main-grid,
-body[data-theme="dark"] .discipline-main-grid {
+html[data-theme="dark"] .discipline-state__score,
+body[data-theme="dark"] .discipline-state__score {
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+  gap: 6px;
+  justify-items: end;
+  min-width: 128px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.018));
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+html[data-theme="dark"] .discipline-state__score span,
+body[data-theme="dark"] .discipline-state__score span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .discipline-state__score strong,
+body[data-theme="dark"] .discipline-state__score strong {
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .discipline-overview-grid,
+body[data-theme="dark"] .discipline-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
   gap: 16px;
   align-items: start;
 }
 
-html[data-theme="dark"] .discipline-pattern,
-body[data-theme="dark"] .discipline-pattern,
-html[data-theme="dark"] .discipline-recent,
-body[data-theme="dark"] .discipline-recent,
-html[data-theme="dark"] .discipline-rules,
-body[data-theme="dark"] .discipline-rules,
-html[data-theme="dark"] .discipline-errors,
-body[data-theme="dark"] .discipline-errors {
+html[data-theme="dark"] .discipline-adherence,
+body[data-theme="dark"] .discipline-adherence,
+html[data-theme="dark"] .discipline-dominant,
+body[data-theme="dark"] .discipline-dominant,
+html[data-theme="dark"] .discipline-trend,
+body[data-theme="dark"] .discipline-trend,
+html[data-theme="dark"] .discipline-violations,
+body[data-theme="dark"] .discipline-violations,
+html[data-theme="dark"] .discipline-rule-card,
+body[data-theme="dark"] .discipline-rule-card,
+html[data-theme="dark"] .discipline-insight,
+body[data-theme="dark"] .discipline-insight {
   display: grid;
   gap: 14px;
 }
@@ -15852,47 +15903,162 @@ body[data-theme="dark"] .discipline-section-header {
   margin-bottom: 0;
 }
 
-html[data-theme="dark"] .discipline-pattern__hero,
-body[data-theme="dark"] .discipline-pattern__hero {
-  display: grid;
-  gap: 8px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.018));
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-html[data-theme="dark"] .discipline-pattern__hero strong,
-body[data-theme="dark"] .discipline-pattern__hero strong {
-  font-size: 22px;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+html[data-theme="dark"] .discipline-adherence__value,
+body[data-theme="dark"] .discipline-adherence__value {
+  font-size: 44px;
+  line-height: 0.94;
+  letter-spacing: -0.05em;
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .discipline-pattern__hero p,
-body[data-theme="dark"] .discipline-pattern__hero p {
+html[data-theme="dark"] .discipline-adherence__copy,
+body[data-theme="dark"] .discipline-adherence__copy,
+html[data-theme="dark"] .discipline-dominant__copy,
+body[data-theme="dark"] .discipline-dominant__copy,
+html[data-theme="dark"] .discipline-insight p,
+body[data-theme="dark"] .discipline-insight p {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .discipline-pattern__bullets,
-body[data-theme="dark"] .discipline-pattern__bullets,
-html[data-theme="dark"] .discipline-rules__list,
-body[data-theme="dark"] .discipline-rules__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+html[data-theme="dark"] .discipline-dominant__title,
+body[data-theme="dark"] .discipline-dominant__title {
+  font-size: 24px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .discipline-trend__summary,
+body[data-theme="dark"] .discipline-trend__summary {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-html[data-theme="dark"] .discipline-pattern__bullets li,
-body[data-theme="dark"] .discipline-pattern__bullets li,
-html[data-theme="dark"] .discipline-rules__list li,
-body[data-theme="dark"] .discipline-rules__list li {
+html[data-theme="dark"] .discipline-trend__summary span,
+body[data-theme="dark"] .discipline-trend__summary span {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.035);
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.014));
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] .discipline-trend__strip,
+body[data-theme="dark"] .discipline-trend__strip {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-theme="dark"] .discipline-trend__day,
+body[data-theme="dark"] .discipline-trend__day {
+  display: grid;
+  gap: 4px;
+  padding: 10px 8px;
+  min-height: 74px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.035);
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.012));
+}
+
+html[data-theme="dark"] .discipline-trend__day.is-disciplined,
+body[data-theme="dark"] .discipline-trend__day.is-disciplined {
+  border-color: rgba(79, 185, 127, 0.18);
+}
+
+html[data-theme="dark"] .discipline-trend__day.is-broken,
+body[data-theme="dark"] .discipline-trend__day.is-broken {
+  border-color: rgba(203, 106, 129, 0.16);
+}
+
+html[data-theme="dark"] .discipline-trend__day.is-empty,
+body[data-theme="dark"] .discipline-trend__day.is-empty {
+  opacity: 0.62;
+}
+
+html[data-theme="dark"] .discipline-trend__day strong,
+body[data-theme="dark"] .discipline-trend__day strong {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .discipline-trend__day span,
+body[data-theme="dark"] .discipline-trend__day span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .discipline-detail-grid,
+body[data-theme="dark"] .discipline-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
+  gap: 16px;
+  align-items: start;
+}
+
+html[data-theme="dark"] .discipline-violations__list,
+body[data-theme="dark"] .discipline-violations__list,
+html[data-theme="dark"] .discipline-rule-card__list,
+body[data-theme="dark"] .discipline-rule-card__list,
+html[data-theme="dark"] .discipline-aside,
+body[data-theme="dark"] .discipline-aside {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .discipline-violations__item,
+body[data-theme="dark"] .discipline-violations__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.035);
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
+}
+
+html[data-theme="dark"] .discipline-violations__item.is-high,
+body[data-theme="dark"] .discipline-violations__item.is-high {
+  border-color: rgba(203, 106, 129, 0.18);
+}
+
+html[data-theme="dark"] .discipline-violations__item.is-medium,
+body[data-theme="dark"] .discipline-violations__item.is-medium {
+  border-color: rgba(255,255,255,0.05);
+}
+
+html[data-theme="dark"] .discipline-violations__item strong,
+body[data-theme="dark"] .discipline-violations__item strong {
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .discipline-violations__item span,
+body[data-theme="dark"] .discipline-violations__item span,
+html[data-theme="dark"] .discipline-insight__meta span,
+body[data-theme="dark"] .discipline-insight__meta span {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .discipline-rule-card__list,
+body[data-theme="dark"] .discipline-rule-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+html[data-theme="dark"] .discipline-rule-card__list li,
+body[data-theme="dark"] .discipline-rule-card__list li {
   position: relative;
   padding-left: 16px;
   font-size: 13px;
@@ -15900,10 +16066,8 @@ body[data-theme="dark"] .discipline-rules__list li {
   color: var(--text-1);
 }
 
-html[data-theme="dark"] .discipline-pattern__bullets li::before,
-body[data-theme="dark"] .discipline-pattern__bullets li::before,
-html[data-theme="dark"] .discipline-rules__list li::before,
-body[data-theme="dark"] .discipline-rules__list li::before {
+html[data-theme="dark"] .discipline-rule-card__list li::before,
+body[data-theme="dark"] .discipline-rule-card__list li::before {
   content: "";
   position: absolute;
   left: 0;
@@ -15914,166 +16078,67 @@ body[data-theme="dark"] .discipline-rules__list li::before {
   background: rgba(255,255,255,0.32);
 }
 
-html[data-theme="dark"] .discipline-recent__summary,
-body[data-theme="dark"] .discipline-recent__summary {
+html[data-theme="dark"] .discipline-metrics,
+body[data-theme="dark"] .discipline-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-html[data-theme="dark"] .discipline-recent__metric,
-body[data-theme="dark"] .discipline-recent__metric {
-  display: grid;
-  gap: 4px;
-  padding: 14px 15px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.014));
-  border: 1px solid rgba(255,255,255,0.035);
-}
-
-html[data-theme="dark"] .discipline-recent__metric strong,
-body[data-theme="dark"] .discipline-recent__metric strong {
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--text-0);
-}
-
-html[data-theme="dark"] .discipline-recent__metric span,
-body[data-theme="dark"] .discipline-recent__metric span {
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-recent__days,
-body[data-theme="dark"] .discipline-recent__days {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-  gap: 10px;
-}
-
-html[data-theme="dark"] .discipline-recent__day,
-body[data-theme="dark"] .discipline-recent__day {
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.035);
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.014));
-}
-
-html[data-theme="dark"] .discipline-recent__day.is-disciplined,
-body[data-theme="dark"] .discipline-recent__day.is-disciplined {
-  border-color: rgba(79, 185, 127, 0.18);
-}
-
-html[data-theme="dark"] .discipline-recent__day.is-undisciplined,
-body[data-theme="dark"] .discipline-recent__day.is-undisciplined {
-  border-color: rgba(203, 106, 129, 0.16);
-}
-
-html[data-theme="dark"] .discipline-recent__day strong,
-body[data-theme="dark"] .discipline-recent__day strong {
-  font-size: 13px;
-  line-height: 1.2;
-  color: var(--text-0);
-}
-
-html[data-theme="dark"] .discipline-recent__day span,
-body[data-theme="dark"] .discipline-recent__day span,
-html[data-theme="dark"] .discipline-recent__empty,
-body[data-theme="dark"] .discipline-recent__empty,
-html[data-theme="dark"] .discipline-errors__empty,
-body[data-theme="dark"] .discipline-errors__empty {
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-kpis,
-body[data-theme="dark"] .discipline-kpis {
-  display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-html[data-theme="dark"] .discipline-kpi,
-body[data-theme="dark"] .discipline-kpi {
+html[data-theme="dark"] .discipline-metric-card,
+body[data-theme="dark"] .discipline-metric-card {
   display: grid;
   gap: 8px;
-  min-height: 112px;
+  min-height: 108px;
 }
 
-html[data-theme="dark"] .discipline-kpi__label,
-body[data-theme="dark"] .discipline-kpi__label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-kpi__value,
-body[data-theme="dark"] .discipline-kpi__value {
+html[data-theme="dark"] .discipline-metric-card__value,
+body[data-theme="dark"] .discipline-metric-card__value {
   font-size: 30px;
   line-height: 0.96;
   letter-spacing: -0.05em;
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .discipline-kpi small,
-body[data-theme="dark"] .discipline-kpi small {
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-support-grid,
-body[data-theme="dark"] .discipline-support-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-  gap: 16px;
-  align-items: start;
-}
-
-html[data-theme="dark"] .discipline-errors__list,
-body[data-theme="dark"] .discipline-errors__list {
-  display: grid;
+html[data-theme="dark"] .discipline-insight__meta,
+body[data-theme="dark"] .discipline-insight__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
 
-html[data-theme="dark"] .discipline-errors__item,
-body[data-theme="dark"] .discipline-errors__item {
-  display: grid;
-  gap: 4px;
-  padding: 14px 15px 13px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
-  border: 1px solid rgba(255,255,255,0.035);
-}
-
-html[data-theme="dark"] .discipline-errors__item strong,
-body[data-theme="dark"] .discipline-errors__item strong {
-  font-size: 14px;
-  line-height: 1.2;
-  color: var(--text-0);
-}
-
-html[data-theme="dark"] .discipline-errors__item span,
-body[data-theme="dark"] .discipline-errors__item span {
+html[data-theme="dark"] .discipline-insight__meta strong,
+body[data-theme="dark"] .discipline-insight__meta strong {
   font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-2);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-1);
 }
 
 @media (max-width: 960px) {
-  html[data-theme="dark"] .discipline-main-grid,
-  body[data-theme="dark"] .discipline-main-grid,
-  html[data-theme="dark"] .discipline-support-grid,
-  body[data-theme="dark"] .discipline-support-grid,
-  html[data-theme="dark"] .discipline-kpis,
-  body[data-theme="dark"] .discipline-kpis {
+  html[data-theme="dark"] .discipline-state,
+  body[data-theme="dark"] .discipline-state,
+  html[data-theme="dark"] .discipline-overview-grid,
+  body[data-theme="dark"] .discipline-overview-grid,
+  html[data-theme="dark"] .discipline-detail-grid,
+  body[data-theme="dark"] .discipline-detail-grid,
+  html[data-theme="dark"] .discipline-metrics,
+  body[data-theme="dark"] .discipline-metrics,
+  html[data-theme="dark"] .discipline-trend__summary,
+  body[data-theme="dark"] .discipline-trend__summary {
     grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .discipline-trend__strip,
+  body[data-theme="dark"] .discipline-trend__strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  html[data-theme="dark"] .discipline-state__score,
+  body[data-theme="dark"] .discipline-state__score {
+    justify-items: start;
   }
 }
