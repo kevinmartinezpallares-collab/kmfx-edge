@@ -667,7 +667,7 @@ export function renderAnalytics(root, state) {
   const weakestSession = [...model.sessions].sort((a, b) => a.pnl - b.pnl)[0] || strongestSession;
   const strongestSymbol = symbolRanking[0] || { key: "—", pnl: 0, winRate: 0, trades: 0, profitFactor: 0 };
   const weakestSymbol = [...model.symbols].sort((a, b) => a.pnl - b.pnl)[0] || strongestSymbol;
-  const focusSymbols = symbolRanking.slice(0, 5);
+  const focusSymbols = symbolRanking.slice(0, 4);
   const consistencyRatio = calcConsistency(model.dayStats || []);
   const analyticsMonths = Array.isArray(model.monthlyReturns) && model.monthlyReturns.length ? expandAnalyticsMonths(model.monthlyReturns) : [buildFallbackMonthRecord()];
   const latestAnalyticsMonthKey = analyticsMonths[analyticsMonths.length - 1]?.key || buildFallbackMonthRecord().key;
@@ -766,12 +766,18 @@ export function renderAnalytics(root, state) {
     noteTail: "requiere filtro",
     noteTone: worstHour.pnl >= 0 ? "positive" : "negative"
   };
-  const sessionRowsMarkup = sessionRanking.map((session, index) => `
-    <article class="analytics-session-row analytics-session-row--elevated ${index === 0 ? "analytics-session-row--strongest" : ""}">
+  const summarySessions = [
+    { title: "Mejor sesión", note: "Sostiene el edge", session: strongestSession, toneClass: "analytics-session-row--strongest" },
+    ...(weakestSession.key !== strongestSession.key
+      ? [{ title: "Sesión a limitar", note: "Introduce fricción", session: weakestSession, toneClass: "analytics-session-row--weakest" }]
+      : [])
+  ];
+  const sessionRowsMarkup = summarySessions.map(({ title, note, session, toneClass }) => `
+    <article class="analytics-session-row analytics-session-row--elevated ${toneClass}">
       <div class="analytics-session-main">
         <div class="analytics-session-copy">
-          <div class="session-label">${index === 0 ? "Mejor sesión" : session.key}</div>
-          <div class="row-sub">${index === 0 ? session.key : badgeMarkup(sessionExecutionMeta(session), "ui-badge--compact")}</div>
+          <div class="session-label">${title}</div>
+          <div class="row-sub">${session.key} · ${note}</div>
         </div>
         <div class="analytics-session-metrics">
           <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
@@ -784,7 +790,7 @@ export function renderAnalytics(root, state) {
     <article class="analytics-symbol-row ${index === 0 ? "analytics-symbol-row--best" : index === 1 ? "analytics-symbol-row--worst" : index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
         <div class="analytics-symbol-row__copy">
-          <strong>${index === 0 ? `Mayor contribución · ${row.key}` : index === 1 ? `Menor contribución · ${row.key}` : row.key}</strong>
+          <strong>${index === 0 ? `Mayor contribución · ${row.key}` : row.key}</strong>
           <span>${index === 0 ? "Más rentable por P&L" : index === 1 ? (row.pnl >= 0 ? "Aporta menos al resultado" : "Está drenando edge") : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
         </div>
         <div class="analytics-symbol-row__meta">
@@ -825,10 +831,6 @@ export function renderAnalytics(root, state) {
       </div>
     </article>
   `).join("");
-  const quickReadItems = [
-    `${strongestSession.key} sostiene el edge principal`,
-    `${strongestSymbol.key} merece más foco`
-  ];
   const hourMap = new Map((model.hours || []).map((hour) => [Number(hour.hour), hour]));
   const hourlyTimeline = Array.from({ length: 24 }, (_, hour) => {
     const source = hourMap.get(hour);
@@ -1282,7 +1284,6 @@ export function renderAnalytics(root, state) {
             <div class="analytics-overview-copy">
               <div class="analytics-overview-kicker">Dónde está el edge</div>
               <h3 class="analytics-overview-title">Dónde insistir, qué activo reforzar y qué franja limitar.</h3>
-              <p class="analytics-overview-subtitle">${decisionEngine.strength} ${decisionEngine.secondary}</p>
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
@@ -1297,12 +1298,6 @@ export function renderAnalytics(root, state) {
                   <span>Decisión</span>
                   <strong>${decisionEngine.primary}</strong>
                   <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryDrain.value} · ${summaryDrain.noteTail}</small>
-                </div>
-                <div class="analytics-quick-read">
-                  <span class="analytics-quick-read__label">Lectura rápida</span>
-                  <ul class="analytics-quick-read__list">
-                    ${quickReadItems.map((item) => `<li>${item}</li>`).join("")}
-                  </ul>
                 </div>
               </div>
             </div>
@@ -1352,18 +1347,6 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="analytics-symbol-stack">
               ${symbolRowsMarkup}
-            </div>
-            <div class="analytics-pattern-footer">
-              <div class="analytics-pattern-footer__item">
-                <span>Mejor símbolo</span>
-                <strong>${strongestSymbol.key}</strong>
-                <small class="analytics-value-positive">${formatCurrency(strongestSymbol.pnl)}</small>
-              </div>
-              <div class="analytics-pattern-footer__item">
-                <span>Símbolo más débil</span>
-                <strong>${weakestSymbol.key}</strong>
-                <small class="analytics-value-negative">${formatCurrency(weakestSymbol.pnl)}</small>
-              </div>
             </div>
           </article>
         </div>
