@@ -33,10 +33,9 @@ function percent(value) {
 }
 
 function scoreLabel(score) {
-  if (score >= 8.5) return "A+";
-  if (score >= 7) return "A";
-  if (score >= 5.5) return "B";
-  return "C";
+  if (score >= 8) return "Alta";
+  if (score >= 6) return "Media";
+  return "Baja";
 }
 
 function sampleLabel(trades) {
@@ -55,6 +54,20 @@ function normalizeStrategy(item) {
     description: item.description || item.notes || "",
     notes: item.notes || item.description || ""
   };
+}
+
+function strategyStatusLabel(status) {
+  switch ((status || "").toLowerCase()) {
+    case "active":
+      return "Activa";
+    case "paused":
+      return "Pausada";
+    case "retired":
+      return "Descartada";
+    case "testing":
+    default:
+      return "Testing";
+  }
 }
 
 function buildSetupStats(strategies, journalEntries) {
@@ -133,7 +146,12 @@ function renderStrategyEditor({ item, form, store }) {
             </label>
             <label class="strategies-dialog__field">
               <span>Estado</span>
-              <select name="status">${["testing", "active", "paused", "retired"].map((value) => `<option value="${value}" ${form.status === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+              <select name="status">${[
+                ["testing", "Testing"],
+                ["active", "Activa"],
+                ["paused", "Pausada"],
+                ["retired", "Descartada"]
+              ].map(([value, label]) => `<option value="${value}" ${form.status === value ? "selected" : ""}>${label}</option>`).join("")}</select>
             </label>
             <label class="strategies-dialog__field">
               <span>Puntuación</span>
@@ -316,6 +334,9 @@ export function renderStrategies(root, state) {
                   <td>
                     <div class="table-primary-cell strategy-primary-cell">
                       <strong>${item.name}</strong>
+                      <div class="strategy-primary-cell__meta">
+                        <span class="strategy-status-chip strategy-status-chip--${item.status || "testing"}">${strategyStatusLabel(item.status)}</span>
+                      </div>
                       <div class="row-sub">${item.description || "Sin descripción operativa."}</div>
                     </div>
                   </td>

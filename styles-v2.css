@@ -12704,12 +12704,12 @@ body[data-theme="dark"] .strategies-table-card tbody tr:last-child td {
 
 html[data-theme="dark"] .strategies-table-card tbody tr:hover td,
 body[data-theme="dark"] .strategies-table-card tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.018) !important;
+  background: rgba(255, 255, 255, 0.012) !important;
 }
 
 html[data-theme="dark"] .strategies-table-row:hover td,
 body[data-theme="dark"] .strategies-table-row:hover td {
-  background: rgba(255, 255, 255, 0.018) !important;
+  background: rgba(255, 255, 255, 0.012) !important;
 }
 
 html[data-theme="dark"] .strategy-primary-cell,
@@ -12732,6 +12732,44 @@ html[data-theme="dark"] .strategy-primary-cell .row-sub,
 body[data-theme="dark"] .strategy-primary-cell .row-sub {
   margin-top: 0;
   max-width: 34ch;
+}
+
+html[data-theme="dark"] .strategy-primary-cell__meta,
+body[data-theme="dark"] .strategy-primary-cell__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+html[data-theme="dark"] .strategy-status-chip,
+body[data-theme="dark"] .strategy-status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-1);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .strategy-status-chip--active,
+body[data-theme="dark"] .strategy-status-chip--active {
+  color: color-mix(in srgb, var(--positive) 70%, white 30%);
+  border-color: color-mix(in srgb, var(--positive) 18%, rgba(255, 255, 255, 0.08));
+}
+
+html[data-theme="dark"] .strategy-status-chip--paused,
+body[data-theme="dark"] .strategy-status-chip--paused,
+html[data-theme="dark"] .strategy-status-chip--retired,
+body[data-theme="dark"] .strategy-status-chip--retired {
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .strategies-score-cell,
@@ -12921,23 +12959,26 @@ body[data-theme="dark"] .strategies-dialog__field textarea {
   min-height: 42px;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #141416;
-  color: var(--text-0);
-  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #141416 !important;
+  color: var(--text-0) !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .strategies-dialog__field textarea,
 body[data-theme="dark"] .strategies-dialog__field textarea {
   min-height: 108px;
   resize: vertical;
+  line-height: 1.45;
 }
 
 html[data-theme="dark"] .strategies-dialog__field input::placeholder,
 html[data-theme="dark"] .strategies-dialog__field textarea::placeholder,
 body[data-theme="dark"] .strategies-dialog__field input::placeholder,
 body[data-theme="dark"] .strategies-dialog__field textarea::placeholder {
-  color: var(--text-2);
+  color: var(--text-2) !important;
 }
 
 html[data-theme="dark"] .strategies-dialog__field input:hover,
@@ -12946,8 +12987,8 @@ html[data-theme="dark"] .strategies-dialog__field textarea:hover,
 body[data-theme="dark"] .strategies-dialog__field input:hover,
 body[data-theme="dark"] .strategies-dialog__field select:hover,
 body[data-theme="dark"] .strategies-dialog__field textarea:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #171719;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: #171719 !important;
 }
 
 html[data-theme="dark"] .strategies-dialog__field input:focus,
@@ -12956,9 +12997,9 @@ html[data-theme="dark"] .strategies-dialog__field textarea:focus,
 body[data-theme="dark"] .strategies-dialog__field input:focus,
 body[data-theme="dark"] .strategies-dialog__field select:focus,
 body[data-theme="dark"] .strategies-dialog__field textarea:focus {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: #18181b;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background: #18181b !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.045) !important;
   outline: none;
 }
 
