@@ -4502,7 +4502,7 @@ body[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature {
 html[data-theme="dark"] .analytics-overview-shell,
 body[data-theme="dark"] .analytics-overview-shell {
   display: grid;
-  gap: 24px;
+  gap: 28px;
 }
 
 html[data-theme="dark"] .analytics-page-flow,
@@ -4792,6 +4792,7 @@ body[data-theme="dark"] .analytics-overview-profile {
   gap: 10px;
   align-content: start;
   align-self: start;
+  margin-top: 12px;
 }
 
 html[data-theme="dark"] .analytics-overview-profile__head,
@@ -5254,7 +5255,7 @@ body[data-theme="dark"] .analytics-session-bar-row--positive .analytics-session-
 
 html[data-theme="dark"] .analytics-session-bar-row--negative .analytics-session-bar-row__fill,
 body[data-theme="dark"] .analytics-session-bar-row--negative .analytics-session-bar-row__fill {
-  background: rgba(220, 97, 117, 0.72);
+  background: rgba(205, 108, 120, 0.68);
 }
 
 html[data-theme="dark"] .analytics-session-bar-row__value,

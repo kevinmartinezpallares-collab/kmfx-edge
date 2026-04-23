@@ -745,14 +745,14 @@ export function renderAnalytics(root, state) {
   ].slice(0, 4);
   const topInsightCards = [
     {
-      label: "Sesión con más edge",
+      label: "Mejor sesión",
       value: strongestSession.key,
       noteLead: formatCurrency(strongestSession.pnl),
       noteTail: `WR ${formatPercent(strongestSession.winRate)}`,
       noteTone: strongestSession.pnl >= 0 ? "positive" : "negative"
     },
     {
-      label: "Símbolo más rentable",
+      label: "Mejor símbolo",
       value: strongestSymbol.key,
       noteLead: formatCurrency(strongestSymbol.pnl),
       noteTail: formatTradeCount(strongestSymbol.trades),
@@ -776,7 +776,7 @@ export function renderAnalytics(root, state) {
   );
   const sessionRowsMarkup = sessionChartRows.map((session) => {
     const pnl = Number(session.pnl || 0);
-    const widthPercent = Math.max(4, (Math.abs(pnl) / maxSessionPnlAbs) * 50);
+    const widthPercent = pnl === 0 ? 0 : Math.max(7, (Math.abs(pnl) / maxSessionPnlAbs) * 50);
     const toneClass = pnl >= 0 ? "analytics-session-bar-row--positive" : "analytics-session-bar-row--negative";
     const emphasisClass = session.key === strongestSession.key
       ? "analytics-session-bar-row--best"
