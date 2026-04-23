@@ -998,32 +998,32 @@ export function renderAnalytics(root, state) {
       ? "warning"
       : "safe";
   const riskHeroTitle = riskHeroTone === "critical"
-    ? "Control comprometido"
+    ? "Pérdida de control"
     : riskHeroTone === "warning"
-      ? "Control bajo presión"
+      ? "Control deteriorado"
       : "Control estable";
   const heroSignalTitle = lossStreak >= 4
-    ? `Racha loss ${lossStreak}`
+    ? `Racha de ${lossStreak} pérdidas`
     : inconsistencyLevel !== "stable"
-      ? "Ejecución irregular"
+      ? "Ejecución deteriorada"
       : scalingLevel !== "stable"
-        ? "Tamaño bajo presión"
+        ? "Riesgo por trade elevado"
         : overtradingLevel !== "stable"
-          ? "Frecuencia al límite"
-          : "Disciplina estable";
+          ? "Frecuencia fuera de plan"
+          : "Control en proceso";
   const heroSignalNote = lossStreak >= 4
-    ? "La racha reciente está aumentando la presión operativa y exige bajar agresividad."
+    ? "La secuencia reciente ya está afectando la siguiente decisión y exige cortar impulso."
     : inconsistencyLevel !== "stable"
-      ? "La calidad de ejecución se está deteriorando tras las últimas sesiones."
+      ? "La calidad de ejecución ya no está replicando el patrón limpio del mes."
       : scalingLevel !== "stable"
-        ? "El uso del riesgo por trade está por encima de la zona cómoda del plan."
+        ? "El tamaño por operación está por encima de la zona cómoda del plan."
         : overtradingLevel !== "stable"
-          ? "La frecuencia está invadiendo la calidad y estrecha el margen del sistema."
-          : "No hay fricciones dominantes: el control sigue viviendo en el proceso.";
+          ? "La frecuencia está invadiendo la calidad y estrechando el margen del sistema."
+          : "No hay una fricción dominante: el control sigue dentro del proceso.";
   const riskHeroContext = riskHeroTone === "critical"
-    ? "La señal dominante ya no es el drawdown, sino la presión operativa que aparece en la ejecución reciente."
+    ? "El problema principal ya no es solo el resultado: es cómo está reaccionando la ejecución ante la presión."
     : riskHeroTone === "warning"
-      ? "Todavía hay margen, pero la fricción reciente ya está comprometiendo la calidad de las decisiones."
+      ? "Todavía hay margen, pero el comportamiento reciente ya está deteriorando la calidad de las decisiones."
       : "La exposición sigue contenida y el comportamiento actual todavía sostiene el plan.";
   const riskBehaviorRows = [
     {
@@ -1065,15 +1065,15 @@ export function renderAnalytics(root, state) {
     || riskBehaviorRows.find((row) => row.tone === "warning")
     || riskBehaviorRows[0];
   const riskInsight = dominantRiskIssue.kind === "loss"
-    ? "La racha actual está deteriorando la consistencia de ejecución."
+    ? "La racha actual está empujando a operar peor, no solo a perder más."
     : dominantRiskIssue.kind === "pressure"
-      ? "La presión tras pérdidas está elevando la fricción operativa."
-      : "La ejecución reciente ya no replica el patrón limpio del mes.";
+      ? "La presión tras las pérdidas está subiendo el tamaño o la frecuencia fuera de plan."
+      : "La ejecución reciente ya no replica el patrón limpio que sí aparece en el resto del mes.";
   const riskDecision = dominantRiskIssue.kind === "loss"
-    ? `Reduce riesgo tras esta racha y corta la sesión después de 2 pérdidas.`
+    ? `Hoy: baja a ${Math.max(0.25, Math.min(currentRiskPct || 0.5, maxTradeRiskPct * 0.5)).toFixed(2)}% por trade y corta la sesión tras 2 pérdidas.`
     : dominantRiskIssue.kind === "pressure"
-      ? `Mantén ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% mientras dure la fricción y evita añadir frecuencia.`
-      : `Mantén ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y prioriza solo setups de máxima claridad hasta estabilizar la ejecución.`;
+      ? `Hoy: mantén ${Math.max(0.25, Math.min(currentRiskPct, maxTradeRiskPct * 0.75)).toFixed(2)}% y no superes ${Math.max(2, Math.round(averageTradesPerDay || 2))} trades de calidad.`
+      : `Hoy: mantén ${Math.max(0.25, currentRiskPct || 0.5).toFixed(2)}% y toma solo setups de máxima claridad hasta estabilizar la ejecución.`;
   const riskMetricCards = [
     {
       label: "Drawdown actual",
@@ -1084,25 +1084,11 @@ export function renderAnalytics(root, state) {
       noteTone: currentDrawdownPct >= 1 ? "negative" : currentDrawdownPct > 0 ? "warning" : "positive"
     },
     {
-      label: "Drawdown máximo",
-      value: formatPercent(maxDrawdownPct),
-      noteLead: `${Math.round(ddUsagePct)}%`,
-      noteTail: "del límite total consumido",
-      tone: maxDrawdownPct >= maxDrawdownLimit * 0.7 ? "negative" : "",
-      noteTone: ddUsagePct >= 70 ? "negative" : ddUsagePct >= 40 ? "warning" : "positive"
-    },
-    {
-      label: "Riesgo medio / trade",
-      value: `${currentRiskPct.toFixed(2)}%`,
-      noteLead: formatCurrency(currentRiskUsd),
-      noteTail: "expuestos por operación",
-      tone: riskPerTradeUsagePct >= 80 ? "negative" : "",
-      noteTone: riskPerTradeUsagePct >= 80 ? "negative" : riskPerTradeUsagePct >= 55 ? "warning" : "positive"
-    },
-    {
-      label: "Racha de pérdidas",
+      label: "Racha actual",
       value: `${lossStreak}`,
-      note: lossStreak >= 4 ? "La secuencia exige bajar agresividad" : "Todavía dentro de tolerancia",
+      note: lossStreak >= 4
+        ? `Presión alta · tope ${maxTradeRiskPct.toFixed(2)}% por trade`
+        : "Todavía dentro de tolerancia",
       tone: lossStreak >= 4 ? "negative" : "",
       noteTone: lossStreak >= 4 ? "negative" : lossStreak >= 2 ? "warning" : "positive"
     }
@@ -1653,8 +1639,8 @@ export function renderAnalytics(root, state) {
           <article class="tl-section-card analytics-risk-behavior">
             <div class="tl-section-header">
               <div>
-                <div class="tl-section-title">Comportamiento de control</div>
-                <div class="row-sub">Dónde empieza a romperse la disciplina operativa</div>
+                <div class="tl-section-title">Qué está rompiendo el control</div>
+                <div class="row-sub">Problema principal, causa operativa y presión actual</div>
               </div>
             </div>
             <div class="analytics-risk-behavior__list">

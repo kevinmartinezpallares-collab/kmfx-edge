@@ -6061,7 +6061,7 @@ body[data-theme="dark"] .analytics-risk-hero__signal small {
 html[data-theme="dark"] .analytics-risk-kpis,
 body[data-theme="dark"] .analytics-risk-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -6069,7 +6069,7 @@ html[data-theme="dark"] .analytics-risk-kpi,
 body[data-theme="dark"] .analytics-risk-kpi {
   display: grid;
   gap: 8px;
-  min-height: 132px;
+  min-height: 118px;
 }
 
 html[data-theme="dark"] .analytics-risk-kpi__label,
@@ -6134,7 +6134,7 @@ body[data-theme="dark"] .analytics-risk-behavior {
 html[data-theme="dark"] .analytics-risk-behavior__list,
 body[data-theme="dark"] .analytics-risk-behavior__list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row,
@@ -6145,6 +6145,8 @@ body[data-theme="dark"] .analytics-risk-behavior-row {
   padding: 14px 15px 13px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
+  border: 1px solid rgba(255,255,255,0.035);
+  opacity: 0.84;
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row.is-dominant,
@@ -6155,6 +6157,7 @@ body[data-theme="dark"] .analytics-risk-behavior-row.is-dominant {
     linear-gradient(180deg, rgba(255,255,255,0.024), rgba(255,255,255,0.01)),
     color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.02));
   border: 1px solid rgba(255,255,255,0.052);
+  opacity: 1;
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row__copy,
@@ -6219,7 +6222,7 @@ body[data-theme="dark"] .analytics-risk-behavior-row__track {
   height: 5px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.035);
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row__track span,
@@ -6227,17 +6230,17 @@ body[data-theme="dark"] .analytics-risk-behavior-row__track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.11);
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row--stable .analytics-risk-behavior-row__track span,
 body[data-theme="dark"] .analytics-risk-behavior-row--stable .analytics-risk-behavior-row__track span {
-  background: color-mix(in srgb, var(--positive) 58%, rgba(255,255,255,0.18));
+  background: color-mix(in srgb, var(--positive) 44%, rgba(255,255,255,0.16));
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row--warning .analytics-risk-behavior-row__track span,
 body[data-theme="dark"] .analytics-risk-behavior-row--warning .analytics-risk-behavior-row__track span {
-  background: color-mix(in srgb, var(--warning) 62%, rgba(255,255,255,0.18));
+  background: color-mix(in srgb, var(--warning) 48%, rgba(255,255,255,0.16));
 }
 
 html[data-theme="dark"] .analytics-risk-behavior-row--critical,
@@ -6249,7 +6252,17 @@ body[data-theme="dark"] .analytics-risk-behavior-row--critical {
 
 html[data-theme="dark"] .analytics-risk-behavior-row--critical .analytics-risk-behavior-row__track span,
 body[data-theme="dark"] .analytics-risk-behavior-row--critical .analytics-risk-behavior-row__track span {
-  background: color-mix(in srgb, var(--negative) 68%, rgba(255,255,255,0.18));
+  background: color-mix(in srgb, var(--negative) 54%, rgba(255,255,255,0.18));
+}
+
+html[data-theme="dark"] .analytics-risk-behavior-row.is-dominant .analytics-risk-behavior-row__track,
+body[data-theme="dark"] .analytics-risk-behavior-row.is-dominant .analytics-risk-behavior-row__track {
+  background: rgba(255,255,255,0.048);
+}
+
+html[data-theme="dark"] .analytics-risk-behavior-row.is-dominant .analytics-risk-behavior-row__track span,
+body[data-theme="dark"] .analytics-risk-behavior-row.is-dominant .analytics-risk-behavior-row__track span {
+  filter: none;
 }
 
 html[data-theme="dark"] .analytics-risk-side,
