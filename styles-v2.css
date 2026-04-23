@@ -15804,10 +15804,8 @@ body[data-theme="dark"] .discipline-page-stack {
 
 html[data-theme="dark"] .discipline-state,
 body[data-theme="dark"] .discipline-state {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: start;
+  display: block;
+  max-width: 760px;
 }
 
 html[data-theme="dark"] .discipline-state__copy,
@@ -15843,43 +15841,6 @@ body[data-theme="dark"] .discipline-state__copy-text {
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-state__score,
-body[data-theme="dark"] .discipline-state__score {
-  display: grid;
-  gap: 6px;
-  justify-items: end;
-  min-width: 128px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.018));
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-html[data-theme="dark"] .discipline-state__score span,
-body[data-theme="dark"] .discipline-state__score span {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .discipline-state__score strong,
-body[data-theme="dark"] .discipline-state__score strong {
-  font-size: 28px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--text-0);
-}
-
-html[data-theme="dark"] .discipline-overview-grid,
-body[data-theme="dark"] .discipline-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
-  gap: 16px;
-  align-items: start;
 }
 
 html[data-theme="dark"] .discipline-adherence,
@@ -15925,10 +15886,15 @@ body[data-theme="dark"] .discipline-insight p {
 
 html[data-theme="dark"] .discipline-dominant__title,
 body[data-theme="dark"] .discipline-dominant__title {
-  font-size: 24px;
+  font-size: 28px;
   line-height: 1.08;
   letter-spacing: -0.04em;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .discipline-trend,
+body[data-theme="dark"] .discipline-trend {
+  gap: 18px;
 }
 
 html[data-theme="dark"] .discipline-trend__summary,
@@ -15940,11 +15906,11 @@ body[data-theme="dark"] .discipline-trend__summary {
 
 html[data-theme="dark"] .discipline-trend__summary span,
 body[data-theme="dark"] .discipline-trend__summary span {
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.035);
   background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.014));
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--text-1);
 }
@@ -15953,16 +15919,17 @@ html[data-theme="dark"] .discipline-trend__strip,
 body[data-theme="dark"] .discipline-trend__strip {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .discipline-trend__day,
 body[data-theme="dark"] .discipline-trend__day {
   display: grid;
-  gap: 4px;
-  padding: 10px 8px;
-  min-height: 74px;
-  border-radius: 14px;
+  align-content: space-between;
+  gap: 10px;
+  padding: 14px 12px;
+  min-height: 98px;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.035);
   background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.012));
 }
@@ -15984,14 +15951,14 @@ body[data-theme="dark"] .discipline-trend__day.is-empty {
 
 html[data-theme="dark"] .discipline-trend__day strong,
 body[data-theme="dark"] .discipline-trend__day strong {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.2;
   color: var(--text-0);
 }
 
 html[data-theme="dark"] .discipline-trend__day span,
 body[data-theme="dark"] .discipline-trend__day span {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
   color: var(--text-2);
 }
@@ -16007,31 +15974,22 @@ body[data-theme="dark"] .discipline-detail-grid {
 html[data-theme="dark"] .discipline-violations__list,
 body[data-theme="dark"] .discipline-violations__list,
 html[data-theme="dark"] .discipline-rule-card__list,
-body[data-theme="dark"] .discipline-rule-card__list,
-html[data-theme="dark"] .discipline-aside,
-body[data-theme="dark"] .discipline-aside {
+body[data-theme="dark"] .discipline-rule-card__list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .discipline-violations__item,
 body[data-theme="dark"] .discipline-violations__item {
   display: grid;
-  gap: 4px;
-  padding: 14px 15px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.035);
-  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
+  gap: 3px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.045);
 }
 
-html[data-theme="dark"] .discipline-violations__item.is-high,
-body[data-theme="dark"] .discipline-violations__item.is-high {
-  border-color: rgba(203, 106, 129, 0.18);
-}
-
-html[data-theme="dark"] .discipline-violations__item.is-medium,
-body[data-theme="dark"] .discipline-violations__item.is-medium {
-  border-color: rgba(255,255,255,0.05);
+html[data-theme="dark"] .discipline-violations__item:last-child,
+body[data-theme="dark"] .discipline-violations__item:last-child {
+  border-bottom: 0;
 }
 
 html[data-theme="dark"] .discipline-violations__item strong,
@@ -16119,10 +16077,6 @@ body[data-theme="dark"] .discipline-insight__meta strong {
 }
 
 @media (max-width: 960px) {
-  html[data-theme="dark"] .discipline-state,
-  body[data-theme="dark"] .discipline-state,
-  html[data-theme="dark"] .discipline-overview-grid,
-  body[data-theme="dark"] .discipline-overview-grid,
   html[data-theme="dark"] .discipline-detail-grid,
   body[data-theme="dark"] .discipline-detail-grid,
   html[data-theme="dark"] .discipline-metrics,
@@ -16137,8 +16091,4 @@ body[data-theme="dark"] .discipline-insight__meta strong {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
-  html[data-theme="dark"] .discipline-state__score,
-  body[data-theme="dark"] .discipline-state__score {
-    justify-items: start;
-  }
 }

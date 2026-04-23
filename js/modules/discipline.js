@@ -106,18 +106,18 @@ function resolveDisciplineLevel(score) {
   if (score >= 75) {
     return {
       label: "Alta",
-      copy: "Basado en adherencia al plan y estabilidad reciente."
+      copy: "Buena adherencia al plan y hábitos recientes estables."
     };
   }
   if (score >= 55) {
     return {
       label: "Inestable",
-      copy: "Basado en adherencia al plan y estabilidad reciente."
+      copy: "La adherencia existe, pero todavía cambia cuando el resultado aprieta."
     };
   }
   return {
     label: "Baja",
-    copy: "Basado en adherencia al plan y estabilidad reciente."
+    copy: "El plan se rompe con frecuencia en momentos de presión."
   };
 }
 
@@ -131,7 +131,7 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   if (currentLosses >= 1 || tradesDay > 2.4) {
     violations.push({
       title: "Sobreoperación tras pérdidas",
-      impact: `Tras ${Math.max(1, currentLosses)} pérdidas, aumenta la frecuencia y baja la selección.`,
+      impact: "Sube la frecuencia cuando baja la calidad.",
       severity: currentLosses >= 2 ? "high" : "medium",
       weight: 100 + (currentLosses * 18) + (tradesDay * 8),
       pattern: "Tras 1–2 pérdidas, aumentas frecuencia y baja la calidad."
@@ -141,7 +141,7 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   if (weakestSession && strongestSession && weakestSession.key !== strongestSession.key && weakestSession.pnl < 0 && weakestSession.trades >= 2) {
     violations.push({
       title: "Operas fuera de tu ventana fuerte",
-      impact: `${weakestSession.key} drena resultado mientras ${strongestSession.key} concentra mejor contexto.`,
+      impact: `Sales de ${strongestSession.key} y baja el contexto.`,
       severity: weakestSession.pnl < strongestSession.pnl * -0.35 ? "medium" : "low",
       weight: 70 + Math.abs(weakestSession.pnl) / 50,
       pattern: `Cuando sales de ${strongestSession.key}, el rendimiento cae y la ejecución pierde contexto.`
@@ -151,7 +151,7 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   if (drawdownPct >= 3 || avgRValue < 0.3) {
     violations.push({
       title: "Subes riesgo en días negativos",
-      impact: "El margen de error se estrecha justo cuando el día se complica.",
+      impact: "El riesgo cambia cuando el día se complica.",
       severity: drawdownPct >= 5 ? "high" : "medium",
       weight: 68 + (drawdownPct * 6),
       pattern: "En días flojos, el riesgo deja de ser estable y agrava el deterioro de ejecución."
@@ -161,7 +161,7 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   if (consistency < 45) {
     violations.push({
       title: "La rutina no se sostiene",
-      impact: `${Math.round(consistency)}% de consistencia diaria no alcanza para consolidar hábito.`,
+      impact: "Cuesta repetir el mismo plan varios días.",
       severity: consistency < 35 ? "high" : "low",
       weight: 62 + (45 - consistency),
       pattern: "Repites menos el plan de lo que necesitas para convertirlo en hábito estable."
@@ -171,7 +171,7 @@ function buildViolations(model, { tradesDay, currentLosses, consistency, avgRVal
   if (!violations.length) {
     violations.push({
       title: "No aparece una violación dominante",
-      impact: "La ejecución se mantiene razonablemente estable en la muestra reciente.",
+      impact: "La muestra reciente no marca un error claro.",
       severity: "low",
       weight: 10,
       pattern: "No aparece un hábito claro que esté deteriorando la adherencia reciente."
@@ -272,33 +272,17 @@ export function renderDiscipline(root, state) {
           <strong class="discipline-state__title">${disciplineLevel.label}</strong>
           <p class="discipline-state__copy-text">${disciplineLevel.copy}</p>
         </div>
-        <div class="discipline-state__score">
-          <span>Score</span>
-          <strong>${adherenceMeta.score}/100</strong>
-        </div>
       </article>
 
-      <div class="discipline-overview-grid">
-        <article class="tl-section-card discipline-adherence">
-          <div class="tl-section-header discipline-section-header">
-            <div>
-              <div class="tl-section-title">Adherencia estimada al plan</div>
-            </div>
+      <article class="tl-section-card discipline-dominant">
+        <div class="tl-section-header discipline-section-header">
+          <div>
+            <div class="tl-section-title">Patrón dominante</div>
           </div>
-          <div class="discipline-adherence__value">${adherenceMeta.adherence}%</div>
-          <p class="discipline-adherence__copy">${adherenceMeta.brokenTradesPer10} de cada 10 trades rompen tu plan.</p>
-        </article>
-
-        <article class="tl-section-card discipline-dominant">
-          <div class="tl-section-header discipline-section-header">
-            <div>
-              <div class="tl-section-title">Patrón dominante</div>
-            </div>
-          </div>
-          <strong class="discipline-dominant__title">${dominantViolation.title}</strong>
-          <p class="discipline-dominant__copy">${dominantViolation.pattern}</p>
-        </article>
-      </div>
+        </div>
+        <strong class="discipline-dominant__title">${dominantViolation.title}</strong>
+        <p class="discipline-dominant__copy">${dominantViolation.pattern}</p>
+      </article>
 
       <article class="tl-section-card discipline-trend">
         <div class="tl-section-header discipline-section-header">
@@ -320,16 +304,26 @@ export function renderDiscipline(root, state) {
         </div>
       </article>
 
+      <article class="tl-section-card discipline-adherence">
+        <div class="tl-section-header discipline-section-header">
+          <div>
+            <div class="tl-section-title">Adherencia al plan</div>
+          </div>
+        </div>
+        <div class="discipline-adherence__value">${adherenceMeta.adherence}%</div>
+        <p class="discipline-adherence__copy">${adherenceMeta.brokenTradesPer10} de cada 10 trades rompen tu plan.</p>
+      </article>
+
       <div class="discipline-detail-grid">
         <article class="tl-section-card discipline-violations">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Violaciones del plan</div>
+              <div class="tl-section-title">Errores repetidos</div>
             </div>
           </div>
           <div class="discipline-violations__list">
             ${violations.map((violation) => `
-              <div class="discipline-violations__item is-${violation.severity}">
+              <div class="discipline-violations__item">
                 <strong>${violation.title}</strong>
                 <span>${violation.impact}</span>
               </div>
@@ -337,29 +331,27 @@ export function renderDiscipline(root, state) {
           </div>
         </article>
 
-        <div class="discipline-aside">
-          <article class="tl-section-card discipline-rule-card">
-            <div class="tl-section-header discipline-section-header">
-              <div>
-                <div class="tl-section-title">Regla de disciplina</div>
-              </div>
+        <article class="tl-section-card discipline-rule-card">
+          <div class="tl-section-header discipline-section-header">
+            <div>
+              <div class="tl-section-title">Regla de disciplina</div>
             </div>
-            <ul class="discipline-rule-card__list">
-              ${disciplineRules.map((rule) => `<li>${rule}</li>`).join("")}
-            </ul>
-          </article>
-
-          <div class="discipline-metrics">
-            <article class="tl-section-card discipline-metric-card">
-              <span class="discipline-metric-card__label">Consistencia</span>
-              <strong class="discipline-metric-card__value">${Math.round(consistency)}%</strong>
-            </article>
-            <article class="tl-section-card discipline-metric-card">
-              <span class="discipline-metric-card__label">Trades por día</span>
-              <strong class="discipline-metric-card__value">${tradesDay.toFixed(1)}</strong>
-            </article>
           </div>
-        </div>
+          <ul class="discipline-rule-card__list">
+            ${disciplineRules.map((rule) => `<li>${rule}</li>`).join("")}
+          </ul>
+        </article>
+      </div>
+
+      <div class="discipline-metrics">
+        <article class="tl-section-card discipline-metric-card">
+          <span class="discipline-metric-card__label">Consistencia</span>
+          <strong class="discipline-metric-card__value">${Math.round(consistency)}%</strong>
+        </article>
+        <article class="tl-section-card discipline-metric-card">
+          <span class="discipline-metric-card__label">Trades por día</span>
+          <strong class="discipline-metric-card__value">${tradesDay.toFixed(1)}</strong>
+        </article>
       </div>
 
       <article class="tl-section-card discipline-insight">
