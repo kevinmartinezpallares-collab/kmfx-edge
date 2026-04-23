@@ -60,17 +60,20 @@ function resolveDisciplineLevel(score) {
   if (score >= 75) {
     return {
       label: "Alto",
+      title: "Disciplina alta",
       copy: "La ejecución mantiene estructura incluso cuando sube la presión."
     };
   }
   if (score >= 55) {
     return {
       label: "Medio",
+      title: "Disciplina inestable",
       copy: "La base es aceptable, pero todavía se rompe cuando el día se complica."
     };
   }
   return {
     label: "Bajo",
+    title: "Disciplina baja",
     copy: "La operativa se está alejando del plan y necesita límites más claros."
   };
 }
@@ -180,20 +183,49 @@ export function renderDiscipline(root, state) {
   const avgRValue = avgR(model.trades);
   const patterns = buildPatterns({ model, tradesDay, currentLosses, consistency, hourly, avgRValue });
   const actions = buildActions({ tradesDay, currentLosses, avgRValue, consistency, model });
+  const dominantPattern = patterns[0];
+  const secondaryPatterns = patterns.slice(1, 3);
 
   root.innerHTML = `
     <div class="tl-page-header">
-      <div class="tl-page-title">Disciplina</div>
-      <div class="tl-page-sub">Detecta los hábitos que sostienen tu ejecución y los que empiezan a romper tu plan.</div>
+      <div class="tl-page-title">${disciplineLevel.title}</div>
+      <div class="tl-page-sub">${disciplineLevel.copy}</div>
     </div>
 
     <div class="discipline-page-stack">
-      <div class="tl-kpi-row discipline-kpi-row discipline-kpi-row--compact">
-        <article class="tl-kpi-card discipline-kpi-card discipline-kpi-card--score">
-          <div class="tl-kpi-label">Disciplina</div>
-          <div class="tl-kpi-val">${disciplineLevel.label}</div>
-          <div class="row-sub">${disciplineScore}/100 · ${disciplineLevel.copy}</div>
-        </article>
+      <article class="tl-section-card discipline-section-card">
+        <div class="tl-section-header discipline-section-header">
+          <div>
+            <div class="tl-section-title">Problema principal</div>
+            <div class="tl-section-sub">${disciplineScore}/100 · ${disciplineLevel.label}</div>
+          </div>
+        </div>
+        <div class="discipline-pattern-list discipline-pattern-list--hero">
+          <div class="discipline-pattern-item discipline-pattern-item--hero">
+            <strong>${dominantPattern.title}</strong>
+            <p>${dominantPattern.detail}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="tl-section-card discipline-section-card discipline-section-card--action">
+        <div class="tl-section-header discipline-section-header">
+          <div>
+            <div class="tl-section-title">Qué hacer ahora</div>
+            <div class="tl-section-sub">Tres límites simples para proteger la sesión y recuperar estructura.</div>
+          </div>
+        </div>
+        <div class="discipline-action-list">
+          ${actions.slice(0, 2).map((action, index) => `
+            <div class="discipline-action-item">
+              <span>${index + 1}</span>
+              <p>${action}</p>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+
+      <div class="discipline-secondary-grid">
         <article class="tl-kpi-card discipline-kpi-card">
           <div class="tl-kpi-label">Consistencia</div>
           <div class="tl-kpi-val">${Math.round(consistency)}%</div>
@@ -206,39 +238,23 @@ export function renderDiscipline(root, state) {
         </article>
       </div>
 
-      <article class="tl-section-card discipline-section-card">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Patrones de comportamiento</div>
-            <div class="tl-section-sub">Qué hábito se repite más y dónde empieza a deteriorarse la ejecución.</div>
-          </div>
-        </div>
-        <div class="discipline-pattern-list">
-          ${patterns.map((pattern) => `
-            <div class="discipline-pattern-item">
-              <strong>${pattern.title}</strong>
-              <p>${pattern.detail}</p>
+      ${secondaryPatterns.length ? `
+        <article class="tl-section-card discipline-section-card discipline-section-card--secondary">
+          <div class="tl-section-header discipline-section-header">
+            <div>
+              <div class="tl-section-title">Señales secundarias</div>
             </div>
-          `).join("")}
-        </div>
-      </article>
-
-      <article class="tl-section-card discipline-section-card discipline-section-card--action">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Qué hacer ahora</div>
-            <div class="tl-section-sub">Tres límites simples para proteger la sesión y recuperar estructura.</div>
           </div>
-        </div>
-        <div class="discipline-action-list">
-          ${actions.map((action, index) => `
-            <div class="discipline-action-item">
-              <span>${index + 1}</span>
-              <p>${action}</p>
-            </div>
-          `).join("")}
-        </div>
-      </article>
+          <div class="discipline-pattern-list discipline-pattern-list--secondary">
+            ${secondaryPatterns.map((pattern) => `
+              <div class="discipline-pattern-item discipline-pattern-item--secondary">
+                <strong>${pattern.title}</strong>
+                <p>${pattern.detail}</p>
+              </div>
+            `).join("")}
+          </div>
+        </article>
+      ` : ""}
     </div>
   `;
 }

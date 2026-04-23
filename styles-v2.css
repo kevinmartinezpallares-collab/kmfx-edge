@@ -15802,9 +15802,10 @@ body[data-theme="dark"] .discipline-page-stack {
   gap: 32px;
 }
 
-html[data-theme="dark"] .discipline-kpi-row.discipline-kpi-row--compact,
-body[data-theme="dark"] .discipline-kpi-row.discipline-kpi-row--compact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+html[data-theme="dark"] .discipline-secondary-grid,
+body[data-theme="dark"] .discipline-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -15833,6 +15834,11 @@ body[data-theme="dark"] .discipline-section-card {
   padding: 24px 24px 22px;
 }
 
+html[data-theme="dark"] .discipline-section-card--action,
+body[data-theme="dark"] .discipline-section-card--action {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
 html[data-theme="dark"] .discipline-section-header,
 body[data-theme="dark"] .discipline-section-header {
   margin-bottom: 18px;
@@ -15846,12 +15852,25 @@ body[data-theme="dark"] .discipline-action-list {
   gap: 12px;
 }
 
+html[data-theme="dark"] .discipline-pattern-list--hero,
+body[data-theme="dark"] .discipline-pattern-list--hero {
+  gap: 0;
+}
+
 html[data-theme="dark"] .discipline-pattern-item,
 body[data-theme="dark"] .discipline-pattern-item {
   padding: 14px 15px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.016);
   border: 1px solid rgba(255, 255, 255, 0.046);
+}
+
+html[data-theme="dark"] .discipline-pattern-item--hero,
+body[data-theme="dark"] .discipline-pattern-item--hero {
+  padding: 8px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 html[data-theme="dark"] .discipline-pattern-item strong,
@@ -15870,6 +15889,21 @@ body[data-theme="dark"] .discipline-pattern-item p {
   line-height: 1.5;
   color: var(--text-1);
   max-width: 64ch;
+}
+
+html[data-theme="dark"] .discipline-pattern-item--hero strong,
+body[data-theme="dark"] .discipline-pattern-item--hero strong {
+  font-size: 28px;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+html[data-theme="dark"] .discipline-pattern-item--hero p,
+body[data-theme="dark"] .discipline-pattern-item--hero p {
+  margin-top: 10px;
+  max-width: 58ch;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 html[data-theme="dark"] .discipline-action-item,
@@ -15908,8 +15942,8 @@ body[data-theme="dark"] .discipline-action-item p {
 }
 
 @media (max-width: 900px) {
-  html[data-theme="dark"] .discipline-kpi-row.discipline-kpi-row--compact,
-  body[data-theme="dark"] .discipline-kpi-row.discipline-kpi-row--compact {
+  html[data-theme="dark"] .discipline-secondary-grid,
+  body[data-theme="dark"] .discipline-secondary-grid {
     grid-template-columns: 1fr;
   }
 }
