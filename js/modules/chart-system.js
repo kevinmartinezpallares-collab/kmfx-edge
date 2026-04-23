@@ -3,6 +3,53 @@ const chartRoots = new Set();
 const rootResizeObservers = new WeakMap();
 let lifecycleHooksBound = false;
 
+/**
+ * KMFX chart system contract.
+ *
+ * The dashboard hero is intentionally excluded from this blueprint because it
+ * already follows its own closed product logic. Every other analytical surface
+ * should pick the lightest chart that answers a single question:
+ * - Operaciones: line/area for equity-like evolution, vertical bar for
+ *   distributions, diverging horizontal bar for net outcome comparisons.
+ * - Estrategias: table-first; use horizontal bar only for compact ranking or
+ *   sample/score comparison when the chart adds clarity.
+ * - Insights: horizontal/diverging bars for session and symbol comparisons,
+ *   heatmap for timing density, simple donut only for single-ratio summaries.
+ * - Future analytics: scatter only when correlation or dispersion is the
+ *   question; never as decorative support.
+ */
+export const KMFX_CHART_SYSTEM = Object.freeze({
+  principles: Object.freeze([
+    "dark-premium",
+    "one-chart-one-question",
+    "no-glow-by-default",
+    "no-glass",
+    "semantic-profit-loss",
+    "apple-like-clarity"
+  ]),
+  sectionTypes: Object.freeze({
+    operaciones: Object.freeze(["line-area", "vertical-bar", "diverging-horizontal-bar"]),
+    estrategias: Object.freeze(["horizontal-bar", "vertical-bar", "table-first"]),
+    insights: Object.freeze(["horizontal-bar", "diverging-bar", "heatmap", "simple-donut"]),
+    analyticsFuture: Object.freeze(["line-area", "horizontal-bar", "heatmap", "scatter"])
+  }),
+  tokens: Object.freeze({
+    plotBackground: "--chart-plot-bg",
+    plotBorder: "--chart-plot-border",
+    grid: "--chart-grid",
+    axisText: "--chart-axis-text",
+    axisLine: "--chart-axis-line",
+    tooltipBackground: "--chart-tooltip-bg",
+    tooltipBorder: "--chart-tooltip-border",
+    positive: "--chart-positive",
+    negative: "--chart-negative",
+    focus: "--chart-focus",
+    neutral: "--chart-neutral",
+    radius: "--chart-radius",
+    spacing: "--chart-inner-gap"
+  })
+});
+
 const CHART_COLORS_LIGHT = {
   primary: "#2f6bff",
   primaryFill: "rgba(47,107,255,0.08)",
@@ -208,19 +255,22 @@ function toneColors(tone) {
   }
   if (tone === "green") {
     return isDarkTheme
-      ? { start: getCssVar("--green"), end: "#7ef0b0" }
+      ? { start: getCssVar("--chart-positive") || getCssVar("--green") || "#30D158", end: "#7ef0b0" }
       : { start: CHART_COLORS_LIGHT.positive, end: CHART_COLORS_LIGHT.positive };
   }
   if (tone === "red") {
     return isDarkTheme
-      ? { start: getCssVar("--red"), end: "#ff8ca7" }
+      ? { start: getCssVar("--chart-negative") || getCssVar("--red") || "#FF6B5F", end: "#ff9e95" }
       : { start: CHART_COLORS_LIGHT.negative, end: CHART_COLORS_LIGHT.negative };
   }
   if (tone === "gold") {
     return { start: getCssVar("--gold"), end: "#f8dd78" };
   }
   return isDarkTheme
-    ? { start: getCssVar("--chart-blue-a"), end: getCssVar("--chart-blue-b") }
+    ? {
+        start: getCssVar("--chart-focus") || getCssVar("--chart-blue-a") || "#0A84FF",
+        end: getCssVar("--chart-blue-b") || "#6FA3FF"
+      }
     : { start: CHART_COLORS_LIGHT.primary, end: CHART_COLORS_LIGHT.primary };
 }
 
@@ -513,22 +563,26 @@ function createBarSurfaceGradient(context, area, tone, hover = false) {
 
 function solidToneColor(tone, value = null) {
   const isDarkTheme = isDarkThemeActive();
-  if (tone === "neutral" || tone === "gray" || tone === "grey") return isDarkTheme ? "#8B95A1" : "#6B7280";
-  if (tone === "red") return "#B23030";
-  if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
-  if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
-  if (value != null) return value >= 0 ? (isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive) : "#B23030";
-  return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
+  if (tone === "neutral" || tone === "gray" || tone === "grey") return isDarkTheme ? getCssVar("--chart-neutral") || "#8B95A1" : "#6B7280";
+  if (tone === "red") return isDarkTheme ? getCssVar("--chart-negative") || "#FF6B5F" : "#B23030";
+  if (tone === "green") return isDarkTheme ? getCssVar("--chart-positive") || "#30D158" : CHART_COLORS_LIGHT.positive;
+  if (tone === "blue" || tone === "violet") return isDarkTheme ? getCssVar("--chart-focus") || "#0A84FF" : CHART_COLORS_LIGHT.primary;
+  if (value != null) return value >= 0
+    ? (isDarkTheme ? getCssVar("--chart-positive") || "#30D158" : CHART_COLORS_LIGHT.positive)
+    : (isDarkTheme ? getCssVar("--chart-negative") || "#FF6B5F" : "#B23030");
+  return isDarkTheme ? getCssVar("--chart-focus") || "#0A84FF" : CHART_COLORS_LIGHT.primary;
 }
 
 function solidToneHoverColor(tone, value = null) {
   const isDarkTheme = isDarkThemeActive();
   if (tone === "neutral" || tone === "gray" || tone === "grey") return isDarkTheme ? "#A1AAB5" : "#7A828C";
-  if (tone === "red") return "#B23030";
-  if (tone === "green") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive;
-  if (tone === "blue" || tone === "violet") return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
-  if (value != null) return value >= 0 ? (isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.positive) : "#B23030";
-  return isDarkTheme ? "#B2E600" : CHART_COLORS_LIGHT.primary;
+  if (tone === "red") return isDarkTheme ? getCssVar("--chart-negative") || "#FF6B5F" : "#B23030";
+  if (tone === "green") return isDarkTheme ? getCssVar("--chart-positive") || "#30D158" : CHART_COLORS_LIGHT.positive;
+  if (tone === "blue" || tone === "violet") return isDarkTheme ? getCssVar("--chart-focus") || "#0A84FF" : CHART_COLORS_LIGHT.primary;
+  if (value != null) return value >= 0
+    ? (isDarkTheme ? getCssVar("--chart-positive") || "#30D158" : CHART_COLORS_LIGHT.positive)
+    : (isDarkTheme ? getCssVar("--chart-negative") || "#FF6B5F" : "#B23030");
+  return isDarkTheme ? getCssVar("--chart-focus") || "#0A84FF" : CHART_COLORS_LIGHT.primary;
 }
 
 function resolveBarTone(spec, point, index, value) {
@@ -1192,17 +1246,25 @@ const zeroDividerPlugin = {
   id: "kmfxZeroDivider",
   afterDatasetsDraw(chart, args, pluginOptions) {
     if (chart.config.type !== "bar" || pluginOptions === false) return;
-    const yScale = chart.scales?.y;
     const { chartArea, ctx } = chart;
-    if (!yScale || !chartArea) return;
-    const zeroY = yScale.getPixelForValue(0);
-    if (!Number.isFinite(zeroY) || zeroY < chartArea.top || zeroY > chartArea.bottom) return;
+    const horizontal = chart.options?.indexAxis === "y";
+    const scale = horizontal ? chart.scales?.x : chart.scales?.y;
+    if (!scale || !chartArea) return;
+    const zeroPixel = scale.getPixelForValue(0);
+    if (!Number.isFinite(zeroPixel)) return;
     ctx.save();
     ctx.strokeStyle = pluginOptions?.color || withAlpha(getCssVar("--border-subtle") || getCssVar("--border") || "#94A3B8", pluginOptions?.alpha ?? 0.65);
     ctx.lineWidth = pluginOptions?.lineWidth || 1;
     ctx.beginPath();
-    ctx.moveTo(chartArea.left + 4, zeroY + 0.5);
-    ctx.lineTo(chartArea.right - 4, zeroY + 0.5);
+    if (horizontal) {
+      if (zeroPixel < chartArea.left || zeroPixel > chartArea.right) return;
+      ctx.moveTo(zeroPixel + 0.5, chartArea.top + 4);
+      ctx.lineTo(zeroPixel + 0.5, chartArea.bottom - 4);
+    } else {
+      if (zeroPixel < chartArea.top || zeroPixel > chartArea.bottom) return;
+      ctx.moveTo(chartArea.left + 4, zeroPixel + 0.5);
+      ctx.lineTo(chartArea.right - 4, zeroPixel + 0.5);
+    }
     ctx.stroke();
     ctx.restore();
   }
@@ -1216,6 +1278,7 @@ const literalAxesPlugin = {
     const xScale = scales?.x;
     const yScale = scales?.y;
     if (!ctx || !chartArea || !xScale || !yScale) return;
+    const horizontal = chart.options?.indexAxis === "y";
     const axisColor = pluginOptions?.color || getCssVar("--chart-axis-line") || withAlpha(getCssVar("--border") || "#334155", 0.14);
     const lineWidth = pluginOptions?.lineWidth || 1;
     const left = Math.round(chartArea.left) + 0.5;
@@ -1227,9 +1290,16 @@ const literalAxesPlugin = {
     ctx.strokeStyle = axisColor;
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
-    ctx.moveTo(left, top);
-    ctx.lineTo(left, bottom);
-    ctx.lineTo(right, bottom);
+    if (horizontal) {
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, bottom);
+      ctx.moveTo(left, bottom);
+      ctx.lineTo(right, bottom);
+    } else {
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, bottom);
+      ctx.lineTo(right, bottom);
+    }
     ctx.stroke();
     ctx.restore();
   }
@@ -1343,6 +1413,7 @@ function createLineAreaChart(ChartLib, canvas, spec) {
 function createBarChart(ChartLib, canvas, spec) {
   const mobile = isMobileViewport();
   const { start, end } = toneColors(spec.tone || "blue");
+  const horizontal = spec.indexAxis === "y";
   const useReferencePillBars = spec.referencePillBars === true;
   const useLiteralHistogramBars = spec.literalHistogramBars === true;
   const focusIndex = spec.focusIndex ?? spec.points.reduce((best, point, index, list) => {
@@ -1422,6 +1493,12 @@ function createBarChart(ChartLib, canvas, spec) {
     },
     options: {
       ...buildBaseOptions(spec),
+      indexAxis: horizontal ? "y" : "x",
+      interaction: {
+        mode: spec.interactionMode || "nearest",
+        axis: spec.interactionAxis || (horizontal ? "y" : "x"),
+        intersect: false
+      },
       layout: {
         padding: {
           left: spec.layoutPaddingLeft ?? 0,
@@ -1431,7 +1508,7 @@ function createBarChart(ChartLib, canvas, spec) {
         }
       },
       scales: {
-        x: {
+        [horizontal ? "y" : "x"]: {
           display: spec.showXAxis ?? true,
           offset: spec.xOffset ?? true,
           border: {
@@ -1450,7 +1527,10 @@ function createBarChart(ChartLib, canvas, spec) {
             callback(value, index, ticks) {
               const point = spec.points?.[index];
               const label = this.getLabelForValue ? this.getLabelForValue(value) : `${value}`;
-              if (typeof spec.xAxisFormatter === "function") {
+              if (typeof spec.categoryAxisFormatter === "function") {
+                return spec.categoryAxisFormatter(label, index, point, ticks, this);
+              }
+              if (typeof spec.xAxisFormatter === "function" && !horizontal) {
                 return spec.xAxisFormatter(label, index, point, ticks, this);
               }
               return label;
@@ -1458,7 +1538,7 @@ function createBarChart(ChartLib, canvas, spec) {
           },
           grid: { display: false, drawBorder: false }
         },
-        y: {
+        [horizontal ? "x" : "y"]: {
           display: spec.showYAxis ?? true,
           ...computeYHeadroom(spec),
           border: {
@@ -1471,10 +1551,12 @@ function createBarChart(ChartLib, canvas, spec) {
             font: { size: spec.axisFontSize || 10, weight: spec.axisFontWeight || "500" },
             padding: spec.yTickPadding ?? 8,
             maxTicksLimit: spec.maxYTicks || (mobile ? 3 : 4),
-            callback: spec.axisFormatter || ((value) => value)
+            callback: horizontal
+              ? (spec.valueAxisFormatter || spec.axisFormatter || ((value) => value))
+              : (spec.axisFormatter || ((value) => value))
           },
           grid: {
-            display: spec.showYGrid ?? false,
+            display: horizontal ? (spec.showXGrid ?? spec.showYGrid ?? false) : (spec.showYGrid ?? false),
             color: spec.gridColor || withAlpha(getCssVar("--border") || "#334155", spec.gridAlpha ?? 0.025),
             drawBorder: false,
             borderDash: spec.yGridDash || [],
@@ -1554,7 +1636,10 @@ function createBarChart(ChartLib, canvas, spec) {
           kmfxProof: spec.proofMode === true,
           callbacks: spec.tooltipCallbacks || {
             title: (items) => items[0]?.label || "",
-            label: (context) => spec.formatter ? spec.formatter(context.parsed.y, context) : `${context.parsed.y}`
+            label: (context) => {
+              const parsedValue = horizontal ? context.parsed.x : context.parsed.y;
+              return spec.formatter ? spec.formatter(parsedValue, context) : `${parsedValue}`;
+            }
           }
         }
       }
@@ -1660,6 +1745,15 @@ export function chartCanvas(key, height = 96, className = "") {
   `;
 }
 
+export function chartEmptyState(title = "Sin datos suficientes", note = "Todavia no hay base suficiente para leer esta grafica.") {
+  return `
+    <div class="kmfx-chart-empty" role="status" aria-live="polite">
+      <div class="kmfx-chart-empty__title">${title}</div>
+      <div class="kmfx-chart-empty__note">${note}</div>
+    </div>
+  `;
+}
+
 export function sparklineSpec(key, points, options = {}) {
   return { kind: "sparkline", key, points, ...options };
 }
@@ -1670,6 +1764,30 @@ export function lineAreaSpec(key, points, options = {}) {
 
 export function barChartSpec(key, points, options = {}) {
   return { kind: "bar", key, points, ...options };
+}
+
+export function horizontalBarSpec(key, points, options = {}) {
+  return {
+    kind: "bar",
+    key,
+    points,
+    indexAxis: "y",
+    interactionAxis: "y",
+    ...options
+  };
+}
+
+export function divergingBarSpec(key, points, options = {}) {
+  return {
+    kind: "bar",
+    key,
+    points,
+    indexAxis: "y",
+    interactionAxis: "y",
+    positiveNegative: true,
+    zeroDivider: true,
+    ...options
+  };
 }
 
 export function doughnutSpec(key, value, options = {}) {

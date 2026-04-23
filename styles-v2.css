@@ -47,6 +47,21 @@
   /* CHART */
   --chart-text: rgba(255, 255, 255, 0.45);
   --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-plot-bg: #171717;
+  --chart-plot-border: rgba(255, 255, 255, 0.08);
+  --chart-axis-text: rgba(255, 255, 255, 0.46);
+  --chart-axis-line: rgba(255, 255, 255, 0.08);
+  --chart-tooltip-bg: rgba(20, 20, 22, 0.98);
+  --chart-tooltip-border: rgba(255, 255, 255, 0.09);
+  --chart-tooltip-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  --chart-positive: #30d158;
+  --chart-negative: #ff6b5f;
+  --chart-focus: #0a84ff;
+  --chart-neutral: rgba(255, 255, 255, 0.18);
+  --chart-radius: 12px;
+  --chart-inner-gap: 16px;
+  --chart-empty-bg: rgba(255, 255, 255, 0.02);
+  --chart-empty-border: rgba(255, 255, 255, 0.05);
 
   /* CONTROLS */
   --control-height: 44px;
@@ -1463,12 +1478,16 @@ html .sidebar-profile-menu-item.danger {
 }
 
 html .kmfx-chart-tooltip {
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--chart-tooltip-bg);
+  border: 1px solid var(--chart-tooltip-border);
+  box-shadow: var(--chart-tooltip-shadow);
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 html .kmfx-chart-tooltip-title {
-  color: var(--text-2);
+  color: var(--chart-axis-text);
 }
 
 html .kmfx-chart-tooltip-body {
@@ -1606,11 +1625,11 @@ html .kmfx-chart-tooltip-body {
 .kmfx-chart-shell,
 .chart-shell,
 .weekly-chart-shell {
-  background: var(--layer-2);
+  background: var(--chart-plot-bg);
   background-image: none;
-  border: 1px solid var(--border-1);
+  border: 1px solid var(--chart-plot-border);
   box-shadow: var(--shadow-chart-shell);
-  border-radius: var(--radius-card);
+  border-radius: var(--chart-radius);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -1625,6 +1644,32 @@ html .kmfx-chart-tooltip-body {
 
 .kmfx-chart-shell canvas {
   background: transparent;
+}
+
+.kmfx-chart-empty {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  justify-items: start;
+  min-height: 164px;
+  padding: 20px;
+  border-radius: var(--chart-radius);
+  border: 1px dashed var(--chart-empty-border);
+  background: var(--chart-empty-bg);
+}
+
+.kmfx-chart-empty__title {
+  color: var(--text-0);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.kmfx-chart-empty__note {
+  color: var(--text-1);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 42ch;
 }
 
 /* Account hero / premium cards */
