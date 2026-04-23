@@ -4781,7 +4781,7 @@ body[data-theme="dark"] .analytics-focus-item--positive {
 html[data-theme="dark"] .analytics-overview-profile,
 body[data-theme="dark"] .analytics-overview-profile {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: start;
   align-self: start;
 }
@@ -4816,11 +4816,15 @@ body[data-theme="dark"] .analytics-profile-highlights {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  align-items: stretch;
 }
 
 html[data-theme="dark"] .analytics-profile-row,
 body[data-theme="dark"] .analytics-profile-row {
-  padding: 10px 11px 9px;
+  display: flex;
+  align-items: center;
+  min-height: 68px;
+  padding: 10px 12px;
   border-radius: 14px;
   background: var(--layer-1-subtle);
   border: 1px solid rgba(255, 255, 255, 0.045);
@@ -4833,15 +4837,17 @@ body[data-theme="dark"] .analytics-profile-row--primary {
 
 html[data-theme="dark"] .analytics-profile-row__meta,
 body[data-theme="dark"] .analytics-profile-row__meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .analytics-profile-row__meta span,
 body[data-theme="dark"] .analytics-profile-row__meta span {
   font-size: 11px;
+  line-height: 1.25;
   color: var(--text-2);
 }
 
@@ -4850,6 +4856,7 @@ body[data-theme="dark"] .analytics-profile-row__meta strong {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1;
   color: var(--text-0);
 }
 
