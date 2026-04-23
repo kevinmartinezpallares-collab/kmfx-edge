@@ -61,20 +61,20 @@ function resolveDisciplineLevel(score) {
     return {
       label: "Alto",
       title: "Disciplina alta",
-      copy: "La ejecución mantiene estructura incluso cuando sube la presión."
+      copy: "Tu ejecución mantiene hábitos estables incluso cuando cambia el contexto."
     };
   }
   if (score >= 55) {
     return {
       label: "Medio",
       title: "Disciplina inestable",
-      copy: "La base es aceptable, pero todavía se rompe cuando el día se complica."
+      copy: "La estructura existe, pero todavía cambias hábitos cuando el día se complica."
     };
   }
   return {
     label: "Bajo",
     title: "Disciplina baja",
-    copy: "La operativa se está alejando del plan y necesita límites más claros."
+    copy: "Se repiten hábitos que te alejan del plan y erosionan la calidad de ejecución."
   };
 }
 
@@ -165,18 +165,18 @@ function buildDisciplineHeroAlerts(patterns = []) {
 
 function buildDisciplineInsight(patterns = [], consistency = 0, tradesDay = 0) {
   const dominant = patterns[0];
-  if (!dominant) return "La ejecución necesita límites simples para no degradarse bajo presión.";
+  if (!dominant) return "No aparece un patrón dominante, pero conviene seguir observando cómo cambian tus hábitos.";
   if (dominant.title === "Sobreoperación tras pérdidas") {
-    return `Cuando llega una racha negativa, la frecuencia sube antes de que vuelva la calidad.`;
+    return "Cuando aparece una racha negativa, aumenta la frecuencia antes de que vuelva el criterio.";
   }
   if (dominant.title === "Riesgo sin suficiente margen") {
-    return "La operativa está dejando entrar más riesgo del que la sesión puede absorber con consistencia.";
+    return "El tamaño del riesgo cambia más de lo que tu ejecución puede sostener con consistencia.";
   }
   if (dominant.title === "Consistencia diaria débil") {
-    return `La estructura no está siendo repetible: ${Math.round(consistency)}% de días verdes no basta para sostener confianza.`;
+    return `La estructura no está siendo repetible: ${Math.round(consistency)}% de días verdes no basta para consolidar hábito.`;
   }
   return tradesDay > 4
-    ? "La actividad se vuelve reactiva y empieza a romper el criterio de entrada."
+    ? "La actividad se vuelve reactiva y empieza a desplazar el criterio de entrada."
     : dominant.short;
 }
 
@@ -184,8 +184,11 @@ function buildDisciplineDecision(actions = [], tradesDay = 0, currentLosses = 0)
   const maxTrades = tradesDay > 3.25 ? Math.max(2, Math.min(4, Math.round(tradesDay))) : 3;
   const stopLosses = currentLosses >= 2 ? Math.max(2, currentLosses) : 2;
   return {
-    headline: `Hoy: máximo ${maxTrades} trades y sesión cerrada tras ${stopLosses} pérdidas.`,
-    detail: actions.slice(0, 2)
+    headline: `Te conviene recuperar una rutina simple: ${maxTrades} trades como tope y pausa tras ${stopLosses} pérdidas.`,
+    detail: [
+      "Usa estos límites como entrenamiento de ejecución, no como reacción al último resultado.",
+      ...actions.slice(0, 1)
+    ]
   };
 }
 
@@ -235,7 +238,7 @@ export function renderDiscipline(root, state) {
           ${heroAlerts.length ? `<div class="discipline-hero__alerts">${heroAlerts.map((alert) => `<span class="analytics-risk-engine__state analytics-risk-engine__state--neutral">${alert}</span>`).join("")}</div>` : ""}
         </div>
         <div class="discipline-hero__signal">
-          <span class="discipline-hero__signal-label">Señal dominante</span>
+          <span class="discipline-hero__signal-label">Patrón observado</span>
           <strong>${dominantPattern.title}</strong>
           <small>${dominantPattern.short || dominantPattern.detail}</small>
         </div>
@@ -258,8 +261,8 @@ export function renderDiscipline(root, state) {
         <article class="tl-section-card discipline-behavior">
           <div class="tl-section-header discipline-section-header">
             <div>
-              <div class="tl-section-title">Qué está rompiendo la disciplina</div>
-              <div class="row-sub">Problema principal y fricciones secundarias</div>
+              <div class="tl-section-title">Patrón dominante</div>
+              <div class="row-sub">Comportamiento que más se repite y hábitos asociados</div>
             </div>
           </div>
           <div class="discipline-behavior__list">
@@ -292,7 +295,7 @@ export function renderDiscipline(root, state) {
           <article class="tl-section-card discipline-copy-card discipline-copy-card--decision">
             <div class="tl-section-header discipline-section-header">
               <div>
-                <div class="tl-section-title">Decisión</div>
+                <div class="tl-section-title">Recomendación de disciplina</div>
               </div>
             </div>
             <div class="discipline-decision">
