@@ -254,7 +254,7 @@ function resolveRiskProtectionMeta({
 
   if (connectionConnected && snapshotAutoBlock) {
     return {
-      state: "Activo localmente",
+      state: "Protección activa en local",
       tone: "positive",
       rulesState: "Activas",
       actionLabel: "Gestionar protección automática",
@@ -1766,22 +1766,21 @@ export function renderAnalytics(root, state) {
               <div class="analytics-risk-decision">
                 <strong>${riskDecision}</strong>
                 <div class="analytics-risk-engine">
-                  <div class="analytics-risk-engine__meta">
-                    <span class="analytics-risk-engine__state analytics-risk-engine__state--${riskProtection.tone}">${riskProtection.state}</span>
-                    <small>${riskProtection.note}</small>
-                  </div>
-                  <div class="analytics-risk-engine__rules-header">
-                    <span>Control decide</span>
-                    <em>Reglas ${riskProtection.rulesState.toLowerCase()}</em>
-                  </div>
-                  <ul class="analytics-risk-engine__rules">
-                    ${riskProtectionRules.map((rule) => `
+                <div class="analytics-risk-engine__meta">
+                  <span class="analytics-risk-engine__state analytics-risk-engine__state--${riskProtection.tone}">${riskProtection.state}</span>
+                  <small>${riskProtection.note}</small>
+                </div>
+                <div class="analytics-risk-engine__rules-header">
+                  <span>Protección</span>
+                  <em>${riskProtection.rulesState}</em>
+                </div>
+                <ul class="analytics-risk-engine__rules">
+                  ${riskProtectionRules.map((rule) => `
                       <li>
-                        <span>${riskProtection.rulesState}</span>
                         <strong>${rule}</strong>
                       </li>
                     `).join("")}
-                  </ul>
+                </ul>
                   <div class="analytics-risk-engine__footer">
                     <small>Risk Engine ejecuta localmente solo cuando el motor está conectado y la política ha sido aplicada por el EA.</small>
                     <button class="btn-primary btn-inline analytics-risk-engine__action" type="button" data-analytics-risk-engine-action="true">${riskProtection.actionLabel}</button>

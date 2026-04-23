@@ -6401,11 +6401,11 @@ body[data-theme="dark"] .analytics-risk-engine__rules-header {
 
 html[data-theme="dark"] .analytics-risk-engine__rules-header span,
 body[data-theme="dark"] .analytics-risk-engine__rules-header span {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-1);
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] .analytics-risk-engine__rules-header em,
@@ -6427,20 +6427,11 @@ body[data-theme="dark"] .analytics-risk-engine__rules {
 html[data-theme="dark"] .analytics-risk-engine__rules li,
 body[data-theme="dark"] .analytics-risk-engine__rules li {
   display: grid;
-  gap: 3px;
-  padding: 11px 12px;
+  gap: 0;
+  padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.04);
   background: rgba(255,255,255,0.018);
-}
-
-html[data-theme="dark"] .analytics-risk-engine__rules li span,
-body[data-theme="dark"] .analytics-risk-engine__rules li span {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
 }
 
 html[data-theme="dark"] .analytics-risk-engine__rules li strong,
