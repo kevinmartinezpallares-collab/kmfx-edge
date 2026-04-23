@@ -12695,6 +12695,7 @@ body[data-theme="dark"] .strategies-table-card tbody td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
   transition: background-color 120ms ease, border-color 120ms ease;
+  background: transparent !important;
 }
 
 html[data-theme="dark"] .strategies-table-card tbody tr:last-child td,
@@ -12704,12 +12705,12 @@ body[data-theme="dark"] .strategies-table-card tbody tr:last-child td {
 
 html[data-theme="dark"] .strategies-table-card tbody tr:hover td,
 body[data-theme="dark"] .strategies-table-card tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.012) !important;
+  background: rgba(255, 255, 255, 0.008) !important;
 }
 
 html[data-theme="dark"] .strategies-table-row:hover td,
 body[data-theme="dark"] .strategies-table-row:hover td {
-  background: rgba(255, 255, 255, 0.012) !important;
+  background: rgba(255, 255, 255, 0.008) !important;
 }
 
 html[data-theme="dark"] .strategy-primary-cell,
@@ -12960,7 +12961,7 @@ body[data-theme="dark"] .strategies-dialog__field textarea {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: #141416 !important;
+  background: #131315 !important;
   color: var(--text-0) !important;
   font-family: inherit !important;
   font-size: 15px !important;
@@ -12988,7 +12989,7 @@ body[data-theme="dark"] .strategies-dialog__field input:hover,
 body[data-theme="dark"] .strategies-dialog__field select:hover,
 body[data-theme="dark"] .strategies-dialog__field textarea:hover {
   border-color: rgba(255, 255, 255, 0.12) !important;
-  background: #171719 !important;
+  background: #161618 !important;
 }
 
 html[data-theme="dark"] .strategies-dialog__field input:focus,
@@ -12998,9 +12999,26 @@ body[data-theme="dark"] .strategies-dialog__field input:focus,
 body[data-theme="dark"] .strategies-dialog__field select:focus,
 body[data-theme="dark"] .strategies-dialog__field textarea:focus {
   border-color: rgba(255, 255, 255, 0.16) !important;
-  background: #18181b !important;
+  background: #18181a !important;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.045) !important;
   outline: none;
+}
+
+html[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill,
+html[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill:hover,
+html[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill:focus,
+html[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill,
+html[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill:hover,
+html[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill:focus,
+body[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill,
+body[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill:hover,
+body[data-theme="dark"] .strategies-dialog__field input:-webkit-autofill:focus,
+body[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill,
+body[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill:hover,
+body[data-theme="dark"] .strategies-dialog__field textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-0) !important;
+  box-shadow: 0 0 0 1000px #131315 inset !important;
+  transition: background-color 99999s ease-in-out 0s;
 }
 
 html[data-theme="dark"] .strategies-dialog__footer,
