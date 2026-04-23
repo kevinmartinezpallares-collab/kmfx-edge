@@ -4565,6 +4565,13 @@ body[data-theme="dark"] .analytics-overview-hero__grid {
   align-items: start;
 }
 
+html[data-theme="dark"] .analytics-overview-primary,
+body[data-theme="dark"] .analytics-overview-primary {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
 html[data-theme="dark"] .analytics-overview-kicker,
 body[data-theme="dark"] .analytics-overview-kicker {
   font-size: 11px;
@@ -4683,7 +4690,8 @@ body[data-theme="dark"] .analytics-focus-stack {
 
 html[data-theme="dark"] .analytics-focus-stack--single,
 body[data-theme="dark"] .analytics-focus-stack--single {
-  max-width: 560px;
+  max-width: none;
+  width: 100%;
 }
 
 html[data-theme="dark"] .analytics-quick-read,
@@ -4788,6 +4796,10 @@ body[data-theme="dark"] .analytics-overview-profile {
 
 html[data-theme="dark"] .analytics-overview-profile__head,
 body[data-theme="dark"] .analytics-overview-profile__head {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 106px;
   padding: 12px 13px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.02);

@@ -1302,7 +1302,7 @@ export function renderAnalytics(root, state) {
               <h3 class="analytics-overview-title">Dónde insistir, qué activo reforzar y qué franja limitar.</h3>
             </div>
             <div class="analytics-overview-hero__grid">
-              <div>
+              <div class="analytics-overview-primary">
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
