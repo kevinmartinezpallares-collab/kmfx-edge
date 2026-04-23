@@ -38,6 +38,11 @@ function formatCompactSignedPercent(value) {
   return `${numeric < 0 ? "-" : ""}${absolute.toFixed(decimals)}%`;
 }
 
+function formatTradeCount(value) {
+  const count = Number(value || 0);
+  return `${count} trade${count === 1 ? "" : "s"}`;
+}
+
 function toLocalDayKey(dateLike) {
   const date = new Date(dateLike);
   const year = date.getFullYear();
@@ -645,7 +650,11 @@ export function renderAnalytics(root, state) {
   const averageLosingTrade = losingTrades.length
     ? Math.abs(losingTrades.reduce((sum, trade) => sum + trade.pnl, 0) / losingTrades.length)
     : 0;
-  const performanceProfile = buildPerformanceProfile(model);
+  const performanceProfile = buildPerformanceProfile(model).filter((metric) => [
+    "Disciplina",
+    "Consistencia",
+    "Gestión de riesgo"
+  ].includes(metric.label));
   const riskAlerts = computeRiskAlerts(model, account);
   const trendComparisons = computeTrendComparisons(model);
   const contextTags = analyticsRiskContext(model);
@@ -746,17 +755,17 @@ export function renderAnalytics(root, state) {
       label: "Símbolo más rentable",
       value: strongestSymbol.key,
       noteLead: formatCurrency(strongestSymbol.pnl),
-      noteTail: `${strongestSymbol.trades} trades`,
+      noteTail: formatTradeCount(strongestSymbol.trades),
       noteTone: strongestSymbol.pnl >= 0 ? "positive" : "negative"
-    },
-    {
-      label: "Punto de fuga",
-      value: `${String(worstHour.hour).padStart(2, "0")}:00`,
-      noteLead: formatCurrency(worstHour.pnl),
-      noteTail: "revisar timing",
-      noteTone: worstHour.pnl >= 0 ? "positive" : "negative"
     }
   ];
+  const summaryDrain = {
+    label: "Drena rendimiento",
+    value: `${String(worstHour.hour).padStart(2, "0")}:00`,
+    noteLead: formatCurrency(worstHour.pnl),
+    noteTail: "requiere filtro",
+    noteTone: worstHour.pnl >= 0 ? "positive" : "negative"
+  };
   const sessionRowsMarkup = sessionRanking.map((session, index) => `
     <article class="analytics-session-row analytics-session-row--elevated ${index === 0 ? "analytics-session-row--strongest" : ""}">
       <div class="analytics-session-main">
@@ -766,11 +775,8 @@ export function renderAnalytics(root, state) {
         </div>
         <div class="analytics-session-metrics">
           <strong class="${session.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(session.pnl)}</strong>
-          <span>${session.trades} trades · WR ${formatPercent(session.winRate)}</span>
+          <span>${formatTradeCount(session.trades)} · WR ${formatPercent(session.winRate)}</span>
         </div>
-      </div>
-      <div class="analytics-session-rail">
-        <div class="analytics-session-rail-fill ${session.winRate >= 50 ? "is-positive" : "is-negative"}" style="width:${Math.max(0, Math.min(session.winRate, 100))}%"></div>
       </div>
     </article>
   `).join("");
@@ -778,12 +784,12 @@ export function renderAnalytics(root, state) {
     <article class="analytics-symbol-row ${index === 0 ? "analytics-symbol-row--best" : index === 1 ? "analytics-symbol-row--worst" : index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
         <div class="analytics-symbol-row__copy">
-          <strong>${index === 0 ? `Mejor · ${row.key}` : index === 1 ? `Peor · ${row.key}` : row.key}</strong>
-          <span>${index === 0 ? "Más sólido" : index === 1 ? "Más débil" : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
+          <strong>${index === 0 ? `Mayor contribución · ${row.key}` : index === 1 ? `Menor contribución · ${row.key}` : row.key}</strong>
+          <span>${index === 0 ? "Más rentable por P&L" : index === 1 ? (row.pnl >= 0 ? "Aporta menos al resultado" : "Está drenando edge") : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
         </div>
         <div class="analytics-symbol-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
-          <span>${row.trades} trades · WR ${formatPercent(row.winRate)}</span>
+          <span>${formatTradeCount(row.trades)} · WR ${formatPercent(row.winRate)}</span>
         </div>
       </div>
       <div class="analytics-symbol-row__aux">
@@ -793,24 +799,18 @@ export function renderAnalytics(root, state) {
     </article>
   `).join("");
   const profileHighlights = performanceProfile
-    .slice()
-    .sort((a, b) => b.value - a.value)
-    .map((metric, index) => `
-      <div class="analytics-profile-row ${index < 2 ? "analytics-profile-row--primary" : ""}">
+    .map((metric) => `
+      <div class="analytics-profile-row">
         <div class="analytics-profile-row__meta">
           <span>${metric.label}</span>
           <strong>${Math.round(metric.value)}%</strong>
         </div>
-        <div class="analytics-profile-row__track">
-          <div class="analytics-profile-row__fill" style="width:${metric.value}%"></div>
-        </div>
       </div>
     `).join("");
-  const timingRanking = [...hourlyRows].sort((a, b) => b.pnl - a.pnl);
-  const timingFocusRows = timingRanking.filter((row, index, list) => (
-    index < 3 || row.hour === worstHour.hour || row.hour === bestHour.hour
-  )).filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index);
-  const timingMaxAbs = Math.max(...timingFocusRows.map((row) => Math.abs(row.pnl)), 1);
+  const timingFocusRows = [
+    bestHour,
+    worstHour
+  ].filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index);
   const timingRowsMarkup = timingFocusRows.map((row) => `
     <article class="analytics-timing-row ${row.hour === bestHour.hour ? "analytics-timing-row--best" : row.hour === worstHour.hour ? "analytics-timing-row--worst" : ""}">
       <div class="analytics-timing-row__main">
@@ -820,19 +820,14 @@ export function renderAnalytics(root, state) {
         </div>
         <div class="analytics-timing-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
-          <span>${row.trades} trades</span>
+          <span>${formatTradeCount(row.trades)}</span>
         </div>
-      </div>
-      <div class="analytics-session-rail analytics-session-rail--timing">
-        <div class="analytics-session-rail-fill ${row.pnl >= 0 ? "is-positive" : "is-negative"}" style="width:${Math.max(14, (Math.abs(row.pnl) / timingMaxAbs) * 100)}%"></div>
       </div>
     </article>
   `).join("");
   const quickReadItems = [
-    `${strongestSession.key} sostiene el edge`,
-    `${strongestSymbol.key} concentra rentabilidad`,
-    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción`,
-    `${weakestSession.key} aporta menos valor ahora`
+    `${strongestSession.key} sostiene el edge principal`,
+    `${strongestSymbol.key} merece más foco`
   ];
   const hourMap = new Map((model.hours || []).map((hour) => [Number(hour.hour), hour]));
   const hourlyTimeline = Array.from({ length: 24 }, (_, hour) => {
@@ -1268,6 +1263,16 @@ export function renderAnalytics(root, state) {
       { label: "riskScore", value: model.totals?.riskScore ?? "" },
     ],
   });
+  const edgeHealthLabel = model.totals.profitFactor >= 1.4 && model.totals.expectancy >= 0
+    ? "El edge sigue compensando"
+    : model.totals.profitFactor >= 1.1
+      ? "El edge sigue vivo, pero más frágil"
+      : "El edge está bajo presión";
+  const edgeHealthNote = model.totals.profitFactor >= 1.4 && model.totals.expectancy >= 0
+    ? `Profit factor ${model.totals.profitFactor.toFixed(2)} y expectancy ${formatCurrency(model.totals.expectancy)}.`
+    : model.totals.expectancy >= 0
+      ? `La distribución sigue positiva, pero el margen se estrecha.`
+      : `La pérdida media ya está comiendo demasiada ventaja del sistema.`;
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-overview-shell">
@@ -1276,7 +1281,8 @@ export function renderAnalytics(root, state) {
           <div class="analytics-overview-hero__grid">
             <div class="analytics-overview-copy">
               <div class="analytics-overview-kicker">Dónde está el edge</div>
-              <h3 class="analytics-overview-title">Dónde insistir, qué activo merece foco y qué patrón está drenando edge.</h3>
+              <h3 class="analytics-overview-title">Dónde insistir, qué activo reforzar y qué franja limitar.</h3>
+              <p class="analytics-overview-subtitle">${decisionEngine.strength} ${decisionEngine.secondary}</p>
               <div class="analytics-insight-grid">
                 ${topInsightCards.map((item) => `
                   <article class="analytics-insight-card">
@@ -1290,6 +1296,7 @@ export function renderAnalytics(root, state) {
                 <div class="analytics-focus-item analytics-focus-item--warn">
                   <span>Decisión</span>
                   <strong>${decisionEngine.primary}</strong>
+                  <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryDrain.value} · ${summaryDrain.noteTail}</small>
                 </div>
                 <div class="analytics-quick-read">
                   <span class="analytics-quick-read__label">Lectura rápida</span>
@@ -1376,7 +1383,7 @@ export function renderAnalytics(root, state) {
               <div class="analytics-pattern-footer__item">
                 <span>Decisión</span>
                 <strong>Refuerza ${String(bestHour.hour).padStart(2, "0")}:00 y limita ${String(worstHour.hour).padStart(2, "0")}:00</strong>
-                <small>${activeHour.trades} trades pasan por la franja más activa.</small>
+                <small>${formatTradeCount(activeHour.trades)} pasan por la franja más activa.</small>
               </div>
             </div>
           </article>
@@ -1391,18 +1398,14 @@ export function renderAnalytics(root, state) {
             <div class="analytics-winloss-card analytics-winloss-card--compact">
               <div class="analytics-winloss-summary">
                 <div class="analytics-winloss-header">
-                  <div class="analytics-winloss-total">${winningTrades.length + losingTrades.length}</div>
-                  <div class="analytics-winloss-sub">trades cerrados analizados</div>
-                </div>
-                <div class="analytics-winloss-bar" aria-hidden="true">
-                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--win" style="width:${Math.max(0, Math.min(model.totals.winRate || 0, 100))}%"></div>
-                  <div class="analytics-winloss-bar-segment analytics-winloss-bar-segment--loss" style="width:${Math.max(0, 100 - Math.max(0, Math.min(model.totals.winRate || 0, 100)))}%"></div>
+                  <div class="analytics-winloss-total">${edgeHealthLabel}</div>
+                  <div class="analytics-winloss-sub">${edgeHealthNote}</div>
                 </div>
               </div>
               <div class="analytics-distribution-metrics analytics-distribution-metrics--tight">
                 <div class="analytics-distribution-metric">
                   <span>Trades</span>
-                  <strong>${winningTrades.length + losingTrades.length}</strong>
+                  <strong>${formatTradeCount(winningTrades.length + losingTrades.length)}</strong>
                 </div>
                 <div class="analytics-distribution-metric">
                   <span>Win rate</span>

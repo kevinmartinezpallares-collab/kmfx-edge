@@ -4502,7 +4502,7 @@ body[data-theme="dark"] .analytics-panel .kmfx-chart-shell--feature {
 html[data-theme="dark"] .analytics-overview-shell,
 body[data-theme="dark"] .analytics-overview-shell {
   display: grid;
-  gap: 14px;
+  gap: 24px;
 }
 
 html[data-theme="dark"] .analytics-page-flow,
@@ -4555,7 +4555,7 @@ html[data-theme="dark"] .analytics-overview-hero__grid,
 body[data-theme="dark"] .analytics-overview-hero__grid {
   display: grid;
   grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.94fr);
-  gap: 12px;
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -4595,8 +4595,8 @@ body[data-theme="dark"] .analytics-overview-copy .risk-alert-grid {
 html[data-theme="dark"] .analytics-insight-grid,
 body[data-theme="dark"] .analytics-insight-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 12px;
 }
 
@@ -4752,6 +4752,15 @@ body[data-theme="dark"] .analytics-focus-item strong {
   color: var(--text-0);
 }
 
+html[data-theme="dark"] .analytics-focus-item small,
+body[data-theme="dark"] .analytics-focus-item small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .analytics-focus-item--warn,
 body[data-theme="dark"] .analytics-focus-item--warn {
   background:
@@ -4768,7 +4777,7 @@ body[data-theme="dark"] .analytics-focus-item--positive {
 html[data-theme="dark"] .analytics-overview-profile,
 body[data-theme="dark"] .analytics-overview-profile {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: start;
 }
 
@@ -4800,12 +4809,13 @@ body[data-theme="dark"] .analytics-overview-profile__head strong {
 html[data-theme="dark"] .analytics-profile-highlights,
 body[data-theme="dark"] .analytics-profile-highlights {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 html[data-theme="dark"] .analytics-profile-row,
 body[data-theme="dark"] .analytics-profile-row {
-  padding: 11px 12px 10px;
+  padding: 10px 11px 9px;
   border-radius: 14px;
   background: var(--layer-1-subtle);
   border: 1px solid rgba(255, 255, 255, 0.045);
@@ -4840,18 +4850,12 @@ body[data-theme="dark"] .analytics-profile-row__meta strong {
 
 html[data-theme="dark"] .analytics-profile-row__track,
 body[data-theme="dark"] .analytics-profile-row__track {
-  margin-top: 8px;
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  overflow: hidden;
+  display: none;
 }
 
 html[data-theme="dark"] .analytics-profile-row__fill,
 body[data-theme="dark"] .analytics-profile-row__fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(86, 158, 255, 0.64), rgba(126, 188, 255, 0.88));
+  display: none;
 }
 
 html[data-theme="dark"] .analytics-pattern-grid,
@@ -5156,10 +5160,8 @@ body[data-theme="dark"] .analytics-symbol-row {
 
 html[data-theme="dark"] .analytics-session-row--strongest,
 body[data-theme="dark"] .analytics-session-row--strongest {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012)),
-    var(--layer-1-subtle);
-  border-color: rgba(255, 255, 255, 0.065);
+  background: color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(255,255,255,0.02));
+  border-color: rgba(255, 255, 255, 0.058);
 }
 
 html[data-theme="dark"] .analytics-symbol-row,
@@ -5172,12 +5174,10 @@ html[data-theme="dark"] .analytics-symbol-row--best,
 body[data-theme="dark"] .analytics-symbol-row--best,
 html[data-theme="dark"] .analytics-symbol-row--worst,
 body[data-theme="dark"] .analytics-symbol-row--worst {
-  padding: 15px 16px 14px;
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012)),
-    rgba(255,255,255,0.018);
-  border-color: rgba(255, 255, 255, 0.062);
+  padding: 13px 14px 12px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--layer-1-subtle) 93%, rgba(255,255,255,0.018));
+  border-color: rgba(255, 255, 255, 0.055);
 }
 
 html[data-theme="dark"] .analytics-symbol-row__main,
@@ -5277,6 +5277,66 @@ body[data-theme="dark"] .analytics-pattern-footer__item small {
   margin-top: 5px;
   font-size: 11px;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-winloss-card--compact,
+body[data-theme="dark"] .analytics-winloss-card--compact {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .analytics-winloss-card--compact .analytics-winloss-summary,
+body[data-theme="dark"] .analytics-winloss-card--compact .analytics-winloss-summary {
+  padding: 14px 15px;
+}
+
+html[data-theme="dark"] .analytics-winloss-total,
+body[data-theme="dark"] .analytics-winloss-total {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] .analytics-winloss-sub,
+body[data-theme="dark"] .analytics-winloss-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-distribution-metrics--tight,
+body[data-theme="dark"] .analytics-distribution-metrics--tight {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-theme="dark"] .analytics-distribution-metric,
+body[data-theme="dark"] .analytics-distribution-metric {
+  padding: 11px 12px 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .analytics-distribution-metric span,
+body[data-theme="dark"] .analytics-distribution-metric span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-distribution-metric strong,
+body[data-theme="dark"] .analytics-distribution-metric strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 16px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-hour-layout,
@@ -6065,10 +6125,8 @@ html[data-theme="dark"] .analytics-timing-row--best,
 body[data-theme="dark"] .analytics-timing-row--best,
 html[data-theme="dark"] .analytics-timing-row--worst,
 body[data-theme="dark"] .analytics-timing-row--worst {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012)),
-    var(--layer-1-subtle);
-  border-color: rgba(255, 255, 255, 0.062);
+  background: color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(255,255,255,0.018));
+  border-color: rgba(255, 255, 255, 0.055);
 }
 
 html[data-theme="dark"] .analytics-timing-row__main,
