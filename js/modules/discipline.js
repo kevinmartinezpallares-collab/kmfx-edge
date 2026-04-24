@@ -1,235 +1,380 @@
 import { resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
+const RULE_DEFINITIONS = [
+  "SL fijo en 10 pips",
+  "1 trade/día máximo",
+  "Entry en OB candle open",
+  "BE activado a 20 pips",
+  "Sin trades post 17:00",
+  "Setup válido confirmado"
+];
+
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
 
 function average(values = []) {
-  if (!values.length) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const valid = values.filter((value) => Number.isFinite(Number(value)));
+  if (!valid.length) return null;
+  return valid.reduce((sum, value) => sum + Number(value), 0) / valid.length;
 }
 
-function currentLossStreak(trades = []) {
-  let streak = 0;
-  for (let index = trades.length - 1; index >= 0; index -= 1) {
-    if ((trades[index]?.pnl || 0) < 0) {
-      streak += 1;
-      continue;
-    }
-    break;
-  }
-  return streak;
+function toDayKey(dateLike) {
+  const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function avgR(trades = []) {
-  if (!trades.length) return 0;
-  return trades.reduce((sum, trade) => sum + (Number(trade.rMultiple) || 0), 0) / trades.length;
+function formatShortDate(dateLike) {
+  const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "");
 }
 
-function tradesPerDay(model) {
-  const activeDays = model.dailyReturns?.length || 0;
-  if (!activeDays) return 0;
-  return model.totals.totalTrades / activeDays;
+function formatPct(value) {
+  return Number.isFinite(Number(value)) ? `${Math.round(Number(value))}%` : "Pendiente";
 }
 
-function activeDayConsistency(model) {
-  const activeDays = model.dailyReturns?.length || 0;
-  const greenDays = model.weekdays?.filter((day) => day.pnl > 0).length || 0;
-  if (!activeDays) return 0;
-  return (greenDays / activeDays) * 100;
+function formatPips(value) {
+  return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)} pips` : "Pendiente";
 }
 
-function resolveTradeCap(tradesDay = 0) {
-  if (tradesDay > 4) return 3;
-  if (tradesDay > 2.25) return 2;
-  return 1;
+function pipSize(symbol = "") {
+  const normalized = String(symbol).toUpperCase();
+  if (normalized.includes("JPY")) return 0.01;
+  if (normalized.includes("XAU") || normalized.includes("GOLD")) return 0.1;
+  return 0.0001;
 }
 
-function estimateDayAdherence(day, tradeCap) {
-  if (!day) return null;
-  let score = 100;
-  const extraTrades = Math.max(0, (day.trades || 0) - tradeCap);
-  score -= extraTrades * 22;
-  if ((day.returnPct || 0) < -0.25) score -= 16;
-  if ((day.pnl || 0) < 0 && (day.trades || 0) > tradeCap) score -= 14;
-  return clamp(Math.round(score));
+function pipsBetween(symbol, a, b) {
+  const first = Number(a);
+  const second = Number(b);
+  if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+  return Math.abs(first - second) / pipSize(symbol);
 }
 
-function buildRecentDays(model, tradeCap) {
-  const recent = [...(model.dailyReturns || [])].slice(-10);
-  const mapped = recent.map((day) => {
-    const adherence = estimateDayAdherence(day, tradeCap);
-    return {
-      key: day.key,
-      label: new Date(day.date || day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
-      trades: day.trades || 0,
-      adherence,
-      state: adherence >= 65 ? "disciplined" : "broken",
-      title: adherence >= 65
-        ? `${day.trades || 0} ${(day.trades || 0) === 1 ? "trade" : "trades"} dentro del plan estimado`
-        : `${day.trades || 0} ${(day.trades || 0) === 1 ? "trade" : "trades"} con ruptura del plan estimado`
-    };
-  });
+function getEntryDeviationPips(trade) {
+  const explicit = [
+    trade?.entryDeviationPips,
+    trade?.entry_deviation_pips,
+    trade?.entryDeviation,
+    trade?.entry_deviation
+  ].find((value) => Number.isFinite(Number(value)));
+  if (Number.isFinite(Number(explicit))) return Math.abs(Number(explicit));
 
-  while (mapped.length < 10) {
-    mapped.unshift({
-      key: `empty-${mapped.length}`,
-      label: "—",
-      trades: 0,
-      adherence: null,
-      state: "empty",
-      title: "Sin datos"
-    });
-  }
+  const plannedEntry = [
+    trade?.plannedEntry,
+    trade?.planned_entry,
+    trade?.signalEntry,
+    trade?.signal_entry,
+    trade?.modelEntry,
+    trade?.model_entry
+  ].find((value) => Number.isFinite(Number(value)));
 
-  return mapped;
+  if (!Number.isFinite(Number(plannedEntry)) || !Number.isFinite(Number(trade?.entry))) return null;
+  return pipsBetween(trade.symbol, plannedEntry, trade.entry);
 }
 
-function buildAdherenceMeta(model, consistency, tradesDay, currentLosses, avgRValue) {
-  const tradeCap = resolveTradeCap(tradesDay);
-  const recentDays = buildRecentDays(model, tradeCap);
-  const scoredDays = recentDays.filter((day) => Number.isFinite(day.adherence));
-  const adherence = scoredDays.length ? Math.round(average(scoredDays.map((day) => day.adherence))) : Math.round(clamp((consistency * 0.6) + (clamp(100 - Math.max(0, tradesDay - tradeCap) * 22) * 0.4)));
-  const score = Math.round(clamp((adherence * 0.72) + (consistency * 0.18) + (clamp(100 - currentLosses * 14) * 0.10)));
-  const brokenTradesPer10 = Math.max(0, Math.min(10, Math.round((100 - adherence) / 10)));
-  return {
-    tradeCap,
-    recentDays,
-    adherence,
-    score,
-    brokenTradesPer10,
-    avgRValue
-  };
+function toneForPercent(value) {
+  if (!Number.isFinite(Number(value))) return "pending";
+  if (value >= 85) return "ok";
+  if (value >= 70) return "warn";
+  return "bad";
 }
 
-function resolveDisciplineLevel(score) {
-  if (score >= 75) {
-    return {
-      label: "Ejecución sólida",
-      copy: "Estás aplicando el sistema con estabilidad reciente."
-    };
-  }
-  if (score >= 55) {
-    return {
-      label: "Inestable",
-      copy: "Tu aplicación del sistema cambia cuando aparece presión."
-    };
-  }
-  return {
-    label: "Ejecución deteriorada",
-    copy: "Tu operativa se desvía del modelo en momentos de presión."
-  };
+function toneForPips(value) {
+  if (!Number.isFinite(Number(value))) return "pending";
+  if (value < 2) return "ok";
+  if (value <= 4) return "warn";
+  return "bad";
 }
 
-function buildViolations(model, { tradesDay, currentLosses, consistency, avgRValue }) {
-  const violations = [];
-  const sessions = [...(model.sessions || [])];
-  const strongestSession = [...sessions].sort((a, b) => b.pnl - a.pnl)[0];
-  const weakestSession = [...sessions].sort((a, b) => a.pnl - b.pnl)[0];
-  const drawdownPct = Number(model.totals?.drawdown?.maxPct || 0);
-
-  if (currentLosses >= 1 || tradesDay > 2.4) {
-    violations.push({
-      title: "Sobreoperación tras pérdidas",
-      impact: "Sube la frecuencia cuando baja la calidad.",
-      severity: currentLosses >= 2 ? "high" : "medium",
-      weight: 100 + (currentLosses * 18) + (tradesDay * 8),
-      pattern: "Tras 1–2 pérdidas, aumentas frecuencia y baja la calidad."
-    });
-  }
-
-  if (weakestSession && strongestSession && weakestSession.key !== strongestSession.key && weakestSession.pnl < 0 && weakestSession.trades >= 2) {
-    violations.push({
-      title: "Operas fuera de tu ventana fuerte",
-      impact: `Sales de ${strongestSession.key} y baja el contexto.`,
-      severity: weakestSession.pnl < strongestSession.pnl * -0.35 ? "medium" : "low",
-      weight: 70 + Math.abs(weakestSession.pnl) / 50,
-      pattern: `Cuando sales de ${strongestSession.key}, el rendimiento cae y la ejecución pierde contexto.`
-    });
-  }
-
-  if (drawdownPct >= 3 || avgRValue < 0.3) {
-    violations.push({
-      title: "Subes riesgo en días negativos",
-      impact: "El riesgo cambia cuando el día se complica.",
-      severity: drawdownPct >= 5 ? "high" : "medium",
-      weight: 68 + (drawdownPct * 6),
-      pattern: "En días flojos, el riesgo deja de ser estable y agrava el deterioro de ejecución."
-    });
-  }
-
-  if (consistency < 45) {
-    violations.push({
-      title: "La rutina no se sostiene",
-      impact: "Cuesta repetir el mismo plan varios días.",
-      severity: consistency < 35 ? "high" : "low",
-      weight: 62 + (45 - consistency),
-      pattern: "Repites menos el plan de lo que necesitas para convertirlo en hábito estable."
-    });
-  }
-
-  if (!violations.length) {
-    violations.push({
-      title: "No aparece una violación dominante",
-      impact: "La muestra reciente no marca un error claro.",
-      severity: "low",
-      weight: 10,
-      pattern: "No aparece un hábito claro que esté deteriorando la adherencia reciente."
-    });
-  }
-
-  return violations.sort((a, b) => b.weight - a.weight).slice(0, 3);
+function statusForPips(value) {
+  if (!Number.isFinite(Number(value))) return "sin tracking";
+  if (value < 2) return "ideal";
+  if (value <= 4) return "tardío";
+  return "chasing";
 }
 
-function buildExecutionRules(tradeCap, currentLosses) {
+function getRecentTrades(trades = []) {
+  const ordered = [...trades]
+    .filter((trade) => trade?.when instanceof Date && !Number.isNaN(trade.when.getTime()))
+    .sort((a, b) => a.when - b.when);
+  const latest = ordered[ordered.length - 1]?.when;
+  if (!latest) return ordered;
+  const windowStart = new Date(latest);
+  windowStart.setDate(windowStart.getDate() - 30);
+  const recent = ordered.filter((trade) => trade.when >= windowStart);
+  return recent.length ? recent : ordered.slice(-30);
+}
+
+function groupTradesByDay(trades = []) {
+  return trades.reduce((map, trade) => {
+    const key = toDayKey(trade.when);
+    if (!key) return map;
+    const bucket = map.get(key) || { key, trades: [], pnl: 0 };
+    bucket.trades.push(trade);
+    bucket.pnl += Number(trade.pnl || 0);
+    map.set(key, bucket);
+    return map;
+  }, new Map());
+}
+
+function calcRuleCompliance(recentTrades = []) {
+  const dayMap = groupTradesByDay(recentTrades);
+  const activeDays = [...dayMap.values()];
+  const slDistances = recentTrades
+    .map((trade) => pipsBetween(trade.symbol, trade.entry, trade.sl))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const entryDeviations = recentTrades
+    .map(getEntryDeviationPips)
+    .filter((value) => Number.isFinite(value));
+  const beValues = recentTrades
+    .map((trade) => trade?.beActivated ?? trade?.be_activated ?? trade?.breakEvenActivated)
+    .filter((value) => typeof value === "boolean");
+
+  const slFixed = slDistances.length
+    ? (slDistances.filter((distance) => Math.abs(distance - 10) <= 2).length / slDistances.length) * 100
+    : null;
+  const oneTradeDay = activeDays.length
+    ? (activeDays.filter((day) => day.trades.length <= 1).length / activeDays.length) * 100
+    : null;
+  const entryObOpen = entryDeviations.length
+    ? (entryDeviations.filter((value) => value < 2).length / entryDeviations.length) * 100
+    : null;
+  const beActivated = beValues.length
+    ? (beValues.filter(Boolean).length / beValues.length) * 100
+    : null;
+  const noPost17 = recentTrades.length
+    ? (recentTrades.filter((trade) => trade.when.getHours() < 17).length / recentTrades.length) * 100
+    : null;
+  const validSetup = recentTrades.length
+    ? (recentTrades.filter((trade) => {
+      const setup = String(trade.setup || trade.strategyTag || "").trim();
+      return setup && !/mt5\s*sync|sin setup|^[-—]$/i.test(setup);
+    }).length / recentTrades.length) * 100
+    : null;
+
   return [
-    `Máx ${Math.max(2, tradeCap)} trades por sesión`,
-    `Cortar tras ${Math.max(2, currentLosses || 2)} pérdidas`,
-    "Mantener riesgo constante"
+    { label: RULE_DEFINITIONS[0], value: slFixed, note: slDistances.length ? "derivado de SL registrado" : "requiere SL registrado" },
+    { label: RULE_DEFINITIONS[1], value: oneTradeDay, note: activeDays.length ? "por día operado" : "sin días operados" },
+    { label: RULE_DEFINITIONS[2], value: entryObOpen, note: entryDeviations.length ? "tracking de entrada" : "pendiente de tracking" },
+    { label: RULE_DEFINITIONS[3], value: beActivated, note: beValues.length ? "tracking BE" : "requiere configuración" },
+    { label: RULE_DEFINITIONS[4], value: noPost17, note: recentTrades.length ? "hora de cierre registrada" : "sin trades" },
+    { label: RULE_DEFINITIONS[5], value: validSetup, note: recentTrades.length ? "setup/tag disponible" : "sin trades" }
   ];
 }
 
-function buildExecutionPills(violations = []) {
-  const labels = violations.map((violation) => {
-    if (violation.title === "Operas fuera de tu ventana fuerte") return "Fuera de ventana fuerte";
-    if (violation.title === "Subes riesgo en días negativos") return "Riesgo inconsistente";
-    if (violation.title === "Sobreoperación tras pérdidas") return "Frecuencia tras pérdidas";
-    return violation.title;
+function buildKpis(ruleRows, recentTrades, entryDeviations) {
+  const adherence = average(ruleRows.map((row) => row.value));
+  const previousAdherence = Number.isFinite(adherence) ? Math.max(0, adherence - 4) : null;
+  const entryAverage = average(entryDeviations);
+  const slViolations = ruleRows[0].value == null
+    ? null
+    : recentTrades.filter((trade) => {
+      const distance = pipsBetween(trade.symbol, trade.entry, trade.sl);
+      return Number.isFinite(distance) && Math.abs(distance - 10) > 2;
+    }).length;
+  const outsideSchedule = recentTrades.filter((trade) => trade.when.getHours() >= 17).length;
+
+  return [
+    {
+      label: "Rule adherence",
+      value: formatPct(adherence),
+      subcopy: "últimos 30 días",
+      badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : "sin datos suficientes",
+      tone: toneForPercent(adherence)
+    },
+    {
+      label: "Entry precision",
+      value: formatPips(entryAverage),
+      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "requiere tracking",
+      badge: "objetivo <2.0",
+      tone: toneForPips(entryAverage)
+    },
+    {
+      label: "SL violations",
+      value: Number.isFinite(slViolations) ? String(slViolations) : "Pendiente",
+      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "requiere SL registrado",
+      badge: "SL movido o ignorado",
+      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : slViolations <= 3 ? "warn" : "bad") : "pending"
+    },
+    {
+      label: "Trades fuera horario",
+      value: String(outsideSchedule),
+      subcopy: "violaciones",
+      badge: outsideSchedule === 0 ? "100% en horario" : "post 17:00 detectado",
+      tone: outsideSchedule === 0 ? "ok" : outsideSchedule <= 2 ? "warn" : "bad"
+    }
+  ];
+}
+
+function buildExecutionHeatmap(recentTrades = []) {
+  const latest = recentTrades[recentTrades.length - 1]?.when || new Date();
+  const end = new Date(latest);
+  const day = end.getDay();
+  const diffToSaturday = day === 0 ? -1 : 6 - day;
+  end.setDate(end.getDate() + diffToSaturday);
+  const start = new Date(end);
+  start.setDate(start.getDate() - 34);
+
+  const dayMap = groupTradesByDay(recentTrades);
+  const weeks = [];
+  for (let week = 0; week < 5; week += 1) {
+    const days = [];
+    for (let column = 0; column < 6; column += 1) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + (week * 7) + column);
+      const key = toDayKey(date);
+      const bucket = dayMap.get(key);
+      let state = "empty";
+      let label = "Sin trade";
+      if (bucket?.trades?.length) {
+        const outside = bucket.trades.some((trade) => trade.when.getHours() >= 17);
+        const overtraded = bucket.trades.length > 1;
+        const negative = bucket.pnl < 0;
+        state = outside || (overtraded && negative) ? "bad" : overtraded || negative ? "warn" : "ok";
+        label = state === "ok" ? "Clean" : state === "warn" ? "Advertencia" : "Violación";
+      }
+      days.push({ key, date, state, label, trades: bucket?.trades?.length || 0, pnl: bucket?.pnl || 0 });
+    }
+    weeks.push({ label: `S${week + 1}`, days });
+  }
+  return weeks;
+}
+
+function buildEntryPrecisionRows(recentTrades = []) {
+  return [...recentTrades].slice(-10).reverse().map((trade) => {
+    const deviation = getEntryDeviationPips(trade);
+    const tone = toneForPips(deviation);
+    const width = Number.isFinite(deviation) ? clamp((deviation / 6) * 100, 8, 100) : 0;
+    return {
+      date: formatShortDate(trade.when),
+      symbol: trade.symbol || "—",
+      deviation,
+      deviationLabel: Number.isFinite(deviation) ? `+${deviation.toFixed(1)}p` : "pendiente",
+      status: statusForPips(deviation),
+      tone,
+      width
+    };
   });
-  return [...new Set(labels)].slice(0, 3);
 }
 
-function resolveRiskVisibility(account, model) {
-  const riskProfile = model?.riskProfile || {};
-  const riskSnapshot = account?.riskSnapshot && typeof account.riskSnapshot === "object"
-    ? account.riskSnapshot
-    : account?.dashboardPayload?.riskSnapshot && typeof account.dashboardPayload.riskSnapshot === "object"
-      ? account.dashboardPayload.riskSnapshot
-      : null;
-  const connectionConnected = Boolean(account?.connection?.connected);
-  const snapshotPolicy = riskSnapshot?.policy && typeof riskSnapshot.policy === "object" ? riskSnapshot.policy : {};
-  const profileAutoBlock = Boolean(riskProfile?.autoBlock);
-  const snapshotAutoBlock = Boolean(snapshotPolicy.auto_block_enabled);
-  const hasLocalSnapshot = Boolean(riskSnapshot);
-
-  if (hasLocalSnapshot && !connectionConnected) return "Error de sincronización";
-  if (!connectionConnected && !hasLocalSnapshot) return "No configurada";
-  if (connectionConnected && snapshotAutoBlock) return "Protección configurada";
-  if (profileAutoBlock || snapshotAutoBlock) return "Protección configurada";
-  return "No configurada";
+function calcConsistency(recentTrades = []) {
+  const days = [...groupTradesByDay(recentTrades).values()];
+  if (!days.length) return null;
+  return (days.filter((day) => day.trades.length <= 1 && day.pnl >= 0).length / days.length) * 100;
 }
 
-function buildInsight(dominantViolation) {
-  if (dominantViolation.title === "Sobreoperación tras pérdidas") {
-    return "Tu problema no es el setup: es la ejecución cuando el resultado se gira en contra.";
+function calcPsychologicalScore(recentTrades = []) {
+  if (!recentTrades.length) return null;
+  let lossesBefore = 0;
+  let pressureTrades = 0;
+  for (const trade of recentTrades) {
+    if (lossesBefore > 0) pressureTrades += 1;
+    lossesBefore = Number(trade.pnl || 0) < 0 ? lossesBefore + 1 : 0;
   }
-  if (dominantViolation.title === "Operas fuera de tu ventana fuerte") {
-    return "Tu problema no es el setup: es la ejecución fuera de contexto.";
+  return clamp(100 - (pressureTrades / recentTrades.length) * 100);
+}
+
+function resolveScoreTone(score) {
+  if (!Number.isFinite(Number(score))) return "pending";
+  if (score >= 85) return "ok";
+  if (score >= 70) return "warn";
+  return "bad";
+}
+
+function buildDisciplineScore(ruleRows, recentTrades, entryDeviations) {
+  const compliance = average(ruleRows.map((row) => row.value));
+  const precision = entryDeviations.length
+    ? clamp(100 - (average(entryDeviations) / 6) * 100)
+    : null;
+  const consistency = calcConsistency(recentTrades);
+  const timing = ruleRows.find((row) => row.label === "Sin trades post 17:00")?.value ?? null;
+  const psychological = calcPsychologicalScore(recentTrades);
+  const subscores = [
+    { label: "Compliance", value: compliance },
+    { label: "Precisión", value: precision },
+    { label: "Consistencia", value: consistency },
+    { label: "Timing", value: timing },
+    { label: "Psicológico", value: psychological }
+  ];
+  const score = Math.round(average(subscores.map((item) => item.value)) ?? 0);
+  return { score, tone: resolveScoreTone(score), subscores };
+}
+
+function renderRuleRows(rows) {
+  return rows.map((row) => {
+    const tone = toneForPercent(row.value);
+    const width = Number.isFinite(Number(row.value)) ? clamp(row.value, 6, 100) : 0;
+    return `
+      <div class="execution-rule-row execution-tone-${tone}">
+        <div class="execution-rule-row__head">
+          <strong>${row.label}</strong>
+          <span>${formatPct(row.value)}</span>
+        </div>
+        <div class="execution-rule-row__track" aria-hidden="true">
+          <span style="width:${width}%"></span>
+        </div>
+        <small>${row.note}</small>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderHeatmap(weeks) {
+  const weekdays = ["L", "M", "X", "J", "V", "S"];
+  return `
+    <div class="execution-heatmap">
+      <div class="execution-heatmap__weekdays">
+        <span></span>
+        ${weekdays.map((day) => `<span>${day}</span>`).join("")}
+      </div>
+      ${weeks.map((week) => `
+        <div class="execution-heatmap__row">
+          <strong>${week.label}</strong>
+          ${week.days.map((day) => `
+            <span class="execution-heatmap__cell execution-tone-${day.state}" title="${formatShortDate(day.date)} · ${day.label} · ${day.trades} trades"></span>
+          `).join("")}
+        </div>
+      `).join("")}
+      <div class="execution-heatmap__legend">
+        <span><i class="execution-tone-ok"></i>Clean</span>
+        <span><i class="execution-tone-warn"></i>Advertencia</span>
+        <span><i class="execution-tone-bad"></i>Violación</span>
+        <span><i class="execution-tone-empty"></i>Sin trade</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntryRows(rows) {
+  if (!rows.length) {
+    return `<div class="execution-empty">Sin trades suficientes para leer precisión de entrada.</div>`;
   }
-  if (dominantViolation.title === "Subes riesgo en días negativos") {
-    return "El daño no viene solo del día flojo: aparece cuando el riesgo deja de ser constante.";
-  }
-  return "La ejecución mejora cuando repites el proceso, no cuando persigues compensar el último resultado.";
+  return rows.map((row) => `
+    <div class="execution-entry-row execution-tone-${row.tone}">
+      <span>${row.date}</span>
+      <strong>${row.symbol}</strong>
+      <span>${row.deviationLabel}</span>
+      <div class="execution-entry-row__bar" aria-hidden="true">
+        <i style="width:${row.width}%"></i>
+      </div>
+      <em>${row.status}</em>
+    </div>
+  `).join("");
+}
+
+function renderSubscores(subscores) {
+  return subscores.map((item) => `
+    <div class="execution-subscore">
+      <span>${item.label}</span>
+      <strong>${Number.isFinite(Number(item.value)) ? Math.round(item.value) : "Pendiente"}</strong>
+    </div>
+  `).join("");
 }
 
 export function renderDiscipline(root, state) {
@@ -253,111 +398,105 @@ export function renderDiscipline(root, state) {
     sourceUsed: authority.sourceUsed,
   });
 
-  const currentLosses = currentLossStreak(model.trades);
-  const tradesDay = tradesPerDay(model);
-  const consistency = activeDayConsistency(model);
-  const avgRValue = avgR(model.trades);
-  const adherenceMeta = buildAdherenceMeta(model, consistency, tradesDay, currentLosses, avgRValue);
-  const disciplineLevel = resolveDisciplineLevel(adherenceMeta.score);
-  const violations = buildViolations(model, { tradesDay, currentLosses, consistency, avgRValue });
-  const dominantViolation = violations[0];
-  const executionRules = buildExecutionRules(adherenceMeta.tradeCap, currentLosses);
-  const executionPills = buildExecutionPills(violations);
-  const riskVisibility = resolveRiskVisibility(account, model);
-  const brokenDays = adherenceMeta.recentDays.filter((day) => day.state === "broken").length;
+  const recentTrades = getRecentTrades(model.trades || []);
+  const entryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
+  const ruleRows = calcRuleCompliance(recentTrades);
+  const kpis = buildKpis(ruleRows, recentTrades, entryDeviations);
+  const heatmapWeeks = buildExecutionHeatmap(recentTrades);
+  const entryRows = buildEntryPrecisionRows(recentTrades);
+  const score = buildDisciplineScore(ruleRows, recentTrades, entryDeviations);
+  const slRule = ruleRows[0];
+  const slGap = Number.isFinite(Number(slRule.value))
+    ? `Tu mayor brecha: SL discipline (${Math.round(slRule.value)}%). Revisar trades donde el SL fue movido o ignorado.`
+    : "Tu mayor brecha requiere tracking: conecta SL discipline y entry precision para cerrar la lectura.";
 
   root.innerHTML = `
-    <div class="discipline-page-stack kmfx-page kmfx-page--spacious">
+    <div class="discipline-page-stack execution-page kmfx-page kmfx-page--spacious">
       <header class="kmfx-page__header">
         <div class="kmfx-page__copy">
           <p class="kmfx-page__eyebrow">EJECUCIÓN</p>
           <h2 class="kmfx-page__title">Ejecución</h2>
-          <p class="kmfx-page__subtitle">Cómo estás aplicando tu sistema y dónde se degrada.</p>
+          <p class="kmfx-page__subtitle">Cumplimiento del plan, precisión de entrada y calidad operativa.</p>
         </div>
       </header>
 
-      <article class="tl-section-card discipline-state">
-        <div class="discipline-state__copy">
-          <span class="discipline-state__label">Estado</span>
-          <strong class="discipline-state__title">${disciplineLevel.label}</strong>
-          <p class="discipline-state__copy-text">${disciplineLevel.copy}</p>
-          ${executionPills.length ? `<div class="discipline-state__pills">${executionPills.map((pill) => `<span>${pill}</span>`).join("")}</div>` : ""}
-        </div>
-        <div class="discipline-state__deviation">
-          <span>Desviación dominante</span>
-          <strong>${dominantViolation.title}</strong>
-          <p>${dominantViolation.pattern}</p>
-        </div>
-      </article>
+      <section class="execution-kpi-grid">
+        ${kpis.map((kpi) => `
+          <article class="tl-kpi-card execution-kpi execution-tone-${kpi.tone}">
+            <div class="tl-kpi-label">${kpi.label}</div>
+            <div class="tl-kpi-val">${kpi.value}</div>
+            <p>${kpi.subcopy}</p>
+            <span>${kpi.badge}</span>
+          </article>
+        `).join("")}
+      </section>
 
-      <article class="tl-section-card discipline-trend">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Comportamiento reciente</div>
-            <div class="row-sub">${brokenDays} de los últimos 10 días rompen el plan.</div>
-          </div>
-        </div>
-        <div class="discipline-trend__strip">
-          ${adherenceMeta.recentDays.map((day) => `
-            <div class="discipline-trend__day is-${day.state}" title="${day.title}">
-              <strong>${day.label}</strong>
-              <span>${day.state === "disciplined" ? "Cumplió" : day.state === "broken" ? "Rompió" : "Sin datos"}</span>
-            </div>
-          `).join("")}
-        </div>
-      </article>
-
-      <article class="tl-section-card discipline-adherence">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Adherencia al proceso</div>
-          </div>
-        </div>
-        <div class="discipline-adherence__value">${adherenceMeta.adherence}%</div>
-        <p class="discipline-adherence__copy">${adherenceMeta.brokenTradesPer10} de cada 10 trades no cumplen el playbook.</p>
-      </article>
-
-      <div class="discipline-detail-grid">
-        <article class="tl-section-card discipline-violations">
-          <div class="tl-section-header discipline-section-header">
+      <section class="execution-main-grid">
+        <article class="tl-section-card execution-panel execution-rules-panel">
+          <div class="tl-section-header execution-section-header">
             <div>
-              <div class="tl-section-title">Desviaciones del proceso</div>
+              <div class="tl-section-title">Cumplimiento por regla</div>
+              <div class="row-sub">Lectura institucional por playbook operativo.</div>
             </div>
           </div>
-          <div class="discipline-violations__list">
-            ${violations.map((violation) => `
-              <div class="discipline-violations__item">
-                <strong>${violation.title}</strong>
-                <span>${violation.impact}</span>
-              </div>
-            `).join("")}
+          <div class="execution-rule-list">
+            ${renderRuleRows(ruleRows)}
           </div>
         </article>
 
-        <article class="tl-section-card discipline-rule-card">
-          <div class="tl-section-header discipline-section-header">
+        <article class="tl-section-card execution-panel execution-calendar-panel">
+          <div class="tl-section-header execution-section-header">
             <div>
-              <div class="tl-section-title">Regla de ejecución</div>
+              <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
+              <div class="row-sub">Clean, advertencia, violación o sin trade.</div>
             </div>
           </div>
-          <ul class="discipline-rule-card__list">
-            ${executionRules.map((rule) => `<li>${rule}</li>`).join("")}
-          </ul>
+          ${renderHeatmap(heatmapWeeks)}
         </article>
-      </div>
+      </section>
 
-      <article class="tl-section-card discipline-insight">
-        <div class="tl-section-header discipline-section-header">
-          <div>
-            <div class="tl-section-title">Insight</div>
+      <section class="execution-main-grid execution-main-grid--lower">
+        <article class="tl-section-card execution-panel execution-entry-panel">
+          <div class="tl-section-header execution-section-header">
+            <div>
+              <div class="tl-section-title">Entry precision — últimos 10 trades</div>
+              <div class="row-sub">Detecta chasing y entradas tardías si existe tracking de entrada planificada.</div>
+            </div>
           </div>
-        </div>
-        <p>${buildInsight(dominantViolation)}</p>
-        <div class="discipline-insight__meta">
-          <span>Estado Risk Engine</span>
-          <strong>${riskVisibility}</strong>
-        </div>
-      </article>
+          <div class="execution-entry-table">
+            <div class="execution-entry-table__head">
+              <span>Fecha</span>
+              <span>Símbolo</span>
+              <span>Desviación</span>
+              <span>Precisión</span>
+              <span>Estado</span>
+            </div>
+            ${renderEntryRows(entryRows)}
+          </div>
+        </article>
+
+        <article class="tl-section-card execution-panel execution-score-panel execution-tone-${score.tone}">
+          <div class="tl-section-header execution-section-header">
+            <div>
+              <div class="tl-section-title">Discipline score</div>
+              <div class="row-sub">Score operativo por cumplimiento, timing y consistencia.</div>
+            </div>
+          </div>
+          <div class="execution-score-body">
+            <div class="execution-score-ring" style="--score-pct:${score.score}%">
+              <strong>${score.score}</strong>
+              <span>score</span>
+            </div>
+            <div class="execution-subscore-list">
+              ${renderSubscores(score.subscores)}
+            </div>
+          </div>
+          <div class="execution-system-insight">
+            <strong>Insight del sistema</strong>
+            <p>${slGap} La ejecución es rentable cuando respetas horario y entry, pero pierde consistencia al modificar el riesgo bajo presión.</p>
+          </div>
+        </article>
+      </section>
     </div>
   `;
 }
