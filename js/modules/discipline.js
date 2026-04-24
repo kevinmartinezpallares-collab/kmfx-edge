@@ -339,7 +339,8 @@ function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData, u
       deviationLabel: Number.isFinite(deviation) ? `+${deviation.toFixed(1)}p` : "pendiente",
       status: precisionTag(deviation),
       tone,
-      width
+      width,
+      tracked: Number.isFinite(deviation)
     };
   }) : useFallback ? fallback.entryPrecision.map((item) => ({
     date: item.date,
@@ -348,7 +349,8 @@ function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData, u
     deviationLabel: `+${item.dev.toFixed(1)}p`,
     status: precisionTag(item.dev),
     tone: precisionColor(item.dev),
-    width: clamp((item.dev / 6) * 100, 8, 100)
+    width: clamp((item.dev / 6) * 100, 8, 100),
+    tracked: false
   })) : [];
   return source;
 }
@@ -395,17 +397,15 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
 
 function renderRuleRows(rows) {
   const noteMap = {
-    "derived from registered SL": "según histórico registrado",
-    "requires SL tracking": "sin historial suficiente",
-    "per traded day": "frecuencia frente al plan",
-    "no traded days": "sin historial suficiente",
-    "entry tracking": "según entrada registrada",
-    "pending tracking": "sin historial suficiente",
-    "BE tracking": "según break even registrado",
-    "requires configuration": "sin datos suficientes",
-    "close time registered": "según horario registrado",
-    "no trades": "sin operaciones",
-    "setup/tag available": "requiere validación del setup"
+    "según histórico registrado": "según histórico registrado",
+    "sin historial suficiente": "sin historial suficiente",
+    "frecuencia frente al plan": "frecuencia frente al plan",
+    "según entrada registrada": "según entrada registrada",
+    "según break even registrado": "según break even registrado",
+    "sin datos suficientes": "sin datos suficientes",
+    "según horario registrado": "según horario registrado",
+    "sin operaciones": "sin operaciones",
+    "requiere validación del setup": "requiere validación del setup"
   };
   return rows.map((row) => {
     const tone = ruleColor(row.pct);
@@ -472,7 +472,7 @@ function renderEntryRows(rows) {
 function hasEntryPrecisionTracking(rows = []) {
   return rows.some((row) => {
     const deviation = Number(row.deviation ?? row.dev);
-    return Number.isFinite(deviation) && Math.abs(deviation) > 0.05;
+    return row.tracked === true && Number.isFinite(deviation) && Math.abs(deviation) > 0.05;
   });
 }
 
@@ -694,7 +694,8 @@ export function renderDisciplineSection(target, data = disciplineData) {
     deviationLabel: Number.isFinite(Number(item.dev ?? item.deviation)) ? `+${Number(item.dev ?? item.deviation).toFixed(1)}p` : "pendiente",
     status: item.status || precisionTag(item.dev ?? item.deviation),
     tone: item.tone || precisionColor(item.dev ?? item.deviation),
-    width: item.width || clamp((Number(item.dev ?? item.deviation ?? 0) / 6) * 100, 8, 100)
+    width: item.width || clamp((Number(item.dev ?? item.deviation ?? 0) / 6) * 100, 8, 100),
+    tracked: item.tracked === true || item.hasTracking === true
   }));
   const scoreValue = data.score?.overall ?? data.score?.score ?? 0;
   const breakdown = data.score?.breakdown
