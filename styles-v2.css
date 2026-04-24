@@ -15796,6 +15796,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed 
   height: 32px;
 }
 
+/* === DISCIPLINE SECTION === */
 html[data-theme="dark"] .discipline-page-stack,
 body[data-theme="dark"] .discipline-page-stack {
   display: grid;
@@ -15811,10 +15812,13 @@ body[data-theme="dark"] .execution-kpi-grid {
 
 html[data-theme="dark"] .execution-kpi,
 body[data-theme="dark"] .execution-kpi {
-  min-height: 168px;
+  min-height: 150px;
   display: grid;
   align-content: space-between;
   gap: 10px;
+  border-radius: 12px;
+  background: #111111 !important;
+  border: 1px solid #1a1a1a !important;
 }
 
 html[data-theme="dark"] .execution-kpi p,
@@ -15843,17 +15847,17 @@ body[data-theme="dark"] .execution-kpi span {
 
 html[data-theme="dark"] .execution-kpi.execution-tone-ok,
 body[data-theme="dark"] .execution-kpi.execution-tone-ok {
-  border-color: rgba(52,199,89,0.11);
+  border-color: color-mix(in srgb, var(--positive) 12%, #1a1a1a) !important;
 }
 
 html[data-theme="dark"] .execution-kpi.execution-tone-warn,
 body[data-theme="dark"] .execution-kpi.execution-tone-warn {
-  border-color: rgba(255,159,10,0.12);
+  border-color: color-mix(in srgb, var(--warning) 14%, #1a1a1a) !important;
 }
 
 html[data-theme="dark"] .execution-kpi.execution-tone-bad,
 body[data-theme="dark"] .execution-kpi.execution-tone-bad {
-  border-color: rgba(214,86,102,0.14);
+  border-color: color-mix(in srgb, var(--negative) 16%, #1a1a1a) !important;
 }
 
 html[data-theme="dark"] .execution-kpi.execution-tone-ok span,
@@ -15889,6 +15893,8 @@ body[data-theme="dark"] .execution-panel {
   display: grid;
   gap: 18px;
   align-content: start;
+  background: #111111 !important;
+  border-color: #1a1a1a !important;
 }
 
 html[data-theme="dark"] .execution-section-header,
@@ -15935,7 +15941,7 @@ html[data-theme="dark"] .execution-rule-row__track,
 body[data-theme="dark"] .execution-rule-row__track,
 html[data-theme="dark"] .execution-entry-row__bar,
 body[data-theme="dark"] .execution-entry-row__bar {
-  height: 8px;
+  height: 6px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255,255,255,0.045);
@@ -15991,7 +15997,13 @@ body[data-theme="dark"] .execution-heatmap__cell {
   min-height: 42px;
   border-radius: 11px;
   border: 1px solid rgba(255,255,255,0.045);
-  background: rgba(255,255,255,0.035);
+  background: #1a1a1a;
+}
+
+html[data-theme="dark"] .execution-heatmap__cell.is-today,
+body[data-theme="dark"] .execution-heatmap__cell.is-today {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 72%, transparent) inset;
 }
 
 html[data-theme="dark"] .execution-heatmap__legend,
@@ -16080,31 +16092,59 @@ body[data-theme="dark"] .execution-score-body {
   align-items: center;
 }
 
-html[data-theme="dark"] .execution-score-ring,
-body[data-theme="dark"] .execution-score-ring {
-  --score-pct: 0%;
+html[data-theme="dark"] .execution-score-gauge,
+body[data-theme="dark"] .execution-score-gauge {
+  position: relative;
   width: 150px;
   height: 150px;
   display: grid;
   place-items: center;
-  align-content: center;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at center, var(--card-surface) 58%, transparent 60%),
-    conic-gradient(var(--execution-score-color, rgba(255,255,255,0.28)) var(--score-pct), rgba(255,255,255,0.06) 0);
-  border: 1px solid rgba(255,255,255,0.06);
 }
 
-html[data-theme="dark"] .execution-score-ring strong,
-body[data-theme="dark"] .execution-score-ring strong {
+html[data-theme="dark"] .execution-score-gauge svg,
+body[data-theme="dark"] .execution-score-gauge svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+html[data-theme="dark"] .execution-score-gauge circle,
+body[data-theme="dark"] .execution-score-gauge circle {
+  fill: none;
+  stroke-width: 11;
+  stroke-linecap: round;
+}
+
+html[data-theme="dark"] .execution-score-gauge__track,
+body[data-theme="dark"] .execution-score-gauge__track {
+  stroke: rgba(255,255,255,0.065);
+}
+
+html[data-theme="dark"] .execution-score-gauge__arc,
+body[data-theme="dark"] .execution-score-gauge__arc {
+  stroke: var(--execution-score-color, rgba(255,255,255,0.28));
+}
+
+html[data-theme="dark"] .execution-score-gauge div,
+body[data-theme="dark"] .execution-score-gauge div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+html[data-theme="dark"] .execution-score-gauge strong,
+body[data-theme="dark"] .execution-score-gauge strong {
   font-size: 42px;
   line-height: 0.95;
   letter-spacing: -0.05em;
   color: var(--text-0);
 }
 
-html[data-theme="dark"] .execution-score-ring span,
-body[data-theme="dark"] .execution-score-ring span {
+html[data-theme="dark"] .execution-score-gauge span,
+body[data-theme="dark"] .execution-score-gauge span {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.09em;
@@ -16189,7 +16229,7 @@ html[data-theme="dark"] .execution-heatmap__cell.execution-tone-ok,
 body[data-theme="dark"] .execution-heatmap__cell.execution-tone-ok,
 html[data-theme="dark"] .execution-heatmap__legend .execution-tone-ok,
 body[data-theme="dark"] .execution-heatmap__legend .execution-tone-ok {
-  background: color-mix(in srgb, var(--positive) 42%, rgba(255,255,255,0.05));
+  background: color-mix(in srgb, var(--positive) 70%, #1a1a1a);
   border-color: rgba(52,199,89,0.18);
 }
 
@@ -16201,7 +16241,7 @@ html[data-theme="dark"] .execution-heatmap__cell.execution-tone-warn,
 body[data-theme="dark"] .execution-heatmap__cell.execution-tone-warn,
 html[data-theme="dark"] .execution-heatmap__legend .execution-tone-warn,
 body[data-theme="dark"] .execution-heatmap__legend .execution-tone-warn {
-  background: color-mix(in srgb, var(--warning) 38%, rgba(255,255,255,0.05));
+  background: color-mix(in srgb, var(--warning) 60%, #1a1a1a);
   border-color: rgba(255,159,10,0.18);
 }
 
@@ -16213,7 +16253,7 @@ html[data-theme="dark"] .execution-heatmap__cell.execution-tone-bad,
 body[data-theme="dark"] .execution-heatmap__cell.execution-tone-bad,
 html[data-theme="dark"] .execution-heatmap__legend .execution-tone-bad,
 body[data-theme="dark"] .execution-heatmap__legend .execution-tone-bad {
-  background: color-mix(in srgb, var(--negative) 36%, rgba(255,255,255,0.05));
+  background: color-mix(in srgb, var(--negative) 55%, #1a1a1a);
   border-color: rgba(214,86,102,0.2);
 }
 
