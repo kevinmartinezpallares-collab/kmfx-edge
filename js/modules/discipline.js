@@ -484,7 +484,7 @@ function buildDisciplineDataFromModel(model) {
   };
 }
 
-export function renderDisciplineSection(target = document.getElementById("section-discipline"), data = disciplineData) {
+export function renderDisciplineSection(target, data = disciplineData) {
   if (!target) return;
   const kpis = Array.isArray(data.kpis)
     ? data.kpis
@@ -534,7 +534,7 @@ export function renderDisciplineSection(target = document.getElementById("sectio
     deviationLabel: Number.isFinite(Number(item.dev ?? item.deviation)) ? `+${Number(item.dev ?? item.deviation).toFixed(1)}p` : "pendiente",
     status: item.status || precisionTag(item.dev ?? item.deviation),
     tone: item.tone || precisionColor(item.dev ?? item.deviation),
-    width: item.width || clamp((Number(item.dev ?? item.deviation || 0) / 6) * 100, 8, 100)
+    width: item.width || clamp((Number(item.dev ?? item.deviation ?? 0) / 6) * 100, 8, 100)
   }));
   const scoreValue = data.score?.overall ?? data.score?.score ?? 0;
   const breakdown = data.score?.breakdown
@@ -619,6 +619,7 @@ export function renderDisciplineSection(target = document.getElementById("sectio
 }
 
 export function renderDiscipline(root, state) {
+  if (!root) return;
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
   if (!model) {
