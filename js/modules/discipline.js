@@ -145,7 +145,7 @@ function precisionColor(value) {
 }
 
 function precisionTag(value) {
-  if (!Number.isFinite(Number(value))) return "sin tracking";
+  if (!Number.isFinite(Number(value))) return "sin historial suficiente";
   if (value < 2) return "ideal";
   if (value <= 4) return "entrada tardía";
   return "persecución";
@@ -156,7 +156,7 @@ function translatePrecisionStatus(status = "") {
   if (normalized === "late entry") return "entrada tardía";
   if (normalized === "chasing") return "persecución";
   if (normalized === "ideal") return "ideal";
-  if (normalized === "sin tracking") return "sin tracking";
+  if (normalized === "sin historial suficiente") return "sin historial suficiente";
   return status;
 }
 
@@ -233,12 +233,12 @@ function calcRuleCompliance(recentTrades = []) {
     : null;
 
   return [
-    { name: RULE_DEFINITIONS[0], pct: slFixed, note: slDistances.length ? "derived from registered SL" : "requires SL tracking" },
-    { name: RULE_DEFINITIONS[1], pct: oneTradeDay, note: activeDays.length ? "per traded day" : "no traded days" },
-    { name: RULE_DEFINITIONS[2], pct: entryObOpen, note: entryDeviations.length ? "entry tracking" : "pending tracking" },
-    { name: RULE_DEFINITIONS[3], pct: beActivated, note: beValues.length ? "BE tracking" : "requires configuration" },
-    { name: RULE_DEFINITIONS[4], pct: noPost17, note: recentTrades.length ? "close time registered" : "no trades" },
-    { name: RULE_DEFINITIONS[5], pct: validSetup, note: recentTrades.length ? "setup/tag available" : "no trades" }
+    { name: RULE_DEFINITIONS[0], pct: slFixed, note: slDistances.length ? "según histórico registrado" : "sin historial suficiente" },
+    { name: RULE_DEFINITIONS[1], pct: oneTradeDay, note: activeDays.length ? "frecuencia frente al plan" : "sin historial suficiente" },
+    { name: RULE_DEFINITIONS[2], pct: entryObOpen, note: entryDeviations.length ? "según entrada registrada" : "sin historial suficiente" },
+    { name: RULE_DEFINITIONS[3], pct: beActivated, note: beValues.length ? "según break even registrado" : "sin datos suficientes" },
+    { name: RULE_DEFINITIONS[4], pct: noPost17, note: recentTrades.length ? "según horario registrado" : "sin operaciones" },
+    { name: RULE_DEFINITIONS[5], pct: validSetup, note: recentTrades.length ? "requiere validación del setup" : "sin operaciones" }
   ];
 }
 
@@ -260,28 +260,28 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
       value: formatPct(adherence ?? fallback.kpis.ruleAdherence.value),
       subcopy: "últimos 30 días",
       badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : `+${fallback.kpis.ruleAdherence.delta}% vs mes anterior`,
-      tone: Number.isFinite(adherence) ? ruleColor(adherence) : "neutral"
+      tone: "neutral"
     },
     {
       label: "Precisión de entrada",
       value: formatPips(entryAverage ?? fallback.kpis.entryPrecision.value),
       subcopy: Number.isFinite(entryAverage) ? "desviación media" : "estimación basada en historial",
       badge: "objetivo <2.0",
-      tone: Number.isFinite(entryAverage) ? precisionColor(entryAverage) : "neutral"
+      tone: Number.isFinite(entryAverage) && entryAverage > 2 ? precisionColor(entryAverage) : "neutral"
     },
     {
       label: "Violaciones de SL",
       value: Number.isFinite(slViolations) ? String(slViolations) : String(fallback.kpis.slViolations.value),
       subcopy: Number.isFinite(slViolations) ? "trades este mes" : "estimación basada en historial",
       badge: "SL movido o ignorado",
-      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : slViolations <= 3 ? "warn" : "bad") : "warn"
+      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "bad") : "warn"
     },
     {
       label: "Trades fuera de horario",
       value: String(Number.isFinite(outsideSchedule) ? outsideSchedule : fallback.kpis.offHoursTrades.value),
       subcopy: "violaciones",
       badge: outsideSchedule === 0 ? "100% en horario" : "post 17:00 detectado",
-      tone: outsideSchedule === 0 ? "ok" : outsideSchedule <= 2 ? "warn" : "bad"
+      tone: outsideSchedule === 0 ? "ok" : "bad"
     }
   ];
 }
@@ -327,7 +327,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData) {
   return weeks;
 }
 
-function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData) {
+function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData, useFallback = true) {
   const source = recentTrades.length ? [...recentTrades].slice(-10).reverse().map((trade) => {
     const deviation = getEntryDeviationPips(trade);
     const tone = precisionColor(deviation);
@@ -341,7 +341,7 @@ function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData) {
       tone,
       width
     };
-  }) : fallback.entryPrecision.map((item) => ({
+  }) : useFallback ? fallback.entryPrecision.map((item) => ({
     date: item.date,
     pair: item.pair,
     deviation: item.dev,
@@ -349,7 +349,7 @@ function buildEntryPrecisionRows(recentTrades = [], fallback = disciplineData) {
     status: precisionTag(item.dev),
     tone: precisionColor(item.dev),
     width: clamp((item.dev / 6) * 100, 8, 100)
-  }));
+  })) : [];
   return source;
 }
 
@@ -395,17 +395,17 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
 
 function renderRuleRows(rows) {
   const noteMap = {
-    "derived from registered SL": "derivado del SL registrado",
-    "requires SL tracking": "pendiente de datos de SL",
-    "per traded day": "por día operado",
-    "no traded days": "sin días operados",
-    "entry tracking": "basado en entrada registrada",
-    "pending tracking": "pendiente de datos",
-    "BE tracking": "basado en break even registrado",
+    "derived from registered SL": "según histórico registrado",
+    "requires SL tracking": "sin historial suficiente",
+    "per traded day": "frecuencia frente al plan",
+    "no traded days": "sin historial suficiente",
+    "entry tracking": "según entrada registrada",
+    "pending tracking": "sin historial suficiente",
+    "BE tracking": "según break even registrado",
     "requires configuration": "sin datos suficientes",
-    "close time registered": "basado en horario registrado",
+    "close time registered": "según horario registrado",
     "no trades": "sin operaciones",
-    "setup/tag available": "requiere etiquetado del setup"
+    "setup/tag available": "requiere validación del setup"
   };
   return rows.map((row) => {
     const tone = ruleColor(row.pct);
@@ -469,6 +469,23 @@ function renderEntryRows(rows) {
   `).join("");
 }
 
+function hasEntryPrecisionTracking(rows = []) {
+  return rows.some((row) => {
+    const deviation = Number(row.deviation ?? row.dev);
+    return Number.isFinite(deviation) && Math.abs(deviation) > 0.05;
+  });
+}
+
+function renderEntryPrecisionEmpty() {
+  return `
+    <div class="execution-entry-empty">
+      <strong>Precisión de entrada</strong>
+      <p>Sin historial suficiente para evaluar desviación frente a la entrada ideal.</p>
+      <small>Activa el tracking de entrada ideal desde el EA para medir chasing y entradas tardías.</small>
+    </div>
+  `;
+}
+
 function renderSubscores(subscores) {
   return subscores.map((item) => `
     <div class="execution-subscore">
@@ -528,7 +545,7 @@ function issueDescription(name = "") {
 
 function isReliableRule(row = {}) {
   if (!Number.isFinite(Number(row.pct))) return false;
-  return !/requires|pending|no trades|no traded days|sin datos|pendiente/i.test(String(row.note || ""));
+  return !/requires|pending|no trades|no traded days|sin datos|sin historial|sin operaciones|pendiente/i.test(String(row.note || ""));
 }
 
 function resolvePrincipalDeviation(rules = []) {
@@ -548,7 +565,7 @@ function resolvePrincipalDeviation(rules = []) {
     const available = reliableRules.find((rule) => matcher.test(rule.name));
     if (available) return available;
   }
-  return { name: RULE_DEFINITIONS[0], pct: null, note: "pending tracking" };
+  return { name: RULE_DEFINITIONS[0], pct: null, note: "sin historial suficiente" };
 }
 
 function renderExecutionHero(rules = []) {
@@ -587,7 +604,7 @@ function buildEntryPattern(rows = []) {
     .map((item) => ({ ...item, avg: item.total / item.count }))
     .sort((a, b) => b.avg - a.avg)[0];
 
-  if (!weakestPair) return "La precisión de entrada necesita más tracking antes de mostrar un patrón claro.";
+  if (!weakestPair) return "No hay suficiente historial para detectar un patrón claro.";
   return `Tiendes a entrar tarde en operaciones de ${weakestPair.pair}.`;
 }
 
@@ -619,7 +636,7 @@ function buildDisciplineDataFromModel(model) {
     kpis,
     rules,
     calendar: buildExecutionHeatmap(recentTrades),
-    entryPrecision: buildEntryPrecisionRows(recentTrades),
+    entryPrecision: buildEntryPrecisionRows(recentTrades, disciplineData, false),
     score,
     insight: rules[0]?.pct == null
       ? "Mayor brecha: disciplina de SL. Revisa las operaciones donde el stop fue movido o ignorado."
@@ -651,14 +668,14 @@ export function renderDisciplineSection(target, data = disciplineData) {
         value: String(data.kpis?.slViolations?.value ?? "Pendiente"),
         subcopy: "trades este mes",
         badge: "SL movido o ignorado",
-        tone: Number(data.kpis?.slViolations?.value || 0) === 0 ? "ok" : Number(data.kpis?.slViolations?.value || 0) <= 3 ? "warn" : "bad"
+        tone: Number(data.kpis?.slViolations?.value || 0) === 0 ? "ok" : "bad"
       },
       {
         label: "Trades fuera de horario",
         value: String(data.kpis?.offHoursTrades?.value ?? 0),
         subcopy: "violaciones",
         badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "100% en horario" : "post 17:00 detectado",
-        tone: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "ok" : "warn"
+        tone: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "ok" : "bad"
       }
     ];
 
@@ -690,7 +707,8 @@ export function renderDisciplineSection(target, data = disciplineData) {
     ]
     : data.score?.subscores || [];
   const insight = data.score?.insight || data.insight || disciplineData.score.insight;
-  const entryPattern = buildEntryPattern(entryRows);
+  const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
+  const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
 
   target.innerHTML = `
     <header class="kmfx-page__header">
@@ -737,13 +755,13 @@ export function renderDisciplineSection(target, data = disciplineData) {
     <section class="execution-main-grid execution-main-grid--lower">
       <article class="tl-section-card execution-panel execution-entry-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Precisión de entrada — últimos 10 trades</div>
+          <div class="tl-section-title">${hasEntryTracking ? "Precisión de entrada — últimos 10 trades" : "Precisión de entrada"}</div>
         </div>
         <div class="execution-entry-pattern">
           <span>Patrón de ejecución</span>
           <p>${entryPattern}</p>
         </div>
-        <div class="execution-entry-table">
+        ${hasEntryTracking ? `<div class="execution-entry-table">
           <div class="execution-entry-table__head">
             <span>Fecha</span>
             <span>Par</span>
@@ -752,7 +770,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
             <span>Estado</span>
           </div>
           ${renderEntryRows(entryRows)}
-        </div>
+        </div>` : renderEntryPrecisionEmpty()}
       </article>
     </section>
   `;

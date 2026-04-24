@@ -16919,3 +16919,102 @@ body[data-theme="dark"] #section-discipline .execution-kpi--critical.execution-t
   background: rgba(255,92,92,0.08) !important;
   border-color: rgba(255,92,92,0.18) !important;
 }
+
+/* === EXECUTION FINAL SCALE === */
+html[data-theme="dark"] #section-discipline .execution-hero,
+body[data-theme="dark"] #section-discipline .execution-hero {
+  padding: 20px !important;
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__copy,
+body[data-theme="dark"] #section-discipline .execution-hero__copy,
+html[data-theme="dark"] #section-discipline .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .execution-hero__issue {
+  gap: 7px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__eyebrow,
+body[data-theme="dark"] #section-discipline .execution-hero__eyebrow,
+html[data-theme="dark"] #section-discipline .execution-hero__issue span,
+body[data-theme="dark"] #section-discipline .execution-hero__issue span {
+  font-size: 11px !important;
+  letter-spacing: 0.18em !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero h3,
+body[data-theme="dark"] #section-discipline .execution-hero h3 {
+  font-size: 24px !important;
+  line-height: 1.15 !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.025em !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero p,
+body[data-theme="dark"] #section-discipline .execution-hero p {
+  font-size: 15px !important;
+  line-height: 1.42 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .execution-hero__issue {
+  padding: 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__issue strong,
+body[data-theme="dark"] #section-discipline .execution-hero__issue strong {
+  font-size: 18px !important;
+  line-height: 1.18 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-body,
+body[data-theme="dark"] #section-discipline .execution-score-body {
+  grid-template-columns: 136px minmax(260px, 420px) !important;
+  gap: 18px !important;
+  justify-content: start;
+}
+
+html[data-theme="dark"] #section-discipline .execution-subscore-list,
+body[data-theme="dark"] #section-discipline .execution-subscore-list {
+  max-width: 420px;
+  gap: 7px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-subscore,
+body[data-theme="dark"] #section-discipline .execution-subscore {
+  gap: 12px !important;
+  padding-bottom: 5px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty,
+body[data-theme="dark"] #section-discipline .execution-entry-empty {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: var(--layer-1);
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty strong,
+body[data-theme="dark"] #section-discipline .execution-entry-empty strong {
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty p,
+body[data-theme="dark"] #section-discipline .execution-entry-empty p,
+html[data-theme="dark"] #section-discipline .execution-entry-empty small,
+body[data-theme="dark"] #section-discipline .execution-entry-empty small {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty small,
+body[data-theme="dark"] #section-discipline .execution-entry-empty small {
+  color: var(--text-3);
+}
