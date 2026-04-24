@@ -40,7 +40,7 @@ export const disciplineData = {
       timing: 91,
       psychological: 68
     },
-    insight: "Biggest gap: SL discipline (73%). Review GBPUSD trades in weeks 1 and 4."
+    insight: "Mayor brecha: disciplina de SL (73%). Revisa trades de GBPUSD en las semanas 1 y 4."
   }
 };
 
@@ -139,8 +139,17 @@ function precisionColor(value) {
 function precisionTag(value) {
   if (!Number.isFinite(Number(value))) return "sin tracking";
   if (value < 2) return "ideal";
-  if (value <= 4) return "late entry";
-  return "chasing";
+  if (value <= 4) return "entrada tardía";
+  return "persecución";
+}
+
+function translatePrecisionStatus(status = "") {
+  const normalized = String(status).toLowerCase();
+  if (normalized === "late entry") return "entrada tardía";
+  if (normalized === "chasing") return "persecución";
+  if (normalized === "ideal") return "ideal";
+  if (normalized === "sin tracking") return "sin tracking";
+  return status;
 }
 
 function calendarCellClass(state, isToday = false) {
@@ -239,28 +248,28 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
 
   return [
     {
-      label: "Rule adherence",
+      label: "Cumplimiento de reglas",
       value: formatPct(adherence ?? fallback.kpis.ruleAdherence.value),
       subcopy: "últimos 30 días",
       badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : `+${fallback.kpis.ruleAdherence.delta}% vs mes anterior`,
       tone: ruleColor(adherence ?? fallback.kpis.ruleAdherence.value)
     },
     {
-      label: "Entry precision",
+      label: "Precisión de entrada",
       value: formatPips(entryAverage ?? fallback.kpis.entryPrecision.value),
       subcopy: Number.isFinite(entryAverage) ? "desviación media" : "tracking estimado",
       badge: "objetivo <2.0",
       tone: precisionColor(entryAverage ?? fallback.kpis.entryPrecision.value)
     },
     {
-      label: "SL violations",
+      label: "Violaciones de SL",
       value: Number.isFinite(slViolations) ? String(slViolations) : String(fallback.kpis.slViolations.value),
       subcopy: Number.isFinite(slViolations) ? "trades este mes" : "tracking estimado",
       badge: "SL movido o ignorado",
       tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : slViolations <= 3 ? "warn" : "bad") : "warn"
     },
     {
-      label: "Off-Hours Trades",
+      label: "Trades fuera de horario",
       value: String(Number.isFinite(outsideSchedule) ? outsideSchedule : fallback.kpis.offHoursTrades.value),
       subcopy: "violaciones",
       badge: outsideSchedule === 0 ? "100% en horario" : "post 17:00 detectado",
@@ -301,7 +310,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData) {
         const overtraded = bucket.trades.length > 1;
         const negative = bucket.pnl < 0;
         state = outside || (overtraded && negative) ? "miss" : overtraded || negative ? "warn" : "clean";
-        label = state === "clean" ? "Clean" : state === "warn" ? "Warning" : "Violation";
+        label = state === "clean" ? "Limpio" : state === "warn" ? "Advertencia" : "Violación";
       }
       days.push({ key, date, state, label, trades: bucket?.trades?.length || 0, pnl: bucket?.pnl || 0 });
     }
@@ -366,10 +375,10 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
   const timing = ruleRows.find((row) => row.name === "No trades after 17:00")?.pct ?? fallback.score.breakdown.timing;
   const psychological = calcPsychologicalScore(recentTrades);
   const subscores = [
-    { label: "Compliance", value: compliance ?? fallback.score.breakdown.compliance },
+    { label: "Cumplimiento", value: compliance ?? fallback.score.breakdown.compliance },
     { label: "Precisión", value: precision },
     { label: "Consistencia", value: consistency ?? fallback.score.breakdown.consistency },
-    { label: "Timing", value: timing },
+    { label: "Horario", value: timing },
     { label: "Psicológico", value: psychological ?? fallback.score.breakdown.psychological }
   ];
   const score = Math.round(average(subscores.map((item) => item.value)) ?? fallback.score.overall);
@@ -377,26 +386,39 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
 }
 
 function renderRuleRows(rows) {
+  const noteMap = {
+    "derived from registered SL": "derivado del SL registrado",
+    "requires SL tracking": "requiere tracking de SL",
+    "per traded day": "por día operado",
+    "no traded days": "sin días operados",
+    "entry tracking": "tracking de entrada",
+    "pending tracking": "tracking pendiente",
+    "BE tracking": "tracking de BE",
+    "requires configuration": "requiere configuración",
+    "close time registered": "hora de cierre registrada",
+    "no trades": "sin trades",
+    "setup/tag available": "setup/tag disponible"
+  };
   return rows.map((row) => {
     const tone = ruleColor(row.pct);
     const width = Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     return `
       <div class="execution-rule-row execution-tone-${tone}">
         <div class="execution-rule-row__head">
-          <strong>${row.name}</strong>
+          <strong>${ruleDisplayName(row.name)}</strong>
           <span>${formatPct(row.pct)}</span>
         </div>
         <div class="execution-rule-row__track" aria-hidden="true">
           <span style="width:${width}%"></span>
         </div>
-        <small>${row.note}</small>
+        <small>${noteMap[row.note] || row.note}</small>
       </div>
     `;
   }).join("");
 }
 
 function renderHeatmap(weeks) {
-  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const todayKey = toDayKey(new Date());
   return `
     <div class="execution-heatmap">
@@ -408,15 +430,15 @@ function renderHeatmap(weeks) {
         <div class="execution-heatmap__row">
           <strong>${week.label}</strong>
           ${week.days.map((day) => `
-            <span class="execution-heatmap__cell ${calendarCellClass(day.state, day.key === todayKey)}" title="${formatShortDate(day.date)} · ${day.label} · ${day.trades} trades"></span>
+            <span class="execution-heatmap__cell ${calendarCellClass(day.state, day.key === todayKey)}" title="${formatShortDate(day.date)} · ${day.label} · ${day.trades} operaciones"></span>
           `).join("")}
         </div>
       `).join("")}
       <div class="execution-heatmap__legend">
-        <span><i class="execution-tone-ok"></i>Clean</span>
-        <span><i class="execution-tone-warn"></i>Warning</span>
-        <span><i class="execution-tone-bad"></i>Violation</span>
-        <span><i class="execution-tone-empty"></i>No trade</span>
+        <span><i class="execution-tone-ok"></i>Limpio</span>
+        <span><i class="execution-tone-warn"></i>Advertencia</span>
+        <span><i class="execution-tone-bad"></i>Violación</span>
+        <span><i class="execution-tone-empty"></i>Sin trade</span>
       </div>
     </div>
   `;
@@ -434,7 +456,7 @@ function renderEntryRows(rows) {
       <div class="execution-entry-row__bar" aria-hidden="true">
         <i style="width:${row.width}%"></i>
       </div>
-      <em>${row.status}</em>
+      <em>${translatePrecisionStatus(row.status)}</em>
     </div>
   `).join("");
 }
@@ -467,11 +489,26 @@ function renderScoreGauge(score) {
 }
 
 function ruleDisplayName(name = "") {
-  if (/fixed sl|sl fijo|sl/i.test(name)) return "SL discipline";
-  if (/entry/i.test(name)) return "Entry precision";
-  if (/17:00|hours|horario/i.test(name)) return "Timing discipline";
-  if (/setup/i.test(name)) return "Setup validation";
-  return name || "Execution discipline";
+  if (/fixed sl|sl fijo|sl/i.test(name)) return "Disciplina de SL";
+  if (/max 1 trade|trade\/day|frecuencia/i.test(name)) return "Frecuencia operativa";
+  if (/entry/i.test(name)) return "Precisión de entrada";
+  if (/be activated|be activado/i.test(name)) return "Gestión a break even";
+  if (/17:00|hours|horario/i.test(name)) return "Disciplina horaria";
+  if (/setup/i.test(name)) return "Validación de setup";
+  return name || "Disciplina de ejecución";
+}
+
+function issueDescription(name = "") {
+  if (/fixed sl|sl fijo|sl/i.test(name)) {
+    return "Los stops se están moviendo o ignorando, rompiendo la consistencia del sistema.";
+  }
+  if (/max 1 trade|trade\/day|frecuencia/i.test(name)) {
+    return "La frecuencia sube en sesiones de presión y degrada la calidad de decisión.";
+  }
+  if (/17:00|hours|horario/i.test(name)) {
+    return "Las operaciones fuera de ventana reducen la calidad del contexto.";
+  }
+  return "La ejecución se desvía del proceso y reduce la consistencia operativa.";
 }
 
 function renderExecutionHero(rules = []) {
@@ -484,14 +521,14 @@ function renderExecutionHero(rules = []) {
   return `
     <section class="execution-hero">
       <div class="execution-hero__copy">
-        <p class="execution-hero__eyebrow">EXECUTION QUALITY</p>
-        <h3>Execution quality: Low</h3>
-        <p>Your execution is degrading under pressure.</p>
+        <p class="execution-hero__eyebrow">CALIDAD DE EJECUCIÓN</p>
+        <h3>Calidad de ejecución baja</h3>
+        <p>Tu ejecución se degrada en momentos de presión.</p>
       </div>
       <div class="execution-hero__issue">
-        <span>Biggest issue</span>
+        <span>Principal desviación</span>
         <strong>${issueName} (${issuePct}%)</strong>
-        <p>Stops are being moved or ignored, breaking system consistency.</p>
+        <p>${issueDescription(weakestRule?.name || RULE_DEFINITIONS[0])}</p>
       </div>
     </section>
   `;
@@ -513,15 +550,15 @@ function buildEntryPattern(rows = []) {
     .map((item) => ({ ...item, avg: item.total / item.count }))
     .sort((a, b) => b.avg - a.avg)[0];
 
-  if (!weakestPair) return "Entry timing needs more tracking before a clear pattern appears.";
-  return `You tend to enter late on ${weakestPair.pair} trades.`;
+  if (!weakestPair) return "La precisión de entrada necesita más tracking antes de mostrar un patrón claro.";
+  return `Tiendes a entrar tarde en operaciones de ${weakestPair.pair}.`;
 }
 
 function renderScorePanel(scoreValue, breakdown, insight) {
   return `
     <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreColor(scoreValue)}">
       <div class="tl-section-header execution-section-header">
-        <div class="tl-section-title">Discipline score</div>
+        <div class="tl-section-title">Score de ejecución</div>
       </div>
       <div class="execution-score-body">
         ${renderScoreGauge(scoreValue)}
@@ -548,8 +585,8 @@ function buildDisciplineDataFromModel(model) {
     entryPrecision: buildEntryPrecisionRows(recentTrades),
     score,
     insight: rules[0]?.pct == null
-      ? disciplineData.score.insight
-      : `Biggest gap: SL discipline (${Math.round(rules[0].pct)}%). Review trades where SL was moved or ignored.`
+      ? "Mayor brecha: disciplina de SL. Revisa las operaciones donde el stop fue movido o ignorado."
+      : `Mayor brecha: disciplina de SL (${Math.round(rules[0].pct)}%). Revisa las operaciones donde el stop fue movido o ignorado.`
   };
 }
 
@@ -559,28 +596,28 @@ export function renderDisciplineSection(target, data = disciplineData) {
     ? data.kpis
     : [
       {
-        label: "Rule Adherence",
+        label: "Cumplimiento de reglas",
         value: formatPct(data.kpis?.ruleAdherence?.value),
         subcopy: "últimos 30 días",
         badge: `+${data.kpis?.ruleAdherence?.delta ?? 0}% vs mes anterior`,
         tone: ruleColor(data.kpis?.ruleAdherence?.value)
       },
       {
-        label: "Entry Precision",
+        label: "Precisión de entrada",
         value: formatPips(data.kpis?.entryPrecision?.value),
         subcopy: "desviación media",
         badge: `objetivo <${data.kpis?.entryPrecision?.target ?? 2.0}`,
         tone: precisionColor(data.kpis?.entryPrecision?.value)
       },
       {
-        label: "SL Violations",
+        label: "Violaciones de SL",
         value: String(data.kpis?.slViolations?.value ?? "Pendiente"),
         subcopy: "trades este mes",
         badge: "SL movido o ignorado",
         tone: Number(data.kpis?.slViolations?.value || 0) === 0 ? "ok" : Number(data.kpis?.slViolations?.value || 0) <= 3 ? "warn" : "bad"
       },
       {
-        label: "Off-Hours Trades",
+        label: "Trades fuera de horario",
         value: String(data.kpis?.offHoursTrades?.value ?? 0),
         subcopy: "violaciones",
         badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "100% en horario" : "post 17:00 detectado",
@@ -608,11 +645,11 @@ export function renderDisciplineSection(target, data = disciplineData) {
   const scoreValue = data.score?.overall ?? data.score?.score ?? 0;
   const breakdown = data.score?.breakdown
     ? [
-      { label: "Compliance", value: data.score.breakdown.compliance },
-      { label: "Precision", value: data.score.breakdown.precision },
-      { label: "Consistency", value: data.score.breakdown.consistency },
-      { label: "Timing", value: data.score.breakdown.timing },
-      { label: "Psychological", value: data.score.breakdown.psychological }
+      { label: "Cumplimiento", value: data.score.breakdown.compliance },
+      { label: "Precisión", value: data.score.breakdown.precision },
+      { label: "Consistencia", value: data.score.breakdown.consistency },
+      { label: "Horario", value: data.score.breakdown.timing },
+      { label: "Psicológico", value: data.score.breakdown.psychological }
     ]
     : data.score?.subscores || [];
   const insight = data.score?.insight || data.insight || disciplineData.score.insight;
@@ -647,14 +684,14 @@ export function renderDisciplineSection(target, data = disciplineData) {
     <section class="execution-main-grid">
       <article class="tl-section-card execution-panel execution-rules-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Rule compliance</div>
+          <div class="tl-section-title">Cumplimiento de reglas</div>
         </div>
         <div class="execution-rule-list">${renderRuleRows(rules)}</div>
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Daily execution — last 5 weeks</div>
+          <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
         </div>
         ${renderHeatmap(calendar)}
       </article>
@@ -663,19 +700,19 @@ export function renderDisciplineSection(target, data = disciplineData) {
     <section class="execution-main-grid execution-main-grid--lower">
       <article class="tl-section-card execution-panel execution-entry-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Entry precision — last 10 trades</div>
+          <div class="tl-section-title">Precisión de entrada — últimos 10 trades</div>
         </div>
         <div class="execution-entry-pattern">
-          <span>Execution pattern</span>
+          <span>Patrón de ejecución</span>
           <p>${entryPattern}</p>
         </div>
         <div class="execution-entry-table">
           <div class="execution-entry-table__head">
-            <span>Date</span>
-            <span>Pair</span>
-            <span>Pip dev.</span>
-            <span>Precision</span>
-            <span>Tag</span>
+            <span>Fecha</span>
+            <span>Par</span>
+            <span>Desv. pips</span>
+            <span>Precisión</span>
+            <span>Estado</span>
           </div>
           ${renderEntryRows(entryRows)}
         </div>
