@@ -129,6 +129,14 @@ function scoreColor(score) {
   return "bad";
 }
 
+function scoreLabel(score) {
+  if (!Number.isFinite(Number(score))) return "PENDIENTE";
+  if (score >= 80) return "SÓLIDO";
+  if (score >= 65) return "ACEPTABLE";
+  if (score >= 45) return "DÉBIL";
+  return "BAJO";
+}
+
 function precisionColor(value) {
   if (!Number.isFinite(Number(value))) return "pending";
   if (value < 2) return "ok";
@@ -252,19 +260,19 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
       value: formatPct(adherence ?? fallback.kpis.ruleAdherence.value),
       subcopy: "últimos 30 días",
       badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : `+${fallback.kpis.ruleAdherence.delta}% vs mes anterior`,
-      tone: ruleColor(adherence ?? fallback.kpis.ruleAdherence.value)
+      tone: Number.isFinite(adherence) ? ruleColor(adherence) : "neutral"
     },
     {
       label: "Precisión de entrada",
       value: formatPips(entryAverage ?? fallback.kpis.entryPrecision.value),
-      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "tracking estimado",
+      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "estimación basada en historial",
       badge: "objetivo <2.0",
-      tone: precisionColor(entryAverage ?? fallback.kpis.entryPrecision.value)
+      tone: Number.isFinite(entryAverage) ? precisionColor(entryAverage) : "neutral"
     },
     {
       label: "Violaciones de SL",
       value: Number.isFinite(slViolations) ? String(slViolations) : String(fallback.kpis.slViolations.value),
-      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "tracking estimado",
+      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "estimación basada en historial",
       badge: "SL movido o ignorado",
       tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : slViolations <= 3 ? "warn" : "bad") : "warn"
     },
@@ -388,16 +396,16 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
 function renderRuleRows(rows) {
   const noteMap = {
     "derived from registered SL": "derivado del SL registrado",
-    "requires SL tracking": "requiere tracking de SL",
+    "requires SL tracking": "pendiente de datos de SL",
     "per traded day": "por día operado",
     "no traded days": "sin días operados",
-    "entry tracking": "tracking de entrada",
-    "pending tracking": "tracking pendiente",
-    "BE tracking": "tracking de BE",
-    "requires configuration": "requiere configuración",
-    "close time registered": "hora de cierre registrada",
-    "no trades": "sin trades",
-    "setup/tag available": "setup/tag disponible"
+    "entry tracking": "basado en entrada registrada",
+    "pending tracking": "pendiente de datos",
+    "BE tracking": "basado en break even registrado",
+    "requires configuration": "sin datos suficientes",
+    "close time registered": "basado en horario registrado",
+    "no trades": "sin operaciones",
+    "setup/tag available": "requiere etiquetado del setup"
   };
   return rows.map((row) => {
     const tone = ruleColor(row.pct);
@@ -474,6 +482,7 @@ function renderScoreGauge(score) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
+  const label = scoreLabel(score);
   return `
     <div class="execution-score-gauge execution-tone-${scoreColor(score)}">
       <svg viewBox="0 0 140 140" aria-hidden="true">
@@ -482,7 +491,7 @@ function renderScoreGauge(score) {
       </svg>
       <div>
         <strong>${score}</strong>
-        <span>score</span>
+        <span>${label}</span>
       </div>
     </div>
   `;
@@ -500,23 +509,51 @@ function ruleDisplayName(name = "") {
 
 function issueDescription(name = "") {
   if (/fixed sl|sl fijo|sl/i.test(name)) {
-    return "Los stops se están moviendo o ignorando, rompiendo la consistencia del sistema.";
+    return "El stop está siendo movido, ignorado o no queda suficientemente validado.";
   }
   if (/max 1 trade|trade\/day|frecuencia/i.test(name)) {
-    return "La frecuencia sube en sesiones de presión y degrada la calidad de decisión.";
+    return "La cantidad de trades se aleja del límite operativo definido.";
   }
   if (/17:00|hours|horario/i.test(name)) {
-    return "Las operaciones fuera de ventana reducen la calidad del contexto.";
+    return "Hay operaciones fuera de la ventana permitida.";
+  }
+  if (/entry/i.test(name)) {
+    return "La entrada se aleja del punto técnico ideal.";
+  }
+  if (/setup/i.test(name)) {
+    return "El setup no queda etiquetado o validado con suficiente consistencia.";
   }
   return "La ejecución se desvía del proceso y reduce la consistencia operativa.";
 }
 
+function isReliableRule(row = {}) {
+  if (!Number.isFinite(Number(row.pct))) return false;
+  return !/requires|pending|no trades|no traded days|sin datos|pendiente/i.test(String(row.note || ""));
+}
+
+function resolvePrincipalDeviation(rules = []) {
+  const priority = [
+    /fixed sl|sl fijo|sl/i,
+    /max 1 trade|trade\/day|frecuencia/i,
+    /17:00|hours|horario/i,
+    /entry/i,
+    /setup/i
+  ];
+  const reliableRules = rules.filter(isReliableRule);
+  for (const matcher of priority) {
+    const belowTarget = reliableRules.find((rule) => matcher.test(rule.name) && Number(rule.pct) < 90);
+    if (belowTarget) return belowTarget;
+  }
+  for (const matcher of priority) {
+    const available = reliableRules.find((rule) => matcher.test(rule.name));
+    if (available) return available;
+  }
+  return { name: RULE_DEFINITIONS[0], pct: null, note: "pending tracking" };
+}
+
 function renderExecutionHero(rules = []) {
-  const weakestRule = [...rules]
-    .filter((rule) => Number.isFinite(Number(rule.pct)))
-    .sort((a, b) => Number(a.pct) - Number(b.pct))[0];
-  const issueName = ruleDisplayName(weakestRule?.name || RULE_DEFINITIONS[0]);
-  const issuePct = Number.isFinite(Number(weakestRule?.pct)) ? Math.round(Number(weakestRule.pct)) : 25;
+  const principalRule = resolvePrincipalDeviation(rules);
+  const issueName = ruleDisplayName(principalRule?.name || RULE_DEFINITIONS[0]);
 
   return `
     <section class="execution-hero">
@@ -527,8 +564,8 @@ function renderExecutionHero(rules = []) {
       </div>
       <div class="execution-hero__issue">
         <span>Principal desviación</span>
-        <strong>${issueName} (${issuePct}%)</strong>
-        <p>${issueDescription(weakestRule?.name || RULE_DEFINITIONS[0])}</p>
+        <strong>${issueName}</strong>
+        <p>${issueDescription(principalRule?.name || RULE_DEFINITIONS[0])}</p>
       </div>
     </section>
   `;
@@ -670,17 +707,6 @@ export function renderDisciplineSection(target, data = disciplineData) {
       ${renderScorePanel(scoreValue, breakdown, insight)}
     </section>
 
-    <section class="execution-kpi-grid">
-      ${kpis.map((kpi) => `
-        <article class="tl-kpi-card execution-kpi execution-tone-${kpi.tone}">
-          <div class="tl-kpi-label">${kpi.label}</div>
-          <div class="tl-kpi-val">${kpi.value}</div>
-          <p>${kpi.subcopy}</p>
-          <span>${kpi.badge}</span>
-        </article>
-      `).join("")}
-    </section>
-
     <section class="execution-main-grid">
       <article class="tl-section-card execution-panel execution-rules-panel">
         <div class="tl-section-header execution-section-header">
@@ -695,6 +721,17 @@ export function renderDisciplineSection(target, data = disciplineData) {
         </div>
         ${renderHeatmap(calendar)}
       </article>
+    </section>
+
+    <section class="execution-kpi-grid">
+      ${kpis.map((kpi) => `
+        <article class="tl-kpi-card execution-kpi execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
+          <div class="tl-kpi-label">${kpi.label}</div>
+          <div class="tl-kpi-val">${kpi.value}</div>
+          <p>${kpi.subcopy}</p>
+          <span>${kpi.badge}</span>
+        </article>
+      `).join("")}
     </section>
 
     <section class="execution-main-grid execution-main-grid--lower">

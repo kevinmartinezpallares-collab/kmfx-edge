@@ -16859,3 +16859,63 @@ body[data-theme="dark"] .weekly-chart-shell {
   border: 1px solid var(--kmfx-border) !important;
   border-radius: var(--kmfx-card-radius) !important;
 }
+
+/* === EXECUTION FINAL POLISH === */
+html[data-theme="dark"] #section-discipline.discipline-page-stack,
+body[data-theme="dark"] #section-discipline.discipline-page-stack {
+  gap: 24px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-row,
+body[data-theme="dark"] #section-discipline .execution-score-row,
+html[data-theme="dark"] #section-discipline .execution-main-grid,
+body[data-theme="dark"] #section-discipline .execution-main-grid,
+html[data-theme="dark"] #section-discipline .execution-main-grid--lower,
+body[data-theme="dark"] #section-discipline .execution-main-grid--lower {
+  gap: 24px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero,
+body[data-theme="dark"] #section-discipline .execution-hero {
+  gap: 20px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid {
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-panel,
+body[data-theme="dark"] #section-discipline .execution-score-panel {
+  min-height: 0;
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-gauge span,
+body[data-theme="dark"] #section-discipline .execution-score-gauge span {
+  margin-top: 5px;
+  color: var(--execution-score-color, var(--text-2));
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi--support,
+body[data-theme="dark"] #section-discipline .execution-kpi--support {
+  border-color: var(--border-0) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi--support span,
+body[data-theme="dark"] #section-discipline .execution-kpi--support span {
+  background: rgba(255,255,255,0.035) !important;
+  border-color: rgba(255,255,255,0.065) !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi--critical.execution-tone-bad,
+body[data-theme="dark"] #section-discipline .execution-kpi--critical.execution-tone-bad {
+  border-color: rgba(255,92,92,0.22) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi--critical.execution-tone-bad span,
+body[data-theme="dark"] #section-discipline .execution-kpi--critical.execution-tone-bad span {
+  color: rgba(255,92,92,0.55) !important;
+  background: rgba(255,92,92,0.08) !important;
+  border-color: rgba(255,92,92,0.18) !important;
+}
