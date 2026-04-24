@@ -71,6 +71,23 @@
   --radius-section: 16px;
   --radius-card: 12px;
   --radius-shell: 18px;
+
+  /* KMFX design-system contract */
+  --kmfx-page-bg: #0a0a0a;
+  --kmfx-shell-bg: #111111;
+  --kmfx-card-bg: #151515;
+  --kmfx-card-bg-soft: #1a1a1a;
+  --kmfx-border: rgba(255,255,255,0.08);
+  --kmfx-border-strong: rgba(255,255,255,0.12);
+  --kmfx-gap-page: 28px;
+  --kmfx-gap-section: 24px;
+  --kmfx-gap-card: 16px;
+  --kmfx-card-padding: 24px;
+  --kmfx-card-radius: 16px;
+  --kmfx-title-size: 34px;
+  --kmfx-title-line: 1.05;
+  --kmfx-subtitle-size: 15px;
+  --kmfx-label-size: 11px;
 }
 
 html,
@@ -16406,4 +16423,439 @@ body[data-theme="dark"] #section-discipline .execution-tone-pending .execution-e
   body[data-theme="dark"] #section-discipline .execution-entry-row {
     min-width: 640px;
   }
+}
+
+/* === KMFX DESIGN SYSTEM NORMALIZATION === */
+:root,
+[data-theme="dark"] {
+  --layer-0: var(--kmfx-page-bg) !important;
+  --layer-1: var(--kmfx-card-bg) !important;
+  --layer-2: var(--kmfx-card-bg-soft) !important;
+  --border-0: var(--kmfx-border) !important;
+  --border-1: var(--kmfx-border) !important;
+  --border-2: var(--kmfx-border-strong) !important;
+  --radius-section: var(--kmfx-card-radius);
+  --radius-card: var(--kmfx-card-radius);
+  --card-surface: var(--kmfx-card-bg);
+  --card-border: var(--kmfx-border);
+  --card-radius: var(--kmfx-card-radius);
+  --chart-plot-bg: var(--kmfx-card-bg-soft);
+  --chart-plot-border: var(--kmfx-border);
+  --chart-grid: rgba(255,255,255,0.06);
+  --chart-axis-text: var(--text-2);
+  --chart-tooltip-bg: color-mix(in srgb, var(--kmfx-card-bg-soft) 94%, #000 6%);
+  --chart-tooltip-border: var(--kmfx-border);
+  --chart-radius: var(--kmfx-card-radius);
+  --chart-inner-gap: var(--kmfx-gap-card);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+body[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .main-panel,
+body[data-theme="dark"] .main-panel,
+html[data-theme="dark"] .content,
+body[data-theme="dark"] .content {
+  background: var(--kmfx-shell-bg) !important;
+  background-image: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset {
+  background: var(--kmfx-shell-bg) !important;
+}
+
+html[data-theme="dark"] .dashboard-page-flow,
+body[data-theme="dark"] .dashboard-page-flow,
+html[data-theme="dark"] .dashboard-premium-grid,
+body[data-theme="dark"] .dashboard-premium-grid,
+html[data-theme="dark"] .calendar-screen,
+body[data-theme="dark"] .calendar-screen,
+html[data-theme="dark"] .trades-screen,
+body[data-theme="dark"] .trades-screen,
+html[data-theme="dark"] .strategies-page-stack,
+body[data-theme="dark"] .strategies-page-stack,
+html[data-theme="dark"] .analytics-page-flow,
+body[data-theme="dark"] .analytics-page-flow,
+html[data-theme="dark"] .risk-page-stack,
+body[data-theme="dark"] .risk-page-stack,
+html[data-theme="dark"] .discipline-page-stack,
+body[data-theme="dark"] .discipline-page-stack,
+html[data-theme="dark"] .connections-shell,
+body[data-theme="dark"] .connections-shell,
+html[data-theme="dark"] .funded-page-stack,
+body[data-theme="dark"] .funded-page-stack,
+html[data-theme="dark"] .kmfx-mt5-page,
+body[data-theme="dark"] .kmfx-mt5-page {
+  display: grid;
+  gap: var(--kmfx-gap-section);
+}
+
+html[data-theme="dark"] .tl-page-header,
+body[data-theme="dark"] .tl-page-header,
+html[data-theme="dark"] .calendar-screen__header,
+body[data-theme="dark"] .calendar-screen__header,
+html[data-theme="dark"] .connections-shell__header,
+body[data-theme="dark"] .connections-shell__header,
+html[data-theme="dark"] .kmfx-mt5-header,
+body[data-theme="dark"] .kmfx-mt5-header {
+  margin: 0 0 var(--kmfx-gap-page);
+}
+
+html[data-theme="dark"] .tl-page-title,
+body[data-theme="dark"] .tl-page-title,
+html[data-theme="dark"] .calendar-screen__title,
+body[data-theme="dark"] .calendar-screen__title,
+html[data-theme="dark"] .connections-shell__title,
+body[data-theme="dark"] .connections-shell__title,
+html[data-theme="dark"] .kmfx-mt5-header__title,
+body[data-theme="dark"] .kmfx-mt5-header__title {
+  margin: 0;
+  font-size: var(--kmfx-title-size) !important;
+  line-height: var(--kmfx-title-line) !important;
+  font-weight: 780 !important;
+  letter-spacing: -0.045em !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .calendar-screen__eyebrow,
+body[data-theme="dark"] .calendar-screen__eyebrow,
+html[data-theme="dark"] .risk-data-state__eyebrow,
+body[data-theme="dark"] .risk-data-state__eyebrow {
+  margin: 0 0 8px;
+  font-size: var(--kmfx-label-size) !important;
+  line-height: 1.1;
+  font-weight: 800 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .calendar-screen__subtitle,
+body[data-theme="dark"] .calendar-screen__subtitle,
+html[data-theme="dark"] .connections-shell__subtitle,
+body[data-theme="dark"] .connections-shell__subtitle,
+html[data-theme="dark"] .kmfx-mt5-header__subtitle,
+body[data-theme="dark"] .kmfx-mt5-header__subtitle,
+html[data-theme="dark"] .tl-page-header .row-sub,
+body[data-theme="dark"] .tl-page-header .row-sub {
+  margin: 8px 0 0;
+  font-size: var(--kmfx-subtitle-size) !important;
+  line-height: 1.45 !important;
+  color: var(--text-2) !important;
+}
+
+.kmfx-card,
+html[data-theme="dark"] .tl-section-card,
+body[data-theme="dark"] .tl-section-card,
+html[data-theme="dark"] .widget-card,
+body[data-theme="dark"] .widget-card,
+html[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .pnlcal-card,
+body[data-theme="dark"] .pnlcal-card,
+html[data-theme="dark"] .table-wrap,
+body[data-theme="dark"] .table-wrap,
+html[data-theme="dark"] .widget-table-wrap,
+body[data-theme="dark"] .widget-table-wrap,
+html[data-theme="dark"] .calendar-summary-card,
+body[data-theme="dark"] .calendar-summary-card,
+html[data-theme="dark"] .calendar-week-chip,
+body[data-theme="dark"] .calendar-week-chip,
+html[data-theme="dark"] .analytics-insight-card,
+body[data-theme="dark"] .analytics-insight-card,
+html[data-theme="dark"] .analytics-pattern-card,
+body[data-theme="dark"] .analytics-pattern-card,
+html[data-theme="dark"] .analytics-winloss-card,
+body[data-theme="dark"] .analytics-winloss-card,
+html[data-theme="dark"] .analytics-risk-kpi,
+body[data-theme="dark"] .analytics-risk-kpi,
+html[data-theme="dark"] .risk-metric-card,
+body[data-theme="dark"] .risk-metric-card,
+html[data-theme="dark"] .risk-rule-card,
+body[data-theme="dark"] .risk-rule-card,
+html[data-theme="dark"] .risk-policy-card,
+body[data-theme="dark"] .risk-policy-card,
+html[data-theme="dark"] .strategies-setup-item,
+body[data-theme="dark"] .strategies-setup-item,
+html[data-theme="dark"] .open-position-summary,
+body[data-theme="dark"] .open-position-summary,
+html[data-theme="dark"] .connections-account-card,
+body[data-theme="dark"] .connections-account-card,
+html[data-theme="dark"] .settings-status-card,
+body[data-theme="dark"] .settings-status-card,
+html[data-theme="dark"] #section-discipline .execution-hero,
+body[data-theme="dark"] #section-discipline .execution-hero,
+html[data-theme="dark"] #section-discipline .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .execution-hero__issue,
+html[data-theme="dark"] #section-discipline .execution-panel,
+body[data-theme="dark"] #section-discipline .execution-panel,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern {
+  background: var(--kmfx-card-bg) !important;
+  background-image: none !important;
+  border: 1px solid var(--kmfx-border) !important;
+  border-radius: var(--kmfx-card-radius) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .tl-section-card,
+body[data-theme="dark"] .tl-section-card,
+html[data-theme="dark"] .widget-card,
+body[data-theme="dark"] .widget-card,
+html[data-theme="dark"] .chart-card,
+body[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .pnlcal-card,
+body[data-theme="dark"] .pnlcal-card,
+html[data-theme="dark"] .analytics-pattern-card,
+body[data-theme="dark"] .analytics-pattern-card,
+html[data-theme="dark"] .risk-policy-card,
+body[data-theme="dark"] .risk-policy-card {
+  padding: var(--kmfx-card-padding) !important;
+}
+
+.kmfx-kpi-card,
+html[data-theme="dark"] .tl-kpi-card,
+body[data-theme="dark"] .tl-kpi-card,
+html[data-theme="dark"] .widget-card--kpi,
+body[data-theme="dark"] .widget-card--kpi,
+html[data-theme="dark"] .calendar-summary-card,
+body[data-theme="dark"] .calendar-summary-card,
+html[data-theme="dark"] .risk-core-kpi,
+body[data-theme="dark"] .risk-core-kpi,
+html[data-theme="dark"] .analytics-risk-kpi,
+body[data-theme="dark"] .analytics-risk-kpi,
+html[data-theme="dark"] #section-discipline .execution-kpi,
+body[data-theme="dark"] #section-discipline .execution-kpi {
+  min-height: 148px;
+  padding: var(--kmfx-card-padding) !important;
+  background: var(--kmfx-card-bg) !important;
+  border: 1px solid var(--kmfx-border) !important;
+  border-radius: var(--kmfx-card-radius) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .tl-kpi-label,
+body[data-theme="dark"] .tl-kpi-label,
+html[data-theme="dark"] .calendar-summary-card__label,
+body[data-theme="dark"] .calendar-summary-card__label,
+html[data-theme="dark"] .risk-metric-card__label,
+body[data-theme="dark"] .risk-metric-card__label,
+html[data-theme="dark"] .analytics-risk-kpi__label,
+body[data-theme="dark"] .analytics-risk-kpi__label,
+html[data-theme="dark"] #section-discipline .execution-kpi p:first-child,
+body[data-theme="dark"] #section-discipline .execution-kpi p:first-child {
+  margin: 0;
+  font-size: var(--kmfx-label-size) !important;
+  line-height: 1.1;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] .tl-kpi-val,
+body[data-theme="dark"] .tl-kpi-val,
+html[data-theme="dark"] .calendar-summary-card__value,
+body[data-theme="dark"] .calendar-summary-card__value,
+html[data-theme="dark"] .risk-metric-card__value,
+body[data-theme="dark"] .risk-metric-card__value,
+html[data-theme="dark"] .analytics-risk-kpi__value,
+body[data-theme="dark"] .analytics-risk-kpi__value,
+html[data-theme="dark"] #section-discipline .execution-kpi strong,
+body[data-theme="dark"] #section-discipline .execution-kpi strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em !important;
+  line-height: 1.02 !important;
+}
+
+html[data-theme="dark"] .tl-kpi-row,
+body[data-theme="dark"] .tl-kpi-row,
+html[data-theme="dark"] .tl-kpi-row.five,
+body[data-theme="dark"] .tl-kpi-row.five,
+html[data-theme="dark"] .dashboard-summary-kpis,
+body[data-theme="dark"] .dashboard-summary-kpis,
+html[data-theme="dark"] .calendar-summary-strip,
+body[data-theme="dark"] .calendar-summary-strip,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid {
+  gap: var(--kmfx-gap-card) !important;
+  margin-bottom: 0 !important;
+}
+
+html[data-theme="dark"] .grid-2,
+body[data-theme="dark"] .grid-2,
+html[data-theme="dark"] .grid-2.equal,
+body[data-theme="dark"] .grid-2.equal,
+html[data-theme="dark"] .grid-3,
+body[data-theme="dark"] .grid-3,
+html[data-theme="dark"] .dashboard-main-grid,
+body[data-theme="dark"] .dashboard-main-grid,
+html[data-theme="dark"] .dashboard-secondary-grid,
+body[data-theme="dark"] .dashboard-secondary-grid,
+html[data-theme="dark"] .dashboard-tertiary-grid,
+body[data-theme="dark"] .dashboard-tertiary-grid,
+html[data-theme="dark"] .calendar-analytics-stack,
+body[data-theme="dark"] .calendar-analytics-stack,
+html[data-theme="dark"] #section-discipline .execution-main-grid,
+body[data-theme="dark"] #section-discipline .execution-main-grid {
+  gap: var(--kmfx-gap-section) !important;
+}
+
+html[data-theme="dark"] .tl-section-header,
+body[data-theme="dark"] .tl-section-header,
+html[data-theme="dark"] .calendar-panel-head,
+body[data-theme="dark"] .calendar-panel-head,
+html[data-theme="dark"] .widget-card-head,
+body[data-theme="dark"] .widget-card-head {
+  gap: 12px !important;
+  margin-bottom: var(--kmfx-gap-card) !important;
+}
+
+html[data-theme="dark"] .tl-section-title,
+body[data-theme="dark"] .tl-section-title,
+html[data-theme="dark"] .calendar-panel-title,
+body[data-theme="dark"] .calendar-panel-title,
+html[data-theme="dark"] .dashboard-risk-block__title,
+body[data-theme="dark"] .dashboard-risk-block__title,
+html[data-theme="dark"] .widget-title,
+body[data-theme="dark"] .widget-title {
+  font-size: 17px !important;
+  line-height: 1.15 !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .calendar-panel-sub,
+body[data-theme="dark"] .calendar-panel-sub,
+html[data-theme="dark"] .row-sub,
+body[data-theme="dark"] .row-sub,
+html[data-theme="dark"] .widget-card-meta,
+body[data-theme="dark"] .widget-card-meta,
+html[data-theme="dark"] .goal-card-sub,
+body[data-theme="dark"] .goal-card-sub {
+  color: var(--text-2) !important;
+}
+
+.kmfx-pill,
+html[data-theme="dark"] .pill,
+body[data-theme="dark"] .pill,
+html[data-theme="dark"] .ui-badge,
+body[data-theme="dark"] .ui-badge,
+html[data-theme="dark"] .widget-pill,
+body[data-theme="dark"] .widget-pill,
+html[data-theme="dark"] .row-chip,
+body[data-theme="dark"] .row-chip,
+html[data-theme="dark"] .calc-chip,
+body[data-theme="dark"] .calc-chip,
+html[data-theme="dark"] .trade-side,
+body[data-theme="dark"] .trade-side,
+html[data-theme="dark"] .risk-status-badge,
+body[data-theme="dark"] .risk-status-badge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.045) !important;
+  border: 1px solid var(--kmfx-border) !important;
+  color: var(--text-1) !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.kmfx-pill--positive,
+html[data-theme="dark"] .ui-badge--ok,
+body[data-theme="dark"] .ui-badge--ok,
+html[data-theme="dark"] .trade-side--buy,
+body[data-theme="dark"] .trade-side--buy {
+  color: var(--positive) !important;
+  background: rgba(52,217,123,0.10) !important;
+  border-color: rgba(52,217,123,0.22) !important;
+}
+
+.kmfx-pill--warning,
+html[data-theme="dark"] .ui-badge--warn,
+body[data-theme="dark"] .ui-badge--warn {
+  color: var(--warning) !important;
+  background: rgba(245,166,35,0.10) !important;
+  border-color: rgba(245,166,35,0.22) !important;
+}
+
+.kmfx-pill--danger,
+html[data-theme="dark"] .ui-badge--error,
+body[data-theme="dark"] .ui-badge--error,
+html[data-theme="dark"] .trade-side--sell,
+body[data-theme="dark"] .trade-side--sell {
+  color: color-mix(in srgb, var(--negative) 72%, var(--text-0)) !important;
+  background: rgba(255,92,92,0.10) !important;
+  border-color: rgba(255,92,92,0.20) !important;
+}
+
+html[data-theme="dark"] .table-wrap,
+body[data-theme="dark"] .table-wrap,
+html[data-theme="dark"] .widget-table-wrap,
+body[data-theme="dark"] .widget-table-wrap {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .table-wrap table,
+body[data-theme="dark"] .table-wrap table,
+html[data-theme="dark"] .widget-table-wrap table,
+body[data-theme="dark"] .widget-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .table-wrap th,
+body[data-theme="dark"] .table-wrap th,
+html[data-theme="dark"] .widget-table-wrap th,
+body[data-theme="dark"] .widget-table-wrap th {
+  font-size: var(--kmfx-label-size) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  color: var(--text-2) !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--kmfx-border) !important;
+}
+
+html[data-theme="dark"] .table-wrap td,
+body[data-theme="dark"] .table-wrap td,
+html[data-theme="dark"] .widget-table-wrap td,
+body[data-theme="dark"] .widget-table-wrap td {
+  border-bottom: 1px solid rgba(255,255,255,0.055) !important;
+  background: transparent !important;
+}
+
+html[data-theme="dark"] .table-wrap tbody tr:hover td,
+body[data-theme="dark"] .table-wrap tbody tr:hover td,
+html[data-theme="dark"] .widget-table-wrap tbody tr:hover td,
+body[data-theme="dark"] .widget-table-wrap tbody tr:hover td,
+html[data-theme="dark"] .strategies-table-card tbody tr:hover td,
+body[data-theme="dark"] .strategies-table-card tbody tr:hover td,
+html[data-theme="dark"] .trades-history-card tbody tr:hover td,
+body[data-theme="dark"] .trades-history-card tbody tr:hover td {
+  background: rgba(255,255,255,0.035) !important;
+}
+
+html[data-theme="dark"] .kmfx-chart-shell,
+body[data-theme="dark"] .kmfx-chart-shell,
+html[data-theme="dark"] .chart-shell,
+body[data-theme="dark"] .chart-shell,
+html[data-theme="dark"] .weekly-chart-shell,
+body[data-theme="dark"] .weekly-chart-shell {
+  background: transparent !important;
+  border: 1px solid var(--kmfx-border) !important;
+  border-radius: var(--kmfx-card-radius) !important;
 }
