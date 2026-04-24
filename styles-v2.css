@@ -15803,6 +15803,82 @@ body[data-theme="dark"] #section-discipline.discipline-page-stack {
   gap: 24px;
 }
 
+html[data-theme="dark"] #section-discipline .execution-hero,
+body[data-theme="dark"] #section-discipline .execution-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.46fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 0;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--negative) 12%, #1a1a1a);
+  border-radius: 18px;
+  background: #111111;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__copy,
+body[data-theme="dark"] #section-discipline .execution-hero__copy,
+html[data-theme="dark"] #section-discipline .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .execution-hero__issue {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__eyebrow,
+body[data-theme="dark"] #section-discipline .execution-hero__eyebrow,
+html[data-theme="dark"] #section-discipline .execution-hero__issue span,
+body[data-theme="dark"] #section-discipline .execution-hero__issue span,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern span,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern span {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero h3,
+body[data-theme="dark"] #section-discipline .execution-hero h3 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero p,
+body[data-theme="dark"] #section-discipline .execution-hero p,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern p,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .execution-hero__issue {
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,0.055);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero__issue strong,
+body[data-theme="dark"] #section-discipline .execution-hero__issue strong {
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-row,
+body[data-theme="dark"] #section-discipline .execution-score-row {
+  display: grid;
+  gap: 18px;
+}
+
 html[data-theme="dark"] #section-discipline .execution-kpi-grid,
 body[data-theme="dark"] #section-discipline .execution-kpi-grid {
   display: grid;
@@ -15886,6 +15962,11 @@ body[data-theme="dark"] #section-discipline .execution-main-grid {
 html[data-theme="dark"] #section-discipline .execution-main-grid--lower,
 body[data-theme="dark"] #section-discipline .execution-main-grid--lower {
   grid-template-columns: minmax(0, 1fr) minmax(380px, 0.74fr);
+}
+
+html[data-theme="dark"] #section-discipline .execution-main-grid--lower > .execution-entry-panel,
+body[data-theme="dark"] #section-discipline .execution-main-grid--lower > .execution-entry-panel {
+  grid-column: 1 / -1;
 }
 
 html[data-theme="dark"] #section-discipline .execution-panel,
@@ -16035,6 +16116,16 @@ html[data-theme="dark"] #section-discipline .execution-entry-table,
 body[data-theme="dark"] #section-discipline .execution-entry-table {
   display: grid;
   gap: 8px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-pattern,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.025);
 }
 
 html[data-theme="dark"] #section-discipline .execution-entry-table__head,
@@ -16218,7 +16309,7 @@ body[data-theme="dark"] #section-discipline .execution-tone-warn {
 
 html[data-theme="dark"] #section-discipline .execution-tone-bad,
 body[data-theme="dark"] #section-discipline .execution-tone-bad {
-  --execution-score-color: color-mix(in srgb, var(--negative) 76%, var(--text-1));
+  --execution-score-color: rgba(255,92,92,0.65);
 }
 
 html[data-theme="dark"] #section-discipline .execution-tone-ok .execution-rule-row__track span,
@@ -16253,8 +16344,8 @@ html[data-theme="dark"] #section-discipline .execution-heatmap__cell.execution-t
 body[data-theme="dark"] #section-discipline .execution-heatmap__cell.execution-tone-bad,
 html[data-theme="dark"] #section-discipline .execution-heatmap__legend .execution-tone-bad,
 body[data-theme="dark"] #section-discipline .execution-heatmap__legend .execution-tone-bad {
-  background: color-mix(in srgb, var(--negative) 55%, #1a1a1a);
-  border-color: rgba(214,86,102,0.2);
+  background: rgba(255,92,92,0.65);
+  border-color: rgba(255,92,92,0.18);
 }
 
 html[data-theme="dark"] #section-discipline .execution-heatmap__cell.execution-tone-empty,
@@ -16273,6 +16364,11 @@ body[data-theme="dark"] #section-discipline .execution-tone-pending .execution-e
 }
 
 @media (max-width: 1180px) {
+  html[data-theme="dark"] #section-discipline .execution-hero,
+  body[data-theme="dark"] #section-discipline .execution-hero {
+    grid-template-columns: 1fr;
+  }
+
   html[data-theme="dark"] #section-discipline .execution-kpi-grid,
   body[data-theme="dark"] #section-discipline .execution-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

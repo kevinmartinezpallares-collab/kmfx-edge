@@ -466,6 +466,75 @@ function renderScoreGauge(score) {
   `;
 }
 
+function ruleDisplayName(name = "") {
+  if (/fixed sl|sl fijo|sl/i.test(name)) return "SL discipline";
+  if (/entry/i.test(name)) return "Entry precision";
+  if (/17:00|hours|horario/i.test(name)) return "Timing discipline";
+  if (/setup/i.test(name)) return "Setup validation";
+  return name || "Execution discipline";
+}
+
+function renderExecutionHero(rules = []) {
+  const weakestRule = [...rules]
+    .filter((rule) => Number.isFinite(Number(rule.pct)))
+    .sort((a, b) => Number(a.pct) - Number(b.pct))[0];
+  const issueName = ruleDisplayName(weakestRule?.name || RULE_DEFINITIONS[0]);
+  const issuePct = Number.isFinite(Number(weakestRule?.pct)) ? Math.round(Number(weakestRule.pct)) : 25;
+
+  return `
+    <section class="execution-hero">
+      <div class="execution-hero__copy">
+        <p class="execution-hero__eyebrow">EXECUTION QUALITY</p>
+        <h3>Execution quality: Low</h3>
+        <p>Your execution is degrading under pressure.</p>
+      </div>
+      <div class="execution-hero__issue">
+        <span>Biggest issue</span>
+        <strong>${issueName} (${issuePct}%)</strong>
+        <p>Stops are being moved or ignored, breaking system consistency.</p>
+      </div>
+    </section>
+  `;
+}
+
+function buildEntryPattern(rows = []) {
+  const byPair = rows.reduce((map, row) => {
+    const deviation = Number(row.deviation ?? row.dev);
+    if (!row.pair || !Number.isFinite(deviation)) return map;
+    const bucket = map.get(row.pair) || { pair: row.pair, total: 0, count: 0 };
+    bucket.total += deviation;
+    bucket.count += 1;
+    map.set(row.pair, bucket);
+    return map;
+  }, new Map());
+
+  const weakestPair = [...byPair.values()]
+    .filter((item) => item.count > 0)
+    .map((item) => ({ ...item, avg: item.total / item.count }))
+    .sort((a, b) => b.avg - a.avg)[0];
+
+  if (!weakestPair) return "Entry timing needs more tracking before a clear pattern appears.";
+  return `You tend to enter late on ${weakestPair.pair} trades.`;
+}
+
+function renderScorePanel(scoreValue, breakdown, insight) {
+  return `
+    <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreColor(scoreValue)}">
+      <div class="tl-section-header execution-section-header">
+        <div class="tl-section-title">Discipline score</div>
+      </div>
+      <div class="execution-score-body">
+        ${renderScoreGauge(scoreValue)}
+        <div class="execution-subscore-list">${renderSubscores(breakdown)}</div>
+      </div>
+      <div class="execution-system-insight">
+        <strong>Insight</strong>
+        <p>${insight}</p>
+      </div>
+    </article>
+  `;
+}
+
 function buildDisciplineDataFromModel(model) {
   const recentTrades = getRecentTrades(model?.trades || []);
   const entryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
@@ -547,6 +616,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
     ]
     : data.score?.subscores || [];
   const insight = data.score?.insight || data.insight || disciplineData.score.insight;
+  const entryPattern = buildEntryPattern(entryRows);
 
   target.innerHTML = `
     <header class="kmfx-page__header">
@@ -556,6 +626,12 @@ export function renderDisciplineSection(target, data = disciplineData) {
         <p class="kmfx-page__subtitle">Cumplimiento del plan, precisión de entrada y calidad operativa.</p>
       </div>
     </header>
+
+    ${renderExecutionHero(rules)}
+
+    <section class="execution-score-row">
+      ${renderScorePanel(scoreValue, breakdown, insight)}
+    </section>
 
     <section class="execution-kpi-grid">
       ${kpis.map((kpi) => `
@@ -589,6 +665,10 @@ export function renderDisciplineSection(target, data = disciplineData) {
         <div class="tl-section-header execution-section-header">
           <div class="tl-section-title">Entry precision — last 10 trades</div>
         </div>
+        <div class="execution-entry-pattern">
+          <span>Execution pattern</span>
+          <p>${entryPattern}</p>
+        </div>
         <div class="execution-entry-table">
           <div class="execution-entry-table__head">
             <span>Date</span>
@@ -598,20 +678,6 @@ export function renderDisciplineSection(target, data = disciplineData) {
             <span>Tag</span>
           </div>
           ${renderEntryRows(entryRows)}
-        </div>
-      </article>
-
-      <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreColor(scoreValue)}">
-        <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Discipline score</div>
-        </div>
-        <div class="execution-score-body">
-          ${renderScoreGauge(scoreValue)}
-          <div class="execution-subscore-list">${renderSubscores(breakdown)}</div>
-        </div>
-        <div class="execution-system-insight">
-          <strong>Insight</strong>
-          <p>${insight}</p>
         </div>
       </article>
     </section>
