@@ -454,6 +454,77 @@ body::after {
   border-color: rgba(167, 139, 250, 0.24);
 }
 
+/* --------------------------------------------------------------------------
+   KMFX Trading Primitives
+   P&L and trading-state helpers built on semantic tokens.
+-------------------------------------------------------------------------- */
+.kmfx-ui-pnl {
+  display: inline;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kmfx-ui-pnl[data-tone="profit"] {
+  color: var(--profit);
+}
+
+.kmfx-ui-pnl[data-tone="loss"] {
+  color: var(--loss);
+}
+
+.kmfx-ui-pnl[data-tone="breakeven"] {
+  color: var(--breakeven);
+}
+
+.kmfx-ui-pnl[data-tone="neutral"] {
+  color: var(--muted-foreground);
+}
+
+.kmfx-ui-pnl-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 8px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius-pill);
+  font-variant-numeric: tabular-nums;
+}
+
+.kmfx-ui-pnl-badge[data-tone="profit"] {
+  color: var(--profit);
+  background: var(--profit-muted);
+  border-color: color-mix(in srgb, var(--profit) 24%, var(--border) 76%);
+}
+
+.kmfx-ui-pnl-badge[data-tone="loss"] {
+  color: var(--loss);
+  background: var(--loss-muted);
+  border-color: color-mix(in srgb, var(--loss) 24%, var(--border) 76%);
+}
+
+.kmfx-ui-pnl-badge[data-tone="breakeven"] {
+  color: var(--breakeven);
+  background: var(--muted);
+  border-color: var(--border);
+}
+
+.kmfx-ui-pnl-badge[data-tone="neutral"] {
+  color: var(--muted-foreground);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+}
+
 .kmfx-ui-table-wrap {
   overflow: auto;
   color: var(--foreground);

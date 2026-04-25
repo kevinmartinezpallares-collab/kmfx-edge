@@ -22,6 +22,10 @@ function attributesToHtml(attributes = {}) {
     .join(" ");
 }
 
+function normalizePnlTone(tone) {
+  return ["profit", "loss", "breakeven", "neutral"].includes(tone) ? tone : "neutral";
+}
+
 export function pageHeaderMarkup({
   eyebrow,
   title,
@@ -57,4 +61,42 @@ export function pageHeaderMarkup({
       ${actionsHtml ? `<div class="${escapeHtml(actionsClasses)}">${actionsHtml}</div>` : ""}
     </header>
   `;
+}
+
+export function pnlTone(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "neutral";
+  if (numericValue > 0) return "profit";
+  if (numericValue < 0) return "loss";
+  return "breakeven";
+}
+
+export function pnlTextMarkup({
+  value,
+  text,
+  tone,
+  className = "",
+  attrs = {},
+} = {}) {
+  const resolvedTone = normalizePnlTone(tone || pnlTone(value));
+  const classes = classNames("kmfx-ui-pnl", className);
+  const extraAttrs = attributesToHtml(attrs);
+  const displayText = text == null ? String(value ?? "") : String(text);
+
+  return `<span class="${escapeHtml(classes)}" data-tone="${escapeHtml(resolvedTone)}"${extraAttrs ? ` ${extraAttrs}` : ""}>${escapeHtml(displayText)}</span>`;
+}
+
+export function pnlBadgeMarkup({
+  value,
+  text,
+  tone,
+  className = "",
+  attrs = {},
+} = {}) {
+  const resolvedTone = normalizePnlTone(tone || pnlTone(value));
+  const classes = classNames("kmfx-ui-pnl-badge", className);
+  const extraAttrs = attributesToHtml(attrs);
+  const displayText = text == null ? String(value ?? "") : String(text);
+
+  return `<span class="${escapeHtml(classes)}" data-tone="${escapeHtml(resolvedTone)}"${extraAttrs ? ` ${extraAttrs}` : ""}>${escapeHtml(displayText)}</span>`;
 }
