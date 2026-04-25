@@ -2062,7 +2062,7 @@ function renderRuleRows(rows) {
       <div class="execution-rule-row rule-row execution-tone-${tone}${isPending ? " pending" : ""}">
         <div class="execution-rule-row__head">
           <strong class="rule-name">${ruleDisplayName(row.name)}</strong>
-          <span class="rule-status">${isIncomplete ? "Pendiente" : formatPct(row.pct)}</span>
+          <span class="rule-status">${isPending ? "—" : formatPct(row.pct)}</span>
         </div>
         <div class="execution-rule-row__track rule-bar-track" aria-hidden="true">
           <span class="rule-bar-fill" style="width:${width}%"></span>
@@ -2976,15 +2976,15 @@ function scoreDisplayTone(score, isPartial = false) {
 }
 
 function renderScoreGauge(score, { isPartial = false } = {}) {
-  const radius = 54;
+  const radius = 26;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
   const label = scoreLabel(score);
   return `
     <div class="execution-score-gauge execution-tone-${scoreDisplayTone(score, isPartial)}">
-      <svg viewBox="0 0 140 140" aria-hidden="true">
-        <circle class="execution-score-gauge__track" cx="70" cy="70" r="${radius}"></circle>
-        <circle class="execution-score-gauge__arc" cx="70" cy="70" r="${radius}" stroke-dasharray="${dash} ${circumference}"></circle>
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle class="execution-score-gauge__track" cx="32" cy="32" r="${radius}"></circle>
+        <circle class="execution-score-gauge__arc" cx="32" cy="32" r="${radius}" stroke-dasharray="${dash} ${circumference}"></circle>
       </svg>
       <div>
         <strong>${score}</strong>
@@ -3058,18 +3058,14 @@ function resolvePrincipalDeviation(rules = []) {
 function renderExecutionHero(rules = []) {
   const principalRule = resolvePrincipalDeviation(rules);
   const issueName = ruleDisplayName(principalRule?.name || RULE_DEFINITIONS[0]);
+  const issueText = issueDescription(principalRule?.name || RULE_DEFINITIONS[0]);
 
   return `
     <section class="execution-hero discipline-hero-card">
       <div class="execution-hero__copy">
         <p class="execution-hero__eyebrow">CALIDAD DE EJECUCIÓN</p>
         <h3>Calidad de ejecución baja</h3>
-        <p>Tu ejecución se degrada en momentos de presión.</p>
-      </div>
-      <div class="execution-hero__issue">
-        <span>Principal desviación</span>
-        <strong>${issueName}</strong>
-        <p>${issueDescription(principalRule?.name || RULE_DEFINITIONS[0])}</p>
+        <p>Tu ejecución se degrada en momentos de presión. <span>· ${issueName}: ${issueText}</span></p>
       </div>
     </section>
   `;
@@ -3173,15 +3169,15 @@ function postTradeRuleQuestion(rule) {
 function renderPostTradeIndicator(pendingTrades = [], canTag = true) {
   if (!canTag) return "";
   const count = pendingTrades.length;
+  if (!count) return "";
   return `
     <section class="posttrade-tag-alert${count ? " has-pending" : ""}">
+      <i aria-hidden="true"></i>
       <div>
-        <span>POST-TRADE TAG</span>
-        <strong>${count ? `${count} ${count === 1 ? "trade sin etiquetar" : "trades sin etiquetar"}` : "Tagging manual listo"}</strong>
-        <p>${count ? "Completa las reglas manuales para alimentar el score sin asumir datos que el EA todavía no envía." : "Usa el simulador para probar el flujo antes de conectar la capa local."}</p>
+        <p>${count} ${count === 1 ? "trade sin etiquetar" : "trades sin etiquetar"} — completa las reglas manuales para un score preciso</p>
       </div>
       <div class="posttrade-tag-alert__actions">
-        ${count ? `<button type="button" data-posttrade-complete>Completar tags</button>` : ""}
+        <button type="button" data-posttrade-complete>Completar tags</button>
         <button type="button" data-posttrade-simulate>Simular cierre trade</button>
       </div>
     </section>
@@ -3723,10 +3719,20 @@ export function renderDisciplineSection(target, data = disciplineData, context =
 
     ${renderPostTradeIndicator(pendingTagTrades, canOpenPostTradeTag)}
 
-    ${renderExecutionHero(visibleRules)}
-
-    <section class="execution-score-row">
+    <section class="execution-hero-score-row">
+      ${renderExecutionHero(visibleRules)}
       ${renderScorePanel(weightedScoreValue, breakdown, insight, { isPartial: isPartialData })}
+    </section>
+
+    <section class="execution-kpi-grid">
+      ${kpis.map((kpi) => `
+        <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
+          <div class="tl-kpi-label kpi-label">${kpi.label}</div>
+          <div class="tl-kpi-val kpi-value">${kpi.value}</div>
+          <p class="kpi-sub">${kpi.subcopy}</p>
+          <span>${kpi.badge}</span>
+        </article>
+      `).join("")}
     </section>
 
     <section class="execution-main-grid">
@@ -3746,39 +3752,6 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     </section>
 
     ${renderRuleHistory(ruleHistory, activeProfile)}
-
-    <section class="execution-kpi-grid">
-      ${kpis.map((kpi) => `
-        <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
-          <div class="tl-kpi-label kpi-label">${kpi.label}</div>
-          <div class="tl-kpi-val kpi-value">${kpi.value}</div>
-          <p class="kpi-sub">${kpi.subcopy}</p>
-          <span>${kpi.badge}</span>
-        </article>
-      `).join("")}
-    </section>
-
-    <section class="execution-main-grid execution-main-grid--lower">
-      <article id="entry-precision-card" class="tl-section-card execution-panel execution-entry-panel">
-        <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">${hasEntryTracking ? "Precisión de entrada — últimos 10 trades" : "Precisión de entrada"}</div>
-        </div>
-        <div class="execution-entry-pattern">
-          <span>Patrón de ejecución</span>
-          <p>${entryPattern}</p>
-        </div>
-        ${hasEntryTracking ? `<div class="execution-entry-table">
-          <div class="execution-entry-table__head">
-            <span>Fecha</span>
-            <span>Par</span>
-            <span>Desv. pips</span>
-            <span>Precisión</span>
-            <span>Estado</span>
-          </div>
-          ${renderEntryRows(entryRows)}
-        </div>` : renderEntryPrecisionEmpty()}
-      </article>
-    </section>
 
     <div id="discipline-profile-manager"></div>
     ${renderPostTradeModal(activeProfile, postTradeTags)}

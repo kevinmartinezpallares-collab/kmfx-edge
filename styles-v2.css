@@ -19651,3 +19651,646 @@ body[data-theme="dark"] #section-discipline .rule-profile-rule-group--strategy >
     max-width: none !important;
   }
 }
+
+/* === DISCIPLINE LAYOUT RESTRUCTURE === */
+html[data-theme="dark"] #section-discipline,
+body[data-theme="dark"] #section-discipline {
+  gap: 10px !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 11px 16px !important;
+  border: 1px solid #1e1e1e !important;
+  border-radius: 10px !important;
+  background: #111111 !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert > i,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert > i {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #F5A623;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert > div:first-of-type,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert > div:first-of-type {
+  flex: 1;
+  min-width: 0;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert p,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  color: #F5A623 !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions {
+  display: inline-flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button {
+  padding: 5px 11px !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #cccccc !important;
+  font-size: 11px !important;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .discipline-hero-card,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .discipline-hero-card {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center !important;
+  align-items: stretch !important;
+  gap: 3px !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  border: 1px solid #1e1e1e !important;
+  border-radius: 12px !important;
+  background: #111111 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__copy,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__copy {
+  gap: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__eyebrow,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__eyebrow {
+  margin: 0 0 5px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.07em !important;
+  color: #555555 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero h3,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero h3 {
+  margin: 0 0 3px !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  line-height: 1.15 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  color: #555555 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p span,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p span {
+  color: #FF5C5C;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card {
+  flex: 0 0 340px;
+  width: auto;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  border: 1px solid #1e1e1e !important;
+  border-radius: 12px !important;
+  background: #111111 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-section-header,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title,
+body[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #cccccc !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-data-pill,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-data-pill {
+  min-height: 0 !important;
+  padding: 2px 7px !important;
+  border: 1px solid rgba(245,166,35,0.2) !important;
+  border-radius: 20px !important;
+  background: rgba(245,166,35,0.12) !important;
+  color: #F5A623 !important;
+  font-size: 9px !important;
+  line-height: 1.15;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body {
+  display: flex !important;
+  align-items: center !important;
+  grid-template-columns: none !important;
+  gap: 14px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge {
+  flex: 0 0 64px;
+  width: 64px !important;
+  height: 64px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge circle,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge circle {
+  stroke-width: 6 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track {
+  stroke: #1a1a1a !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__arc,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__arc {
+  stroke-linecap: round;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong {
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span {
+  margin-top: 1px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.03em !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list {
+  flex: 1;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 2px 16px !important;
+  max-width: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore {
+  gap: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore span,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore span {
+  font-size: 11px !important;
+  color: #555555 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong {
+  font-size: 11px !important;
+  color: #cccccc !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong:is(:not(:empty)),
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong:is(:not(:empty)) {
+  font-weight: 500;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-reading,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-reading {
+  display: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight {
+  display: block !important;
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid #1a1a1a !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p {
+  display: inline;
+  margin: 0;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong {
+  color: #555555 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p {
+  color: #888888 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong::after,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong::after {
+  content: ": ";
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  background: #111111;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card {
+  min-height: 0 !important;
+  padding: 12px 14px !important;
+  border: 0 !important;
+  border-right: 1px solid #1a1a1a !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:last-child,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:last-child {
+  border-right: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label {
+  margin-bottom: 4px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.06em !important;
+  color: #444444 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value {
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value:not(:has(+ *)),
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value:not(:has(+ *)) {
+  font-size: 22px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub {
+  margin-top: 3px !important;
+  font-size: 10px !important;
+  color: #444444 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card > span,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card > span {
+  width: fit-content;
+  margin-top: 6px;
+  padding: 2px 7px;
+  font-size: 9px !important;
+  border-radius: 999px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-main-grid,
+body[data-theme="dark"] #section-discipline .execution-main-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  align-items: stretch;
+  gap: 10px !important;
+  margin-bottom: 10px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel,
+body[data-theme="dark"] #section-discipline .execution-rules-panel,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel {
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #1e1e1e !important;
+  border-radius: 12px !important;
+  background: #111111 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel .execution-section-header,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .execution-section-header,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-section-header,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-section-header {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid #1a1a1a !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #cccccc !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2F6BFF;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars {
+  display: grid;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #111111;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:last-child,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:last-child {
+  border-bottom: 0;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .execution-rule-row__head,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .execution-rule-row__head {
+  display: contents !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px !important;
+  font-weight: 500;
+  color: #cccccc !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-track,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-track {
+  height: 3px !important;
+  border-radius: 2px !important;
+  background: #1a1a1a !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-fill,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-fill {
+  height: 3px !important;
+  border-radius: 2px !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-status {
+  width: 36px;
+  text-align: right;
+  font-size: 11px !important;
+  color: #cccccc !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row small,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row small {
+  display: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending {
+  opacity: 0.4 !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name {
+  font-weight: 400;
+  color: #444444 !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status {
+  color: #333333 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap {
+  gap: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row {
+  grid-template-columns: 28px repeat(6, minmax(0, 1fr)) !important;
+  gap: 3px !important;
+  padding: 0 12px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays {
+  padding-top: 10px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row {
+  margin-top: 3px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays span,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong {
+  font-size: 9px !important;
+  color: #444444 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong {
+  text-align: right;
+  padding-right: 4px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell {
+  height: 28px !important;
+  border-radius: 5px !important;
+  border: 0 !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok {
+  background: rgba(52,217,123,0.65) !important;
+  color: #0a2a18;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn {
+  background: rgba(245,166,35,0.60) !important;
+  color: #2a1e08;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad {
+  background: rgba(255,92,92,0.55) !important;
+  color: #2a0808;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty {
+  background: #161616 !important;
+  color: transparent;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.is-today,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.is-today {
+  outline: 2px solid #2F6BFF !important;
+  outline-offset: 1px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend {
+  gap: 10px !important;
+  padding: 6px 12px 10px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span {
+  gap: 5px;
+  font-size: 10px !important;
+  color: #444444 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend i,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend i {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 2px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history,
+body[data-theme="dark"] #section-discipline .rule-history {
+  width: 100%;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__body,
+body[data-theme="dark"] #section-discipline .rule-history__body {
+  overflow-x: auto !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__grid,
+body[data-theme="dark"] #section-discipline .rule-history__grid {
+  grid-template-columns: minmax(180px, max-content) repeat(var(--rule-history-cols), 52px) !important;
+  width: max-content !important;
+  min-width: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__cell,
+body[data-theme="dark"] #section-discipline .rule-history__cell,
+html[data-theme="dark"] #section-discipline .rule-history__week,
+body[data-theme="dark"] #section-discipline .rule-history__week {
+  min-width: 52px !important;
+  max-width: 52px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail,
+body[data-theme="dark"] #section-discipline .rule-history-detail {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: -16px -16px 0;
+  padding: 16px;
+  background: #0f0f0f;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+@media (max-width: 700px) {
+  html[data-theme="dark"] #section-discipline .execution-hero-score-row,
+  body[data-theme="dark"] #section-discipline .execution-hero-score-row {
+    flex-wrap: wrap;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card,
+  body[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card {
+    flex: 1 1 100%;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-main-grid,
+  body[data-theme="dark"] #section-discipline .execution-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-kpi-grid,
+  body[data-theme="dark"] #section-discipline .execution-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:nth-child(2n),
+  body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:nth-child(2n) {
+    border-right: 0 !important;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:nth-child(-n+2),
+  body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card:nth-child(-n+2) {
+    border-bottom: 1px solid #1a1a1a !important;
+  }
+}
