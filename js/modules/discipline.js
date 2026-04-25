@@ -46,6 +46,230 @@ export const disciplineData = {
 
 const RULE_DEFINITIONS = disciplineData.rules.map((rule) => rule.name);
 
+// === RULE PROFILES ===
+const KMFX_PROFILES_STORAGE_KEY = "kmfx_profiles";
+
+const RULE_LIBRARY = {
+  "sl-fixed": {
+    id: "sl-fixed",
+    name: "SL fijo en 10 pips",
+    description: "El stop debe quedar definido y respetado.",
+    source: "auto",
+    weight: 1.4,
+    params: { pips: 10 },
+    executionRule: RULE_DEFINITIONS[0]
+  },
+  "max-trades-per-day": {
+    id: "max-trades-per-day",
+    name: "Máx. trades por día",
+    description: "Limita la frecuencia operativa diaria.",
+    source: "auto",
+    weight: 1.1,
+    params: { max: 1 },
+    executionRule: RULE_DEFINITIONS[1]
+  },
+  "session-window": {
+    id: "session-window",
+    name: "Ventana de sesión",
+    description: "Evita operar fuera del horario permitido.",
+    source: "auto",
+    weight: 1.2,
+    params: { until: "17:00" },
+    executionRule: RULE_DEFINITIONS[4]
+  },
+  "be-activation": {
+    id: "be-activation",
+    name: "BE activado a 20 pips",
+    description: "Protege la posición al alcanzar el umbral definido.",
+    source: "manual",
+    weight: 0.9,
+    params: { pips: 20 },
+    executionRule: RULE_DEFINITIONS[3]
+  },
+  "ob-entry": {
+    id: "ob-entry",
+    name: "Entrada en OB candle open",
+    description: "Mide desviación frente a la entrada técnica ideal.",
+    source: "auto",
+    weight: 1,
+    params: {},
+    executionRule: RULE_DEFINITIONS[2]
+  },
+  "valid-setup": {
+    id: "valid-setup",
+    name: "Setup válido confirmado",
+    description: "Requiere etiquetar y validar el setup antes de operar.",
+    source: "manual",
+    weight: 1,
+    params: {},
+    executionRule: RULE_DEFINITIONS[5]
+  },
+  "daily-drawdown-limit": {
+    id: "daily-drawdown-limit",
+    name: "Límite de drawdown diario",
+    description: "Controla la pérdida máxima permitida por día.",
+    source: "manual",
+    weight: 1.4,
+    params: { pct: 2 },
+    executionRule: "Límite de drawdown diario"
+  },
+  "news-blackout": {
+    id: "news-blackout",
+    name: "Bloqueo por noticias",
+    description: "Evita operar durante ventanas de alto impacto.",
+    source: "manual",
+    weight: 0.8,
+    params: { minutes: 30 },
+    executionRule: "Bloqueo por noticias"
+  },
+  "min-rr-ratio": {
+    id: "min-rr-ratio",
+    name: "R:R mínimo",
+    description: "Exige relación riesgo/beneficio mínima antes de entrar.",
+    source: "manual",
+    weight: 0.9,
+    params: { ratio: 1.5 },
+    executionRule: "R:R mínimo"
+  },
+  "max-daily-loss": {
+    id: "max-daily-loss",
+    name: "Pérdida diaria máxima",
+    description: "Corta operativa al alcanzar el límite de pérdida diaria.",
+    source: "manual",
+    weight: 1.3,
+    params: { amount: 500 },
+    executionRule: "Pérdida diaria máxima"
+  },
+  "consecutive-losses": {
+    id: "consecutive-losses",
+    name: "Pérdidas consecutivas",
+    description: "Detiene la sesión tras una racha negativa definida.",
+    source: "manual",
+    weight: 1.2,
+    params: { max: 2 },
+    executionRule: "Pérdidas consecutivas"
+  }
+};
+
+function profileRule(id, overrides = {}) {
+  const rule = RULE_LIBRARY[id];
+  return {
+    id,
+    name: rule?.name || id,
+    description: rule?.description || "Regla de ejecución.",
+    enabled: true,
+    source: rule?.source || "manual",
+    weight: rule?.weight || 1,
+    params: { ...(rule?.params || {}) },
+    ...overrides
+  };
+}
+
+const DEFAULT_KMFX_PROFILES = {
+  profiles: [
+    {
+      id: "real-conservative",
+      name: "Real conservador",
+      type: "real",
+      color: "#34D97B",
+      description: "Capital propio · Sin límite de tiempo",
+      rules: [
+        profileRule("sl-fixed"),
+        profileRule("max-trades-per-day"),
+        profileRule("session-window"),
+        profileRule("be-activation"),
+        profileRule("ob-entry"),
+        profileRule("valid-setup"),
+        profileRule("max-daily-loss", { enabled: false }),
+        profileRule("consecutive-losses")
+      ]
+    },
+    {
+      id: "orion-phase1",
+      name: "Orion Phase 1",
+      type: "challenge",
+      color: "#F5A623",
+      description: "Max DD 10% · 30 días",
+      rules: [
+        profileRule("daily-drawdown-limit"),
+        profileRule("max-daily-loss"),
+        profileRule("max-trades-per-day"),
+        profileRule("session-window"),
+        profileRule("news-blackout"),
+        profileRule("min-rr-ratio"),
+        profileRule("valid-setup")
+      ]
+    },
+    {
+      id: "orion-funded",
+      name: "Orion Funded",
+      type: "funded",
+      color: "#2F6BFF",
+      description: "Max DD 5% · Payout mensual",
+      rules: [
+        profileRule("sl-fixed"),
+        profileRule("daily-drawdown-limit"),
+        profileRule("max-daily-loss"),
+        profileRule("session-window"),
+        profileRule("be-activation"),
+        profileRule("consecutive-losses"),
+        profileRule("news-blackout", { enabled: false })
+      ]
+    }
+  ],
+  accountMap: {}
+};
+
+function cloneProfiles(value = DEFAULT_KMFX_PROFILES) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeProfiles(raw) {
+  const defaults = cloneProfiles();
+  const profiles = Array.isArray(raw?.profiles) && raw.profiles.length ? raw.profiles : defaults.profiles;
+  return {
+    profiles: profiles.map((profile) => ({
+      ...profile,
+      rules: Array.isArray(profile.rules) ? profile.rules.map((rule) => ({
+        ...profileRule(rule.id, rule),
+        enabled: rule.enabled !== false,
+        weight: clamp(Number(rule.weight) || 1, 0.5, 3)
+      })) : []
+    })),
+    accountMap: raw?.accountMap && typeof raw.accountMap === "object" ? raw.accountMap : {},
+    activeProfileId: raw?.activeProfileId || profiles[0]?.id || "real-conservative"
+  };
+}
+
+function loadProfiles() {
+  try {
+    const saved = window.localStorage?.getItem(KMFX_PROFILES_STORAGE_KEY);
+    return normalizeProfiles(saved ? JSON.parse(saved) : DEFAULT_KMFX_PROFILES);
+  } catch (error) {
+    console.warn("[KMFX][RULE_PROFILES] falling back to defaults", error);
+    return normalizeProfiles(DEFAULT_KMFX_PROFILES);
+  }
+}
+
+function saveProfiles(state) {
+  try {
+    window.localStorage?.setItem(KMFX_PROFILES_STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn("[KMFX][RULE_PROFILES] save skipped", error);
+  }
+}
+
+function getProfileForAccount(state, accountLogin = "") {
+  const mappedId = accountLogin ? state.accountMap?.[String(accountLogin)] : "";
+  const activeId = mappedId || state.activeProfileId || "real-conservative";
+  const profile = state.profiles.find((item) => item.id === activeId) || state.profiles[0];
+  return {
+    profile,
+    isDefault: !mappedId,
+    accountLogin: String(accountLogin || "")
+  };
+}
+
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -54,6 +278,15 @@ function average(values = []) {
   const valid = values.filter((value) => Number.isFinite(Number(value)));
   if (!valid.length) return null;
   return valid.reduce((sum, value) => sum + Number(value), 0) / valid.length;
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function toDayKey(dateLike) {
@@ -435,6 +668,209 @@ function renderRuleRows(rows) {
   }).join("");
 }
 
+// === RULE PROFILES ===
+function ruleRowFromProfileRule(profileRuleItem, currentRows = []) {
+  const libraryRule = RULE_LIBRARY[profileRuleItem.id] || {};
+  const executionName = libraryRule.executionRule || profileRuleItem.name;
+  const matchedRow = currentRows.find((row) => row.name === executionName);
+  if (matchedRow) {
+    return {
+      ...matchedRow,
+      name: executionName,
+      profileRuleName: profileRuleItem.name,
+      profileRuleId: profileRuleItem.id,
+      weight: profileRuleItem.weight
+    };
+  }
+  return {
+    name: executionName,
+    profileRuleName: profileRuleItem.name,
+    profileRuleId: profileRuleItem.id,
+    pct: null,
+    note: "sin datos suficientes",
+    weight: profileRuleItem.weight
+  };
+}
+
+function buildProfileRuleRows(profile, currentRows = []) {
+  const rules = Array.isArray(profile?.rules) ? profile.rules : [];
+  return rules
+    .filter((rule) => rule.enabled !== false)
+    .map((rule) => ruleRowFromProfileRule(rule, currentRows));
+}
+
+function renderProfileCards(profileState, activeProfile) {
+  return `
+    <div class="rule-profile-cards">
+      ${profileState.profiles.map((profile) => `
+        <button
+          type="button"
+          class="rule-profile-card${profile.id === activeProfile.id ? " is-active" : ""}"
+          data-profile-id="${escapeHtml(profile.id)}"
+          style="--rule-profile-color:${escapeHtml(profile.color || "#34D97B")}"
+        >
+          <span>${escapeHtml(profile.type || "perfil")}</span>
+          <strong>${escapeHtml(profile.name)}</strong>
+          <small>${escapeHtml(profile.description || "")}</small>
+        </button>
+      `).join("")}
+      <button type="button" class="rule-profile-card rule-profile-card--new" data-rule-action="new-profile">
+        <span>Nuevo</span>
+        <strong>+ Nuevo perfil</strong>
+        <small>Duplicar base conservadora</small>
+      </button>
+    </div>
+  `;
+}
+
+function renderProfileEditor(profile) {
+  const rules = Array.isArray(profile?.rules) ? profile.rules : [];
+  return `
+    <div class="rule-profile-editor">
+      <div class="rule-profile-editor__head">
+        <div>
+          <span>Perfil activo</span>
+          <strong>${escapeHtml(profile?.name || "Perfil")}</strong>
+          <p>El score se calcula solo con reglas activas.</p>
+        </div>
+        <button type="button" class="rule-profile-action" data-rule-action="add-rule">+ Añadir regla</button>
+      </div>
+      <div class="rule-profile-rule-list">
+        ${rules.map((rule) => `
+          <div class="rule-profile-rule${rule.enabled === false ? " is-disabled" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+            <label class="rule-profile-toggle">
+              <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
+              <span></span>
+            </label>
+            <div class="rule-profile-rule__copy">
+              <strong>${escapeHtml(rule.name)}</strong>
+              <p>${escapeHtml(rule.description)}</p>
+            </div>
+            <span class="rule-profile-badge">${rule.source === "auto" ? "Automático" : "Manual"}</span>
+            <label class="rule-profile-weight">
+              <span>Peso</span>
+              <div class="rule-profile-weight__control">
+                <b>×</b>
+                <input type="number" min="0.5" max="3" step="0.1" value="${Number(rule.weight || 1).toFixed(1)}" data-rule-weight="${escapeHtml(rule.id)}">
+              </div>
+            </label>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderAccountAssignments(profileState, activeProfile, accountLogin = "", isDefault = false) {
+  const mappedAccounts = Object.entries(profileState.accountMap || {})
+    .filter(([, profileId]) => profileId === activeProfile.id)
+    .map(([login]) => login);
+  return `
+    <div class="rule-profile-accounts">
+      <div>
+        <span>Cuentas asignadas</span>
+        <strong>${mappedAccounts.length ? mappedAccounts.map(escapeHtml).join(", ") : "Sin cuentas asignadas"}</strong>
+        ${isDefault && accountLogin ? `<p>Perfil por defecto aplicado a ${escapeHtml(accountLogin)}.</p>` : ""}
+      </div>
+      <form class="rule-profile-account-form" data-rule-action="assign-account">
+        <input type="text" name="login" placeholder="Login MT5" value="${escapeHtml(accountLogin || "")}">
+        <button type="submit">+ Asignar cuenta</button>
+      </form>
+    </div>
+  `;
+}
+
+function renderProfileManager(container, context = {}) {
+  if (!container) return;
+  const profileState = loadProfiles();
+  const { profile: activeProfile, isDefault, accountLogin } = getProfileForAccount(profileState, context.accountLogin);
+  container.innerHTML = `
+    <article class="rule-profile-manager">
+      <div class="rule-profile-manager__head">
+        <div>
+          <span>FASE 1 · LOCAL</span>
+          <strong>Perfiles de reglas</strong>
+          <p>Configura reglas por cuenta antes de conectar tracking real del EA.</p>
+        </div>
+        <button type="button" class="rule-profile-action" data-rule-action="new-profile">+ Nuevo</button>
+      </div>
+      ${renderProfileCards(profileState, activeProfile)}
+      ${renderProfileEditor(activeProfile)}
+      ${renderAccountAssignments(profileState, activeProfile, accountLogin, isDefault)}
+    </article>
+  `;
+
+  container.querySelectorAll("[data-profile-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      profileState.activeProfileId = button.dataset.profileId;
+      if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = button.dataset.profileId;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-action='new-profile']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const base = activeProfile || profileState.profiles[0];
+      const id = `custom-${Date.now()}`;
+      profileState.profiles.push({
+        ...cloneProfiles(base),
+        id,
+        name: `Perfil ${profileState.profiles.length + 1}`,
+        type: "custom",
+        color: "#8E8E93"
+      });
+      profileState.activeProfileId = id;
+      if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = id;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-toggle]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const rule = activeProfile.rules.find((item) => item.id === input.dataset.ruleToggle);
+      if (rule) rule.enabled = input.checked;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-weight]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const rule = activeProfile.rules.find((item) => item.id === input.dataset.ruleWeight);
+      if (rule) rule.weight = clamp(Number(input.value) || 1, 0.5, 3);
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  const addRuleButton = container.querySelector("[data-rule-action='add-rule']");
+  addRuleButton?.addEventListener("click", () => {
+    const existingIds = new Set(activeProfile.rules.map((rule) => rule.id));
+    const nextRule = Object.keys(RULE_LIBRARY).find((id) => !existingIds.has(id));
+    if (nextRule) {
+      activeProfile.rules.push(profileRule(nextRule));
+    } else {
+      const disabledRule = activeProfile.rules.find((rule) => rule.enabled === false);
+      if (disabledRule) disabledRule.enabled = true;
+    }
+    saveProfiles(profileState);
+    renderDisciplineSection(context.target, context.data, context);
+  });
+
+  const accountForm = container.querySelector("[data-rule-action='assign-account']");
+  accountForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(accountForm);
+    const login = String(formData.get("login") || "").trim();
+    if (!login) return;
+    profileState.accountMap[login] = activeProfile.id;
+    saveProfiles(profileState);
+    renderDisciplineSection(context.target, { ...context.data, accountLogin: login }, { ...context, accountLogin: login });
+  });
+}
+
 function renderHeatmap(weeks) {
   const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const todayKey = toDayKey(new Date());
@@ -671,8 +1107,9 @@ function buildDisciplineDataFromModel(model) {
   };
 }
 
-export function renderDisciplineSection(target, data = disciplineData) {
+export function renderDisciplineSection(target, data = disciplineData, context = {}) {
   if (!target) return;
+  const renderContext = { ...context, target, data };
   const kpis = Array.isArray(data.kpis)
     ? data.kpis
     : [
@@ -711,6 +1148,10 @@ export function renderDisciplineSection(target, data = disciplineData) {
     pct: rule.pct,
     note: rule.note || ""
   }));
+  const profileState = loadProfiles();
+  const accountLogin = context.accountLogin || data.accountLogin || "";
+  const { profile: activeProfile } = getProfileForAccount(profileState, accountLogin);
+  const visibleRules = buildProfileRuleRows(activeProfile, rules);
   const calendar = Array.isArray(data.calendar?.[0])
     ? data.calendar.map((days, index) => ({ label: `S${index + 1}`, days: days.map((state) => ({ state, label: state, trades: 0, key: "", date: null })) }))
     : data.calendar || [];
@@ -748,6 +1189,8 @@ export function renderDisciplineSection(target, data = disciplineData) {
       </div>
     </header>
 
+    <div id="discipline-profile-manager"></div>
+
     ${renderExecutionHero(rules)}
 
     <section class="execution-score-row">
@@ -759,7 +1202,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
         <div class="tl-section-header execution-section-header">
           <div class="tl-section-title">Cumplimiento de reglas</div>
         </div>
-        <div class="execution-rule-list">${renderRuleRows(rules)}</div>
+        <div class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
@@ -803,6 +1246,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
       </article>
     </section>
   `;
+  renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
 }
 
 export function renderDiscipline(root, state) {
@@ -830,5 +1274,7 @@ export function renderDiscipline(root, state) {
   root.innerHTML = `
     <section id="section-discipline" class="discipline-page-stack execution-page kmfx-page kmfx-page--spacious"></section>
   `;
-  renderDisciplineSection(root.querySelector("#section-discipline"), buildDisciplineDataFromModel(model));
+  renderDisciplineSection(root.querySelector("#section-discipline"), buildDisciplineDataFromModel(model), {
+    accountLogin: account?.login || ""
+  });
 }
