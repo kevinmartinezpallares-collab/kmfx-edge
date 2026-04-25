@@ -284,6 +284,7 @@ function hasProfileNormalizationDrift(raw, normalized) {
     const rawWeights = (raw?.profiles || []).flatMap((profile) => (profile.rules || []).map((rule) => Number(rule.weight)));
     const invalidWeight = rawWeights.some((weight) => !WEIGHT_OPTIONS.some((option) => option.value === weight));
     const missingTransient = raw && (
+      !Object.prototype.hasOwnProperty.call(raw, "openAddRuleMenu") ||
       !Object.prototype.hasOwnProperty.call(raw, "openWeightId") ||
       !Object.prototype.hasOwnProperty.call(raw, "confirmRuleRemoveId")
     );
@@ -310,6 +311,7 @@ function normalizeProfiles(raw) {
     openMenuId: raw?.openMenuId || "",
     confirmDeleteId: raw?.confirmDeleteId || "",
     editingProfileId: raw?.editingProfileId || "",
+    openAddRuleMenu: raw?.openAddRuleMenu || false,
     openWeightId: raw?.openWeightId || "",
     confirmRuleRemoveId: raw?.confirmRuleRemoveId || ""
   };
@@ -360,6 +362,7 @@ function duplicateProfile(profileState, profileId) {
   profileState.openMenuId = "";
   profileState.confirmDeleteId = "";
   profileState.editingProfileId = "";
+  profileState.openAddRuleMenu = false;
   profileState.openWeightId = "";
   profileState.confirmRuleRemoveId = "";
 }
@@ -376,6 +379,7 @@ function deleteProfile(profileState, profileId) {
   profileState.openMenuId = "";
   profileState.confirmDeleteId = "";
   profileState.editingProfileId = "";
+  profileState.openAddRuleMenu = false;
   profileState.openWeightId = "";
   profileState.confirmRuleRemoveId = "";
   return true;
@@ -876,6 +880,36 @@ function renderProfileWarnings(profile) {
   `;
 }
 
+function renderAddRuleDropdown(profile, profileState) {
+  const existingIds = new Set((profile?.rules || []).map((rule) => rule.id));
+  const availableSystemRules = Object.values(RULE_LIBRARY).filter((rule) => !existingIds.has(rule.id));
+  return `
+    <div class="rule-profile-add-rule${profileState.openAddRuleMenu ? " is-open" : ""}">
+      <button type="button" class="rule-profile-action" data-rule-action="toggle-add-rule">+ Añadir regla</button>
+      ${profileState.openAddRuleMenu ? `
+        <div class="rule-profile-add-menu">
+          <span>REGLAS DEL SISTEMA</span>
+          ${availableSystemRules.length ? availableSystemRules.map((rule) => {
+            const weight = getWeightOption(rule.weight);
+            return `
+              <button type="button" data-rule-add="${escapeHtml(rule.id)}">
+                <strong>${escapeHtml(rule.name)}</strong>
+                <small>${escapeHtml(rule.description)}</small>
+                <em>×${weight.value.toFixed(1)} ${escapeHtml(weight.label)}</em>
+              </button>
+            `;
+          }).join("") : `<p>Todas las reglas del sistema ya están en este perfil.</p>`}
+          <span>REGLAS PERSONALIZADAS</span>
+          <button type="button" disabled>
+            <strong>Crear regla nueva</strong>
+            <small>Disponible en Fase 2</small>
+          </button>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 function renderProfileCards(profileState, activeProfile) {
   return `
     <div class="rule-profile-cards">
@@ -937,7 +971,7 @@ function renderProfileEditor(profile, profileState) {
           <strong>${escapeHtml(profile?.name || "Perfil")}</strong>
           <p>El score se calcula solo con reglas activas.</p>
         </div>
-        <button type="button" class="rule-profile-action" data-rule-action="add-rule">+ Añadir regla</button>
+        ${renderAddRuleDropdown(profile, profileState)}
       </div>
       ${renderProfileWarnings(profile)}
       <div class="rule-profile-rule-list">
@@ -1022,6 +1056,7 @@ function renderProfileManager(container, context = {}) {
       profileState.confirmDeleteId = "";
       profileState.openWeightId = "";
       profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = button.dataset.profileId;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -1037,6 +1072,7 @@ function renderProfileManager(container, context = {}) {
       profileState.editingProfileId = "";
       profileState.openWeightId = "";
       profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -1053,6 +1089,7 @@ function renderProfileManager(container, context = {}) {
         profileState.confirmDeleteId = "";
         profileState.openWeightId = "";
         profileState.confirmRuleRemoveId = "";
+        profileState.openAddRuleMenu = false;
       }
       if (action === "duplicate") duplicateProfile(profileState, profileId);
       if (action === "delete") {
@@ -1106,6 +1143,7 @@ function renderProfileManager(container, context = {}) {
       profileState.editingProfileId = "";
       profileState.openWeightId = "";
       profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = id;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -1129,6 +1167,7 @@ function renderProfileManager(container, context = {}) {
       profileState.openMenuId = "";
       profileState.confirmDeleteId = "";
       profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -1153,6 +1192,7 @@ function renderProfileManager(container, context = {}) {
       profileState.openWeightId = "";
       profileState.openMenuId = "";
       profileState.confirmDeleteId = "";
+      profileState.openAddRuleMenu = false;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -1177,18 +1217,30 @@ function renderProfileManager(container, context = {}) {
     });
   });
 
-  const addRuleButton = container.querySelector("[data-rule-action='add-rule']");
-  addRuleButton?.addEventListener("click", () => {
-    const existingIds = new Set(activeProfile.rules.map((rule) => rule.id));
-    const nextRule = Object.keys(RULE_LIBRARY).find((id) => !existingIds.has(id));
-    if (nextRule) {
-      activeProfile.rules.push(profileRule(nextRule));
-    } else {
-      const disabledRule = activeProfile.rules.find((rule) => rule.enabled === false);
-      if (disabledRule) disabledRule.enabled = true;
-    }
+  const addRuleButton = container.querySelector("[data-rule-action='toggle-add-rule']");
+  addRuleButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    profileState.openAddRuleMenu = !profileState.openAddRuleMenu;
+    profileState.openMenuId = "";
+    profileState.confirmDeleteId = "";
+    profileState.openWeightId = "";
+    profileState.confirmRuleRemoveId = "";
     saveProfiles(profileState);
     renderDisciplineSection(context.target, context.data, context);
+  });
+
+  container.querySelectorAll("[data-rule-add]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const ruleId = button.dataset.ruleAdd;
+      const existingIds = new Set(activeProfile.rules.map((rule) => rule.id));
+      if (!existingIds.has(ruleId) && RULE_LIBRARY[ruleId]) {
+        activeProfile.rules.push(profileRule(ruleId, { enabled: false }));
+      }
+      profileState.openAddRuleMenu = false;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
   });
 
   const accountForm = container.querySelector("[data-rule-action='assign-account']");
@@ -1198,16 +1250,19 @@ function renderProfileManager(container, context = {}) {
     const login = String(formData.get("login") || "").trim();
     if (!login) return;
     profileState.accountMap[login] = activeProfile.id;
+    profileState.openAddRuleMenu = false;
     saveProfiles(profileState);
-    renderDisciplineSection(context.target, { ...context.data, accountLogin: login }, { ...context, accountLogin: login });
+    accountForm.reset();
+    renderDisciplineSection(context.target, { ...context.data, accountLogin: "" }, { ...context, accountLogin: "" });
   });
 
   const closeMenu = () => {
     const current = loadProfiles();
-    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId && !current.openWeightId && !current.confirmRuleRemoveId) return;
+    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId && !current.openAddRuleMenu && !current.openWeightId && !current.confirmRuleRemoveId) return;
     current.openMenuId = "";
     current.confirmDeleteId = "";
     current.editingProfileId = "";
+    current.openAddRuleMenu = false;
     current.openWeightId = "";
     current.confirmRuleRemoveId = "";
     saveProfiles(current);

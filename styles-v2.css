@@ -17233,7 +17233,7 @@ body[data-theme="dark"] #section-discipline .rule-profile-menu {
   border: 1px solid var(--border-0);
   border-radius: 12px;
   background: var(--layer-1);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-menu button,
@@ -17264,6 +17264,95 @@ body[data-theme="dark"] #section-discipline .rule-profile-menu button.danger {
 html[data-theme="dark"] #section-discipline .rule-profile-menu button.danger:hover,
 body[data-theme="dark"] #section-discipline .rule-profile-menu button.danger:hover {
   background: rgba(255,92,92,0.08);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-rule,
+body[data-theme="dark"] #section-discipline .rule-profile-add-rule {
+  position: relative;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 8;
+  width: min(360px, 78vw);
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid var(--border-0);
+  border-radius: 12px;
+  background: var(--layer-1);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu > span,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu > span {
+  padding: 8px 9px 3px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu button,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu button {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-1);
+  text-align: left;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu button:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu button:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu button:disabled,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu strong,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu strong {
+  font-size: 13px;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu small,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu small {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu em,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-add-menu p,
+body[data-theme="dark"] #section-discipline .rule-profile-add-menu p {
+  margin: 0;
+  padding: 9px 10px;
+  font-size: 12px;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-menu button:disabled,
@@ -17514,7 +17603,7 @@ body[data-theme="dark"] #section-discipline .rule-profile-weight-menu {
   border: 1px solid var(--border-0);
   border-radius: 12px;
   background: var(--layer-1);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button,
@@ -17673,6 +17762,14 @@ body[data-theme="dark"] #section-discipline .rule-profile-account-form {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-account-form button,
+body[data-theme="dark"] #section-discipline .rule-profile-account-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 @media (max-width: 1180px) {
