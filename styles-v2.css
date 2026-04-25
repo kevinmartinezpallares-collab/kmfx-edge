@@ -15056,6 +15056,26 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
   background: #161616 !important;
 }
 
+html[data-theme="dark"] .modal-card:has(.strategies-dialog),
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 760px);
+}
+
+html[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body,
+body[data-theme="dark"] .modal-card:has(.strategies-dialog) .modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+html[data-theme="dark"] .strategies-dialog__footer,
+body[data-theme="dark"] .strategies-dialog__footer {
+  margin-bottom: 0 !important;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 html[data-theme="dark"] .topbar-time-stack,
 body[data-theme="dark"] .topbar-time-stack {
   background: rgba(255, 255, 255, 0.022);
