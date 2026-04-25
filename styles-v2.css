@@ -19389,3 +19389,265 @@ body[data-theme="dark"] #section-discipline .rule-profile-account-form button {
     display: grid;
   }
 }
+
+/* === VISUAL CONSISTENCY FIXES === */
+html[data-theme="dark"] #section-discipline #discipline-score-card,
+body[data-theme="dark"] #section-discipline #discipline-score-card,
+html[data-theme="dark"] #section-discipline #entry-precision-card,
+body[data-theme="dark"] #section-discipline #entry-precision-card {
+  padding: 16px 20px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body {
+  gap: 14px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list {
+  row-gap: 6px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight {
+  margin-top: 12px !important;
+  padding-top: 10px !important;
+}
+
+html[data-theme="dark"] #section-discipline #entry-precision-card,
+body[data-theme="dark"] #section-discipline #entry-precision-card {
+  gap: 8px !important;
+}
+
+html[data-theme="dark"] #section-discipline #entry-precision-card .execution-entry-pattern,
+body[data-theme="dark"] #section-discipline #entry-precision-card .execution-entry-pattern,
+html[data-theme="dark"] #section-discipline #entry-precision-card .execution-entry-empty,
+body[data-theme="dark"] #section-discipline #entry-precision-card .execution-entry-empty {
+  padding: 12px 14px !important;
+}
+
+html[data-theme="dark"] #section-discipline #kpi-rule-adherence,
+body[data-theme="dark"] #section-discipline #kpi-rule-adherence,
+html[data-theme="dark"] #section-discipline #kpi-entry-precision,
+body[data-theme="dark"] #section-discipline #kpi-entry-precision,
+html[data-theme="dark"] #section-discipline #kpi-sl-violations,
+body[data-theme="dark"] #section-discipline #kpi-sl-violations,
+html[data-theme="dark"] #section-discipline #kpi-off-hours,
+body[data-theme="dark"] #section-discipline #kpi-off-hours {
+  min-height: 0 !important;
+  padding: 14px 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .kpi-card .kpi-value,
+body[data-theme="dark"] #section-discipline .kpi-card .kpi-value {
+  font-size: 28px !important;
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .kpi-card .kpi-label,
+body[data-theme="dark"] #section-discipline .kpi-card .kpi-label {
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .kpi-card .kpi-sub,
+body[data-theme="dark"] #section-discipline .kpi-card .kpi-sub {
+  margin-top: 4px !important;
+  font-size: 11px !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card,
+body[data-theme="dark"] #section-discipline .discipline-hero-card {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  padding: 16px 20px !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__eyebrow,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__eyebrow {
+  font-size: 10px !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card h3,
+body[data-theme="dark"] #section-discipline .discipline-hero-card h3 {
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__copy > p:last-child,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__copy > p:last-child {
+  margin-top: 4px !important;
+  font-size: 12px !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue {
+  max-width: 260px !important;
+  padding: 10px 14px !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 10px !important;
+  background: #1a1a1a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue span,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue span {
+  font-size: 10px !important;
+  letter-spacing: 0.18em !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue strong,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue strong {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: var(--color-text-primary, var(--text-0)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue p,
+body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue p {
+  margin-top: 3px !important;
+  font-size: 11px !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending {
+  opacity: 0.45;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name {
+  font-weight: 400;
+  color: var(--color-text-secondary, var(--text-2));
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status {
+  color: var(--color-text-tertiary, var(--text-2));
+  font-size: 11px;
+  font-weight: 400;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-bar-fill,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-bar-fill {
+  width: 0% !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-bar-track,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-bar-track {
+  background: #1a1a1a;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:not(.pending),
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:not(.pending) {
+  opacity: 1;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:not(.pending) .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row:not(.pending) .rule-name {
+  font-weight: 500;
+  color: var(--color-text-primary, var(--text-0));
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger {
+  min-width: 0 !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
+  border: 1px solid #2a2a2a !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i {
+  font-size: 8px !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+  opacity: 0.5;
+}
+
+html[data-theme="dark"] #section-discipline .execution-heatmap,
+body[data-theme="dark"] #section-discipline .execution-heatmap {
+  gap: 4px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-heatmap__weekdays,
+body[data-theme="dark"] #section-discipline .execution-heatmap__weekdays,
+html[data-theme="dark"] #section-discipline .execution-heatmap__row,
+body[data-theme="dark"] #section-discipline .execution-heatmap__row {
+  gap: 4px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-heatmap__cell,
+body[data-theme="dark"] #section-discipline .execution-heatmap__cell {
+  min-height: 0 !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-heatmap__cell.is-today,
+body[data-theme="dark"] #section-discipline .execution-heatmap__cell.is-today {
+  outline: 2px solid #2F6BFF !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-heatmap__count,
+body[data-theme="dark"] #section-discipline .execution-heatmap__count {
+  font-size: 10px;
+  line-height: 1;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group--strategy > span,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group--strategy > span,
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group--process > span,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group--process > span {
+  padding: 14px 0 8px 0 !important;
+  border-top: 1px solid #1e1e1e;
+  margin-top: 4px;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em !important;
+  color: var(--color-text-tertiary, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group--strategy > span,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group--strategy > span {
+  padding-top: 8px !important;
+  border-top: 0;
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] #section-discipline .discipline-hero-card,
+  body[data-theme="dark"] #section-discipline .discipline-hero-card {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  html[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue,
+  body[data-theme="dark"] #section-discipline .discipline-hero-card .execution-hero__issue {
+    max-width: none !important;
+  }
+}

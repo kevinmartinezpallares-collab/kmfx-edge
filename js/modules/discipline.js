@@ -2056,15 +2056,16 @@ function renderRuleRows(rows) {
   return rows.map((row) => {
     const tone = ruleTone(row);
     const isIncomplete = isIncompleteNote(row.note);
+    const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente/i.test(String(row.note || ""));
     const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     return `
-      <div class="execution-rule-row execution-tone-${tone}">
+      <div class="execution-rule-row rule-row execution-tone-${tone}${isPending ? " pending" : ""}">
         <div class="execution-rule-row__head">
-          <strong>${ruleDisplayName(row.name)}</strong>
-          <span>${isIncomplete ? "Pendiente" : formatPct(row.pct)}</span>
+          <strong class="rule-name">${ruleDisplayName(row.name)}</strong>
+          <span class="rule-status">${isIncomplete ? "Pendiente" : formatPct(row.pct)}</span>
         </div>
-        <div class="execution-rule-row__track" aria-hidden="true">
-          <span style="width:${width}%"></span>
+        <div class="execution-rule-row__track rule-bar-track" aria-hidden="true">
+          <span class="rule-bar-fill" style="width:${width}%"></span>
         </div>
         <small>${noteMap[row.note] || row.note}</small>
       </div>
@@ -2134,7 +2135,6 @@ function renderWeightDropdown(rule, profileState) {
     <div class="rule-profile-weight" style="--rule-weight-color:${escapeHtml(selected.color)}">
       <button type="button" class="rule-profile-weight__trigger" data-rule-weight-menu="${escapeHtml(rule.id)}">
         <b>×${selected.value.toFixed(1)}</b>
-        <span>${escapeHtml(selected.label)}</span>
         <i>⌄</i>
       </button>
       ${isOpen ? `
@@ -2431,7 +2431,7 @@ function renderProfileEditor(profile, profileState) {
       ${renderCustomRuleForm(profileState)}
       <div class="rule-profile-rule-list">
         ${groupedRules.map((group) => `
-          <div class="rule-profile-rule-group" data-rule-group="${escapeHtml(group.id)}">
+          <div class="rule-profile-rule-group rule-profile-rule-group--${escapeHtml(group.id)}" data-rule-group="${escapeHtml(group.id)}">
             <span>${escapeHtml(group.label)}</span>
             ${group.rules.map(renderRule).join("")}
           </div>
@@ -2911,7 +2911,9 @@ function renderHeatmap(weeks) {
         <div class="execution-heatmap__row">
           <strong>${week.label}</strong>
           ${week.days.map((day) => `
-            <span class="execution-heatmap__cell ${calendarCellClass(day.state, day.key === todayKey)}" title="${formatShortDate(day.date)} · ${day.label} · ${day.trades} operaciones"></span>
+            <span class="execution-heatmap__cell ${calendarCellClass(day.state, day.key === todayKey)}" title="${formatShortDate(day.date)} · ${day.label} · ${day.trades} operaciones">
+              ${day.trades ? `<span class="execution-heatmap__count">${day.trades}</span>` : ""}
+            </span>
           `).join("")}
         </div>
       `).join("")}
@@ -3058,7 +3060,7 @@ function renderExecutionHero(rules = []) {
   const issueName = ruleDisplayName(principalRule?.name || RULE_DEFINITIONS[0]);
 
   return `
-    <section class="execution-hero">
+    <section class="execution-hero discipline-hero-card">
       <div class="execution-hero__copy">
         <p class="execution-hero__eyebrow">CALIDAD DE EJECUCIÓN</p>
         <h3>Calidad de ejecución baja</h3>
@@ -3558,7 +3560,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
 
 function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } = {}) {
   return `
-    <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
+    <article id="discipline-score-card" class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
       <div class="tl-section-header execution-section-header">
         <div class="tl-section-title">Score de ejecución</div>
         ${isPartial ? `<span class="execution-data-pill">Score parcial</span>` : ""}
@@ -3577,6 +3579,15 @@ function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } 
       </div>
     </article>
   `;
+}
+
+function executionKpiId(label = "") {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("cumplimiento")) return "kpi-rule-adherence";
+  if (normalized.includes("precisión")) return "kpi-entry-precision";
+  if (normalized.includes("sl")) return "kpi-sl-violations";
+  if (normalized.includes("fuera de horario")) return "kpi-off-hours";
+  return "";
 }
 
 function buildDisciplineDataFromModel(model, accountLogin = "") {
@@ -3723,7 +3734,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         <div class="tl-section-header execution-section-header">
           <div class="tl-section-title">Cumplimiento de reglas</div>
         </div>
-        <div class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
+        <div id="rule-compliance-bars" class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
@@ -3738,17 +3749,17 @@ export function renderDisciplineSection(target, data = disciplineData, context =
 
     <section class="execution-kpi-grid">
       ${kpis.map((kpi) => `
-        <article class="tl-kpi-card execution-kpi execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
-          <div class="tl-kpi-label">${kpi.label}</div>
-          <div class="tl-kpi-val">${kpi.value}</div>
-          <p>${kpi.subcopy}</p>
+        <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
+          <div class="tl-kpi-label kpi-label">${kpi.label}</div>
+          <div class="tl-kpi-val kpi-value">${kpi.value}</div>
+          <p class="kpi-sub">${kpi.subcopy}</p>
           <span>${kpi.badge}</span>
         </article>
       `).join("")}
     </section>
 
     <section class="execution-main-grid execution-main-grid--lower">
-      <article class="tl-section-card execution-panel execution-entry-panel">
+      <article id="entry-precision-card" class="tl-section-card execution-panel execution-entry-panel">
         <div class="tl-section-header execution-section-header">
           <div class="tl-section-title">${hasEntryTracking ? "Precisión de entrada — últimos 10 trades" : "Precisión de entrada"}</div>
         </div>
