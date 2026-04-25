@@ -189,8 +189,71 @@ const RULE_LIBRARY = {
   }
 };
 
-function profileRule(id, overrides = {}) {
-  const rule = RULE_LIBRARY[id];
+const CUSTOM_SOURCE_KEYWORDS = {
+  auto: /pips|sl|stop|drawdown|p[eé]rdida|loss|hora|sesi[oó]n|trades\/d[ií]a|consecutiv|rr|ratio|horario|noticias|balance|%|precio/i,
+  manual: /setup|confirmado|valid[eé]|revis[eé]|psicol[oó]gico|emoci[oó]n|plan|checklist|ob|order block|break even|\bbe\b|esper[eé]|verifiqu[eé]/i,
+  mixed: /entrada|entry|precisi[oó]n|desviaci[oó]n|deviation|distancia/i
+};
+
+function slugify(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42) || "regla";
+}
+
+function inferRuleSource(text = "") {
+  if (CUSTOM_SOURCE_KEYWORDS.mixed.test(text)) return "mixed";
+  if (CUSTOM_SOURCE_KEYWORDS.auto.test(text)) return "auto";
+  if (CUSTOM_SOURCE_KEYWORDS.manual.test(text)) return "manual";
+  return "manual";
+}
+
+function normalizeSource(value = "manual") {
+  return ["auto", "manual", "mixed"].includes(value) ? value : "manual";
+}
+
+function normalizeConditionType(value = "boolean") {
+  return value === "numeric" ? "numeric" : "boolean";
+}
+
+function normalizeNumericOperator(value = "<=") {
+  return [">", ">=", "<", "<=", "="].includes(value) ? value : "<=";
+}
+
+function normalizeCustomRule(rule = {}) {
+  const text = `${rule.name || ""} ${rule.description || ""} ${rule.tagQuestion || ""}`;
+  const source = normalizeSource(rule.source || rule.suggestedSource || inferRuleSource(text));
+  const conditionType = normalizeConditionType(rule.conditionType);
+  return {
+    id: String(rule.id || `custom-${slugify(rule.name || "regla")}-${Date.now()}`),
+    name: String(rule.name || "Regla personalizada").trim().slice(0, 50),
+    description: String(rule.description || "Regla definida por el usuario.").trim().slice(0, 120),
+    source,
+    suggestedSource: normalizeSource(rule.suggestedSource || inferRuleSource(text)),
+    weight: normalizeWeight(rule.weight || 1),
+    conditionType,
+    numericThreshold: conditionType === "numeric" && Number.isFinite(Number(rule.numericThreshold)) ? Number(rule.numericThreshold) : "",
+    numericOperator: normalizeNumericOperator(rule.numericOperator),
+    numericUnit: String(rule.numericUnit || "").trim().slice(0, 16),
+    tagQuestion: String(rule.tagQuestion || "").trim().slice(0, 120),
+    isCustom: true,
+    pendingImplementation: rule.pendingImplementation ?? source === "auto",
+    createdAt: rule.createdAt || new Date().toISOString(),
+    usedInProfiles: Array.isArray(rule.usedInProfiles) ? rule.usedInProfiles : []
+  };
+}
+
+function resolveRuleDefinition(id, customRules = []) {
+  return RULE_LIBRARY[id] || customRules.find((rule) => rule.id === id) || null;
+}
+
+function profileRule(id, overrides = {}, customRules = []) {
+  const rule = resolveRuleDefinition(id, customRules);
   return {
     id,
     name: rule?.name || id,
@@ -198,6 +261,13 @@ function profileRule(id, overrides = {}) {
     enabled: true,
     source: rule?.source || "manual",
     weight: normalizeWeight(rule?.weight || 1),
+    conditionType: rule?.conditionType || "boolean",
+    numericThreshold: rule?.numericThreshold ?? "",
+    numericOperator: rule?.numericOperator || "<=",
+    numericUnit: rule?.numericUnit || "",
+    tagQuestion: rule?.tagQuestion || "",
+    isCustom: rule?.isCustom === true,
+    pendingImplementation: rule?.pendingImplementation ?? false,
     params: { ...(rule?.params || {}) },
     ...overrides,
     weight: normalizeWeight(overrides.weight ?? rule?.weight ?? 1)
@@ -260,7 +330,8 @@ const DEFAULT_KMFX_PROFILES = {
       ]
     }
   ],
-  accountMap: {}
+  accountMap: {},
+  customRules: []
 };
 
 function cloneProfiles(value = DEFAULT_KMFX_PROFILES) {
@@ -286,7 +357,8 @@ function hasProfileNormalizationDrift(raw, normalized) {
     const missingTransient = raw && (
       !Object.prototype.hasOwnProperty.call(raw, "openAddRuleMenu") ||
       !Object.prototype.hasOwnProperty.call(raw, "openWeightId") ||
-      !Object.prototype.hasOwnProperty.call(raw, "confirmRuleRemoveId")
+      !Object.prototype.hasOwnProperty.call(raw, "confirmRuleRemoveId") ||
+      !Object.prototype.hasOwnProperty.call(raw, "customRules")
     );
     return invalidWeight || missingTransient || !normalized.profiles.length;
   } catch {
@@ -297,11 +369,12 @@ function hasProfileNormalizationDrift(raw, normalized) {
 function normalizeProfiles(raw) {
   const defaults = cloneProfiles();
   const profiles = Array.isArray(raw?.profiles) && raw.profiles.length ? raw.profiles : defaults.profiles;
+  const customRules = Array.isArray(raw?.customRules) ? raw.customRules.map(normalizeCustomRule) : [];
   return {
     profiles: profiles.map((profile) => ({
       ...profile,
       rules: Array.isArray(profile.rules) ? profile.rules.map((rule) => ({
-        ...profileRule(rule.id, rule),
+        ...profileRule(rule.id, rule, customRules),
         enabled: rule.enabled !== false,
         weight: normalizeWeight(rule.weight)
       })) : []
@@ -313,7 +386,12 @@ function normalizeProfiles(raw) {
     editingProfileId: raw?.editingProfileId || "",
     openAddRuleMenu: raw?.openAddRuleMenu || false,
     openWeightId: raw?.openWeightId || "",
-    confirmRuleRemoveId: raw?.confirmRuleRemoveId || ""
+    confirmRuleRemoveId: raw?.confirmRuleRemoveId || "",
+    showCustomRuleForm: raw?.showCustomRuleForm || false,
+    editingCustomRuleId: raw?.editingCustomRuleId || "",
+    openCustomRuleMenuId: raw?.openCustomRuleMenuId || "",
+    confirmCustomRuleDeleteId: raw?.confirmCustomRuleDeleteId || "",
+    customRules
   };
 }
 
@@ -359,12 +437,7 @@ function duplicateProfile(profileState, profileId) {
     name: `${source.name} copia`
   });
   profileState.activeProfileId = id;
-  profileState.openMenuId = "";
-  profileState.confirmDeleteId = "";
-  profileState.editingProfileId = "";
-  profileState.openAddRuleMenu = false;
-  profileState.openWeightId = "";
-  profileState.confirmRuleRemoveId = "";
+  clearRuleProfileTransientState(profileState);
 }
 
 function deleteProfile(profileState, profileId) {
@@ -376,12 +449,7 @@ function deleteProfile(profileState, profileId) {
     if (profileState.accountMap[login] === profileId) delete profileState.accountMap[login];
   });
   if (profileState.activeProfileId === profileId) profileState.activeProfileId = "real-conservative";
-  profileState.openMenuId = "";
-  profileState.confirmDeleteId = "";
-  profileState.editingProfileId = "";
-  profileState.openAddRuleMenu = false;
-  profileState.openWeightId = "";
-  profileState.confirmRuleRemoveId = "";
+  clearRuleProfileTransientState(profileState);
   return true;
 }
 
@@ -392,6 +460,119 @@ function removeRuleFromProfile(profile, ruleId) {
   if (target?.enabled !== false && activeRules.length <= 1) return false;
   profile.rules = profile.rules.filter((rule) => rule.id !== ruleId);
   return true;
+}
+
+function syncCustomRuleUsage(profileState) {
+  const profiles = Array.isArray(profileState.profiles) ? profileState.profiles : [];
+  profileState.customRules = (profileState.customRules || []).map((rule) => ({
+    ...normalizeCustomRule(rule),
+    usedInProfiles: profiles
+      .filter((profile) => (profile.rules || []).some((item) => item.id === rule.id))
+      .map((profile) => profile.id)
+  }));
+}
+
+function addCustomRuleToProfile(profile, customRule) {
+  if (!profile || !customRule || (profile.rules || []).some((rule) => rule.id === customRule.id)) return;
+  profile.rules.push(profileRule(customRule.id, { ...customRule, enabled: false }, [customRule]));
+}
+
+function upsertCustomRule(profileState, customRule, activeProfile) {
+  const normalized = normalizeCustomRule(customRule);
+  const exists = profileState.customRules.some((rule) => rule.id === normalized.id);
+  profileState.customRules = exists
+    ? profileState.customRules.map((rule) => (rule.id === normalized.id ? normalized : rule))
+    : [...profileState.customRules, normalized];
+  profileState.profiles = profileState.profiles.map((profile) => ({
+    ...profile,
+    rules: (profile.rules || []).map((rule) => (
+      rule.id === normalized.id
+        ? { ...profileRule(normalized.id, { ...normalized, enabled: rule.enabled !== false, weight: rule.weight }, [normalized]) }
+        : rule
+    ))
+  }));
+  const targetProfile = profileState.profiles.find((profile) => profile.id === activeProfile?.id);
+  if (!exists) addCustomRuleToProfile(targetProfile, normalized);
+  syncCustomRuleUsage(profileState);
+}
+
+function deleteCustomRuleFromAll(profileState, ruleId) {
+  profileState.profiles = profileState.profiles.map((profile) => ({
+    ...profile,
+    rules: (profile.rules || []).filter((rule) => rule.id !== ruleId)
+  }));
+  profileState.customRules = (profileState.customRules || []).filter((rule) => rule.id !== ruleId);
+}
+
+function disableCustomRuleInAll(profileState, ruleId) {
+  profileState.profiles = profileState.profiles.map((profile) => ({
+    ...profile,
+    rules: (profile.rules || []).map((rule) => (
+      rule.id === ruleId ? { ...rule, enabled: false } : rule
+    ))
+  }));
+  syncCustomRuleUsage(profileState);
+}
+
+function clearRuleProfileTransientState(profileState) {
+  profileState.openMenuId = "";
+  profileState.confirmDeleteId = "";
+  profileState.editingProfileId = "";
+  profileState.openAddRuleMenu = false;
+  profileState.openWeightId = "";
+  profileState.confirmRuleRemoveId = "";
+  profileState.showCustomRuleForm = false;
+  profileState.editingCustomRuleId = "";
+  profileState.openCustomRuleMenuId = "";
+  profileState.confirmCustomRuleDeleteId = "";
+}
+
+function sourceLabel(source = "manual") {
+  if (source === "auto") return "Automático";
+  if (source === "mixed") return "Mixto";
+  return "Manual";
+}
+
+function conditionLabel(rule = {}) {
+  if (rule.conditionType === "numeric") {
+    const threshold = rule.numericThreshold !== "" && rule.numericThreshold !== null && rule.numericThreshold !== undefined
+      ? ` ${rule.numericOperator || "<="} ${rule.numericThreshold}${rule.numericUnit ? ` ${rule.numericUnit}` : ""}`
+      : "";
+    return `Valor numérico${threshold}`;
+  }
+  return "Sí / No";
+}
+
+function createUniqueCustomRuleId(name, customRules = []) {
+  const base = `custom-${slugify(name)}`;
+  const usedIds = new Set(customRules.map((rule) => rule.id));
+  if (!usedIds.has(base)) return base;
+  let index = 2;
+  while (usedIds.has(`${base}-${index}`)) index += 1;
+  return `${base}-${index}`;
+}
+
+function getCustomRuleFormDraft(form) {
+  const formData = new FormData(form);
+  const name = String(formData.get("name") || "").trim().slice(0, 50);
+  const description = String(formData.get("description") || "").trim().slice(0, 120);
+  const tagQuestion = String(formData.get("tagQuestion") || "").trim().slice(0, 120);
+  const text = `${name} ${description} ${tagQuestion}`;
+  const source = normalizeSource(formData.get("source") || inferRuleSource(text));
+  const conditionType = normalizeConditionType(formData.get("conditionType"));
+  return {
+    name,
+    description,
+    source,
+    suggestedSource: inferRuleSource(text),
+    conditionType,
+    numericThreshold: conditionType === "numeric" ? formData.get("numericThreshold") : "",
+    numericOperator: conditionType === "numeric" ? formData.get("numericOperator") : "<=",
+    numericUnit: conditionType === "numeric" ? String(formData.get("numericUnit") || "").trim().slice(0, 16) : "",
+    tagQuestion,
+    weight: normalizeWeight(formData.get("weight")),
+    pendingImplementation: source === "auto"
+  };
 }
 
 function clamp(value, min = 0, max = 100) {
@@ -808,13 +989,16 @@ function ruleRowFromProfileRule(profileRuleItem, currentRows = []) {
   const libraryRule = RULE_LIBRARY[profileRuleItem.id] || {};
   const executionName = libraryRule.executionRule || profileRuleItem.name;
   const matchedRow = currentRows.find((row) => row.name === executionName);
+  const pendingImplementation = profileRuleItem.isCustom && profileRuleItem.source === "auto" && profileRuleItem.pendingImplementation !== false;
   if (matchedRow) {
     return {
       ...matchedRow,
       name: executionName,
       profileRuleName: profileRuleItem.name,
       profileRuleId: profileRuleItem.id,
-      weight: profileRuleItem.weight
+      weight: profileRuleItem.weight,
+      note: pendingImplementation ? "requiere configuración" : matchedRow.note,
+      pct: pendingImplementation ? null : matchedRow.pct
     };
   }
   return {
@@ -822,7 +1006,7 @@ function ruleRowFromProfileRule(profileRuleItem, currentRows = []) {
     profileRuleName: profileRuleItem.name,
     profileRuleId: profileRuleItem.id,
     pct: null,
-    note: "sin datos suficientes",
+    note: pendingImplementation ? "requiere configuración" : "sin datos suficientes",
     weight: profileRuleItem.weight
   };
 }
@@ -883,6 +1067,7 @@ function renderProfileWarnings(profile) {
 function renderAddRuleDropdown(profile, profileState) {
   const existingIds = new Set((profile?.rules || []).map((rule) => rule.id));
   const availableSystemRules = Object.values(RULE_LIBRARY).filter((rule) => !existingIds.has(rule.id));
+  const availableCustomRules = (profileState.customRules || []).filter((rule) => !existingIds.has(rule.id));
   return `
     <div class="rule-profile-add-rule${profileState.openAddRuleMenu ? " is-open" : ""}">
       <button type="button" class="rule-profile-action" data-rule-action="toggle-add-rule">+ Añadir regla</button>
@@ -900,13 +1085,108 @@ function renderAddRuleDropdown(profile, profileState) {
             `;
           }).join("") : `<p>Todas las reglas del sistema ya están en este perfil.</p>`}
           <span>REGLAS PERSONALIZADAS</span>
-          <button type="button" disabled>
+          ${availableCustomRules.length ? availableCustomRules.map((rule) => {
+            const weight = getWeightOption(rule.weight);
+            return `
+              <button type="button" data-rule-add-custom="${escapeHtml(rule.id)}">
+                <strong>${escapeHtml(rule.name)}</strong>
+                <small>${escapeHtml(rule.description)} · ${escapeHtml(conditionLabel(rule))}</small>
+                <em>×${weight.value.toFixed(1)} ${escapeHtml(weight.label)}</em>
+              </button>
+            `;
+          }).join("") : `<p>No hay reglas personalizadas disponibles para añadir.</p>`}
+          <button type="button" data-rule-action="new-custom-rule">
             <strong>Crear regla nueva</strong>
-            <small>Disponible en Fase 2</small>
+            <small>Definir regla local para este perfil</small>
           </button>
         </div>
       ` : ""}
     </div>
+  `;
+}
+
+function renderCustomRuleForm(profileState) {
+  if (!profileState.showCustomRuleForm && !profileState.editingCustomRuleId) return "";
+  const editingRule = (profileState.customRules || []).find((rule) => rule.id === profileState.editingCustomRuleId);
+  const rule = normalizeCustomRule(editingRule || {
+    id: "",
+    name: "",
+    description: "",
+    source: "manual",
+    conditionType: "boolean",
+    weight: 1.0,
+    tagQuestion: ""
+  });
+  const isEditing = Boolean(editingRule);
+  const suggested = inferRuleSource(`${rule.name} ${rule.description} ${rule.tagQuestion}`);
+  return `
+    <form class="rule-profile-custom-form" data-rule-action="custom-rule-form" data-custom-rule-id="${escapeHtml(isEditing ? rule.id : "")}">
+      <div class="rule-profile-custom-form__head">
+        <div>
+          <span>${isEditing ? "Editar regla" : "Nueva regla personalizada"}</span>
+          <strong>${isEditing ? escapeHtml(rule.name) : "Crear regla nueva"}</strong>
+          <p>Las reglas custom viven en localStorage y no modifican las reglas del sistema.</p>
+        </div>
+        <button type="button" data-rule-action="cancel-custom-rule">Cancelar</button>
+      </div>
+      <div class="rule-profile-custom-grid">
+        <label>
+          <span>Nombre</span>
+          <input name="name" maxlength="50" value="${isEditing ? escapeHtml(rule.name) : ""}" placeholder="Ej. Validar liquidez antes de entrar" required>
+        </label>
+        <label>
+          <span>Tipo de medición</span>
+          <select name="source">
+            <option value="manual" ${rule.source === "manual" ? "selected" : ""}>Manual</option>
+            <option value="auto" ${rule.source === "auto" ? "selected" : ""}>Automático</option>
+            <option value="mixed" ${rule.source === "mixed" ? "selected" : ""}>Mixto</option>
+          </select>
+        </label>
+        <label class="rule-profile-custom-grid__wide">
+          <span>Descripción</span>
+          <textarea name="description" maxlength="120" placeholder="Qué comportamiento o condición controla esta regla">${isEditing ? escapeHtml(rule.description) : ""}</textarea>
+        </label>
+        <label>
+          <span>Condición</span>
+          <select name="conditionType" data-custom-condition-type>
+            <option value="boolean" ${rule.conditionType === "boolean" ? "selected" : ""}>Sí / No</option>
+            <option value="numeric" ${rule.conditionType === "numeric" ? "selected" : ""}>Valor numérico</option>
+          </select>
+        </label>
+        <label>
+          <span>Peso</span>
+          <select name="weight">
+            ${WEIGHT_OPTIONS.map((option) => `
+              <option value="${option.value}" ${normalizeWeight(rule.weight) === option.value ? "selected" : ""}>×${option.value.toFixed(1)} ${escapeHtml(option.label)}</option>
+            `).join("")}
+          </select>
+        </label>
+        <div class="rule-profile-custom-numeric${rule.conditionType === "numeric" ? " is-visible" : ""}" data-custom-numeric-fields>
+          <label>
+            <span>Operador</span>
+            <select name="numericOperator">
+              ${[">", ">=", "<", "<=", "="].map((operator) => `<option value="${operator}" ${rule.numericOperator === operator ? "selected" : ""}>${operator}</option>`).join("")}
+            </select>
+          </label>
+          <label>
+            <span>Umbral</span>
+            <input name="numericThreshold" inputmode="decimal" value="${escapeHtml(rule.numericThreshold)}" placeholder="2.0">
+          </label>
+          <label>
+            <span>Unidad</span>
+            <input name="numericUnit" maxlength="16" value="${escapeHtml(rule.numericUnit)}" placeholder="pips, %, trades">
+          </label>
+        </div>
+        <label class="rule-profile-custom-grid__wide">
+          <span>Pregunta post-trade</span>
+          <input name="tagQuestion" maxlength="120" value="${escapeHtml(rule.tagQuestion)}" placeholder="¿Se cumplió esta regla en el trade?">
+        </label>
+      </div>
+      <div class="rule-profile-custom-form__footer">
+        <p data-custom-source-hint>Fuente sugerida: ${escapeHtml(sourceLabel(suggested))}</p>
+        <button type="submit">${isEditing ? "Guardar regla" : "Crear y añadir"}</button>
+      </div>
+    </form>
   `;
 }
 
@@ -974,13 +1254,17 @@ function renderProfileEditor(profile, profileState) {
         ${renderAddRuleDropdown(profile, profileState)}
       </div>
       ${renderProfileWarnings(profile)}
+      ${renderCustomRuleForm(profileState)}
       <div class="rule-profile-rule-list">
         ${rules.map((rule) => {
           const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
+          const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
+          const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
           const activeRules = rules.filter((item) => item.enabled !== false);
           const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
+          const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
           return `
-          <div class="rule-profile-rule${rule.enabled === false ? " is-disabled" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+          <div class="rule-profile-rule${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
             <label class="rule-profile-toggle">
               <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
               <span></span>
@@ -989,8 +1273,30 @@ function renderProfileEditor(profile, profileState) {
               <strong>${escapeHtml(rule.name)}</strong>
               <p>${escapeHtml(rule.description)}</p>
             </div>
-            <span class="rule-profile-badge">${rule.source === "auto" ? "Automático" : "Manual"}</span>
+            <span class="rule-profile-badge">${escapeHtml(sourceLabel(rule.source))}${escapeHtml(pendingBadge)}</span>
             ${renderWeightDropdown(rule, profileState)}
+            ${rule.isCustom ? `
+              <div class="rule-profile-custom-actions">
+                <button type="button" class="rule-profile-custom-menu-trigger" data-custom-rule-menu="${escapeHtml(rule.id)}" aria-label="Opciones de regla personalizada">···</button>
+                ${isCustomMenuOpen ? `
+                  <div class="rule-profile-custom-menu">
+                    <button type="button" data-custom-rule-edit="${escapeHtml(rule.id)}">Editar regla</button>
+                    <button type="button" class="danger" data-custom-rule-delete="${escapeHtml(rule.id)}">Eliminar regla</button>
+                    ${isConfirmingCustomDelete ? `
+                      <div class="rule-profile-custom-confirm">
+                        <strong>Eliminar regla</strong>
+                        <p>Esta regla personalizada está disponible en varios perfiles.</p>
+                        <div>
+                          <button type="button" data-custom-rule-cancel-delete="${escapeHtml(rule.id)}">Cancelar</button>
+                          <button type="button" data-custom-rule-disable-all="${escapeHtml(rule.id)}">Desactivar en todos</button>
+                          <button type="button" class="danger" data-custom-rule-delete-all="${escapeHtml(rule.id)}">Eliminar de todos</button>
+                        </div>
+                      </div>
+                    ` : ""}
+                  </div>
+                ` : ""}
+              </div>
+            ` : `<span></span>`}
             <button type="button" class="rule-profile-remove" data-rule-remove="${escapeHtml(rule.id)}" ${cannotRemove ? "disabled" : ""} aria-label="Quitar regla">×</button>
             ${isConfirmingRemove ? `
               <div class="rule-profile-rule-confirm">
@@ -1037,7 +1343,7 @@ function renderProfileManager(container, context = {}) {
     <article class="rule-profile-manager">
       <div class="rule-profile-manager__head">
         <div>
-          <span>FASE 1 · LOCAL</span>
+          <span>FASE 2 · LOCAL</span>
           <strong>Perfiles de reglas</strong>
           <p>Configura reglas por cuenta antes de conectar tracking real del EA.</p>
         </div>
@@ -1212,6 +1518,7 @@ function renderProfileManager(container, context = {}) {
       event.stopPropagation();
       removeRuleFromProfile(activeProfile, button.dataset.ruleRemoveConfirm);
       profileState.confirmRuleRemoveId = "";
+      syncCustomRuleUsage(profileState);
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -1243,6 +1550,155 @@ function renderProfileManager(container, context = {}) {
     });
   });
 
+  container.querySelectorAll("[data-rule-add-custom]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const customRule = (profileState.customRules || []).find((rule) => rule.id === button.dataset.ruleAddCustom);
+      if (customRule) addCustomRuleToProfile(activeProfile, customRule);
+      profileState.openAddRuleMenu = false;
+      syncCustomRuleUsage(profileState);
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-action='new-custom-rule']").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.showCustomRuleForm = true;
+      profileState.editingCustomRuleId = "";
+      profileState.openAddRuleMenu = false;
+      profileState.openWeightId = "";
+      profileState.openCustomRuleMenuId = "";
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  const customRuleForm = container.querySelector("[data-rule-action='custom-rule-form']");
+  if (customRuleForm) {
+    const sourceSelect = customRuleForm.querySelector("select[name='source']");
+    const hint = customRuleForm.querySelector("[data-custom-source-hint]");
+    const conditionSelect = customRuleForm.querySelector("[data-custom-condition-type]");
+    const numericFields = customRuleForm.querySelector("[data-custom-numeric-fields]");
+    const updateSuggestion = () => {
+      const draft = getCustomRuleFormDraft(customRuleForm);
+      if (hint) hint.textContent = `Fuente sugerida: ${sourceLabel(draft.suggestedSource)}`;
+      if (sourceSelect && !sourceSelect.dataset.touched) sourceSelect.value = draft.suggestedSource;
+    };
+    customRuleForm.querySelectorAll("input[name='name'], textarea[name='description'], input[name='tagQuestion']").forEach((field) => {
+      field.addEventListener("input", updateSuggestion);
+    });
+    sourceSelect?.addEventListener("change", () => {
+      sourceSelect.dataset.touched = "true";
+      updateSuggestion();
+    });
+    conditionSelect?.addEventListener("change", () => {
+      numericFields?.classList.toggle("is-visible", conditionSelect.value === "numeric");
+    });
+    customRuleForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const editingId = customRuleForm.dataset.customRuleId || "";
+      const existingRule = (profileState.customRules || []).find((rule) => rule.id === editingId);
+      const draft = getCustomRuleFormDraft(customRuleForm);
+      if (!draft.name) return;
+      const customRule = normalizeCustomRule({
+        ...(existingRule || {}),
+        ...draft,
+        id: editingId || createUniqueCustomRuleId(draft.name, profileState.customRules),
+        createdAt: existingRule?.createdAt || new Date().toISOString()
+      });
+      upsertCustomRule(profileState, customRule, activeProfile);
+      profileState.showCustomRuleForm = false;
+      profileState.editingCustomRuleId = "";
+      profileState.openAddRuleMenu = false;
+      profileState.openCustomRuleMenuId = "";
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  }
+
+  container.querySelectorAll("[data-rule-action='cancel-custom-rule']").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.showCustomRuleForm = false;
+      profileState.editingCustomRuleId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-menu]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const ruleId = button.dataset.customRuleMenu;
+      profileState.openCustomRuleMenuId = profileState.openCustomRuleMenuId === ruleId ? "" : ruleId;
+      profileState.confirmCustomRuleDeleteId = "";
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
+      profileState.openWeightId = "";
+      profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-edit]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.editingCustomRuleId = button.dataset.customRuleEdit;
+      profileState.showCustomRuleForm = true;
+      profileState.openCustomRuleMenuId = "";
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-delete]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.confirmCustomRuleDeleteId = button.dataset.customRuleDelete;
+      profileState.openCustomRuleMenuId = button.dataset.customRuleDelete;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-cancel-delete]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-disable-all]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      disableCustomRuleInAll(profileState, button.dataset.customRuleDisableAll);
+      profileState.openCustomRuleMenuId = "";
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-custom-rule-delete-all]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteCustomRuleFromAll(profileState, button.dataset.customRuleDeleteAll);
+      profileState.openCustomRuleMenuId = "";
+      profileState.confirmCustomRuleDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
   const accountForm = container.querySelector("[data-rule-action='assign-account']");
   accountForm?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1258,18 +1714,20 @@ function renderProfileManager(container, context = {}) {
 
   const closeMenu = () => {
     const current = loadProfiles();
-    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId && !current.openAddRuleMenu && !current.openWeightId && !current.confirmRuleRemoveId) return;
+    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId && !current.openAddRuleMenu && !current.openWeightId && !current.confirmRuleRemoveId && !current.openCustomRuleMenuId && !current.confirmCustomRuleDeleteId) return;
     current.openMenuId = "";
     current.confirmDeleteId = "";
     current.editingProfileId = "";
     current.openAddRuleMenu = false;
     current.openWeightId = "";
     current.confirmRuleRemoveId = "";
+    current.openCustomRuleMenuId = "";
+    current.confirmCustomRuleDeleteId = "";
     saveProfiles(current);
     renderDisciplineSection(context.target, context.data, context);
   };
   container.addEventListener("click", (event) => {
-    if (!event.target.closest(".rule-profile-card")) closeMenu();
+    if (!event.target.closest(".rule-profile-card") && !event.target.closest(".rule-profile-add-rule") && !event.target.closest(".rule-profile-weight") && !event.target.closest(".rule-profile-custom-actions") && !event.target.closest(".rule-profile-custom-form")) closeMenu();
   });
   container.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMenu();

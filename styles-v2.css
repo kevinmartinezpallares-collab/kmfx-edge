@@ -17458,13 +17458,134 @@ html[data-theme="dark"] #section-discipline .rule-profile-rule,
 body[data-theme="dark"] #section-discipline .rule-profile-rule {
   position: relative;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto 132px 30px;
+  grid-template-columns: 42px minmax(0, 1fr) auto 132px 30px 30px;
   gap: 12px;
   align-items: center;
   padding: 11px 12px;
   border: 1px solid rgba(255,255,255,0.055);
   border-radius: 14px;
   background: rgba(255,255,255,0.025);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.026);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__head,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__head,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__head span,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__head span,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid label > span,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid label > span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__head strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__head p,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__head p,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer p,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid__wide,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid__wide,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-numeric,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-numeric {
+  grid-column: 1 / -1;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-numeric,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-numeric {
+  display: none;
+  grid-template-columns: 0.65fr 1fr 1fr;
+  gap: 12px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-numeric.is-visible,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-numeric.is-visible {
+  display: grid;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid input,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid input,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid select,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid select,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid textarea,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--border-0);
+  border-radius: 11px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-0);
+  font: inherit;
+  font-size: 13px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-grid textarea,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-grid textarea {
+  min-height: 72px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form button,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border-0);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-0);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer button,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-form__footer button {
+  background: rgba(52,217,123,0.13);
+  border-color: rgba(52,217,123,0.22);
+  color: color-mix(in srgb, var(--positive) 76%, var(--text-0));
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-rule.is-disabled,
@@ -17653,6 +17774,130 @@ body[data-theme="dark"] #section-discipline .rule-profile-weight-menu span {
   color: var(--text-2);
 }
 
+html[data-theme="dark"] #section-discipline .rule-profile-custom-actions,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-actions {
+  position: relative;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger:hover,
+html[data-theme="dark"] #section-discipline .rule-profile-rule.custom-menu-open .rule-profile-custom-menu-trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-rule.custom-menu-open .rule-profile-custom-menu-trigger {
+  border-color: var(--border-0);
+  background: rgba(255,255,255,0.045);
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 8;
+  min-width: 184px;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border-0);
+  border-radius: 12px;
+  background: var(--layer-1);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button.danger,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button.danger {
+  color: rgba(255,92,92,0.72);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button.danger:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu > button.danger:hover {
+  background: rgba(255,92,92,0.08);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px;
+  border-top: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm strong,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm strong {
+  font-size: 13px;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm p,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm div,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm div {
+  display: grid;
+  gap: 6px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm button,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-0);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-custom-confirm button.danger,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-confirm button.danger {
+  border-color: rgba(255,92,92,0.18);
+  background: rgba(255,92,92,0.08);
+  color: rgba(255,92,92,0.72);
+}
+
 html[data-theme="dark"] #section-discipline .rule-profile-remove,
 body[data-theme="dark"] #section-discipline .rule-profile-remove {
   width: 30px;
@@ -17787,6 +18032,8 @@ body[data-theme="dark"] #section-discipline .rule-profile-account-form button {
   body[data-theme="dark"] #section-discipline .rule-profile-badge,
   html[data-theme="dark"] #section-discipline .rule-profile-weight,
   body[data-theme="dark"] #section-discipline .rule-profile-weight,
+  html[data-theme="dark"] #section-discipline .rule-profile-custom-actions,
+  body[data-theme="dark"] #section-discipline .rule-profile-custom-actions,
   html[data-theme="dark"] #section-discipline .rule-profile-rule-confirm,
   body[data-theme="dark"] #section-discipline .rule-profile-rule-confirm {
     grid-column: 2 / -1;
