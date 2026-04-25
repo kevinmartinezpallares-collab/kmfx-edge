@@ -1,7 +1,7 @@
 import { openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 
@@ -312,7 +312,7 @@ export function initFunded(store) {
           <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
           <div><strong>Fase</strong><span>${enriched.phase}</span></div>
           <div><strong>Tamaño</strong><span>${formatCurrency(enriched.accountSize)}</span></div>
-          <div><strong>Profit actual</strong><span>${formatCurrency(enriched.currentProfitUsd)} / ${formatPercent(enriched.currentProfitPct)}</span></div>
+          <div><strong>Profit actual</strong><span>${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}</span></div>
           <div><strong>Objetivo</strong><span>${enriched.targetPct ? formatPercent(enriched.targetPct) : "Sin objetivo de challenge"}</span></div>
           <div><strong>Daily DD</strong><span>${formatPercent(enriched.dailyDdPct)} / ${enriched.dailyLimitPct ? formatPercent(enriched.dailyLimitPct) : "—"}</span></div>
           <div><strong>Max DD</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
@@ -446,7 +446,7 @@ export function renderFunded(root, state) {
               <div class="metric-item"><div class="metric-label">Account size</div><div class="metric-value">${formatCurrency(selected.accountSize)}</div></div>
               <div class="metric-item"><div class="metric-label">Balance</div><div class="metric-value">${formatCurrency(selected.balance)}</div></div>
               <div class="metric-item"><div class="metric-label">Equity</div><div class="metric-value">${formatCurrency(selected.equity)}</div></div>
-              <div class="metric-item"><div class="metric-label">Open P&L</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selected.openPnl)}</div></div>
+              <div class="metric-item"><div class="metric-label">Open P&L</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
             </div>
           </div>
 
@@ -524,7 +524,7 @@ export function renderFunded(root, state) {
         </div>
         <div class="funded-progress-layout">
           <div class="funded-progress-main">
-            <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : formatCurrency(selected.currentProfitUsd)}</div>
+            <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.currentProfitUsd, text: selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</div>
             <div class="row-sub">${selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}% completado · Remaining: ${formatCurrency(selected.remainingUsd)}` : "Sin profit target en esta fase"}</div>
           </div>
           <div class="funded-progress-track">
@@ -532,7 +532,7 @@ export function renderFunded(root, state) {
               <div class="funded-progress-fill ${progressFillClass(selected.targetCompletionPct)}" style="width:${selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
             </div>
             <div class="funded-progress-meta">
-              <span>Current profit: ${formatCurrency(selected.currentProfitUsd)}</span>
+              <span>Current profit: ${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
               <span>${selected.targetUsd ? `Target: ${formatCurrency(selected.targetUsd)}` : "Target no aplicable"}</span>
             </div>
           </div>
