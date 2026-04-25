@@ -1,6 +1,6 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency } from "./utils.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function emptyForm() {
   return {
@@ -295,7 +295,7 @@ export function renderStrategies(root, state) {
             <div class="strategies-setup-item__stats">
               <span>${item.trades} trades</span>
               <span>${percent(item.winRate)} WR</span>
-              <span class="${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(item.pnl)}</span>
+              <span class="${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: item.pnl, text: formatCurrency(item.pnl), className: item.pnl >= 0 ? "metric-positive" : "metric-negative" })}</span>
             </div>
           </div>
         `).join("") || `
@@ -349,7 +349,7 @@ export function renderStrategies(root, state) {
                   <td class="num">${stats.trades}</td>
                   <td class="num">${percent(stats.winRate)}</td>
                   <td class="num">${stats.rr ? stats.rr.toFixed(2) : "—"}</td>
-                  <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(stats.pnl)}</td>
+                  <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: stats.pnl, text: formatCurrency(stats.pnl), className: stats.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
                   <td class="strategies-score-cell">
                     <div class="strategies-score-read">
                       <strong>${stats.score.toFixed(1)}</strong>
