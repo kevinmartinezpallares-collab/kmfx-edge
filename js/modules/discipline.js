@@ -237,7 +237,10 @@ function normalizeProfiles(raw) {
       })) : []
     })),
     accountMap: raw?.accountMap && typeof raw.accountMap === "object" ? raw.accountMap : {},
-    activeProfileId: raw?.activeProfileId || profiles[0]?.id || "real-conservative"
+    activeProfileId: raw?.activeProfileId || profiles[0]?.id || "real-conservative",
+    openMenuId: raw?.openMenuId || "",
+    confirmDeleteId: raw?.confirmDeleteId || "",
+    editingProfileId: raw?.editingProfileId || ""
   };
 }
 
@@ -268,6 +271,36 @@ function getProfileForAccount(state, accountLogin = "") {
     isDefault: !mappedId,
     accountLogin: String(accountLogin || "")
   };
+}
+
+function duplicateProfile(profileState, profileId) {
+  const source = profileState.profiles.find((profile) => profile.id === profileId);
+  if (!source) return;
+  const id = `${profileId}-copy-${Date.now()}`;
+  profileState.profiles.push({
+    ...cloneProfiles(source),
+    id,
+    name: `${source.name} copia`
+  });
+  profileState.activeProfileId = id;
+  profileState.openMenuId = "";
+  profileState.confirmDeleteId = "";
+  profileState.editingProfileId = "";
+}
+
+function deleteProfile(profileState, profileId) {
+  if (profileId === "real-conservative" || profileState.profiles.length <= 1) return false;
+  const exists = profileState.profiles.some((profile) => profile.id === profileId);
+  if (!exists) return false;
+  profileState.profiles = profileState.profiles.filter((profile) => profile.id !== profileId);
+  Object.keys(profileState.accountMap || {}).forEach((login) => {
+    if (profileState.accountMap[login] === profileId) delete profileState.accountMap[login];
+  });
+  if (profileState.activeProfileId === profileId) profileState.activeProfileId = "real-conservative";
+  profileState.openMenuId = "";
+  profileState.confirmDeleteId = "";
+  profileState.editingProfileId = "";
+  return true;
 }
 
 function clamp(value, min = 0, max = 100) {
@@ -702,18 +735,45 @@ function buildProfileRuleRows(profile, currentRows = []) {
 function renderProfileCards(profileState, activeProfile) {
   return `
     <div class="rule-profile-cards">
-      ${profileState.profiles.map((profile) => `
-        <button
-          type="button"
-          class="rule-profile-card${profile.id === activeProfile.id ? " is-active" : ""}"
-          data-profile-id="${escapeHtml(profile.id)}"
-          style="--rule-profile-color:${escapeHtml(profile.color || "#34D97B")}"
-        >
-          <span>${escapeHtml(profile.type || "perfil")}</span>
-          <strong>${escapeHtml(profile.name)}</strong>
-          <small>${escapeHtml(profile.description || "")}</small>
-        </button>
-      `).join("")}
+      ${profileState.profiles.map((profile) => {
+        const isLocked = profile.id === "real-conservative" || profileState.profiles.length <= 1;
+        const isOpen = profileState.openMenuId === profile.id;
+        const isConfirming = profileState.confirmDeleteId === profile.id;
+        const isEditing = profileState.editingProfileId === profile.id;
+        return `
+          <div
+            class="rule-profile-card${profile.id === activeProfile.id ? " is-active" : ""}${isOpen ? " menu-open" : ""}"
+            data-profile-card="${escapeHtml(profile.id)}"
+            style="--rule-profile-color:${escapeHtml(profile.color || "#34D97B")}"
+          >
+            <button type="button" class="rule-profile-card__select" data-profile-id="${escapeHtml(profile.id)}">
+              <span>${escapeHtml(profile.type || "perfil")}</span>
+              ${isEditing ? `
+                <input class="rule-profile-name-input" type="text" value="${escapeHtml(profile.name)}" data-profile-name-input="${escapeHtml(profile.id)}" aria-label="Editar nombre de perfil">
+              ` : `<strong>${escapeHtml(profile.name)}</strong>`}
+              <small>${escapeHtml(profile.description || "")}</small>
+            </button>
+            <button type="button" class="rule-profile-menu-trigger" data-profile-menu="${escapeHtml(profile.id)}" aria-label="Opciones de perfil">…</button>
+            ${isOpen ? `
+              <div class="rule-profile-menu" data-profile-menu-panel="${escapeHtml(profile.id)}">
+                <button type="button" data-profile-action="edit" data-profile-target="${escapeHtml(profile.id)}">Editar nombre</button>
+                <button type="button" data-profile-action="duplicate" data-profile-target="${escapeHtml(profile.id)}">Duplicar perfil</button>
+                <button type="button" class="danger" data-profile-action="delete" data-profile-target="${escapeHtml(profile.id)}" ${isLocked ? "disabled" : ""}>Eliminar perfil</button>
+                ${isConfirming ? `
+                  <div class="rule-profile-confirm">
+                    <strong>Eliminar perfil</strong>
+                    <p>Las cuentas asignadas volverán al perfil por defecto.</p>
+                    <div>
+                      <button type="button" data-profile-action="cancel-delete" data-profile-target="${escapeHtml(profile.id)}">Cancelar</button>
+                      <button type="button" class="danger" data-profile-action="confirm-delete" data-profile-target="${escapeHtml(profile.id)}">Eliminar</button>
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("")}
       <button type="button" class="rule-profile-card rule-profile-card--new" data-rule-action="new-profile">
         <span>Nuevo</span>
         <strong>+ Nuevo perfil</strong>
@@ -803,10 +863,69 @@ function renderProfileManager(container, context = {}) {
   container.querySelectorAll("[data-profile-id]").forEach((button) => {
     button.addEventListener("click", () => {
       profileState.activeProfileId = button.dataset.profileId;
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = button.dataset.profileId;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
+  });
+
+  container.querySelectorAll("[data-profile-menu]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const profileId = button.dataset.profileMenu;
+      profileState.openMenuId = profileState.openMenuId === profileId ? "" : profileId;
+      profileState.confirmDeleteId = "";
+      profileState.editingProfileId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-profile-action]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const profileId = button.dataset.profileTarget;
+      const action = button.dataset.profileAction;
+      if (action === "edit") {
+        profileState.editingProfileId = profileId;
+        profileState.openMenuId = "";
+        profileState.confirmDeleteId = "";
+      }
+      if (action === "duplicate") duplicateProfile(profileState, profileId);
+      if (action === "delete") {
+        if (profileId !== "real-conservative" && profileState.profiles.length > 1) {
+          profileState.confirmDeleteId = profileId;
+        }
+      }
+      if (action === "cancel-delete") profileState.confirmDeleteId = "";
+      if (action === "confirm-delete") deleteProfile(profileState, profileId);
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-profile-name-input]").forEach((input) => {
+    const saveName = () => {
+      const profile = profileState.profiles.find((item) => item.id === input.dataset.profileNameInput);
+      const name = input.value.trim();
+      if (profile && name) profile.name = name;
+      profileState.editingProfileId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    };
+    input.addEventListener("click", (event) => event.stopPropagation());
+    input.addEventListener("blur", saveName);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") saveName();
+      if (event.key === "Escape") {
+        profileState.editingProfileId = "";
+        saveProfiles(profileState);
+        renderDisciplineSection(context.target, context.data, context);
+      }
+    });
+    setTimeout(() => input.focus(), 0);
   });
 
   container.querySelectorAll("[data-rule-action='new-profile']").forEach((button) => {
@@ -821,6 +940,9 @@ function renderProfileManager(container, context = {}) {
         color: "#8E8E93"
       });
       profileState.activeProfileId = id;
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
+      profileState.editingProfileId = "";
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = id;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -868,6 +990,22 @@ function renderProfileManager(container, context = {}) {
     profileState.accountMap[login] = activeProfile.id;
     saveProfiles(profileState);
     renderDisciplineSection(context.target, { ...context.data, accountLogin: login }, { ...context, accountLogin: login });
+  });
+
+  const closeMenu = () => {
+    const current = loadProfiles();
+    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId) return;
+    current.openMenuId = "";
+    current.confirmDeleteId = "";
+    current.editingProfileId = "";
+    saveProfiles(current);
+    renderDisciplineSection(context.target, context.data, context);
+  };
+  container.addEventListener("click", (event) => {
+    if (!event.target.closest(".rule-profile-card")) closeMenu();
+  });
+  container.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenu();
   });
 }
 
