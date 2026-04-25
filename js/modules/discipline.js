@@ -49,13 +49,51 @@ const RULE_DEFINITIONS = disciplineData.rules.map((rule) => rule.name);
 // === RULE PROFILES ===
 const KMFX_PROFILES_STORAGE_KEY = "kmfx_profiles";
 
+const WEIGHT_OPTIONS = [
+  {
+    value: 0.5,
+    label: "Bajo",
+    color: "#555555",
+    short: "Impacto mínimo",
+    description: "Buena práctica opcional"
+  },
+  {
+    value: 1.0,
+    label: "Normal",
+    color: "#888888",
+    short: "Regla estándar",
+    description: "Proceso esperado"
+  },
+  {
+    value: 1.5,
+    label: "Alto",
+    color: "#F5A623",
+    short: "Regla del sistema",
+    description: "Define el edge"
+  },
+  {
+    value: 2.0,
+    label: "Crítico",
+    color: "#FF5C5C",
+    short: "Riesgo de cuenta",
+    description: "Penaliza fuertemente"
+  },
+  {
+    value: 3.0,
+    label: "Absoluto",
+    color: "#FF2D2D",
+    short: "Línea roja",
+    description: "No admite violación"
+  }
+];
+
 const RULE_LIBRARY = {
   "sl-fixed": {
     id: "sl-fixed",
     name: "SL fijo en 10 pips",
     description: "El stop debe quedar definido y respetado.",
     source: "auto",
-    weight: 1.4,
+    weight: 1.5,
     params: { pips: 10 },
     executionRule: RULE_DEFINITIONS[0]
   },
@@ -64,7 +102,7 @@ const RULE_LIBRARY = {
     name: "Máx. trades por día",
     description: "Limita la frecuencia operativa diaria.",
     source: "auto",
-    weight: 1.1,
+    weight: 1.0,
     params: { max: 1 },
     executionRule: RULE_DEFINITIONS[1]
   },
@@ -73,7 +111,7 @@ const RULE_LIBRARY = {
     name: "Ventana de sesión",
     description: "Evita operar fuera del horario permitido.",
     source: "auto",
-    weight: 1.2,
+    weight: 1.0,
     params: { until: "17:00" },
     executionRule: RULE_DEFINITIONS[4]
   },
@@ -82,7 +120,7 @@ const RULE_LIBRARY = {
     name: "BE activado a 20 pips",
     description: "Protege la posición al alcanzar el umbral definido.",
     source: "manual",
-    weight: 0.9,
+    weight: 1.5,
     params: { pips: 20 },
     executionRule: RULE_DEFINITIONS[3]
   },
@@ -91,7 +129,7 @@ const RULE_LIBRARY = {
     name: "Entrada en OB candle open",
     description: "Mide desviación frente a la entrada técnica ideal.",
     source: "auto",
-    weight: 1,
+    weight: 1.5,
     params: {},
     executionRule: RULE_DEFINITIONS[2]
   },
@@ -100,7 +138,7 @@ const RULE_LIBRARY = {
     name: "Setup válido confirmado",
     description: "Requiere etiquetar y validar el setup antes de operar.",
     source: "manual",
-    weight: 1,
+    weight: 1.5,
     params: {},
     executionRule: RULE_DEFINITIONS[5]
   },
@@ -109,7 +147,7 @@ const RULE_LIBRARY = {
     name: "Límite de drawdown diario",
     description: "Controla la pérdida máxima permitida por día.",
     source: "manual",
-    weight: 1.4,
+    weight: 2.0,
     params: { pct: 2 },
     executionRule: "Límite de drawdown diario"
   },
@@ -118,7 +156,7 @@ const RULE_LIBRARY = {
     name: "Bloqueo por noticias",
     description: "Evita operar durante ventanas de alto impacto.",
     source: "manual",
-    weight: 0.8,
+    weight: 1.5,
     params: { minutes: 30 },
     executionRule: "Bloqueo por noticias"
   },
@@ -127,7 +165,7 @@ const RULE_LIBRARY = {
     name: "R:R mínimo",
     description: "Exige relación riesgo/beneficio mínima antes de entrar.",
     source: "manual",
-    weight: 0.9,
+    weight: 1.5,
     params: { ratio: 1.5 },
     executionRule: "R:R mínimo"
   },
@@ -136,7 +174,7 @@ const RULE_LIBRARY = {
     name: "Pérdida diaria máxima",
     description: "Corta operativa al alcanzar el límite de pérdida diaria.",
     source: "manual",
-    weight: 1.3,
+    weight: 2.0,
     params: { amount: 500 },
     executionRule: "Pérdida diaria máxima"
   },
@@ -145,7 +183,7 @@ const RULE_LIBRARY = {
     name: "Pérdidas consecutivas",
     description: "Detiene la sesión tras una racha negativa definida.",
     source: "manual",
-    weight: 1.2,
+    weight: 3.0,
     params: { max: 2 },
     executionRule: "Pérdidas consecutivas"
   }
@@ -159,9 +197,10 @@ function profileRule(id, overrides = {}) {
     description: rule?.description || "Regla de ejecución.",
     enabled: true,
     source: rule?.source || "manual",
-    weight: rule?.weight || 1,
+    weight: normalizeWeight(rule?.weight || 1),
     params: { ...(rule?.params || {}) },
-    ...overrides
+    ...overrides,
+    weight: normalizeWeight(overrides.weight ?? rule?.weight ?? 1)
   };
 }
 
@@ -179,9 +218,7 @@ const DEFAULT_KMFX_PROFILES = {
         profileRule("session-window"),
         profileRule("be-activation"),
         profileRule("ob-entry"),
-        profileRule("valid-setup"),
-        profileRule("max-daily-loss", { enabled: false }),
-        profileRule("consecutive-losses")
+        profileRule("valid-setup")
       ]
     },
     {
@@ -191,13 +228,15 @@ const DEFAULT_KMFX_PROFILES = {
       color: "#F5A623",
       description: "Max DD 10% · 30 días",
       rules: [
-        profileRule("daily-drawdown-limit"),
-        profileRule("max-daily-loss"),
+        profileRule("sl-fixed"),
         profileRule("max-trades-per-day"),
         profileRule("session-window"),
+        profileRule("be-activation"),
+        profileRule("ob-entry"),
+        profileRule("valid-setup"),
+        profileRule("daily-drawdown-limit"),
         profileRule("news-blackout"),
-        profileRule("min-rr-ratio"),
-        profileRule("valid-setup")
+        profileRule("max-daily-loss")
       ]
     },
     {
@@ -208,12 +247,16 @@ const DEFAULT_KMFX_PROFILES = {
       description: "Max DD 5% · Payout mensual",
       rules: [
         profileRule("sl-fixed"),
-        profileRule("daily-drawdown-limit"),
-        profileRule("max-daily-loss"),
+        profileRule("max-trades-per-day"),
         profileRule("session-window"),
         profileRule("be-activation"),
+        profileRule("ob-entry"),
+        profileRule("valid-setup"),
+        profileRule("daily-drawdown-limit"),
+        profileRule("news-blackout"),
+        profileRule("max-daily-loss"),
         profileRule("consecutive-losses"),
-        profileRule("news-blackout", { enabled: false })
+        profileRule("min-rr-ratio")
       ]
     }
   ],
@@ -222,6 +265,32 @@ const DEFAULT_KMFX_PROFILES = {
 
 function cloneProfiles(value = DEFAULT_KMFX_PROFILES) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeWeight(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 1.0;
+  return WEIGHT_OPTIONS.reduce((closest, option) => (
+    Math.abs(option.value - numeric) < Math.abs(closest.value - numeric) ? option : closest
+  ), WEIGHT_OPTIONS[1]).value;
+}
+
+function getWeightOption(value) {
+  return WEIGHT_OPTIONS.find((option) => option.value === normalizeWeight(value)) || WEIGHT_OPTIONS[1];
+}
+
+function hasProfileNormalizationDrift(raw, normalized) {
+  try {
+    const rawWeights = (raw?.profiles || []).flatMap((profile) => (profile.rules || []).map((rule) => Number(rule.weight)));
+    const invalidWeight = rawWeights.some((weight) => !WEIGHT_OPTIONS.some((option) => option.value === weight));
+    const missingTransient = raw && (
+      !Object.prototype.hasOwnProperty.call(raw, "openWeightId") ||
+      !Object.prototype.hasOwnProperty.call(raw, "confirmRuleRemoveId")
+    );
+    return invalidWeight || missingTransient || !normalized.profiles.length;
+  } catch {
+    return true;
+  }
 }
 
 function normalizeProfiles(raw) {
@@ -233,21 +302,26 @@ function normalizeProfiles(raw) {
       rules: Array.isArray(profile.rules) ? profile.rules.map((rule) => ({
         ...profileRule(rule.id, rule),
         enabled: rule.enabled !== false,
-        weight: clamp(Number(rule.weight) || 1, 0.5, 3)
+        weight: normalizeWeight(rule.weight)
       })) : []
     })),
     accountMap: raw?.accountMap && typeof raw.accountMap === "object" ? raw.accountMap : {},
     activeProfileId: raw?.activeProfileId || profiles[0]?.id || "real-conservative",
     openMenuId: raw?.openMenuId || "",
     confirmDeleteId: raw?.confirmDeleteId || "",
-    editingProfileId: raw?.editingProfileId || ""
+    editingProfileId: raw?.editingProfileId || "",
+    openWeightId: raw?.openWeightId || "",
+    confirmRuleRemoveId: raw?.confirmRuleRemoveId || ""
   };
 }
 
 function loadProfiles() {
   try {
     const saved = window.localStorage?.getItem(KMFX_PROFILES_STORAGE_KEY);
-    return normalizeProfiles(saved ? JSON.parse(saved) : DEFAULT_KMFX_PROFILES);
+    const parsed = saved ? JSON.parse(saved) : DEFAULT_KMFX_PROFILES;
+    const normalized = normalizeProfiles(parsed);
+    if (saved && hasProfileNormalizationDrift(parsed, normalized)) saveProfiles(normalized);
+    return normalized;
   } catch (error) {
     console.warn("[KMFX][RULE_PROFILES] falling back to defaults", error);
     return normalizeProfiles(DEFAULT_KMFX_PROFILES);
@@ -286,6 +360,8 @@ function duplicateProfile(profileState, profileId) {
   profileState.openMenuId = "";
   profileState.confirmDeleteId = "";
   profileState.editingProfileId = "";
+  profileState.openWeightId = "";
+  profileState.confirmRuleRemoveId = "";
 }
 
 function deleteProfile(profileState, profileId) {
@@ -300,6 +376,17 @@ function deleteProfile(profileState, profileId) {
   profileState.openMenuId = "";
   profileState.confirmDeleteId = "";
   profileState.editingProfileId = "";
+  profileState.openWeightId = "";
+  profileState.confirmRuleRemoveId = "";
+  return true;
+}
+
+function removeRuleFromProfile(profile, ruleId) {
+  if (!profile || !Array.isArray(profile.rules)) return false;
+  const target = profile.rules.find((rule) => rule.id === ruleId);
+  const activeRules = profile.rules.filter((rule) => rule.enabled !== false);
+  if (target?.enabled !== false && activeRules.length <= 1) return false;
+  profile.rules = profile.rules.filter((rule) => rule.id !== ruleId);
   return true;
 }
 
@@ -647,12 +734,23 @@ function calcPsychologicalScore(recentTrades = []) {
   return clamp(100 - (pressureTrades / recentTrades.length) * 100);
 }
 
+function weightedAverageRuleScore(ruleRows = []) {
+  const validRows = ruleRows.filter((row) => (
+    Number.isFinite(Number(row.pct)) &&
+    !isIncompleteNote(row.note)
+  ));
+  const totalWeight = validRows.reduce((sum, row) => sum + normalizeWeight(row.weight || 1), 0);
+  if (!totalWeight) return null;
+  const weightedSum = validRows.reduce((sum, row) => sum + (Number(row.pct) * normalizeWeight(row.weight || 1)), 0);
+  return weightedSum / totalWeight;
+}
+
 function resolveScoreTone(score) {
   return scoreColor(score);
 }
 
 function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback = disciplineData) {
-  const compliance = average(ruleRows.map((row) => row.pct));
+  const compliance = weightedAverageRuleScore(ruleRows) ?? average(ruleRows.map((row) => row.pct));
   const precision = entryDeviations.length
     ? clamp(100 - (average(entryDeviations) / 6) * 100)
     : fallback.score.breakdown.precision;
@@ -732,6 +830,52 @@ function buildProfileRuleRows(profile, currentRows = []) {
     .map((rule) => ruleRowFromProfileRule(rule, currentRows));
 }
 
+function renderWeightDropdown(rule, profileState) {
+  const selected = getWeightOption(rule.weight);
+  const isOpen = profileState.openWeightId === rule.id;
+  return `
+    <div class="rule-profile-weight" style="--rule-weight-color:${escapeHtml(selected.color)}">
+      <button type="button" class="rule-profile-weight__trigger" data-rule-weight-menu="${escapeHtml(rule.id)}">
+        <b>×${selected.value.toFixed(1)}</b>
+        <span>${escapeHtml(selected.label)}</span>
+        <i>⌄</i>
+      </button>
+      ${isOpen ? `
+        <div class="rule-profile-weight-menu">
+          ${WEIGHT_OPTIONS.map((option) => `
+            <button
+              type="button"
+              class="${option.value === selected.value ? "is-selected" : ""}"
+              data-rule-weight-option="${escapeHtml(rule.id)}"
+              data-weight-value="${option.value}"
+              style="--rule-weight-option-color:${escapeHtml(option.color)}"
+            >
+              <i></i>
+              <strong>×${option.value.toFixed(1)} ${escapeHtml(option.label)}</strong>
+              <span>${escapeHtml(option.short)}</span>
+            </button>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderProfileWarnings(profile) {
+  const rules = Array.isArray(profile?.rules) ? profile.rules.filter((rule) => rule.enabled !== false) : [];
+  const absoluteCount = rules.filter((rule) => normalizeWeight(rule.weight) === 3.0).length;
+  const criticalCount = rules.filter((rule) => normalizeWeight(rule.weight) === 2.0).length;
+  const warnings = [];
+  if (absoluteCount > 2) warnings.push("Demasiadas reglas absolutas reducen la discriminación del score.");
+  if (criticalCount > 4) warnings.push("Demasiadas reglas críticas pueden hacer el score demasiado punitivo.");
+  if (!warnings.length) return "";
+  return `
+    <div class="rule-profile-warnings">
+      ${warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("")}
+    </div>
+  `;
+}
+
 function renderProfileCards(profileState, activeProfile) {
   return `
     <div class="rule-profile-cards">
@@ -783,7 +927,7 @@ function renderProfileCards(profileState, activeProfile) {
   `;
 }
 
-function renderProfileEditor(profile) {
+function renderProfileEditor(profile, profileState) {
   const rules = Array.isArray(profile?.rules) ? profile.rules : [];
   return `
     <div class="rule-profile-editor">
@@ -795,8 +939,13 @@ function renderProfileEditor(profile) {
         </div>
         <button type="button" class="rule-profile-action" data-rule-action="add-rule">+ Añadir regla</button>
       </div>
+      ${renderProfileWarnings(profile)}
       <div class="rule-profile-rule-list">
-        ${rules.map((rule) => `
+        ${rules.map((rule) => {
+          const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
+          const activeRules = rules.filter((item) => item.enabled !== false);
+          const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
+          return `
           <div class="rule-profile-rule${rule.enabled === false ? " is-disabled" : ""}" data-rule-id="${escapeHtml(rule.id)}">
             <label class="rule-profile-toggle">
               <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
@@ -807,15 +956,21 @@ function renderProfileEditor(profile) {
               <p>${escapeHtml(rule.description)}</p>
             </div>
             <span class="rule-profile-badge">${rule.source === "auto" ? "Automático" : "Manual"}</span>
-            <label class="rule-profile-weight">
-              <span>Peso</span>
-              <div class="rule-profile-weight__control">
-                <b>×</b>
-                <input type="number" min="0.5" max="3" step="0.1" value="${Number(rule.weight || 1).toFixed(1)}" data-rule-weight="${escapeHtml(rule.id)}">
+            ${renderWeightDropdown(rule, profileState)}
+            <button type="button" class="rule-profile-remove" data-rule-remove="${escapeHtml(rule.id)}" ${cannotRemove ? "disabled" : ""} aria-label="Quitar regla">×</button>
+            ${isConfirmingRemove ? `
+              <div class="rule-profile-rule-confirm">
+                <strong>Quitar regla</strong>
+                <p>La regla dejará de afectar al score de este perfil.</p>
+                <div>
+                  <button type="button" data-rule-remove-cancel="${escapeHtml(rule.id)}">Cancelar</button>
+                  <button type="button" class="danger" data-rule-remove-confirm="${escapeHtml(rule.id)}">Quitar</button>
+                </div>
               </div>
-            </label>
+            ` : ""}
           </div>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
     </div>
   `;
@@ -855,7 +1010,7 @@ function renderProfileManager(container, context = {}) {
         <button type="button" class="rule-profile-action" data-rule-action="new-profile">+ Nuevo</button>
       </div>
       ${renderProfileCards(profileState, activeProfile)}
-      ${renderProfileEditor(activeProfile)}
+      ${renderProfileEditor(activeProfile, profileState)}
       ${renderAccountAssignments(profileState, activeProfile, accountLogin, isDefault)}
     </article>
   `;
@@ -865,6 +1020,8 @@ function renderProfileManager(container, context = {}) {
       profileState.activeProfileId = button.dataset.profileId;
       profileState.openMenuId = "";
       profileState.confirmDeleteId = "";
+      profileState.openWeightId = "";
+      profileState.confirmRuleRemoveId = "";
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = button.dataset.profileId;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -878,6 +1035,8 @@ function renderProfileManager(container, context = {}) {
       profileState.openMenuId = profileState.openMenuId === profileId ? "" : profileId;
       profileState.confirmDeleteId = "";
       profileState.editingProfileId = "";
+      profileState.openWeightId = "";
+      profileState.confirmRuleRemoveId = "";
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -892,6 +1051,8 @@ function renderProfileManager(container, context = {}) {
         profileState.editingProfileId = profileId;
         profileState.openMenuId = "";
         profileState.confirmDeleteId = "";
+        profileState.openWeightId = "";
+        profileState.confirmRuleRemoveId = "";
       }
       if (action === "duplicate") duplicateProfile(profileState, profileId);
       if (action === "delete") {
@@ -943,6 +1104,8 @@ function renderProfileManager(container, context = {}) {
       profileState.openMenuId = "";
       profileState.confirmDeleteId = "";
       profileState.editingProfileId = "";
+      profileState.openWeightId = "";
+      profileState.confirmRuleRemoveId = "";
       if (context.accountLogin) profileState.accountMap[String(context.accountLogin)] = id;
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -958,10 +1121,57 @@ function renderProfileManager(container, context = {}) {
     });
   });
 
-  container.querySelectorAll("[data-rule-weight]").forEach((input) => {
-    input.addEventListener("change", () => {
-      const rule = activeProfile.rules.find((item) => item.id === input.dataset.ruleWeight);
-      if (rule) rule.weight = clamp(Number(input.value) || 1, 0.5, 3);
+  container.querySelectorAll("[data-rule-weight-menu]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const ruleId = button.dataset.ruleWeightMenu;
+      profileState.openWeightId = profileState.openWeightId === ruleId ? "" : ruleId;
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
+      profileState.confirmRuleRemoveId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-weight-option]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const rule = activeProfile.rules.find((item) => item.id === button.dataset.ruleWeightOption);
+      if (rule) rule.weight = normalizeWeight(button.dataset.weightValue);
+      profileState.openWeightId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-remove]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (button.disabled) return;
+      profileState.confirmRuleRemoveId = button.dataset.ruleRemove;
+      profileState.openWeightId = "";
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-remove-cancel]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileState.confirmRuleRemoveId = "";
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-remove-confirm]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      removeRuleFromProfile(activeProfile, button.dataset.ruleRemoveConfirm);
+      profileState.confirmRuleRemoveId = "";
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
@@ -994,10 +1204,12 @@ function renderProfileManager(container, context = {}) {
 
   const closeMenu = () => {
     const current = loadProfiles();
-    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId) return;
+    if (!current.openMenuId && !current.confirmDeleteId && !current.editingProfileId && !current.openWeightId && !current.confirmRuleRemoveId) return;
     current.openMenuId = "";
     current.confirmDeleteId = "";
     current.editingProfileId = "";
+    current.openWeightId = "";
+    current.confirmRuleRemoveId = "";
     saveProfiles(current);
     renderDisciplineSection(context.target, context.data, context);
   };
@@ -1304,15 +1516,19 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     tracked: item.tracked === true || item.hasTracking === true
   }));
   const scoreValue = data.score?.overall ?? data.score?.score ?? 0;
+  const weightedCompliance = weightedAverageRuleScore(visibleRules);
   const breakdown = data.score?.breakdown
     ? [
-      { label: "Cumplimiento", value: data.score.breakdown.compliance },
+      { label: "Cumplimiento", value: weightedCompliance ?? data.score.breakdown.compliance },
       { label: "Precisión", value: data.score.breakdown.precision },
       { label: "Consistencia", value: data.score.breakdown.consistency },
       { label: "Horario", value: data.score.breakdown.timing },
       { label: "Psicológico", value: data.score.breakdown.psychological }
     ]
-    : data.score?.subscores || [];
+    : (data.score?.subscores || []).map((item) => (
+      item.label === "Cumplimiento" ? { ...item, value: weightedCompliance ?? item.value } : item
+    ));
+  const weightedScoreValue = Math.round(average(breakdown.map((item) => item.value)) ?? scoreValue);
   const insight = data.score?.insight || data.insight || disciplineData.score.insight;
   const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
   const isPartialData = hasPartialExecutionData(rules, entryRows, kpis);
@@ -1327,12 +1543,10 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       </div>
     </header>
 
-    <div id="discipline-profile-manager"></div>
-
     ${renderExecutionHero(rules)}
 
     <section class="execution-score-row">
-      ${renderScorePanel(scoreValue, breakdown, insight, { isPartial: isPartialData })}
+      ${renderScorePanel(weightedScoreValue, breakdown, insight, { isPartial: isPartialData })}
     </section>
 
     <section class="execution-main-grid">
@@ -1383,6 +1597,8 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         </div>` : renderEntryPrecisionEmpty()}
       </article>
     </section>
+
+    <div id="discipline-profile-manager"></div>
   `;
   renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
 }
