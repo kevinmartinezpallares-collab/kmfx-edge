@@ -2107,6 +2107,127 @@ tbody tr:hover td {
   background: rgba(255,255,255,0.20);
 }
 
+/* Scroll viewports inside cards follow the shadcn pattern: the card clips,
+   the inner content scrolls, and the scrollbar stays inset from the border. */
+html[data-theme="dark"] .kmfx-mt5-admin-payload,
+body[data-theme="dark"] .kmfx-mt5-admin-payload,
+html[data-theme="dark"] .trades-table-wrap,
+body[data-theme="dark"] .trades-table-wrap,
+html[data-theme="dark"] .trades-history-card .table-wrap,
+body[data-theme="dark"] .trades-history-card .table-wrap,
+html[data-theme="dark"] .portfolio-table-wrap,
+body[data-theme="dark"] .portfolio-table-wrap,
+html[data-theme="dark"] .risk-ladder-table,
+body[data-theme="dark"] .risk-ladder-table,
+html[data-theme="dark"] .calendar-returns-panel .table-wrap,
+body[data-theme="dark"] .calendar-returns-panel .table-wrap,
+html[data-theme="dark"] .analytics-panel .table-wrap,
+body[data-theme="dark"] .analytics-panel .table-wrap,
+html[data-theme="dark"] #section-discipline .execution-entry-table,
+body[data-theme="dark"] #section-discipline .execution-entry-table,
+html[data-theme="dark"] .modal-body--focus-panel,
+body[data-theme="dark"] .modal-body--focus-panel,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.16) transparent;
+}
+
+html[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar,
+body[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar,
+html[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar,
+body[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar,
+html[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar,
+body[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar,
+html[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar,
+body[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar,
+html[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar,
+body[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar,
+html[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar,
+body[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar,
+html[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar,
+body[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar,
+html[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar,
+body[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar,
+html[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar,
+body[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-track,
+body[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-track,
+html[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-track,
+body[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-track,
+html[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-track,
+body[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-track,
+html[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-track,
+body[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-track,
+html[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-track,
+body[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-track,
+html[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-track,
+body[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-track,
+html[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-track,
+body[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-track,
+html[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-track,
+body[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-track,
+html[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-track,
+body[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-track,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-track,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-thumb,
+html[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-thumb,
+body[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-thumb,
+html[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-thumb,
+body[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-thumb,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+}
+
+html[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .kmfx-mt5-admin-payload::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .trades-table-wrap::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .trades-history-card .table-wrap::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .portfolio-table-wrap::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .risk-ladder-table::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .calendar-returns-panel .table-wrap::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .analytics-panel .table-wrap::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] #section-discipline .execution-entry-table::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] .modal-body--focus-panel::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb:hover,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.24);
+}
+
 html[data-theme="dark"] .tl-kpi-card,
 html[data-theme="dark"] .rm4-card,
 html[data-theme="dark"] .tl-section-card,
@@ -14279,7 +14400,8 @@ body[data-theme="dark"] .modal-card--focus-panel {
   width: min(84vw, 1180px);
   max-width: min(84vw, 1180px) !important;
   max-height: min(86vh, 920px);
-  overflow: auto;
+  display: grid;
+  overflow: hidden;
   background: #1c1c1e !important;
   border: 1px solid #38383a !important;
   border-radius: 16px !important;
@@ -14300,7 +14422,13 @@ body[data-theme="dark"] .modal-overlay--focus-panel.open .modal-card--focus-pane
 html[data-theme="dark"] .modal-body--focus-panel,
 body[data-theme="dark"] .modal-body--focus-panel {
   position: relative;
-  padding: 24px;
+  min-height: 0;
+  overflow: auto;
+  margin-right: 6px;
+  padding: 24px 10px 24px 24px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.16) transparent;
 }
 
 html[data-theme="dark"] .focus-panel,
