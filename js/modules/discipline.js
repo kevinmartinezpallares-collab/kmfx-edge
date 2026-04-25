@@ -62,7 +62,6 @@ let postTradeQueueState = {
   trades: [],
   index: 0
 };
-let lastSavedPostTradeId = "";
 
 const WEIGHT_OPTIONS = [
   {
@@ -620,8 +619,6 @@ export function savePostTradeTag(tradeId, data) {
   delete tags[tradeId].status;
   try {
     window.localStorage?.setItem(KMFX_TAGS_STORAGE_KEY, JSON.stringify(tags));
-    lastSavedPostTradeId = String(tradeId);
-    console.log("TAG GUARDADO:", tradeId, tags[tradeId]);
     return true;
   } catch (error) {
     console.warn("[KMFX][POST_TRADE_TAGS] save skipped", error);
@@ -988,7 +985,7 @@ function postTagForTrade(tags = {}, trade = {}, index = 0) {
 }
 
 function mergeTradesWithPostTags(trades = [], tags = {}) {
-  const mergedTrades = trades.map((trade, index) => {
+  return trades.map((trade, index) => {
     const normalizedTrade = normalizeTradeForTag(trade, index);
     return {
       ...trade,
@@ -996,10 +993,6 @@ function mergeTradesWithPostTags(trades = [], tags = {}) {
       postTag: tags[trade.id] || tags[normalizedTrade.id] || null
     };
   });
-  if (lastSavedPostTradeId) {
-    console.log("POST TAG MERGED:", mergedTrades.find((trade) => trade.id === lastSavedPostTradeId));
-  }
-  return mergedTrades;
 }
 
 function tagAnswerKey(ruleId = "") {
@@ -1394,6 +1387,57 @@ function weightedAverageRuleScore(ruleRows = []) {
   if (!totalWeight) return null;
   const weightedSum = validRows.reduce((sum, row) => sum + (Number(row.pct) * normalizeWeight(row.weight || 1)), 0);
   return weightedSum / totalWeight;
+}
+
+function calculateManualTagScore(mergedTrades = [], enabledRules = []) {
+  const supportedRuleIds = new Set([
+    "london-confirmation",
+    "ob-entry",
+    "valid-setup",
+    "allowed-pairs",
+    "be-activation"
+  ]);
+  const evaluatedRules = enabledRules
+    .filter((rule) => (
+      rule.enabled !== false &&
+      rule.pendingImplementation !== true &&
+      supportedRuleIds.has(rule.id) &&
+      ["manual", "mixed"].includes(normalizeSource(rule.source))
+    ))
+    .map((rule) => {
+      const key = tagAnswerKey(rule.id);
+      let eligible = 0;
+      let passed = 0;
+      mergedTrades.forEach((trade) => {
+        const tag = trade.postTag;
+        if (!tag || tag.tagSkipped === true || tag[key] === null || tag[key] === undefined) return;
+        if (typeof tag[key] !== "boolean") return;
+        eligible += 1;
+        if (tag[key] === true) passed += 1;
+      });
+      return {
+        id: rule.id,
+        name: rule.name,
+        weight: normalizeWeight(rule.weight || 1),
+        eligible,
+        passed,
+        pct: eligible ? (passed / eligible) * 100 : null
+      };
+    });
+  const eligibleRules = evaluatedRules.filter((rule) => rule.eligible > 0 && Number.isFinite(Number(rule.pct)));
+  const totalWeight = eligibleRules.reduce((sum, rule) => sum + rule.weight, 0);
+  const overall = totalWeight
+    ? eligibleRules.reduce((sum, rule) => sum + (rule.pct * rule.weight), 0) / totalWeight
+    : null;
+  const weakestRule = eligibleRules
+    .slice()
+    .sort((a, b) => a.pct - b.pct)[0] || null;
+  return {
+    overall,
+    rules: evaluatedRules,
+    eligibleRules,
+    weakestRule
+  };
 }
 
 function resolveScoreTone(score) {
@@ -3010,6 +3054,8 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const liveEntryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
   const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
   const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
+  const manualTagScore = calculateManualTagScore(recentTrades, activeProfile.rules || []);
+  const hasManualScore = Number.isFinite(Number(manualTagScore.overall));
   if (recentTrades.length) {
     kpis = buildKpis(visibleRules, recentTrades, liveEntryDeviations);
   }
@@ -3034,19 +3080,22 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const scoreSource = liveScore || data.score;
   const scoreValue = scoreSource?.overall ?? scoreSource?.score ?? 0;
   const weightedCompliance = weightedAverageRuleScore(visibleRules);
+  const manualOverall = hasManualScore ? manualTagScore.overall : null;
   const breakdown = scoreSource?.breakdown
     ? [
-      { label: "Cumplimiento", value: weightedCompliance ?? scoreSource.breakdown.compliance },
+      { label: "Cumplimiento", value: manualOverall ?? weightedCompliance ?? scoreSource.breakdown.compliance },
       { label: "Precisión", value: scoreSource.breakdown.precision },
       { label: "Consistencia", value: scoreSource.breakdown.consistency },
       { label: "Horario", value: scoreSource.breakdown.timing },
       { label: "Psicológico", value: scoreSource.breakdown.psychological }
     ]
     : (scoreSource?.subscores || []).map((item) => (
-      item.label === "Cumplimiento" ? { ...item, value: weightedCompliance ?? item.value } : item
+      item.label === "Cumplimiento" ? { ...item, value: manualOverall ?? weightedCompliance ?? item.value } : item
     ));
-  const weightedScoreValue = Math.round(average(breakdown.map((item) => item.value)) ?? scoreValue);
-  const insight = scoreSource?.insight || data.insight || disciplineData.score.insight;
+  const weightedScoreValue = Math.round((hasManualScore ? manualOverall : null) ?? average(breakdown.map((item) => item.value)) ?? scoreValue);
+  const insight = hasManualScore && manualTagScore.weakestRule
+    ? `Mayor brecha: ${manualTagScore.weakestRule.name} (${Math.round(manualTagScore.weakestRule.pct)}%). Revisa trades etiquetados con No.`
+    : scoreSource?.insight || data.insight || disciplineData.score.insight;
   const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
   const isPartialData = hasPartialExecutionData(visibleRules, entryRows, kpis);
   const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
