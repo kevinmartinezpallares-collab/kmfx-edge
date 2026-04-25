@@ -17772,8 +17772,6 @@ body[data-theme="dark"] #section-discipline .rule-profile-rule {
   overflow: visible;
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-rule.is-weight-open,
-body[data-theme="dark"] #section-discipline .rule-profile-rule.is-weight-open,
 html[data-theme="dark"] #section-discipline .rule-profile-rule.custom-menu-open,
 body[data-theme="dark"] #section-discipline .rule-profile-rule.custom-menu-open {
   z-index: 30;
@@ -17801,16 +17799,11 @@ html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-pr
 body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-rule__copy,
 html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-badge,
 body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-badge,
-html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-weight__trigger,
-body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-weight__trigger,
+html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-weight__visual,
+body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-weight__visual,
 html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-remove,
 body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet .rule-profile-remove {
   opacity: 0.85;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet.is-weight-open .rule-profile-weight__trigger,
-body[data-theme="dark"] #section-discipline .rule-profile-rule.is-quiet.is-weight-open .rule-profile-weight__trigger {
-  opacity: 1;
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-custom-form,
@@ -18034,10 +18027,22 @@ html[data-theme="dark"] #section-discipline .rule-profile-weight,
 body[data-theme="dark"] #section-discipline .rule-profile-weight {
   position: relative;
   z-index: 2;
+  min-height: 34px;
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger,
-body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger {
+html[data-theme="dark"] #section-discipline .rule-profile-weight__select,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__select {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  min-height: 34px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__visual,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__visual {
   width: 100%;
   min-height: 34px;
   display: inline-flex;
@@ -18052,20 +18057,20 @@ body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger {
   cursor: pointer;
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger:hover,
-body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger:hover {
+html[data-theme="dark"] #section-discipline .rule-profile-weight:hover .rule-profile-weight__visual,
+body[data-theme="dark"] #section-discipline .rule-profile-weight:hover .rule-profile-weight__visual {
   background: rgba(255,255,255,0.04);
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger b,
-body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger b {
+html[data-theme="dark"] #section-discipline .rule-profile-weight__visual b,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__visual b {
   font-size: 12px;
   color: var(--rule-weight-color, var(--text-1));
   font-variant-numeric: tabular-nums;
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger span,
-body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger span {
+html[data-theme="dark"] #section-discipline .rule-profile-weight__visual span,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__visual span {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -18073,94 +18078,10 @@ body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger span {
   color: var(--text-2);
 }
 
-html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i,
-body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i {
+html[data-theme="dark"] #section-discipline .rule-profile-weight__visual i,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__visual i {
   font-style: normal;
   color: var(--text-3);
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 80;
-  min-width: 260px;
-  display: grid;
-  gap: 4px;
-  padding: 6px;
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 12px;
-  background: #181818;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.28);
-  overflow: hidden;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-rule-group:last-child .rule-profile-weight-menu,
-body[data-theme="dark"] #section-discipline .rule-profile-rule-group:last-child .rule-profile-weight-menu {
-  top: auto;
-  bottom: calc(100% + 6px);
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button {
-  height: 40px;
-  min-height: 40px;
-  display: grid;
-  grid-template-columns: 8px auto auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: #181818;
-  color: var(--text-1);
-  text-align: left;
-  white-space: nowrap;
-  line-height: 1;
-  cursor: pointer;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button:hover,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button:hover {
-  background: #202020;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button.is-selected,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button.is-selected {
-  background: #242424;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu i,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu i {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--rule-weight-option-color, var(--text-2));
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu strong,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu strong {
-  font-size: 12px;
-  color: var(--text-0);
-  line-height: 1;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu b,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu b {
-  font-size: 12px;
-  color: var(--rule-weight-option-color, var(--text-1));
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-html[data-theme="dark"] #section-discipline .rule-profile-weight-menu span,
-body[data-theme="dark"] #section-discipline .rule-profile-weight-menu span {
-  font-size: 11px;
-  color: var(--text-2);
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-custom-actions,

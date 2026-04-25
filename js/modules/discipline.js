@@ -51,6 +51,11 @@ const KMFX_PROFILES_STORAGE_KEY = "kmfx_profiles";
 const KMFX_TAGS_STORAGE_KEY = "kmfx_tags";
 
 let activePostTradeModal = null;
+let currentTagDraft = {
+  tradeId: null,
+  answers: {},
+  note: ""
+};
 
 const WEIGHT_OPTIONS = [
   {
@@ -922,6 +927,44 @@ function buildEmptyTagData(trade, rules = []) {
   };
 }
 
+function normalizeTagAnswers(answers = {}) {
+  return {
+    beActivated: answers.beActivated ?? null,
+    obEntry: answers.obEntry ?? null,
+    validSetup: answers.validSetup ?? null,
+    customRules: { ...(answers.customRules || {}) }
+  };
+}
+
+function initCurrentTagDraft(trade, tag = {}) {
+  if (currentTagDraft.tradeId === trade.id) return;
+  currentTagDraft = {
+    tradeId: trade.id,
+    answers: normalizeTagAnswers(tag.answers),
+    note: tag.note || ""
+  };
+}
+
+function draftAnswerForRule(ruleId) {
+  const key = tagAnswerKey(ruleId);
+  if (key) return currentTagDraft.answers?.[key] ?? null;
+  return currentTagDraft.answers?.customRules?.[ruleId] ?? null;
+}
+
+function setDraftAnswer(ruleId, value) {
+  const key = tagAnswerKey(ruleId);
+  if (key) {
+    currentTagDraft.answers[key] = value;
+    return;
+  }
+  currentTagDraft.answers.customRules = currentTagDraft.answers.customRules || {};
+  currentTagDraft.answers.customRules[ruleId] = value;
+}
+
+function resetCurrentTagDraft() {
+  currentTagDraft = { tradeId: null, answers: {}, note: "" };
+}
+
 function groupTradesByDay(trades = []) {
   return trades.reduce((map, trade) => {
     const key = toDayKey(trade.when);
@@ -1226,32 +1269,18 @@ function buildProfileRuleRows(profile, currentRows = [], tagStats = {}) {
 
 function renderWeightDropdown(rule, profileState) {
   const selected = getWeightOption(rule.weight);
-  const isOpen = profileState.openWeightId === rule.id;
   return `
     <div class="rule-profile-weight" style="--rule-weight-color:${escapeHtml(selected.color)}">
-      <button type="button" class="rule-profile-weight__trigger" data-rule-weight-menu="${escapeHtml(rule.id)}">
+      <select class="rule-profile-weight__select" data-rule-weight-select="${escapeHtml(rule.id)}" aria-label="Peso de ${escapeHtml(rule.name)}">
+        ${WEIGHT_OPTIONS.map((option) => `
+          <option value="${option.value}" ${option.value === selected.value ? "selected" : ""}>×${option.value.toFixed(1)} ${escapeHtml(option.label)} · ${escapeHtml(option.short)}</option>
+        `).join("")}
+      </select>
+      <div class="rule-profile-weight__visual" aria-hidden="true">
         <b>×${selected.value.toFixed(1)}</b>
         <span>${escapeHtml(selected.label)}</span>
         <i>⌄</i>
-      </button>
-      ${isOpen ? `
-        <div class="rule-profile-weight-menu">
-          ${WEIGHT_OPTIONS.map((option) => `
-            <button
-              type="button"
-              class="${option.value === selected.value ? "is-selected" : ""}"
-              data-rule-weight-option="${escapeHtml(rule.id)}"
-              data-weight-value="${option.value}"
-              style="--rule-weight-option-color:${escapeHtml(option.color)}"
-            >
-              <i></i>
-              <b>×${option.value.toFixed(1)}</b>
-              <strong>${escapeHtml(option.label)}</strong>
-              <span>· ${escapeHtml(option.short)}</span>
-            </button>
-          `).join("")}
-        </div>
-      ` : ""}
+      </div>
     </div>
   `;
 }
@@ -1460,13 +1489,12 @@ function renderProfileEditor(profile, profileState) {
   const renderRule = (rule) => {
     const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
     const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
-    const isWeightOpen = profileState.openWeightId === rule.id;
     const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
     const activeRules = rules.filter((item) => item.enabled !== false);
     const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
     const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
     return `
-      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}${isWeightOpen ? " is-weight-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
         <label class="rule-profile-toggle">
           <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
           <span></span>
@@ -1686,25 +1714,10 @@ function renderProfileManager(container, context = {}) {
     });
   });
 
-  container.querySelectorAll("[data-rule-weight-menu]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const ruleId = button.dataset.ruleWeightMenu;
-      profileState.openWeightId = profileState.openWeightId === ruleId ? "" : ruleId;
-      profileState.openMenuId = "";
-      profileState.confirmDeleteId = "";
-      profileState.confirmRuleRemoveId = "";
-      profileState.openAddRuleMenu = false;
-      saveProfiles(profileState);
-      renderDisciplineSection(context.target, context.data, context);
-    });
-  });
-
-  container.querySelectorAll("[data-rule-weight-option]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const rule = activeProfile.rules.find((item) => item.id === button.dataset.ruleWeightOption);
-      if (rule) rule.weight = normalizeWeight(button.dataset.weightValue);
+  container.querySelectorAll("[data-rule-weight-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const rule = activeProfile.rules.find((item) => item.id === select.dataset.ruleWeightSelect);
+      if (rule) rule.weight = normalizeWeight(select.value);
       profileState.openWeightId = "";
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
@@ -2176,7 +2189,7 @@ function renderPostTradeIndicator(pendingTrades = []) {
 }
 
 function renderPostTradeQuestion(rule, tag) {
-  const currentValue = getTagAnswer(tag, rule.id);
+  const currentValue = currentTagDraft.tradeId ? draftAnswerForRule(rule.id) : getTagAnswer(tag, rule.id);
   const question = postTradeRuleQuestion(rule);
   const unit = rule.numericUnit || rule.params?.unit || "pips";
   if (normalizeConditionType(rule.conditionType) === "numeric") {
@@ -2207,6 +2220,7 @@ function renderPostTradeModal(profile, tags = {}) {
   const trade = activePostTradeModal;
   const rules = getTaggableRules(profile);
   const existingTag = tags[trade.id] || {};
+  initCurrentTagDraft(trade, existingTag);
   const pips = Number(trade.pips);
   const resultClass = Number.isFinite(pips) && pips < 0 ? "is-negative" : "is-positive";
   const resultLabel = Number.isFinite(pips) ? `${pips > 0 ? "+" : ""}${pips} pips` : `${trade.pnl > 0 ? "+" : ""}${Math.round(trade.pnl)} $`;
@@ -2231,7 +2245,7 @@ function renderPostTradeModal(profile, tags = {}) {
           `}
           <label class="posttrade-note">
             <span>Nota opcional</span>
-            <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(existingTag.note || "")}</textarea>
+            <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(currentTagDraft.note || "")}</textarea>
           </label>
         </div>
         <footer class="posttrade-modal__footer">
@@ -2251,6 +2265,7 @@ function refreshDisciplineSection(context = {}) {
 
 export function openPostTradeModal(trade, context = {}) {
   activePostTradeModal = normalizeTradeForTag(trade);
+  resetCurrentTagDraft();
   refreshDisciplineSection(context);
 }
 
@@ -2260,23 +2275,27 @@ function savePendingPostTradeTag(profile, trade) {
 }
 
 function collectPostTradeAnswers(target, profile) {
-  const answers = { beActivated: null, obEntry: null, validSetup: null, customRules: {} };
+  const answers = normalizeTagAnswers(currentTagDraft.answers);
   getTaggableRules(profile).forEach((rule) => {
-    let value = null;
     if (normalizeConditionType(rule.conditionType) === "numeric") {
       const input = target.querySelector(`[data-posttrade-numeric="${cssEscape(rule.id)}"]`);
-      value = input?.value === "" ? null : Number(input?.value);
+      let value = input?.value === "" ? null : Number(input?.value);
       if (!Number.isFinite(value)) value = null;
-    } else {
-      const hidden = target.querySelector(`[data-posttrade-answer="${cssEscape(rule.id)}"]`);
-      if (hidden?.value === "true") value = true;
-      if (hidden?.value === "false") value = false;
+      setDraftAnswer(rule.id, value);
     }
-    const key = tagAnswerKey(rule.id);
-    if (key) answers[key] = value;
-    else answers.customRules[rule.id] = value;
   });
-  return answers;
+  return normalizeTagAnswers(currentTagDraft.answers);
+}
+
+function updateModalUI(target, ruleId) {
+  const group = target.querySelector(`[data-posttrade-question="${cssEscape(ruleId)}"]`);
+  if (!group) return;
+  const currentValue = draftAnswerForRule(ruleId);
+  group.querySelectorAll("[data-posttrade-choice]").forEach((button) => {
+    button.classList.toggle("is-selected", String(currentValue) === button.dataset.posttradeValue);
+  });
+  const hidden = group.querySelector(`[data-posttrade-answer="${cssEscape(ruleId)}"]`);
+  if (hidden) hidden.value = typeof currentValue === "boolean" ? String(currentValue) : "";
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
@@ -2296,18 +2315,24 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   target.querySelectorAll("[data-posttrade-choice]").forEach((button) => {
     button.addEventListener("click", () => {
       const ruleId = button.dataset.posttradeChoice;
-      const value = button.dataset.posttradeValue;
-      const group = button.closest(".posttrade-question");
-      group?.querySelectorAll("[data-posttrade-choice]").forEach((item) => item.classList.remove("is-selected"));
-      button.classList.add("is-selected");
-      const hidden = group?.querySelector(`[data-posttrade-answer="${cssEscape(ruleId)}"]`);
-      if (hidden) hidden.value = value;
+      setDraftAnswer(ruleId, button.dataset.posttradeValue === "true");
+      updateModalUI(target, ruleId);
     });
+  });
+  target.querySelectorAll("[data-posttrade-numeric]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const value = input.value === "" ? null : Number(input.value);
+      setDraftAnswer(input.dataset.posttradeNumeric, Number.isFinite(value) ? value : null);
+    });
+  });
+  target.querySelector("[data-posttrade-note]")?.addEventListener("input", (event) => {
+    currentTagDraft.note = event.target.value;
   });
   target.querySelectorAll("[data-posttrade-close]").forEach((button) => {
     button.addEventListener("click", () => {
       savePendingPostTradeTag(profile, activePostTradeModal);
       activePostTradeModal = null;
+      resetCurrentTagDraft();
       refreshDisciplineSection(context);
     });
   });
@@ -2316,16 +2341,18 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
     savePostTradeTag(activePostTradeModal.id, {
       timestamp: activePostTradeModal.timestamp,
       answers: collectPostTradeAnswers(target, profile),
-      note: target.querySelector("[data-posttrade-note]")?.value?.trim() || null,
+      note: currentTagDraft.note?.trim() || null,
       status: "tagged"
     });
     activePostTradeModal = null;
+    resetCurrentTagDraft();
     refreshDisciplineSection(context);
   });
   target.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !activePostTradeModal) return;
     savePendingPostTradeTag(profile, activePostTradeModal);
     activePostTradeModal = null;
+    resetCurrentTagDraft();
     refreshDisciplineSection(context);
   });
 }
