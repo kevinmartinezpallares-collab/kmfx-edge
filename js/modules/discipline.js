@@ -818,6 +818,26 @@ function toDayKey(dateLike) {
   return `${year}-${month}-${day}`;
 }
 
+function isoWeekStart(dateLike) {
+  const date = dateLike instanceof Date ? new Date(dateLike) : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return null;
+  const day = date.getDay() || 7;
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - day + 1);
+  return date;
+}
+
+function isoWeekKey(dateLike) {
+  const weekStart = isoWeekStart(dateLike);
+  if (!weekStart) return "";
+  const thursday = new Date(weekStart);
+  thursday.setDate(weekStart.getDate() + 3);
+  const firstThursday = new Date(thursday.getFullYear(), 0, 4);
+  const firstWeekStart = isoWeekStart(firstThursday);
+  const week = Math.round((weekStart - firstWeekStart) / 604800000) + 1;
+  return `${thursday.getFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
 function formatShortDate(dateLike) {
   const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
   if (Number.isNaN(date.getTime())) return "—";
@@ -1438,6 +1458,106 @@ function calculateManualTagScore(mergedTrades = [], enabledRules = []) {
     eligibleRules,
     weakestRule
   };
+}
+
+function buildRuleHistory(mergedTrades = [], profile = {}) {
+  const rules = getTaggableRules(profile).filter((rule) => (
+    rule.enabled !== false &&
+    rule.pendingImplementation !== true &&
+    !rule.excludeFromScore &&
+    ["manual", "mixed"].includes(normalizeSource(rule.source))
+  ));
+  const buckets = new Map();
+  mergedTrades.forEach((trade) => {
+    const weekStart = isoWeekStart(trade.when);
+    const week = isoWeekKey(trade.when);
+    if (!weekStart || !week || !trade.postTag || trade.postTag.tagSkipped === true) return;
+    const label = formatShortDate(weekStart);
+    rules.forEach((rule) => {
+      const result = evaluateTagAnswer(rule, getTagAnswer(trade.postTag, rule.id));
+      if (result === null) return;
+      const key = `${rule.id}:${week}`;
+      const bucket = buckets.get(key) || {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        week,
+        label,
+        total: 0,
+        failed: 0,
+        passed: 0
+      };
+      bucket.total += 1;
+      if (result === true) bucket.passed += 1;
+      else bucket.failed += 1;
+      buckets.set(key, bucket);
+    });
+  });
+  return rules.reduce((history, rule) => {
+    history[rule.id] = [...buckets.values()]
+      .filter((bucket) => bucket.ruleId === rule.id)
+      .sort((a, b) => a.week.localeCompare(b.week))
+      .map((bucket) => ({
+        week: bucket.week,
+        label: bucket.label,
+        pct: bucket.total ? (bucket.passed / bucket.total) * 100 : null,
+        total: bucket.total,
+        failed: bucket.failed,
+        ruleName: bucket.ruleName
+      }));
+    return history;
+  }, {});
+}
+
+function ruleHistoryTone(pct) {
+  if (!Number.isFinite(Number(pct))) return "empty";
+  if (pct >= 90) return "strong";
+  if (pct >= 75) return "ok";
+  if (pct >= 50) return "warn";
+  return "bad";
+}
+
+function renderRuleHistory(history = {}, profile = {}) {
+  const rules = getTaggableRules(profile).filter((rule) => !rule.excludeFromScore);
+  const weekMap = new Map();
+  Object.values(history).flat().forEach((point) => {
+    if (!weekMap.has(point.week)) weekMap.set(point.week, point.label);
+  });
+  const weeks = [...weekMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  if (weeks.length < 2) {
+    return `
+      <section id="discipline-rule-history" class="rule-history">
+        <div class="rule-history__header">
+          <strong>Historial de cumplimiento</strong>
+        </div>
+        <div class="rule-history__empty">Historial insuficiente — necesitas más trades etiquetados</div>
+      </section>
+    `;
+  }
+  return `
+    <section id="discipline-rule-history" class="rule-history">
+      <div class="rule-history__header">
+        <strong>Historial de cumplimiento</strong>
+      </div>
+      <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
+        <div class="rule-history__corner"></div>
+        ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
+        ${rules.map((rule) => {
+          const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
+          return `
+            <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
+            ${weeks.map(([week]) => {
+              const point = points.get(week);
+              const tone = ruleHistoryTone(point?.pct);
+              const title = point
+                ? `${rule.name} · ${point.label}: ${Math.round(point.pct)}% cumplimiento · ${point.total} trades`
+                : `${rule.name} · ${week}: sin datos`;
+              return `<i class="rule-history__cell is-${tone}" title="${escapeHtml(title)}"></i>`;
+            }).join("")}
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function resolveScoreTone(score) {
@@ -3055,6 +3175,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
   const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
   const manualTagScore = calculateManualTagScore(recentTrades, activeProfile.rules || []);
+  const ruleHistory = buildRuleHistory(recentTrades, activeProfile);
   const hasManualScore = Number.isFinite(Number(manualTagScore.overall));
   if (recentTrades.length) {
     kpis = buildKpis(visibleRules, recentTrades, liveEntryDeviations);
@@ -3123,6 +3244,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
           <div class="tl-section-title">Cumplimiento de reglas</div>
         </div>
         <div class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
+        ${renderRuleHistory(ruleHistory, activeProfile)}
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
