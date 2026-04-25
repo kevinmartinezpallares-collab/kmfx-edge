@@ -21150,6 +21150,272 @@ body[data-theme="dark"] #section-discipline .rule-history-detail__header {
   }
 }
 
+/* === EXECUTION SYSTEM FINISH === */
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-body {
+  gap: 26px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge {
+  flex: 0 0 118px !important;
+  width: 118px !important;
+  height: 118px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge circle,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge circle {
+  stroke-width: 10 !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__backdrop,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__backdrop {
+  fill: var(--layer-2) !important;
+  opacity: 0.55;
+  stroke: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track {
+  stroke: color-mix(in srgb, var(--text-0) 7%, transparent) !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong {
+  font-size: 34px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span {
+  margin-top: 4px !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.1em !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list {
+  gap: 9px 18px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__body,
+body[data-theme="dark"] #section-discipline .rule-history__body {
+  overflow: visible !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__body.has-detail .rule-history__workspace,
+body[data-theme="dark"] #section-discipline .rule-history__body.has-detail .rule-history__workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 400px) !important;
+  gap: 20px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__grid-shell,
+body[data-theme="dark"] #section-discipline .rule-history__grid-shell {
+  overflow-x: visible !important;
+  padding-bottom: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__grid,
+body[data-theme="dark"] #section-discipline .rule-history__grid {
+  grid-template-columns: minmax(172px, 1.12fr) repeat(var(--rule-history-cols), minmax(64px, 1fr)) !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  gap: 9px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__rule,
+body[data-theme="dark"] #section-discipline .rule-history__rule {
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.015em !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__cell,
+body[data-theme="dark"] #section-discipline .rule-history__cell {
+  min-height: 38px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail,
+body[data-theme="dark"] #section-discipline .rule-history-detail {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 360px !important;
+  max-height: 360px !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header {
+  flex: 0 0 auto;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__list,
+body[data-theme="dark"] #section-discipline .rule-history-detail__list {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__row,
+body[data-theme="dark"] #section-discipline .rule-history-detail__row {
+  padding: 14px 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline #entry-precision-card,
+body[data-theme="dark"] #section-discipline #entry-precision-card,
+html[data-theme="dark"] #section-discipline .rule-profile-manager,
+body[data-theme="dark"] #section-discipline .rule-profile-manager {
+  border-radius: 18px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card__header strong,
+body[data-theme="dark"] #section-discipline .execution-entry-card__header strong,
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head strong {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card__header > span,
+body[data-theme="dark"] #section-discipline .execution-entry-card__header > span,
+html[data-theme="dark"] #section-discipline .execution-entry-preview > p,
+body[data-theme="dark"] #section-discipline .execution-entry-preview > p,
+html[data-theme="dark"] #section-discipline .execution-entry-preview__head span,
+body[data-theme="dark"] #section-discipline .execution-entry-preview__head span,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head span,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head span,
+html[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child span,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child span,
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group > span,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group > span,
+html[data-theme="dark"] #section-discipline .rule-profile-accounts span,
+body[data-theme="dark"] #section-discipline .rule-profile-accounts span {
+  font-size: 10px !important;
+  letter-spacing: 0.12em !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy strong,
+body[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy strong,
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy p,
+body[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy p,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern-bar p,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern-bar p,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy p,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy p {
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+body[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row {
+  grid-template-columns: 86px 92px minmax(160px, 1fr) 92px 74px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row span,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row span,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row strong,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row strong,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row em,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row em {
+  font-size: 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs {
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 12px 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child {
+  flex: 0 0 150px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__control,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__control {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 6px !important;
+  min-height: 40px;
+  padding: 5px;
+  border: 1px solid var(--border-0);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--layer-2) 72%, transparent);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__control:focus-within,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__control:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-0));
+  background: var(--layer-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs input,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs input {
+  flex: 1 1 120px !important;
+  max-width: 190px !important;
+  min-height: 28px !important;
+  padding: 0 6px !important;
+  outline: none !important;
+  font-size: 12px !important;
+  color: var(--text-1) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs input::placeholder,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs input::placeholder {
+  color: var(--text-3) !important;
+}
+
+@media (max-width: 1100px) {
+  html[data-theme="dark"] #section-discipline .rule-history__grid-shell,
+  body[data-theme="dark"] #section-discipline .rule-history__grid-shell {
+    overflow-x: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child,
+  body[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child {
+    flex: 1 1 100% !important;
+  }
+}
+
 /* === BOTTOM SECTIONS === */
 html[data-theme="dark"] #section-discipline #entry-precision-card,
 body[data-theme="dark"] #section-discipline #entry-precision-card {
@@ -21971,4 +22237,168 @@ body[data-theme="dark"] #section-discipline .rule-profile-toggle input:checked +
 html[data-theme="dark"] #section-discipline .rule-profile-accounts strong,
 body[data-theme="dark"] #section-discipline .rule-profile-accounts strong {
   color: var(--text-1) !important;
+}
+
+/* === EXECUTION FINAL VISUAL FIXES === */
+html[data-theme="dark"] #section-discipline .rule-history__grid-shell,
+body[data-theme="dark"] #section-discipline .rule-history__grid-shell {
+  overflow-x: visible !important;
+  padding-bottom: 0 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__grid,
+body[data-theme="dark"] #section-discipline .rule-history__grid {
+  grid-template-columns: minmax(172px, 1.12fr) repeat(var(--rule-history-cols), minmax(64px, 1fr)) !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  gap: 9px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail,
+body[data-theme="dark"] #section-discipline .rule-history-detail {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 360px !important;
+  max-height: 360px !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header {
+  flex: 0 0 auto;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__list,
+body[data-theme="dark"] #section-discipline .rule-history-detail__list {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card__header strong,
+body[data-theme="dark"] #section-discipline .execution-entry-card__header strong,
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head strong {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy strong,
+body[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy strong,
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy p,
+body[data-theme="dark"] #section-discipline .execution-entry-empty-row__copy p,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern-bar p,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern-bar p,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy p,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy p {
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+body[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row {
+  grid-template-columns: 86px 92px minmax(160px, 1fr) 92px 74px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row span,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row span,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row strong,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row strong,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row em,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row em {
+  font-size: 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs {
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 12px 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child {
+  flex: 0 0 150px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__control,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__control {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+  gap: 6px !important;
+  min-height: 40px;
+  padding: 5px;
+  border: 1px solid var(--border-0);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--layer-2) 72%, transparent);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__control:focus-within,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__control:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-0));
+  background: var(--layer-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs input,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs input {
+  flex: 1 1 120px !important;
+  max-width: 190px !important;
+  min-height: 28px !important;
+  padding: 0 6px !important;
+  outline: none !important;
+  font-size: 12px !important;
+  color: var(--text-1) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs input::placeholder,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs input::placeholder {
+  color: var(--text-3) !important;
+}
+
+@media (max-width: 1100px) {
+  html[data-theme="dark"] #section-discipline .rule-history__grid-shell,
+  body[data-theme="dark"] #section-discipline .rule-history__grid-shell {
+    overflow-x: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child,
+  body[data-theme="dark"] #section-discipline .rule-profile-pairs > div:first-child {
+    flex: 1 1 100% !important;
+  }
 }

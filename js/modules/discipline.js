@@ -3048,15 +3048,17 @@ function scoreDisplayTone(score, isPartial = false) {
 }
 
 function renderScoreGauge(score, { isPartial = false } = {}) {
-  const radius = 26;
+  const radius = 46;
+  const center = 60;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
   const label = scoreLabel(score);
   return `
     <div class="execution-score-gauge execution-tone-${scoreDisplayTone(score, isPartial)}">
-      <svg viewBox="0 0 64 64" aria-hidden="true">
-        <circle class="execution-score-gauge__track" cx="32" cy="32" r="${radius}"></circle>
-        <circle class="execution-score-gauge__arc" cx="32" cy="32" r="${radius}" stroke-dasharray="${dash} ${circumference}"></circle>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="execution-score-gauge__backdrop" cx="${center}" cy="${center}" r="39"></circle>
+        <circle class="execution-score-gauge__track" cx="${center}" cy="${center}" r="${radius}"></circle>
+        <circle class="execution-score-gauge__arc" cx="${center}" cy="${center}" r="${radius}" stroke-dasharray="${dash} ${circumference}"></circle>
       </svg>
       <div>
         <strong>${score}</strong>
