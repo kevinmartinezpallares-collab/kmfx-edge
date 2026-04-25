@@ -979,6 +979,18 @@ function normalizeTradeForTag(trade = {}, index = 0) {
   };
 }
 
+function postTagForTrade(tags = {}, trade = {}, index = 0) {
+  const normalizedId = normalizeTradeForTag(trade, index).id;
+  return tags[normalizedId] || tags[tradeIdForTag(trade, index)] || tags[trade.id] || null;
+}
+
+function mergeTradesWithPostTags(trades = [], tags = {}) {
+  return trades.map((trade, index) => ({
+    ...trade,
+    postTag: postTagForTrade(tags, trade, index)
+  }));
+}
+
 function tagAnswerKey(ruleId = "") {
   if (ruleId === "london-confirmation") return "londonConfirmation";
   if (ruleId === "be-activation") return "beActivated";
@@ -1036,20 +1048,30 @@ function buildPostTradeTagStats(profile, recentTrades = [], tags = {}) {
   const taggableRules = getTaggableRules(profile);
   return taggableRules.reduce((map, rule) => {
     if (rule.excludeFromScore) {
-      map[rule.id] = { answered: 0, pct: null };
+      map[rule.id] = { answered: 0, awaiting: 0, total: 0, pct: null };
       return map;
     }
     let answered = 0;
+    let awaiting = 0;
     let passed = 0;
     recentTrades.forEach((trade, index) => {
-      const tag = tags[tradeIdForTag(trade, index)];
+      const tag = trade.postTag || postTagForTrade(tags, trade, index);
+      if (!tag || tag.tagSkipped === true) {
+        awaiting += 1;
+        return;
+      }
       const result = evaluateTagAnswer(rule, getTagAnswer(tag, rule.id));
-      if (result === null) return;
+      if (result === null) {
+        awaiting += 1;
+        return;
+      }
       answered += 1;
       if (result) passed += 1;
     });
     map[rule.id] = {
       answered,
+      awaiting,
+      total: answered + awaiting,
       pct: answered ? (passed / answered) * 100 : null
     };
     return map;
@@ -1062,9 +1084,9 @@ function getPendingTagTrades(profile, recentTrades = [], tags = {}) {
   return recentTrades
     .map((trade, index) => normalizeTradeForTag(trade, index))
     .filter((trade, index) => {
-      const tag = tags[trade.id];
-      if (tag?.tagSkipped === true) return false;
+      const tag = postTagForTrade(tags, trade, index);
       if (!tag) return true;
+      if (tag.tagSkipped === true || tag.tagPartial === true) return true;
       return taggableRules.some((rule) => evaluateTagAnswer(rule, getTagAnswer(tag, rule.id)) === null);
     });
 }
@@ -1241,7 +1263,23 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
   ];
 }
 
-function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData) {
+function evaluateTradePostTag(trade, index, profile, tags = {}) {
+  const rules = getTaggableRules(profile).filter((rule) => !rule.excludeFromScore);
+  if (!rules.length) return null;
+  const tag = trade.postTag || postTagForTrade(tags, trade, index);
+  if (!tag || tag.tagSkipped === true) {
+    return { passed: 0, failed: 0, awaiting: rules.length };
+  }
+  return rules.reduce((summary, rule) => {
+    const result = evaluateTagAnswer(rule, getTagAnswer(tag, rule.id));
+    if (result === true) summary.passed += 1;
+    else if (result === false) summary.failed += 1;
+    else summary.awaiting += 1;
+    return summary;
+  }, { passed: 0, failed: 0, awaiting: 0 });
+}
+
+function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData, profile = null, tags = {}) {
   if (!recentTrades.length) {
     return fallback.calendar.map((days, index) => ({
       label: `S${index + 1}`,
@@ -1269,10 +1307,19 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData) {
       let state = "empty";
       let label = "Sin trade";
       if (bucket?.trades?.length) {
-        const outside = bucket.trades.some((trade) => trade.when.getHours() >= 17);
-        const overtraded = bucket.trades.length > 1;
-        const negative = bucket.pnl < 0;
-        state = outside || (overtraded && negative) ? "miss" : overtraded || negative ? "warn" : "clean";
+        const tagSummaries = profile
+          ? bucket.trades.map((trade, tradeIndex) => evaluateTradePostTag(trade, tradeIndex, profile, tags)).filter(Boolean)
+          : [];
+        if (tagSummaries.length) {
+          const failed = tagSummaries.reduce((sum, item) => sum + item.failed, 0);
+          const awaiting = tagSummaries.reduce((sum, item) => sum + item.awaiting, 0);
+          state = failed >= 2 ? "miss" : failed === 1 || awaiting > 0 ? "warn" : "clean";
+        } else {
+          const outside = bucket.trades.some((trade) => trade.when.getHours() >= 17);
+          const overtraded = bucket.trades.length > 1;
+          const negative = bucket.pnl < 0;
+          state = outside || (overtraded && negative) ? "miss" : overtraded || negative ? "warn" : "clean";
+        }
         label = state === "clean" ? "Limpio" : state === "warn" ? "Advertencia" : "Violación";
       }
       days.push({ key, date, state, label, trades: bucket?.trades?.length || 0, pnl: bucket?.pnl || 0 });
@@ -1373,7 +1420,9 @@ function renderRuleRows(rows) {
     "sin operaciones": "sin operaciones",
     "requiere validación del setup": "requiere validación del setup",
     "según post-trade tag": "según post-trade tag",
-    "tag pendiente": "tag pendiente"
+    "tag pendiente": "tag pendiente",
+    "tracking pendiente": "tracking pendiente",
+    "Pendiente": "Pendiente"
   };
   return rows.map((row) => {
     const tone = ruleTone(row);
@@ -1404,13 +1453,20 @@ function ruleRowFromProfileRule(profileRuleItem, currentRows = [], tagStats = {}
   const manualStats = source === "manual" || source === "mixed" || tagAnswerKey(profileRuleItem.id) ? tagStats[profileRuleItem.id] : null;
   const usesManualTags = Boolean(manualStats);
   if (usesManualTags) {
+    const total = manualStats.total || 0;
+    const awaitingRatio = total ? manualStats.awaiting / total : 0;
+    const note = !manualStats.answered
+      ? "Pendiente"
+      : awaitingRatio > 0.3
+        ? "tracking pendiente"
+        : "según post-trade tag";
     return {
       ...(matchedRow || {}),
       name: executionName,
       profileRuleName: profileRuleItem.name,
       profileRuleId: profileRuleItem.id,
       weight: profileRuleItem.weight,
-      note: manualStats.answered ? "según post-trade tag" : "tag pendiente",
+      note,
       pct: manualStats.pct
     };
   }
@@ -2850,7 +2906,7 @@ function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } 
     <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
       <div class="tl-section-header execution-section-header">
         <div class="tl-section-title">Score de ejecución</div>
-        ${isPartial ? `<span class="execution-data-pill">Datos parciales</span>` : ""}
+        ${isPartial ? `<span class="execution-data-pill">Score parcial</span>` : ""}
       </div>
       <div class="execution-score-body">
         ${renderScoreGauge(scoreValue, { isPartial })}
@@ -2869,12 +2925,13 @@ function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } 
 }
 
 function buildDisciplineDataFromModel(model, accountLogin = "") {
-  const recentTrades = getRecentTrades(model?.trades || []);
+  const rawRecentTrades = getRecentTrades(model?.trades || []);
+  const tags = loadPostTradeTags();
+  const recentTrades = mergeTradesWithPostTags(rawRecentTrades, tags);
   const entryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
   const baseRules = calcRuleCompliance(recentTrades);
   const profileState = loadProfiles();
   const { profile } = getProfileForAccount(profileState, accountLogin);
-  const tags = loadPostTradeTags();
   const tagStats = buildPostTradeTagStats(profile, recentTrades, tags);
   const rules = buildProfileRuleRows(profile, baseRules, tagStats);
   const kpis = buildKpis(rules, recentTrades, entryDeviations);
@@ -2884,7 +2941,7 @@ function buildDisciplineDataFromModel(model, accountLogin = "") {
     rules,
     baseRules,
     recentTrades,
-    calendar: buildExecutionHeatmap(recentTrades),
+    calendar: buildExecutionHeatmap(recentTrades, disciplineData, profile, tags),
     entryPrecision: buildEntryPrecisionRows(recentTrades, disciplineData, false),
     score,
     insight: rules[0]?.pct == null
@@ -2937,8 +2994,8 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const profileState = loadProfiles();
   const accountLogin = context.accountLogin || data.accountLogin || "";
   const { profile: activeProfile } = getProfileForAccount(profileState, accountLogin);
-  const recentTrades = Array.isArray(data.recentTrades) ? data.recentTrades : [];
   const postTradeTags = loadPostTradeTags();
+  const recentTrades = Array.isArray(data.recentTrades) ? mergeTradesWithPostTags(data.recentTrades, postTradeTags) : [];
   const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
   const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
   const canOpenPostTradeTag = getTaggableRules(activeProfile).length > 0;
