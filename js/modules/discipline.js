@@ -1,3 +1,4 @@
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import { resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 
 // === DISCIPLINE SECTION ===
@@ -3788,13 +3789,17 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
 
   target.innerHTML = `
-    <header class="kmfx-page__header">
-      <div class="kmfx-page__copy">
-        <p class="kmfx-page__eyebrow">EJECUCIÓN</p>
-        <h2 class="kmfx-page__title">Ejecución</h2>
-        <p class="kmfx-page__subtitle">Cumplimiento del plan, precisión de entrada y calidad operativa.</p>
-      </div>
-    </header>
+    ${pageHeaderMarkup({
+      eyebrow: "EJECUCIÓN",
+      title: "Ejecución",
+      titleTag: "h2",
+      description: "Cumplimiento del plan, precisión de entrada y calidad operativa.",
+      className: "kmfx-page__header",
+      contentClassName: "kmfx-page__copy",
+      eyebrowClassName: "kmfx-page__eyebrow",
+      titleClassName: "kmfx-page__title",
+      descriptionClassName: "kmfx-page__subtitle",
+    })}
 
     ${renderPostTradeIndicator(pendingTagTrades, canOpenPostTradeTag)}
 
