@@ -1060,8 +1060,9 @@ function renderWeightDropdown(rule, profileState) {
               style="--rule-weight-option-color:${escapeHtml(option.color)}"
             >
               <i></i>
-              <strong>×${option.value.toFixed(1)} ${escapeHtml(option.label)}</strong>
-              <span>${escapeHtml(option.short)}</span>
+              <b>×${option.value.toFixed(1)}</b>
+              <strong>${escapeHtml(option.label)}</strong>
+              <span>· ${escapeHtml(option.short)}</span>
             </button>
           `).join("")}
         </div>
@@ -1274,12 +1275,13 @@ function renderProfileEditor(profile, profileState) {
   const renderRule = (rule) => {
     const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
     const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
+    const isWeightOpen = profileState.openWeightId === rule.id;
     const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
     const activeRules = rules.filter((item) => item.enabled !== false);
     const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
     const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
     return `
-      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}${isWeightOpen ? " is-weight-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
         <label class="rule-profile-toggle">
           <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
           <span></span>
@@ -1288,7 +1290,7 @@ function renderProfileEditor(profile, profileState) {
           <strong>${escapeHtml(rule.name)}</strong>
           <p>${escapeHtml(rule.description)}</p>
         </div>
-        <span class="rule-profile-badge">${escapeHtml(sourceLabel(rule.source))}${escapeHtml(pendingBadge)}</span>
+        <span class="rule-profile-badge rule-profile-badge--${escapeHtml(normalizeSource(rule.source))}">${escapeHtml(sourceLabel(rule.source))}${escapeHtml(pendingBadge)}</span>
         ${renderWeightDropdown(rule, profileState)}
         ${rule.isCustom ? `
           <div class="rule-profile-custom-actions">
