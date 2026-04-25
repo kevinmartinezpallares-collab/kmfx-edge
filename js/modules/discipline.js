@@ -2470,10 +2470,10 @@ function renderPostTradeModal(profile, tags = {}) {
   const resultClass = Number.isFinite(pips) && pips < 0 ? "is-negative" : "is-positive";
   const resultLabel = Number.isFinite(pips) ? `${pips > 0 ? "+" : ""}${pips} pips` : `${trade.pnl > 0 ? "+" : ""}${Math.round(trade.pnl)} $`;
   return `
-    <div id="kmfx-posttrade-modal" class="posttrade-modal" role="dialog" aria-modal="true" aria-labelledby="posttrade-title">
-      <div class="posttrade-modal__overlay" data-posttrade-close></div>
-      <article class="posttrade-modal__card">
-        <header class="posttrade-modal__header">
+    <div id="kmfx-posttrade-modal" class="posttrade-modal is-open">
+      <div class="ptt-overlay" data-posttrade-close></div>
+      <article class="ptt-dialog" role="dialog" aria-modal="true" aria-labelledby="posttrade-title" tabindex="-1" data-posttrade-dialog>
+        <header class="ptt-header">
           <div>
             <span>POST-TRADE TAG</span>
             <h3 id="posttrade-title">${escapeHtml(trade.symbol)} · ${escapeHtml(trade.direction)} · <b class="${resultClass}">${escapeHtml(resultLabel)}</b></h3>
@@ -2481,7 +2481,7 @@ function renderPostTradeModal(profile, tags = {}) {
           </div>
           <button type="button" data-posttrade-close aria-label="Cerrar">×</button>
         </header>
-        <div class="posttrade-modal__body">
+        <div class="ptt-body">
           ${rules.length ? rules.map((rule) => renderPostTradeQuestion(rule, existingTag)).join("") : `
             <div class="posttrade-empty">
               <strong>No hay reglas manuales activas</strong>
@@ -2493,7 +2493,7 @@ function renderPostTradeModal(profile, tags = {}) {
             <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(currentTagDraft.note || "")}</textarea>
           </label>
         </div>
-        <footer class="posttrade-modal__footer">
+        <footer class="ptt-footer">
           <button type="button" data-posttrade-close>Cancelar</button>
           <button type="button" class="primary" data-posttrade-save>Guardar tag</button>
         </footer>
@@ -2544,6 +2544,27 @@ function updateModalUI(target, ruleId) {
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
+  const modalRoot = target.querySelector("#kmfx-posttrade-modal");
+  const modalDialog = modalRoot?.querySelector("[data-posttrade-dialog]");
+  if (modalDialog) {
+    requestAnimationFrame(() => modalDialog.focus({ preventScroll: true }));
+    modalRoot.addEventListener("keydown", (event) => {
+      if (event.key !== "Tab") return;
+      const focusable = [...modalRoot.querySelectorAll("button, input, textarea, select, [tabindex]:not([tabindex='-1'])")]
+        .filter((node) => !node.disabled && node.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
   target.querySelector("[data-posttrade-simulate]")?.addEventListener("click", () => {
     if (!getTaggableRules(profile).length) return;
     const fallbackTrade = context.data?.recentTrades?.at(-1) || {
