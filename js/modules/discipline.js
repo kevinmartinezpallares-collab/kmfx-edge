@@ -62,6 +62,7 @@ let postTradeQueueState = {
   trades: [],
   index: 0
 };
+let selectedRuleHistoryCell = null;
 
 const WEIGHT_OPTIONS = [
   {
@@ -858,6 +859,12 @@ function formatPips(value) {
   return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)} pips` : "Pendiente";
 }
 
+function formatHistoryTradeDate(dateLike) {
+  const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "").toLowerCase();
+}
+
 function pipSize(symbol = "") {
   const normalized = String(symbol).toUpperCase();
   if (normalized.includes("JPY")) return 0.01;
@@ -1490,11 +1497,15 @@ function buildRuleHistory(mergedTrades = [], profile = {}) {
         label,
         total: 0,
         failed: 0,
-        passed: 0
+        passed: 0,
+        failedTrades: []
       };
       bucket.total += 1;
       if (result === true) bucket.passed += 1;
-      else bucket.failed += 1;
+      else {
+        bucket.failed += 1;
+        bucket.failedTrades.push(buildRuleHistoryFailedTrade(trade, rule));
+      }
       buckets.set(key, bucket);
     });
   });
@@ -1508,10 +1519,36 @@ function buildRuleHistory(mergedTrades = [], profile = {}) {
         pct: bucket.total ? (bucket.passed / bucket.total) * 100 : null,
         total: bucket.total,
         failed: bucket.failed,
-        ruleName: bucket.ruleName
+        ruleName: bucket.ruleName,
+        failedTrades: bucket.failedTrades
       }));
     return history;
   }, {});
+}
+
+function ruleHistoryFailReason(ruleId) {
+  const reasons = {
+    "london-confirmation": "Entraste sin esperar confirmación London",
+    "ob-entry": "Entrada fuera de OB candle open",
+    "valid-setup": "Setup no validado antes de entrar",
+    "allowed-pairs": "Par fuera de lista permitida",
+    "be-activation": "BE no activado según plan"
+  };
+  return reasons[ruleId] || "Regla no cumplida en este trade";
+}
+
+function buildRuleHistoryFailedTrade(trade = {}, rule = {}) {
+  const normalized = normalizeTradeForTag(trade);
+  return {
+    tradeId: normalized.id,
+    date: normalized.when,
+    pair: normalized.symbol,
+    direction: normalized.direction,
+    result: normalized.pips,
+    pnl: normalized.pnl,
+    failReason: ruleHistoryFailReason(rule.id),
+    note: trade.postTag?.note || null
+  };
 }
 
 function ruleHistoryTone(pct) {
@@ -1520,6 +1557,68 @@ function ruleHistoryTone(pct) {
   if (pct >= 75) return "ok";
   if (pct >= 50) return "warn";
   return "bad";
+}
+
+function renderRuleHistoryDetail(point, rule, weekLabel) {
+  if (!selectedRuleHistoryCell) return "";
+  const headerRule = rule?.name || "Regla";
+  const label = point?.label || weekLabel || selectedRuleHistoryCell.week;
+  if (!point) {
+    return `
+      <div id="discipline-history-detail" class="rule-history-detail">
+        <div class="rule-history-detail__header">
+          <div>
+            <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
+            <p>Sin datos esta semana</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  if (!point.failed) {
+    return `
+      <div id="discipline-history-detail" class="rule-history-detail">
+        <div class="rule-history-detail__header">
+          <div>
+            <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
+            <p>0/${point.total} trades fallaron</p>
+          </div>
+        </div>
+        <div class="rule-history-detail__empty">✓ Semana perfecta en esta regla</div>
+      </div>
+    `;
+  }
+  return `
+    <div id="discipline-history-detail" class="rule-history-detail">
+      <div class="rule-history-detail__header">
+        <div>
+          <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
+          <p>${point.failed}/${point.total} trades fallaron</p>
+        </div>
+      </div>
+      <div class="rule-history-detail__list">
+        ${(point.failedTrades || []).map((trade) => {
+          const result = Number(trade.result);
+          const resultLabel = Number.isFinite(result)
+            ? `${result > 0 ? "+" : ""}${Math.round(result)} pips`
+            : `${Number(trade.pnl) > 0 ? "+" : ""}${Math.round(Number(trade.pnl) || 0)} $`;
+          const resultClass = Number.isFinite(result) && result < 0 ? "is-negative" : "is-positive";
+          return `
+            <article class="rule-history-detail__row">
+              <div class="rule-history-detail__meta">
+                <span>${escapeHtml(formatHistoryTradeDate(trade.date))}</span>
+                <span>${escapeHtml(trade.pair)}</span>
+                <span>${escapeHtml(trade.direction)}</span>
+                <b class="${resultClass}">${escapeHtml(resultLabel)}</b>
+              </div>
+              <strong>${escapeHtml(trade.failReason)}</strong>
+              ${trade.note ? `<em>${escapeHtml(trade.note)}</em>` : ""}
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderRuleHistory(history = {}, profile = {}) {
@@ -1534,6 +1633,15 @@ function renderRuleHistory(history = {}, profile = {}) {
     if (!weekMap.has(point.week)) weekMap.set(point.week, point.label);
   });
   const weeks = [...weekMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const selectedRule = selectedRuleHistoryCell
+    ? rules.find((rule) => rule.id === selectedRuleHistoryCell.ruleId)
+    : null;
+  const selectedPoint = selectedRuleHistoryCell
+    ? (history[selectedRuleHistoryCell.ruleId] || []).find((point) => point.week === selectedRuleHistoryCell.week)
+    : null;
+  const selectedWeekLabel = selectedRuleHistoryCell
+    ? weeks.find(([week]) => week === selectedRuleHistoryCell.week)?.[1]
+    : "";
   if (weeks.length < 2) {
     return `
       <section id="discipline-rule-history" class="tl-section-card execution-panel rule-history">
@@ -1572,15 +1680,27 @@ function renderRuleHistory(history = {}, profile = {}) {
               ${weeks.map(([week, label]) => {
                 const point = points.get(week);
                 const tone = ruleHistoryTone(point?.pct);
+                const isSelected = selectedRuleHistoryCell?.ruleId === rule.id && selectedRuleHistoryCell?.week === week;
                 const title = point
                   ? `${rule.name} · ${point.label}: ${Math.round(point.pct)}% cumplimiento · ${point.total} trades`
                   : `${rule.name} · ${label}: sin datos`;
-                return `<i class="rule-history__cell is-${tone}" title="${escapeHtml(title)}"></i>`;
+                return `
+                  <button
+                    type="button"
+                    class="rule-history__cell is-${tone}${isSelected ? " is-selected" : ""}"
+                    title="${escapeHtml(title)}"
+                    data-rule-history-cell
+                    data-rule-id="${escapeHtml(rule.id)}"
+                    data-rule-week="${escapeHtml(week)}"
+                    aria-label="${escapeHtml(title)}"
+                  ></button>
+                `;
               }).join("")}
             `;
           }).join("")}
         </div>
       </div>
+      ${renderRuleHistoryDetail(selectedPoint, selectedRule, selectedWeekLabel)}
     </section>
   `;
 }
@@ -2986,6 +3106,18 @@ function advancePostTradeQueue(target, context, profile, action) {
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
+  target.querySelectorAll("[data-rule-history-cell]").forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const nextCell = {
+        ruleId: cell.dataset.ruleId,
+        week: cell.dataset.ruleWeek
+      };
+      const isSameCell = selectedRuleHistoryCell?.ruleId === nextCell.ruleId && selectedRuleHistoryCell?.week === nextCell.week;
+      selectedRuleHistoryCell = isSameCell ? null : nextCell;
+      refreshDisciplineSection(context);
+    });
+  });
+
   const modalRoot = target.querySelector("#kmfx-posttrade-modal");
   const modalDialog = modalRoot?.querySelector("[data-posttrade-dialog]");
   if (modalDialog) {

@@ -16421,6 +16421,127 @@ body[data-theme="dark"] #section-discipline .rule-history__cell {
   border: 1px solid var(--border-0);
   border-radius: 6px;
   background: rgba(255,255,255,0.045);
+  cursor: pointer;
+  padding: 0;
+  appearance: none;
+  transition: border-color 140ms ease, filter 140ms ease, transform 140ms ease;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__cell:hover,
+body[data-theme="dark"] #section-discipline .rule-history__cell:hover {
+  filter: brightness(1.14);
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__cell.is-selected,
+body[data-theme="dark"] #section-discipline .rule-history__cell.is-selected {
+  border-color: rgba(255,255,255,0.42);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail,
+body[data-theme="dark"] #section-discipline .rule-history-detail {
+  display: grid;
+  gap: 12px;
+  margin-top: -2px;
+  padding: 16px;
+  border: 1px solid var(--border-0);
+  border-radius: 14px;
+  background: var(--layer-1);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header strong,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 850;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header p,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__empty,
+body[data-theme="dark"] #section-discipline .rule-history-detail__empty {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(52,217,123,0.06);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__list,
+body[data-theme="dark"] #section-discipline .rule-history-detail__list {
+  display: grid;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__row,
+body[data-theme="dark"] #section-discipline .rule-history-detail__row {
+  display: grid;
+  gap: 7px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  transition: background 140ms ease;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__row:hover,
+body[data-theme="dark"] #section-discipline .rule-history-detail__row:hover {
+  background: rgba(255,255,255,0.025);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__meta,
+body[data-theme="dark"] #section-discipline .rule-history-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__meta b,
+body[data-theme="dark"] #section-discipline .rule-history-detail__meta b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__meta b.is-positive,
+body[data-theme="dark"] #section-discipline .rule-history-detail__meta b.is-positive {
+  color: var(--positive);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__meta b.is-negative,
+body[data-theme="dark"] #section-discipline .rule-history-detail__meta b.is-negative {
+  color: rgba(255,92,92,0.8);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__row > strong,
+body[data-theme="dark"] #section-discipline .rule-history-detail__row > strong {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__row em,
+body[data-theme="dark"] #section-discipline .rule-history-detail__row em {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__legend i.is-bad,
