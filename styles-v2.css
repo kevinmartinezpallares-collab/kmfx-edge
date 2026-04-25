@@ -88,6 +88,69 @@
   --kmfx-title-line: 1.05;
   --kmfx-subtitle-size: 15px;
   --kmfx-label-size: 11px;
+
+  /* --------------------------------------------------------------------------
+     KMFX Design System Token Bridge
+     shadcn-inspired semantic aliases for vanilla CSS usage.
+     These tokens intentionally map to the existing KMFX visual system to avoid
+     a disruptive redesign. Future primitive classes can consume this bridge
+     without introducing React, Tailwind, or shadcn/ui as runtime dependencies.
+  -------------------------------------------------------------------------- */
+  --background: var(--layer-0);
+  --foreground: var(--text-0);
+  --card: var(--layer-1);
+  --card-foreground: var(--text-0);
+  --popover: var(--layer-1);
+  --popover-foreground: var(--text-0);
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--layer-2);
+  --secondary-foreground: var(--text-0);
+  --muted: var(--layer-2);
+  --muted-foreground: var(--text-2);
+  --accent-foreground: #ffffff;
+  --destructive: var(--negative);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-1);
+  --input: var(--border-1);
+  --ring: var(--accent);
+  --radius: var(--kmfx-card-radius);
+
+  --profit: var(--positive);
+  --profit-foreground: #061b10;
+  --profit-muted: rgba(48, 209, 88, 0.14);
+  --loss: var(--negative);
+  --loss-foreground: #ffffff;
+  --loss-muted: rgba(255, 69, 58, 0.14);
+  --breakeven: var(--text-1);
+  --breakeven-foreground: var(--text-0);
+  --risk: var(--warning);
+  --risk-foreground: #1f1300;
+  --risk-muted: rgba(255, 159, 10, 0.14);
+  --drawdown: var(--negative);
+  --drawdown-foreground: #ffffff;
+  --equity: var(--accent);
+  --equity-foreground: #ffffff;
+  --funded: #A78BFA;
+  --funded-foreground: #ffffff;
+
+  --chart-1: var(--profit);
+  --chart-2: var(--equity);
+  --chart-3: var(--risk);
+  --chart-4: var(--loss);
+  --chart-5: var(--funded);
+  --chart-axis: var(--chart-axis-text);
+  --chart-tooltip: var(--chart-tooltip-bg);
+
+  --surface-page: var(--layer-0);
+  --surface-card: var(--layer-1);
+  --surface-card-hover: var(--layer-2);
+  --surface-elevated: var(--layer-2);
+  --surface-overlay: rgba(0, 0, 0, 0.58);
+  --radius-sm: var(--control-radius);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-section);
+  --radius-xl: var(--radius-shell);
 }
 
 html,
@@ -107,6 +170,553 @@ body {
 body::before,
 body::after {
   content: none;
+}
+
+/* --------------------------------------------------------------------------
+   KMFX Primitive Layer
+   Vanilla shadcn-inspired reusable UI classes.
+   These classes are intentionally additive and are not applied automatically.
+   Future renderer migrations should use these primitives gradually.
+   Note: `.kmfx-card` already exists in the legacy system, so this layer uses
+   the safer `.kmfx-ui-*` prefix to avoid accidental overrides.
+-------------------------------------------------------------------------- */
+.kmfx-ui-card {
+  color: var(--card-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.kmfx-ui-card--interactive {
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.kmfx-ui-card--interactive:hover {
+  background: var(--surface-card-hover);
+  border-color: var(--border-2);
+}
+
+.kmfx-ui-card--flat {
+  box-shadow: none;
+}
+
+.kmfx-ui-card--elevated {
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-elevated);
+}
+
+.kmfx-ui-card__header,
+.kmfx-ui-card__content,
+.kmfx-ui-card__footer {
+  padding: 24px;
+}
+
+.kmfx-ui-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-0);
+}
+
+.kmfx-ui-card__title {
+  margin: 0;
+  color: var(--card-foreground);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.kmfx-ui-card__description {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.kmfx-ui-card__content {
+  color: var(--foreground);
+}
+
+.kmfx-ui-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border-0);
+}
+
+.kmfx-ui-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 128px;
+  padding: 20px 24px;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kmfx-ui-kpi__label {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.kmfx-ui-kpi__value {
+  color: var(--foreground);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kmfx-ui-kpi__meta {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.kmfx-ui-kpi__trend {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kmfx-ui-kpi__trend[data-tone="positive"] {
+  color: var(--profit);
+}
+
+.kmfx-ui-kpi__trend[data-tone="negative"] {
+  color: var(--loss);
+}
+
+.kmfx-ui-kpi__trend[data-tone="neutral"] {
+  color: var(--muted-foreground);
+}
+
+.kmfx-ui-button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: var(--secondary-foreground);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.kmfx-ui-button:hover {
+  background: var(--muted);
+  border-color: var(--border-2);
+}
+
+.kmfx-ui-button[data-variant="primary"] {
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.kmfx-ui-button[data-variant="primary"]:hover {
+  background: color-mix(in srgb, var(--primary) 88%, #ffffff 12%);
+  border-color: color-mix(in srgb, var(--primary) 88%, #ffffff 12%);
+}
+
+.kmfx-ui-button[data-variant="secondary"] {
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+}
+
+.kmfx-ui-button[data-variant="ghost"] {
+  color: var(--muted-foreground);
+  background: transparent;
+  border-color: transparent;
+}
+
+.kmfx-ui-button[data-variant="ghost"]:hover {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.kmfx-ui-button[data-variant="destructive"] {
+  color: var(--destructive-foreground);
+  background: var(--destructive);
+  border-color: var(--destructive);
+}
+
+.kmfx-ui-button[data-size="sm"] {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.kmfx-ui-button[data-size="md"] {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+
+.kmfx-ui-button[data-size="lg"] {
+  height: 48px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.kmfx-ui-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.kmfx-ui-button:disabled,
+.kmfx-ui-button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.kmfx-ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  gap: 5px;
+  min-height: 22px;
+  padding: 3px 8px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius-pill);
+}
+
+.kmfx-ui-badge[data-tone="neutral"] {
+  color: var(--muted-foreground);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.kmfx-ui-badge[data-tone="profit"] {
+  color: var(--profit);
+  background: var(--profit-muted);
+  border-color: rgba(48, 209, 88, 0.22);
+}
+
+.kmfx-ui-badge[data-tone="loss"] {
+  color: var(--loss);
+  background: var(--loss-muted);
+  border-color: rgba(255, 69, 58, 0.22);
+}
+
+.kmfx-ui-badge[data-tone="warning"],
+.kmfx-ui-badge[data-tone="risk"] {
+  color: var(--risk);
+  background: var(--risk-muted);
+  border-color: rgba(255, 159, 10, 0.22);
+}
+
+.kmfx-ui-badge[data-tone="info"] {
+  color: var(--equity);
+  background: var(--layer-accent);
+  border-color: rgba(10, 132, 255, 0.22);
+}
+
+.kmfx-ui-badge[data-tone="funded"] {
+  color: var(--funded);
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.24);
+}
+
+.kmfx-ui-table-wrap {
+  overflow: auto;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kmfx-ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.kmfx-ui-table th,
+.kmfx-ui-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-0);
+}
+
+.kmfx-ui-table th {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+.kmfx-ui-table td {
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.kmfx-ui-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.kmfx-ui-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kmfx-ui-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kmfx-ui-table .is-muted {
+  color: var(--muted-foreground);
+}
+
+.kmfx-ui-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--surface-overlay);
+}
+
+.kmfx-ui-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 1001;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(84vh, 760px);
+  overflow: hidden;
+  color: var(--popover-foreground);
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
+}
+
+.kmfx-ui-dialog__header,
+.kmfx-ui-dialog__content,
+.kmfx-ui-dialog__footer {
+  padding: 24px;
+}
+
+.kmfx-ui-dialog__header {
+  border-bottom: 1px solid var(--border);
+}
+
+.kmfx-ui-dialog__title {
+  margin: 0;
+  color: var(--popover-foreground);
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+}
+
+.kmfx-ui-dialog__description {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.kmfx-ui-dialog__content {
+  overflow: auto;
+}
+
+.kmfx-ui-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border-0);
+}
+
+.kmfx-ui-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: var(--kmfx-gap-page);
+}
+
+.kmfx-ui-page-header__eyebrow {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: var(--kmfx-label-size);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.kmfx-ui-page-header__title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: var(--kmfx-title-size);
+  line-height: var(--kmfx-title-line);
+  font-weight: 780;
+  letter-spacing: -0.045em;
+}
+
+.kmfx-ui-page-header__description {
+  max-width: 680px;
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: var(--kmfx-subtitle-size);
+  line-height: 1.45;
+}
+
+.kmfx-ui-page-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kmfx-ui-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kmfx-ui-field {
+  display: grid;
+  gap: 6px;
+}
+
+.kmfx-ui-field__label {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kmfx-ui-field__hint {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.kmfx-ui-input,
+.kmfx-ui-select {
+  height: var(--control-height);
+  min-width: 0;
+  padding: 0 12px;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: var(--control-radius);
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.kmfx-ui-select {
+  padding-right: 34px;
+}
+
+.kmfx-ui-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.kmfx-ui-input:focus-visible,
+.kmfx-ui-select:focus-visible {
+  border-color: color-mix(in srgb, var(--ring) 55%, var(--border) 45%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+}
+
+.kmfx-ui-empty-state,
+.kmfx-ui-loading-state,
+.kmfx-ui-error-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 160px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kmfx-ui-empty-state__title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.kmfx-ui-empty-state__description {
+  max-width: 420px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.kmfx-ui-error-state {
+  color: var(--loss);
+  background: var(--loss-muted);
+  border-color: rgba(255, 69, 58, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kmfx-ui-card--interactive,
+  .kmfx-ui-button,
+  .kmfx-ui-table tbody tr,
+  .kmfx-ui-input,
+  .kmfx-ui-select {
+    transition-duration: 1ms;
+  }
 }
 
 .app-shell {
