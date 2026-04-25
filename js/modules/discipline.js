@@ -3132,7 +3132,12 @@ function renderExecutionHero(rules = []) {
       <div class="execution-hero__copy">
         <p class="execution-hero__eyebrow">CALIDAD DE EJECUCIÓN</p>
         <h3>Calidad de ejecución baja</h3>
-        <p>Tu ejecución se degrada en momentos de presión. <span>· ${issueName}: ${issueText}</span></p>
+        <p>Tu ejecución se degrada en momentos de presión.</p>
+        <span class="execution-hero__deviation">
+          <strong>Principal desviación:</strong>
+          ${issueName}
+        </span>
+        <small>${issueText}</small>
       </div>
     </section>
   `;
@@ -3795,7 +3800,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       ${kpis.map((kpi) => `
         <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
           <div class="tl-kpi-label kpi-label">${kpi.label}</div>
-          <div class="tl-kpi-val kpi-value">${kpi.value}</div>
+          <div class="tl-kpi-val kpi-value" data-value-type="${/pendiente/i.test(String(kpi.value)) ? "text" : "number"}">${kpi.value}</div>
           <p class="kpi-sub">${kpi.subcopy}</p>
           <span>${kpi.badge}</span>
         </article>
