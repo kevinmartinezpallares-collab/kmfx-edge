@@ -130,15 +130,19 @@ const RULE_LIBRARY = {
     source: "manual",
     weight: 1.5,
     params: { pips: 20 },
+    conditionType: "boolean",
+    tagQuestion: "¿Activaste el BE a 20 pips?",
     executionRule: RULE_DEFINITIONS[3]
   },
   "ob-entry": {
     id: "ob-entry",
     name: "Entrada en OB candle open",
     description: "Mide desviación frente a la entrada técnica ideal.",
-    source: "auto",
+    source: "mixed",
     weight: 1.5,
     params: {},
+    conditionType: "boolean",
+    tagQuestion: "¿El entry fue en el OB candle open (o 50%)?",
     executionRule: RULE_DEFINITIONS[2]
   },
   "valid-setup": {
@@ -148,13 +152,15 @@ const RULE_LIBRARY = {
     source: "manual",
     weight: 1.5,
     params: {},
+    conditionType: "boolean",
+    tagQuestion: "¿El setup estaba validado antes de entrar?",
     executionRule: RULE_DEFINITIONS[5]
   },
   "daily-drawdown-limit": {
     id: "daily-drawdown-limit",
     name: "Límite de drawdown diario",
     description: "Controla la pérdida máxima permitida por día.",
-    source: "manual",
+    source: "auto",
     weight: 2.0,
     params: { pct: 2 },
     executionRule: "Límite de drawdown diario"
@@ -163,7 +169,7 @@ const RULE_LIBRARY = {
     id: "news-blackout",
     name: "Bloqueo por noticias",
     description: "Evita operar durante ventanas de alto impacto.",
-    source: "manual",
+    source: "auto",
     weight: 1.5,
     params: { minutes: 30 },
     executionRule: "Bloqueo por noticias"
@@ -172,7 +178,7 @@ const RULE_LIBRARY = {
     id: "min-rr-ratio",
     name: "R:R mínimo",
     description: "Exige relación riesgo/beneficio mínima antes de entrar.",
-    source: "manual",
+    source: "auto",
     weight: 1.5,
     params: { ratio: 1.5 },
     executionRule: "R:R mínimo"
@@ -181,7 +187,7 @@ const RULE_LIBRARY = {
     id: "max-daily-loss",
     name: "Pérdida diaria máxima",
     description: "Corta operativa al alcanzar el límite de pérdida diaria.",
-    source: "manual",
+    source: "auto",
     weight: 2.0,
     params: { amount: 500 },
     executionRule: "Pérdida diaria máxima"
@@ -190,10 +196,52 @@ const RULE_LIBRARY = {
     id: "consecutive-losses",
     name: "Pérdidas consecutivas",
     description: "Detiene la sesión tras una racha negativa definida.",
-    source: "manual",
+    source: "auto",
     weight: 3.0,
     params: { max: 2 },
     executionRule: "Pérdidas consecutivas"
+  },
+  "allowed-pairs": {
+    id: "allowed-pairs",
+    name: "Par en lista permitida",
+    description: "El par operado estaba en la lista de pares del plan.",
+    source: "manual",
+    weight: 1.5,
+    conditionType: "boolean",
+    tagQuestion: "¿El par operado estaba en tu lista de pares permitidos?",
+    defaultEnabled: true,
+    params: {},
+    executionRule: "Par en lista permitida"
+  },
+  "london-confirmation": {
+    id: "london-confirmation",
+    name: "Confirmación London open",
+    description: "Esperé la vela de confirmación post-London open antes de entrar.",
+    source: "manual",
+    weight: 1.5,
+    conditionType: "boolean",
+    tagQuestion: "¿Esperaste la vela de confirmación post-London open antes de entrar?",
+    defaultEnabled: true,
+    params: {},
+    executionRule: "Confirmación London open"
+  },
+  "emotional-state": {
+    id: "emotional-state",
+    name: "Estado emocional",
+    description: "Registro del estado psicológico antes de entrar.",
+    source: "manual",
+    weight: 0.5,
+    conditionType: "enum",
+    enumOptions: [
+      { value: "calm", label: "Tranquilo", color: "#34D97B" },
+      { value: "neutral", label: "Neutral", color: "#888888" },
+      { value: "altered", label: "Alterado", color: "#FF5C5C" }
+    ],
+    tagQuestion: "¿Cómo era tu estado emocional antes de este trade?",
+    defaultEnabled: false,
+    excludeFromScore: true,
+    params: {},
+    executionRule: "Estado emocional"
   }
 };
 
@@ -226,7 +274,8 @@ function normalizeSource(value = "manual") {
 }
 
 function normalizeConditionType(value = "boolean") {
-  return value === "numeric" ? "numeric" : "boolean";
+  if (value === "numeric" || value === "enum") return value;
+  return "boolean";
 }
 
 function normalizeNumericOperator(value = "<=") {
@@ -273,9 +322,12 @@ function profileRule(id, overrides = {}, customRules = []) {
     numericThreshold: rule?.numericThreshold ?? "",
     numericOperator: rule?.numericOperator || "<=",
     numericUnit: rule?.numericUnit || "",
+    enumOptions: Array.isArray(rule?.enumOptions) ? rule.enumOptions : [],
     tagQuestion: rule?.tagQuestion || "",
     isCustom: rule?.isCustom === true,
     pendingImplementation: rule?.pendingImplementation ?? false,
+    excludeFromScore: rule?.excludeFromScore === true,
+    defaultEnabled: rule?.defaultEnabled === true,
     params: { ...(rule?.params || {}) },
     ...overrides,
     weight: normalizeWeight(overrides.weight ?? rule?.weight ?? 1)
@@ -290,13 +342,16 @@ const DEFAULT_KMFX_PROFILES = {
       type: "real",
       color: "#34D97B",
       description: "Capital propio · Sin límite de tiempo",
+      allowedPairs: ["EURUSD", "GBPUSD", "USDCAD", "AUDUSD"],
       rules: [
         profileRule("sl-fixed"),
         profileRule("max-trades-per-day"),
         profileRule("session-window"),
+        profileRule("london-confirmation"),
         profileRule("be-activation"),
         profileRule("ob-entry"),
-        profileRule("valid-setup")
+        profileRule("valid-setup"),
+        profileRule("allowed-pairs")
       ]
     },
     {
@@ -305,13 +360,16 @@ const DEFAULT_KMFX_PROFILES = {
       type: "challenge",
       color: "#F5A623",
       description: "Max DD 10% · 30 días",
+      allowedPairs: ["EURUSD", "GBPUSD", "USDCAD", "AUDUSD"],
       rules: [
         profileRule("sl-fixed"),
         profileRule("max-trades-per-day"),
         profileRule("session-window"),
+        profileRule("london-confirmation"),
         profileRule("be-activation"),
         profileRule("ob-entry"),
         profileRule("valid-setup"),
+        profileRule("allowed-pairs"),
         profileRule("daily-drawdown-limit"),
         profileRule("news-blackout"),
         profileRule("max-daily-loss")
@@ -323,13 +381,16 @@ const DEFAULT_KMFX_PROFILES = {
       type: "funded",
       color: "#2F6BFF",
       description: "Max DD 5% · Payout mensual",
+      allowedPairs: ["EURUSD", "GBPUSD", "USDCAD", "AUDUSD"],
       rules: [
         profileRule("sl-fixed"),
         profileRule("max-trades-per-day"),
         profileRule("session-window"),
+        profileRule("london-confirmation"),
         profileRule("be-activation"),
         profileRule("ob-entry"),
         profileRule("valid-setup"),
+        profileRule("allowed-pairs"),
         profileRule("daily-drawdown-limit"),
         profileRule("news-blackout"),
         profileRule("max-daily-loss"),
@@ -344,6 +405,16 @@ const DEFAULT_KMFX_PROFILES = {
 
 function cloneProfiles(value = DEFAULT_KMFX_PROFILES) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeAllowedPairs(value) {
+  const source = Array.isArray(value) ? value : ["EURUSD", "GBPUSD", "USDCAD", "AUDUSD"];
+  return [...new Set(source
+    .map((pair) => String(pair || "").trim().toUpperCase())
+    .filter(Boolean)
+    .map((pair) => pair.replace(/[^A-Z0-9]/g, ""))
+    .filter(Boolean))]
+    .slice(0, 16);
 }
 
 function normalizeWeight(value) {
@@ -369,7 +440,7 @@ function ruleWeightClass(weight) {
 function ruleGroupKey(rule = {}) {
   const weight = normalizeWeight(rule.weight);
   if (weight >= 2.0) return "critical";
-  if (["ob-entry", "valid-setup", "be-activation", "min-rr-ratio", "news-blackout"].includes(rule.id) || rule.isCustom) return "strategy";
+  if (["london-confirmation", "ob-entry", "valid-setup", "be-activation", "allowed-pairs", "emotional-state", "min-rr-ratio", "news-blackout"].includes(rule.id) || rule.isCustom) return "strategy";
   return "process";
 }
 
@@ -379,6 +450,40 @@ const RULE_GROUPS = [
   { id: "process", label: "PROCESO" }
 ];
 
+const AUTO_POSTTRADE_EXCLUDED_IDS = new Set([
+  "sl-fixed",
+  "max-trades-per-day",
+  "session-window",
+  "daily-drawdown-limit",
+  "max-daily-loss",
+  "news-blackout",
+  "consecutive-losses",
+  "min-rr-ratio"
+]);
+
+const POST_TRADE_RULE_ORDER = [
+  "london-confirmation",
+  "ob-entry",
+  "valid-setup",
+  "be-activation",
+  "allowed-pairs",
+  "emotional-state"
+];
+
+const DEFAULT_ENABLED_RULE_IDS = Object.values(RULE_LIBRARY)
+  .filter((rule) => rule.defaultEnabled === true)
+  .map((rule) => rule.id);
+
+function ensureDefaultEnabledRules(profile, customRules = []) {
+  const existingIds = new Set((profile.rules || []).map((rule) => rule.id));
+  DEFAULT_ENABLED_RULE_IDS.forEach((ruleId) => {
+    if (!existingIds.has(ruleId)) {
+      profile.rules.push(profileRule(ruleId, { enabled: true }, customRules));
+    }
+  });
+  return profile;
+}
+
 function hasProfileNormalizationDrift(raw, normalized) {
   try {
     const rawWeights = (raw?.profiles || []).flatMap((profile) => (profile.rules || []).map((rule) => Number(rule.weight)));
@@ -387,7 +492,10 @@ function hasProfileNormalizationDrift(raw, normalized) {
       !Object.prototype.hasOwnProperty.call(raw, "openAddRuleMenu") ||
       !Object.prototype.hasOwnProperty.call(raw, "openWeightId") ||
       !Object.prototype.hasOwnProperty.call(raw, "confirmRuleRemoveId") ||
-      !Object.prototype.hasOwnProperty.call(raw, "customRules")
+      !Object.prototype.hasOwnProperty.call(raw, "customRules") ||
+      (raw.profiles || []).some((profile) => !Object.prototype.hasOwnProperty.call(profile, "allowedPairs")) ||
+      (raw.profiles || []).some((profile) => DEFAULT_ENABLED_RULE_IDS.some((ruleId) => !(profile.rules || []).some((rule) => rule.id === ruleId))) ||
+      (raw.profiles || []).some((profile) => (profile.rules || []).some((rule) => RULE_LIBRARY[rule.id] && rule.source !== RULE_LIBRARY[rule.id].source))
     );
     return invalidWeight || missingTransient || !normalized.profiles.length;
   } catch {
@@ -400,14 +508,24 @@ function normalizeProfiles(raw) {
   const profiles = Array.isArray(raw?.profiles) && raw.profiles.length ? raw.profiles : defaults.profiles;
   const customRules = Array.isArray(raw?.customRules) ? raw.customRules.map(normalizeCustomRule) : [];
   return {
-    profiles: profiles.map((profile) => ({
+    profiles: profiles.map((profile) => ensureDefaultEnabledRules({
       ...profile,
-      rules: Array.isArray(profile.rules) ? profile.rules.map((rule) => ({
-        ...profileRule(rule.id, rule, customRules),
-        enabled: rule.enabled !== false,
-        weight: normalizeWeight(rule.weight)
-      })) : []
-    })),
+      allowedPairs: normalizeAllowedPairs(profile.allowedPairs),
+      rules: Array.isArray(profile.rules) ? profile.rules.map((rule) => {
+        const normalizedRule = profileRule(rule.id, rule, customRules);
+        const systemRule = RULE_LIBRARY[rule.id];
+        return {
+          ...normalizedRule,
+          source: systemRule?.source || normalizedRule.source,
+          conditionType: systemRule?.conditionType || normalizedRule.conditionType,
+          tagQuestion: systemRule?.tagQuestion || normalizedRule.tagQuestion,
+          enumOptions: systemRule?.enumOptions || normalizedRule.enumOptions,
+          excludeFromScore: systemRule?.excludeFromScore === true || normalizedRule.excludeFromScore,
+          enabled: rule.enabled !== false,
+          weight: normalizeWeight(rule.weight)
+        };
+      }) : []
+    }, customRules)),
     accountMap: raw?.accountMap && typeof raw.accountMap === "object" ? raw.accountMap : {},
     activeProfileId: raw?.activeProfileId || profiles[0]?.id || "real-conservative",
     openMenuId: raw?.openMenuId || "",
@@ -460,21 +578,27 @@ export function savePostTradeTag(tradeId, data) {
   if (!tradeId) return false;
   const tags = loadPostTradeTags();
   const previous = tags[tradeId] && typeof tags[tradeId] === "object" ? tags[tradeId] : {};
+  const answers = normalizeTagAnswers(data?.answers || data || {});
   tags[tradeId] = {
     ...previous,
     ...data,
+    tradeId: data?.tradeId || previous.tradeId || tradeId,
     timestamp: data?.timestamp || previous.timestamp || new Date().toISOString(),
-    answers: {
-      beActivated: data?.answers?.beActivated ?? previous.answers?.beActivated ?? null,
-      obEntry: data?.answers?.obEntry ?? previous.answers?.obEntry ?? null,
-      validSetup: data?.answers?.validSetup ?? previous.answers?.validSetup ?? null,
-      customRules: {
-        ...(previous.answers?.customRules || {}),
-        ...(data?.answers?.customRules || {})
-      }
+    tagQuestionVersion: data?.tagQuestionVersion || previous.tagQuestionVersion || 2,
+    londonConfirmation: answers.londonConfirmation,
+    obEntry: answers.obEntry,
+    validSetup: answers.validSetup,
+    beActivated: answers.beActivated,
+    allowedPairs: answers.allowedPairs,
+    emotionalState: answers.emotionalState,
+    customAnswers: {
+      ...(answers.customAnswers || {})
     },
-    note: data?.note ?? previous.note ?? null
+    note: data?.note ?? previous.note ?? null,
+    tagSkipped: data?.tagSkipped ?? false
   };
+  delete tags[tradeId].answers;
+  delete tags[tradeId].status;
   try {
     window.localStorage?.setItem(KMFX_TAGS_STORAGE_KEY, JSON.stringify(tags));
     return true;
@@ -838,25 +962,34 @@ function normalizeTradeForTag(trade = {}, index = 0) {
 }
 
 function tagAnswerKey(ruleId = "") {
+  if (ruleId === "london-confirmation") return "londonConfirmation";
   if (ruleId === "be-activation") return "beActivated";
   if (ruleId === "ob-entry") return "obEntry";
   if (ruleId === "valid-setup") return "validSetup";
+  if (ruleId === "allowed-pairs") return "allowedPairs";
+  if (ruleId === "emotional-state") return "emotionalState";
   return "";
 }
 
 function getTagAnswer(tag, ruleId) {
-  if (!tag?.answers) return null;
   const key = tagAnswerKey(ruleId);
-  if (key) return tag.answers[key] ?? null;
-  return tag.answers.customRules?.[ruleId] ?? null;
+  if (key) return tag?.[key] ?? tag?.answers?.[key] ?? null;
+  return tag?.customAnswers?.[ruleId] ?? tag?.answers?.customRules?.[ruleId] ?? null;
 }
 
 function getTaggableRules(profile) {
   const rules = Array.isArray(profile?.rules) ? profile.rules : [];
-  return rules.filter((rule) => {
-    const source = normalizeSource(rule.source);
-    return rule.enabled !== false && (source === "manual" || source === "mixed" || Boolean(tagAnswerKey(rule.id)));
-  });
+  return rules
+    .filter((rule) => {
+      if (AUTO_POSTTRADE_EXCLUDED_IDS.has(rule.id)) return false;
+      const source = normalizeSource(rule.source);
+      return rule.enabled !== false && (source === "manual" || source === "mixed");
+    })
+    .sort((a, b) => {
+      const aIndex = POST_TRADE_RULE_ORDER.includes(a.id) ? POST_TRADE_RULE_ORDER.indexOf(a.id) : 99;
+      const bIndex = POST_TRADE_RULE_ORDER.includes(b.id) ? POST_TRADE_RULE_ORDER.indexOf(b.id) : 99;
+      return aIndex - bIndex;
+    });
 }
 
 function evaluateNumericAnswer(rule, value) {
@@ -873,6 +1006,7 @@ function evaluateNumericAnswer(rule, value) {
 
 function evaluateTagAnswer(rule, value) {
   if (value === null || value === undefined || value === "") return null;
+  if (normalizeConditionType(rule.conditionType) === "enum") return rule.excludeFromScore ? null : Boolean(value);
   if (normalizeConditionType(rule.conditionType) === "numeric") return evaluateNumericAnswer(rule, value);
   if (typeof value === "boolean") return value;
   if (String(value).toLowerCase() === "true") return true;
@@ -883,6 +1017,10 @@ function evaluateTagAnswer(rule, value) {
 function buildPostTradeTagStats(profile, recentTrades = [], tags = {}) {
   const taggableRules = getTaggableRules(profile);
   return taggableRules.reduce((map, rule) => {
+    if (rule.excludeFromScore) {
+      map[rule.id] = { answered: 0, pct: null };
+      return map;
+    }
     let answered = 0;
     let passed = 0;
     recentTrades.forEach((trade, index) => {
@@ -907,32 +1045,44 @@ function getPendingTagTrades(profile, recentTrades = [], tags = {}) {
     .map((trade, index) => normalizeTradeForTag(trade, index))
     .filter((trade, index) => {
       const tag = tags[trade.id];
-      if (!tag || tag.status === "tag_pending") return true;
+      if (tag?.tagSkipped === true) return false;
+      if (!tag) return true;
       return taggableRules.some((rule) => evaluateTagAnswer(rule, getTagAnswer(tag, rule.id)) === null);
     });
 }
 
 function buildEmptyTagData(trade, rules = []) {
-  const answers = { beActivated: null, obEntry: null, validSetup: null, customRules: {} };
+  const tag = {
+    tradeId: trade?.id || "",
+    timestamp: trade?.timestamp || new Date().toISOString(),
+    tagQuestionVersion: 2,
+    londonConfirmation: null,
+    obEntry: null,
+    validSetup: null,
+    beActivated: null,
+    allowedPairs: null,
+    emotionalState: null,
+    customAnswers: {},
+    note: null,
+    tagSkipped: true
+  };
   rules.forEach((rule) => {
     const key = tagAnswerKey(rule.id);
-    if (key) answers[key] = null;
-    else answers.customRules[rule.id] = null;
+    if (key && Object.prototype.hasOwnProperty.call(tag, key)) tag[key] = null;
+    if (!key) tag.customAnswers[rule.id] = null;
   });
-  return {
-    timestamp: trade?.timestamp || new Date().toISOString(),
-    answers,
-    note: null,
-    status: "tag_pending"
-  };
+  return tag;
 }
 
 function normalizeTagAnswers(answers = {}) {
   return {
+    londonConfirmation: answers.londonConfirmation ?? null,
     beActivated: answers.beActivated ?? null,
     obEntry: answers.obEntry ?? null,
     validSetup: answers.validSetup ?? null,
-    customRules: { ...(answers.customRules || {}) }
+    allowedPairs: answers.allowedPairs ?? null,
+    emotionalState: answers.emotionalState ?? null,
+    customAnswers: { ...(answers.customAnswers || answers.customRules || {}) }
   };
 }
 
@@ -940,7 +1090,7 @@ function initCurrentTagDraft(trade, tag = {}) {
   if (currentTagDraft.tradeId === trade.id) return;
   currentTagDraft = {
     tradeId: trade.id,
-    answers: normalizeTagAnswers(tag.answers),
+    answers: normalizeTagAnswers(tag.answers || tag),
     note: tag.note || ""
   };
 }
@@ -948,7 +1098,7 @@ function initCurrentTagDraft(trade, tag = {}) {
 function draftAnswerForRule(ruleId) {
   const key = tagAnswerKey(ruleId);
   if (key) return currentTagDraft.answers?.[key] ?? null;
-  return currentTagDraft.answers?.customRules?.[ruleId] ?? null;
+  return currentTagDraft.answers?.customAnswers?.[ruleId] ?? null;
 }
 
 function setDraftAnswer(ruleId, value) {
@@ -957,8 +1107,8 @@ function setDraftAnswer(ruleId, value) {
     currentTagDraft.answers[key] = value;
     return;
   }
-  currentTagDraft.answers.customRules = currentTagDraft.answers.customRules || {};
-  currentTagDraft.answers.customRules[ruleId] = value;
+  currentTagDraft.answers.customAnswers = currentTagDraft.answers.customAnswers || {};
+  currentTagDraft.answers.customAnswers[ruleId] = value;
 }
 
 function resetCurrentTagDraft() {
@@ -1567,6 +1717,7 @@ function renderProfileEditor(profile, profileState) {
         ${renderAddRuleDropdown(profile, profileState)}
       </div>
       ${renderProfileWarnings(profile)}
+      ${renderAllowedPairsEditor(profile)}
       ${renderCustomRuleForm(profileState)}
       <div class="rule-profile-rule-list">
         ${groupedRules.map((group) => `
@@ -1575,6 +1726,26 @@ function renderProfileEditor(profile, profileState) {
             ${group.rules.map(renderRule).join("")}
           </div>
         `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderAllowedPairsEditor(profile) {
+  const pairs = normalizeAllowedPairs(profile?.allowedPairs);
+  return `
+    <div class="rule-profile-pairs">
+      <div>
+        <span>Pares permitidos</span>
+        <p>Lista manual del plan. La validación automática llegará más adelante.</p>
+      </div>
+      <div class="rule-profile-pairs__control">
+        <div class="rule-profile-pairs__pills">
+          ${pairs.map((pair) => `
+            <span>${escapeHtml(pair)} <button type="button" data-pair-remove="${escapeHtml(pair)}" aria-label="Eliminar ${escapeHtml(pair)}">×</button></span>
+          `).join("")}
+        </div>
+        <input type="text" data-pair-input placeholder="Añadir par y Enter">
       </div>
     </div>
   `;
@@ -1727,6 +1898,25 @@ function renderProfileManager(container, context = {}) {
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
     });
+  });
+
+  container.querySelectorAll("[data-pair-remove]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeProfile.allowedPairs = normalizeAllowedPairs(activeProfile.allowedPairs).filter((pair) => pair !== button.dataset.pairRemove);
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  const pairInput = container.querySelector("[data-pair-input]");
+  pairInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== ",") return;
+    event.preventDefault();
+    const pair = normalizeAllowedPairs([pairInput.value])[0];
+    if (!pair) return;
+    activeProfile.allowedPairs = normalizeAllowedPairs([...(activeProfile.allowedPairs || []), pair]);
+    saveProfiles(profileState);
+    renderDisciplineSection(context.target, context.data, context);
   });
 
   container.querySelectorAll("[data-rule-weight-menu]").forEach((button) => {
@@ -2195,13 +2385,14 @@ function buildEntryPattern(rows = []) {
 
 function postTradeRuleQuestion(rule) {
   if (rule.tagQuestion) return rule.tagQuestion;
-  if (rule.id === "be-activation") return "¿Activaste BE según la regla?";
-  if (rule.id === "ob-entry") return "¿La entrada respetó OB candle open?";
+  if (rule.id === "be-activation") return "¿Activaste el BE a 20 pips?";
+  if (rule.id === "ob-entry") return "¿El entry fue en el OB candle open (o 50%)?";
   if (rule.id === "valid-setup") return "¿El setup estaba validado antes de entrar?";
   return `¿Se cumplió ${rule.name}?`;
 }
 
-function renderPostTradeIndicator(pendingTrades = []) {
+function renderPostTradeIndicator(pendingTrades = [], canTag = true) {
+  if (!canTag) return "";
   const count = pendingTrades.length;
   return `
     <section class="posttrade-tag-alert${count ? " has-pending" : ""}">
@@ -2222,6 +2413,25 @@ function renderPostTradeQuestion(rule, tag) {
   const currentValue = currentTagDraft.tradeId ? draftAnswerForRule(rule.id) : getTagAnswer(tag, rule.id);
   const question = postTradeRuleQuestion(rule);
   const unit = rule.numericUnit || rule.params?.unit || "pips";
+  if (normalizeConditionType(rule.conditionType) === "enum") {
+    return `
+      <div class="posttrade-question" data-posttrade-question="${escapeHtml(rule.id)}">
+        <span>${escapeHtml(question)}</span>
+        <input type="hidden" data-posttrade-answer="${escapeHtml(rule.id)}" value="${escapeHtml(currentValue || "")}">
+        <div class="posttrade-choice-group posttrade-choice-group--enum">
+          ${(rule.enumOptions || []).map((option) => `
+            <button
+              type="button"
+              class="${currentValue === option.value ? "is-selected" : ""}"
+              data-posttrade-choice="${escapeHtml(rule.id)}"
+              data-posttrade-value="${escapeHtml(option.value)}"
+              style="--posttrade-choice-color:${escapeHtml(option.color || "#888888")}"
+            >${escapeHtml(option.label)}</button>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
   if (normalizeConditionType(rule.conditionType) === "numeric") {
     return `
       <label class="posttrade-question posttrade-question--numeric" data-posttrade-question="${escapeHtml(rule.id)}">
@@ -2249,6 +2459,11 @@ function renderPostTradeModal(profile, tags = {}) {
   if (!activePostTradeModal) return "";
   const trade = activePostTradeModal;
   const rules = getTaggableRules(profile);
+  if (!rules.length) {
+    activePostTradeModal = null;
+    resetCurrentTagDraft();
+    return "";
+  }
   const existingTag = tags[trade.id] || {};
   initCurrentTagDraft(trade, existingTag);
   const pips = Number(trade.pips);
@@ -2325,11 +2540,12 @@ function updateModalUI(target, ruleId) {
     button.classList.toggle("is-selected", String(currentValue) === button.dataset.posttradeValue);
   });
   const hidden = group.querySelector(`[data-posttrade-answer="${cssEscape(ruleId)}"]`);
-  if (hidden) hidden.value = typeof currentValue === "boolean" ? String(currentValue) : "";
+  if (hidden) hidden.value = currentValue === null || currentValue === undefined ? "" : String(currentValue);
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   target.querySelector("[data-posttrade-simulate]")?.addEventListener("click", () => {
+    if (!getTaggableRules(profile).length) return;
     const fallbackTrade = context.data?.recentTrades?.at(-1) || {
       symbol: "EURUSD",
       direction: "BUY",
@@ -2340,12 +2556,15 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
     openPostTradeModal(fallbackTrade, context);
   });
   target.querySelector("[data-posttrade-complete]")?.addEventListener("click", () => {
+    if (!getTaggableRules(profile).length) return;
     if (pendingTrades[0]) openPostTradeModal(pendingTrades[0], context);
   });
   target.querySelectorAll("[data-posttrade-choice]").forEach((button) => {
     button.addEventListener("click", () => {
       const ruleId = button.dataset.posttradeChoice;
-      setDraftAnswer(ruleId, button.dataset.posttradeValue === "true");
+      const rawValue = button.dataset.posttradeValue;
+      const value = rawValue === "true" ? true : rawValue === "false" ? false : rawValue;
+      setDraftAnswer(ruleId, value);
       updateModalUI(target, ruleId);
     });
   });
@@ -2369,10 +2588,12 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   target.querySelector("[data-posttrade-save]")?.addEventListener("click", () => {
     if (!activePostTradeModal) return;
     savePostTradeTag(activePostTradeModal.id, {
+      tradeId: activePostTradeModal.id,
       timestamp: activePostTradeModal.timestamp,
+      tagQuestionVersion: 2,
       answers: collectPostTradeAnswers(target, profile),
       note: currentTagDraft.note?.trim() || null,
-      status: "tagged"
+      tagSkipped: false
     });
     activePostTradeModal = null;
     resetCurrentTagDraft();
@@ -2483,6 +2704,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const postTradeTags = loadPostTradeTags();
   const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
   const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
+  const canOpenPostTradeTag = getTaggableRules(activeProfile).length > 0;
   const pendingTagTrades = getPendingTagTrades(activeProfile, recentTrades, postTradeTags);
   const calendar = Array.isArray(data.calendar?.[0])
     ? data.calendar.map((days, index) => ({ label: `S${index + 1}`, days: days.map((state) => ({ state, label: state, trades: 0, key: "", date: null })) }))
@@ -2525,7 +2747,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       </div>
     </header>
 
-    ${renderPostTradeIndicator(pendingTagTrades)}
+    ${renderPostTradeIndicator(pendingTagTrades, canOpenPostTradeTag)}
 
     ${renderExecutionHero(visibleRules)}
 

@@ -16521,7 +16521,7 @@ html[data-theme="dark"] #section-discipline .posttrade-modal__overlay,
 body[data-theme="dark"] #section-discipline .posttrade-modal__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.55);
 }
 
 html[data-theme="dark"] #section-discipline .posttrade-modal__card,
@@ -16616,11 +16616,16 @@ body[data-theme="dark"] #section-discipline .posttrade-choice-group {
   gap: 8px;
 }
 
+html[data-theme="dark"] #section-discipline .posttrade-choice-group--enum,
+body[data-theme="dark"] #section-discipline .posttrade-choice-group--enum {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 html[data-theme="dark"] #section-discipline .posttrade-choice-group button.is-selected,
 body[data-theme="dark"] #section-discipline .posttrade-choice-group button.is-selected {
-  border-color: rgba(52,217,123,0.26);
-  background: rgba(52,217,123,0.13);
-  color: color-mix(in srgb, var(--positive) 80%, var(--text-0));
+  border-color: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 36%, transparent);
+  background: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 14%, transparent);
+  color: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 80%, var(--text-0));
 }
 
 html[data-theme="dark"] #section-discipline .posttrade-question--numeric div,
@@ -18379,6 +18384,82 @@ body[data-theme="dark"] #section-discipline .rule-profile-warnings p {
   color: color-mix(in srgb, var(--warning) 72%, var(--text-1));
   font-size: 12px;
   line-height: 1.4;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--border-0);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.024);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs span,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs p,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__control,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__control {
+  display: grid;
+  gap: 9px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--border-0);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs__pills button,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs__pills button {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-pairs input,
+body[data-theme="dark"] #section-discipline .rule-profile-pairs input {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-0);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-account-form input,
