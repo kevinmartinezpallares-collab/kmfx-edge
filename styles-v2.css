@@ -16531,12 +16531,13 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog {
   position: absolute;
   left: 50%;
   top: 50%;
+  box-sizing: border-box;
   width: min(520px, calc(100vw - 32px));
   max-height: min(82vh, 760px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 18px;
-  padding: 24px;
+  row-gap: 18px;
+  padding: 24px 24px 20px;
   border: 1px solid var(--border-0);
   border-radius: 16px;
   background: var(--layer-1);
@@ -16549,13 +16550,18 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog {
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-track,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.16);
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-header,
@@ -16611,9 +16617,13 @@ html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body {
   min-height: 0;
   overflow-y: auto;
-  padding-right: 8px;
+  margin-right: 6px;
+  padding-right: 10px;
   display: grid;
   gap: 12px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.16) transparent;
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-question,
