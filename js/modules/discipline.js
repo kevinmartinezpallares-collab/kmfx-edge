@@ -1269,18 +1269,32 @@ function buildProfileRuleRows(profile, currentRows = [], tagStats = {}) {
 
 function renderWeightDropdown(rule, profileState) {
   const selected = getWeightOption(rule.weight);
+  const isOpen = profileState.openWeightId === rule.id;
   return `
     <div class="rule-profile-weight" style="--rule-weight-color:${escapeHtml(selected.color)}">
-      <select class="rule-profile-weight__select" data-rule-weight-select="${escapeHtml(rule.id)}" aria-label="Peso de ${escapeHtml(rule.name)}">
-        ${WEIGHT_OPTIONS.map((option) => `
-          <option value="${option.value}" ${option.value === selected.value ? "selected" : ""}>×${option.value.toFixed(1)} ${escapeHtml(option.label)} · ${escapeHtml(option.short)}</option>
-        `).join("")}
-      </select>
-      <div class="rule-profile-weight__visual" aria-hidden="true">
+      <button type="button" class="rule-profile-weight__trigger" data-rule-weight-menu="${escapeHtml(rule.id)}">
         <b>×${selected.value.toFixed(1)}</b>
         <span>${escapeHtml(selected.label)}</span>
         <i>⌄</i>
-      </div>
+      </button>
+      ${isOpen ? `
+        <div class="rule-profile-weight-menu">
+          ${WEIGHT_OPTIONS.map((option) => `
+            <button
+              type="button"
+              class="${option.value === selected.value ? "is-selected" : ""}"
+              data-rule-weight-option="${escapeHtml(rule.id)}"
+              data-weight-value="${option.value}"
+              style="--rule-weight-option-color:${escapeHtml(option.color)}"
+            >
+              <i></i>
+              <b>×${option.value.toFixed(1)}</b>
+              <strong>${escapeHtml(option.label)}</strong>
+              <span>· ${escapeHtml(option.short)}</span>
+            </button>
+          `).join("")}
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -1489,12 +1503,13 @@ function renderProfileEditor(profile, profileState) {
   const renderRule = (rule) => {
     const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
     const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
+    const isWeightOpen = profileState.openWeightId === rule.id;
     const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
     const activeRules = rules.filter((item) => item.enabled !== false);
     const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
     const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
     return `
-      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}${isWeightOpen ? " is-weight-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
         <label class="rule-profile-toggle">
           <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
           <span></span>
@@ -1714,10 +1729,25 @@ function renderProfileManager(container, context = {}) {
     });
   });
 
-  container.querySelectorAll("[data-rule-weight-select]").forEach((select) => {
-    select.addEventListener("change", () => {
-      const rule = activeProfile.rules.find((item) => item.id === select.dataset.ruleWeightSelect);
-      if (rule) rule.weight = normalizeWeight(select.value);
+  container.querySelectorAll("[data-rule-weight-menu]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const ruleId = button.dataset.ruleWeightMenu;
+      profileState.openWeightId = profileState.openWeightId === ruleId ? "" : ruleId;
+      profileState.openMenuId = "";
+      profileState.confirmDeleteId = "";
+      profileState.confirmRuleRemoveId = "";
+      profileState.openAddRuleMenu = false;
+      saveProfiles(profileState);
+      renderDisciplineSection(context.target, context.data, context);
+    });
+  });
+
+  container.querySelectorAll("[data-rule-weight-option]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const rule = activeProfile.rules.find((item) => item.id === button.dataset.ruleWeightOption);
+      if (rule) rule.weight = normalizeWeight(button.dataset.weightValue);
       profileState.openWeightId = "";
       saveProfiles(profileState);
       renderDisciplineSection(context.target, context.data, context);
