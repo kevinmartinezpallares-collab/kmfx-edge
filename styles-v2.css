@@ -20295,6 +20295,171 @@ body[data-theme="dark"] #section-discipline .rule-history-detail__header {
   }
 }
 
+/* KMFX system alignment for the execution layout restructure */
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .discipline-hero-card,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .discipline-hero-card,
+html[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row #discipline-score-card,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid,
+html[data-theme="dark"] #section-discipline .execution-rules-panel,
+body[data-theme="dark"] #section-discipline .execution-rules-panel,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel {
+  background: var(--layer-1) !important;
+  border-color: var(--border-0) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel .execution-section-header,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .execution-section-header,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-section-header,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-section-header,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row {
+  border-color: var(--border-0) !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert > i,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert > i,
+html[data-theme="dark"] #section-discipline .execution-data-pill,
+body[data-theme="dark"] #section-discipline .execution-data-pill {
+  background: color-mix(in srgb, var(--warning) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--warning) 24%, transparent) !important;
+  color: var(--warning) !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert > i,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert > i {
+  background: var(--warning) !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert p,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert p {
+  color: color-mix(in srgb, var(--warning) 76%, var(--text-1)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card > span,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card > span {
+  border-color: var(--border-0) !important;
+  color: var(--text-1) !important;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button:hover,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions button:hover {
+  background: var(--layer-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__eyebrow,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero__eyebrow,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label,
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__weekdays span,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__row strong,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore span,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore span,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight strong,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status {
+  color: var(--text-3) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero h3,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero h3,
+html[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title,
+body[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore strong,
+html[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-name,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-status {
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p,
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-system-insight p {
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p span,
+body[data-theme="dark"] #section-discipline .execution-hero-score-row .execution-hero p span {
+  color: color-mix(in srgb, var(--negative) 78%, var(--text-1)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before {
+  background: var(--accent) !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge__track,
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-track,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-bar-track {
+  background: var(--layer-2) !important;
+  stroke: var(--layer-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok {
+  background: color-mix(in srgb, var(--positive) 64%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--positive) 16%, #07140d) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn {
+  background: color-mix(in srgb, var(--warning) 58%, var(--layer-2)) !important;
+  color: #211804 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad {
+  background: color-mix(in srgb, var(--negative) 48%, var(--layer-2)) !important;
+  color: #230707 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty {
+  background: var(--layer-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.is-today,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.is-today {
+  outline-color: var(--accent) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history-detail__header,
+body[data-theme="dark"] #section-discipline .rule-history-detail__header {
+  background: var(--layer-1) !important;
+  border-color: var(--border-0) !important;
+}
+
 /* === BOTTOM SECTIONS === */
 html[data-theme="dark"] #section-discipline #entry-precision-card,
 body[data-theme="dark"] #section-discipline #entry-precision-card {
