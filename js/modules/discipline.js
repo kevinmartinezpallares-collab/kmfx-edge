@@ -62,6 +62,7 @@ let postTradeQueueState = {
   trades: [],
   index: 0
 };
+let lastSavedPostTradeId = "";
 
 const WEIGHT_OPTIONS = [
   {
@@ -619,6 +620,8 @@ export function savePostTradeTag(tradeId, data) {
   delete tags[tradeId].status;
   try {
     window.localStorage?.setItem(KMFX_TAGS_STORAGE_KEY, JSON.stringify(tags));
+    lastSavedPostTradeId = String(tradeId);
+    console.log("TAG GUARDADO:", tradeId, tags[tradeId]);
     return true;
   } catch (error) {
     console.warn("[KMFX][POST_TRADE_TAGS] save skipped", error);
@@ -981,14 +984,22 @@ function normalizeTradeForTag(trade = {}, index = 0) {
 
 function postTagForTrade(tags = {}, trade = {}, index = 0) {
   const normalizedId = normalizeTradeForTag(trade, index).id;
-  return tags[normalizedId] || tags[tradeIdForTag(trade, index)] || tags[trade.id] || null;
+  return tags[trade.id] || tags[normalizedId] || tags[tradeIdForTag(trade, index)] || null;
 }
 
 function mergeTradesWithPostTags(trades = [], tags = {}) {
-  return trades.map((trade, index) => ({
-    ...trade,
-    postTag: postTagForTrade(tags, trade, index)
-  }));
+  const mergedTrades = trades.map((trade, index) => {
+    const normalizedTrade = normalizeTradeForTag(trade, index);
+    return {
+      ...trade,
+      id: trade.id || normalizedTrade.id,
+      postTag: tags[trade.id] || tags[normalizedTrade.id] || null
+    };
+  });
+  if (lastSavedPostTradeId) {
+    console.log("POST TAG MERGED:", mergedTrades.find((trade) => trade.id === lastSavedPostTradeId));
+  }
+  return mergedTrades;
 }
 
 function tagAnswerKey(ruleId = "") {
@@ -2953,7 +2964,7 @@ function buildDisciplineDataFromModel(model, accountLogin = "") {
 export function renderDisciplineSection(target, data = disciplineData, context = {}) {
   if (!target) return;
   const renderContext = { ...context, target, data };
-  const kpis = Array.isArray(data.kpis)
+  let kpis = Array.isArray(data.kpis)
     ? data.kpis
     : [
       {
@@ -2996,11 +3007,17 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const { profile: activeProfile } = getProfileForAccount(profileState, accountLogin);
   const postTradeTags = loadPostTradeTags();
   const recentTrades = Array.isArray(data.recentTrades) ? mergeTradesWithPostTags(data.recentTrades, postTradeTags) : [];
+  const liveEntryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
   const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
   const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
+  if (recentTrades.length) {
+    kpis = buildKpis(visibleRules, recentTrades, liveEntryDeviations);
+  }
   const canOpenPostTradeTag = getTaggableRules(activeProfile).length > 0;
   const pendingTagTrades = getPendingTagTrades(activeProfile, recentTrades, postTradeTags);
-  const calendar = Array.isArray(data.calendar?.[0])
+  const calendar = recentTrades.length
+    ? buildExecutionHeatmap(recentTrades, disciplineData, activeProfile, postTradeTags)
+    : Array.isArray(data.calendar?.[0])
     ? data.calendar.map((days, index) => ({ label: `S${index + 1}`, days: days.map((state) => ({ state, label: state, trades: 0, key: "", date: null })) }))
     : data.calendar || [];
   const entryRows = (data.entryPrecision || []).map((item) => ({
@@ -3013,23 +3030,25 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     width: item.width || clamp((Number(item.dev ?? item.deviation ?? 0) / 6) * 100, 8, 100),
     tracked: item.tracked === true || item.hasTracking === true
   }));
-  const scoreValue = data.score?.overall ?? data.score?.score ?? 0;
+  const liveScore = recentTrades.length ? buildDisciplineScore(visibleRules, recentTrades, liveEntryDeviations) : null;
+  const scoreSource = liveScore || data.score;
+  const scoreValue = scoreSource?.overall ?? scoreSource?.score ?? 0;
   const weightedCompliance = weightedAverageRuleScore(visibleRules);
-  const breakdown = data.score?.breakdown
+  const breakdown = scoreSource?.breakdown
     ? [
-      { label: "Cumplimiento", value: weightedCompliance ?? data.score.breakdown.compliance },
-      { label: "Precisión", value: data.score.breakdown.precision },
-      { label: "Consistencia", value: data.score.breakdown.consistency },
-      { label: "Horario", value: data.score.breakdown.timing },
-      { label: "Psicológico", value: data.score.breakdown.psychological }
+      { label: "Cumplimiento", value: weightedCompliance ?? scoreSource.breakdown.compliance },
+      { label: "Precisión", value: scoreSource.breakdown.precision },
+      { label: "Consistencia", value: scoreSource.breakdown.consistency },
+      { label: "Horario", value: scoreSource.breakdown.timing },
+      { label: "Psicológico", value: scoreSource.breakdown.psychological }
     ]
-    : (data.score?.subscores || []).map((item) => (
+    : (scoreSource?.subscores || []).map((item) => (
       item.label === "Cumplimiento" ? { ...item, value: weightedCompliance ?? item.value } : item
     ));
   const weightedScoreValue = Math.round(average(breakdown.map((item) => item.value)) ?? scoreValue);
-  const insight = data.score?.insight || data.insight || disciplineData.score.insight;
+  const insight = scoreSource?.insight || data.insight || disciplineData.score.insight;
   const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
-  const isPartialData = hasPartialExecutionData(rules, entryRows, kpis);
+  const isPartialData = hasPartialExecutionData(visibleRules, entryRows, kpis);
   const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
 
   target.innerHTML = `
