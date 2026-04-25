@@ -132,6 +132,7 @@ const RULE_LIBRARY = {
     params: { pips: 20 },
     conditionType: "boolean",
     tagQuestion: "¿Activaste el BE a 20 pips?",
+    defaultEnabled: true,
     executionRule: RULE_DEFINITIONS[3]
   },
   "ob-entry": {
@@ -142,7 +143,8 @@ const RULE_LIBRARY = {
     weight: 1.5,
     params: {},
     conditionType: "boolean",
-    tagQuestion: "¿El entry fue en el OB candle open (o 50%)?",
+    tagQuestion: "¿El entry fue en el OB candle open (o 50% si el SL no cubre)?",
+    defaultEnabled: true,
     executionRule: RULE_DEFINITIONS[2]
   },
   "valid-setup": {
@@ -154,6 +156,7 @@ const RULE_LIBRARY = {
     params: {},
     conditionType: "boolean",
     tagQuestion: "¿El setup estaba validado antes de entrar?",
+    defaultEnabled: true,
     executionRule: RULE_DEFINITIONS[5]
   },
   "daily-drawdown-limit": {
@@ -465,8 +468,8 @@ const POST_TRADE_RULE_ORDER = [
   "london-confirmation",
   "ob-entry",
   "valid-setup",
-  "be-activation",
   "allowed-pairs",
+  "be-activation",
   "emotional-state"
 ];
 
@@ -2384,10 +2387,13 @@ function buildEntryPattern(rows = []) {
 }
 
 function postTradeRuleQuestion(rule) {
-  if (rule.tagQuestion) return rule.tagQuestion;
-  if (rule.id === "be-activation") return "¿Activaste el BE a 20 pips?";
-  if (rule.id === "ob-entry") return "¿El entry fue en el OB candle open (o 50%)?";
+  if (rule.id === "be-activation") return `¿Activaste el BE a ${rule.params?.pips ?? 20} pips?`;
+  if (rule.id === "ob-entry") return "¿El entry fue en el OB candle open (o 50% si el SL no cubre)?";
   if (rule.id === "valid-setup") return "¿El setup estaba validado antes de entrar?";
+  if (rule.id === "allowed-pairs") return "¿El par operado estaba en tu lista de pares permitidos?";
+  if (rule.id === "london-confirmation") return "¿Esperaste la vela de confirmación post-London open antes de entrar?";
+  if (rule.id === "emotional-state") return "¿Cómo era tu estado emocional antes de este trade?";
+  if (rule.tagQuestion) return rule.tagQuestion;
   return `¿Se cumplió ${rule.name}?`;
 }
 
