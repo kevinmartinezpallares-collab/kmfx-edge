@@ -2352,7 +2352,7 @@ function renderProfileCards(profileState, activeProfile) {
   `;
 }
 
-function renderProfileEditor(profile, profileState) {
+function renderProfileEditor(profile, profileState, accountLogin = "", isDefault = false) {
   const rules = Array.isArray(profile?.rules) ? profile.rules : [];
   const groupedRules = RULE_GROUPS.map((group) => ({
     ...group,
@@ -2437,6 +2437,7 @@ function renderProfileEditor(profile, profileState) {
           </div>
         `).join("")}
       </div>
+      ${renderAccountAssignments(profileState, profile, accountLogin, isDefault)}
     </div>
   `;
 }
@@ -2495,8 +2496,7 @@ function renderProfileManager(container, context = {}) {
         <button type="button" class="rule-profile-action" data-rule-action="new-profile">+ Nuevo</button>
       </div>
       ${renderProfileCards(profileState, activeProfile)}
-      ${renderProfileEditor(activeProfile, profileState)}
-      ${renderAccountAssignments(profileState, activeProfile, accountLogin, isDefault)}
+      ${renderProfileEditor(activeProfile, profileState, accountLogin, isDefault)}
     </article>
   `;
 
@@ -2935,10 +2935,10 @@ function renderEntryRows(rows) {
     <div class="execution-entry-row execution-tone-${row.tone}">
       <span>${row.date}</span>
       <strong>${row.pair}</strong>
-      <span>${row.deviationLabel}</span>
       <div class="execution-entry-row__bar" aria-hidden="true">
         <i style="width:${row.width}%"></i>
       </div>
+      <span>${row.deviationLabel}</span>
       <em>${translatePrecisionStatus(row.status)}</em>
     </div>
   `).join("");
@@ -2958,6 +2958,73 @@ function renderEntryPrecisionEmpty() {
       <p>Sin historial suficiente para evaluar desviación frente a la entrada ideal.</p>
       <small>Cuando el EA envíe la entrada ideal, KMFX medirá chasing y entradas tardías.</small>
     </div>
+  `;
+}
+
+function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPattern = "" } = {}) {
+  const trackedValues = entryRows
+    .filter((row) => row.tracked === true)
+    .map((row) => Math.abs(Number(row.deviation ?? row.dev)))
+    .filter(Number.isFinite);
+  const avgDeviation = trackedValues.length ? average(trackedValues) : null;
+  const headerStatus = hasTracking && Number.isFinite(avgDeviation) ? `Media: ${avgDeviation.toFixed(1)}p` : "Pendiente tracking EA";
+  const patternText = hasTracking
+    ? entryPattern
+    : `Necesita mínimo 10 trades con <code>ob_price</code> para detectar patrón`;
+  const previewRows = [
+    { date: "23 abr", pair: "EURUSD", width: 8, dev: "+0.8p", status: "ideal", tone: "ok" },
+    { date: "22 abr", pair: "GBPUSD", width: 31, dev: "+3.1p", status: "tardío", tone: "warn" },
+    { date: "17 abr", pair: "USDCAD", width: 64, dev: "+6.4p", status: "chasing", tone: "bad" }
+  ];
+  return `
+    <article id="entry-precision-card" class="execution-entry-card${hasTracking ? " has-data" : " is-empty"}">
+      <div class="execution-entry-card__header">
+        <div><i aria-hidden="true"></i><strong>Precisión de entrada</strong></div>
+        <span>${escapeHtml(headerStatus)}</span>
+      </div>
+      ${hasTracking ? "" : `
+        <div class="execution-entry-empty-row">
+          <div class="execution-entry-empty-row__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"></circle>
+              <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              <path d="M12 7.5h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <div class="execution-entry-empty-row__copy">
+            <strong>Sin historial de precisión todavía</strong>
+            <p>Cuando el EA envíe <code>ob_price</code>, KMFX calculará desviación frente a la entrada ideal y detectará chasing o entradas tardías.</p>
+          </div>
+          <button type="button" class="execution-entry-config">Configurar EA →</button>
+        </div>
+      `}
+      <div class="execution-entry-preview${hasTracking ? " is-live" : ""}">
+        <p>${hasTracking ? "Últimos trades con tracking de entrada" : "Vista previa — con datos reales se verá así"}</p>
+        <div class="execution-entry-preview__head">
+          <span>Fecha</span>
+          <span>Par</span>
+          <span>Precisión</span>
+          <span>Desv.</span>
+          <span>Estado</span>
+        </div>
+        <div class="execution-entry-preview__body">
+          ${hasTracking ? renderEntryRows(entryRows) : previewRows.map((row) => `
+            <div class="execution-entry-row execution-tone-${row.tone}">
+              <span>${row.date}</span>
+              <strong>${row.pair}</strong>
+              <div class="execution-entry-row__bar" aria-hidden="true"><i style="width:${row.width}%"></i></div>
+              <span>${row.dev}</span>
+              <em>${row.status}</em>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+      <div class="execution-entry-pattern-bar">
+        <span>Patrón</span>
+        <p>${patternText}</p>
+        <strong>${Number.isFinite(avgDeviation) ? `${avgDeviation.toFixed(1)} pips media` : "— pips media"}</strong>
+      </div>
+    </article>
   `;
 }
 
@@ -3752,6 +3819,8 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     </section>
 
     ${renderRuleHistory(ruleHistory, activeProfile)}
+
+    ${renderEntryPrecisionCard({ hasTracking: hasEntryTracking, entryRows, entryPattern })}
 
     <div id="discipline-profile-manager"></div>
     ${renderPostTradeModal(activeProfile, postTradeTags)}
