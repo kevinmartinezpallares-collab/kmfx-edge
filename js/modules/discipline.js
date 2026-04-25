@@ -55,7 +55,8 @@ let currentTagDraft = {
   tradeId: null,
   answers: {},
   note: "",
-  reviewMode: false
+  reviewMode: false,
+  saveAttempted: false
 };
 let postTradeQueueState = {
   trades: [],
@@ -1110,7 +1111,8 @@ function initCurrentTagDraft(trade, tag = {}) {
     tradeId: trade.id,
     answers: normalizeTagAnswers(tag.answers || tag),
     note: tag.note || "",
-    reviewMode: false
+    reviewMode: false,
+    saveAttempted: false
   };
 }
 
@@ -1131,7 +1133,7 @@ function setDraftAnswer(ruleId, value) {
 }
 
 function resetCurrentTagDraft() {
-  currentTagDraft = { tradeId: null, answers: {}, note: "", reviewMode: false };
+  currentTagDraft = { tradeId: null, answers: {}, note: "", reviewMode: false, saveAttempted: false };
 }
 
 function resetPostTradeQueue() {
@@ -2585,7 +2587,7 @@ function renderPostTradeModal(profile, tags = {}) {
             </div>
           </section>
           <div class="posttrade-progress" data-posttrade-progress>${progress.answered}/${progress.total} reglas respondidas</div>
-          <div class="posttrade-partial-notice${progress.isPartial ? "" : " is-hidden"}" data-posttrade-partial>
+          <div class="posttrade-partial-notice${progress.isPartial && currentTagDraft.saveAttempted ? "" : " is-hidden"}" data-posttrade-partial>
             Tag parcial: algunas reglas quedan sin confirmar.
           </div>
           <div class="posttrade-question-list${currentTagDraft.reviewMode ? "" : " is-hidden"}" data-posttrade-question-list>
@@ -2685,7 +2687,7 @@ function updatePostTradeProgressUI(target, profile) {
   const progress = postTradeProgress(rules);
   const progressNode = target.querySelector("[data-posttrade-progress]");
   if (progressNode) progressNode.textContent = `${progress.answered}/${progress.total} reglas respondidas`;
-  target.querySelector("[data-posttrade-partial]")?.classList.toggle("is-hidden", !progress.isPartial);
+  target.querySelector("[data-posttrade-partial]")?.classList.toggle("is-hidden", !progress.isPartial || !currentTagDraft.saveAttempted);
 }
 
 function updateQuickModeUI(target, profile) {
@@ -2816,6 +2818,12 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   });
   target.querySelector("[data-posttrade-save]")?.addEventListener("click", () => {
     if (!activePostTradeModal) return;
+    const progress = postTradeProgress(orderedPostTradeRules(getTaggableRules(profile)));
+    if (progress.isPartial && !currentTagDraft.saveAttempted) {
+      currentTagDraft.saveAttempted = true;
+      updatePostTradeProgressUI(target, profile);
+      return;
+    }
     saveCurrentPostTradeDraft(target, profile);
     const meta = activeQueueMeta();
     if (meta?.hasNext) {
