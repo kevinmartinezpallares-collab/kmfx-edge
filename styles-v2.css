@@ -16970,14 +16970,15 @@ body[data-theme="dark"] #section-discipline .execution-hero__issue strong {
 
 html[data-theme="dark"] #section-discipline .execution-score-body,
 body[data-theme="dark"] #section-discipline .execution-score-body {
-  grid-template-columns: 136px minmax(260px, 420px) !important;
+  grid-template-columns: 132px minmax(240px, 360px) minmax(220px, 1fr) !important;
   gap: 18px !important;
-  justify-content: start;
+  justify-content: stretch;
+  align-items: center;
 }
 
 html[data-theme="dark"] #section-discipline .execution-subscore-list,
 body[data-theme="dark"] #section-discipline .execution-subscore-list {
-  max-width: 420px;
+  max-width: 360px;
   gap: 7px 12px !important;
 }
 
@@ -16985,6 +16986,62 @@ html[data-theme="dark"] #section-discipline .execution-subscore,
 body[data-theme="dark"] #section-discipline .execution-subscore {
   gap: 12px !important;
   padding-bottom: 5px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-data-pill,
+body[data-theme="dark"] #section-discipline .execution-data-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(245,166,35,0.18);
+  border-radius: 999px;
+  background: rgba(245,166,35,0.08);
+  color: color-mix(in srgb, var(--warning) 72%, var(--text-1));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-reading,
+body[data-theme="dark"] #section-discipline .execution-score-reading {
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: var(--layer-1);
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-reading span,
+body[data-theme="dark"] #section-discipline .execution-score-reading span {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-score-reading p,
+body[data-theme="dark"] #section-discipline .execution-score-reading p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-system-insight,
+body[data-theme="dark"] #section-discipline .execution-system-insight {
+  gap: 4px !important;
+  padding-top: 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-system-insight p,
+body[data-theme="dark"] #section-discipline .execution-system-insight p {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
 }
 
 html[data-theme="dark"] #section-discipline .execution-entry-empty,

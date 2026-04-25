@@ -122,6 +122,15 @@ function ruleColor(value) {
   return "bad";
 }
 
+function isIncompleteNote(note = "") {
+  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA/i.test(String(note));
+}
+
+function ruleTone(row = {}) {
+  if (isIncompleteNote(row.note)) return "pending";
+  return ruleColor(row.pct);
+}
+
 function scoreColor(score) {
   if (!Number.isFinite(Number(score))) return "pending";
   if (score >= 80) return "ok";
@@ -257,30 +266,30 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
   return [
     {
       label: "Cumplimiento de reglas",
-      value: formatPct(adherence ?? fallback.kpis.ruleAdherence.value),
-      subcopy: "últimos 30 días",
-      badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : `+${fallback.kpis.ruleAdherence.delta}% vs mes anterior`,
+      value: Number.isFinite(adherence) ? formatPct(adherence) : "Pendiente",
+      subcopy: Number.isFinite(adherence) ? "últimos 30 días" : "estimación basada en histórico",
+      badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : "datos parciales",
       tone: "neutral"
     },
     {
       label: "Precisión de entrada",
-      value: formatPips(entryAverage ?? fallback.kpis.entryPrecision.value),
-      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "estimación basada en historial",
-      badge: "objetivo <2.0",
+      value: Number.isFinite(entryAverage) ? formatPips(entryAverage) : "Pendiente",
+      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "pendiente de tracking EA",
+      badge: Number.isFinite(entryAverage) ? "objetivo <2.0" : "sin datos suficientes",
       tone: Number.isFinite(entryAverage) && entryAverage > 2 ? precisionColor(entryAverage) : "neutral"
     },
     {
       label: "Violaciones de SL",
-      value: Number.isFinite(slViolations) ? String(slViolations) : String(fallback.kpis.slViolations.value),
-      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "estimación basada en historial",
-      badge: "SL movido o ignorado",
+      value: Number.isFinite(slViolations) ? String(slViolations) : "Pendiente",
+      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "pendiente de tracking EA",
+      badge: Number.isFinite(slViolations) && slViolations > 0 ? "violación confirmada" : "sin datos suficientes",
       tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "bad") : "warn"
     },
     {
       label: "Trades fuera de horario",
       value: String(Number.isFinite(outsideSchedule) ? outsideSchedule : fallback.kpis.offHoursTrades.value),
       subcopy: "violaciones",
-      badge: outsideSchedule === 0 ? "100% en horario" : "post 17:00 detectado",
+      badge: outsideSchedule === 0 ? "100% en horario" : "violación confirmada",
       tone: outsideSchedule === 0 ? "ok" : "bad"
     }
   ];
@@ -290,7 +299,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData) {
   if (!recentTrades.length) {
     return fallback.calendar.map((days, index) => ({
       label: `S${index + 1}`,
-      days: days.map((state) => ({ state, label: state, trades: 0, date: null, key: "" }))
+      days: days.map(() => ({ state: "empty", label: "Sin datos", trades: 0, date: null, key: "" }))
     }));
   }
 
@@ -408,13 +417,14 @@ function renderRuleRows(rows) {
     "requiere validación del setup": "requiere validación del setup"
   };
   return rows.map((row) => {
-    const tone = ruleColor(row.pct);
-    const width = Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
+    const tone = ruleTone(row);
+    const isIncomplete = isIncompleteNote(row.note);
+    const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     return `
       <div class="execution-rule-row execution-tone-${tone}">
         <div class="execution-rule-row__head">
           <strong>${ruleDisplayName(row.name)}</strong>
-          <span>${formatPct(row.pct)}</span>
+          <span>${isIncomplete ? "Pendiente" : formatPct(row.pct)}</span>
         </div>
         <div class="execution-rule-row__track" aria-hidden="true">
           <span style="width:${width}%"></span>
@@ -514,6 +524,13 @@ function renderScoreGauge(score) {
   `;
 }
 
+function hasPartialExecutionData(rules = [], entryRows = [], kpis = []) {
+  const hasIncompleteRules = rules.some((rule) => isIncompleteNote(rule.note) || !Number.isFinite(Number(rule.pct)));
+  const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
+  const hasPendingKpis = kpis.some((kpi) => /pendiente|parcial|sin datos/i.test(`${kpi.value} ${kpi.subcopy} ${kpi.badge}`));
+  return hasIncompleteRules || !hasEntryTracking || hasPendingKpis;
+}
+
 function ruleDisplayName(name = "") {
   if (/fixed sl|sl fijo|sl/i.test(name)) return "Disciplina de SL";
   if (/max 1 trade|trade\/day|frecuencia/i.test(name)) return "Frecuencia operativa";
@@ -608,15 +625,20 @@ function buildEntryPattern(rows = []) {
   return `Tiendes a entrar tarde en operaciones de ${weakestPair.pair}.`;
 }
 
-function renderScorePanel(scoreValue, breakdown, insight) {
+function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } = {}) {
   return `
     <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreColor(scoreValue)}">
       <div class="tl-section-header execution-section-header">
         <div class="tl-section-title">Score de ejecución</div>
+        ${isPartial ? `<span class="execution-data-pill">Datos parciales</span>` : ""}
       </div>
       <div class="execution-score-body">
         ${renderScoreGauge(scoreValue)}
         <div class="execution-subscore-list">${renderSubscores(breakdown)}</div>
+        <div class="execution-score-reading">
+          <span>Lectura</span>
+          <p>La lectura actual es parcial hasta activar tracking completo desde el EA.</p>
+        </div>
       </div>
       <div class="execution-system-insight">
         <strong>Insight</strong>
@@ -654,14 +676,14 @@ export function renderDisciplineSection(target, data = disciplineData) {
         value: formatPct(data.kpis?.ruleAdherence?.value),
         subcopy: "últimos 30 días",
         badge: `+${data.kpis?.ruleAdherence?.delta ?? 0}% vs mes anterior`,
-        tone: ruleColor(data.kpis?.ruleAdherence?.value)
+        tone: "neutral"
       },
       {
         label: "Precisión de entrada",
         value: formatPips(data.kpis?.entryPrecision?.value),
-        subcopy: "desviación media",
+        subcopy: "estimación basada en histórico",
         badge: `objetivo <${data.kpis?.entryPrecision?.target ?? 2.0}`,
-        tone: precisionColor(data.kpis?.entryPrecision?.value)
+        tone: "neutral"
       },
       {
         label: "Violaciones de SL",
@@ -674,7 +696,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
         label: "Trades fuera de horario",
         value: String(data.kpis?.offHoursTrades?.value ?? 0),
         subcopy: "violaciones",
-        badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "100% en horario" : "post 17:00 detectado",
+        badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "100% en horario" : "violación confirmada",
         tone: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "ok" : "bad"
       }
     ];
@@ -709,6 +731,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
     : data.score?.subscores || [];
   const insight = data.score?.insight || data.insight || disciplineData.score.insight;
   const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
+  const isPartialData = hasPartialExecutionData(rules, entryRows, kpis);
   const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
 
   target.innerHTML = `
@@ -723,7 +746,7 @@ export function renderDisciplineSection(target, data = disciplineData) {
     ${renderExecutionHero(rules)}
 
     <section class="execution-score-row">
-      ${renderScorePanel(scoreValue, breakdown, insight)}
+      ${renderScorePanel(scoreValue, breakdown, insight, { isPartial: isPartialData })}
     </section>
 
     <section class="execution-main-grid">
