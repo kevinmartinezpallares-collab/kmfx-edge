@@ -18,6 +18,248 @@ function displayTradeSetup(value, fallback = "Sin setup definido") {
   return normalized === "—" ? fallback : normalized;
 }
 
+const TRADE_TAG_STORAGE_KEY = "kmfx_tags";
+const TRADE_RULE_FIELDS = [
+  { key: "londonConfirmation", label: "Confirmación London" },
+  { key: "obEntry", label: "Entrada en OB" },
+  { key: "validSetup", label: "Setup válido" },
+  { key: "allowedPairs", label: "Par permitido" }
+];
+
+function loadTradeTagMap() {
+  try {
+    const saved = window.localStorage?.getItem(TRADE_TAG_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    console.warn("[KMFX][TRADES_TAGS] tags unavailable", error);
+    return {};
+  }
+}
+
+function tradeTagCandidateIds(trade = {}) {
+  return [
+    trade.id,
+    trade.ticket,
+    trade.ticketId,
+    trade.order,
+    trade.orderId,
+    trade.positionId,
+    trade.dealId
+  ]
+    .filter((value) => value != null && value !== "")
+    .map((value) => String(value));
+}
+
+function getTradeTag(trade = {}, tagMap = {}) {
+  const ids = tradeTagCandidateIds(trade);
+  return ids.reduce((match, id) => match || tagMap[id] || null, null);
+}
+
+function isExplicitFalse(value) {
+  return value === false || String(value).toLowerCase() === "false";
+}
+
+function evaluateTradeTagState(trade = {}, tag = null) {
+  if (!tag) return { state: "untagged", failedRules: [] };
+  if (tag.tagSkipped === true || tag.tagPartial === true) return { state: "pending", failedRules: [] };
+
+  const failedRules = TRADE_RULE_FIELDS
+    .filter((rule) => isExplicitFalse(tag[rule.key]))
+    .map((rule) => rule.label);
+
+  return {
+    state: failedRules.length ? "invalid" : "valid",
+    failedRules
+  };
+}
+
+function groupWorstByPnl(trades = [], field) {
+  const groups = new Map();
+  trades.forEach((trade) => {
+    const rawKey = field === "setup" ? normalizeTradeSetup(trade.setup) : trade[field];
+    if (!rawKey || rawKey === "—") return;
+    const key = String(rawKey);
+    const entry = groups.get(key) || { key, pnl: 0, trades: 0 };
+    entry.pnl += Number(trade.pnl || 0);
+    entry.trades += 1;
+    groups.set(key, entry);
+  });
+  return [...groups.values()].sort((a, b) => a.pnl - b.pnl)[0] || null;
+}
+
+function buildTradeTruthSummary(trades = []) {
+  const totalTrades = trades.length;
+  const tagMap = loadTradeTagMap();
+  const evaluations = trades.map((trade) => ({
+    trade,
+    tag: getTradeTag(trade, tagMap)
+  })).map((item) => ({
+    ...item,
+    tagState: evaluateTradeTagState(item.trade, item.tag)
+  }));
+
+  const completedTags = evaluations.filter((item) => item.tagState.state === "valid" || item.tagState.state === "invalid").length;
+  const pendingTags = evaluations.filter((item) => item.tagState.state === "pending").length;
+  const untaggedTrades = evaluations.filter((item) => item.tagState.state === "untagged").length;
+  const validTaggedTrades = evaluations.filter((item) => item.tagState.state === "valid").length;
+  const invalidTaggedTrades = evaluations.filter((item) => item.tagState.state === "invalid").length;
+  const pendingOrMissing = pendingTags + untaggedTrades;
+  const pnl = trades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0);
+  const rValues = trades.map((trade) => Number(trade.rMultiple)).filter(Number.isFinite);
+  const avgR = rValues.length ? rValues.reduce((sum, value) => sum + value, 0) / rValues.length : null;
+  const failedRuleCounts = new Map();
+
+  evaluations.forEach((item) => {
+    item.tagState.failedRules.forEach((label) => {
+      failedRuleCounts.set(label, (failedRuleCounts.get(label) || 0) + 1);
+    });
+  });
+
+  const dominantFailedRule = [...failedRuleCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)[0] || null;
+  const worstSession = groupWorstByPnl(trades, "session");
+  const worstSetup = groupWorstByPnl(trades, "setup");
+
+  let state = "insufficient";
+  let stateLabel = "Sin muestra suficiente";
+  let stateCopy = "Necesitas trades etiquetados para leer validez operativa.";
+  let tone = "neutral";
+
+  if (!totalTrades) {
+    stateLabel = "Sin operaciones filtradas";
+    stateCopy = "No hay muestra activa para interpretar.";
+  } else if (!completedTags && pendingOrMissing > 0) {
+    state = "pending";
+    stateLabel = "Causa pendiente de tagging";
+    stateCopy = `${pendingOrMissing} trades necesitan tagging antes de sacar conclusiones.`;
+    tone = "warning";
+  } else if (invalidTaggedTrades >= 2 || (completedTags && invalidTaggedTrades / completedTags >= 0.3)) {
+    state = "invalid";
+    stateLabel = "Daño por reglas";
+    stateCopy = `${invalidTaggedTrades} trades etiquetados tienen reglas manuales incumplidas.`;
+    tone = "loss";
+  } else if (invalidTaggedTrades > 0) {
+    state = "review";
+    stateLabel = "Revisión necesaria";
+    stateCopy = "Hay incumplimientos aislados dentro de la muestra filtrada.";
+    tone = "warning";
+  } else {
+    state = "valid";
+    stateLabel = "Operativa válida";
+    stateCopy = completedTags
+      ? "Los trades etiquetados no muestran fallos explícitos de reglas."
+      : "La muestra existe, pero aún no tiene tags completos.";
+    tone = completedTags ? "profit" : "neutral";
+  }
+
+  const cause = dominantFailedRule
+    ? {
+        label: `Principal causa: ${dominantFailedRule.label}`,
+        copy: `Falló en ${dominantFailedRule.count} ${dominantFailedRule.count === 1 ? "trade" : "trades"} etiquetados.`
+      }
+    : pendingOrMissing > completedTags
+      ? {
+          label: "Causa pendiente",
+          copy: `${pendingOrMissing} trades sin tagging completo.`
+        }
+      : worstSession && worstSession.pnl < 0
+        ? {
+            label: `Mayor presión: ${worstSession.key}`,
+            copy: `${worstSession.trades} trades acumulan ${formatCurrency(worstSession.pnl)}.`
+          }
+        : worstSetup && worstSetup.pnl < 0
+          ? {
+              label: `Setup bajo presión: ${worstSetup.key}`,
+              copy: `${worstSetup.trades} trades acumulan ${formatCurrency(worstSetup.pnl)}.`
+            }
+          : {
+              label: "No hay causa dominante todavía",
+              copy: "La muestra no concentra un fallo claro."
+            };
+
+  const action = !totalTrades
+    ? "Selecciona una muestra con trades cerrados."
+    : pendingOrMissing > 0 && pendingOrMissing >= completedTags
+      ? `Completa ${pendingOrMissing} ${pendingOrMissing === 1 ? "tag pendiente" : "tags pendientes"} antes de sacar conclusiones.`
+      : dominantFailedRule
+        ? `Revisa los trades donde falló ${dominantFailedRule.label}.`
+        : worstSession && worstSession.pnl < 0
+          ? `Prioriza revisar la sesión ${worstSession.key} antes de ajustar el plan.`
+          : "Mantén la muestra y sigue registrando reglas.";
+
+  return {
+    state,
+    stateLabel,
+    stateCopy,
+    tone,
+    cause,
+    action,
+    totalTrades,
+    completedTags,
+    pendingTags,
+    untaggedTrades,
+    pendingOrMissing,
+    validTaggedTrades,
+    invalidTaggedTrades,
+    pnl,
+    avgR
+  };
+}
+
+function renderTruthMetric(label, value, options = {}) {
+  return `
+    <div class="trades-truth__metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${options.html ? value : escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function renderTradeTruthSummary(summary) {
+  const avgRLabel = Number.isFinite(Number(summary.avgR)) ? `${summary.avgR.toFixed(1)}R` : "—";
+  return `
+    <section class="trades-truth kmfx-ui-card" aria-label="Trade Truth Summary">
+      <div class="trades-truth__header">
+        <div>
+          <p class="trades-truth__eyebrow">Trade Truth Summary</p>
+          <h2 class="trades-truth__title">Centro de verdad operativo</h2>
+        </div>
+        <span class="kmfx-ui-badge trades-truth__badge" data-tone="${escapeHtml(summary.tone)}">${escapeHtml(summary.stateLabel)}</span>
+      </div>
+      <div class="trades-truth__grid">
+        <article class="trades-truth__block trades-truth__block--state">
+          <span class="trades-truth__label">Estado</span>
+          <strong>${escapeHtml(summary.stateLabel)}</strong>
+          <p>${escapeHtml(summary.stateCopy)}</p>
+        </article>
+        <article class="trades-truth__block">
+          <span class="trades-truth__label">Causa</span>
+          <strong>${escapeHtml(summary.cause.label)}</strong>
+          <p>${escapeHtml(summary.cause.copy)}</p>
+        </article>
+        <article class="trades-truth__block trades-truth__block--evidence">
+          <span class="trades-truth__label">Evidencia</span>
+          <div class="trades-truth__metrics">
+            ${renderTruthMetric("Trades", String(summary.totalTrades))}
+            ${renderTruthMetric("Tags completos", String(summary.completedTags))}
+            ${renderTruthMetric("Pendientes", String(summary.pendingOrMissing))}
+            ${renderTruthMetric("Válidos / inválidos", `${summary.validTaggedTrades}/${summary.invalidTaggedTrades}`)}
+            ${renderTruthMetric("P&L", pnlTextMarkup({ value: summary.pnl, text: formatCurrency(summary.pnl) }), { html: true })}
+            ${renderTruthMetric("R medio", avgRLabel)}
+          </div>
+        </article>
+        <article class="trades-truth__block trades-truth__block--action">
+          <span class="trades-truth__label">Acción</span>
+          <strong>${escapeHtml(summary.action)}</strong>
+          <p>Acción de proceso basada solo en la muestra filtrada.</p>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
 function buildTradeExecutiveRead(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   const bestExecution = executions.reduce((top, execution) => {
@@ -197,6 +439,7 @@ export function renderTrades(root, state) {
   const filteredWinRate = filteredTrades.length ? (filteredTrades.filter((trade) => trade.pnl > 0).length / filteredTrades.length) * 100 : 0;
   const filteredAvgR = filteredTrades.length ? filteredTrades.reduce((sum, trade) => sum + trade.rMultiple, 0) / filteredTrades.length : 0;
   const bestSetupLabel = displayTradeSetup(bestSetup?.key);
+  const tradeTruthSummary = buildTradeTruthSummary(filteredTrades);
 
   root.innerHTML = `
     <section class="trades-screen">
@@ -210,6 +453,8 @@ export function renderTrades(root, state) {
       titleClassName: "calendar-screen__title",
       descriptionClassName: "calendar-screen__subtitle",
     })}
+
+    ${renderTradeTruthSummary(tradeTruthSummary)}
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Trades filtrados</div><div class="tl-kpi-val">${filteredTrades.length}</div></article>

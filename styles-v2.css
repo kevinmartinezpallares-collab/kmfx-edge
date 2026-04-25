@@ -13424,6 +13424,137 @@ body[data-theme="dark"] .trades-screen .calendar-screen__subtitle {
   margin-top: 8px;
 }
 
+/* --------------------------------------------------------------------------
+   Operaciones — Trade Truth Summary
+-------------------------------------------------------------------------- */
+html[data-theme="dark"] .trades-screen .trades-truth,
+body[data-theme="dark"] .trades-screen .trades-truth {
+  padding: 20px;
+  background: var(--card);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__header,
+body[data-theme="dark"] .trades-screen .trades-truth__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__eyebrow,
+body[data-theme="dark"] .trades-screen .trades-truth__eyebrow,
+html[data-theme="dark"] .trades-screen .trades-truth__label,
+body[data-theme="dark"] .trades-screen .trades-truth__label {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__title,
+body[data-theme="dark"] .trades-screen .trades-truth__title {
+  margin: 6px 0 0;
+  color: var(--card-foreground);
+  font-size: 18px;
+  line-height: 1.18;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__badge,
+body[data-theme="dark"] .trades-screen .trades-truth__badge {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__grid,
+body[data-theme="dark"] .trades-screen .trades-truth__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 1.05fr);
+  gap: 12px;
+  padding-top: 16px;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__block,
+body[data-theme="dark"] .trades-screen .trades-truth__block {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-0);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--muted) 56%, transparent);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__block--state,
+body[data-theme="dark"] .trades-screen .trades-truth__block--state {
+  background: color-mix(in srgb, var(--primary) 5%, var(--muted) 52%);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__block--action,
+body[data-theme="dark"] .trades-screen .trades-truth__block--action {
+  border-color: color-mix(in srgb, var(--risk) 18%, var(--border) 82%);
+  background: color-mix(in srgb, var(--risk-muted) 38%, transparent);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__block strong,
+body[data-theme="dark"] .trades-screen .trades-truth__block strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.28;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__block p,
+body[data-theme="dark"] .trades-screen .trades-truth__block p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__metrics,
+body[data-theme="dark"] .trades-screen .trades-truth__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__metric,
+body[data-theme="dark"] .trades-screen .trades-truth__metric {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--border-0);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__metric span,
+body[data-theme="dark"] .trades-screen .trades-truth__metric span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+html[data-theme="dark"] .trades-screen .trades-truth__metric strong,
+body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
 body[data-theme="dark"] .trades-screen .tl-kpi-card {
   position: relative;
@@ -13830,6 +13961,11 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 1180px) {
+  html[data-theme="dark"] .trades-screen .trades-truth__grid,
+  body[data-theme="dark"] .trades-screen .trades-truth__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   html[data-theme="dark"] .trades-toolbar,
   body[data-theme="dark"] .trades-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -13842,6 +13978,24 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 760px) {
+  html[data-theme="dark"] .trades-screen .trades-truth,
+  body[data-theme="dark"] .trades-screen .trades-truth {
+    padding: 16px;
+  }
+
+  html[data-theme="dark"] .trades-screen .trades-truth__header,
+  body[data-theme="dark"] .trades-screen .trades-truth__header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  html[data-theme="dark"] .trades-screen .trades-truth__grid,
+  body[data-theme="dark"] .trades-screen .trades-truth__grid,
+  html[data-theme="dark"] .trades-screen .trades-truth__metrics,
+  body[data-theme="dark"] .trades-screen .trades-truth__metrics {
+    grid-template-columns: 1fr;
+  }
+
   html[data-theme="dark"] .trades-toolbar,
   body[data-theme="dark"] .trades-toolbar {
     grid-template-columns: 1fr;
