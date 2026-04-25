@@ -1,6 +1,6 @@
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function formatTableValue(value) {
   return value == null || value === "" ? "—" : value;
@@ -53,8 +53,8 @@ function renderTradeExecutions(trade) {
             <span>${execution.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
             <span>${formatTableValue(execution.volume)}</span>
             <span>${formatTableValue(execution.exit)}</span>
-            <span class="${execution.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.pnl)}</span>
-            <span class="${execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.cumulativePnl)}</span>
+            ${pnlTextMarkup({ value: execution.pnl, text: formatCurrency(execution.pnl), className: execution.pnl >= 0 ? "metric-positive" : "metric-negative" })}
+            ${pnlTextMarkup({ value: execution.cumulativePnl, text: formatCurrency(execution.cumulativePnl), className: execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative" })}
           </div>
         `).join("")}
       </div>
@@ -69,7 +69,7 @@ function positionRail(position) {
         <div class="open-position-summary__title">${position.symbol} · ${position.side}</div>
         <div class="open-position-summary__meta">Vol ${formatTableValue(position.volume)} · Entrada ${formatTableValue(position.entry)}</div>
       </div>
-      <div class="open-position-summary__pnl ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</div>
+      ${pnlTextMarkup({ value: position.pnl, text: formatCurrency(position.pnl), className: `open-position-summary__pnl ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}` })}
     </div>
   `;
 }
@@ -234,7 +234,7 @@ export function renderTrades(root, state) {
           ${model.symbols.slice(0, 4).map((symbol) => `
             <div class="list-row">
               <div><div class="row-title">${symbol.key}</div><div class="row-sub">${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%</div></div>
-              <div class="row-pnl ${symbol.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(symbol.pnl)}</div>
+              ${pnlTextMarkup({ value: symbol.pnl, text: formatCurrency(symbol.pnl), className: `row-pnl ${symbol.pnl >= 0 ? "metric-positive" : "metric-negative"}` })}
             </div>
           `).join("")}
         </div>
@@ -266,7 +266,7 @@ export function renderTrades(root, state) {
                 <td><span class="trade-side trade-side--${String(position.side || "").toLowerCase()}">${position.side}</span></td>
                 <td>${position.volume}</td>
                 <td>${position.entry}</td>
-                <td class="${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</td>
+                <td>${pnlTextMarkup({ value: position.pnl, text: formatCurrency(position.pnl), className: position.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
               </tr>
             `).join("")}
           </tbody>
@@ -358,7 +358,7 @@ export function renderTrades(root, state) {
                 <td class="table-num">${formatTableValue(trade.sl)}</td>
                 <td class="table-num">${formatTableValue(trade.tp)}</td>
                 <td class="table-num">${formatTableValue(trade.volume)}</td>
-                <td class="table-num ${trade.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(trade.pnl)}</td>
+                <td class="table-num">${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: trade.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
                 <td class="table-num">${trade.rMultiple.toFixed(1)}R</td>
                 <td class="table-num">${formatDurationHuman(trade.durationMin)}</td>
                 <td>${normalizeTradeSetup(trade.setup)}</td>
