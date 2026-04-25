@@ -2,6 +2,7 @@ import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=buil
 import { formatCurrency, formatDurationHuman, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -458,15 +459,18 @@ export function renderCalendar(root, state) {
 
   root.innerHTML = `
     <section class="calendar-screen">
-      <header class="calendar-screen__header">
-        <div class="calendar-screen__copy">
-          <div class="calendar-screen__eyebrow">Calendario</div>
-          <h1 class="calendar-screen__title">Calendario</h1>
-          <p class="calendar-screen__subtitle">Consistencia operativa y resultado diario del mes de un vistazo. ${authority.firstTradeLabel ? `Ledger real desde ${authority.firstTradeLabel}.` : ""}</p>
-          ${note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : ""}
-        </div>
-
-        <div class="calendar-month-nav" aria-label="Selector de mes">
+      ${pageHeaderMarkup({
+        eyebrow: "Calendario",
+        title: "Calendario",
+        description: `Consistencia operativa y resultado diario del mes de un vistazo. ${authority.firstTradeLabel ? `Ledger real desde ${authority.firstTradeLabel}.` : ""}`,
+        className: "calendar-screen__header",
+        contentClassName: "calendar-screen__copy",
+        eyebrowClassName: "calendar-screen__eyebrow",
+        titleClassName: "calendar-screen__title",
+        descriptionClassName: "calendar-screen__subtitle",
+        extraContentHtml: note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : "",
+        actionsClassName: "calendar-month-nav",
+        actionsHtml: `
           <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
           <div class="calendar-month-nav__label">
             <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
@@ -481,8 +485,8 @@ export function renderCalendar(root, state) {
             <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
           </div>
           <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
-        </div>
-      </header>
+        `,
+      })}
       ${adminTracePanel}
 
       <section class="calendar-summary-strip" aria-label="Resumen del mes">

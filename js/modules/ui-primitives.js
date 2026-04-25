@@ -34,6 +34,7 @@ export function pageHeaderMarkup({
   descriptionClassName = "",
   actionsClassName = "",
   descriptionAttributes = {},
+  extraContentHtml = "",
 } = {}) {
   const headerClasses = classNames("kmfx-ui-page-header", className);
   const contentClasses = classNames(contentClassName);
@@ -49,6 +50,7 @@ export function pageHeaderMarkup({
         ${eyebrow ? `<p class="${escapeHtml(eyebrowClasses)}">${escapeHtml(eyebrow)}</p>` : ""}
         ${title ? `<h1 class="${escapeHtml(titleClasses)}">${escapeHtml(title)}</h1>` : ""}
         ${description == null ? "" : `<p class="${escapeHtml(descriptionClasses)}"${descriptionAttrs ? ` ${descriptionAttrs}` : ""}>${escapeHtml(description)}</p>`}
+        ${extraContentHtml || ""}
       </div>
       ${actionsHtml ? `<div class="${escapeHtml(actionsClasses)}">${actionsHtml}</div>` : ""}
     </header>
