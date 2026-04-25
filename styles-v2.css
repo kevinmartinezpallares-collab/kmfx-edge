@@ -16523,7 +16523,7 @@ html[data-theme="dark"] #kmfx-posttrade-modal .ptt-overlay,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.42);
+  background: transparent;
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog,
@@ -16533,8 +16533,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog {
   top: 50%;
   width: min(520px, calc(100vw - 32px));
   max-height: min(82vh, 760px);
-  overflow-y: auto;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 18px;
   padding: 24px;
   border: 1px solid var(--border-0);
@@ -16543,16 +16543,17 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog {
   box-shadow: 0 24px 80px rgba(0,0,0,0.45);
   transform: translate(-50%, -50%);
   outline: none;
+  overflow: hidden;
   overscroll-behavior: contain;
 }
 
-html[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog::-webkit-scrollbar,
-body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog::-webkit-scrollbar {
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar {
   width: 8px;
 }
 
-html[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog::-webkit-scrollbar-thumb,
-body[data-theme="dark"] #kmfx-posttrade-modal .ptt-dialog::-webkit-scrollbar-thumb {
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: rgba(255,255,255,0.14);
 }
@@ -16608,6 +16609,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-header > button {
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-body,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
   display: grid;
   gap: 12px;
 }
