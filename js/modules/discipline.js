@@ -844,6 +844,12 @@ function formatShortDate(dateLike) {
   return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }).replace(".", "");
 }
 
+function formatRuleHistoryWeekLabel(dateLike) {
+  const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "").toLowerCase();
+}
+
 function formatPct(value) {
   return Number.isFinite(Number(value)) ? `${Math.round(Number(value))}%` : "Pendiente";
 }
@@ -1472,7 +1478,7 @@ function buildRuleHistory(mergedTrades = [], profile = {}) {
     const weekStart = isoWeekStart(trade.when);
     const week = isoWeekKey(trade.when);
     if (!weekStart || !week || !trade.postTag || trade.postTag.tagSkipped === true) return;
-    const label = formatShortDate(weekStart);
+    const label = formatRuleHistoryWeekLabel(weekStart);
     rules.forEach((rule) => {
       const result = evaluateTagAnswer(rule, getTagAnswer(trade.postTag, rule.id));
       if (result === null) return;
@@ -1517,7 +1523,12 @@ function ruleHistoryTone(pct) {
 }
 
 function renderRuleHistory(history = {}, profile = {}) {
-  const rules = getTaggableRules(profile).filter((rule) => !rule.excludeFromScore);
+  const rules = getTaggableRules(profile).filter((rule) => (
+    rule.enabled !== false &&
+    rule.pendingImplementation !== true &&
+    !rule.excludeFromScore &&
+    ["manual", "mixed"].includes(normalizeSource(rule.source))
+  ));
   const weekMap = new Map();
   Object.values(history).flat().forEach((point) => {
     if (!weekMap.has(point.week)) weekMap.set(point.week, point.label);
@@ -1525,36 +1536,50 @@ function renderRuleHistory(history = {}, profile = {}) {
   const weeks = [...weekMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   if (weeks.length < 2) {
     return `
-      <section id="discipline-rule-history" class="rule-history">
+      <section id="discipline-rule-history" class="tl-section-card execution-panel rule-history">
         <div class="rule-history__header">
-          <strong>Historial de cumplimiento</strong>
+          <div>
+            <strong>Historial de cumplimiento</strong>
+            <p>Evolución semanal de reglas etiquetadas.</p>
+          </div>
         </div>
         <div class="rule-history__empty">Historial insuficiente — necesitas más trades etiquetados</div>
       </section>
     `;
   }
   return `
-    <section id="discipline-rule-history" class="rule-history">
+    <section id="discipline-rule-history" class="tl-section-card execution-panel rule-history">
       <div class="rule-history__header">
-        <strong>Historial de cumplimiento</strong>
+        <div>
+          <strong>Historial de cumplimiento</strong>
+          <p>Evolución semanal de reglas etiquetadas.</p>
+        </div>
+        <div class="rule-history__legend" aria-label="Leyenda de cumplimiento">
+          <span><i class="is-bad"></i>0–49</span>
+          <span><i class="is-warn"></i>50–74</span>
+          <span><i class="is-ok"></i>75–89</span>
+          <span><i class="is-strong"></i>90–100</span>
+        </div>
       </div>
-      <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
-        <div class="rule-history__corner"></div>
-        ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
-        ${rules.map((rule) => {
-          const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
-          return `
-            <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
-            ${weeks.map(([week]) => {
-              const point = points.get(week);
-              const tone = ruleHistoryTone(point?.pct);
-              const title = point
-                ? `${rule.name} · ${point.label}: ${Math.round(point.pct)}% cumplimiento · ${point.total} trades`
-                : `${rule.name} · ${week}: sin datos`;
-              return `<i class="rule-history__cell is-${tone}" title="${escapeHtml(title)}"></i>`;
-            }).join("")}
-          `;
-        }).join("")}
+      <div class="rule-history__body">
+        <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
+          <div class="rule-history__corner"></div>
+          ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
+          ${rules.map((rule) => {
+            const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
+            return `
+              <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
+              ${weeks.map(([week, label]) => {
+                const point = points.get(week);
+                const tone = ruleHistoryTone(point?.pct);
+                const title = point
+                  ? `${rule.name} · ${point.label}: ${Math.round(point.pct)}% cumplimiento · ${point.total} trades`
+                  : `${rule.name} · ${label}: sin datos`;
+                return `<i class="rule-history__cell is-${tone}" title="${escapeHtml(title)}"></i>`;
+              }).join("")}
+            `;
+          }).join("")}
+        </div>
       </div>
     </section>
   `;
@@ -3244,7 +3269,6 @@ export function renderDisciplineSection(target, data = disciplineData, context =
           <div class="tl-section-title">Cumplimiento de reglas</div>
         </div>
         <div class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
-        ${renderRuleHistory(ruleHistory, activeProfile)}
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
@@ -3254,6 +3278,8 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         ${renderHeatmap(calendar)}
       </article>
     </section>
+
+    ${renderRuleHistory(ruleHistory, activeProfile)}
 
     <section class="execution-kpi-grid">
       ${kpis.map((kpi) => `

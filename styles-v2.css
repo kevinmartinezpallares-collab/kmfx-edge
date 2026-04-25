@@ -16295,26 +16295,61 @@ body[data-theme="dark"] #section-discipline .execution-rule-row small {
 html[data-theme="dark"] #section-discipline .rule-history,
 body[data-theme="dark"] #section-discipline .rule-history {
   display: grid;
-  gap: 12px;
-  padding-top: 4px;
+  gap: 18px;
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__header,
 body[data-theme="dark"] #section-discipline .rule-history__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__header strong,
 body[data-theme="dark"] #section-discipline .rule-history__header strong {
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 850;
-  letter-spacing: 0.05em;
+  letter-spacing: -0.02em;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__header p,
+body[data-theme="dark"] #section-discipline .rule-history__header p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__legend,
+body[data-theme="dark"] #section-discipline .rule-history__legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__legend span,
+body[data-theme="dark"] #section-discipline .rule-history__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__legend i,
+body[data-theme="dark"] #section-discipline .rule-history__legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-0);
+  background: rgba(255,255,255,0.045);
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__empty,
@@ -16328,14 +16363,22 @@ body[data-theme="dark"] #section-discipline .rule-history__empty {
   line-height: 1.4;
 }
 
+html[data-theme="dark"] #section-discipline .rule-history__body,
+body[data-theme="dark"] #section-discipline .rule-history__body {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
 html[data-theme="dark"] #section-discipline .rule-history__grid,
 body[data-theme="dark"] #section-discipline .rule-history__grid {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) repeat(var(--rule-history-cols), minmax(32px, 42px));
-  gap: 7px;
+  grid-template-columns: minmax(180px, 220px) repeat(var(--rule-history-cols), minmax(46px, 54px));
+  width: max-content;
+  min-width: 100%;
+  gap: 8px;
   align-items: center;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__week,
@@ -16346,16 +16389,28 @@ body[data-theme="dark"] #section-discipline .rule-history__rule {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-2);
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__week,
 body[data-theme="dark"] #section-discipline .rule-history__week {
   text-align: center;
+  overflow: visible;
+  text-overflow: clip;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .rule-history__rule,
+body[data-theme="dark"] #section-discipline .rule-history__rule {
+  text-transform: none;
+  padding-right: 8px;
 }
 
 html[data-theme="dark"] #section-discipline .rule-history__cell,
@@ -16368,25 +16423,33 @@ body[data-theme="dark"] #section-discipline .rule-history__cell {
   background: rgba(255,255,255,0.045);
 }
 
+html[data-theme="dark"] #section-discipline .rule-history__legend i.is-bad,
 html[data-theme="dark"] #section-discipline .rule-history__cell.is-bad,
+body[data-theme="dark"] #section-discipline .rule-history__legend i.is-bad,
 body[data-theme="dark"] #section-discipline .rule-history__cell.is-bad {
   background: rgba(255,92,92,0.38);
   border-color: rgba(255,92,92,0.18);
 }
 
+html[data-theme="dark"] #section-discipline .rule-history__legend i.is-warn,
 html[data-theme="dark"] #section-discipline .rule-history__cell.is-warn,
+body[data-theme="dark"] #section-discipline .rule-history__legend i.is-warn,
 body[data-theme="dark"] #section-discipline .rule-history__cell.is-warn {
   background: rgba(245,166,35,0.38);
   border-color: rgba(245,166,35,0.18);
 }
 
+html[data-theme="dark"] #section-discipline .rule-history__legend i.is-ok,
 html[data-theme="dark"] #section-discipline .rule-history__cell.is-ok,
+body[data-theme="dark"] #section-discipline .rule-history__legend i.is-ok,
 body[data-theme="dark"] #section-discipline .rule-history__cell.is-ok {
   background: rgba(52,217,123,0.34);
   border-color: rgba(52,217,123,0.16);
 }
 
+html[data-theme="dark"] #section-discipline .rule-history__legend i.is-strong,
 html[data-theme="dark"] #section-discipline .rule-history__cell.is-strong,
+body[data-theme="dark"] #section-discipline .rule-history__legend i.is-strong,
 body[data-theme="dark"] #section-discipline .rule-history__cell.is-strong {
   background: rgba(52,217,123,0.58);
   border-color: rgba(52,217,123,0.2);
