@@ -1739,8 +1739,8 @@ function renderAllowedPairsEditor(profile) {
   return `
     <div class="rule-profile-pairs">
       <div>
-        <span>Pares permitidos</span>
-        <p>Lista manual del plan. La validación automática llegará más adelante.</p>
+        <span>PARES PERMITIDOS</span>
+        <p>Lista del plan para validar si el símbolo operado pertenece al sistema.</p>
       </div>
       <div class="rule-profile-pairs__control">
         <div class="rule-profile-pairs__pills">
@@ -1748,7 +1748,7 @@ function renderAllowedPairsEditor(profile) {
             <span>${escapeHtml(pair)} <button type="button" data-pair-remove="${escapeHtml(pair)}" aria-label="Eliminar ${escapeHtml(pair)}">×</button></span>
           `).join("")}
         </div>
-        <input type="text" data-pair-input placeholder="Añadir par y Enter">
+        <input type="text" data-pair-input placeholder="Añadir par">
       </div>
     </div>
   `;
