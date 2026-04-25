@@ -17047,8 +17047,8 @@ body[data-theme="dark"] #section-discipline .execution-system-insight p {
 html[data-theme="dark"] #section-discipline .execution-entry-empty,
 body[data-theme="dark"] #section-discipline .execution-entry-empty {
   display: grid;
-  gap: 7px;
-  padding: 18px;
+  gap: 5px;
+  padding: 14px 16px;
   border: 1px solid var(--border-0);
   border-radius: 16px;
   background: var(--layer-1);
@@ -17056,7 +17056,7 @@ body[data-theme="dark"] #section-discipline .execution-entry-empty {
 
 html[data-theme="dark"] #section-discipline .execution-entry-empty strong,
 body[data-theme="dark"] #section-discipline .execution-entry-empty strong {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.2;
   color: var(--text-0);
 }
@@ -17066,8 +17066,8 @@ body[data-theme="dark"] #section-discipline .execution-entry-empty p,
 html[data-theme="dark"] #section-discipline .execution-entry-empty small,
 body[data-theme="dark"] #section-discipline .execution-entry-empty small {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--text-2);
 }
 

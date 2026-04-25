@@ -491,7 +491,7 @@ function renderEntryPrecisionEmpty() {
     <div class="execution-entry-empty">
       <strong>Precisión de entrada</strong>
       <p>Sin historial suficiente para evaluar desviación frente a la entrada ideal.</p>
-      <small>Activa el tracking de entrada ideal desde el EA para medir chasing y entradas tardías.</small>
+      <small>Cuando el EA envíe la entrada ideal, KMFX medirá chasing y entradas tardías.</small>
     </div>
   `;
 }
@@ -505,13 +505,18 @@ function renderSubscores(subscores) {
   `).join("");
 }
 
-function renderScoreGauge(score) {
+function scoreDisplayTone(score, isPartial = false) {
+  if (isPartial && scoreColor(score) === "bad") return "warn";
+  return scoreColor(score);
+}
+
+function renderScoreGauge(score, { isPartial = false } = {}) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
   const label = scoreLabel(score);
   return `
-    <div class="execution-score-gauge execution-tone-${scoreColor(score)}">
+    <div class="execution-score-gauge execution-tone-${scoreDisplayTone(score, isPartial)}">
       <svg viewBox="0 0 140 140" aria-hidden="true">
         <circle class="execution-score-gauge__track" cx="70" cy="70" r="${radius}"></circle>
         <circle class="execution-score-gauge__arc" cx="70" cy="70" r="${radius}" stroke-dasharray="${dash} ${circumference}"></circle>
@@ -627,13 +632,13 @@ function buildEntryPattern(rows = []) {
 
 function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } = {}) {
   return `
-    <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreColor(scoreValue)}">
+    <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
       <div class="tl-section-header execution-section-header">
         <div class="tl-section-title">Score de ejecución</div>
         ${isPartial ? `<span class="execution-data-pill">Datos parciales</span>` : ""}
       </div>
       <div class="execution-score-body">
-        ${renderScoreGauge(scoreValue)}
+        ${renderScoreGauge(scoreValue, { isPartial })}
         <div class="execution-subscore-list">${renderSubscores(breakdown)}</div>
         <div class="execution-score-reading">
           <span>Lectura</span>
