@@ -1,5 +1,6 @@
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function formatTableValue(value) {
   return value == null || value === "" ? "—" : value;
@@ -199,13 +200,16 @@ export function renderTrades(root, state) {
 
   root.innerHTML = `
     <section class="trades-screen">
-    <header class="calendar-screen__header trades-screen__header">
-      <div class="calendar-screen__copy">
-        <div class="calendar-screen__eyebrow">Operaciones</div>
-        <h1 class="calendar-screen__title">Operaciones</h1>
-        <p class="calendar-screen__subtitle">Revisa la ejecución por símbolo, sesión y setup.</p>
-      </div>
-    </header>
+    ${pageHeaderMarkup({
+      eyebrow: "Operaciones",
+      title: "Operaciones",
+      description: "Revisa la ejecución por símbolo, sesión y setup.",
+      className: "calendar-screen__header trades-screen__header",
+      contentClassName: "calendar-screen__copy",
+      eyebrowClassName: "calendar-screen__eyebrow",
+      titleClassName: "calendar-screen__title",
+      descriptionClassName: "calendar-screen__subtitle",
+    })}
 
     <div class="tl-kpi-row five">
       <article class="tl-kpi-card"><div class="tl-kpi-label">Trades filtrados</div><div class="tl-kpi-val">${filteredTrades.length}</div></article>
