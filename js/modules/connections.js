@@ -3,6 +3,7 @@ import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveA
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
@@ -182,20 +183,22 @@ function resolveRegistryAccounts(state) {
 }
 
 function renderConnectionsHeader({ adminVisible = false, adminState = null } = {}) {
-  return `
-    <header class="calendar-screen__header">
-      <div class="calendar-screen__copy">
-        <div class="calendar-screen__eyebrow">Cuentas</div>
-        <h1 class="calendar-screen__title">Cuentas</h1>
-        <p class="calendar-screen__subtitle">Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.</p>
-      </div>
-      <div class="connections-shell__actions">
+  return pageHeaderMarkup({
+    eyebrow: "Cuentas",
+    title: "Cuentas",
+    description: "Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.",
+    className: "calendar-screen__header",
+    contentClassName: "calendar-screen__copy",
+    eyebrowClassName: "calendar-screen__eyebrow",
+    titleClassName: "calendar-screen__title",
+    descriptionClassName: "calendar-screen__subtitle",
+    actionsClassName: "connections-shell__actions",
+    actionsHtml: `
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
         <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
         <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Añadir cuenta</button>
-      </div>
-    </header>
-  `;
+      `,
+  });
 }
 
 function renderConnectionsKpis(accounts = []) {

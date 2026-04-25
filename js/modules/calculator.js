@@ -1,6 +1,7 @@
 import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const INSTRUMENTS = [
   { id: "forex", label: "Forex", symbols: ["EURUSD", "GBPUSD", "USDJPY"] },
@@ -212,10 +213,13 @@ export function renderCalculator(root, state) {
   `;
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Calculadora de Lotaje</div>
-      <div class="tl-page-sub">Sizing rápido con broker, instrumento, riesgo real y exposición operativa controlada.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Calculadora de Lotaje",
+      description: "Sizing rápido con broker, instrumento, riesgo real y exposición operativa controlada.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
 
     ${renderAuthorityNotice(authorityMeta)}
 

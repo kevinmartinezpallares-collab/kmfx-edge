@@ -1,6 +1,7 @@
 import { openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 
@@ -368,10 +369,13 @@ export function renderFunded(root, state) {
   if (!fundedAccounts.length) {
     root.innerHTML = `
       <div class="funded-page-stack">
-        <div class="tl-page-header">
-          <div class="tl-page-title">Funded</div>
-          <div class="tl-page-sub">Aún no hay cuentas funded configuradas.</div>
-        </div>
+        ${pageHeaderMarkup({
+          title: "Funded",
+          description: "Aún no hay cuentas funded configuradas.",
+          className: "tl-page-header",
+          titleClassName: "tl-page-title",
+          descriptionClassName: "tl-page-sub",
+        })}
       </div>
     `;
     return;
@@ -401,10 +405,13 @@ export function renderFunded(root, state) {
 
   root.innerHTML = `
     <div class="funded-page-stack">
-      <div class="tl-page-header">
-        <div class="tl-page-title">Funded</div>
-        <div class="tl-page-sub">Mission progress, compliance y preservación de capital para cuentas prop.</div>
-      </div>
+      ${pageHeaderMarkup({
+        title: "Funded",
+        description: "Mission progress, compliance y preservación de capital para cuentas prop.",
+        className: "tl-page-header",
+        titleClassName: "tl-page-title",
+        descriptionClassName: "tl-page-sub",
+      })}
 
       ${renderAuthorityNotice(authorityMeta)}
 

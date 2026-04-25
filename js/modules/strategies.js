@@ -1,5 +1,6 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function emptyForm() {
   return {
@@ -266,16 +267,18 @@ export function renderStrategies(root, state) {
 
   root.innerHTML = `
     <section class="strategies-screen strategies-page-stack">
-    <header class="calendar-screen__header strategies-screen__header">
-      <div class="calendar-screen__copy">
-        <div class="calendar-screen__eyebrow">Estrategias</div>
-        <h1 class="calendar-screen__title">Estrategias</h1>
-        <p class="calendar-screen__subtitle">Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.</p>
-      </div>
-      <div class="strategies-screen__actions">
-        <button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>
-      </div>
-    </header>
+    ${pageHeaderMarkup({
+      eyebrow: "Estrategias",
+      title: "Estrategias",
+      description: "Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.",
+      className: "calendar-screen__header strategies-screen__header",
+      contentClassName: "calendar-screen__copy",
+      eyebrowClassName: "calendar-screen__eyebrow",
+      titleClassName: "calendar-screen__title",
+      descriptionClassName: "calendar-screen__subtitle",
+      actionsClassName: "strategies-screen__actions",
+      actionsHtml: `<button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>`,
+    })}
 
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">

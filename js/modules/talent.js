@@ -1,5 +1,6 @@
 import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 export function renderTalent(root, state) {
   const account = selectCurrentAccount(state);
@@ -36,10 +37,13 @@ export function renderTalent(root, state) {
   ];
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Talent / Progress Tracker</div>
-      <div class="tl-page-sub">Lectura de desarrollo del trader con score, radar competencial, ratios avanzados y objetivos de ejecución.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Talent / Progress Tracker",
+      description: "Lectura de desarrollo del trader con score, radar competencial, ratios avanzados y objetivos de ejecución.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
 
     ${renderAuthorityNotice(authorityMeta)}
 

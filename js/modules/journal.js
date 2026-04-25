@@ -1,5 +1,6 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const emptyForm = {
   date: "2026-03-20",
@@ -139,14 +140,18 @@ export function renderJournal(root, state) {
   const accountEntries = entries.filter((entry) => entry.accountId === account.id);
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Diario</div>
-      <div class="tl-page-sub">Diario de trading con CRUD local estable y foco sobre la cuenta activa.</div>
-      <div class="page-actions">
+    ${pageHeaderMarkup({
+      title: "Diario",
+      description: "Diario de trading con CRUD local estable y foco sobre la cuenta activa.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+      actionsClassName: "page-actions",
+      actionsHtml: `
         <div class="pill">Modal workflow</div>
         <button class="btn-primary" data-journal-action="new">Nueva entrada</button>
-      </div>
-    </div>
+      `,
+    })}
 
     ${renderAuthorityNotice(authorityMeta)}
 

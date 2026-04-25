@@ -1,3 +1,5 @@
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+
 export function renderGlossary(root, state) {
   const groups = state.workspace.glossary.terms.reduce((map, term) => {
     if (!map.has(term.category)) map.set(term.category, []);
@@ -6,10 +8,13 @@ export function renderGlossary(root, state) {
   }, new Map());
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Glosario de métricas</div>
-      <div class="tl-page-sub">Referencia breve para entender qué mide cada dato, por qué importa y cómo se calcula cuando aplica.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Glosario de métricas",
+      description: "Referencia breve para entender qué mide cada dato, por qué importa y cómo se calcula cuando aplica.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
 
     <div class="glossary-grid">
       ${[...groups.entries()].map(([category, terms]) => `

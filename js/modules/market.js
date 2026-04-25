@@ -1,4 +1,5 @@
 import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 export function renderMarket(root, state) {
   const account = selectCurrentAccount(state);
@@ -20,10 +21,13 @@ export function renderMarket(root, state) {
   const strongestSymbol = [...model.symbols].sort((a, b) => b.pnl - a.pnl)[0];
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Market</div>
-      <div class="tl-page-sub">Panel táctico de watchlist, régimen y catalizadores para la sesión actual.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Market",
+      description: "Panel táctico de watchlist, régimen y catalizadores para la sesión actual.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
 
     ${renderAuthorityNotice(authorityMeta)}
 

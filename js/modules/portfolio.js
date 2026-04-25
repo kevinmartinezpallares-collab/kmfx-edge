@@ -1,4 +1,5 @@
 import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, renderAuthorityNotice, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">
@@ -123,10 +124,13 @@ export function renderPortfolio(root, state) {
     : "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;";
 
   root.innerHTML = `
-    <div class="tl-page-header">
-      <div class="tl-page-title">Portfolio</div>
-      <div class="tl-page-sub">Vista global del libro multi-cuenta con balance, equity y exposición abierta consolidada.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Portfolio",
+      description: "Vista global del libro multi-cuenta con balance, equity y exposición abierta consolidada.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
 
     ${renderAuthorityNotice(authorityMeta)}
 

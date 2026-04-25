@@ -3,6 +3,7 @@ import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-213500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
@@ -559,10 +560,13 @@ export function renderRisk(root, state) {
   });
   root.innerHTML = `
     <div class="risk-page-stack">
-    <div class="tl-page-header">
-      <div class="tl-page-title">Gestor de Riesgo</div>
-      <div class="tl-page-sub">Controles operativos, configuración de límites y lectura clara del estado de seguridad.</div>
-    </div>
+    ${pageHeaderMarkup({
+      title: "Gestor de Riesgo",
+      description: "Controles operativos, configuración de límites y lectura clara del estado de seguridad.",
+      className: "tl-page-header",
+      titleClassName: "tl-page-title",
+      descriptionClassName: "tl-page-sub",
+    })}
     ${adminTracePanel}
     ${liveState.status === "empty" ? renderRiskStateCard("loading", "Risk snapshot no disponible", "La cuenta activa todavía no trae `dashboard_payload.riskSnapshot`.") : ""}
     ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Cuenta activa no disponible", "No se pudo resolver una cuenta activa válida.", liveState.lastError || "") : ""}
