@@ -54,7 +54,12 @@ let activePostTradeModal = null;
 let currentTagDraft = {
   tradeId: null,
   answers: {},
-  note: ""
+  note: "",
+  reviewMode: false
+};
+let postTradeQueueState = {
+  trades: [],
+  index: 0
 };
 
 const WEIGHT_OPTIONS = [
@@ -473,6 +478,14 @@ const POST_TRADE_RULE_ORDER = [
   "emotional-state"
 ];
 
+const QUICK_PLAN_RULE_IDS = [
+  "london-confirmation",
+  "ob-entry",
+  "valid-setup",
+  "allowed-pairs",
+  "be-activation"
+];
+
 const DEFAULT_ENABLED_RULE_IDS = Object.values(RULE_LIBRARY)
   .filter((rule) => rule.defaultEnabled === true)
   .map((rule) => rule.id);
@@ -598,7 +611,8 @@ export function savePostTradeTag(tradeId, data) {
       ...(answers.customAnswers || {})
     },
     note: data?.note ?? previous.note ?? null,
-    tagSkipped: data?.tagSkipped ?? false
+    tagSkipped: data?.tagSkipped ?? false,
+    tagPartial: data?.tagPartial ?? previous.tagPartial ?? false
   };
   delete tags[tradeId].answers;
   delete tags[tradeId].status;
@@ -1067,7 +1081,8 @@ function buildEmptyTagData(trade, rules = []) {
     emotionalState: null,
     customAnswers: {},
     note: null,
-    tagSkipped: true
+    tagSkipped: true,
+    tagPartial: true
   };
   rules.forEach((rule) => {
     const key = tagAnswerKey(rule.id);
@@ -1094,7 +1109,8 @@ function initCurrentTagDraft(trade, tag = {}) {
   currentTagDraft = {
     tradeId: trade.id,
     answers: normalizeTagAnswers(tag.answers || tag),
-    note: tag.note || ""
+    note: tag.note || "",
+    reviewMode: false
   };
 }
 
@@ -1115,7 +1131,11 @@ function setDraftAnswer(ruleId, value) {
 }
 
 function resetCurrentTagDraft() {
-  currentTagDraft = { tradeId: null, answers: {}, note: "" };
+  currentTagDraft = { tradeId: null, answers: {}, note: "", reviewMode: false };
+}
+
+function resetPostTradeQueue() {
+  postTradeQueueState = { trades: [], index: 0 };
 }
 
 function groupTradesByDay(trades = []) {
@@ -2386,6 +2406,70 @@ function buildEntryPattern(rows = []) {
   return `Tiendes a entrar tarde en operaciones de ${weakestPair.pair}.`;
 }
 
+function postTradeRulePriority(rule = {}) {
+  const weight = normalizeWeight(rule.weight);
+  if (weight >= 1.5) return 0;
+  if (weight >= 1.0) return 1;
+  return 2;
+}
+
+function orderedPostTradeRules(rules = []) {
+  const baseIndex = (rule) => {
+    const index = POST_TRADE_RULE_ORDER.indexOf(rule.id);
+    return index === -1 ? POST_TRADE_RULE_ORDER.length + 1 : index;
+  };
+  return [...rules].sort((a, b) => {
+    const priority = postTradeRulePriority(a) - postTradeRulePriority(b);
+    if (priority !== 0) return priority;
+    return baseIndex(a) - baseIndex(b);
+  });
+}
+
+function isQuestionAnswered(rule = {}) {
+  const answer = draftAnswerForRule(rule.id);
+  if (normalizeConditionType(rule.conditionType) === "numeric") {
+    return answer !== null && answer !== "" && Number.isFinite(Number(answer));
+  }
+  return answer !== null && answer !== undefined && answer !== "";
+}
+
+function postTradeProgress(rules = []) {
+  const total = rules.length;
+  const answered = rules.filter(isQuestionAnswered).length;
+  return { answered, total, isPartial: answered < total };
+}
+
+function applyQuickPlanAnswers(rules = []) {
+  const quickRules = new Set(QUICK_PLAN_RULE_IDS);
+  rules.forEach((rule) => {
+    if (quickRules.has(rule.id) && normalizeConditionType(rule.conditionType) === "boolean") {
+      setDraftAnswer(rule.id, true);
+    }
+  });
+  currentTagDraft.reviewMode = false;
+}
+
+function setPostTradeQueue(trades = [], index = 0) {
+  const normalized = trades.map((trade, tradeIndex) => normalizeTradeForTag(trade, tradeIndex));
+  postTradeQueueState = {
+    trades: normalized,
+    index: clamp(index, 0, Math.max(normalized.length - 1, 0))
+  };
+}
+
+function activeQueueMeta() {
+  if (!activePostTradeModal || !postTradeQueueState.trades.length) return null;
+  const index = postTradeQueueState.trades.findIndex((trade) => trade.id === activePostTradeModal.id);
+  if (index === -1) return null;
+  postTradeQueueState.index = index;
+  return {
+    index,
+    total: postTradeQueueState.trades.length,
+    hasPrev: index > 0,
+    hasNext: index < postTradeQueueState.trades.length - 1
+  };
+}
+
 function postTradeRuleQuestion(rule) {
   if (rule.id === "be-activation") return `¿Activaste el BE a ${rule.params?.pips ?? 20} pips?`;
   if (rule.id === "ob-entry") return "¿El entry fue en el OB candle open (o 50% si el SL no cubre)?";
@@ -2464,7 +2548,7 @@ function renderPostTradeQuestion(rule, tag) {
 function renderPostTradeModal(profile, tags = {}) {
   if (!activePostTradeModal) return "";
   const trade = activePostTradeModal;
-  const rules = getTaggableRules(profile);
+  const rules = orderedPostTradeRules(getTaggableRules(profile));
   if (!rules.length) {
     activePostTradeModal = null;
     resetCurrentTagDraft();
@@ -2472,6 +2556,8 @@ function renderPostTradeModal(profile, tags = {}) {
   }
   const existingTag = tags[trade.id] || {};
   initCurrentTagDraft(trade, existingTag);
+  const queueMeta = activeQueueMeta();
+  const progress = postTradeProgress(rules);
   const pips = Number(trade.pips);
   const resultClass = Number.isFinite(pips) && pips < 0 ? "is-negative" : "is-positive";
   const resultLabel = Number.isFinite(pips) ? `${pips > 0 ? "+" : ""}${pips} pips` : `${trade.pnl > 0 ? "+" : ""}${Math.round(trade.pnl)} $`;
@@ -2481,27 +2567,52 @@ function renderPostTradeModal(profile, tags = {}) {
       <article class="ptt-dialog" role="dialog" aria-modal="true" aria-labelledby="posttrade-title" tabindex="-1" data-posttrade-dialog>
         <header class="ptt-header">
           <div>
-            <span>POST-TRADE TAG</span>
+            <span>${queueMeta ? `TAG PENDIENTE · ${queueMeta.index + 1} DE ${queueMeta.total}` : "POST-TRADE TAG"}</span>
             <h3 id="posttrade-title">${escapeHtml(trade.symbol)} · ${escapeHtml(trade.direction)} · <b class="${resultClass}">${escapeHtml(resultLabel)}</b></h3>
             <p>${new Date(trade.timestamp).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}</p>
           </div>
           <button type="button" data-posttrade-close aria-label="Cerrar">×</button>
         </header>
         <div class="ptt-body">
+          <section class="posttrade-quick">
+            <div>
+              <strong>¿Trade ejecutado según plan?</strong>
+              <p>Usa el modo rápido si las reglas principales se cumplieron y solo quieres dejar nota.</p>
+            </div>
+            <div class="posttrade-quick__actions">
+              <button type="button" data-posttrade-quick="ok">Todo correcto</button>
+              <button type="button" class="${currentTagDraft.reviewMode ? "is-selected" : ""}" data-posttrade-quick="review">Revisar detalles</button>
+            </div>
+          </section>
+          <div class="posttrade-progress" data-posttrade-progress>${progress.answered}/${progress.total} reglas respondidas</div>
+          <div class="posttrade-partial-notice${progress.isPartial ? "" : " is-hidden"}" data-posttrade-partial>
+            Tag parcial: algunas reglas quedan sin confirmar.
+          </div>
+          <div class="posttrade-question-list${currentTagDraft.reviewMode ? "" : " is-hidden"}" data-posttrade-question-list>
           ${rules.length ? rules.map((rule) => renderPostTradeQuestion(rule, existingTag)).join("") : `
             <div class="posttrade-empty">
               <strong>No hay reglas manuales activas</strong>
               <p>Activa reglas manuales o mixtas en el perfil para alimentar el score con post-trade tags.</p>
             </div>
           `}
+          </div>
           <label class="posttrade-note">
             <span>Nota opcional</span>
             <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(currentTagDraft.note || "")}</textarea>
           </label>
         </div>
         <footer class="ptt-footer">
-          <button type="button" data-posttrade-close>Cancelar</button>
-          <button type="button" class="primary" data-posttrade-save>Guardar tag</button>
+          ${queueMeta ? `
+            <div class="ptt-queue-actions">
+              <button type="button" data-posttrade-queue="prev" ${queueMeta.hasPrev ? "" : "disabled"}>Anterior</button>
+              <button type="button" data-posttrade-queue="skip">Saltar</button>
+              <button type="button" data-posttrade-queue="next" ${queueMeta.hasNext ? "" : "disabled"}>Siguiente</button>
+            </div>
+          ` : ""}
+          <div class="ptt-save-actions">
+            <button type="button" data-posttrade-close>Cancelar</button>
+            <button type="button" class="primary" data-posttrade-save>Guardar tag</button>
+          </div>
         </footer>
       </article>
     </div>
@@ -2515,6 +2626,7 @@ function refreshDisciplineSection(context = {}) {
 }
 
 export function openPostTradeModal(trade, context = {}) {
+  if (!context.preservePostTradeQueue) resetPostTradeQueue();
   activePostTradeModal = normalizeTradeForTag(trade);
   resetCurrentTagDraft();
   refreshDisciplineSection(context);
@@ -2527,7 +2639,7 @@ function savePendingPostTradeTag(profile, trade) {
 
 function collectPostTradeAnswers(target, profile) {
   const answers = normalizeTagAnswers(currentTagDraft.answers);
-  getTaggableRules(profile).forEach((rule) => {
+  orderedPostTradeRules(getTaggableRules(profile)).forEach((rule) => {
     if (normalizeConditionType(rule.conditionType) === "numeric") {
       const input = target.querySelector(`[data-posttrade-numeric="${cssEscape(rule.id)}"]`);
       let value = input?.value === "" ? null : Number(input?.value);
@@ -2536,6 +2648,25 @@ function collectPostTradeAnswers(target, profile) {
     }
   });
   return normalizeTagAnswers(currentTagDraft.answers);
+}
+
+function saveCurrentPostTradeDraft(target, profile, { skipped = false } = {}) {
+  if (!activePostTradeModal) return false;
+  const rules = orderedPostTradeRules(getTaggableRules(profile));
+  if (skipped) {
+    return savePostTradeTag(activePostTradeModal.id, buildEmptyTagData(activePostTradeModal, rules));
+  }
+  const answers = collectPostTradeAnswers(target, profile);
+  const progress = postTradeProgress(rules);
+  return savePostTradeTag(activePostTradeModal.id, {
+    tradeId: activePostTradeModal.id,
+    timestamp: activePostTradeModal.timestamp,
+    tagQuestionVersion: 2,
+    answers,
+    note: currentTagDraft.note?.trim() || null,
+    tagSkipped: false,
+    tagPartial: progress.isPartial
+  });
 }
 
 function updateModalUI(target, ruleId) {
@@ -2547,6 +2678,53 @@ function updateModalUI(target, ruleId) {
   });
   const hidden = group.querySelector(`[data-posttrade-answer="${cssEscape(ruleId)}"]`);
   if (hidden) hidden.value = currentValue === null || currentValue === undefined ? "" : String(currentValue);
+}
+
+function updatePostTradeProgressUI(target, profile) {
+  const rules = orderedPostTradeRules(getTaggableRules(profile));
+  const progress = postTradeProgress(rules);
+  const progressNode = target.querySelector("[data-posttrade-progress]");
+  if (progressNode) progressNode.textContent = `${progress.answered}/${progress.total} reglas respondidas`;
+  target.querySelector("[data-posttrade-partial]")?.classList.toggle("is-hidden", !progress.isPartial);
+}
+
+function updateQuickModeUI(target, profile) {
+  const quickOk = QUICK_PLAN_RULE_IDS.every((ruleId) => {
+    const rule = getTaggableRules(profile).find((item) => item.id === ruleId);
+    return !rule || draftAnswerForRule(ruleId) === true;
+  });
+  target.querySelector("[data-posttrade-question-list]")?.classList.toggle("is-hidden", !currentTagDraft.reviewMode);
+  target.querySelectorAll("[data-posttrade-quick]").forEach((button) => {
+    const isReview = button.dataset.posttradeQuick === "review" && currentTagDraft.reviewMode;
+    const isQuickOk = button.dataset.posttradeQuick === "ok" && quickOk && !currentTagDraft.reviewMode;
+    button.classList.toggle("is-selected", isReview || isQuickOk);
+  });
+  updatePostTradeProgressUI(target, profile);
+}
+
+function openQueuedPostTradeAt(index, context) {
+  const trade = postTradeQueueState.trades[index];
+  if (!trade) {
+    activePostTradeModal = null;
+    resetCurrentTagDraft();
+    resetPostTradeQueue();
+    refreshDisciplineSection(context);
+    return;
+  }
+  postTradeQueueState.index = index;
+  openPostTradeModal(trade, { ...context, preservePostTradeQueue: true });
+}
+
+function advancePostTradeQueue(target, context, profile, action) {
+  const meta = activeQueueMeta();
+  if (!meta) return;
+  if (action === "skip") {
+    saveCurrentPostTradeDraft(target, profile, { skipped: true });
+  } else {
+    saveCurrentPostTradeDraft(target, profile);
+  }
+  const nextIndex = action === "prev" ? meta.index - 1 : meta.index + 1;
+  openQueuedPostTradeAt(nextIndex, context);
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
@@ -2573,6 +2751,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
 
   target.querySelector("[data-posttrade-simulate]")?.addEventListener("click", () => {
     if (!getTaggableRules(profile).length) return;
+    resetPostTradeQueue();
     const fallbackTrade = context.data?.recentTrades?.at(-1) || {
       symbol: "EURUSD",
       direction: "BUY",
@@ -2584,7 +2763,22 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   });
   target.querySelector("[data-posttrade-complete]")?.addEventListener("click", () => {
     if (!getTaggableRules(profile).length) return;
-    if (pendingTrades[0]) openPostTradeModal(pendingTrades[0], context);
+    if (pendingTrades[0]) {
+      setPostTradeQueue(pendingTrades, 0);
+      openPostTradeModal(pendingTrades[0], { ...context, preservePostTradeQueue: true });
+    }
+  });
+  target.querySelectorAll("[data-posttrade-quick]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const rules = orderedPostTradeRules(getTaggableRules(profile));
+      if (button.dataset.posttradeQuick === "ok") {
+        applyQuickPlanAnswers(rules);
+        rules.forEach((rule) => updateModalUI(target, rule.id));
+      } else {
+        currentTagDraft.reviewMode = true;
+      }
+      updateQuickModeUI(target, profile);
+    });
   });
   target.querySelectorAll("[data-posttrade-choice]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2593,12 +2787,14 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
       const value = rawValue === "true" ? true : rawValue === "false" ? false : rawValue;
       setDraftAnswer(ruleId, value);
       updateModalUI(target, ruleId);
+      updatePostTradeProgressUI(target, profile);
     });
   });
   target.querySelectorAll("[data-posttrade-numeric]").forEach((input) => {
     input.addEventListener("input", () => {
       const value = input.value === "" ? null : Number(input.value);
       setDraftAnswer(input.dataset.posttradeNumeric, Number.isFinite(value) ? value : null);
+      updatePostTradeProgressUI(target, profile);
     });
   });
   target.querySelector("[data-posttrade-note]")?.addEventListener("input", (event) => {
@@ -2609,21 +2805,26 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
       savePendingPostTradeTag(profile, activePostTradeModal);
       activePostTradeModal = null;
       resetCurrentTagDraft();
+      resetPostTradeQueue();
       refreshDisciplineSection(context);
+    });
+  });
+  target.querySelectorAll("[data-posttrade-queue]").forEach((button) => {
+    button.addEventListener("click", () => {
+      advancePostTradeQueue(target, context, profile, button.dataset.posttradeQueue);
     });
   });
   target.querySelector("[data-posttrade-save]")?.addEventListener("click", () => {
     if (!activePostTradeModal) return;
-    savePostTradeTag(activePostTradeModal.id, {
-      tradeId: activePostTradeModal.id,
-      timestamp: activePostTradeModal.timestamp,
-      tagQuestionVersion: 2,
-      answers: collectPostTradeAnswers(target, profile),
-      note: currentTagDraft.note?.trim() || null,
-      tagSkipped: false
-    });
+    saveCurrentPostTradeDraft(target, profile);
+    const meta = activeQueueMeta();
+    if (meta?.hasNext) {
+      openQueuedPostTradeAt(meta.index + 1, context);
+      return;
+    }
     activePostTradeModal = null;
     resetCurrentTagDraft();
+    resetPostTradeQueue();
     refreshDisciplineSection(context);
   });
   target.addEventListener("keydown", (event) => {
@@ -2631,6 +2832,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
     savePendingPostTradeTag(profile, activePostTradeModal);
     activePostTradeModal = null;
     resetCurrentTagDraft();
+    resetPostTradeQueue();
     refreshDisciplineSection(context);
   });
 }

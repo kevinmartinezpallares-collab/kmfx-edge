@@ -16857,6 +16857,77 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body {
   scrollbar-color: rgba(255,255,255,0.16) transparent;
 }
 
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.035);
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick strong,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick p,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick__actions,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-progress,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-progress {
+  justify-self: start;
+  padding: 5px 9px;
+  border: 1px solid var(--border-0);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.035);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-partial-notice,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-partial-notice {
+  padding: 9px 11px;
+  border: 1px solid rgba(245,166,35,0.18);
+  border-radius: 12px;
+  background: rgba(245,166,35,0.07);
+  color: color-mix(in srgb, var(--warning) 76%, var(--text-0));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-question-list,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-question-list {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .is-hidden,
+body[data-theme="dark"] #kmfx-posttrade-modal .is-hidden {
+  display: none !important;
+}
+
 html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-question,
 body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-question,
 html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-note,
@@ -16884,7 +16955,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-choice-group--enum {
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-choice-group button.is-selected,
-body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-choice-group button.is-selected {
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-choice-group button.is-selected,
+html[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick__actions button.is-selected,
+body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-quick__actions button.is-selected {
   border-color: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 36%, transparent);
   background: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 14%, transparent);
   color: color-mix(in srgb, var(--posttrade-choice-color, var(--positive)) 80%, var(--text-0));
@@ -16939,11 +17012,27 @@ body[data-theme="dark"] #kmfx-posttrade-modal .posttrade-empty strong {
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-footer,
 body[data-theme="dark"] #kmfx-posttrade-modal .ptt-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
+  align-items: center;
   padding: 20px 32px 24px;
   border-top: 1px solid rgba(255,255,255,0.095);
   background: #161616;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-queue-actions,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-queue-actions,
+html[data-theme="dark"] #kmfx-posttrade-modal .ptt-save-actions,
+body[data-theme="dark"] #kmfx-posttrade-modal .ptt-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-theme="dark"] #kmfx-posttrade-modal button:disabled,
+body[data-theme="dark"] #kmfx-posttrade-modal button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 html[data-theme="dark"] #kmfx-posttrade-modal .ptt-footer .primary,
