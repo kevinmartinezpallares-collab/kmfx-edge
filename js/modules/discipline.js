@@ -1859,11 +1859,37 @@ function renderComplianceChartShell(type) {
   const label = type === "bar" ? "barras" : "línea";
   return `
     <div class="rule-history-chart" data-compliance-chart-shell="${type}">
-      <canvas data-compliance-chart-canvas="${type}" height="220"></canvas>
-      <div class="rule-history-chart__fallback">Chart.js no disponible en esta vista.</div>
-      <div class="rule-history-chart__legend" data-compliance-chart-legend="${type}" aria-label="Leyenda de ${label}"></div>
+      <div class="compliance-chart-wrap">
+        <canvas data-compliance-chart-canvas="${type}" height="260"></canvas>
+        <div class="rule-history-chart__fallback" data-compliance-chart-empty>Chart.js no disponible en esta vista.</div>
+      </div>
+      <div class="compliance-chart-legend" data-compliance-chart-legend="${type}" aria-label="Leyenda de ${label}"></div>
     </div>
   `;
+}
+
+function complianceChartAlpha(hex, alpha = 0.5) {
+  const normalized = String(hex || "").replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return `rgba(255,255,255,${alpha})`;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function sanitizeComplianceChartData(chartData = {}) {
+  const labels = (chartData.labels || []).slice(-8);
+  const start = Math.max((chartData.labels || []).length - labels.length, 0);
+  const datasets = (chartData.datasets || [])
+    .map((dataset) => {
+      const values = (dataset.values || []).slice(start, start + labels.length).map((value) => (
+        Number.isFinite(Number(value)) ? Number(value) : null
+      ));
+      const realPoints = values.filter((value) => value !== null).length;
+      return { ...dataset, values, realPoints };
+    })
+    .filter((dataset) => dataset.realPoints >= 2);
+  return { labels, datasets };
 }
 
 function destroyComplianceCharts() {
@@ -1890,33 +1916,50 @@ function renderComplianceHistoryCharts(target) {
   if (!chartData || !["line", "bar"].includes(currentComplianceHistoryView)) return;
   const shell = card.querySelector(`[data-compliance-chart-shell="${currentComplianceHistoryView}"]`);
   const canvas = card.querySelector(`[data-compliance-chart-canvas="${currentComplianceHistoryView}"]`);
-  const fallback = shell?.querySelector(".rule-history-chart__fallback");
+  const fallback = shell?.querySelector("[data-compliance-chart-empty]");
   const legend = card.querySelector(`[data-compliance-chart-legend="${currentComplianceHistoryView}"]`);
   if (!shell || !canvas || !fallback || !legend) return;
-  if (typeof window === "undefined" || !window.Chart) {
+  const sanitized = sanitizeComplianceChartData(chartData);
+  const showFallback = (message) => {
     canvas.style.display = "none";
-    fallback.style.display = "block";
+    fallback.style.display = "grid";
+    fallback.textContent = message;
     legend.innerHTML = "";
+  };
+  if (!sanitized.labels.length || !sanitized.datasets.length) {
+    showFallback("Historial insuficiente para esta vista.");
+    return;
+  }
+  if (typeof window === "undefined" || !window.Chart) {
+    showFallback("Chart.js no disponible en esta vista.");
     return;
   }
   canvas.style.display = "block";
   fallback.style.display = "none";
-  const datasets = (chartData.datasets || []).map((dataset) => ({
+  const isBar = currentComplianceHistoryView === "bar";
+  const datasets = sanitized.datasets.map((dataset) => ({
     label: dataset.label,
     data: dataset.values,
     borderColor: dataset.color,
-    backgroundColor: currentComplianceHistoryView === "bar" ? `${dataset.color}55` : dataset.color,
+    backgroundColor: isBar ? complianceChartAlpha(dataset.color, 0.5) : dataset.color,
     pointBackgroundColor: dataset.color,
     pointBorderColor: dataset.color,
     borderWidth: 2,
+    borderRadius: isBar ? 6 : 0,
+    barThickness: isBar ? 12 : undefined,
+    maxBarThickness: isBar ? 14 : undefined,
+    categoryPercentage: isBar ? 0.58 : undefined,
+    barPercentage: isBar ? 0.72 : undefined,
+    fill: false,
+    pointRadius: isBar ? 0 : 3,
+    pointHoverRadius: isBar ? 0 : 5,
     tension: 0.35,
-    spanGaps: false,
-    borderRadius: currentComplianceHistoryView === "bar" ? 6 : 0
+    spanGaps: false
   }));
   const config = {
-    type: currentComplianceHistoryView === "bar" ? "bar" : "line",
+    type: isBar ? "bar" : "line",
     data: {
-      labels: chartData.labels || [],
+      labels: sanitized.labels,
       datasets
     },
     options: {
@@ -1926,8 +1969,19 @@ function renderComplianceHistoryCharts(target) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: true,
+          backgroundColor: "#161616",
+          borderColor: "#2a2a2a",
+          borderWidth: 1,
+          titleColor: "rgba(255,255,255,0.58)",
+          bodyColor: "rgba(255,255,255,0.92)",
+          displayColors: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 10,
           callbacks: {
-            label: (item) => `${item.dataset.label}: ${item.raw == null ? "sin datos" : `${item.raw}%`}`
+            title: (items) => items?.[0]?.label ? `Semana ${items[0].label}` : "",
+            label: (item) => `${item.dataset.label}: ${item.raw == null ? "sin datos" : `${item.raw}% cumplimiento`}`
           }
         }
       },
@@ -1935,12 +1989,19 @@ function renderComplianceHistoryCharts(target) {
         y: {
           min: 0,
           max: 100,
-          ticks: { callback: (value) => `${value}%`, color: "rgba(255,255,255,0.52)" },
-          grid: { color: "rgba(255,255,255,0.06)" }
+          position: "right",
+          ticks: {
+            stepSize: 25,
+            callback: (value) => `${value}%`,
+            color: "rgba(255,255,255,0.28)"
+          },
+          grid: { color: "rgba(255,255,255,0.04)" },
+          border: { display: false }
         },
         x: {
-          ticks: { color: "rgba(255,255,255,0.52)" },
-          grid: { display: false }
+          ticks: { color: "rgba(255,255,255,0.42)", maxRotation: 0 },
+          grid: { display: false },
+          border: { display: false }
         }
       }
     }
@@ -1948,7 +2009,7 @@ function renderComplianceHistoryCharts(target) {
   const chart = new window.Chart(canvas, config);
   if (currentComplianceHistoryView === "bar") complianceBarChartInstance = chart;
   else complianceLineChartInstance = chart;
-  legend.innerHTML = (chartData.datasets || []).map((dataset) => `
+  legend.innerHTML = sanitized.datasets.map((dataset) => `
     <span><i style="background:${escapeHtml(dataset.color)}"></i>${escapeHtml(dataset.label)}</span>
   `).join("");
 }
