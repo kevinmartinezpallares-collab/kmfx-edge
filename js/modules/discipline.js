@@ -1728,6 +1728,7 @@ function renderRuleHistory(history = {}, profile = {}) {
   const selectedWeekLabel = selectedComplianceCell
     ? weeks.find(([week]) => week === selectedComplianceCell.week)?.[1]
     : "";
+  const detailHtml = renderRuleHistoryDetail(selectedPoint, selectedRule, selectedWeekLabel);
   const chartData = buildComplianceChartData(history, rules, weeks);
   const view = ["heatmap", "line", "bar"].includes(currentComplianceHistoryView) ? currentComplianceHistoryView : "heatmap";
   if (weeks.length < 2) {
@@ -1768,64 +1769,68 @@ function renderRuleHistory(history = {}, profile = {}) {
           <span><i class="is-strong"></i>90–100</span>
           <span><i class="is-empty"></i>Sin datos</span>
         </div>
-        <div class="rule-history__body">
-        <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
-          <div class="rule-history__corner"></div>
-          ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
-          ${rules.map((rule) => {
-            const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
-            return `
-              <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
-              ${weeks.map(([week, label]) => {
-                const point = points.get(week);
-                const pct = point?.compliancePct ?? point?.pct;
-                const tone = ruleHistoryTone(pct);
-                const color = getComplianceColorForPct(pct);
-                const isSelected = selectedComplianceCell?.ruleId === rule.id && selectedComplianceCell?.week === week;
-                const title = point
-                  ? `${rule.name} · ${point.weekLabel || point.label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades ?? point.total} trades`
-                  : `${rule.name} · ${label}: sin datos`;
-                return `
-                  <button
-                    type="button"
-                    class="rule-history__cell is-${tone}${isSelected ? " is-selected" : ""}"
-                    style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
-                    title="${escapeHtml(title)}"
-                    data-rule-history-cell
-                    data-rule-id="${escapeHtml(rule.id)}"
-                    data-rule-week="${escapeHtml(week)}"
-                    aria-label="${escapeHtml(title)}"
-                  >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
-                `;
-              }).join("")}
-            `;
-          }).join("")}
-          <span class="rule-history__rule rule-history__rule--total">Total semana</span>
-          ${weeks.map(([week, label]) => {
-            const point = weeklyTotalsMap.get(week);
-            const pct = point?.compliancePct ?? point?.pct;
-            const tone = ruleHistoryTone(pct);
-            const color = getComplianceColorForPct(pct);
-            const isSelected = selectedComplianceCell?.ruleId === "__total__" && selectedComplianceCell?.week === week;
-            const title = point
-              ? `Total semana · ${point.weekLabel || label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades} respuestas`
-              : `Total semana · ${label}: sin datos`;
-            return `
-              <button
-                type="button"
-                class="rule-history__cell rule-history__cell--total is-${tone}${isSelected ? " is-selected" : ""}"
-                style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
-                title="${escapeHtml(title)}"
-                data-rule-history-cell
-                data-rule-id="__total__"
-                data-rule-week="${escapeHtml(week)}"
-                aria-label="${escapeHtml(title)}"
-              >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
-            `;
-          }).join("")}
+        <div class="rule-history__body ${detailHtml ? "has-detail" : ""}">
+          <div class="rule-history__workspace">
+            <div class="rule-history__grid-shell">
+              <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
+                <div class="rule-history__corner"></div>
+                ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
+                ${rules.map((rule) => {
+                  const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
+                  return `
+                    <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
+                    ${weeks.map(([week, label]) => {
+                      const point = points.get(week);
+                      const pct = point?.compliancePct ?? point?.pct;
+                      const tone = ruleHistoryTone(pct);
+                      const color = getComplianceColorForPct(pct);
+                      const isSelected = selectedComplianceCell?.ruleId === rule.id && selectedComplianceCell?.week === week;
+                      const title = point
+                        ? `${rule.name} · ${point.weekLabel || point.label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades ?? point.total} trades`
+                        : `${rule.name} · ${label}: sin datos`;
+                      return `
+                        <button
+                          type="button"
+                          class="rule-history__cell is-${tone}${isSelected ? " is-selected" : ""}"
+                          style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
+                          title="${escapeHtml(title)}"
+                          data-rule-history-cell
+                          data-rule-id="${escapeHtml(rule.id)}"
+                          data-rule-week="${escapeHtml(week)}"
+                          aria-label="${escapeHtml(title)}"
+                        >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
+                      `;
+                    }).join("")}
+                  `;
+                }).join("")}
+                <span class="rule-history__rule rule-history__rule--total">Total semana</span>
+                ${weeks.map(([week, label]) => {
+                  const point = weeklyTotalsMap.get(week);
+                  const pct = point?.compliancePct ?? point?.pct;
+                  const tone = ruleHistoryTone(pct);
+                  const color = getComplianceColorForPct(pct);
+                  const isSelected = selectedComplianceCell?.ruleId === "__total__" && selectedComplianceCell?.week === week;
+                  const title = point
+                    ? `Total semana · ${point.weekLabel || label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades} respuestas`
+                    : `Total semana · ${label}: sin datos`;
+                  return `
+                    <button
+                      type="button"
+                      class="rule-history__cell rule-history__cell--total is-${tone}${isSelected ? " is-selected" : ""}"
+                      style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
+                      title="${escapeHtml(title)}"
+                      data-rule-history-cell
+                      data-rule-id="__total__"
+                      data-rule-week="${escapeHtml(week)}"
+                      aria-label="${escapeHtml(title)}"
+                    >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+            ${detailHtml}
+          </div>
         </div>
-        </div>
-        ${renderRuleHistoryDetail(selectedPoint, selectedRule, selectedWeekLabel)}
       </div>
       <div class="rule-history__view ${view === "line" ? "is-active" : ""}" data-compliance-panel="line">
         ${renderComplianceChartShell("line")}
