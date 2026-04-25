@@ -16425,6 +16425,279 @@ body[data-theme="dark"] #section-discipline .execution-tone-pending .execution-e
   }
 }
 
+/* === POST TRADE TAG === */
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: var(--layer-1);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert.has-pending,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert.has-pending {
+  border-color: rgba(245,166,35,0.18);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert span,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert span,
+html[data-theme="dark"] #section-discipline .posttrade-modal__header span,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header span,
+html[data-theme="dark"] #section-discipline .posttrade-question > span,
+body[data-theme="dark"] #section-discipline .posttrade-question > span,
+html[data-theme="dark"] #section-discipline .posttrade-note span,
+body[data-theme="dark"] #section-discipline .posttrade-note span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert strong,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert p,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert button,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert button,
+html[data-theme="dark"] #section-discipline .posttrade-modal button,
+body[data-theme="dark"] #section-discipline .posttrade-modal button {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--border-0);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.045);
+  color: var(--text-0);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-tag-alert button:hover,
+body[data-theme="dark"] #section-discipline .posttrade-tag-alert button:hover,
+html[data-theme="dark"] #section-discipline .posttrade-modal button:hover,
+body[data-theme="dark"] #section-discipline .posttrade-modal button:hover {
+  background: rgba(255,255,255,0.065);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal,
+body[data-theme="dark"] #section-discipline .posttrade-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__overlay,
+body[data-theme="dark"] #section-discipline .posttrade-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__card,
+body[data-theme="dark"] #section-discipline .posttrade-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: var(--layer-1);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.38);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header h3,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header b,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header b {
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header b.is-positive,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header b.is-positive {
+  color: color-mix(in srgb, var(--positive) 76%, var(--text-0));
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header b.is-negative,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header b.is-negative {
+  color: rgba(255,92,92,0.72);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header p,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header p {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__header > button,
+body[data-theme="dark"] #section-discipline .posttrade-modal__header > button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__body,
+body[data-theme="dark"] #section-discipline .posttrade-modal__body {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-question,
+body[data-theme="dark"] #section-discipline .posttrade-question,
+html[data-theme="dark"] #section-discipline .posttrade-note,
+body[data-theme="dark"] #section-discipline .posttrade-note,
+html[data-theme="dark"] #section-discipline .posttrade-empty,
+body[data-theme="dark"] #section-discipline .posttrade-empty {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-0);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-choice-group,
+body[data-theme="dark"] #section-discipline .posttrade-choice-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-choice-group button.is-selected,
+body[data-theme="dark"] #section-discipline .posttrade-choice-group button.is-selected {
+  border-color: rgba(52,217,123,0.26);
+  background: rgba(52,217,123,0.13);
+  color: color-mix(in srgb, var(--positive) 80%, var(--text-0));
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-question--numeric div,
+body[data-theme="dark"] #section-discipline .posttrade-question--numeric div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-question input,
+body[data-theme="dark"] #section-discipline .posttrade-question input,
+html[data-theme="dark"] #section-discipline .posttrade-note textarea,
+body[data-theme="dark"] #section-discipline .posttrade-note textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--border-0);
+  border-radius: 11px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-0);
+  font: inherit;
+  font-size: 13px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-note textarea,
+body[data-theme="dark"] #section-discipline .posttrade-note textarea {
+  min-height: 76px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-question em,
+body[data-theme="dark"] #section-discipline .posttrade-question em,
+html[data-theme="dark"] #section-discipline .posttrade-empty p,
+body[data-theme="dark"] #section-discipline .posttrade-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-empty strong,
+body[data-theme="dark"] #section-discipline .posttrade-empty strong {
+  font-size: 13px;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__footer,
+body[data-theme="dark"] #section-discipline .posttrade-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+html[data-theme="dark"] #section-discipline .posttrade-modal__footer .primary,
+body[data-theme="dark"] #section-discipline .posttrade-modal__footer .primary {
+  border-color: rgba(52,217,123,0.24);
+  background: rgba(52,217,123,0.14);
+  color: color-mix(in srgb, var(--positive) 80%, var(--text-0));
+}
+
+@media (max-width: 720px) {
+  html[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+  body[data-theme="dark"] #section-discipline .posttrade-tag-alert,
+  html[data-theme="dark"] #section-discipline .posttrade-modal__footer,
+  body[data-theme="dark"] #section-discipline .posttrade-modal__footer {
+    display: grid;
+  }
+
+  html[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions,
+  body[data-theme="dark"] #section-discipline .posttrade-tag-alert__actions {
+    justify-content: stretch;
+  }
+}
+
 /* === KMFX DESIGN SYSTEM NORMALIZATION === */
 :root,
 [data-theme="dark"] {

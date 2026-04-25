@@ -48,6 +48,9 @@ const RULE_DEFINITIONS = disciplineData.rules.map((rule) => rule.name);
 
 // === RULE PROFILES ===
 const KMFX_PROFILES_STORAGE_KEY = "kmfx_profiles";
+const KMFX_TAGS_STORAGE_KEY = "kmfx_tags";
+
+let activePostTradeModal = null;
 
 const WEIGHT_OPTIONS = [
   {
@@ -437,6 +440,45 @@ function saveProfiles(state) {
   }
 }
 
+export function loadPostTradeTags() {
+  try {
+    const saved = window.localStorage?.getItem(KMFX_TAGS_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    console.warn("[KMFX][POST_TRADE_TAGS] falling back to empty tags", error);
+    return {};
+  }
+}
+
+export function savePostTradeTag(tradeId, data) {
+  if (!tradeId) return false;
+  const tags = loadPostTradeTags();
+  const previous = tags[tradeId] && typeof tags[tradeId] === "object" ? tags[tradeId] : {};
+  tags[tradeId] = {
+    ...previous,
+    ...data,
+    timestamp: data?.timestamp || previous.timestamp || new Date().toISOString(),
+    answers: {
+      beActivated: data?.answers?.beActivated ?? previous.answers?.beActivated ?? null,
+      obEntry: data?.answers?.obEntry ?? previous.answers?.obEntry ?? null,
+      validSetup: data?.answers?.validSetup ?? previous.answers?.validSetup ?? null,
+      customRules: {
+        ...(previous.answers?.customRules || {}),
+        ...(data?.answers?.customRules || {})
+      }
+    },
+    note: data?.note ?? previous.note ?? null
+  };
+  try {
+    window.localStorage?.setItem(KMFX_TAGS_STORAGE_KEY, JSON.stringify(tags));
+    return true;
+  } catch (error) {
+    console.warn("[KMFX][POST_TRADE_TAGS] save skipped", error);
+    return false;
+  }
+}
+
 function getProfileForAccount(state, accountLogin = "") {
   const mappedId = accountLogin ? state.accountMap?.[String(accountLogin)] : "";
   const activeId = mappedId || state.activeProfileId || "real-conservative";
@@ -615,6 +657,11 @@ function escapeHtml(value = "") {
     .replace(/'/g, "&#039;");
 }
 
+function cssEscape(value = "") {
+  if (window.CSS?.escape) return window.CSS.escape(String(value));
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+
 function toDayKey(dateLike) {
   const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
   if (Number.isNaN(date.getTime())) return "";
@@ -682,7 +729,7 @@ function ruleColor(value) {
 }
 
 function isIncompleteNote(note = "") {
-  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA/i.test(String(note));
+  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA|tag pendiente/i.test(String(note));
 }
 
 function ruleTone(row = {}) {
@@ -751,6 +798,128 @@ function getRecentTrades(trades = []) {
   windowStart.setDate(windowStart.getDate() - 30);
   const recent = ordered.filter((trade) => trade.when >= windowStart);
   return recent.length ? recent : ordered.slice(-30);
+}
+
+function tradeIdForTag(trade = {}, index = 0) {
+  const explicit = trade.id || trade.ticket || trade.ticketId || trade.dealId || trade.orderId || trade.positionId;
+  if (explicit) return String(explicit);
+  const when = trade.when instanceof Date ? trade.when.toISOString() : String(trade.when || trade.closeTime || trade.openTime || "");
+  return [
+    trade.symbol || "trade",
+    trade.direction || trade.type || "",
+    when,
+    trade.entry ?? "",
+    trade.exit ?? trade.close ?? "",
+    trade.pnl ?? "",
+    index
+  ].join(":");
+}
+
+function normalizeTradeForTag(trade = {}, index = 0) {
+  const parsedWhen = trade.when instanceof Date ? trade.when : new Date(trade.timestamp || trade.closeTime || trade.openTime || Date.now());
+  const when = !Number.isNaN(parsedWhen.getTime()) ? parsedWhen : new Date();
+  const direction = String(trade.direction || trade.type || "BUY").toUpperCase();
+  const pips = Number(trade.pips ?? trade.pipsResult ?? trade.profitPips);
+  const pnl = Number(trade.pnl ?? trade.profit ?? trade.result ?? 0);
+  return {
+    id: trade.id || tradeIdForTag({ ...trade, when }, index),
+    symbol: String(trade.symbol || trade.pair || "EURUSD").toUpperCase(),
+    direction: direction.includes("SELL") ? "SELL" : "BUY",
+    pips: Number.isFinite(pips) ? pips : Math.round(pnl / 10),
+    pnl,
+    when,
+    timestamp: when.toISOString()
+  };
+}
+
+function tagAnswerKey(ruleId = "") {
+  if (ruleId === "be-activation") return "beActivated";
+  if (ruleId === "ob-entry") return "obEntry";
+  if (ruleId === "valid-setup") return "validSetup";
+  return "";
+}
+
+function getTagAnswer(tag, ruleId) {
+  if (!tag?.answers) return null;
+  const key = tagAnswerKey(ruleId);
+  if (key) return tag.answers[key] ?? null;
+  return tag.answers.customRules?.[ruleId] ?? null;
+}
+
+function getTaggableRules(profile) {
+  const rules = Array.isArray(profile?.rules) ? profile.rules : [];
+  return rules.filter((rule) => {
+    const source = normalizeSource(rule.source);
+    return rule.enabled !== false && (source === "manual" || source === "mixed" || Boolean(tagAnswerKey(rule.id)));
+  });
+}
+
+function evaluateNumericAnswer(rule, value) {
+  const actual = Number(value);
+  const threshold = Number(rule.numericThreshold);
+  if (!Number.isFinite(actual) || !Number.isFinite(threshold)) return null;
+  const operator = normalizeNumericOperator(rule.numericOperator || "<=");
+  if (operator === ">") return actual > threshold;
+  if (operator === ">=") return actual >= threshold;
+  if (operator === "<") return actual < threshold;
+  if (operator === "<=") return actual <= threshold;
+  return actual === threshold;
+}
+
+function evaluateTagAnswer(rule, value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (normalizeConditionType(rule.conditionType) === "numeric") return evaluateNumericAnswer(rule, value);
+  if (typeof value === "boolean") return value;
+  if (String(value).toLowerCase() === "true") return true;
+  if (String(value).toLowerCase() === "false") return false;
+  return null;
+}
+
+function buildPostTradeTagStats(profile, recentTrades = [], tags = {}) {
+  const taggableRules = getTaggableRules(profile);
+  return taggableRules.reduce((map, rule) => {
+    let answered = 0;
+    let passed = 0;
+    recentTrades.forEach((trade, index) => {
+      const tag = tags[tradeIdForTag(trade, index)];
+      const result = evaluateTagAnswer(rule, getTagAnswer(tag, rule.id));
+      if (result === null) return;
+      answered += 1;
+      if (result) passed += 1;
+    });
+    map[rule.id] = {
+      answered,
+      pct: answered ? (passed / answered) * 100 : null
+    };
+    return map;
+  }, {});
+}
+
+function getPendingTagTrades(profile, recentTrades = [], tags = {}) {
+  const taggableRules = getTaggableRules(profile);
+  if (!taggableRules.length) return [];
+  return recentTrades
+    .map((trade, index) => normalizeTradeForTag(trade, index))
+    .filter((trade, index) => {
+      const tag = tags[trade.id];
+      if (!tag || tag.status === "tag_pending") return true;
+      return taggableRules.some((rule) => evaluateTagAnswer(rule, getTagAnswer(tag, rule.id)) === null);
+    });
+}
+
+function buildEmptyTagData(trade, rules = []) {
+  const answers = { beActivated: null, obEntry: null, validSetup: null, customRules: {} };
+  rules.forEach((rule) => {
+    const key = tagAnswerKey(rule.id);
+    if (key) answers[key] = null;
+    else answers.customRules[rule.id] = null;
+  });
+  return {
+    timestamp: trade?.timestamp || new Date().toISOString(),
+    answers,
+    note: null,
+    status: "tag_pending"
+  };
 }
 
 function groupTradesByDay(trades = []) {
@@ -984,7 +1153,9 @@ function renderRuleRows(rows) {
     "sin datos suficientes": "sin datos suficientes",
     "según horario registrado": "según horario registrado",
     "sin operaciones": "sin operaciones",
-    "requiere validación del setup": "requiere validación del setup"
+    "requiere validación del setup": "requiere validación del setup",
+    "según post-trade tag": "según post-trade tag",
+    "tag pendiente": "tag pendiente"
   };
   return rows.map((row) => {
     const tone = ruleTone(row);
@@ -1006,11 +1177,25 @@ function renderRuleRows(rows) {
 }
 
 // === RULE PROFILES ===
-function ruleRowFromProfileRule(profileRuleItem, currentRows = []) {
+function ruleRowFromProfileRule(profileRuleItem, currentRows = [], tagStats = {}) {
   const libraryRule = RULE_LIBRARY[profileRuleItem.id] || {};
   const executionName = libraryRule.executionRule || profileRuleItem.name;
   const matchedRow = currentRows.find((row) => row.name === executionName);
   const pendingImplementation = profileRuleItem.isCustom && profileRuleItem.source === "auto" && profileRuleItem.pendingImplementation !== false;
+  const source = normalizeSource(profileRuleItem.source);
+  const manualStats = source === "manual" || source === "mixed" || tagAnswerKey(profileRuleItem.id) ? tagStats[profileRuleItem.id] : null;
+  const usesManualTags = Boolean(manualStats);
+  if (usesManualTags) {
+    return {
+      ...(matchedRow || {}),
+      name: executionName,
+      profileRuleName: profileRuleItem.name,
+      profileRuleId: profileRuleItem.id,
+      weight: profileRuleItem.weight,
+      note: manualStats.answered ? "según post-trade tag" : "tag pendiente",
+      pct: manualStats.pct
+    };
+  }
   if (matchedRow) {
     return {
       ...matchedRow,
@@ -1032,11 +1217,11 @@ function ruleRowFromProfileRule(profileRuleItem, currentRows = []) {
   };
 }
 
-function buildProfileRuleRows(profile, currentRows = []) {
+function buildProfileRuleRows(profile, currentRows = [], tagStats = {}) {
   const rules = Array.isArray(profile?.rules) ? profile.rules : [];
   return rules
     .filter((rule) => rule.enabled !== false)
-    .map((rule) => ruleRowFromProfileRule(rule, currentRows));
+    .map((rule) => ruleRowFromProfileRule(rule, currentRows, tagStats));
 }
 
 function renderWeightDropdown(rule, profileState) {
@@ -1965,6 +2150,186 @@ function buildEntryPattern(rows = []) {
   return `Tiendes a entrar tarde en operaciones de ${weakestPair.pair}.`;
 }
 
+function postTradeRuleQuestion(rule) {
+  if (rule.tagQuestion) return rule.tagQuestion;
+  if (rule.id === "be-activation") return "¿Activaste BE según la regla?";
+  if (rule.id === "ob-entry") return "¿La entrada respetó OB candle open?";
+  if (rule.id === "valid-setup") return "¿El setup estaba validado antes de entrar?";
+  return `¿Se cumplió ${rule.name}?`;
+}
+
+function renderPostTradeIndicator(pendingTrades = []) {
+  const count = pendingTrades.length;
+  return `
+    <section class="posttrade-tag-alert${count ? " has-pending" : ""}">
+      <div>
+        <span>POST-TRADE TAG</span>
+        <strong>${count ? `${count} ${count === 1 ? "trade sin etiquetar" : "trades sin etiquetar"}` : "Tagging manual listo"}</strong>
+        <p>${count ? "Completa las reglas manuales para alimentar el score sin asumir datos que el EA todavía no envía." : "Usa el simulador para probar el flujo antes de conectar la capa local."}</p>
+      </div>
+      <div class="posttrade-tag-alert__actions">
+        ${count ? `<button type="button" data-posttrade-complete>Completar tags</button>` : ""}
+        <button type="button" data-posttrade-simulate>Simular cierre trade</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderPostTradeQuestion(rule, tag) {
+  const currentValue = getTagAnswer(tag, rule.id);
+  const question = postTradeRuleQuestion(rule);
+  const unit = rule.numericUnit || rule.params?.unit || "pips";
+  if (normalizeConditionType(rule.conditionType) === "numeric") {
+    return `
+      <label class="posttrade-question posttrade-question--numeric" data-posttrade-question="${escapeHtml(rule.id)}">
+        <span>${escapeHtml(question)}</span>
+        <div>
+          <input data-posttrade-numeric="${escapeHtml(rule.id)}" type="number" step="0.1" inputmode="decimal" value="${Number.isFinite(Number(currentValue)) ? escapeHtml(currentValue) : ""}">
+          <em>${escapeHtml(unit)}</em>
+        </div>
+      </label>
+    `;
+  }
+  return `
+    <div class="posttrade-question" data-posttrade-question="${escapeHtml(rule.id)}">
+      <span>${escapeHtml(question)}</span>
+      <input type="hidden" data-posttrade-answer="${escapeHtml(rule.id)}" value="${typeof currentValue === "boolean" ? currentValue : ""}">
+      <div class="posttrade-choice-group">
+        <button type="button" class="${currentValue === true ? "is-selected" : ""}" data-posttrade-choice="${escapeHtml(rule.id)}" data-posttrade-value="true">Sí</button>
+        <button type="button" class="${currentValue === false ? "is-selected" : ""}" data-posttrade-choice="${escapeHtml(rule.id)}" data-posttrade-value="false">No</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPostTradeModal(profile, tags = {}) {
+  if (!activePostTradeModal) return "";
+  const trade = activePostTradeModal;
+  const rules = getTaggableRules(profile);
+  const existingTag = tags[trade.id] || {};
+  const pips = Number(trade.pips);
+  const resultClass = Number.isFinite(pips) && pips < 0 ? "is-negative" : "is-positive";
+  const resultLabel = Number.isFinite(pips) ? `${pips > 0 ? "+" : ""}${pips} pips` : `${trade.pnl > 0 ? "+" : ""}${Math.round(trade.pnl)} $`;
+  return `
+    <div id="kmfx-posttrade-modal" class="posttrade-modal" role="dialog" aria-modal="true" aria-labelledby="posttrade-title">
+      <div class="posttrade-modal__overlay" data-posttrade-close></div>
+      <article class="posttrade-modal__card">
+        <header class="posttrade-modal__header">
+          <div>
+            <span>POST-TRADE TAG</span>
+            <h3 id="posttrade-title">${escapeHtml(trade.symbol)} · ${escapeHtml(trade.direction)} · <b class="${resultClass}">${escapeHtml(resultLabel)}</b></h3>
+            <p>${new Date(trade.timestamp).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}</p>
+          </div>
+          <button type="button" data-posttrade-close aria-label="Cerrar">×</button>
+        </header>
+        <div class="posttrade-modal__body">
+          ${rules.length ? rules.map((rule) => renderPostTradeQuestion(rule, existingTag)).join("") : `
+            <div class="posttrade-empty">
+              <strong>No hay reglas manuales activas</strong>
+              <p>Activa reglas manuales o mixtas en el perfil para alimentar el score con post-trade tags.</p>
+            </div>
+          `}
+          <label class="posttrade-note">
+            <span>Nota opcional</span>
+            <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(existingTag.note || "")}</textarea>
+          </label>
+        </div>
+        <footer class="posttrade-modal__footer">
+          <button type="button" data-posttrade-close>Cancelar</button>
+          <button type="button" class="primary" data-posttrade-save>Guardar tag</button>
+        </footer>
+      </article>
+    </div>
+  `;
+}
+
+function refreshDisciplineSection(context = {}) {
+  if (!context.target) return;
+  const nextData = context.model ? buildDisciplineDataFromModel(context.model, context.accountLogin || "") : context.data;
+  renderDisciplineSection(context.target, nextData, context);
+}
+
+export function openPostTradeModal(trade, context = {}) {
+  activePostTradeModal = normalizeTradeForTag(trade);
+  refreshDisciplineSection(context);
+}
+
+function savePendingPostTradeTag(profile, trade) {
+  if (!trade) return;
+  savePostTradeTag(trade.id, buildEmptyTagData(trade, getTaggableRules(profile)));
+}
+
+function collectPostTradeAnswers(target, profile) {
+  const answers = { beActivated: null, obEntry: null, validSetup: null, customRules: {} };
+  getTaggableRules(profile).forEach((rule) => {
+    let value = null;
+    if (normalizeConditionType(rule.conditionType) === "numeric") {
+      const input = target.querySelector(`[data-posttrade-numeric="${cssEscape(rule.id)}"]`);
+      value = input?.value === "" ? null : Number(input?.value);
+      if (!Number.isFinite(value)) value = null;
+    } else {
+      const hidden = target.querySelector(`[data-posttrade-answer="${cssEscape(rule.id)}"]`);
+      if (hidden?.value === "true") value = true;
+      if (hidden?.value === "false") value = false;
+    }
+    const key = tagAnswerKey(rule.id);
+    if (key) answers[key] = value;
+    else answers.customRules[rule.id] = value;
+  });
+  return answers;
+}
+
+function bindPostTradeControls(target, context, profile, pendingTrades = []) {
+  target.querySelector("[data-posttrade-simulate]")?.addEventListener("click", () => {
+    const fallbackTrade = context.data?.recentTrades?.at(-1) || {
+      symbol: "EURUSD",
+      direction: "BUY",
+      pips: 24,
+      pnl: 240,
+      when: new Date()
+    };
+    openPostTradeModal(fallbackTrade, context);
+  });
+  target.querySelector("[data-posttrade-complete]")?.addEventListener("click", () => {
+    if (pendingTrades[0]) openPostTradeModal(pendingTrades[0], context);
+  });
+  target.querySelectorAll("[data-posttrade-choice]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const ruleId = button.dataset.posttradeChoice;
+      const value = button.dataset.posttradeValue;
+      const group = button.closest(".posttrade-question");
+      group?.querySelectorAll("[data-posttrade-choice]").forEach((item) => item.classList.remove("is-selected"));
+      button.classList.add("is-selected");
+      const hidden = group?.querySelector(`[data-posttrade-answer="${cssEscape(ruleId)}"]`);
+      if (hidden) hidden.value = value;
+    });
+  });
+  target.querySelectorAll("[data-posttrade-close]").forEach((button) => {
+    button.addEventListener("click", () => {
+      savePendingPostTradeTag(profile, activePostTradeModal);
+      activePostTradeModal = null;
+      refreshDisciplineSection(context);
+    });
+  });
+  target.querySelector("[data-posttrade-save]")?.addEventListener("click", () => {
+    if (!activePostTradeModal) return;
+    savePostTradeTag(activePostTradeModal.id, {
+      timestamp: activePostTradeModal.timestamp,
+      answers: collectPostTradeAnswers(target, profile),
+      note: target.querySelector("[data-posttrade-note]")?.value?.trim() || null,
+      status: "tagged"
+    });
+    activePostTradeModal = null;
+    refreshDisciplineSection(context);
+  });
+  target.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !activePostTradeModal) return;
+    savePendingPostTradeTag(profile, activePostTradeModal);
+    activePostTradeModal = null;
+    refreshDisciplineSection(context);
+  });
+}
+
 function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } = {}) {
   return `
     <article class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
@@ -1988,15 +2353,22 @@ function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } 
   `;
 }
 
-function buildDisciplineDataFromModel(model) {
+function buildDisciplineDataFromModel(model, accountLogin = "") {
   const recentTrades = getRecentTrades(model?.trades || []);
   const entryDeviations = recentTrades.map(getEntryDeviationPips).filter((value) => Number.isFinite(value));
-  const rules = calcRuleCompliance(recentTrades);
+  const baseRules = calcRuleCompliance(recentTrades);
+  const profileState = loadProfiles();
+  const { profile } = getProfileForAccount(profileState, accountLogin);
+  const tags = loadPostTradeTags();
+  const tagStats = buildPostTradeTagStats(profile, recentTrades, tags);
+  const rules = buildProfileRuleRows(profile, baseRules, tagStats);
   const kpis = buildKpis(rules, recentTrades, entryDeviations);
   const score = buildDisciplineScore(rules, recentTrades, entryDeviations);
   return {
     kpis,
     rules,
+    baseRules,
+    recentTrades,
     calendar: buildExecutionHeatmap(recentTrades),
     entryPrecision: buildEntryPrecisionRows(recentTrades, disciplineData, false),
     score,
@@ -2042,7 +2414,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       }
     ];
 
-  const rules = (data.rules || []).map((rule) => ({
+  const rules = (data.baseRules || data.rules || []).map((rule) => ({
     name: rule.name,
     pct: rule.pct,
     note: rule.note || ""
@@ -2050,7 +2422,11 @@ export function renderDisciplineSection(target, data = disciplineData, context =
   const profileState = loadProfiles();
   const accountLogin = context.accountLogin || data.accountLogin || "";
   const { profile: activeProfile } = getProfileForAccount(profileState, accountLogin);
-  const visibleRules = buildProfileRuleRows(activeProfile, rules);
+  const recentTrades = Array.isArray(data.recentTrades) ? data.recentTrades : [];
+  const postTradeTags = loadPostTradeTags();
+  const tagStats = buildPostTradeTagStats(activeProfile, recentTrades, postTradeTags);
+  const visibleRules = buildProfileRuleRows(activeProfile, rules, tagStats);
+  const pendingTagTrades = getPendingTagTrades(activeProfile, recentTrades, postTradeTags);
   const calendar = Array.isArray(data.calendar?.[0])
     ? data.calendar.map((days, index) => ({ label: `S${index + 1}`, days: days.map((state) => ({ state, label: state, trades: 0, key: "", date: null })) }))
     : data.calendar || [];
@@ -2092,7 +2468,9 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       </div>
     </header>
 
-    ${renderExecutionHero(rules)}
+    ${renderPostTradeIndicator(pendingTagTrades)}
+
+    ${renderExecutionHero(visibleRules)}
 
     <section class="execution-score-row">
       ${renderScorePanel(weightedScoreValue, breakdown, insight, { isPartial: isPartialData })}
@@ -2148,8 +2526,10 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     </section>
 
     <div id="discipline-profile-manager"></div>
+    ${renderPostTradeModal(activeProfile, postTradeTags)}
   `;
   renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
+  bindPostTradeControls(target, { ...renderContext, data: { ...data, recentTrades } }, activeProfile, pendingTagTrades);
 }
 
 export function renderDiscipline(root, state) {
@@ -2177,7 +2557,9 @@ export function renderDiscipline(root, state) {
   root.innerHTML = `
     <section id="section-discipline" class="discipline-page-stack execution-page kmfx-page kmfx-page--spacious"></section>
   `;
-  renderDisciplineSection(root.querySelector("#section-discipline"), buildDisciplineDataFromModel(model), {
-    accountLogin: account?.login || ""
+  const accountLogin = account?.login || "";
+  renderDisciplineSection(root.querySelector("#section-discipline"), buildDisciplineDataFromModel(model, accountLogin), {
+    accountLogin,
+    model
   });
 }
