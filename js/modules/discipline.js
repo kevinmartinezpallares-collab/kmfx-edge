@@ -62,7 +62,10 @@ let postTradeQueueState = {
   trades: [],
   index: 0
 };
-let selectedRuleHistoryCell = null;
+let currentComplianceHistoryView = "heatmap";
+let selectedComplianceCell = null;
+let complianceLineChartInstance = null;
+let complianceBarChartInstance = null;
 
 const WEIGHT_OPTIONS = [
   {
@@ -1494,7 +1497,7 @@ function buildRuleHistory(mergedTrades = [], profile = {}) {
         ruleId: rule.id,
         ruleName: rule.name,
         week,
-        label,
+        weekLabel: label,
         total: 0,
         failed: 0,
         passed: 0,
@@ -1515,8 +1518,11 @@ function buildRuleHistory(mergedTrades = [], profile = {}) {
       .sort((a, b) => a.week.localeCompare(b.week))
       .map((bucket) => ({
         week: bucket.week,
-        label: bucket.label,
+        weekLabel: bucket.weekLabel,
+        label: bucket.weekLabel,
+        compliancePct: bucket.total ? (bucket.passed / bucket.total) * 100 : null,
         pct: bucket.total ? (bucket.passed / bucket.total) * 100 : null,
+        totalTrades: bucket.total,
         total: bucket.total,
         failed: bucket.failed,
         ruleName: bucket.ruleName,
@@ -1544,10 +1550,15 @@ function buildRuleHistoryFailedTrade(trade = {}, rule = {}) {
     date: normalized.when,
     pair: normalized.symbol,
     direction: normalized.direction,
+    pips: normalized.pips,
     result: normalized.pips,
+    usd: normalized.pnl,
     pnl: normalized.pnl,
+    reason: ruleHistoryFailReason(rule.id),
     failReason: ruleHistoryFailReason(rule.id),
-    note: trade.postTag?.note || null
+    traderNote: trade.postTag?.note || null,
+    note: trade.postTag?.note || null,
+    tagged: true
   };
 }
 
@@ -1559,60 +1570,131 @@ function ruleHistoryTone(pct) {
   return "bad";
 }
 
+function getComplianceColorForPct(pct) {
+  const tone = ruleHistoryTone(pct);
+  const map = {
+    bad: { bg: "rgba(255,92,92,0.22)", color: "#FF7070", border: "rgba(255,92,92,0.28)" },
+    warn: { bg: "rgba(245,166,35,0.22)", color: "#F5A623", border: "rgba(245,166,35,0.28)" },
+    ok: { bg: "rgba(52,217,123,0.18)", color: "#34D97B", border: "rgba(52,217,123,0.22)" },
+    strong: { bg: "rgba(52,217,123,0.35)", color: "#34D97B", border: "rgba(52,217,123,0.32)" },
+    empty: { bg: "transparent", color: "var(--text-2)", border: "rgba(255,255,255,0.14)" }
+  };
+  return map[tone] || map.empty;
+}
+
+function computeWeeklyTotals(ruleHistory = {}, profileRules = []) {
+  const weeks = new Map();
+  profileRules.forEach((rule) => {
+    (ruleHistory[rule.id] || []).forEach((point) => {
+      const bucket = weeks.get(point.week) || {
+        week: point.week,
+        weekLabel: point.weekLabel || point.label,
+        weightedSum: 0,
+        totalWeight: 0,
+        totalTrades: 0,
+        failed: 0,
+        failedTrades: []
+      };
+      if (Number.isFinite(Number(point.compliancePct))) {
+        const weight = normalizeWeight(rule.weight || 1);
+        bucket.weightedSum += Number(point.compliancePct) * weight;
+        bucket.totalWeight += weight;
+      }
+      bucket.totalTrades += Number(point.totalTrades ?? point.total ?? 0);
+      bucket.failed += Number(point.failed || 0);
+      bucket.failedTrades.push(...(point.failedTrades || []));
+      weeks.set(point.week, bucket);
+    });
+  });
+  return [...weeks.values()]
+    .sort((a, b) => a.week.localeCompare(b.week))
+    .map((week) => ({
+      week: week.week,
+      weekLabel: week.weekLabel,
+      compliancePct: week.totalWeight ? week.weightedSum / week.totalWeight : null,
+      pct: week.totalWeight ? week.weightedSum / week.totalWeight : null,
+      totalTrades: week.totalTrades,
+      total: week.totalTrades,
+      failed: week.failed,
+      failedTrades: week.failedTrades,
+      ruleName: "Total semana"
+    }));
+}
+
+function complianceHistoryRuleColor(ruleId, index = 0) {
+  const colors = {
+    "london-confirmation": "#34D97B",
+    "ob-entry": "#2F6BFF",
+    "valid-setup": "#F5A623",
+    "allowed-pairs": "#FF5C5C",
+    "be-activation": "#A78BFA"
+  };
+  const fallback = ["#34D97B", "#2F6BFF", "#F5A623", "#FF5C5C", "#A78BFA", "#8B949E"];
+  return colors[ruleId] || fallback[index % fallback.length];
+}
+
 function renderRuleHistoryDetail(point, rule, weekLabel) {
-  if (!selectedRuleHistoryCell) return "";
+  if (!selectedComplianceCell) return "";
   const headerRule = rule?.name || "Regla";
-  const label = point?.label || weekLabel || selectedRuleHistoryCell.week;
+  const label = point?.weekLabel || point?.label || weekLabel || selectedComplianceCell.week;
+  const pct = Number(point?.compliancePct ?? point?.pct);
+  const scoreStyle = getComplianceColorForPct(pct);
   if (!point) {
     return `
-      <div id="discipline-history-detail" class="rule-history-detail">
+      <div id="compliance-drill-panel" class="rule-history-detail">
         <div class="rule-history-detail__header">
           <div>
             <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
             <p>Sin datos esta semana</p>
           </div>
+          <button type="button" data-compliance-drill-close aria-label="Cerrar detalle">×</button>
         </div>
       </div>
     `;
   }
   if (!point.failed) {
     return `
-      <div id="discipline-history-detail" class="rule-history-detail">
+      <div id="compliance-drill-panel" class="rule-history-detail">
         <div class="rule-history-detail__header">
           <div>
             <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
-            <p>0/${point.total} trades fallaron</p>
+            <p>0/${point.totalTrades ?? point.total} trades fallaron</p>
           </div>
+          <span class="rule-history-detail__score" style="--score-bg:${scoreStyle.bg};--score-color:${scoreStyle.color};--score-border:${scoreStyle.border};">${Number.isFinite(pct) ? `${Math.round(pct)}%` : "—"}</span>
+          <button type="button" data-compliance-drill-close aria-label="Cerrar detalle">×</button>
         </div>
         <div class="rule-history-detail__empty">✓ Semana perfecta en esta regla</div>
       </div>
     `;
   }
   return `
-    <div id="discipline-history-detail" class="rule-history-detail">
+    <div id="compliance-drill-panel" class="rule-history-detail">
       <div class="rule-history-detail__header">
         <div>
           <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
-          <p>${point.failed}/${point.total} trades fallaron</p>
+          <p>${point.failed}/${point.totalTrades ?? point.total} trades fallaron esta semana</p>
         </div>
+        <span class="rule-history-detail__score" style="--score-bg:${scoreStyle.bg};--score-color:${scoreStyle.color};--score-border:${scoreStyle.border};">${Number.isFinite(pct) ? `${Math.round(pct)}%` : "—"}</span>
+        <button type="button" data-compliance-drill-close aria-label="Cerrar detalle">×</button>
       </div>
       <div class="rule-history-detail__list">
         ${(point.failedTrades || []).map((trade) => {
-          const result = Number(trade.result);
-          const resultLabel = Number.isFinite(result)
-            ? `${result > 0 ? "+" : ""}${Math.round(result)} pips`
-            : `${Number(trade.pnl) > 0 ? "+" : ""}${Math.round(Number(trade.pnl) || 0)} $`;
-          const resultClass = Number.isFinite(result) && result < 0 ? "is-negative" : "is-positive";
+          const pips = Number(trade.pips ?? trade.result);
+          const usd = Number(trade.usd ?? trade.pnl);
+          const pipsLabel = Number.isFinite(pips) ? `${pips > 0 ? "+" : ""}${Math.round(pips)} pips` : "—";
+          const usdLabel = Number.isFinite(usd) ? `${usd > 0 ? "+" : ""}$${Math.round(usd)}` : "";
+          const resultClass = Number.isFinite(pips) && pips < 0 ? "is-negative" : "is-positive";
           return `
             <article class="rule-history-detail__row">
               <div class="rule-history-detail__meta">
                 <span>${escapeHtml(formatHistoryTradeDate(trade.date))}</span>
                 <span>${escapeHtml(trade.pair)}</span>
-                <span>${escapeHtml(trade.direction)}</span>
-                <b class="${resultClass}">${escapeHtml(resultLabel)}</b>
+                <span class="rule-history-detail__direction">${escapeHtml(trade.direction)}</span>
+                <b class="${resultClass}">${escapeHtml(pipsLabel)}${usdLabel ? ` · ${escapeHtml(usdLabel)}` : ""}</b>
               </div>
-              <strong>${escapeHtml(trade.failReason)}</strong>
-              ${trade.note ? `<em>${escapeHtml(trade.note)}</em>` : ""}
+              <strong>${escapeHtml(trade.reason || trade.failReason)}</strong>
+              ${trade.traderNote || trade.note ? `<em>${escapeHtml(trade.traderNote || trade.note)}</em>` : ""}
+              <span class="rule-history-detail__link" aria-disabled="true">Ver trade →</span>
             </article>
           `;
         }).join("")}
@@ -1630,21 +1712,27 @@ function renderRuleHistory(history = {}, profile = {}) {
   ));
   const weekMap = new Map();
   Object.values(history).flat().forEach((point) => {
-    if (!weekMap.has(point.week)) weekMap.set(point.week, point.label);
+    if (!weekMap.has(point.week)) weekMap.set(point.week, point.weekLabel || point.label);
   });
   const weeks = [...weekMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const selectedRule = selectedRuleHistoryCell
-    ? rules.find((rule) => rule.id === selectedRuleHistoryCell.ruleId)
+  const weeklyTotals = computeWeeklyTotals(history, rules);
+  const weeklyTotalsMap = new Map(weeklyTotals.map((point) => [point.week, point]));
+  const selectedRule = selectedComplianceCell
+    ? (selectedComplianceCell.ruleId === "__total__" ? { id: "__total__", name: "Total semana" } : rules.find((rule) => rule.id === selectedComplianceCell.ruleId))
     : null;
-  const selectedPoint = selectedRuleHistoryCell
-    ? (history[selectedRuleHistoryCell.ruleId] || []).find((point) => point.week === selectedRuleHistoryCell.week)
+  const selectedPoint = selectedComplianceCell
+    ? (selectedComplianceCell.ruleId === "__total__"
+      ? weeklyTotalsMap.get(selectedComplianceCell.week)
+      : (history[selectedComplianceCell.ruleId] || []).find((point) => point.week === selectedComplianceCell.week))
     : null;
-  const selectedWeekLabel = selectedRuleHistoryCell
-    ? weeks.find(([week]) => week === selectedRuleHistoryCell.week)?.[1]
+  const selectedWeekLabel = selectedComplianceCell
+    ? weeks.find(([week]) => week === selectedComplianceCell.week)?.[1]
     : "";
+  const chartData = buildComplianceChartData(history, rules, weeks);
+  const view = ["heatmap", "line", "bar"].includes(currentComplianceHistoryView) ? currentComplianceHistoryView : "heatmap";
   if (weeks.length < 2) {
     return `
-      <section id="discipline-rule-history" class="tl-section-card execution-panel rule-history">
+      <section id="compliance-history-card" class="tl-section-card execution-panel rule-history">
         <div class="rule-history__header">
           <div>
             <strong>Historial de cumplimiento</strong>
@@ -1656,20 +1744,31 @@ function renderRuleHistory(history = {}, profile = {}) {
     `;
   }
   return `
-    <section id="discipline-rule-history" class="tl-section-card execution-panel rule-history">
+    <section id="compliance-history-card" class="tl-section-card execution-panel rule-history" data-compliance-chart='${escapeHtml(JSON.stringify(chartData))}'>
       <div class="rule-history__header">
         <div>
           <strong>Historial de cumplimiento</strong>
           <p>Evolución semanal de reglas etiquetadas.</p>
         </div>
+        <div class="rule-history__view-toggle" role="group" aria-label="Vista del historial">
+          ${[
+            ["heatmap", "Heatmap"],
+            ["line", "Línea"],
+            ["bar", "Barras"]
+          ].map(([value, label]) => `
+            <button type="button" class="${view === value ? "is-active" : ""}" data-compliance-view="${value}">${label}</button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="rule-history__view ${view === "heatmap" ? "is-active" : ""}" data-compliance-panel="heatmap">
         <div class="rule-history__legend" aria-label="Leyenda de cumplimiento">
           <span><i class="is-bad"></i>0–49</span>
           <span><i class="is-warn"></i>50–74</span>
           <span><i class="is-ok"></i>75–89</span>
           <span><i class="is-strong"></i>90–100</span>
+          <span><i class="is-empty"></i>Sin datos</span>
         </div>
-      </div>
-      <div class="rule-history__body">
+        <div class="rule-history__body">
         <div class="rule-history__grid" style="--rule-history-cols:${weeks.length}">
           <div class="rule-history__corner"></div>
           ${weeks.map(([, label]) => `<span class="rule-history__week">${escapeHtml(label)}</span>`).join("")}
@@ -1679,30 +1778,179 @@ function renderRuleHistory(history = {}, profile = {}) {
               <span class="rule-history__rule" title="${escapeHtml(rule.name)}">${escapeHtml(rule.name)}</span>
               ${weeks.map(([week, label]) => {
                 const point = points.get(week);
-                const tone = ruleHistoryTone(point?.pct);
-                const isSelected = selectedRuleHistoryCell?.ruleId === rule.id && selectedRuleHistoryCell?.week === week;
+                const pct = point?.compliancePct ?? point?.pct;
+                const tone = ruleHistoryTone(pct);
+                const color = getComplianceColorForPct(pct);
+                const isSelected = selectedComplianceCell?.ruleId === rule.id && selectedComplianceCell?.week === week;
                 const title = point
-                  ? `${rule.name} · ${point.label}: ${Math.round(point.pct)}% cumplimiento · ${point.total} trades`
+                  ? `${rule.name} · ${point.weekLabel || point.label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades ?? point.total} trades`
                   : `${rule.name} · ${label}: sin datos`;
                 return `
                   <button
                     type="button"
                     class="rule-history__cell is-${tone}${isSelected ? " is-selected" : ""}"
+                    style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
                     title="${escapeHtml(title)}"
                     data-rule-history-cell
                     data-rule-id="${escapeHtml(rule.id)}"
                     data-rule-week="${escapeHtml(week)}"
                     aria-label="${escapeHtml(title)}"
-                  ></button>
+                  >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
                 `;
               }).join("")}
             `;
           }).join("")}
+          <span class="rule-history__rule rule-history__rule--total">Total semana</span>
+          ${weeks.map(([week, label]) => {
+            const point = weeklyTotalsMap.get(week);
+            const pct = point?.compliancePct ?? point?.pct;
+            const tone = ruleHistoryTone(pct);
+            const color = getComplianceColorForPct(pct);
+            const isSelected = selectedComplianceCell?.ruleId === "__total__" && selectedComplianceCell?.week === week;
+            const title = point
+              ? `Total semana · ${point.weekLabel || label}: ${Math.round(pct)}% cumplimiento · ${point.totalTrades} respuestas`
+              : `Total semana · ${label}: sin datos`;
+            return `
+              <button
+                type="button"
+                class="rule-history__cell rule-history__cell--total is-${tone}${isSelected ? " is-selected" : ""}"
+                style="--cell-bg:${color.bg};--cell-color:${color.color};--cell-border:${color.border};"
+                title="${escapeHtml(title)}"
+                data-rule-history-cell
+                data-rule-id="__total__"
+                data-rule-week="${escapeHtml(week)}"
+                aria-label="${escapeHtml(title)}"
+              >${Number.isFinite(Number(pct)) ? `${Math.round(pct)}%` : "—"}</button>
+            `;
+          }).join("")}
         </div>
+        </div>
+        ${renderRuleHistoryDetail(selectedPoint, selectedRule, selectedWeekLabel)}
       </div>
-      ${renderRuleHistoryDetail(selectedPoint, selectedRule, selectedWeekLabel)}
+      <div class="rule-history__view ${view === "line" ? "is-active" : ""}" data-compliance-panel="line">
+        ${renderComplianceChartShell("line")}
+      </div>
+      <div class="rule-history__view ${view === "bar" ? "is-active" : ""}" data-compliance-panel="bar">
+        ${renderComplianceChartShell("bar")}
+      </div>
     </section>
   `;
+}
+
+function buildComplianceChartData(history = {}, rules = [], weeks = []) {
+  return {
+    labels: weeks.map(([, label]) => label),
+    datasets: rules.map((rule, index) => {
+      const points = new Map((history[rule.id] || []).map((point) => [point.week, point]));
+      return {
+        id: rule.id,
+        label: rule.name,
+        color: complianceHistoryRuleColor(rule.id, index),
+        values: weeks.map(([week]) => {
+          const value = points.get(week)?.compliancePct ?? points.get(week)?.pct;
+          return Number.isFinite(Number(value)) ? Math.round(Number(value)) : null;
+        })
+      };
+    })
+  };
+}
+
+function renderComplianceChartShell(type) {
+  const label = type === "bar" ? "barras" : "línea";
+  return `
+    <div class="rule-history-chart" data-compliance-chart-shell="${type}">
+      <canvas data-compliance-chart-canvas="${type}" height="220"></canvas>
+      <div class="rule-history-chart__fallback">Chart.js no disponible en esta vista.</div>
+      <div class="rule-history-chart__legend" data-compliance-chart-legend="${type}" aria-label="Leyenda de ${label}"></div>
+    </div>
+  `;
+}
+
+function destroyComplianceCharts() {
+  if (complianceLineChartInstance?.destroy) complianceLineChartInstance.destroy();
+  if (complianceBarChartInstance?.destroy) complianceBarChartInstance.destroy();
+  complianceLineChartInstance = null;
+  complianceBarChartInstance = null;
+}
+
+function renderComplianceHistoryCharts(target) {
+  const card = target.querySelector("#compliance-history-card");
+  if (!card) {
+    destroyComplianceCharts();
+    return;
+  }
+  const rawData = card.getAttribute("data-compliance-chart");
+  let chartData = null;
+  try {
+    chartData = rawData ? JSON.parse(rawData) : null;
+  } catch {
+    chartData = null;
+  }
+  destroyComplianceCharts();
+  if (!chartData || !["line", "bar"].includes(currentComplianceHistoryView)) return;
+  const shell = card.querySelector(`[data-compliance-chart-shell="${currentComplianceHistoryView}"]`);
+  const canvas = card.querySelector(`[data-compliance-chart-canvas="${currentComplianceHistoryView}"]`);
+  const fallback = shell?.querySelector(".rule-history-chart__fallback");
+  const legend = card.querySelector(`[data-compliance-chart-legend="${currentComplianceHistoryView}"]`);
+  if (!shell || !canvas || !fallback || !legend) return;
+  if (typeof window === "undefined" || !window.Chart) {
+    canvas.style.display = "none";
+    fallback.style.display = "block";
+    legend.innerHTML = "";
+    return;
+  }
+  canvas.style.display = "block";
+  fallback.style.display = "none";
+  const datasets = (chartData.datasets || []).map((dataset) => ({
+    label: dataset.label,
+    data: dataset.values,
+    borderColor: dataset.color,
+    backgroundColor: currentComplianceHistoryView === "bar" ? `${dataset.color}55` : dataset.color,
+    pointBackgroundColor: dataset.color,
+    pointBorderColor: dataset.color,
+    borderWidth: 2,
+    tension: 0.35,
+    spanGaps: false,
+    borderRadius: currentComplianceHistoryView === "bar" ? 6 : 0
+  }));
+  const config = {
+    type: currentComplianceHistoryView === "bar" ? "bar" : "line",
+    data: {
+      labels: chartData.labels || [],
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => `${item.dataset.label}: ${item.raw == null ? "sin datos" : `${item.raw}%`}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { callback: (value) => `${value}%`, color: "rgba(255,255,255,0.52)" },
+          grid: { color: "rgba(255,255,255,0.06)" }
+        },
+        x: {
+          ticks: { color: "rgba(255,255,255,0.52)" },
+          grid: { display: false }
+        }
+      }
+    }
+  };
+  const chart = new window.Chart(canvas, config);
+  if (currentComplianceHistoryView === "bar") complianceBarChartInstance = chart;
+  else complianceLineChartInstance = chart;
+  legend.innerHTML = (chartData.datasets || []).map((dataset) => `
+    <span><i style="background:${escapeHtml(dataset.color)}"></i>${escapeHtml(dataset.label)}</span>
+  `).join("");
 }
 
 function resolveScoreTone(score) {
@@ -3106,16 +3354,30 @@ function advancePostTradeQueue(target, context, profile, action) {
 }
 
 function bindPostTradeControls(target, context, profile, pendingTrades = []) {
+  target.querySelectorAll("[data-compliance-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextView = button.dataset.complianceView;
+      if (!["heatmap", "line", "bar"].includes(nextView)) return;
+      currentComplianceHistoryView = nextView;
+      selectedComplianceCell = null;
+      refreshDisciplineSection(context);
+    });
+  });
   target.querySelectorAll("[data-rule-history-cell]").forEach((cell) => {
     cell.addEventListener("click", () => {
+      if (currentComplianceHistoryView !== "heatmap") return;
       const nextCell = {
         ruleId: cell.dataset.ruleId,
         week: cell.dataset.ruleWeek
       };
-      const isSameCell = selectedRuleHistoryCell?.ruleId === nextCell.ruleId && selectedRuleHistoryCell?.week === nextCell.week;
-      selectedRuleHistoryCell = isSameCell ? null : nextCell;
+      const isSameCell = selectedComplianceCell?.ruleId === nextCell.ruleId && selectedComplianceCell?.week === nextCell.week;
+      selectedComplianceCell = isSameCell ? null : nextCell;
       refreshDisciplineSection(context);
     });
+  });
+  target.querySelector("[data-compliance-drill-close]")?.addEventListener("click", () => {
+    selectedComplianceCell = null;
+    refreshDisciplineSection(context);
   });
 
   const modalRoot = target.querySelector("#kmfx-posttrade-modal");
@@ -3450,6 +3712,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     ${renderPostTradeModal(activeProfile, postTradeTags)}
   `;
   renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
+  renderComplianceHistoryCharts(target);
   bindPostTradeControls(target, { ...renderContext, data: { ...data, recentTrades } }, activeProfile, pendingTagTrades);
 }
 
