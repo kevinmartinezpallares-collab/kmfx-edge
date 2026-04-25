@@ -2,7 +2,7 @@ import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=buil
 import { formatCurrency, formatDurationHuman, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -144,8 +144,8 @@ function renderTradeExecutions(trade) {
           <span>${execution.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
           <span>${execution.volume ?? "—"}</span>
           <span>${execution.exit ?? "—"}</span>
-          <span class="${execution.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.pnl)}</span>
-          <span class="${execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(execution.cumulativePnl)}</span>
+          ${pnlTextMarkup({ value: execution.pnl, text: formatCurrency(execution.pnl), className: execution.pnl >= 0 ? "metric-positive" : "metric-negative" })}
+          ${pnlTextMarkup({ value: execution.cumulativePnl, text: formatCurrency(execution.cumulativePnl), className: execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative" })}
         </div>
       `).join("")}
     </div>
@@ -170,7 +170,9 @@ function renderDayTradeDisclosure(trade, options = {}) {
           </div>
           <div class="focus-panel-disclosure__cell">${entryTime}</div>
           <div class="focus-panel-disclosure__cell">${exitTime}</div>
-          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${pnlClass}">${formatCurrency(trade.pnl)}</div>
+          <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${pnlClass}">
+            ${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: pnlClass })}
+          </div>
         </div>
       </summary>
       <div class="focus-panel-disclosure__body">
@@ -178,7 +180,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
           <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
           <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong><span class="${pnlClass}">${formatCurrency(trade.pnl)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong>${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: pnlClass })}</div>
           <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
         </div>
         ${renderTradeExecutions(trade)}
@@ -319,7 +321,9 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
         <article class="${cardClasses}">
           <div class="calendar-year-card__head">
             <button class="calendar-year-card__month" type="button" data-calendar-open-month="${monthRecord.key}">${monthKeyToDate(monthRecord.key).toLocaleDateString("es-ES", { month: "long" })}</button>
-            <span class="calendar-year-card__badge ${monthValueClass}">${hasModel ? monthValue : "—"}</span>
+            <span class="calendar-year-card__badge ${monthValueClass}">
+              ${hasModel ? pnlTextMarkup({ value: Number(monthRecord.pnl || 0), text: monthValue, className: monthValueClass }) : "—"}
+            </span>
           </div>
           <div class="calendar-year-card__weekdays">
             ${CALENDAR_HEADERS.map((header) => `<span>${header.slice(0, 1)}</span>`).join("")}
@@ -492,7 +496,13 @@ export function renderCalendar(root, state) {
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">
           <div class="calendar-summary-card__label">${viewMode === "year" ? "P&L del año" : "P&L del mes"}</div>
-          <div class="calendar-summary-card__value ${(viewMode === "year" ? summary.yearPnl : summary.monthPnl) >= 0 ? "metric-positive" : "metric-negative"}">${hasModel ? formatCalendarValue(viewMode === "year" ? summary.yearPnl : summary.monthPnl, valueMode, viewMode === "year" ? calendarMonths.find((month) => month.key.startsWith(`${selectedYear}-`))?.startBalance : selectedMonth?.startBalance) : "—"}</div>
+          <div class="calendar-summary-card__value ${(viewMode === "year" ? summary.yearPnl : summary.monthPnl) >= 0 ? "metric-positive" : "metric-negative"}">
+            ${hasModel ? pnlTextMarkup({
+              value: viewMode === "year" ? summary.yearPnl : summary.monthPnl,
+              text: formatCalendarValue(viewMode === "year" ? summary.yearPnl : summary.monthPnl, valueMode, viewMode === "year" ? calendarMonths.find((month) => month.key.startsWith(`${selectedYear}-`))?.startBalance : selectedMonth?.startBalance),
+              className: (viewMode === "year" ? summary.yearPnl : summary.monthPnl) >= 0 ? "metric-positive" : "metric-negative"
+            }) : "—"}
+          </div>
           <div class="calendar-summary-card__meta">${hasTradingData ? valueMode === "usd" ? `${formatPercent(viewMode === "year" ? summary.yearReturnPct : summary.monthReturnPct)} sobre balance inicial ${viewMode === "year" ? "del año" : "del mes"}` : `Rentabilidad ${viewMode === "year" ? "del año" : "del mes"} sobre balance inicial` : `Sin muestra ${viewMode === "year" ? "anual" : "mensual"} todavía`}</div>
         </article>
 
@@ -575,7 +585,7 @@ export function renderCalendar(root, state) {
                     </div>
                     <div class="calendar-day__body">
                       ${cell.trades && hasModel
-                        ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance)}</div>
+                        ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: cell.pnl, text: formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance), className: cell.pnl >= 0 ? "metric-positive" : "metric-negative" })}</div>
                            <div class="calendar-day__meta">${tradesLabel}</div>`
                         : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
                     </div>
@@ -590,7 +600,9 @@ export function renderCalendar(root, state) {
                   ${monthView.weeks.map((week) => `
                     <article class="calendar-week-chip">
                       <div class="calendar-week-chip__label">${week.label}</div>
-                      <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">${formatCurrency(week.pnl)}</div>
+                      <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">
+                        ${pnlTextMarkup({ value: week.pnl, text: formatCurrency(week.pnl), className: week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : "" })}
+                      </div>
                       <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} trades</div>
                     </article>
                   `).join("")}
