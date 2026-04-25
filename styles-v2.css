@@ -17079,6 +17079,8 @@ body[data-theme="dark"] #section-discipline .execution-entry-empty small {
 /* === RULE PROFILES === */
 html[data-theme="dark"] #section-discipline #discipline-profile-manager,
 body[data-theme="dark"] #section-discipline #discipline-profile-manager {
+  position: relative;
+  z-index: 20;
   display: grid;
 }
 
@@ -17819,6 +17821,12 @@ body[data-theme="dark"] #section-discipline .rule-profile-weight-menu {
   background: #181818;
   box-shadow: 0 12px 32px rgba(0,0,0,0.28);
   overflow: hidden;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group:last-child .rule-profile-weight-menu,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group:last-child .rule-profile-weight-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button,
