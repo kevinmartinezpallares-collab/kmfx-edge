@@ -1,6 +1,7 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -1346,16 +1347,19 @@ export function renderDashboard(root, state) {
 
   root.innerHTML = `
     <section class="dashboard-screen dashboard-page-flow">
-      <header class="calendar-screen__header dashboard-screen__header">
-        <div class="calendar-screen__copy">
-          <div class="calendar-screen__eyebrow">Dashboard</div>
-          <h1 class="calendar-screen__title">Dashboard</h1>
-          <p class="calendar-screen__subtitle" data-dashboard-subtitle>${dashboardSubtitle}</p>
-        </div>
-        <div class="dashboard-screen__actions">
-          <button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>
-        </div>
-      </header>
+      ${pageHeaderMarkup({
+        eyebrow: "Dashboard",
+        title: "Dashboard",
+        description: dashboardSubtitle,
+        className: "calendar-screen__header dashboard-screen__header",
+        contentClassName: "calendar-screen__copy",
+        eyebrowClassName: "calendar-screen__eyebrow",
+        titleClassName: "calendar-screen__title",
+        descriptionClassName: "calendar-screen__subtitle",
+        descriptionAttributes: { "data-dashboard-subtitle": true },
+        actionsClassName: "dashboard-screen__actions",
+        actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
+      })}
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
