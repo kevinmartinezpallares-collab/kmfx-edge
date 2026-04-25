@@ -1,5 +1,5 @@
 import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, renderAuthorityNotice, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const accountMeshMarkup = () => `
   <div class="account-card-blobs" aria-hidden="true">
@@ -79,7 +79,13 @@ function renderPortfolioAccountCard(account, isMain) {
         <div class="account-hero-card__stats" style="${statsInlineStyle}">
           <div>
             <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">P&amp;L</div>
-            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">${formatCurrency(pnl)}</div>
+            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">
+              ${pnlTextMarkup({
+                value: pnl,
+                text: formatCurrency(pnl),
+                className: pnl >= 0 ? "green" : "metric-negative",
+              })}
+            </div>
           </div>
           <div>
             <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
@@ -178,7 +184,13 @@ export function renderPortfolio(root, state) {
                 <td class="table-num">${position.current}</td>
                 <td class="table-num">${position.sl}</td>
                 <td class="table-num">${position.tp}</td>
-                <td class="table-num ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(position.pnl)}</td>
+                <td class="table-num">
+                  ${pnlTextMarkup({
+                    value: position.pnl,
+                    text: formatCurrency(position.pnl),
+                    className: position.pnl >= 0 ? "metric-positive" : "metric-negative",
+                  })}
+                </td>
                 <td>${formatDateTime(position.openedAt)}</td>
               </tr>
             `).join("")}
