@@ -3,7 +3,7 @@ import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveA
 import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 
@@ -607,10 +607,11 @@ function resolveAccountPnlValue(account, activeAccount = null) {
 
 function resolveAccountPnlLabel(account, activeAccount = null) {
   const pnlValue = resolveAccountPnlValue(account, activeAccount);
-  if (!Number.isFinite(pnlValue)) return { label: "—", tone: "neutral" };
+  if (!Number.isFinite(pnlValue)) return { label: "—", tone: "neutral", value: null };
   return {
     label: formatCurrency(pnlValue, account.currency || account.account_currency || activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency),
     tone: pnlValue > 0 ? "positive" : pnlValue < 0 ? "negative" : "neutral",
+    value: pnlValue,
   };
 }
 
@@ -690,7 +691,14 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">PnL actual</div>
-          <div class="connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">${escapeHtml(pnl.label)}</div>
+          <div class="connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">
+            ${pnlTextMarkup({
+              value: pnl.value,
+              text: pnl.label,
+              tone: pnl.tone === "positive" ? "profit" : pnl.tone === "negative" ? "loss" : "neutral",
+              className: `connections-account-card__pnl--${pnl.tone}`,
+            })}
+          </div>
         </div>
         <div class="connections-account-card__actions">
           <button
