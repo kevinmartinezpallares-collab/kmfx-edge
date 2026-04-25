@@ -350,6 +350,27 @@ function getWeightOption(value) {
   return WEIGHT_OPTIONS.find((option) => option.value === normalizeWeight(value)) || WEIGHT_OPTIONS[1];
 }
 
+function ruleWeightClass(weight) {
+  const normalized = normalizeWeight(weight);
+  if (normalized >= 3.0) return "is-absolute";
+  if (normalized >= 2.0) return "is-critical";
+  if (normalized <= 1.0) return "is-quiet";
+  return "is-standard";
+}
+
+function ruleGroupKey(rule = {}) {
+  const weight = normalizeWeight(rule.weight);
+  if (weight >= 2.0) return "critical";
+  if (["ob-entry", "valid-setup", "be-activation", "min-rr-ratio", "news-blackout"].includes(rule.id) || rule.isCustom) return "strategy";
+  return "process";
+}
+
+const RULE_GROUPS = [
+  { id: "critical", label: "CRÍTICAS" },
+  { id: "strategy", label: "ESTRATEGIA" },
+  { id: "process", label: "PROCESO" }
+];
+
 function hasProfileNormalizationDrift(raw, normalized) {
   try {
     const rawWeights = (raw?.profiles || []).flatMap((profile) => (profile.rules || []).map((rule) => Number(rule.weight)));
@@ -1095,7 +1116,8 @@ function renderAddRuleDropdown(profile, profileState) {
               </button>
             `;
           }).join("") : `<p>No hay reglas personalizadas disponibles para añadir.</p>`}
-          <button type="button" data-rule-action="new-custom-rule">
+          <div class="rule-profile-add-separator" aria-hidden="true"></div>
+          <button type="button" class="rule-profile-add-create" data-rule-action="new-custom-rule">
             <strong>Crear regla nueva</strong>
             <small>Definir regla local para este perfil</small>
           </button>
@@ -1243,6 +1265,67 @@ function renderProfileCards(profileState, activeProfile) {
 
 function renderProfileEditor(profile, profileState) {
   const rules = Array.isArray(profile?.rules) ? profile.rules : [];
+  const groupedRules = RULE_GROUPS.map((group) => ({
+    ...group,
+    rules: rules
+      .filter((rule) => ruleGroupKey(rule) === group.id)
+      .sort((a, b) => normalizeWeight(b.weight) - normalizeWeight(a.weight))
+  })).filter((group) => group.rules.length);
+  const renderRule = (rule) => {
+    const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
+    const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
+    const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
+    const activeRules = rules.filter((item) => item.enabled !== false);
+    const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
+    const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
+    return `
+      <div class="rule-profile-rule ${ruleWeightClass(rule.weight)}${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
+        <label class="rule-profile-toggle">
+          <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
+          <span></span>
+        </label>
+        <div class="rule-profile-rule__copy">
+          <strong>${escapeHtml(rule.name)}</strong>
+          <p>${escapeHtml(rule.description)}</p>
+        </div>
+        <span class="rule-profile-badge">${escapeHtml(sourceLabel(rule.source))}${escapeHtml(pendingBadge)}</span>
+        ${renderWeightDropdown(rule, profileState)}
+        ${rule.isCustom ? `
+          <div class="rule-profile-custom-actions">
+            <button type="button" class="rule-profile-custom-menu-trigger" data-custom-rule-menu="${escapeHtml(rule.id)}" aria-label="Opciones de regla personalizada">···</button>
+            ${isCustomMenuOpen ? `
+              <div class="rule-profile-custom-menu">
+                <button type="button" data-custom-rule-edit="${escapeHtml(rule.id)}">Editar regla</button>
+                <button type="button" class="danger" data-custom-rule-delete="${escapeHtml(rule.id)}">Eliminar regla</button>
+                ${isConfirmingCustomDelete ? `
+                  <div class="rule-profile-custom-confirm">
+                    <strong>Eliminar regla</strong>
+                    <p>Esta regla personalizada está disponible en varios perfiles.</p>
+                    <div>
+                      <button type="button" data-custom-rule-cancel-delete="${escapeHtml(rule.id)}">Cancelar</button>
+                      <button type="button" data-custom-rule-disable-all="${escapeHtml(rule.id)}">Desactivar en todos</button>
+                      <button type="button" class="danger" data-custom-rule-delete-all="${escapeHtml(rule.id)}">Eliminar de todos</button>
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+          </div>
+        ` : `<span></span>`}
+        <button type="button" class="rule-profile-remove" data-rule-remove="${escapeHtml(rule.id)}" ${cannotRemove ? "disabled" : ""} aria-label="Quitar regla">×</button>
+        ${isConfirmingRemove ? `
+          <div class="rule-profile-rule-confirm">
+            <strong>Quitar regla</strong>
+            <p>La regla dejará de afectar al score de este perfil.</p>
+            <div>
+              <button type="button" data-rule-remove-cancel="${escapeHtml(rule.id)}">Cancelar</button>
+              <button type="button" class="danger" data-rule-remove-confirm="${escapeHtml(rule.id)}">Quitar</button>
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  };
   return `
     <div class="rule-profile-editor">
       <div class="rule-profile-editor__head">
@@ -1256,61 +1339,12 @@ function renderProfileEditor(profile, profileState) {
       ${renderProfileWarnings(profile)}
       ${renderCustomRuleForm(profileState)}
       <div class="rule-profile-rule-list">
-        ${rules.map((rule) => {
-          const isConfirmingRemove = profileState.confirmRuleRemoveId === rule.id;
-          const isCustomMenuOpen = profileState.openCustomRuleMenuId === rule.id;
-          const isConfirmingCustomDelete = profileState.confirmCustomRuleDeleteId === rule.id;
-          const activeRules = rules.filter((item) => item.enabled !== false);
-          const cannotRemove = rule.enabled !== false && activeRules.length <= 1;
-          const pendingBadge = rule.isCustom && rule.pendingImplementation ? " · requiere configuración" : "";
-          return `
-          <div class="rule-profile-rule${rule.enabled === false ? " is-disabled" : ""}${isCustomMenuOpen ? " custom-menu-open" : ""}" data-rule-id="${escapeHtml(rule.id)}">
-            <label class="rule-profile-toggle">
-              <input type="checkbox" data-rule-toggle="${escapeHtml(rule.id)}" ${rule.enabled !== false ? "checked" : ""}>
-              <span></span>
-            </label>
-            <div class="rule-profile-rule__copy">
-              <strong>${escapeHtml(rule.name)}</strong>
-              <p>${escapeHtml(rule.description)}</p>
-            </div>
-            <span class="rule-profile-badge">${escapeHtml(sourceLabel(rule.source))}${escapeHtml(pendingBadge)}</span>
-            ${renderWeightDropdown(rule, profileState)}
-            ${rule.isCustom ? `
-              <div class="rule-profile-custom-actions">
-                <button type="button" class="rule-profile-custom-menu-trigger" data-custom-rule-menu="${escapeHtml(rule.id)}" aria-label="Opciones de regla personalizada">···</button>
-                ${isCustomMenuOpen ? `
-                  <div class="rule-profile-custom-menu">
-                    <button type="button" data-custom-rule-edit="${escapeHtml(rule.id)}">Editar regla</button>
-                    <button type="button" class="danger" data-custom-rule-delete="${escapeHtml(rule.id)}">Eliminar regla</button>
-                    ${isConfirmingCustomDelete ? `
-                      <div class="rule-profile-custom-confirm">
-                        <strong>Eliminar regla</strong>
-                        <p>Esta regla personalizada está disponible en varios perfiles.</p>
-                        <div>
-                          <button type="button" data-custom-rule-cancel-delete="${escapeHtml(rule.id)}">Cancelar</button>
-                          <button type="button" data-custom-rule-disable-all="${escapeHtml(rule.id)}">Desactivar en todos</button>
-                          <button type="button" class="danger" data-custom-rule-delete-all="${escapeHtml(rule.id)}">Eliminar de todos</button>
-                        </div>
-                      </div>
-                    ` : ""}
-                  </div>
-                ` : ""}
-              </div>
-            ` : `<span></span>`}
-            <button type="button" class="rule-profile-remove" data-rule-remove="${escapeHtml(rule.id)}" ${cannotRemove ? "disabled" : ""} aria-label="Quitar regla">×</button>
-            ${isConfirmingRemove ? `
-              <div class="rule-profile-rule-confirm">
-                <strong>Quitar regla</strong>
-                <p>La regla dejará de afectar al score de este perfil.</p>
-                <div>
-                  <button type="button" data-rule-remove-cancel="${escapeHtml(rule.id)}">Cancelar</button>
-                  <button type="button" class="danger" data-rule-remove-confirm="${escapeHtml(rule.id)}">Quitar</button>
-                </div>
-              </div>
-            ` : ""}
+        ${groupedRules.map((group) => `
+          <div class="rule-profile-rule-group" data-rule-group="${escapeHtml(group.id)}">
+            <span>${escapeHtml(group.label)}</span>
+            ${group.rules.map(renderRule).join("")}
           </div>
-        `;
-        }).join("")}
+        `).join("")}
       </div>
     </div>
   `;
