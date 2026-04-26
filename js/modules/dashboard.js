@@ -718,20 +718,29 @@ function buildDashboardDecisionSummary({
   const maxRiskPerTradePct = Number(riskSummary?.maxRiskPerTradePct || 0);
   const riskState = String(riskStatus?.riskStatus || "").toLowerCase();
   const severity = String(riskStatus?.severity || "").toLowerCase();
+  const explicitRiskBreach = Boolean(
+    riskStatus?.riskBreach ||
+    riskStatus?.breach ||
+    riskStatus?.isBreach ||
+    riskSummary?.riskBreach ||
+    riskSummary?.breach
+  );
   const hardEnforcement = Boolean(
     riskStatus?.blockNewTrades ||
     riskStatus?.reduceSize ||
     riskStatus?.closePositionsRequired ||
+    explicitRiskBreach ||
     ["blocked", "breach"].includes(riskState) ||
     severity === "critical"
   );
   const nearDailyLimit = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.85;
   const dailyPressure = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.6;
   const distanceIsKnown = Number.isFinite(Number(primaryDistanceToLimit)) && Number(primaryDistanceToLimit) > 0;
-  const lowRiskMargin = distanceIsKnown && Number(primaryDistanceToLimit) <= 0.35;
-  const openRiskElevated = totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25);
-  const openRiskPressure = totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct || 0.5, 0.75);
-  const tradeRiskPressure = maxRiskPerTradePct > 0 && maxOpenTradeRiskPct >= maxRiskPerTradePct * 0.8;
+  const riskSignalActive = hasOpenPositions || dailyDrawdownPct > 0 || currentDrawdownPct > 0 || hardEnforcement;
+  const lowRiskMargin = riskSignalActive && distanceIsKnown && Number(primaryDistanceToLimit) <= 0.35;
+  const openRiskElevated = hasOpenPositions && totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25);
+  const openRiskPressure = hasOpenPositions && totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct || 0.5, 0.75);
+  const tradeRiskPressure = hasOpenPositions && maxRiskPerTradePct > 0 && maxOpenTradeRiskPct >= maxRiskPerTradePct * 0.8;
   const sampleIsEnough = totalTrades >= DASHBOARD_MIN_SAMPLE_TRADES;
   const performancePressure = sampleIsEnough && (
     Number(panelSecondMetricValue || 0) < 0 &&
@@ -749,7 +758,7 @@ function buildDashboardDecisionSummary({
     openRiskText: hasOpenPositions
       ? `${formatRiskValuePct(totalOpenRiskPct, 2)} · ${Number(performanceView?.openPositionsCount || 0)} posiciones`
       : "Sin exposición",
-    sampleText: `${totalTrades} trades · ${totalTrades > 0 ? formatPercent(winRate / 100) : "—"} win rate`,
+    sampleText: `${totalTrades} trades · WR ${totalTrades > 0 ? formatPercent(winRate / 100) : "—"}`,
     edgeText: Number.isFinite(profitFactor) && profitFactor > 0 ? `PF ${profitFactor.toFixed(2)}` : "PF —",
   };
 
@@ -804,7 +813,7 @@ function buildDashboardDecisionSummary({
     causeTitle = "Sin presión operativa";
     causeDescription = "La exposición abierta es cero y no hay enforcement activo.";
     actionTitle = "Prepara la sesión";
-    actionDescription = "Mantén riesgo actual y sigue registrando.";
+    actionDescription = "Mantén seguimiento y espera una nueva oportunidad válida.";
   }
 
   const tone = getDashboardDecisionTone(statusTitle);
