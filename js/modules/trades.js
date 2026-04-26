@@ -496,6 +496,72 @@ function addLongPress(element, callback, delay = 500) {
   element.addEventListener("touchcancel", () => clearTimeout(timer));
 }
 
+function captureTradesViewState(root, control) {
+  const scrollContainers = [];
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  if (scrollingElement) {
+    scrollContainers.push({ element: scrollingElement, top: scrollingElement.scrollTop, left: scrollingElement.scrollLeft });
+  }
+
+  for (let element = root?.parentElement; element; element = element.parentElement) {
+    scrollContainers.push({ element, top: element.scrollTop, left: element.scrollLeft });
+  }
+
+  const tableScroll = root.querySelector(".trades-table-wrap");
+  const selectionStart = typeof control?.selectionStart === "number" ? control.selectionStart : null;
+  const selectionEnd = typeof control?.selectionEnd === "number" ? control.selectionEnd : null;
+
+  return {
+    field: control?.dataset?.tradesFilter || "",
+    selectionStart,
+    selectionEnd,
+    scrollContainers,
+    tableScrollTop: tableScroll?.scrollTop || 0,
+    tableScrollLeft: tableScroll?.scrollLeft || 0,
+  };
+}
+
+function restoreTradesViewState(root, viewState, { restoreFocus = true } = {}) {
+  if (!viewState) return;
+
+  viewState.scrollContainers?.forEach(({ element, top, left }) => {
+    if (!element) return;
+    element.scrollTop = top;
+    element.scrollLeft = left;
+  });
+
+  const tableScroll = root.querySelector(".trades-table-wrap");
+  if (tableScroll) {
+    tableScroll.scrollTop = viewState.tableScrollTop;
+    tableScroll.scrollLeft = viewState.tableScrollLeft;
+  }
+
+  if (!restoreFocus || !viewState.field) return;
+  const nextControl = root.querySelector(`[data-trades-filter="${viewState.field}"]`);
+  if (!nextControl) return;
+
+  nextControl.focus({ preventScroll: true });
+  if (
+    typeof nextControl.setSelectionRange === "function" &&
+    viewState.selectionStart !== null &&
+    viewState.selectionEnd !== null
+  ) {
+    nextControl.setSelectionRange(viewState.selectionStart, viewState.selectionEnd);
+  }
+}
+
+function updateTradeFilterAndRender(root, state, input) {
+  const viewState = captureTradesViewState(root, input);
+  const next = getTradeFilters(root);
+  const field = input.dataset.tradesFilter;
+  next[field] = field === "query" ? input.value.trim().toLowerCase() : input.value;
+  next.queryRaw = field === "query" ? input.value : next.queryRaw;
+  root.__tradeFilters = next;
+  renderTrades(root, state);
+  restoreTradesViewState(root, viewState);
+  window.requestAnimationFrame?.(() => restoreTradesViewState(root, viewState, { restoreFocus: false }));
+}
+
 function showTradeContextMenu(trade) {
   if (!trade) return;
   openFocusPanel({
@@ -775,20 +841,10 @@ export function renderTrades(root, state) {
 
   root.querySelectorAll("[data-trades-filter]").forEach((input) => {
     input.addEventListener("input", () => {
-      const next = getTradeFilters(root);
-      const field = input.dataset.tradesFilter;
-      next[field] = field === "query" ? input.value.trim().toLowerCase() : input.value;
-      next.queryRaw = field === "query" ? input.value : next.queryRaw;
-      root.__tradeFilters = next;
-      renderTrades(root, state);
+      updateTradeFilterAndRender(root, state, input);
     });
     input.addEventListener("change", () => {
-      const next = getTradeFilters(root);
-      const field = input.dataset.tradesFilter;
-      next[field] = field === "query" ? input.value.trim().toLowerCase() : input.value;
-      next.queryRaw = field === "query" ? input.value : next.queryRaw;
-      root.__tradeFilters = next;
-      renderTrades(root, state);
+      updateTradeFilterAndRender(root, state, input);
     });
   });
 
