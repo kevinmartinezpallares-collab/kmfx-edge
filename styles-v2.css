@@ -17447,7 +17447,7 @@ html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade,
 body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade {
   display: block;
   margin-top: 4px;
-  color: color-mix(in srgb, var(--ring) 54%, var(--muted-foreground));
+  color: color-mix(in srgb, var(--muted-foreground) 72%, var(--foreground));
   font-size: 10px;
   line-height: 1.1;
   font-weight: 620;
