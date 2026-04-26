@@ -1,11 +1,10 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
-import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
-  renderEnforcementPanel,
   renderOpenTradeRiskTable,
   renderRiskStatusBadge,
   renderSymbolExposureTable,
@@ -464,6 +463,95 @@ function riskStateDisplayLabel(riskState) {
   if (normalized === "breach") return "Reducir exposición";
   if (normalized === "warning") return "Riesgo moderado";
   return "Dentro de límites";
+}
+
+function dashboardEnforcementTone(value, activeTone = "risk") {
+  return value ? activeTone : "neutral";
+}
+
+function renderDashboardEnforcementRow({ label, description, value, tone = "neutral" }) {
+  return `
+    <div class="dashboard-enforcement-row">
+      <div>
+        <span class="dashboard-enforcement-row__label">${escapeDashboardHtml(label)}</span>
+        <p class="dashboard-enforcement-row__description">${escapeDashboardHtml(description)}</p>
+      </div>
+      ${kmfxBadgeMarkup({
+        text: value,
+        tone,
+        className: "dashboard-enforcement-status",
+      })}
+    </div>
+  `;
+}
+
+function renderDashboardEnforcementCard(riskStatus = {}) {
+  const blockNewTrades = Boolean(riskStatus.blockNewTrades);
+  const reduceSize = Boolean(riskStatus.reduceSize);
+  const closePositionsRequired = Boolean(riskStatus.closePositionsRequired);
+  const hasAllowNewTradesFlag = typeof riskStatus.allowNewTrades === "boolean";
+  const allowNewTrades = riskStatus.allowNewTrades === true && !blockNewTrades;
+  const newTradesValue = blockNewTrades
+    ? "Bloqueadas"
+    : hasAllowNewTradesFlag
+      ? (allowNewTrades ? "Permitidas" : "No permitidas")
+      : "Sin dato";
+  const hasSpecificRestriction = blockNewTrades || reduceSize || closePositionsRequired || (hasAllowNewTradesFlag && !allowNewTrades);
+  const normalizedStatus = String(riskStatus.riskStatus || "").toLowerCase();
+  const statusTone = normalizedStatus === "blocked" || normalizedStatus === "breach"
+    ? "risk"
+    : normalizedStatus === "warning"
+      ? "warning"
+      : "info";
+  const description = hasSpecificRestriction
+    ? "El Risk Engine está aplicando restricciones para proteger la cuenta."
+    : "El Risk Engine detectó una condición de vigilancia; revisa el estado antes de continuar.";
+
+  return `
+    <section class="dashboard-section-stack dashboard-enforcement">
+      <article class="kmfx-ui-card dashboard-enforcement__card">
+        <header class="dashboard-enforcement__header">
+          <div>
+            <p class="dashboard-enforcement__eyebrow">Risk Engine</p>
+            <h2 class="dashboard-enforcement__title">Protección activa</h2>
+            <p class="dashboard-enforcement__description">${description}</p>
+          </div>
+          ${kmfxBadgeMarkup({
+            text: riskStateDisplayLabel(riskStatus.riskStatus),
+            tone: statusTone,
+            className: "dashboard-enforcement__badge",
+          })}
+        </header>
+
+        <div class="dashboard-enforcement__grid">
+          ${renderDashboardEnforcementRow({
+            label: "Nuevas operaciones",
+            description: "Permiso actual para abrir entradas nuevas.",
+            value: newTradesValue,
+            tone: blockNewTrades || (hasAllowNewTradesFlag && !allowNewTrades) ? "risk" : "neutral",
+          })}
+          ${renderDashboardEnforcementRow({
+            label: "Tamaño de posición",
+            description: "Control sobre exposición incremental.",
+            value: reduceSize ? "Reducir" : "Sin ajuste",
+            tone: dashboardEnforcementTone(reduceSize, "warning"),
+          })}
+          ${renderDashboardEnforcementRow({
+            label: "Cierre requerido",
+            description: "Señal interna para cerrar posiciones.",
+            value: closePositionsRequired ? "Sí" : "No",
+            tone: dashboardEnforcementTone(closePositionsRequired, "risk"),
+          })}
+          ${renderDashboardEnforcementRow({
+            label: "Estado general",
+            description: riskStatus.actionRequired || "Sigue el estado operativo antes de ampliar exposición.",
+            value: riskStateDisplayLabel(riskStatus.riskStatus),
+            tone: statusTone,
+          })}
+        </div>
+      </article>
+    </section>
+  `;
 }
 
 function getDashboardKpiTone(value) {
@@ -1958,17 +2046,7 @@ export function renderDashboard(root, state) {
       ` : ""}
 
       ${hasEnforcementSignal ? `
-        <section class="dashboard-section-stack">
-          <article class="tl-section-card dashboard-section-card">
-            <div class="calendar-panel-head">
-              <div>
-                <div class="calendar-panel-title">Enforcement</div>
-                <div class="calendar-panel-sub">Decisión operativa del motor de riesgo.</div>
-              </div>
-            </div>
-            ${renderEnforcementPanel(riskStatus)}
-          </article>
-        </section>
+        ${renderDashboardEnforcementCard(riskStatus)}
       ` : ""}
 
       ${hasOpenTradeRisk ? `
