@@ -1453,6 +1453,138 @@ body::after {
   }
 }
 
+/* --------------------------------------------------------------------------
+   Dashboard — KPI Row
+-------------------------------------------------------------------------- */
+
+.dashboard-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.dashboard-kpi-card {
+  min-height: 128px;
+  padding: 15px 16px 16px;
+  gap: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.5%, transparent), transparent 60%),
+    var(--card);
+}
+
+.dashboard-kpi-card .kmfx-ui-kpi__top {
+  min-height: 28px;
+}
+
+.dashboard-kpi-card .kmfx-ui-kpi__icon {
+  width: 28px;
+  height: 28px;
+  background: color-mix(in srgb, var(--foreground) 3.5%, transparent);
+}
+
+.dashboard-kpi-card__marker {
+  width: 7px;
+  height: 7px;
+  background: var(--muted-foreground);
+  border-radius: var(--control-radius-pill);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--muted-foreground) 8%, transparent);
+}
+
+.dashboard-kpi-card[data-tone="profit"] .dashboard-kpi-card__marker {
+  background: var(--profit);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--profit) 10%, transparent);
+}
+
+.dashboard-kpi-card[data-tone="loss"] .dashboard-kpi-card__marker {
+  background: var(--loss);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--loss) 10%, transparent);
+}
+
+.dashboard-kpi-card[data-tone="warning"],
+.dashboard-kpi-card[data-tone="risk"] {
+  border-color: color-mix(in srgb, var(--risk) 18%, var(--border));
+}
+
+.dashboard-kpi-card[data-tone="warning"] .dashboard-kpi-card__marker,
+.dashboard-kpi-card[data-tone="risk"] .dashboard-kpi-card__marker {
+  background: var(--risk);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--risk) 10%, transparent);
+}
+
+.dashboard-kpi-card[data-tone="info"] .dashboard-kpi-card__marker {
+  background: var(--equity);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--equity) 10%, transparent);
+}
+
+.dashboard-kpi-card .kmfx-ui-kpi__body {
+  gap: 8px;
+}
+
+.dashboard-kpi-card .kmfx-ui-kpi__value {
+  color: inherit;
+  font-size: inherit;
+  line-height: normal;
+  font-weight: inherit;
+  letter-spacing: normal;
+}
+
+.dashboard-kpi-card__value-stack {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.dashboard-kpi-card__metric {
+  color: var(--foreground);
+  font-size: clamp(26px, 2.55vw, 34px);
+  line-height: 0.98;
+  font-weight: 720;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-kpi-card[data-dashboard-kpi="equity"] .dashboard-kpi-card__metric {
+  font-size: clamp(22px, 2.2vw, 30px);
+}
+
+.dashboard-kpi-card[data-tone="profit"] .dashboard-kpi-card__metric {
+  color: var(--profit);
+}
+
+.dashboard-kpi-card[data-tone="loss"] .dashboard-kpi-card__metric {
+  color: var(--loss);
+}
+
+.dashboard-kpi-card[data-tone="warning"] .dashboard-kpi-card__metric,
+.dashboard-kpi-card[data-tone="risk"] .dashboard-kpi-card__metric {
+  color: var(--risk);
+}
+
+.dashboard-kpi-card[data-tone="info"] .dashboard-kpi-card__metric {
+  color: var(--equity);
+}
+
+.dashboard-kpi-card__meta {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 520;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .kmfx-ui-decision-layer__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

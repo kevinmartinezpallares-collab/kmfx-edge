@@ -1,7 +1,7 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -467,14 +467,70 @@ function riskStateDisplayLabel(riskState) {
   return "Dentro de límites";
 }
 
-function renderDashboardKpiCard({ key = "", label, value, valueClass = "", meta = "", trend = "", trendTone = "", cardClass = "" }) {
+function getDashboardKpiTone(value) {
+  const numericValue = Number(value || 0);
+  if (numericValue > 0) return "profit";
+  if (numericValue < 0) return "loss";
+  return "neutral";
+}
+
+function getDashboardDrawdownKpiTone(drawdownPct) {
+  const valueClass = getDrawdownValueClass(drawdownPct);
+  if (valueClass === "metric-negative") return "risk";
+  if (valueClass === "metric-warning") return "warning";
+  return "neutral";
+}
+
+function renderDashboardKpiValue({ key = "", value, valueClass = "", tone = "neutral", meta = "", trend = "" }) {
+  const metaHtml = (meta || trend)
+    ? `<span class="dashboard-kpi-card__meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" / ")}</span>`
+    : "";
+
+  if (key === "pnl") {
+    return `
+      <span class="dashboard-kpi-card__value-stack">
+        ${pnlTextMarkup({
+          value,
+          text: value,
+          tone,
+          className: `dashboard-kpi-card__metric ${valueClass}`,
+          attrs: { "data-kpi-value": true },
+        })}
+        ${metaHtml}
+      </span>
+    `;
+  }
+
   return `
-    <article class="widget-card widget-card--kpi ${cardClass}" ${key ? `data-dashboard-kpi="${key}"` : ""}>
-      <div class="tl-kpi-label">${label}</div>
-      <div class="tl-kpi-val ${valueClass}" data-kpi-value>${value}</div>
-      ${(meta || trend) ? `<div class="widget-card-meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" / ")}</div>` : ""}
-    </article>
+    <span class="dashboard-kpi-card__value-stack">
+      <span class="dashboard-kpi-card__metric ${escapeDashboardHtml(valueClass)}" data-kpi-value>${escapeDashboardHtml(value)}</span>
+      ${metaHtml}
+    </span>
   `;
+}
+
+function renderDashboardKpiCard({
+  key = "",
+  label,
+  value,
+  valueClass = "",
+  meta = "",
+  trend = "",
+  trendTone = "",
+  cardClass = "",
+  tone = "neutral",
+  badge = "",
+}) {
+  return kpiCardMarkup({
+    label,
+    valueHtml: renderDashboardKpiValue({ key, value, valueClass, tone, meta, trend }),
+    iconHtml: `<span class="dashboard-kpi-card__marker" aria-hidden="true"></span>`,
+    trend: badge,
+    trendTone: trendTone || tone,
+    tone,
+    className: `dashboard-kpi-card ${cardClass}`,
+    attrs: key ? { "data-dashboard-kpi": key } : {},
+  });
 }
 
 function setNodeHTML(root, selector, value) {
@@ -544,6 +600,15 @@ function updateDashboardLiveNodes(root, payload) {
     (value) => `${value >= 0 ? "+" : "-"}${formatCurrency(Math.abs(value))}`,
     720,
   );
+  const pnlKpiTone = getDashboardKpiTone(payload.pnlValue);
+  const pnlKpi = root.querySelector('[data-dashboard-kpi="pnl"]');
+  const pnlValueNode = pnlKpi?.querySelector("[data-kpi-value]");
+  if (pnlKpi) pnlKpi.setAttribute("data-tone", pnlKpiTone);
+  if (pnlValueNode) {
+    pnlValueNode.setAttribute("data-tone", pnlKpiTone);
+    pnlValueNode.classList.toggle("metric-positive", pnlKpiTone === "profit");
+    pnlValueNode.classList.toggle("metric-negative", pnlKpiTone === "loss");
+  }
   setNodeText(root, '[data-dashboard-kpi="pnl"] [data-kpi-meta]', payload.pnlMeta);
   animateNumberContent(
     root.querySelector('[data-dashboard-kpi="dd"] [data-kpi-value]'),
@@ -555,6 +620,8 @@ function updateDashboardLiveNodes(root, payload) {
     "metric-warning": payload.drawdownTone === "warning",
     "metric-negative": payload.drawdownTone === "risk",
   });
+  const drawdownKpi = root.querySelector('[data-dashboard-kpi="dd"]');
+  if (drawdownKpi) drawdownKpi.setAttribute("data-tone", payload.drawdownTone);
   setNodeText(root, '[data-dashboard-kpi="dd"] [data-kpi-meta]', payload.drawdownMeta);
   setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-value]', payload.edgeValue);
   setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-meta]', payload.edgeMeta);
@@ -1717,12 +1784,15 @@ export function renderDashboard(root, state) {
 
       ${dashboardDecisionLayerHtml}
 
-      <section class="tl-kpi-row dashboard-summary-kpis">
+      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row">
         ${renderDashboardKpiCard({
           key: "equity",
           label: "Equity",
           value: formatCurrency(model.account.equity),
           meta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
+          tone: "info",
+          badge: "Actual",
+          trendTone: "neutral",
         })}
         ${renderDashboardKpiCard({
           key: "pnl",
@@ -1730,6 +1800,9 @@ export function renderDashboard(root, state) {
           value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(panelSecondMetricValue))}`,
           valueClass: panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative",
           meta: `Retorno ${formatPercent(currentReturnPct)}`,
+          tone: getDashboardKpiTone(panelSecondMetricValue),
+          badge: "PnL",
+          trendTone: "neutral",
         })}
         ${renderDashboardKpiCard({
           key: "dd",
@@ -1737,6 +1810,9 @@ export function renderDashboard(root, state) {
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
           valueClass: getDrawdownValueClass(riskSummary.peakToEquityDrawdownPct),
           meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+          tone: getDashboardDrawdownKpiTone(riskSummary.peakToEquityDrawdownPct),
+          badge: "Riesgo",
+          trendTone: "neutral",
         })}
         ${renderDashboardKpiCard({
           key: "edge",
@@ -1745,6 +1821,9 @@ export function renderDashboard(root, state) {
           meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} / ${Number(model?.totals?.totalTrades || 0)} trades`,
           valueClass: "dashboard-kpi-muted-value",
           cardClass: "dashboard-kpi-support",
+          tone: "neutral",
+          badge: "PF",
+          trendTone: "neutral",
         })}
       </section>
 
