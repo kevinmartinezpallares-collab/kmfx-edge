@@ -361,6 +361,73 @@ function renderTradesKpiRow({
   `;
 }
 
+function renderTradesOverviewSections({
+  bestSetup,
+  bestSetupLabel,
+  bestSession,
+  profitFactor,
+  symbols = []
+}) {
+  const bestSetupTone = toneFromValue(bestSetup?.pnl);
+  const bestSessionTone = toneFromValue(bestSession?.pnl);
+
+  return `
+    <div class="trades-overview-grid">
+      <article class="trades-overview-card" aria-label="Resumen operativo">
+        <header class="trades-overview-header">
+          <div>
+            <h2 class="trades-overview-title">Resumen Operativo</h2>
+            <p class="trades-overview-subtitle">Lectura rápida de edge, sesión y eficiencia.</p>
+          </div>
+        </header>
+        <div class="trades-overview-card__body">
+          <div class="trades-overview-row" data-tone="${escapeHtml(bestSetupTone)}">
+            <div>
+              <span class="trades-overview-row__label">Setup con mejor edge</span>
+              <span class="trades-overview-row__meta">Mayor P&amp;L agregado</span>
+            </div>
+            <strong class="trades-overview-row__value">${escapeHtml(bestSetupLabel)}</strong>
+          </div>
+          <div class="trades-overview-row" data-tone="${escapeHtml(bestSessionTone)}">
+            <div>
+              <span class="trades-overview-row__label">Sesión más rentable</span>
+              <span class="trades-overview-row__meta">Mejor distribución de P&amp;L</span>
+            </div>
+            <strong class="trades-overview-row__value">${escapeHtml(bestSession?.key || "—")}</strong>
+          </div>
+          <div class="trades-overview-row">
+            <div>
+              <span class="trades-overview-row__label">Profit factor</span>
+              <span class="trades-overview-row__meta">Eficiencia media de la ejecución</span>
+            </div>
+            <strong class="trades-overview-row__value">${escapeHtml(profitFactor.toFixed(2))}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="trades-overview-card trades-symbols-card" aria-label="Top símbolos">
+        <header class="trades-overview-header">
+          <div>
+            <h2 class="trades-overview-title">Top Símbolos</h2>
+            <p class="trades-overview-subtitle">Ranking por rendimiento agregado.</p>
+          </div>
+        </header>
+        <div class="trades-symbols-list">
+          ${symbols.slice(0, 4).map((symbol) => `
+            <div class="trades-symbol-row">
+              <div>
+                <div class="trades-symbol-name">${escapeHtml(symbol.key)}</div>
+                <div class="trades-symbol-meta">${escapeHtml(`${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%`)}</div>
+              </div>
+              ${pnlTextMarkup({ value: symbol.pnl, text: formatCurrency(symbol.pnl), className: "trades-symbol-value" })}
+            </div>
+          `).join("")}
+        </div>
+      </article>
+    </div>
+  `;
+}
+
 function buildTradeExecutiveRead(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   const bestExecution = executions.reduce((top, execution) => {
@@ -565,27 +632,13 @@ export function renderTrades(root, state) {
       avgDuration
     })}
 
-    <div class="grid-2 equal">
-      <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Resumen Operativo</div></div>
-        <div class="breakdown-list">
-          <div class="list-row"><div><div class="row-title">Setup con mejor edge</div><div class="row-sub">Mayor P&L agregado</div></div><div class="row-pnl ${bestSetup?.pnl >= 0 ? "metric-positive" : ""}">${bestSetupLabel}</div></div>
-          <div class="list-row"><div><div class="row-title">Sesión más rentable</div><div class="row-sub">Mejor distribución de P&L</div></div><div class="row-pnl ${bestSession?.pnl >= 0 ? "metric-positive" : "metric-negative"}">${bestSession?.key || "—"}</div></div>
-          <div class="list-row"><div><div class="row-title">Profit factor</div><div class="row-sub">Eficiencia media de la ejecución</div></div><div class="row-pnl">${model.totals.profitFactor.toFixed(2)}</div></div>
-        </div>
-      </article>
-      <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Top Símbolos</div></div>
-        <div class="breakdown-list">
-          ${model.symbols.slice(0, 4).map((symbol) => `
-            <div class="list-row">
-              <div><div class="row-title">${symbol.key}</div><div class="row-sub">${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%</div></div>
-              ${pnlTextMarkup({ value: symbol.pnl, text: formatCurrency(symbol.pnl), className: `row-pnl ${symbol.pnl >= 0 ? "metric-positive" : "metric-negative"}` })}
-            </div>
-          `).join("")}
-        </div>
-      </article>
-    </div>
+    ${renderTradesOverviewSections({
+      bestSetup,
+      bestSetupLabel,
+      bestSession,
+      profitFactor: model.totals.profitFactor,
+      symbols: model.symbols
+    })}
 
     <div class="tl-section-card">
       <div class="tl-section-header">

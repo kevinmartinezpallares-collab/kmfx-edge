@@ -14918,6 +14918,148 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   letter-spacing: inherit;
 }
 
+/* --------------------------------------------------------------------------
+   Operaciones — Overview Cards
+-------------------------------------------------------------------------- */
+.trades-screen .trades-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.trades-screen .trades-overview-card {
+  min-width: 0;
+  color: var(--card-foreground);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.8%, transparent), transparent 64%),
+    var(--layer-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.trades-screen .trades-overview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 17px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+}
+
+.trades-screen .trades-overview-title,
+.trades-screen .trades-overview-subtitle {
+  margin: 0;
+}
+
+.trades-screen .trades-overview-title {
+  color: var(--foreground);
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+}
+
+.trades-screen .trades-overview-subtitle {
+  margin-top: 5px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.trades-screen .trades-overview-card__body,
+.trades-screen .trades-symbols-list {
+  display: grid;
+  padding: 0 17px 6px;
+}
+
+.trades-screen .trades-overview-row,
+.trades-screen .trades-symbol-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 11px 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
+}
+
+.trades-screen .trades-overview-row:first-child,
+.trades-screen .trades-symbol-row:first-child {
+  border-top: 0;
+}
+
+.trades-screen .trades-overview-row > div {
+  min-width: 0;
+}
+
+.trades-screen .trades-overview-row__label,
+.trades-screen .trades-overview-row__meta,
+.trades-screen .trades-symbol-meta {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.trades-screen .trades-overview-row__label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 760;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
+}
+
+.trades-screen .trades-overview-row__value {
+  flex: 0 0 auto;
+  max-width: 44%;
+  color: var(--foreground);
+  font-size: clamp(16px, 1.25vw, 19px);
+  line-height: 1.1;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.trades-screen .trades-overview-row[data-tone="profit"] .trades-overview-row__value {
+  color: var(--profit);
+}
+
+.trades-screen .trades-overview-row[data-tone="loss"] .trades-overview-row__value {
+  color: var(--loss);
+}
+
+.trades-screen .trades-overview-row__meta {
+  display: block;
+}
+
+.trades-screen .trades-symbol-row > div {
+  min-width: 0;
+}
+
+.trades-screen .trades-symbol-name {
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 760;
+  letter-spacing: -0.015em;
+}
+
+.trades-screen .trades-symbol-meta {
+  margin-top: 5px;
+}
+
+.trades-screen .trades-symbol-value {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
 body[data-theme="dark"] .trades-screen .tl-kpi-card {
   position: relative;
@@ -15364,6 +15506,21 @@ body[data-theme="dark"] .trades-empty-state {
 @media (max-width: 760px) {
   .trades-screen .trades-kpi-row {
     grid-template-columns: 1fr;
+  }
+
+  .trades-screen .trades-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trades-screen .trades-overview-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .trades-screen .trades-overview-row__value {
+    max-width: none;
+    text-align: left;
   }
 
   .trades-screen .trades-truth-compact__grid {
