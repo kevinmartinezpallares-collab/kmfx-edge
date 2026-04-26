@@ -358,6 +358,12 @@ function formatCalendarDayLabel(dayKey) {
   return new Date(year, month - 1, day).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 }
 
+function formatCalendarSignedCurrency(value) {
+  const numericValue = Number(value || 0);
+  const formatted = formatCurrency(numericValue);
+  return numericValue > 0 ? `+${formatted}` : formatted;
+}
+
 function buildCalendarKpiReading({
   viewMode,
   monthView,
@@ -380,13 +386,18 @@ function buildCalendarKpiReading({
   const worstDay = periodDays.reduce((bottom, day) => !bottom || Number(day.pnl || 0) < Number(bottom.pnl || 0) ? day : bottom, null);
   const enoughSample = activeDays >= 3 && periodTrades >= 5;
   const materialWorstDay = worstDay && Number(worstDay.pnl || 0) < 0 && Math.abs(Number(worstDay.pnl || 0)) >= Math.max(Math.abs(periodPnl) * 0.55, 1);
-  const bestDayText = bestDay ? `${formatCalendarDayLabel(bestDay.key)} ${formatCurrency(bestDay.pnl)}` : "—";
-  const worstDayText = worstDay ? `${formatCalendarDayLabel(worstDay.key)} ${formatCurrency(worstDay.pnl)}` : "—";
-  const keyDayTitle = worstDay && Number(worstDay.pnl || 0) < 0
-    ? `Peor ${formatCalendarDayLabel(worstDay.key)}`
+  const periodUnderPressure = Boolean((periodPnl < 0 || materialWorstDay) && worstDay);
+  const bestDayLabel = bestDay ? formatCalendarDayLabel(bestDay.key) : "";
+  const worstDayLabel = worstDay ? formatCalendarDayLabel(worstDay.key) : "";
+  const bestDayText = bestDay ? `${formatCalendarSignedCurrency(bestDay.pnl)}` : "—";
+  const worstDayText = worstDay ? `${formatCalendarSignedCurrency(worstDay.pnl)}` : "—";
+  const keyDayTitle = bestDay && worstDay
+    ? `${bestDayLabel} / ${worstDayLabel}`
     : bestDay
-      ? `Mejor ${formatCalendarDayLabel(bestDay.key)}`
-      : "Sin días clave";
+      ? bestDayLabel
+      : worstDay
+        ? worstDayLabel
+        : "Sin días clave";
   const bestWorstMeta = bestDay || worstDay
     ? `Mejor ${bestDayText} · Peor ${worstDayText}`
     : "Sin días operados para comparar";
@@ -394,15 +405,17 @@ function buildCalendarKpiReading({
     ? "Sin operaciones"
     : !enoughSample
       ? "Sigue registrando"
-      : (periodPnl < 0 || materialWorstDay) && worstDay
-        ? "Revisa el peor día"
+      : worstDay
+        ? `Revisa el ${worstDayLabel}`
         : "Mes estable";
   const reviewMeta = !hasModel || !hasTradingData || periodTrades === 0 || activeDays === 0
     ? "Selecciona un periodo con operaciones"
     : !enoughSample
       ? "Falta muestra para concluir"
-      : (periodPnl < 0 || materialWorstDay) && worstDay
-        ? `${formatCalendarDayLabel(worstDay.key)} concentró el mayor daño`
+      : worstDay
+        ? periodUnderPressure
+          ? "Concentró el mayor daño del periodo"
+          : "Revisión ligera del día con menor aporte"
         : `${winDays} días positivos · ${lossDays} días negativos`;
 
   return {
@@ -410,6 +423,7 @@ function buildCalendarKpiReading({
     bestDay,
     bestWorstMeta,
     keyDayTitle,
+    periodUnderPressure,
     periodPnl,
     reviewMeta,
     reviewTitle,
@@ -592,16 +606,16 @@ export function renderCalendar(root, state) {
           label: "Días clave",
           value: hasModel ? calendarKpiReading.keyDayTitle : "Sin días clave",
           meta: hasTradingData ? calendarKpiReading.bestWorstMeta : "Sin sesiones para clasificar",
-          tone: calendarKpiReading.keyDayTitle.startsWith("Peor") ? "warning" : calendarKpiReading.bestDay && Number(calendarKpiReading.bestDay.pnl || 0) > 0 ? "profit" : "neutral",
-          className: "calendar-summary-card calendar-kpi-card",
+          tone: hasTradingData ? "info" : "neutral",
+          className: "calendar-summary-card calendar-kpi-card calendar-kpi-card--days",
         })}
 
         ${kpiCardMarkup({
           label: "Revisión sugerida",
           value: hasModel ? calendarKpiReading.reviewTitle : "Sin operaciones",
           meta: hasModel ? calendarKpiReading.reviewMeta : "Actividad pendiente de cargar",
-          tone: calendarKpiReading.reviewTitle === "Revisa el peor día" ? "warning" : calendarKpiReading.reviewTitle === "Sigue registrando" ? "info" : "neutral",
-          className: "calendar-summary-card calendar-kpi-card",
+          tone: calendarKpiReading.periodUnderPressure ? "warning" : calendarKpiReading.reviewTitle === "Sigue registrando" ? "info" : "neutral",
+          className: "calendar-summary-card calendar-kpi-card calendar-kpi-card--review",
         })}
       </section>
 

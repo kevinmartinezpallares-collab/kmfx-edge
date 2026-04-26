@@ -1486,6 +1486,22 @@ body::after {
   color: var(--risk);
 }
 
+.calendar-kpi-card--days .kmfx-ui-kpi__value,
+.calendar-kpi-card--review .kmfx-ui-kpi__value {
+  font-size: clamp(20px, 1.55vw, 24px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.calendar-kpi-card--days[data-tone="info"] .kmfx-ui-kpi__value {
+  color: var(--foreground);
+}
+
+.calendar-kpi-card--review:not([data-tone="warning"]) .kmfx-ui-kpi__value {
+  color: var(--foreground);
+}
+
 .calendar-kpi-card .kmfx-ui-kpi__meta {
   margin-top: 8px;
 }
