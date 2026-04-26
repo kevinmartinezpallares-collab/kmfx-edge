@@ -7,7 +7,6 @@ import {
   formatRiskValuePct,
   renderEnforcementPanel,
   renderOpenTradeRiskTable,
-  renderRiskMetricCard,
   renderRiskStatusBadge,
   renderSymbolExposureTable,
   riskToneFromStatus,
@@ -674,10 +673,10 @@ function updateDashboardLiveNodes(root, payload) {
 
 function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutral", valueAttr = "", metaAttr = "" }) {
   return `
-    <article class="risk-metric-card risk-metric-card--${tone}">
-      <div class="risk-metric-card__label">${label}</div>
-      <div class="risk-metric-card__value"${valueAttr ? ` ${valueAttr}` : ""}>${value}</div>
-      ${meta ? `<div class="risk-metric-card__meta"${metaAttr ? ` ${metaAttr}` : ""}>${meta}</div>` : ""}
+    <article class="dashboard-state-metric" data-tone="${tone}">
+      <div class="dashboard-state-metric__label">${label}</div>
+      <div class="dashboard-state-metric__value"${valueAttr ? ` ${valueAttr}` : ""}>${value}</div>
+      ${meta ? `<div class="dashboard-state-metric__meta"${metaAttr ? ` ${metaAttr}` : ""}>${meta}</div>` : ""}
     </article>
   `;
 }
@@ -1742,7 +1741,7 @@ export function renderDashboard(root, state) {
     dailyDdValue: Number(riskSummary.dailyDrawdownPct || 0),
     dailyDdMeta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
     marginValue: Number(primaryDistanceToLimit || 0),
-    marginMeta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+    marginMeta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Diario ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
     stateValue: riskStateLabel,
     stateMeta: operationalRead.detail,
     operationalFoot: operationalRead.footer || "",
@@ -1846,20 +1845,20 @@ export function renderDashboard(root, state) {
           </div>
         </article>
 
-        <div class="dashboard-secondary-stack">
-          <article class="tl-section-card dashboard-secondary-card">
-            <div class="calendar-panel-head dashboard-secondary-card__head">
+        <div class="dashboard-secondary-stack dashboard-state-grid">
+          <article class="kmfx-ui-card dashboard-state-card dashboard-secondary-card" data-dashboard-state-card="operational">
+            <header class="dashboard-state-card__header dashboard-secondary-card__head">
               <div>
-                <div class="calendar-panel-title">Estado operativo</div>
-                <div class="calendar-panel-sub" data-dashboard-operational-summary>${operationalRead.summary}</div>
+                <h2 class="dashboard-state-card__title">Estado operativo</h2>
+                <p class="dashboard-state-card__description" data-dashboard-operational-summary>${operationalRead.summary}</p>
               </div>
               ${hasOpenPositions ? renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity) : ""}
-            </div>
+            </header>
 
             ${hasOpenPositions ? `
-              <div class="dashboard-secondary-card__metrics">
+              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics">
                 ${renderDashboardInlineRiskCard({
-                  label: "Daily DD",
+                  label: "DD diario",
                   value: formatRiskValuePct(riskSummary.dailyDrawdownPct, 2),
                   meta: `Pico ${formatRiskCurrency(riskSummary.dailyPeakEquity)}`,
                   tone: riskTone,
@@ -1869,7 +1868,7 @@ export function renderDashboard(root, state) {
                 ${renderDashboardInlineRiskCard({
                   label: "Margen",
                   value: formatRiskValuePct(primaryDistanceToLimit, 2),
-                  meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Daily ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
+                  meta: `Max ${formatRiskValuePct(riskSummary.distanceToMaxDdLimitPct, 2)} / Diario ${formatRiskValuePct(riskSummary.distanceToDailyDdLimitPct, 2)}`,
                   tone: operationalMarginTone,
                   valueAttr: 'data-dashboard-operational-margin-value',
                   metaAttr: 'data-dashboard-operational-margin-meta',
@@ -1885,13 +1884,13 @@ export function renderDashboard(root, state) {
               </div>
 
               ${operationalRead.footer ? `
-                <div class="dashboard-secondary-card__foot">
+                <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
                   <span data-dashboard-operational-foot>${operationalRead.footer}</span>
                 </div>
               ` : ""}
             ` : `
-              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderRiskMetricCard({
+              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+                ${renderDashboardInlineRiskCard({
                   label: "Estado",
                   value: "Sin posiciones abiertas",
                   meta: "Sin riesgo activo.",
@@ -1901,17 +1900,17 @@ export function renderDashboard(root, state) {
             `}
           </article>
 
-          <article class="tl-section-card dashboard-secondary-card">
-            <div class="calendar-panel-head">
+          <article class="kmfx-ui-card dashboard-state-card dashboard-secondary-card" data-dashboard-state-card="risk">
+            <header class="dashboard-state-card__header dashboard-secondary-card__head">
               <div>
-                <div class="calendar-panel-title">Postura de riesgo</div>
-                <div class="calendar-panel-sub" data-dashboard-risk-summary>${riskPostureRead.summary}</div>
+                <h2 class="dashboard-state-card__title">Postura de riesgo</h2>
+                <p class="dashboard-state-card__description" data-dashboard-risk-summary>${riskPostureRead.summary}</p>
               </div>
-            </div>
+            </header>
             ${hasOpenPositions ? `
-              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
                 ${renderDashboardInlineRiskCard({
-                  label: "Open risk",
+                  label: "Riesgo abierto",
                   value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
                   meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
                   tone: postureTone,
@@ -1927,12 +1926,12 @@ export function renderDashboard(root, state) {
                   metaAttr: 'data-dashboard-risk-trade-meta',
                 })}
               </div>
-              <div class="dashboard-secondary-card__foot">
+              <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
                 <span data-dashboard-risk-foot>${riskPostureRead.detail}</span>
               </div>
             ` : `
-              <div class="dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderRiskMetricCard({
+              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+                ${renderDashboardInlineRiskCard({
                   label: "Exposición",
                   value: "Sin exposición",
                   meta: "Sin posiciones abiertas.",

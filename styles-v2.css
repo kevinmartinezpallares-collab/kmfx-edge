@@ -14089,6 +14089,98 @@ body[data-theme="dark"] .dashboard-secondary-card {
   padding: var(--dashboard-space-sm) !important;
 }
 
+.dashboard-state-grid {
+  align-items: stretch;
+}
+
+.dashboard-state-card {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-state-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dashboard-state-card__title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-state-card__description {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.dashboard-state-card__metrics {
+  flex: 1;
+}
+
+.dashboard-state-metric {
+  min-width: 0;
+  min-height: 92px;
+  padding: 12px;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 2%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.dashboard-state-metric__label {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-state-metric__value {
+  margin-top: 7px;
+  color: var(--foreground);
+  font-size: 17px;
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-state-metric__meta {
+  margin-top: 5px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.32;
+}
+
+.dashboard-state-metric[data-tone="ok"] .dashboard-state-metric__value {
+  color: var(--profit);
+}
+
+.dashboard-state-metric[data-tone="warning"] .dashboard-state-metric__value {
+  color: var(--risk);
+}
+
+.dashboard-state-metric[data-tone="breach"] .dashboard-state-metric__value,
+.dashboard-state-metric[data-tone="blocked"] .dashboard-state-metric__value {
+  color: var(--loss);
+}
+
+.dashboard-state-card__foot {
+  margin-top: auto;
+}
+
 html[data-theme="dark"] .dashboard-secondary-card__head,
 body[data-theme="dark"] .dashboard-secondary-card__head {
   margin-bottom: var(--dashboard-space-sm);
