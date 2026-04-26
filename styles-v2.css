@@ -7,6 +7,13 @@
   --negative: #FF453A;
   --warning: #FF9F0A;
 
+  /* SPACING */
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
   /* LAYERS (Apple-inspired hierarchy) */
   --layer-0: #0a0a0a !important;
   --layer-1: #111111 !important;
@@ -21,7 +28,7 @@
   --text-3: rgba(255,255,255,0.26) !important;
 
   /* BORDERS */
-  --border-0: rgba(255,255,255,0.05) !important;
+  --border-0: rgba(255,255,255,0.08) !important;
   --border-1: rgba(255,255,255,0.08) !important;
   --border-2: rgba(255,255,255,0.12) !important;
   --border-focus: rgba(255,255,255,0.12);
@@ -32,6 +39,7 @@
   --text-muted: var(--text-2);
   --text-muted-strong: var(--text-1);
   --text-disabled: var(--text-3);
+  --neutral-2: var(--text-2);
   --border-subtle: var(--border-0);
   --border-medium: var(--border-2);
 
@@ -72,7 +80,7 @@
   --control-radius-pill: 999px;
   --focus-ring: 0 0 0 3px rgba(255, 255, 255, 0.08);
   --radius-section: 16px;
-  --radius-card: 12px;
+  --radius-card: 16px;
   --radius-shell: 18px;
   --row-height-compact: 36px;
   --row-height-default: 44px;
@@ -107,6 +115,12 @@
   --kmfx-title-line: 1.05;
   --kmfx-subtitle-size: 15px;
   --kmfx-label-size: 11px;
+
+  /* Minimal layout contracts for future migrations */
+  --card-padding: var(--space-5);
+  --row-padding-y: var(--space-3);
+  --section-gap: var(--space-4);
+  --kpi-padding: var(--space-4);
 
   /* --------------------------------------------------------------------------
      KMFX Design System Token Bridge
@@ -3853,7 +3867,7 @@ html[data-theme="dark"] body {
   --layer-0: #0a0a0a !important;
   --layer-1: #111111 !important;
   --layer-2: #1a1a1a !important;
-  --border-0: rgba(255,255,255,0.05) !important;
+  --border-0: rgba(255,255,255,0.08) !important;
 }
 
 html,
