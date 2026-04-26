@@ -1826,21 +1826,21 @@ export function renderDashboard(root, state) {
       </section>
 
       <section class="dashboard-layout">
-        <article class="tl-section-card dashboard-primary-card">
-          <div class="calendar-panel-head dashboard-primary-card__head">
-            <div>
-              <div class="calendar-panel-title">Equity y balance</div>
-              <div class="calendar-panel-sub" data-dashboard-hero-sub>${heroSummaryLabel} / ${heroSummaryValue}</div>
+        <article class="kmfx-ui-chart-card dashboard-chart-card dashboard-primary-card">
+          <header class="kmfx-ui-chart-card__header dashboard-chart-card__header">
+            <div class="dashboard-chart-card__copy">
+              <h2 class="kmfx-ui-chart-card__title dashboard-chart-card__title">Equity y balance</h2>
+              <p class="kmfx-ui-chart-card__description dashboard-chart-card__description" data-dashboard-hero-sub>${heroSummaryLabel} / ${heroSummaryValue}</p>
             </div>
-            <div class="widget-segmented" role="tablist" aria-label="Rango del gráfico">
+            <div class="widget-segmented dashboard-chart-range" role="tablist" aria-label="Rango del gráfico">
               ${["H1", "4H", "1D", "1W", "1M", "YTD"].map((range) => `
-                <button class="widget-segmented-btn ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
+                <button class="widget-segmented-btn dashboard-chart-range__button ${heroRange === range ? "active" : ""}" type="button" data-hero-range="${range}">${range}</button>
               `).join("")}
             </div>
-          </div>
+          </header>
 
-          <div class="dashboard-primary-card__body">
-            <div class="dashboard-primary-card__chart">
+          <div class="kmfx-ui-chart-card__content dashboard-chart-card__content dashboard-primary-card__body">
+            <div class="dashboard-primary-card__chart dashboard-chart-card__chart">
               ${chartCanvas("dashboard-hero-equity-chart", 288, "kmfx-chart-shell--hero")}
             </div>
           </div>

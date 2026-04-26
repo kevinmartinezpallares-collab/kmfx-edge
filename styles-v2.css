@@ -14024,6 +14024,66 @@ body[data-theme="dark"] .dashboard-primary-card .widget-segmented-btn.active {
   border-radius: 999px !important;
 }
 
+/* --------------------------------------------------------------------------
+   Dashboard — Equity Chart Card
+-------------------------------------------------------------------------- */
+
+.dashboard-chart-card {
+  color: var(--card-foreground);
+}
+
+.dashboard-chart-card__header {
+  align-items: flex-start;
+  padding: 0 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+}
+
+.dashboard-chart-card__copy {
+  min-width: 0;
+}
+
+.dashboard-chart-card__title {
+  font-size: 18px;
+  line-height: 1.12;
+  font-weight: 740;
+  letter-spacing: -0.035em;
+}
+
+.dashboard-chart-card__description {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.dashboard-chart-card__content {
+  min-height: 288px;
+  padding: 14px 0 0;
+}
+
+.dashboard-chart-card__chart {
+  margin: 0 -2px -2px;
+}
+
+.dashboard-chart-range {
+  flex-shrink: 0;
+}
+
+.dashboard-chart-range__button {
+  min-width: 38px;
+}
+
+@media (max-width: 720px) {
+  .dashboard-chart-card__header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dashboard-chart-range {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
 html[data-theme="dark"] .dashboard-secondary-card,
 body[data-theme="dark"] .dashboard-secondary-card {
   padding: var(--dashboard-space-sm) !important;
