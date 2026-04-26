@@ -289,75 +289,164 @@ body::after {
 .kmfx-ui-kpi {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 128px;
-  padding: 20px 24px;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 150px;
+  padding: 18px 20px;
   color: var(--foreground);
-  background: var(--card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent 58%),
+    var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.kmfx-ui-kpi:hover {
+  border-color: color-mix(in srgb, var(--foreground) 12%, var(--border));
+}
+
+.kmfx-ui-kpi__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.kmfx-ui-kpi__icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  border: 1px solid var(--border-0);
+  border-radius: var(--radius-md);
+}
+
+.kmfx-ui-kpi__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kmfx-ui-kpi__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.kmfx-ui-kpi__body {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.kmfx-ui-kpi__media {
+  min-width: 0;
 }
 
 .kmfx-ui-kpi__label {
+  margin: 0;
   color: var(--muted-foreground);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 760;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 
 .kmfx-ui-kpi__value {
+  margin: 0;
   color: var(--foreground);
-  font-size: 32px;
+  font-size: clamp(28px, 3vw, 38px);
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-weight: 680;
+  letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
 }
 
 .kmfx-ui-kpi__meta {
+  margin: 0;
   color: var(--muted-foreground);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
+.kmfx-ui-trend-badge,
 .kmfx-ui-kpi__trend {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 8px;
   color: var(--muted-foreground);
-  font-size: 11px;
+  background: color-mix(in srgb, var(--muted) 72%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius-pill);
+  font-size: 10px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-weight: 760;
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
+.kmfx-ui-trend-badge[data-tone="profit"],
+.kmfx-ui-kpi__trend[data-tone="profit"],
 .kmfx-ui-kpi__trend[data-tone="positive"] {
   color: var(--profit);
+  background: var(--profit-muted);
+  border-color: color-mix(in srgb, var(--profit) 24%, var(--border));
 }
 
+.kmfx-ui-trend-badge[data-tone="loss"],
+.kmfx-ui-kpi__trend[data-tone="loss"],
 .kmfx-ui-kpi__trend[data-tone="negative"] {
   color: var(--loss);
+  background: var(--loss-muted);
+  border-color: color-mix(in srgb, var(--loss) 24%, var(--border));
 }
 
+.kmfx-ui-trend-badge[data-tone="neutral"],
 .kmfx-ui-kpi__trend[data-tone="neutral"] {
   color: var(--muted-foreground);
+}
+
+.kmfx-ui-kpi[data-tone="profit"] {
+  border-color: color-mix(in srgb, var(--profit) 18%, var(--border));
 }
 
 .kmfx-ui-kpi[data-tone="profit"] .kmfx-ui-kpi__value {
   color: var(--profit);
 }
 
+.kmfx-ui-kpi[data-tone="loss"] {
+  border-color: color-mix(in srgb, var(--loss) 18%, var(--border));
+}
+
 .kmfx-ui-kpi[data-tone="loss"] .kmfx-ui-kpi__value {
   color: var(--loss);
+}
+
+.kmfx-ui-kpi[data-tone="warning"],
+.kmfx-ui-kpi[data-tone="risk"] {
+  border-color: color-mix(in srgb, var(--risk) 18%, var(--border));
 }
 
 .kmfx-ui-kpi[data-tone="warning"] .kmfx-ui-kpi__value,
 .kmfx-ui-kpi[data-tone="risk"] .kmfx-ui-kpi__value {
   color: var(--risk);
+}
+
+.kmfx-ui-kpi[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--equity) 18%, var(--border));
 }
 
 .kmfx-ui-kpi[data-tone="info"] .kmfx-ui-kpi__value {
@@ -1274,6 +1363,7 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .kmfx-ui-card--interactive,
+  .kmfx-ui-kpi,
   .kmfx-ui-button,
   .kmfx-ui-table tbody tr,
   .kmfx-ui-input,

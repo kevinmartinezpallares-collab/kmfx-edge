@@ -758,6 +758,10 @@ DS-2 implementa en `styles-v2.css` los tokens sidebar shadcn-compatible, `--text
 
 DS-3 añade helpers de markup en `js/modules/ui-primitives.js` para SectionCard, KpiCard, DecisionLayer, Badge (`kmfxBadgeMarkup` para evitar conflicto con `status-badges.js`), EmptyState y ChartCard. Estos helpers devuelven HTML vanilla usando `.kmfx-ui-*`, escapan texto plano y solo aceptan HTML intencional mediante props `*Html`. No migran secciones existentes todavía.
 
+### DS-3.1 implementation note
+
+DS-3.1 amplía `kpiCardMarkup()` con estructura premium vanilla compatible con dashboards shadcn/TripleD-like: `iconHtml`, `badgeHtml`, `valueHtml`, `trend`, `trendTone`, `trendHtml`, `mediaHtml` y `headerHtml`. El primitive `.kmfx-ui-kpi` ahora soporta top area, icon marker, trend badge y body jerárquico sin migrar páginas ni introducir runtime React/Tailwind/shadcn.
+
 ## 9. Validation checklist for future phases
 
 - Branch y working tree verificados antes de editar.

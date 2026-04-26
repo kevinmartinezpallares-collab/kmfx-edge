@@ -41,6 +41,12 @@ function normalizeKpiTone(tone) {
   return ["neutral", "profit", "loss", "warning", "risk", "info"].includes(tone) ? tone : "neutral";
 }
 
+function normalizeTrendTone(tone) {
+  if (tone === "positive") return "profit";
+  if (tone === "negative") return "loss";
+  return ["profit", "loss", "neutral"].includes(tone) ? tone : "neutral";
+}
+
 function normalizeDecisionTone(tone) {
   return ["neutral", "info", "warning", "success", "danger"].includes(tone) ? tone : "neutral";
 }
@@ -141,23 +147,41 @@ export function kpiCardMarkup({
   label,
   value,
   valueHtml = "",
+  iconHtml = "",
+  badgeHtml = "",
+  headerHtml = "",
+  mediaHtml = "",
   meta,
   tone = "neutral",
+  trend = "",
+  trendTone = "",
   trendHtml = "",
   className = "",
   attrs = {},
 } = {}) {
   const resolvedTone = normalizeKpiTone(tone);
+  const resolvedTrendTone = normalizeTrendTone(trendTone || tone);
   const rootClasses = classNames("kmfx-ui-card", "kmfx-ui-kpi", className);
   const extraAttrs = attrsToString(attrs);
   const displayValue = valueHtml || escapeHtml(value == null ? "" : value);
+  const badgeContent = badgeHtml || trendHtml || (trend ? escapeHtml(trend) : "");
+  const hasTop = iconHtml || badgeContent || headerHtml;
 
   return `
     <article class="${escapeHtml(rootClasses)}" data-tone="${escapeHtml(resolvedTone)}"${extraAttrs ? ` ${extraAttrs}` : ""}>
-      ${label ? `<span class="kmfx-ui-kpi__label">${escapeHtml(label)}</span>` : ""}
-      <strong class="kmfx-ui-kpi__value">${displayValue}</strong>
-      ${meta ? `<span class="kmfx-ui-kpi__meta">${escapeHtml(meta)}</span>` : ""}
-      ${trendHtml ? `<span class="kmfx-ui-kpi__trend" data-tone="${escapeHtml(resolvedTone)}">${trendHtml}</span>` : ""}
+      ${hasTop ? `
+        <div class="kmfx-ui-kpi__top">
+          ${iconHtml ? `<div class="kmfx-ui-kpi__icon">${iconHtml}</div>` : ""}
+          ${headerHtml || ""}
+          ${badgeContent ? `<div class="kmfx-ui-kpi__badge"><span class="kmfx-ui-trend-badge kmfx-ui-kpi__trend" data-tone="${escapeHtml(resolvedTrendTone)}">${badgeContent}</span></div>` : ""}
+        </div>
+      ` : ""}
+      ${mediaHtml ? `<div class="kmfx-ui-kpi__media">${mediaHtml}</div>` : ""}
+      <div class="kmfx-ui-kpi__body">
+        ${label ? `<p class="kmfx-ui-kpi__label">${escapeHtml(label)}</p>` : ""}
+        <div class="kmfx-ui-kpi__value">${displayValue}</div>
+        ${meta ? `<p class="kmfx-ui-kpi__meta">${escapeHtml(meta)}</p>` : ""}
+      </div>
     </article>
   `;
 }
