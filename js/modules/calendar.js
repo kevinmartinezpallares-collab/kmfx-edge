@@ -233,7 +233,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
             <strong>${trade.symbol}</strong>
-            ${isPrimary ? `<small class="focus-panel-disclosure__note">Trade principal del día</small>` : ""}
+            ${isPrimary ? `<small class="focus-panel-disclosure__note calendar-day-trades__primary-badge">TRADE PRINCIPAL DEL DÍA</small>` : ""}
           </div>
           <div class="focus-panel-disclosure__cell">
             <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
@@ -288,11 +288,11 @@ function openCalendarDayFocus(root, state, model, key) {
     content: `
       <div class="calendar-day-report">
         ${renderCalendarDayStatBar(dayMetrics, orderedDayTrades)}
-        <section class="focus-panel-section focus-panel-section--lead calendar-day-report__read">
-          <div class="focus-panel-read calendar-day-report__read-card">
-            <span class="calendar-day-report__eyebrow">Lectura del día</span>
+        <section class="focus-panel-section focus-panel-section--lead calendar-day-report__read calendar-day-reading">
+          <div class="focus-panel-read calendar-day-report__read-card calendar-day-reading__card">
+            <span class="calendar-day-report__eyebrow calendar-day-reading__label">Lectura del día</span>
             <p class="focus-panel-read__summary">${executiveRead.summary}</p>
-            <p class="calendar-day-report__action">${reviewPrompt}</p>
+            <p class="calendar-day-report__action calendar-day-reading__action">${reviewPrompt}</p>
           </div>
         </section>
         <section class="focus-panel-section calendar-day-report__chart-section">
