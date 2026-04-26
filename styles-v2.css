@@ -17078,20 +17078,28 @@ body[data-theme="dark"] .focus-panel-trade-side--sell {
 
 html[data-theme="dark"] .calendar-day-panel .modal-body--focus-panel,
 body[data-theme="dark"] .calendar-day-panel .modal-body--focus-panel {
+  max-height: min(82vh, 860px);
   margin-right: 0;
   padding-right: 0;
   scrollbar-gutter: auto;
 }
 
+html[data-theme="dark"] .calendar-day-panel,
+body[data-theme="dark"] .calendar-day-panel {
+  width: min(78vw, 1040px);
+  max-height: min(82vh, 860px);
+}
+
 html[data-theme="dark"] .calendar-day-panel .focus-panel-close,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-close {
-  right: 26px;
+  top: 20px;
+  right: 22px;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__header,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__header {
   margin: 0;
-  padding: 18px 66px 16px 28px;
+  padding: 15px 58px 13px 24px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent 68%),
     var(--popover);
@@ -17100,7 +17108,7 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__header {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__title,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__title {
-  font-size: clamp(21px, 2vw, 26px);
+  font-size: clamp(20px, 1.85vw, 24px);
   line-height: 1.08;
   letter-spacing: -0.035em;
 }
@@ -17114,12 +17122,12 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__meta {
 html[data-theme="dark"] .calendar-day-panel .focus-panel__pnl,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__pnl {
   padding-top: 1px;
-  font-size: clamp(23px, 2.2vw, 28px);
+  font-size: clamp(22px, 2vw, 26px);
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics {
-  margin: 14px 28px 0;
+  margin: 12px 24px 0;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline,
@@ -17131,31 +17139,36 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric {
-  padding: 10px 13px;
+  align-content: center;
+  gap: 4px;
+  min-height: 0;
+  padding: 7px 12px;
   border-right-color: color-mix(in srgb, var(--border) 68%, transparent);
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-metric__label,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__label {
   color: var(--muted-foreground);
+  font-size: 9px;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value {
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.12;
   font-variant-numeric: tabular-nums;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__content,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__content {
-  margin: 16px 28px 0;
-  padding-bottom: 28px;
+  margin: 14px 24px 0;
+  padding-bottom: 24px;
 }
 
 html[data-theme="dark"] .calendar-day-report,
 body[data-theme="dark"] .calendar-day-report {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 html[data-theme="dark"] .calendar-day-report__read-card,
@@ -17170,8 +17183,8 @@ body[data-theme="dark"] .calendar-day-trades__list {
 html[data-theme="dark"] .calendar-day-report__read-card,
 body[data-theme="dark"] .calendar-day-report__read-card {
   display: grid;
-  gap: 8px;
-  padding: 13px 15px;
+  gap: 7px;
+  padding: 11px 13px;
 }
 
 html[data-theme="dark"] .calendar-day-report__eyebrow,
@@ -17188,7 +17201,7 @@ html[data-theme="dark"] .calendar-day-panel .focus-panel-read__summary,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-read__summary {
   max-width: 100%;
   color: var(--foreground);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -17210,15 +17223,15 @@ body[data-theme="dark"] .calendar-day-report__section-head {
 
 html[data-theme="dark"] .calendar-day-report__chart,
 body[data-theme="dark"] .calendar-day-report__chart {
-  padding: 10px 12px 8px;
-  background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  border-radius: var(--radius-lg);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 html[data-theme="dark"] .calendar-day-report__chart .kmfx-chart-shell,
 body[data-theme="dark"] .calendar-day-report__chart .kmfx-chart-shell {
-  min-height: 188px;
+  min-height: 164px;
 }
 
 html[data-theme="dark"] .calendar-day-trades__head,
@@ -17243,7 +17256,7 @@ body[data-theme="dark"] .calendar-day-trades__item--primary {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__summary,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__summary {
-  padding: 9px 13px;
+  padding: 8px 12px;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__summary:hover,
@@ -17253,14 +17266,14 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__summary:hov
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__body,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__body {
-  padding: 0 13px 11px;
+  padding: 0 12px 10px;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-pairs--plain .focus-panel-pair-row,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-pairs--plain .focus-panel-pair-row {
   grid-template-columns: minmax(82px, 0.34fr) minmax(0, 1fr) minmax(82px, 0.34fr) minmax(0, 1fr);
-  gap: 8px 14px;
-  padding: 6px 0;
+  gap: 7px 12px;
+  padding: 5px 0;
   border-bottom-color: color-mix(in srgb, var(--border) 42%, transparent);
 }
 
