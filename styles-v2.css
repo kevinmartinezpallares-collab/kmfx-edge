@@ -15010,7 +15010,6 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-overview-row__label,
 .trades-screen .trades-overview-row__meta,
 .trades-screen .trades-symbol-meta {
-  color: var(--muted-foreground);
   font-size: var(--kmfx-label-size);
   line-height: 1.25;
 }
@@ -15018,6 +15017,7 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-overview-row__label {
   display: block;
   margin-bottom: calc(var(--space-2) - 3px);
+  color: color-mix(in srgb, var(--foreground) 64%, var(--muted-foreground));
   font-weight: 760;
   letter-spacing: 0.095em;
   text-transform: uppercase;
@@ -15027,10 +15027,10 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   flex: 0 0 calc(var(--space-6) * 5);
   max-width: 44%;
   color: var(--foreground);
-  font-size: clamp(var(--space-4), 1.25vw, calc(var(--space-5) - 1px));
+  font-size: clamp(calc(var(--space-4) - 2px), 1.05vw, var(--space-4));
   line-height: 1.1;
-  font-weight: 740;
-  letter-spacing: -0.025em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -15045,30 +15045,42 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-overview-row__meta {
   display: block;
+  color: var(--muted-foreground);
 }
 
 .trades-screen .trades-symbol-row > div {
   min-width: 0;
 }
 
+.trades-screen .trades-symbol-rank {
+  flex: 0 0 var(--space-6);
+  color: var(--muted-foreground);
+  font-size: var(--kmfx-label-size);
+  line-height: 1;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
 .trades-screen .trades-symbol-name {
   color: var(--foreground);
-  font-size: calc(var(--space-4) - 2px);
+  font-size: var(--space-4);
   line-height: 1.15;
   font-weight: 760;
   letter-spacing: -0.015em;
 }
 
 .trades-screen .trades-symbol-meta {
+  color: var(--muted-foreground);
   margin-top: calc(var(--space-2) - 3px);
 }
 
 .trades-screen .trades-symbol-value {
   flex: 0 0 calc(var(--space-6) * 5);
   justify-content: flex-end;
-  font-size: calc(var(--space-4) - 2px);
+  font-size: var(--space-4);
   line-height: 1;
-  font-weight: 760;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }

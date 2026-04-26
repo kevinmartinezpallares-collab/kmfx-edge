@@ -410,8 +410,9 @@ function renderTradesOverviewSections({
           </div>
         </header>
         <div class="trades-symbols-list">
-          ${symbols.slice(0, 4).map((symbol) => `
+          ${symbols.slice(0, 4).map((symbol, index) => `
             <div class="trades-symbol-row">
+              <span class="trades-symbol-rank">#${index + 1}</span>
               <div>
                 <div class="trades-symbol-name">${escapeHtml(symbol.key)}</div>
                 <div class="trades-symbol-meta">${escapeHtml(`${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%`)}</div>
