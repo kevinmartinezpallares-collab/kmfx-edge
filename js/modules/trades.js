@@ -88,6 +88,12 @@ function groupWorstByPnl(trades = [], field) {
   return [...groups.values()].sort((a, b) => a.pnl - b.pnl)[0] || null;
 }
 
+function formatSignedCurrency(value) {
+  const amount = Number(value) || 0;
+  const formatted = formatCurrency(amount);
+  return amount > 0 ? `+${formatted}` : formatted;
+}
+
 function buildTradeTruthSummary(trades = []) {
   const totalTrades = trades.length;
   const tagMap = loadTradeTagMap();
@@ -105,6 +111,7 @@ function buildTradeTruthSummary(trades = []) {
   const validTaggedTrades = evaluations.filter((item) => item.tagState.state === "valid").length;
   const invalidTaggedTrades = evaluations.filter((item) => item.tagState.state === "invalid").length;
   const pendingOrMissing = pendingTags + untaggedTrades;
+  const taggingCoverage = totalTrades ? completedTags / totalTrades : 0;
   const pnl = trades.reduce((sum, trade) => sum + Number(trade.pnl || 0), 0);
   const rValues = trades.map((trade) => Number(trade.rMultiple)).filter(Number.isFinite);
   const avgR = rValues.length ? rValues.reduce((sum, value) => sum + value, 0) / rValues.length : null;
@@ -130,12 +137,17 @@ function buildTradeTruthSummary(trades = []) {
   if (!totalTrades) {
     stateLabel = "Sin operaciones filtradas";
     stateCopy = "No hay muestra activa para interpretar.";
-  } else if (!completedTags && pendingOrMissing > 0) {
+  } else if (!completedTags) {
     state = "pending";
     stateLabel = "Causa pendiente de tagging";
+    stateCopy = "Completa los tags post-trade para conectar resultado con reglas.";
+    tone = "warning";
+  } else if (taggingCoverage < 0.5) {
+    state = "pending";
+    stateLabel = "Revisión pendiente";
     stateCopy = `${pendingOrMissing} trades necesitan tagging antes de sacar conclusiones.`;
     tone = "warning";
-  } else if (invalidTaggedTrades >= 2 || (completedTags && invalidTaggedTrades / completedTags >= 0.3)) {
+  } else if (taggingCoverage >= 0.5 && invalidTaggedTrades > 0 && dominantFailedRule) {
     state = "invalid";
     stateLabel = "Daño por reglas";
     stateCopy = `${invalidTaggedTrades} trades etiquetados tienen reglas manuales incumplidas.`;
@@ -154,7 +166,22 @@ function buildTradeTruthSummary(trades = []) {
     tone = completedTags ? "profit" : "neutral";
   }
 
-  const cause = dominantFailedRule
+  const cause = !totalTrades
+    ? {
+        label: "No hay muestra para interpretar",
+        copy: "Ajusta filtros o sincroniza operaciones."
+      }
+    : !completedTags
+      ? {
+          label: "Sin evidencia manual suficiente",
+          copy: "Ningún trade filtrado tiene tagging completo."
+        }
+      : taggingCoverage < 0.5
+        ? {
+            label: "Causa pendiente de tagging",
+            copy: `Solo ${completedTags} de ${totalTrades} trades tienen evidencia completa.`
+          }
+        : dominantFailedRule
     ? {
         label: `Principal causa: ${dominantFailedRule.label}`,
         copy: `Falló en ${dominantFailedRule.count} ${dominantFailedRule.count === 1 ? "trade" : "trades"} etiquetados.`
@@ -181,6 +208,10 @@ function buildTradeTruthSummary(trades = []) {
 
   const action = !totalTrades
     ? "Selecciona una muestra con trades cerrados."
+    : !completedTags
+      ? "Completa los tags post-trade para conectar resultado con reglas."
+      : taggingCoverage < 0.5
+        ? `Completa ${pendingOrMissing} ${pendingOrMissing === 1 ? "tag pendiente" : "tags pendientes"} antes de sacar conclusiones.`
     : pendingOrMissing > 0 && pendingOrMissing >= completedTags
       ? `Completa ${pendingOrMissing} ${pendingOrMissing === 1 ? "tag pendiente" : "tags pendientes"} antes de sacar conclusiones.`
       : dominantFailedRule
@@ -201,6 +232,7 @@ function buildTradeTruthSummary(trades = []) {
     pendingTags,
     untaggedTrades,
     pendingOrMissing,
+    taggingCoverage,
     validTaggedTrades,
     invalidTaggedTrades,
     pnl,
@@ -220,10 +252,10 @@ function renderTruthMetric(label, value, options = {}) {
 function renderTradeTruthSummary(summary) {
   const avgRLabel = Number.isFinite(Number(summary.avgR)) ? `${summary.avgR.toFixed(1)}R` : "—";
   return `
-    <section class="trades-truth kmfx-ui-card" aria-label="Trade Truth Summary">
+    <section class="trades-truth kmfx-ui-card" aria-label="Lectura operativa">
       <div class="trades-truth__header">
         <div>
-          <p class="trades-truth__eyebrow">Trade Truth Summary</p>
+          <p class="trades-truth__eyebrow">Lectura operativa</p>
           <h2 class="trades-truth__title">Centro de verdad operativo</h2>
         </div>
         <span class="kmfx-ui-badge trades-truth__badge" data-tone="${escapeHtml(summary.tone)}">${escapeHtml(summary.stateLabel)}</span>
@@ -246,7 +278,7 @@ function renderTradeTruthSummary(summary) {
             ${renderTruthMetric("Tags completos", String(summary.completedTags))}
             ${renderTruthMetric("Pendientes", String(summary.pendingOrMissing))}
             ${renderTruthMetric("Válidos / inválidos", `${summary.validTaggedTrades}/${summary.invalidTaggedTrades}`)}
-            ${renderTruthMetric("P&L", pnlTextMarkup({ value: summary.pnl, text: formatCurrency(summary.pnl) }), { html: true })}
+            ${renderTruthMetric("P&L", pnlTextMarkup({ value: summary.pnl, text: formatSignedCurrency(summary.pnl) }), { html: true })}
             ${renderTruthMetric("R medio", avgRLabel)}
           </div>
         </article>
