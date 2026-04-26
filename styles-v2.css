@@ -14938,13 +14938,15 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--section-gap);
+  gap: var(--space-3);
 }
 
 .trades-screen .trades-overview-card {
   min-width: 0;
   color: var(--card-foreground);
-  background: var(--layer-2);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.8%, transparent), transparent 64%),
+    var(--layer-2);
   border: 1px solid var(--border-0);
   border-radius: var(--radius-card);
   overflow: hidden;
@@ -14955,8 +14957,8 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--card-padding) var(--card-padding) 0;
-  border-bottom: 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-0) 64%, transparent);
 }
 
 .trades-screen .trades-overview-title,
@@ -14966,23 +14968,23 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-overview-title {
   color: var(--foreground);
-  font-size: var(--kmfx-subtitle-size);
+  font-size: var(--space-4);
   line-height: 1.2;
   font-weight: 740;
   letter-spacing: -0.025em;
 }
 
 .trades-screen .trades-overview-subtitle {
-  margin-top: var(--space-2);
-  color: var(--neutral-2);
-  font-size: var(--kmfx-label-size);
+  margin-top: calc(var(--space-2) - 3px);
+  color: var(--muted-foreground);
+  font-size: var(--space-3);
   line-height: 1.35;
 }
 
 .trades-screen .trades-overview-card__body,
 .trades-screen .trades-symbols-list {
   display: grid;
-  padding: var(--section-gap) var(--card-padding) var(--space-3);
+  padding: 0 var(--space-4) var(--space-2);
 }
 
 .trades-screen .trades-overview-row,
@@ -14993,7 +14995,7 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   gap: var(--space-4);
   min-width: 0;
   padding: var(--row-padding-y) 0;
-  border-top: 1px solid var(--border-0);
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 48%, transparent);
 }
 
 .trades-screen .trades-overview-row:first-child,
@@ -15008,27 +15010,24 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-overview-row__label,
 .trades-screen .trades-overview-row__meta,
 .trades-screen .trades-symbol-meta {
-  font-size: 11px;
+  color: var(--muted-foreground);
+  font-size: var(--kmfx-label-size);
   line-height: 1.25;
 }
 
 .trades-screen .trades-overview-row__label {
-  color: var(--neutral-2);
-}
-
-.trades-screen .trades-overview-row__label {
   display: block;
-  margin-bottom: var(--space-2);
+  margin-bottom: calc(var(--space-2) - 3px);
   font-weight: 760;
-  letter-spacing: 0.085em;
+  letter-spacing: 0.095em;
   text-transform: uppercase;
 }
 
 .trades-screen .trades-overview-row__value {
   flex: 0 0 calc(var(--space-6) * 5);
-  max-width: 45%;
+  max-width: 44%;
   color: var(--foreground);
-  font-size: var(--kmfx-subtitle-size);
+  font-size: clamp(var(--space-4), 1.25vw, calc(var(--space-5) - 1px));
   line-height: 1.1;
   font-weight: 740;
   letter-spacing: -0.025em;
@@ -15037,16 +15036,15 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 }
 
 .trades-screen .trades-overview-row[data-tone="profit"] .trades-overview-row__value {
-  color: var(--foreground);
+  color: var(--profit);
 }
 
 .trades-screen .trades-overview-row[data-tone="loss"] .trades-overview-row__value {
-  color: var(--foreground);
+  color: var(--loss);
 }
 
 .trades-screen .trades-overview-row__meta {
   display: block;
-  color: var(--neutral-2);
 }
 
 .trades-screen .trades-symbol-row > div {
@@ -15055,22 +15053,21 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-symbol-name {
   color: var(--foreground);
-  font-size: var(--kmfx-subtitle-size);
+  font-size: calc(var(--space-4) - 2px);
   line-height: 1.15;
   font-weight: 760;
   letter-spacing: -0.015em;
 }
 
 .trades-screen .trades-symbol-meta {
-  color: var(--neutral-2);
-  margin-top: var(--space-2);
+  margin-top: calc(var(--space-2) - 3px);
 }
 
 .trades-screen .trades-symbol-value {
   flex: 0 0 calc(var(--space-6) * 5);
   justify-content: flex-end;
   color: var(--foreground);
-  font-size: var(--kmfx-subtitle-size);
+  font-size: calc(var(--space-4) - 2px);
   line-height: 1;
   font-weight: 760;
   font-variant-numeric: tabular-nums;
