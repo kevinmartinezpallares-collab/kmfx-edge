@@ -613,6 +613,14 @@ function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutra
 
 const DASHBOARD_MIN_SAMPLE_TRADES = 5;
 
+function firstFiniteDashboardNumber(...values) {
+  for (const value of values) {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) return numericValue;
+  }
+  return 0;
+}
+
 function formatSignedDashboardCurrency(value) {
   const numericValue = Number(value || 0);
   if (Math.abs(numericValue) < 0.005) return formatCurrency(0);
@@ -657,8 +665,12 @@ function buildDashboardEvidenceHtml(summary) {
         <dd>${pnlTextMarkup({ value: summary.pnlValue, text: summary.pnlText })}</dd>
       </div>
       <div>
-        <dt>Drawdown</dt>
-        <dd>${summary.drawdownText}</dd>
+        <dt>DD actual</dt>
+        <dd>${summary.currentDrawdownText}</dd>
+      </div>
+      <div>
+        <dt>Daily DD</dt>
+        <dd>${summary.dailyDrawdownText}</dd>
       </div>
       <div>
         <dt>Riesgo abierto</dt>
@@ -710,8 +722,12 @@ function buildDashboardDecisionSummary({
   const totalTrades = Number(model?.totals?.totalTrades || model?.trades?.length || 0);
   const winRate = Number(model?.totals?.winRate || 0);
   const profitFactor = Number(model?.totals?.profitFactor || 0);
-  const currentDrawdownPct = Number(riskSummary?.peakToEquityDrawdownPct || model?.totals?.drawdown?.maxPct || 0);
-  const dailyDrawdownPct = Number(riskSummary?.dailyDrawdownPct || 0);
+  const currentDrawdownPct = firstFiniteDashboardNumber(
+    riskSummary?.floatingDrawdownPct,
+    riskSummary?.peakToEquityDrawdownPct,
+    0
+  );
+  const dailyDrawdownPct = firstFiniteDashboardNumber(riskSummary?.dailyDrawdownPct, 0);
   const dailyLimitPct = Number(riskLimits?.policy?.dailyDdLimitPct || 0);
   const totalOpenRiskPct = Number(riskSummary?.totalOpenRiskPct || 0);
   const maxOpenTradeRiskPct = Number(riskSummary?.maxOpenTradeRiskPct || 0);
@@ -754,7 +770,8 @@ function buildDashboardDecisionSummary({
     pnlLabel: panelSecondMetricLabel || "PnL",
     pnlValue: Number(panelSecondMetricValue || 0),
     pnlText: formatSignedDashboardCurrency(panelSecondMetricValue),
-    drawdownText: `${formatRiskValuePct(currentDrawdownPct, 2)} · Daily ${formatRiskValuePct(dailyDrawdownPct, 2)}`,
+    currentDrawdownText: formatRiskValuePct(currentDrawdownPct, 2),
+    dailyDrawdownText: formatRiskValuePct(dailyDrawdownPct, 2),
     openRiskText: hasOpenPositions
       ? `${formatRiskValuePct(totalOpenRiskPct, 2)} · ${Number(performanceView?.openPositionsCount || 0)} posiciones`
       : "Sin exposición",
@@ -820,7 +837,8 @@ function buildDashboardDecisionSummary({
   const evidenceDescription = [
     summary.equityText,
     summary.pnlText,
-    summary.drawdownText,
+    `DD actual ${summary.currentDrawdownText}`,
+    `Daily DD ${summary.dailyDrawdownText}`,
     summary.openRiskText,
     summary.sampleText,
     summary.edgeText,
