@@ -14938,17 +14938,15 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-overview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: var(--section-gap);
 }
 
 .trades-screen .trades-overview-card {
   min-width: 0;
   color: var(--card-foreground);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.8%, transparent), transparent 64%),
-    var(--layer-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--layer-2);
+  border: 1px solid var(--border-0);
+  border-radius: var(--radius-card);
   overflow: hidden;
 }
 
@@ -14956,9 +14954,9 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 15px 17px 8px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 28%, transparent);
+  gap: var(--space-3);
+  padding: var(--card-padding) var(--card-padding) 0;
+  border-bottom: 0;
 }
 
 .trades-screen .trades-overview-title,
@@ -14968,23 +14966,23 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-overview-title {
   color: var(--foreground);
-  font-size: 16px;
+  font-size: var(--kmfx-subtitle-size);
   line-height: 1.2;
   font-weight: 740;
   letter-spacing: -0.025em;
 }
 
 .trades-screen .trades-overview-subtitle {
-  margin-top: 5px;
-  color: var(--muted-foreground);
-  font-size: 12px;
+  margin-top: var(--space-2);
+  color: var(--neutral-2);
+  font-size: var(--kmfx-label-size);
   line-height: 1.35;
 }
 
 .trades-screen .trades-overview-card__body,
 .trades-screen .trades-symbols-list {
   display: grid;
-  padding: 8px 17px 7px;
+  padding: var(--section-gap) var(--card-padding) var(--space-3);
 }
 
 .trades-screen .trades-overview-row,
@@ -14992,10 +14990,10 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   min-width: 0;
-  padding: 9px 0;
-  border-top: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
+  padding: var(--row-padding-y) 0;
+  border-top: 1px solid var(--border-0);
 }
 
 .trades-screen .trades-overview-row:first-child,
@@ -15015,22 +15013,22 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 }
 
 .trades-screen .trades-overview-row__label {
-  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+  color: var(--neutral-2);
 }
 
 .trades-screen .trades-overview-row__label {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2);
   font-weight: 760;
   letter-spacing: 0.085em;
   text-transform: uppercase;
 }
 
 .trades-screen .trades-overview-row__value {
-  flex: 0 0 132px;
-  max-width: 44%;
+  flex: 0 0 calc(var(--space-6) * 5);
+  max-width: 45%;
   color: var(--foreground);
-  font-size: clamp(16px, 1.25vw, 19px);
+  font-size: var(--kmfx-subtitle-size);
   line-height: 1.1;
   font-weight: 740;
   letter-spacing: -0.025em;
@@ -15048,7 +15046,7 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-overview-row__meta {
   display: block;
-  color: color-mix(in srgb, var(--muted-foreground) 82%, transparent);
+  color: var(--neutral-2);
 }
 
 .trades-screen .trades-symbol-row > div {
@@ -15057,22 +15055,22 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-symbol-name {
   color: var(--foreground);
-  font-size: 14px;
+  font-size: var(--kmfx-subtitle-size);
   line-height: 1.15;
   font-weight: 760;
   letter-spacing: -0.015em;
 }
 
 .trades-screen .trades-symbol-meta {
-  color: color-mix(in srgb, var(--muted-foreground) 74%, transparent);
-  margin-top: 5px;
+  color: var(--neutral-2);
+  margin-top: var(--space-2);
 }
 
 .trades-screen .trades-symbol-value {
-  flex: 0 0 118px;
+  flex: 0 0 calc(var(--space-6) * 5);
   justify-content: flex-end;
   color: var(--foreground);
-  font-size: 14px;
+  font-size: var(--kmfx-subtitle-size);
   line-height: 1;
   font-weight: 760;
   font-variant-numeric: tabular-nums;
@@ -15534,7 +15532,7 @@ body[data-theme="dark"] .trades-empty-state {
   .trades-screen .trades-overview-row {
     align-items: flex-start;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .trades-screen .trades-overview-row__value {
