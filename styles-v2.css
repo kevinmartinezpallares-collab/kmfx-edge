@@ -17132,7 +17132,8 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline {
-  align-items: start;
+  align-items: stretch;
+  grid-auto-rows: minmax(48px, max-content);
   background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
   border-color: color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius-lg);
@@ -17140,10 +17141,11 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric {
-  align-content: start;
-  align-self: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: 3px;
-  min-height: 0;
+  min-height: 48px;
   padding: 6px 12px 5px;
   border-right-color: color-mix(in srgb, var(--border) 68%, transparent);
   line-height: 1;
