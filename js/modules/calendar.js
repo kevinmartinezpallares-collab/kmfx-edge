@@ -5,6 +5,10 @@ import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const CALENDAR_TOOLTIP_PERCENT_FORMATTER = new Intl.NumberFormat("es-ES", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
 
 function toLocalDayKey(dateLike) {
   const date = new Date(dateLike);
@@ -29,6 +33,30 @@ function buildDayCurve(dayTrades) {
       value: Number(cumulative.toFixed(2))
     };
   });
+}
+
+function formatCalendarTooltipDate(label) {
+  const text = String(label || "").trim();
+  const match = text.match(/^(\d{1,2})[/-](\d{1,2})$/);
+  if (!match) return text || "—";
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isFinite(day) || !Number.isFinite(month)) return text;
+  return new Date(2000, month - 1, day)
+    .toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+    .replace(".", "");
+}
+
+function formatCalendarTooltipPercent(value) {
+  const numericValue = Number(value) || 0;
+  const sign = numericValue > 0 ? "+" : "";
+  return `${sign}${CALENDAR_TOOLTIP_PERCENT_FORMATTER.format(numericValue)}%`;
+}
+
+function formatCalendarTooltipCurrency(value) {
+  const numericValue = Number(value) || 0;
+  if (numericValue === 0) return formatCurrency(0);
+  return `${numericValue > 0 ? "+" : ""}${formatCurrency(numericValue)}`;
 }
 
 function buildDayMetrics(dayTrades) {
@@ -284,7 +312,11 @@ function openCalendarDayFocus(root, state, model, key) {
           fillAlphaEnd: 0,
           glowAlpha: 0,
           tension: 0.34,
-          animation: false
+          animation: false,
+          tooltipCallbacks: {
+            title: (items) => items[0]?.label || "—",
+            label: (context) => `P&L acumulado: ${formatCalendarTooltipCurrency(context.parsed.y)}`
+          }
         })
       ]);
     }
@@ -855,7 +887,11 @@ export function renderCalendar(root, state) {
         tension: 0.42,
         yHeadroomRatio: 0.1,
         yBottomPaddingRatio: 0.06,
-        axisFormatter: (value) => `${Number(value).toFixed(1)}%`
+        axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
+        tooltipCallbacks: {
+          title: (items) => formatCalendarTooltipDate(items[0]?.label),
+          label: (context) => `Rentabilidad: ${formatCalendarTooltipPercent(context.parsed.y)}`
+        }
       })
     ]);
   }
