@@ -39,9 +39,17 @@ function buildDayMetrics(dayTrades) {
   const bestValueClass = best?.pnl > 0 ? "metric-positive" : best?.pnl < 0 ? "metric-negative" : "";
   return [
     { label: "Trades", value: String(ordered.length) },
-    { label: "Win rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
-    { label: "Mejor trade", value: best ? formatCurrency(best.pnl) : "—", valueClass: bestValueClass },
-    { label: "Comisiones", value: ordered.length ? formatCurrency(totalFees) : "—", valueClass: totalFees < 0 ? "metric-negative" : "" }
+    { label: "Win Rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
+    {
+      label: "Mejor trade",
+      value: best ? pnlTextMarkup({ value: best.pnl, text: formatCurrency(best.pnl), className: bestValueClass }) : "—",
+      valueClass: bestValueClass
+    },
+    {
+      label: "Comisiones",
+      value: ordered.length ? pnlTextMarkup({ value: totalFees, text: formatCurrency(totalFees), className: totalFees < 0 ? "metric-negative" : "" }) : "—",
+      valueClass: totalFees < 0 ? "metric-negative" : ""
+    }
   ];
 }
 
@@ -158,7 +166,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
   const isPrimary = options.isPrimary === true;
   const pnlClass = trade.pnl > 0 ? "metric-positive" : trade.pnl < 0 ? "metric-negative" : "";
   return `
-    <details class="focus-panel-disclosure ${isPrimary ? "focus-panel-disclosure--primary" : ""}">
+    <details class="focus-panel-disclosure calendar-day-trades__item ${isPrimary ? "focus-panel-disclosure--primary calendar-day-trades__item--primary" : ""}">
       <summary class="focus-panel-disclosure__summary">
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
@@ -201,46 +209,62 @@ function openCalendarDayFocus(root, state, model, key) {
   const dayChartKey = `calendar-day-focus-${key}`;
   const firstTrade = orderedDayTrades[0];
   const lastTrade = orderedDayTrades.at(-1);
+  const reviewPrompt = orderedDayTrades.length <= 1
+    ? "Muestra limitada: registra más operaciones antes de sacar conclusiones."
+    : dayPnl < 0
+      ? "Siguiente paso: revisa el trade que más dañó el día y compara la ejecución."
+      : "Siguiente paso: identifica qué trade sostuvo el resultado y compáralo con tu plan.";
 
   openFocusPanel({
     title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
     meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
-    pnl: formatCurrency(dayPnl),
-    pnlClass: dayPnl >= 0 ? "metric-positive" : "metric-negative",
+    pnl: pnlTextMarkup({ value: dayPnl, text: formatCurrency(dayPnl), className: dayPnl >= 0 ? "metric-positive" : "metric-negative" }),
+    pnlClass: "calendar-day-panel__pnl",
     metrics: buildDayMetrics(orderedDayTrades),
     metricStyle: "inline",
     maxWidth: "84vw",
     content: `
-      <section class="focus-panel-section focus-panel-section--lead">
-        <div class="focus-panel-read">
-          <p class="focus-panel-read__summary">${executiveRead.summary}</p>
-        </div>
-      </section>
-      <section class="focus-panel-section">
-        <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Resumen rápido</div>
-        </div>
-        <div class="focus-panel-chart">
-          ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
-        </div>
-      </section>
-      <section class="focus-panel-section">
-        <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Trades del día</div>
-        </div>
-        <div class="focus-panel-trades-head">
-          <span>Símbolo</span>
-          <span>Dirección</span>
-          <span>Entrada</span>
-          <span>Salida</span>
-          <span>P&amp;L</span>
-        </div>
-        <div class="focus-panel-disclosures">
-          ${orderedDayTrades.map((trade) => renderDayTradeDisclosure(trade, { isPrimary: String(trade.id) === executiveRead.topTradeId })).join("")}
-        </div>
-      </section>
+      <div class="calendar-day-report">
+        <section class="focus-panel-section focus-panel-section--lead calendar-day-report__read">
+          <div class="focus-panel-read calendar-day-report__read-card">
+            <span class="calendar-day-report__eyebrow">Lectura del día</span>
+            <p class="focus-panel-read__summary">${executiveRead.summary}</p>
+            <p class="calendar-day-report__action">${reviewPrompt}</p>
+          </div>
+        </section>
+        <section class="focus-panel-section calendar-day-report__chart-section">
+          <div class="focus-panel-section__head calendar-day-report__section-head">
+            <div>
+              <div class="focus-panel-section__title">Curva intradía</div>
+              <div class="focus-panel-section__subtitle">Evolución acumulada de los cierres del día.</div>
+            </div>
+          </div>
+          <div class="focus-panel-chart calendar-day-report__chart">
+            ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
+          </div>
+        </section>
+        <section class="focus-panel-section calendar-day-trades">
+          <div class="focus-panel-section__head calendar-day-report__section-head">
+            <div>
+              <div class="focus-panel-section__title">Trades del día</div>
+              <div class="focus-panel-section__subtitle">Detalle técnico conservado para revisar aportes, daño y ejecución.</div>
+            </div>
+          </div>
+          <div class="focus-panel-trades-head calendar-day-trades__head">
+            <span>Símbolo</span>
+            <span>Dirección</span>
+            <span>Entrada</span>
+            <span>Salida</span>
+            <span>P&amp;L</span>
+          </div>
+          <div class="focus-panel-disclosures calendar-day-trades__list">
+            ${orderedDayTrades.map((trade) => renderDayTradeDisclosure(trade, { isPrimary: String(trade.id) === executiveRead.topTradeId })).join("")}
+          </div>
+        </section>
+      </div>
     `,
     onMount(card) {
+      card?.classList.add("calendar-day-panel");
       mountCharts(card, [
         lineAreaSpec(dayChartKey, buildDayCurve(orderedDayTrades), {
           tone: dayPnl >= 0 ? "green" : "red",
