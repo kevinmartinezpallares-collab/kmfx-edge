@@ -1477,44 +1477,9 @@ body::after {
   min-height: 28px;
 }
 
-.dashboard-kpi-card .kmfx-ui-kpi__icon {
-  width: 28px;
-  height: 28px;
-  background: color-mix(in srgb, var(--foreground) 3.5%, transparent);
-}
-
-.dashboard-kpi-card__marker {
-  width: 7px;
-  height: 7px;
-  background: var(--muted-foreground);
-  border-radius: var(--control-radius-pill);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--muted-foreground) 8%, transparent);
-}
-
-.dashboard-kpi-card[data-tone="profit"] .dashboard-kpi-card__marker {
-  background: var(--profit);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--profit) 10%, transparent);
-}
-
-.dashboard-kpi-card[data-tone="loss"] .dashboard-kpi-card__marker {
-  background: var(--loss);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--loss) 10%, transparent);
-}
-
 .dashboard-kpi-card[data-tone="warning"],
 .dashboard-kpi-card[data-tone="risk"] {
   border-color: color-mix(in srgb, var(--risk) 18%, var(--border));
-}
-
-.dashboard-kpi-card[data-tone="warning"] .dashboard-kpi-card__marker,
-.dashboard-kpi-card[data-tone="risk"] .dashboard-kpi-card__marker {
-  background: var(--risk);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--risk) 10%, transparent);
-}
-
-.dashboard-kpi-card[data-tone="info"] .dashboard-kpi-card__marker {
-  background: var(--equity);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--equity) 10%, transparent);
 }
 
 .dashboard-kpi-card .kmfx-ui-kpi__body {
