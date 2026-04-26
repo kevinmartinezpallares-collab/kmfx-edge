@@ -1819,7 +1819,6 @@ export function renderDashboard(root, state) {
           label: "Edge",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
           meta: `Win rate ${formatPercent((model?.totals?.winRate || 0) / 100)} / ${Number(model?.totals?.totalTrades || 0)} trades`,
-          valueClass: "dashboard-kpi-muted-value",
           cardClass: "dashboard-kpi-support",
           tone: "neutral",
           badge: "PF",

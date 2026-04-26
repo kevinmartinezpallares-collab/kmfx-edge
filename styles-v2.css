@@ -1565,6 +1565,14 @@ body::after {
   color: var(--equity);
 }
 
+.dashboard-kpi-card[data-dashboard-kpi="equity"][data-tone="info"] .dashboard-kpi-card__metric {
+  color: var(--foreground);
+}
+
+.dashboard-kpi-card[data-dashboard-kpi="edge"] .dashboard-kpi-card__metric {
+  color: color-mix(in srgb, var(--foreground) 92%, var(--muted-foreground));
+}
+
 .dashboard-kpi-card__meta {
   color: var(--muted-foreground);
   font-size: 12px;
