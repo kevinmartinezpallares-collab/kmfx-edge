@@ -239,7 +239,7 @@ function openCalendarDayFocus(root, state, model, key) {
               <div class="focus-panel-section__subtitle">Evolución acumulada de los cierres del día.</div>
             </div>
           </div>
-          <div class="focus-panel-chart calendar-day-report__chart">
+          <div class="calendar-day-report__chart">
             ${chartCanvas(dayChartKey, 188, "kmfx-chart-shell--feature")}
           </div>
         </section>

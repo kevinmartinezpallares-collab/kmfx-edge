@@ -17076,8 +17076,21 @@ body[data-theme="dark"] .focus-panel-trade-side--sell {
    Calendario — Day Focus Report
 -------------------------------------------------------------------------- */
 
+html[data-theme="dark"] .calendar-day-panel .modal-body--focus-panel,
+body[data-theme="dark"] .calendar-day-panel .modal-body--focus-panel {
+  margin-right: 0;
+  padding-right: 0;
+  scrollbar-gutter: auto;
+}
+
+html[data-theme="dark"] .calendar-day-panel .focus-panel-close,
+body[data-theme="dark"] .calendar-day-panel .focus-panel-close {
+  right: 26px;
+}
+
 html[data-theme="dark"] .calendar-day-panel .focus-panel__header,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__header {
+  margin: 0;
   padding: 24px 72px 22px 30px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent 68%),
@@ -17106,7 +17119,7 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__pnl {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics {
-  margin-top: 18px;
+  margin: 18px 30px 0;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline,
@@ -17135,7 +17148,8 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__content,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__content {
-  margin-top: 18px;
+  margin: 18px 30px 0;
+  padding-bottom: 30px;
 }
 
 html[data-theme="dark"] .calendar-day-report,
@@ -17146,8 +17160,6 @@ body[data-theme="dark"] .calendar-day-report {
 
 html[data-theme="dark"] .calendar-day-report__read-card,
 body[data-theme="dark"] .calendar-day-report__read-card,
-html[data-theme="dark"] .calendar-day-report__chart,
-body[data-theme="dark"] .calendar-day-report__chart,
 html[data-theme="dark"] .calendar-day-trades__list,
 body[data-theme="dark"] .calendar-day-trades__list {
   background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
@@ -17199,6 +17211,9 @@ body[data-theme="dark"] .calendar-day-report__section-head {
 html[data-theme="dark"] .calendar-day-report__chart,
 body[data-theme="dark"] .calendar-day-report__chart {
   padding: 10px 12px 8px;
+  background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: var(--radius-lg);
 }
 
 html[data-theme="dark"] .calendar-day-report__chart .kmfx-chart-shell,
