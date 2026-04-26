@@ -257,6 +257,16 @@ body::after {
   letter-spacing: -0.02em;
 }
 
+.kmfx-ui-card__eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .kmfx-ui-card__description {
   margin: 0;
   color: var(--muted-foreground);
@@ -335,6 +345,23 @@ body::after {
 
 .kmfx-ui-kpi__trend[data-tone="neutral"] {
   color: var(--muted-foreground);
+}
+
+.kmfx-ui-kpi[data-tone="profit"] .kmfx-ui-kpi__value {
+  color: var(--profit);
+}
+
+.kmfx-ui-kpi[data-tone="loss"] .kmfx-ui-kpi__value {
+  color: var(--loss);
+}
+
+.kmfx-ui-kpi[data-tone="warning"] .kmfx-ui-kpi__value,
+.kmfx-ui-kpi[data-tone="risk"] .kmfx-ui-kpi__value {
+  color: var(--risk);
+}
+
+.kmfx-ui-kpi[data-tone="info"] .kmfx-ui-kpi__value {
+  color: var(--equity);
 }
 
 .kmfx-ui-button {
@@ -1025,6 +1052,16 @@ body::after {
   letter-spacing: -0.02em;
 }
 
+.kmfx-ui-chart-card__eyebrow {
+  margin: 0 0 7px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .kmfx-ui-chart-card__description {
   margin: 6px 0 0;
   color: var(--muted-foreground);
@@ -1095,6 +1132,14 @@ body::after {
   line-height: 1.18;
   font-weight: 760;
   letter-spacing: -0.025em;
+}
+
+.kmfx-ui-decision-layer__description {
+  max-width: 680px;
+  margin: 7px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .kmfx-ui-decision-layer__grid {
