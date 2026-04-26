@@ -227,13 +227,20 @@ function renderDayTradeDisclosure(trade, options = {}) {
   const fees = resolveTradeFees(trade);
   const isPrimary = options.isPrimary === true;
   const pnlClass = trade.pnl > 0 ? "metric-positive" : trade.pnl < 0 ? "metric-negative" : "";
+  const primaryVerb = trade.pnl < 0 ? "concentró el mayor daño" : "sostuvo el resultado del día";
+  const primaryContext = `${trade.symbol || "—"} ${trade.side || ""} ${primaryVerb} con ${formatCalendarTooltipCurrency(trade.pnl)}.`;
   return `
     <details class="focus-panel-disclosure calendar-day-trades__item ${isPrimary ? "focus-panel-disclosure--primary calendar-day-trades__item--primary" : ""}">
       <summary class="focus-panel-disclosure__summary">
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
             <strong>${trade.symbol}</strong>
-            ${isPrimary ? `<small class="focus-panel-disclosure__note calendar-day-trades__primary-badge">TRADE PRINCIPAL DEL DÍA</small>` : ""}
+            ${isPrimary ? `
+              <small class="calendar-day-primary-trade">
+                <span class="calendar-day-primary-trade__label">Trade principal</span>
+                <span class="calendar-day-primary-trade__context">${primaryContext}</span>
+              </small>
+            ` : ""}
           </div>
           <div class="focus-panel-disclosure__cell">
             <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>

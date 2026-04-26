@@ -17385,7 +17385,7 @@ body[data-theme="dark"] .calendar-day-trades__item {
 html[data-theme="dark"] .calendar-day-trades__item--primary,
 body[data-theme="dark"] .calendar-day-trades__item--primary {
   background: transparent;
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ring) 62%, transparent);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--ring) 34%, transparent);
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure--primary .focus-panel-disclosure__summary,
@@ -17443,27 +17443,33 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__cell--symbo
   font-size: 13px;
 }
 
-html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__note,
-body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__note {
-  margin-top: 5px;
+html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade,
+body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade {
+  display: grid;
+  gap: 3px;
+  max-width: min(360px, 42vw);
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-style: normal;
 }
 
-html[data-theme="dark"] .calendar-day-panel .calendar-day-trades__primary-badge,
-body[data-theme="dark"] .calendar-day-panel .calendar-day-trades__primary-badge {
-  display: inline-flex;
+html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__label,
+body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__label {
   width: fit-content;
-  align-items: center;
-  min-height: 17px;
-  padding: 0 6px;
-  color: color-mix(in srgb, var(--ring) 78%, var(--foreground));
-  background: color-mix(in srgb, var(--ring) 9%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ring) 24%, transparent);
-  border-radius: 999px;
-  font-size: 8px;
+  color: color-mix(in srgb, var(--ring) 72%, var(--foreground));
+  font-size: 9px;
   line-height: 1;
-  font-weight: 780;
+  font-weight: 760;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__context,
+body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__context {
+  color: color-mix(in srgb, var(--foreground) 68%, var(--muted-foreground));
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 520;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-executions,
