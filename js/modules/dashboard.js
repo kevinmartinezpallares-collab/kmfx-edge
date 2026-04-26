@@ -893,31 +893,31 @@ function renderDashboardDecisionLayer(summary) {
   return `
     <section class="dashboard-decision-compact" data-dashboard-decision-layer-shell>
       <header class="dashboard-decision-compact__header">
-        <p class="dashboard-decision-compact__eyebrow">LECTURA DEL TRADER</p>
-        <h2 class="dashboard-decision-compact__title">Estado global de la cuenta</h2>
-        <p class="dashboard-decision-compact__description">Lectura rápida basada en riesgo, rendimiento y exposición actual.</p>
+        <p class="dashboard-decision-compact__eyebrow">LECTURA OPERATIVA</p>
+        <h2 class="dashboard-decision-compact__title">Estado actual de la cuenta</h2>
+        <p class="dashboard-decision-compact__description">Riesgo, rendimiento y exposición resumidos en una sola lectura.</p>
       </header>
 
       <div class="dashboard-decision-compact__grid">
         <article class="dashboard-decision-compact__cell" data-role="estado" data-tone="${escapeDashboardHtml(summary.tone)}">
-          <span class="dashboard-decision-compact__label">Estado</span>
+          <span class="dashboard-decision-compact__label">Situación</span>
           <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.statusTitle)}</strong>
           <p>${escapeDashboardHtml(summary.statusDescription)}</p>
         </article>
 
         <article class="dashboard-decision-compact__cell" data-role="causa" data-tone="neutral">
-          <span class="dashboard-decision-compact__label">Causa</span>
+          <span class="dashboard-decision-compact__label">Motivo</span>
           <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.causeTitle)}</strong>
           <p>${escapeDashboardHtml(summary.causeDescription)}</p>
         </article>
 
         <article class="dashboard-decision-compact__cell dashboard-decision-compact__cell--evidence" data-role="evidencia" data-tone="neutral">
-          <span class="dashboard-decision-compact__label">Evidencia</span>
+          <span class="dashboard-decision-compact__label">Datos clave</span>
           ${summary.evidenceHtml}
         </article>
 
         <article class="dashboard-decision-compact__cell" data-role="accion" data-tone="${escapeDashboardHtml(actionTone)}">
-          <span class="dashboard-decision-compact__label">Acción</span>
+          <span class="dashboard-decision-compact__label">Siguiente paso</span>
           <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.actionTitle)}</strong>
           <p>${escapeDashboardHtml(summary.actionDescription)}</p>
         </article>
