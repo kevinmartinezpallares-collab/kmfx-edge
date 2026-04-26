@@ -750,6 +750,10 @@ El objetivo de este documento es que una migración futura no rediseñe de cero:
 6. Crear guía de migración de clases legacy a `.kmfx-ui-*`.
 7. Normalizar `styles.css` vs `styles-v2.css` sin borrar legacy.
 
+### DS-2 implementation note
+
+DS-2 implementa en `styles-v2.css` los tokens sidebar shadcn-compatible, `--text-3`, aliases de texto, escala z-index, tokens de row/table density, tokens de duration/easing y primitives futuras para segmented/tabs, tooltip, popover/dropdown, scroll area, chart card y decision layer. Estas clases son additive y no migran secciones existentes todavía.
+
 ## 9. Validation checklist for future phases
 
 - Branch y working tree verificados antes de editar.

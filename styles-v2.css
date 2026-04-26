@@ -18,6 +18,7 @@
   --text-0: #ffffff !important;
   --text-1: rgba(255,255,255,0.65) !important;
   --text-2: rgba(255,255,255,0.40) !important;
+  --text-3: rgba(255,255,255,0.26) !important;
 
   /* BORDERS */
   --border-0: rgba(255,255,255,0.05) !important;
@@ -29,6 +30,8 @@
   --text-primary: var(--text-0);
   --text-secondary: var(--text-1);
   --text-muted: var(--text-2);
+  --text-muted-strong: var(--text-1);
+  --text-disabled: var(--text-3);
   --border-subtle: var(--border-0);
   --border-medium: var(--border-2);
 
@@ -71,6 +74,22 @@
   --radius-section: 16px;
   --radius-card: 12px;
   --radius-shell: 18px;
+  --row-height-compact: 36px;
+  --row-height-default: 44px;
+  --row-height-comfortable: 52px;
+  --table-cell-padding-x: 14px;
+  --table-cell-padding-y: 12px;
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 700;
+  --z-popover: 800;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --z-tooltip: 1200;
+  --duration-fast: 140ms;
+  --duration-medium: 200ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-linear: linear;
 
   /* KMFX design-system contract */
   --kmfx-page-bg: #0a0a0a;
@@ -115,6 +134,14 @@
   --input: var(--border-1);
   --ring: var(--accent);
   --radius: var(--kmfx-card-radius);
+  --sidebar: var(--layer-1);
+  --sidebar-foreground: var(--text-0);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--layer-accent);
+  --sidebar-accent-foreground: var(--text-0);
+  --sidebar-border: var(--border-0);
+  --sidebar-ring: var(--accent);
 
   --profit: var(--positive);
   --profit-foreground: #061b10;
@@ -327,7 +354,10 @@ body::after {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .kmfx-ui-button:hover {
@@ -780,13 +810,384 @@ body::after {
   border-color: rgba(255, 69, 58, 0.22);
 }
 
+/* --------------------------------------------------------------------------
+   KMFX Primitive Layer — DS-2 Additions
+   Future-ready shadcn-inspired primitives for vanilla CSS.
+   These classes are additive only and are not applied automatically.
+-------------------------------------------------------------------------- */
+.kmfx-ui-segmented,
+.kmfx-ui-tabs__list {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius-pill);
+}
+
+.kmfx-ui-segmented__item,
+.kmfx-ui-tabs__trigger {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--control-radius-pill);
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.kmfx-ui-segmented__item:hover,
+.kmfx-ui-tabs__trigger:hover {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.kmfx-ui-segmented__item[aria-selected="true"],
+.kmfx-ui-segmented__item.is-active,
+.kmfx-ui-tabs__trigger[aria-selected="true"],
+.kmfx-ui-tabs__trigger.is-active {
+  color: var(--foreground);
+  background: var(--surface-card-hover);
+  border-color: var(--border-1);
+}
+
+.kmfx-ui-segmented__item:focus-visible,
+.kmfx-ui-tabs__trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.kmfx-ui-tabs {
+  display: grid;
+  gap: 14px;
+}
+
+.kmfx-ui-tooltip {
+  position: relative;
+  z-index: var(--z-tooltip);
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.kmfx-ui-tooltip[data-state="open"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.kmfx-ui-tooltip__content {
+  padding: 8px 10px;
+  color: var(--popover-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--chart-tooltip-shadow);
+}
+
+.kmfx-ui-popover,
+.kmfx-ui-dropdown {
+  position: relative;
+  z-index: var(--z-popover);
+  color: var(--popover-foreground);
+}
+
+.kmfx-ui-popover__content,
+.kmfx-ui-dropdown {
+  min-width: 180px;
+  padding: 6px;
+  color: var(--popover-foreground);
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+}
+
+.kmfx-ui-dropdown__item {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.kmfx-ui-dropdown__item:hover,
+.kmfx-ui-dropdown__item:focus-visible {
+  color: var(--foreground);
+  background: var(--muted);
+  outline: none;
+}
+
+.kmfx-ui-dropdown__item[aria-selected="true"] {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.kmfx-ui-dropdown__separator {
+  height: 1px;
+  margin: 6px -6px;
+  background: var(--border);
+}
+
+.kmfx-ui-scroll-area {
+  overflow: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: thin;
+}
+
+.kmfx-ui-scroll-area::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.kmfx-ui-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kmfx-ui-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border: 3px solid transparent;
+  border-radius: var(--control-radius-pill);
+  background-clip: padding-box;
+}
+
+.kmfx-ui-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.kmfx-ui-scroll-area--thin::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.kmfx-ui-scroll-area--hidden {
+  scrollbar-width: none;
+}
+
+.kmfx-ui-scroll-area--hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.kmfx-ui-chart-card {
+  color: var(--card-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.kmfx-ui-chart-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--border-0);
+}
+
+.kmfx-ui-chart-card__title {
+  margin: 0;
+  color: var(--card-foreground);
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.kmfx-ui-chart-card__description {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.kmfx-ui-chart-card__content {
+  min-height: 240px;
+  padding: 18px 20px;
+}
+
+.kmfx-ui-chart-card__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 0 20px 18px;
+}
+
+.kmfx-ui-chart-card__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.kmfx-ui-chart-card__legend-item::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--chart-1);
+  border-radius: var(--control-radius-pill);
+}
+
+.kmfx-ui-decision-layer {
+  color: var(--card-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.kmfx-ui-decision-layer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 0;
+}
+
+.kmfx-ui-decision-layer__eyebrow,
+.kmfx-ui-decision-card__label {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.kmfx-ui-decision-layer__title {
+  margin: 6px 0 0;
+  color: var(--card-foreground);
+  font-size: 18px;
+  line-height: 1.18;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+.kmfx-ui-decision-layer__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px 20px 20px;
+}
+
+.kmfx-ui-decision-card {
+  min-width: 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-0);
+  border-radius: var(--radius-md);
+}
+
+.kmfx-ui-decision-card[data-tone="neutral"] {
+  border-color: var(--border-0);
+}
+
+.kmfx-ui-decision-card[data-tone="info"] {
+  background: color-mix(in srgb, var(--equity) 8%, transparent);
+  border-color: color-mix(in srgb, var(--equity) 20%, var(--border-0));
+}
+
+.kmfx-ui-decision-card[data-tone="warning"] {
+  background: var(--risk-muted);
+  border-color: color-mix(in srgb, var(--risk) 22%, var(--border-0));
+}
+
+.kmfx-ui-decision-card[data-tone="success"] {
+  background: var(--profit-muted);
+  border-color: color-mix(in srgb, var(--profit) 22%, var(--border-0));
+}
+
+.kmfx-ui-decision-card[data-tone="danger"] {
+  background: var(--loss-muted);
+  border-color: color-mix(in srgb, var(--loss) 22%, var(--border-0));
+}
+
+.kmfx-ui-decision-card__title {
+  margin: 9px 0 0;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 740;
+}
+
+.kmfx-ui-decision-card__description {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .kmfx-ui-decision-layer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .kmfx-ui-segmented,
+  .kmfx-ui-tabs__list {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .kmfx-ui-decision-layer__header {
+    flex-direction: column;
+  }
+
+  .kmfx-ui-decision-layer__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kmfx-ui-card--interactive,
   .kmfx-ui-button,
   .kmfx-ui-table tbody tr,
   .kmfx-ui-input,
-  .kmfx-ui-select {
-    transition-duration: 1ms;
+  .kmfx-ui-select,
+  .kmfx-ui-segmented *,
+  .kmfx-ui-tabs *,
+  .kmfx-ui-popover *,
+  .kmfx-ui-dropdown *,
+  .kmfx-ui-tooltip *,
+  .kmfx-ui-chart-card *,
+  .kmfx-ui-decision-layer * {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
   }
 }
 
