@@ -1196,6 +1196,42 @@ body::after {
   line-height: 1.45;
 }
 
+/* --------------------------------------------------------------------------
+   Dashboard — Decision Layer
+-------------------------------------------------------------------------- */
+
+.dashboard-decision__evidence {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+
+.dashboard-decision__evidence div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dashboard-decision__evidence dt,
+.dashboard-decision__evidence dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.dashboard-decision__evidence dt {
+  color: var(--muted-foreground);
+}
+
+.dashboard-decision__evidence dd {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .kmfx-ui-decision-layer__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

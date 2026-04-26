@@ -1,7 +1,7 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { decisionLayerMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -596,6 +596,9 @@ function updateDashboardLiveNodes(root, payload) {
   if (payload.openTradeRiskHtml != null) {
     setNodeHTML(root, "[data-dashboard-open-trade-risk-table]", payload.openTradeRiskHtml);
   }
+  if (payload.decisionLayerHtml != null) {
+    setNodeHTML(root, "[data-dashboard-decision-layer-shell]", payload.decisionLayerHtml);
+  }
 }
 
 function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutral", valueAttr = "", metaAttr = "" }) {
@@ -606,6 +609,270 @@ function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutra
       ${meta ? `<div class="risk-metric-card__meta"${metaAttr ? ` ${metaAttr}` : ""}>${meta}</div>` : ""}
     </article>
   `;
+}
+
+const DASHBOARD_MIN_SAMPLE_TRADES = 5;
+
+function formatSignedDashboardCurrency(value) {
+  const numericValue = Number(value || 0);
+  if (Math.abs(numericValue) < 0.005) return formatCurrency(0);
+  return `${numericValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(numericValue))}`;
+}
+
+function getDashboardDecisionTone(statusTitle) {
+  if (statusTitle === "Trader en control") return "success";
+  if (statusTitle === "Bajo presión") return "warning";
+  if (statusTitle === "Riesgo elevado") return "danger";
+  if (statusTitle === "Cuenta sin sincronizar") return "warning";
+  if (statusTitle === "Sin posiciones abiertas") return "info";
+  return "neutral";
+}
+
+function hasReliableDashboardSnapshot({ model, account, authority, dashboardPayload }) {
+  if (!model || !account) return false;
+  const sourceType = String(account?.sourceType || "").toLowerCase();
+  if (sourceType !== "mt5") return true;
+
+  const connectionState = String(account?.connection?.state || "").toLowerCase();
+  const explicitlyDisconnected = ["disconnected", "offline", "error", "failed"].includes(connectionState);
+  const hasUsableSnapshot = Boolean(authority?.hasUsableLiveSnapshot);
+  const hasHistory = Number(authority?.historyPoints || 0) > 0 || Array.isArray(model?.equityCurve) && model.equityCurve.length > 0;
+  const hasTrades = Number(authority?.tradeCount || model?.totals?.totalTrades || 0) > 0;
+  const hasPositions = Number(model?.account?.openPositionsCount || 0) > 0 || Array.isArray(dashboardPayload?.positions) && dashboardPayload.positions.length > 0;
+  const hasFiniteEquity = Number.isFinite(Number(model?.account?.equity));
+
+  if (hasUsableSnapshot || hasHistory || hasTrades || hasPositions) return true;
+  return !explicitlyDisconnected && hasFiniteEquity;
+}
+
+function buildDashboardEvidenceHtml(summary) {
+  return `
+    <dl class="dashboard-decision__evidence">
+      <div>
+        <dt>Equity</dt>
+        <dd>${summary.equityText}</dd>
+      </div>
+      <div>
+        <dt>${summary.pnlLabel}</dt>
+        <dd>${pnlTextMarkup({ value: summary.pnlValue, text: summary.pnlText })}</dd>
+      </div>
+      <div>
+        <dt>Drawdown</dt>
+        <dd>${summary.drawdownText}</dd>
+      </div>
+      <div>
+        <dt>Riesgo abierto</dt>
+        <dd>${summary.openRiskText}</dd>
+      </div>
+      <div>
+        <dt>Muestra</dt>
+        <dd>${summary.sampleText}</dd>
+      </div>
+      <div>
+        <dt>Edge</dt>
+        <dd>${summary.edgeText}</dd>
+      </div>
+    </dl>
+  `;
+}
+
+function buildMissingDashboardDecisionSummary() {
+  return {
+    statusTitle: "Cuenta sin sincronizar",
+    statusDescription: "No hay una cuenta activa con datos suficientes para leer el estado.",
+    causeTitle: "No hay snapshot fiable todavía",
+    causeDescription: "El panel no tiene una fuente de datos válida para evaluar riesgo y rendimiento.",
+    evidenceTitle: "Sin datos suficientes",
+    evidenceDescription: "Falta una muestra operativa para interpretar la cuenta.",
+    evidenceHtml: "",
+    actionTitle: "Sincroniza la cuenta",
+    actionDescription: "Conecta o sincroniza una cuenta para evaluar el estado.",
+    tone: "warning",
+    signature: "missing-account",
+  };
+}
+
+function buildDashboardDecisionSummary({
+  model,
+  account,
+  authority,
+  dashboardPayload,
+  performanceView,
+  riskStatus,
+  riskSummary,
+  riskLimits,
+  primaryDistanceToLimit,
+  hasOpenPositions,
+  panelSecondMetricValue,
+  panelSecondMetricLabel,
+}) {
+  const reliableSnapshot = hasReliableDashboardSnapshot({ model, account, authority, dashboardPayload });
+  const totalTrades = Number(model?.totals?.totalTrades || model?.trades?.length || 0);
+  const winRate = Number(model?.totals?.winRate || 0);
+  const profitFactor = Number(model?.totals?.profitFactor || 0);
+  const currentDrawdownPct = Number(riskSummary?.peakToEquityDrawdownPct || model?.totals?.drawdown?.maxPct || 0);
+  const dailyDrawdownPct = Number(riskSummary?.dailyDrawdownPct || 0);
+  const dailyLimitPct = Number(riskLimits?.policy?.dailyDdLimitPct || 0);
+  const totalOpenRiskPct = Number(riskSummary?.totalOpenRiskPct || 0);
+  const maxOpenTradeRiskPct = Number(riskSummary?.maxOpenTradeRiskPct || 0);
+  const maxRiskPerTradePct = Number(riskSummary?.maxRiskPerTradePct || 0);
+  const riskState = String(riskStatus?.riskStatus || "").toLowerCase();
+  const severity = String(riskStatus?.severity || "").toLowerCase();
+  const hardEnforcement = Boolean(
+    riskStatus?.blockNewTrades ||
+    riskStatus?.reduceSize ||
+    riskStatus?.closePositionsRequired ||
+    ["blocked", "breach"].includes(riskState) ||
+    severity === "critical"
+  );
+  const nearDailyLimit = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.85;
+  const dailyPressure = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.6;
+  const distanceIsKnown = Number.isFinite(Number(primaryDistanceToLimit)) && Number(primaryDistanceToLimit) > 0;
+  const lowRiskMargin = distanceIsKnown && Number(primaryDistanceToLimit) <= 0.35;
+  const openRiskElevated = totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25);
+  const openRiskPressure = totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct || 0.5, 0.75);
+  const tradeRiskPressure = maxRiskPerTradePct > 0 && maxOpenTradeRiskPct >= maxRiskPerTradePct * 0.8;
+  const sampleIsEnough = totalTrades >= DASHBOARD_MIN_SAMPLE_TRADES;
+  const performancePressure = sampleIsEnough && (
+    Number(panelSecondMetricValue || 0) < 0 &&
+    ((Number.isFinite(profitFactor) && profitFactor > 0 && profitFactor < 1) || winRate < 45)
+  );
+  const elevatedRisk = hardEnforcement || nearDailyLimit || lowRiskMargin || openRiskElevated || currentDrawdownPct >= 5;
+  const underPressure = riskState === "warning" || dailyPressure || openRiskPressure || tradeRiskPressure || performancePressure || currentDrawdownPct >= 2;
+
+  const summary = {
+    equityText: formatCurrency(model?.account?.equity || 0),
+    pnlLabel: panelSecondMetricLabel || "PnL",
+    pnlValue: Number(panelSecondMetricValue || 0),
+    pnlText: formatSignedDashboardCurrency(panelSecondMetricValue),
+    drawdownText: `${formatRiskValuePct(currentDrawdownPct, 2)} · Daily ${formatRiskValuePct(dailyDrawdownPct, 2)}`,
+    openRiskText: hasOpenPositions
+      ? `${formatRiskValuePct(totalOpenRiskPct, 2)} · ${Number(performanceView?.openPositionsCount || 0)} posiciones`
+      : "Sin exposición",
+    sampleText: `${totalTrades} trades · ${totalTrades > 0 ? formatPercent(winRate / 100) : "—"} win rate`,
+    edgeText: Number.isFinite(profitFactor) && profitFactor > 0 ? `PF ${profitFactor.toFixed(2)}` : "PF —",
+  };
+
+  let statusTitle = "Trader en control";
+  let statusDescription = "Riesgo y rendimiento no muestran una presión dominante.";
+  let causeTitle = "Sin presión operativa";
+  let causeDescription = "No hay una señal urgente por riesgo, drawdown o exposición.";
+  let actionTitle = "Mantén el proceso";
+  let actionDescription = "Mantén riesgo actual y sigue registrando.";
+
+  if (!reliableSnapshot) {
+    statusTitle = "Cuenta sin sincronizar";
+    statusDescription = "La cuenta no tiene un snapshot fiable para evaluar el estado.";
+    causeTitle = "Cuenta sin snapshot fiable";
+    causeDescription = "Falta una fuente reciente de equity, posiciones o histórico.";
+    actionTitle = "Sincroniza la cuenta";
+    actionDescription = "Sincroniza cuenta antes de evaluar el estado.";
+  } else if (elevatedRisk) {
+    statusTitle = "Riesgo elevado";
+    statusDescription = "Hay una señal interna que exige proteger la cuenta.";
+    causeTitle = hardEnforcement ? "Risk Engine activo" : nearDailyLimit ? "Drawdown diario cerca del límite" : lowRiskMargin ? "Margen de riesgo estrecho" : "Exposición abierta elevada";
+    causeDescription = hardEnforcement
+      ? (riskStatus?.actionRequired || "El Risk Engine marcó una condición operativa.")
+      : "Riesgo, drawdown o distancia a límites requieren atención.";
+    actionTitle = hardEnforcement ? "Respeta el enforcement" : hasOpenPositions ? "Reduce exposición" : "Pausa y revisa";
+    actionDescription = hardEnforcement
+      ? "Respeta el enforcement del Risk Engine."
+      : hasOpenPositions
+        ? "Reduce exposición antes de abrir nuevos trades."
+        : "Revisa límites antes de tomar nuevas decisiones.";
+  } else if (!sampleIsEnough) {
+    statusTitle = "Sin muestra suficiente";
+    statusDescription = "Todavía no hay suficientes trades cerrados para juzgar rendimiento.";
+    causeTitle = "Muestra insuficiente";
+    causeDescription = `${totalTrades} de ${DASHBOARD_MIN_SAMPLE_TRADES} trades mínimos para una lectura estable.`;
+    actionTitle = "Sigue registrando";
+    actionDescription = "No saques conclusiones hasta tener más muestra.";
+  } else if (underPressure) {
+    statusTitle = "Bajo presión";
+    statusDescription = "Hay presión moderada por drawdown, riesgo abierto o margen.";
+    causeTitle = dailyPressure ? "Drawdown diario cerca del límite" : openRiskPressure ? "Exposición abierta elevada" : performancePressure ? "Rendimiento reciente débil" : "Riesgo moderado activo";
+    causeDescription = "La cuenta sigue operativa, pero el margen de maniobra es menor.";
+    actionTitle = hasOpenPositions ? "Revisa exposición" : performancePressure ? "Revisa la muestra" : "Opera con cautela";
+    actionDescription = hasOpenPositions
+      ? "Revisa posiciones abiertas con mayor riesgo."
+      : performancePressure
+        ? "Revisa la muestra antes de aumentar exposición."
+      : "Mantén tamaño controlado y prioriza calidad de ejecución.";
+  } else if (!hasOpenPositions) {
+    statusTitle = "Sin posiciones abiertas";
+    statusDescription = "No hay riesgo vivo ahora mismo; la cuenta está en reposo.";
+    causeTitle = "Sin presión operativa";
+    causeDescription = "La exposición abierta es cero y no hay enforcement activo.";
+    actionTitle = "Prepara la sesión";
+    actionDescription = "Mantén riesgo actual y sigue registrando.";
+  }
+
+  const tone = getDashboardDecisionTone(statusTitle);
+  const evidenceDescription = [
+    summary.equityText,
+    summary.pnlText,
+    summary.drawdownText,
+    summary.openRiskText,
+    summary.sampleText,
+    summary.edgeText,
+  ].join(" | ");
+
+  return {
+    ...summary,
+    statusTitle,
+    statusDescription,
+    causeTitle,
+    causeDescription,
+    evidenceTitle: "Datos clave",
+    evidenceDescription: "Muestra compacta de capital, riesgo y rendimiento.",
+    evidenceHtml: buildDashboardEvidenceHtml(summary),
+    actionTitle,
+    actionDescription,
+    tone,
+    signature: JSON.stringify({
+      statusTitle,
+      causeTitle,
+      actionTitle,
+      evidenceDescription,
+    }),
+  };
+}
+
+function renderDashboardDecisionLayer(summary) {
+  return decisionLayerMarkup({
+    eyebrow: "LECTURA DEL TRADER",
+    title: "Estado global de la cuenta",
+    description: "Lectura rápida basada en riesgo, rendimiento y exposición actual.",
+    className: "dashboard-decision",
+    attrs: { "data-dashboard-decision-layer": true },
+    cards: [
+      {
+        label: "Estado",
+        title: summary.statusTitle,
+        description: summary.statusDescription,
+        tone: summary.tone,
+      },
+      {
+        label: "Causa",
+        title: summary.causeTitle,
+        description: summary.causeDescription,
+        tone: summary.tone === "danger" ? "danger" : summary.tone === "warning" ? "warning" : "neutral",
+      },
+      {
+        label: "Evidencia",
+        title: summary.evidenceTitle,
+        description: summary.evidenceDescription,
+        tone: "info",
+        metaHtml: summary.evidenceHtml,
+      },
+      {
+        label: "Acción",
+        title: summary.actionTitle,
+        description: summary.actionDescription,
+        tone: summary.tone === "danger" ? "danger" : summary.tone === "warning" ? "warning" : "neutral",
+      },
+    ],
+  });
 }
 
 function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsCount }) {
@@ -857,7 +1124,28 @@ export function renderDashboard(root, state) {
   });
 
   if (!model || !account) {
-    root.innerHTML = "";
+    root.innerHTML = `
+      <section class="dashboard-screen dashboard-page-flow">
+        ${pageHeaderMarkup({
+          eyebrow: "Dashboard",
+          title: "Dashboard",
+          description: "Conecta o sincroniza una cuenta para evaluar el estado global.",
+          className: "calendar-screen__header dashboard-screen__header",
+          contentClassName: "calendar-screen__copy",
+          eyebrowClassName: "calendar-screen__eyebrow",
+          titleClassName: "calendar-screen__title",
+          descriptionClassName: "calendar-screen__subtitle",
+          actionsClassName: "dashboard-screen__actions",
+          actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
+        })}
+        <div data-dashboard-decision-layer-shell>
+          ${renderDashboardDecisionLayer(buildMissingDashboardDecisionSummary())}
+        </div>
+      </section>
+    `;
+    root.__dashboardRendered = true;
+    root.__dashboardStructureSignature = "";
+    root.__dashboardLiveSignature = "";
     return;
   }
 
@@ -1159,6 +1447,21 @@ export function renderDashboard(root, state) {
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
   const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
   const hasOpenPositions = Number(performanceView.openPositionsCount || 0) > 0;
+  const dashboardDecision = buildDashboardDecisionSummary({
+    model,
+    account,
+    authority,
+    dashboardPayload,
+    performanceView,
+    riskStatus,
+    riskSummary,
+    riskLimits,
+    primaryDistanceToLimit,
+    hasOpenPositions,
+    panelSecondMetricValue,
+    panelSecondMetricLabel,
+  });
+  const dashboardDecisionLayerHtml = renderDashboardDecisionLayer(dashboardDecision);
   const dashboardSubtitle = hasOpenPositions
     ? "Capital, riesgo y estado operativo de un vistazo."
     : "Capital, riesgo y estado operativo de un vistazo. Sin posiciones abiertas.";
@@ -1291,6 +1594,7 @@ export function renderDashboard(root, state) {
     tradeRisk: Number(riskSummary.maxOpenTradeRiskPct || 0),
     dailyDd: Number(riskSummary.dailyDrawdownPct || 0),
     margin: Number(primaryDistanceToLimit || 0),
+    decision: dashboardDecision.signature,
     symbolExposure: (riskExposure.symbolExposure || []).map((item) => ({
       symbol: item.symbol || "",
       risk: Number(item.risk_pct || 0),
@@ -1334,6 +1638,7 @@ export function renderDashboard(root, state) {
     riskFoot: riskPostureRead.detail,
     exposureTableHtml: hasExposureSignal ? renderSymbolExposureTable(riskExposure.symbolExposure) : null,
     openTradeRiskHtml: hasOpenTradeRisk ? renderOpenTradeRiskTable(riskExposure.openTradeRisks) : null,
+    decisionLayerHtml: dashboardDecisionLayerHtml,
   };
 
   if (root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
@@ -1360,6 +1665,10 @@ export function renderDashboard(root, state) {
         actionsClassName: "dashboard-screen__actions",
         actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
       })}
+
+      <div data-dashboard-decision-layer-shell>
+        ${dashboardDecisionLayerHtml}
+      </div>
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
