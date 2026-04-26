@@ -2,7 +2,7 @@ import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=buil
 import { formatCurrency, formatDurationHuman, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { decisionLayerMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -352,6 +352,208 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
     }).join("");
 }
 
+function formatCalendarDayLabel(dayKey) {
+  if (!dayKey) return "—";
+  const [year, month, day] = String(dayKey).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+}
+
+function buildCalendarEvidenceRows(rows) {
+  return `
+    <dl class="calendar-decision-compact__evidence">
+      ${rows.map((row) => `
+        <div>
+          <dt>${row.label}</dt>
+          <dd>${row.valueHtml || row.value}</dd>
+        </div>
+      `).join("")}
+    </dl>
+  `;
+}
+
+function buildCalendarDecisionSummary({
+  viewMode,
+  monthView,
+  summary,
+  selectedMonth,
+  selectedYear,
+  dayStats,
+  calendarMonths,
+  valueMode,
+  hasModel,
+  hasTradingData,
+}) {
+  const isYearView = viewMode === "year";
+  const periodLabel = isYearView ? "año" : "mes";
+  const periodTitle = isYearView ? "Estado del año" : "Estado del mes";
+  const periodPnl = Number((isYearView ? summary.yearPnl : summary.monthPnl) || 0);
+  const periodTrades = Number(summary.tradeCount || 0);
+  const activeDays = Number(summary.activeDays || 0);
+  const winDays = Number(summary.winDays || 0);
+  const lossDays = Number(summary.lossDays || 0);
+  const consistencyPct = Number(summary.consistencyPct || 0);
+  const periodBase = isYearView
+    ? calendarMonths.find((month) => month.key.startsWith(`${selectedYear}-`))?.startBalance
+    : selectedMonth?.startBalance;
+  const periodDays = isYearView
+    ? (dayStats || []).filter((day) => String(day.key || "").startsWith(`${selectedYear}-`) && Number(day.trades || 0) > 0)
+    : monthView.cells.filter((cell) => cell.inMonth && Number(cell.trades || 0) > 0);
+  const bestDay = periodDays.reduce((top, day) => !top || Number(day.pnl || 0) > Number(top.pnl || 0) ? day : top, null);
+  const worstDay = periodDays.reduce((bottom, day) => !bottom || Number(day.pnl || 0) < Number(bottom.pnl || 0) ? day : bottom, null);
+  const worstWeek = !isYearView
+    ? monthView.weeks.reduce((bottom, week) => Number(week.trades || 0) > 0 && (!bottom || Number(week.pnl || 0) < Number(bottom.pnl || 0)) ? week : bottom, null)
+    : null;
+  const enoughSample = activeDays >= 3 && periodTrades >= 5;
+  const weakConsistency = activeDays > 0 && consistencyPct < 50;
+  const materialWorstDay = worstDay && Number(worstDay.pnl || 0) < 0 && Math.abs(Number(worstDay.pnl || 0)) >= Math.max(Math.abs(periodPnl) * 0.55, 1);
+
+  let state = "Sin muestra suficiente";
+  let stateDescription = `Faltan más días operados para leer este ${periodLabel} con contexto.`;
+  let stateTone = "warning";
+  let causeTitle = "Falta muestra";
+  let causeDescription = `Este ${periodLabel} todavía no permite separar patrón de ruido.`;
+  let actionTitle = "Completa muestra";
+  let actionDescription = "Sigue registrando operaciones antes de concluir.";
+  let actionTone = "warning";
+
+  if (!hasModel || !hasTradingData) {
+    state = "Sin operaciones";
+    stateDescription = `No hay cierres suficientes en este ${periodLabel}.`;
+    stateTone = "neutral";
+    causeTitle = "Sin datos operativos";
+    causeDescription = "La lectura aparecerá cuando existan días con trades cerrados.";
+    actionTitle = "Selecciona un periodo con operaciones";
+    actionDescription = "Ajusta la navegación o sincroniza actividad para evaluar el calendario.";
+    actionTone = "neutral";
+  } else if (periodTrades === 0 || activeDays === 0) {
+    state = "Sin operaciones";
+    stateDescription = `Este ${periodLabel} no tiene trades cerrados.`;
+    stateTone = "neutral";
+    causeTitle = "Periodo sin actividad";
+    causeDescription = "No hay muestra diaria para interpretar aportes o daño.";
+    actionTitle = "Selecciona un periodo con operaciones";
+    actionDescription = "Busca un mes con cierres para revisar días clave.";
+    actionTone = "neutral";
+  } else if (!enoughSample) {
+    state = "Sin muestra suficiente";
+    stateDescription = `${activeDays} días y ${periodTrades} trades no bastan para diagnosticar patrón.`;
+    stateTone = "warning";
+    causeTitle = "Falta muestra";
+    causeDescription = "La evidencia todavía puede estar dominada por pocos trades.";
+    actionTitle = "Sigue registrando";
+    actionDescription = "Sigue registrando operaciones antes de concluir.";
+    actionTone = "warning";
+  } else if (periodPnl < 0 || materialWorstDay) {
+    state = `${isYearView ? "Año" : "Mes"} bajo presión`;
+    stateDescription = periodPnl < 0
+      ? `El resultado neto del ${periodLabel} está en negativo.`
+      : "Un día negativo concentra demasiado impacto.";
+    stateTone = "danger";
+    causeTitle = worstDay ? `Día de mayor impacto: ${formatCalendarDayLabel(worstDay.key)}` : "Daño concentrado";
+    causeDescription = worstWeek && Number(worstWeek.pnl || 0) < 0
+      ? `${worstWeek.label} cerró con ${formatCurrency(worstWeek.pnl)}.`
+      : "El daño se concentra en la peor sesión del periodo.";
+    actionTitle = "Revisa el peor día";
+    actionDescription = "Abre el detalle del día con mayor daño antes de sacar conclusiones.";
+    actionTone = "danger";
+  } else if (Math.abs(periodPnl) < 1 || weakConsistency) {
+    state = "Resultado mixto";
+    stateDescription = `El ${periodLabel} no muestra una lectura direccional limpia.`;
+    stateTone = "warning";
+    causeTitle = "Consistencia irregular";
+    causeDescription = `${winDays} días positivos frente a ${lossDays} días negativos.`;
+    actionTitle = "Revisa la dispersión";
+    actionDescription = "Compara los días ganadores y perdedores antes de decidir foco.";
+    actionTone = "warning";
+  } else {
+    state = `${isYearView ? "Año" : "Mes"} positivo`;
+    stateDescription = `El balance del ${periodLabel} es favorable con muestra suficiente.`;
+    stateTone = "success";
+    causeTitle = "Balance favorable";
+    causeDescription = bestDay
+      ? `${formatCalendarDayLabel(bestDay.key)} fue el día que más aportó.`
+      : "Los días positivos sostienen el resultado del periodo.";
+    actionTitle = "Mantén seguimiento";
+    actionDescription = "Mantén seguimiento y compara con ejecución.";
+    actionTone = "info";
+  }
+
+  const periodText = formatCalendarValue(periodPnl, valueMode, periodBase);
+  const bestDayText = bestDay ? `${formatCalendarDayLabel(bestDay.key)} · ${formatCurrency(bestDay.pnl)}` : "—";
+  const worstDayText = worstDay ? `${formatCalendarDayLabel(worstDay.key)} · ${formatCurrency(worstDay.pnl)}` : "—";
+
+  return {
+    periodTitle,
+    state,
+    stateDescription,
+    stateTone,
+    causeTitle,
+    causeDescription,
+    actionTitle,
+    actionDescription,
+    actionTone,
+    evidenceRows: [
+      {
+        label: "P&L del periodo",
+        valueHtml: hasModel
+          ? pnlTextMarkup({ value: periodPnl, text: periodText })
+          : "—"
+      },
+      { label: "Días operados", value: hasModel ? String(activeDays) : "—" },
+      { label: "Días ganadores", value: hasModel ? String(winDays) : "—" },
+      {
+        label: "Mejor día",
+        valueHtml: bestDay
+          ? pnlTextMarkup({ value: bestDay.pnl, text: bestDayText })
+          : "—"
+      },
+      {
+        label: "Peor día",
+        valueHtml: worstDay
+          ? pnlTextMarkup({ value: worstDay.pnl, text: worstDayText })
+          : "—"
+      },
+      { label: "Trades", value: hasModel ? String(periodTrades) : "—" },
+    ],
+  };
+}
+
+function renderCalendarDecisionLayer(summary) {
+  return decisionLayerMarkup({
+    eyebrow: "LECTURA DEL CALENDARIO",
+    title: summary.periodTitle,
+    description: "Resultado, consistencia y días clave resumidos en una sola lectura.",
+    className: "calendar-decision-compact",
+    cards: [
+      {
+        label: "SITUACIÓN",
+        title: summary.state,
+        description: summary.stateDescription,
+        tone: summary.stateTone,
+      },
+      {
+        label: "MOTIVO",
+        title: summary.causeTitle,
+        description: summary.causeDescription,
+        tone: "neutral",
+      },
+      {
+        label: "DATOS CLAVE",
+        title: "Evidencia del periodo",
+        description: "",
+        tone: "neutral",
+        metaHtml: buildCalendarEvidenceRows(summary.evidenceRows),
+      },
+      {
+        label: "SIGUIENTE PASO",
+        title: summary.actionTitle,
+        description: summary.actionDescription,
+        tone: summary.actionTone,
+      },
+    ],
+  });
+}
+
 function getCalendarViewMode(root) {
   if (root.__calendarViewMode !== "year") {
     root.__calendarViewMode = "month";
@@ -396,6 +598,18 @@ export function renderCalendar(root, state) {
   const summary = viewMode === "year"
     ? buildYearSummary(dayStats, calendarMonths, selectedYear)
     : buildMonthSummary(monthView, selectedMonth);
+  const calendarDecisionSummary = buildCalendarDecisionSummary({
+    viewMode,
+    monthView,
+    summary,
+    selectedMonth,
+    selectedYear,
+    dayStats,
+    calendarMonths,
+    valueMode,
+    hasModel,
+    hasTradingData,
+  });
   const selectedDayKey = root.__calendarSelectedDay;
   const hasSelectedDay = monthView.cells.some((cell) => cell.key === selectedDayKey && cell.trades > 0);
   const cumulativeCurve = buildCalendarCurve(dayStats, selectedMonth);
@@ -492,6 +706,7 @@ export function renderCalendar(root, state) {
         `,
       })}
       ${adminTracePanel}
+      ${renderCalendarDecisionLayer(calendarDecisionSummary)}
 
       <section class="calendar-summary-strip" aria-label="Resumen del mes">
         <article class="calendar-summary-card calendar-summary-card--primary">
