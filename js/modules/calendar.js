@@ -81,6 +81,40 @@ function buildDayMetrics(dayTrades) {
   ];
 }
 
+function escapeCalendarStatText(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderCalendarDayStatBar(metrics, dayTrades) {
+  const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
+  const wins = ordered.filter((trade) => trade.pnl > 0).length;
+  const losses = ordered.filter((trade) => trade.pnl < 0).length;
+  const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
+  const metaByLabel = new Map([
+    ["Trades", "Cerrados"],
+    ["Win Rate", ordered.length ? `${wins} ganadoras · ${losses} perdedoras` : ""],
+    ["Mejor trade", best ? `${best.symbol || "—"} ${best.side || ""}`.trim() : ""],
+    ["Comisiones", ordered.length ? `${ordered.length} trades` : ""]
+  ]);
+
+  return `
+    <section class="calendar-day-stat-bar" aria-label="Resumen del día">
+      ${metrics.map((metric) => `
+        <article class="calendar-day-stat-bar__item">
+          <span class="calendar-day-stat-bar__label">${escapeCalendarStatText(metric.label)}</span>
+          <span class="calendar-day-stat-bar__value ${metric.valueClass || ""}">${metric.value}</span>
+          ${metaByLabel.get(metric.label) ? `<span class="calendar-day-stat-bar__meta">${escapeCalendarStatText(metaByLabel.get(metric.label))}</span>` : ""}
+        </article>
+      `).join("")}
+    </section>
+  `;
+}
+
 function getTradePrimaryMoment(trade) {
   return new Date(trade?.entryTime || trade?.openTime || trade?.open_time || trade?.when || trade?.closeTime || trade?.date || 0);
 }
@@ -237,6 +271,7 @@ function openCalendarDayFocus(root, state, model, key) {
   const dayChartKey = `calendar-day-focus-${key}`;
   const firstTrade = orderedDayTrades[0];
   const lastTrade = orderedDayTrades.at(-1);
+  const dayMetrics = buildDayMetrics(orderedDayTrades);
   const reviewPrompt = orderedDayTrades.length <= 1
     ? "Muestra limitada: registra más operaciones antes de sacar conclusiones."
     : dayPnl < 0
@@ -248,11 +283,11 @@ function openCalendarDayFocus(root, state, model, key) {
     meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
     pnl: pnlTextMarkup({ value: dayPnl, text: formatCurrency(dayPnl), className: dayPnl >= 0 ? "metric-positive" : "metric-negative" }),
     pnlClass: "calendar-day-panel__pnl",
-    metrics: buildDayMetrics(orderedDayTrades),
-    metricStyle: "inline",
+    metrics: [],
     maxWidth: "84vw",
     content: `
       <div class="calendar-day-report">
+        ${renderCalendarDayStatBar(dayMetrics, orderedDayTrades)}
         <section class="focus-panel-section focus-panel-section--lead calendar-day-report__read">
           <div class="focus-panel-read calendar-day-report__read-card">
             <span class="calendar-day-report__eyebrow">Lectura del día</span>
