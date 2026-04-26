@@ -242,49 +242,63 @@ function buildTradeTruthSummary(trades = []) {
 
 function renderTruthMetric(label, value, options = {}) {
   return `
-    <div class="trades-truth__metric">
-      <span>${escapeHtml(label)}</span>
-      <strong>${options.html ? value : escapeHtml(value)}</strong>
+    <div class="trades-truth-compact__evidence-row">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${options.html ? value : escapeHtml(value)}</dd>
     </div>
   `;
 }
 
+function truthToneForSummary(tone) {
+  if (tone === "profit") return "success";
+  if (tone === "loss") return "danger";
+  if (tone === "warning") return "warning";
+  return "neutral";
+}
+
+function actionToneForSummary(summary) {
+  if (summary.tone === "loss") return "danger";
+  if (summary.tone === "warning" || summary.state === "pending") return "warning";
+  if (summary.tone === "profit" || summary.state === "valid") return "info";
+  return "neutral";
+}
+
 function renderTradeTruthSummary(summary) {
   const avgRLabel = Number.isFinite(Number(summary.avgR)) ? `${summary.avgR.toFixed(1)}R` : "—";
+  const situationTone = truthToneForSummary(summary.tone);
+  const nextStepTone = actionToneForSummary(summary);
   return `
-    <section class="trades-truth kmfx-ui-card" aria-label="Lectura operativa">
-      <div class="trades-truth__header">
-        <div>
-          <p class="trades-truth__eyebrow">Lectura operativa</p>
-          <h2 class="trades-truth__title">Centro de verdad operativo</h2>
-        </div>
-        <span class="kmfx-ui-badge trades-truth__badge" data-tone="${escapeHtml(summary.tone)}">${escapeHtml(summary.stateLabel)}</span>
-      </div>
-      <div class="trades-truth__grid">
-        <article class="trades-truth__block trades-truth__block--state">
-          <span class="trades-truth__label">Estado</span>
-          <strong>${escapeHtml(summary.stateLabel)}</strong>
+    <section class="trades-truth-compact" aria-label="Lectura operativa">
+      <header class="trades-truth-compact__header">
+        <p class="trades-truth-compact__eyebrow">LECTURA OPERATIVA</p>
+        <h2 class="trades-truth-compact__title">Centro de verdad operativo</h2>
+        <p class="trades-truth-compact__description">Resultado, reglas y tags resumidos sobre la muestra filtrada.</p>
+      </header>
+      <div class="trades-truth-compact__grid">
+        <article class="trades-truth-compact__cell trades-truth-cell" data-role="situacion" data-tone="${escapeHtml(situationTone)}">
+          <span class="trades-truth-compact__label">SITUACIÓN</span>
+          <strong class="trades-truth-compact__cell-title">${escapeHtml(summary.stateLabel)}</strong>
           <p>${escapeHtml(summary.stateCopy)}</p>
         </article>
-        <article class="trades-truth__block">
-          <span class="trades-truth__label">Causa</span>
-          <strong>${escapeHtml(summary.cause.label)}</strong>
+        <article class="trades-truth-compact__cell trades-truth-cell" data-role="motivo" data-tone="neutral">
+          <span class="trades-truth-compact__label">MOTIVO</span>
+          <strong class="trades-truth-compact__cell-title">${escapeHtml(summary.cause.label)}</strong>
           <p>${escapeHtml(summary.cause.copy)}</p>
         </article>
-        <article class="trades-truth__block trades-truth__block--evidence">
-          <span class="trades-truth__label">Evidencia</span>
-          <div class="trades-truth__metrics">
-            ${renderTruthMetric("Trades", String(summary.totalTrades))}
+        <article class="trades-truth-compact__cell trades-truth-cell" data-role="datos" data-tone="neutral">
+          <span class="trades-truth-compact__label">DATOS CLAVE</span>
+          <dl class="trades-truth-compact__evidence">
+            ${renderTruthMetric("Trades filtrados", String(summary.totalTrades))}
             ${renderTruthMetric("Tags completos", String(summary.completedTags))}
             ${renderTruthMetric("Pendientes", String(summary.pendingOrMissing))}
             ${renderTruthMetric("Válidos / inválidos", `${summary.validTaggedTrades}/${summary.invalidTaggedTrades}`)}
-            ${renderTruthMetric("P&L", pnlTextMarkup({ value: summary.pnl, text: formatSignedCurrency(summary.pnl) }), { html: true })}
+            ${renderTruthMetric("P&L filtrado", pnlTextMarkup({ value: summary.pnl, text: formatSignedCurrency(summary.pnl) }), { html: true })}
             ${renderTruthMetric("R medio", avgRLabel)}
-          </div>
+          </dl>
         </article>
-        <article class="trades-truth__block trades-truth__block--action">
-          <span class="trades-truth__label">Acción</span>
-          <strong>${escapeHtml(summary.action)}</strong>
+        <article class="trades-truth-compact__cell trades-truth-cell" data-role="siguiente-paso" data-tone="${escapeHtml(nextStepTone)}">
+          <span class="trades-truth-compact__label">SIGUIENTE PASO</span>
+          <strong class="trades-truth-compact__cell-title">${escapeHtml(summary.action)}</strong>
           <p>Acción de proceso basada solo en la muestra filtrada.</p>
         </article>
       </div>

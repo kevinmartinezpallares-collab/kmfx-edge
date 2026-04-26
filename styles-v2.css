@@ -14709,6 +14709,143 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   font-variant-numeric: tabular-nums;
 }
 
+/* --------------------------------------------------------------------------
+   Operaciones — Compact Truth Layer
+-------------------------------------------------------------------------- */
+.trades-screen .trades-truth-compact {
+  color: var(--card-foreground);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.5%, transparent), transparent 62%),
+    var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.trades-screen .trades-truth-compact__header {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(220px, 0.78fr) minmax(280px, 1fr);
+  align-items: baseline;
+  gap: 18px;
+  padding: 15px 18px 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.trades-screen .trades-truth-compact__eyebrow,
+.trades-screen .trades-truth-compact__title,
+.trades-screen .trades-truth-compact__description,
+.trades-screen .trades-truth-compact__cell p,
+.trades-screen .trades-truth-compact__evidence {
+  margin: 0;
+}
+
+.trades-screen .trades-truth-compact__eyebrow,
+.trades-screen .trades-truth-compact__label {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.trades-screen .trades-truth-compact__title {
+  color: var(--foreground);
+  font-size: 17px;
+  line-height: 1.18;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+}
+
+.trades-screen .trades-truth-compact__description,
+.trades-screen .trades-truth-compact__cell p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.trades-screen .trades-truth-compact__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr minmax(280px, 1.24fr) 1fr;
+}
+
+.trades-screen .trades-truth-compact__cell {
+  min-width: 0;
+  padding: 14px 16px 15px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+}
+
+.trades-screen .trades-truth-compact__cell:last-child {
+  border-right: 0;
+}
+
+.trades-screen .trades-truth-compact__cell-title {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 740;
+  letter-spacing: -0.015em;
+}
+
+.trades-screen .trades-truth-compact__cell[data-tone="success"] .trades-truth-compact__cell-title {
+  color: var(--profit);
+}
+
+.trades-screen .trades-truth-compact__cell[data-tone="info"] .trades-truth-compact__cell-title {
+  color: var(--equity);
+}
+
+.trades-screen .trades-truth-compact__cell[data-tone="warning"] .trades-truth-compact__cell-title {
+  color: var(--risk);
+}
+
+.trades-screen .trades-truth-compact__cell[data-tone="danger"] .trades-truth-compact__cell-title {
+  color: var(--loss);
+}
+
+.trades-screen .trades-truth-compact__evidence {
+  display: grid;
+  margin-top: 8px;
+}
+
+.trades-screen .trades-truth-compact__evidence-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 46%, transparent);
+}
+
+.trades-screen .trades-truth-compact__evidence-row:last-child {
+  border-bottom: 0;
+}
+
+.trades-screen .trades-truth-compact__evidence dt,
+.trades-screen .trades-truth-compact__evidence dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.trades-screen .trades-truth-compact__evidence dt {
+  color: var(--muted-foreground);
+}
+
+.trades-screen .trades-truth-compact__evidence dd {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.trades-screen .trades-truth-compact__evidence dd .kmfx-ui-pnl {
+  justify-content: flex-end;
+}
+
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
 body[data-theme="dark"] .trades-screen .tl-kpi-card {
   position: relative;
@@ -15115,6 +15252,23 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 1180px) {
+  .trades-screen .trades-truth-compact__header {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .trades-screen .trades-truth-compact__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trades-screen .trades-truth-compact__cell:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .trades-screen .trades-truth-compact__cell:nth-child(n + 3) {
+    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  }
+
   html[data-theme="dark"] .trades-screen .trades-truth__grid,
   body[data-theme="dark"] .trades-screen .trades-truth__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15132,6 +15286,20 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 760px) {
+  .trades-screen .trades-truth-compact__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trades-screen .trades-truth-compact__cell,
+  .trades-screen .trades-truth-compact__cell:nth-child(n) {
+    border-right: 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  }
+
+  .trades-screen .trades-truth-compact__cell:first-child {
+    border-top: 0;
+  }
+
   html[data-theme="dark"] .trades-screen .trades-truth,
   body[data-theme="dark"] .trades-screen .trades-truth {
     padding: 16px;
