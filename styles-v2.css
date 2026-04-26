@@ -20233,6 +20233,108 @@ body[data-theme="dark"] .weekly-chart-shell {
   border-radius: var(--kmfx-card-radius) !important;
 }
 
+/* --------------------------------------------------------------------------
+   Calendario — Lower Analytics
+-------------------------------------------------------------------------- */
+
+html[data-theme="dark"] .calendar-cumulative,
+body[data-theme="dark"] .calendar-cumulative,
+html[data-theme="dark"] .calendar-returns-table,
+body[data-theme="dark"] .calendar-returns-table {
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .calendar-cumulative .calendar-panel-head,
+body[data-theme="dark"] .calendar-cumulative .calendar-panel-head,
+html[data-theme="dark"] .calendar-returns-table .calendar-panel-head,
+body[data-theme="dark"] .calendar-returns-table .calendar-panel-head {
+  align-items: start;
+  margin-bottom: 14px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+}
+
+html[data-theme="dark"] .calendar-cumulative .calendar-panel-title,
+body[data-theme="dark"] .calendar-cumulative .calendar-panel-title,
+html[data-theme="dark"] .calendar-returns-table .calendar-panel-title,
+body[data-theme="dark"] .calendar-returns-table .calendar-panel-title {
+  font-size: 16px;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="dark"] .calendar-cumulative .calendar-panel-sub,
+body[data-theme="dark"] .calendar-cumulative .calendar-panel-sub,
+html[data-theme="dark"] .calendar-returns-table .calendar-panel-sub,
+body[data-theme="dark"] .calendar-returns-table .calendar-panel-sub {
+  max-width: 720px;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .calendar-cumulative__chart,
+body[data-theme="dark"] .calendar-cumulative__chart {
+  min-width: 0;
+  padding: 6px 2px 0;
+}
+
+html[data-theme="dark"] .calendar-cumulative__chart .kmfx-chart-shell,
+body[data-theme="dark"] .calendar-cumulative__chart .kmfx-chart-shell {
+  min-height: 220px;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: var(--radius-lg);
+}
+
+html[data-theme="dark"] .calendar-returns-table__wrap,
+body[data-theme="dark"] .calendar-returns-table__wrap {
+  border-radius: var(--radius-lg);
+  overflow: auto;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table,
+body[data-theme="dark"] .calendar-returns-table__table {
+  min-width: 860px;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table th,
+body[data-theme="dark"] .calendar-returns-table__table th {
+  height: 38px;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table td,
+body[data-theme="dark"] .calendar-returns-table__table td {
+  height: 40px;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table th:first-child,
+body[data-theme="dark"] .calendar-returns-table__table th:first-child,
+html[data-theme="dark"] .calendar-returns-table__table td:first-child,
+body[data-theme="dark"] .calendar-returns-table__table td:first-child {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table th:last-child,
+body[data-theme="dark"] .calendar-returns-table__table th:last-child,
+html[data-theme="dark"] .calendar-returns-table__table td:last-child,
+body[data-theme="dark"] .calendar-returns-table__table td:last-child {
+  text-align: right;
+}
+
+html[data-theme="dark"] .calendar-returns-table__table tbody tr:hover td,
+body[data-theme="dark"] .calendar-returns-table__table tbody tr:hover td {
+  background: color-mix(in srgb, var(--foreground) 2.5%, transparent);
+}
+
+html[data-theme="dark"] .calendar-returns-table__table tfoot th,
+body[data-theme="dark"] .calendar-returns-table__table tfoot th,
+html[data-theme="dark"] .calendar-returns-table__table tfoot td,
+body[data-theme="dark"] .calendar-returns-table__table tfoot td {
+  height: 42px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+
 /* === EXECUTION FINAL POLISH === */
 html[data-theme="dark"] #section-discipline.discipline-page-stack,
 body[data-theme="dark"] #section-discipline.discipline-page-stack {

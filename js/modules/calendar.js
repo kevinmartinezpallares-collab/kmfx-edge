@@ -730,27 +730,27 @@ export function renderCalendar(root, state) {
           </section>
 
           <section class="calendar-analytics-stack">
-            <article class="tl-section-card chart-card calendar-chart-panel">
+            <article class="tl-section-card chart-card calendar-chart-panel calendar-cumulative">
               <div class="calendar-panel-head">
                 <div>
                   <div class="calendar-panel-title">Rentabilidad acumulada</div>
                   <div class="calendar-panel-sub">${hasTradingData ? "Lectura acumulada para seguir la tracción del año sin competir con la vista mensual." : "La curva aparecerá aquí cuando entren cierres diarios."}</div>
                 </div>
               </div>
-              <div class="calendar-chart-wrap">
+              <div class="calendar-chart-wrap calendar-cumulative__chart">
                 ${chartCanvas("calendar-cumulative-return", 220, "kmfx-chart-shell--feature")}
               </div>
             </article>
 
-            <article class="tl-section-card table-card calendar-returns-panel">
+            <article class="tl-section-card table-card calendar-returns-panel calendar-returns-table">
               <div class="calendar-panel-head">
                 <div>
                   <div class="calendar-panel-title">Tabla de rentabilidad</div>
                   <div class="calendar-panel-sub">${hasTradingData ? "Visión mensual y anual para leer progreso, baches y cierre del año de un vistazo." : "La matriz anual aparecerá aquí cuando existan meses cerrados."}</div>
                 </div>
               </div>
-              <div class="table-wrap">
-                <table>
+              <div class="table-wrap calendar-returns-table__wrap">
+                <table class="calendar-returns-table__table">
                   <thead>
                     <tr>
                       <th>Año</th>
