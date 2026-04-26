@@ -15024,15 +15024,16 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 }
 
 .trades-screen .trades-overview-row__value {
-  flex: 0 0 calc(var(--space-6) * 5);
-  max-width: 44%;
+  flex: 0 0 calc(var(--space-6) * 7);
+  max-width: 52%;
   color: var(--foreground);
-  font-size: clamp(calc(var(--space-4) - 2px), 1.05vw, var(--space-4));
+  font-size: clamp(calc(var(--space-4) - 3px), 0.98vw, calc(var(--space-4) - 1px));
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.015em;
   text-align: right;
   overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .trades-screen .trades-overview-row[data-tone="profit"] .trades-overview-row__value {
@@ -15050,16 +15051,6 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-symbol-row > div {
   min-width: 0;
-}
-
-.trades-screen .trades-symbol-rank {
-  flex: 0 0 var(--space-6);
-  color: var(--muted-foreground);
-  font-size: var(--kmfx-label-size);
-  line-height: 1;
-  font-weight: 760;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
 }
 
 .trades-screen .trades-symbol-name {
@@ -15091,6 +15082,16 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 
 .trades-screen .trades-symbol-value[data-tone="loss"] {
   color: var(--loss);
+}
+
+.trades-screen .trades-symbol-row:first-child .trades-symbol-name {
+  font-size: calc(var(--space-4) + 2px);
+  font-weight: 800;
+}
+
+.trades-screen .trades-symbol-row:first-child .trades-symbol-value {
+  font-size: calc(var(--space-4) + 2px);
+  font-weight: 850;
 }
 
 .trades-screen .trades-symbol-value[data-tone="breakeven"],
