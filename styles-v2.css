@@ -17132,6 +17132,7 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline {
+  align-items: start;
   background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
   border-color: color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius-lg);
@@ -17139,24 +17140,34 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline {
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric,
 body[data-theme="dark"] .calendar-day-panel .focus-panel__metrics--inline .focus-panel-metric {
-  align-content: center;
-  gap: 4px;
+  align-content: start;
+  align-self: start;
+  gap: 3px;
   min-height: 0;
-  padding: 7px 12px;
+  padding: 6px 12px 5px;
   border-right-color: color-mix(in srgb, var(--border) 68%, transparent);
+  line-height: 1;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-metric__label,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__label {
   color: var(--muted-foreground);
   font-size: 9px;
+  line-height: 1;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value,
 body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value {
+  display: inline-flex;
+  align-items: center;
   font-size: 14px;
-  line-height: 1.12;
+  line-height: 1.05;
   font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value .kmfx-ui-pnl,
+body[data-theme="dark"] .calendar-day-panel .focus-panel-metric__value .kmfx-ui-pnl {
+  line-height: 1;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel__content,
