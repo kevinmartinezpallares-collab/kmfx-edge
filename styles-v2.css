@@ -11022,23 +11022,24 @@ body[data-theme="dark"] .account-banner--hero-refined .account-banner-controls--
 /* Calendar polish — quieter idle cells, subtler legend, refined active states */
 html[data-theme="dark"] .calendar-month-panel__legend,
 body[data-theme="dark"] .calendar-month-panel__legend {
-  gap: 10px !important;
+  gap: 9px !important;
   font-size: 10px !important;
   color: var(--text-2) !important;
-  opacity: 0.78 !important;
+  opacity: 0.72 !important;
 }
 
 html[data-theme="dark"] .calendar-legend-dot,
 body[data-theme="dark"] .calendar-legend-dot {
-  width: 7px !important;
-  height: 7px !important;
-  opacity: 0.88 !important;
+  width: 6px !important;
+  height: 6px !important;
+  opacity: 0.82 !important;
 }
 
 html[data-theme="dark"] .calendar-day,
 body[data-theme="dark"] .calendar-day {
-  background: rgba(255, 255, 255, 0.018) !important;
-  border-color: rgba(255, 255, 255, 0.045) !important;
+  background: color-mix(in srgb, var(--card) 88%, var(--muted) 12%) !important;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent) !important;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
 html[data-theme="dark"] .calendar-day::after,
@@ -11056,45 +11057,45 @@ body[data-theme="dark"] .calendar-day::before {
 html[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta,
 body[data-theme="dark"] .calendar-day.is-idle .calendar-day__meta {
   color: var(--text-2) !important;
-  opacity: 0.42 !important;
+  opacity: 0.36 !important;
 }
 
 html[data-theme="dark"] .calendar-day.is-idle .calendar-day__date,
 body[data-theme="dark"] .calendar-day.is-idle .calendar-day__date {
   color: var(--text-1) !important;
-  opacity: 0.72 !important;
+  opacity: 0.66 !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-win {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--positive) 5%) !important;
-  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.045) 92%, var(--positive) 8%) !important;
+  background: color-mix(in srgb, var(--card) 91%, var(--profit) 9%) !important;
+  border-color: color-mix(in srgb, var(--border) 84%, var(--profit) 16%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--negative) 5%) !important;
-  border-color: color-mix(in srgb, rgba(255, 255, 255, 0.045) 92%, var(--negative) 8%) !important;
+  background: color-mix(in srgb, var(--card) 91%, var(--loss) 9%) !important;
+  border-color: color-mix(in srgb, var(--border) 84%, var(--loss) 16%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-win {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--positive) 5%) !important;
+  background: color-mix(in srgb, var(--card) 88%, var(--profit) 12%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-2.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--negative) 5%) !important;
+  background: color-mix(in srgb, var(--card) 88%, var(--loss) 12%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-win {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--positive) 5%) !important;
+  background: color-mix(in srgb, var(--card) 85%, var(--profit) 15%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss,
 body[data-theme="dark"] .calendar-day.has-trades.is-heat-3.is-loss {
-  background: color-mix(in srgb, var(--layer-1) 95%, var(--negative) 5%) !important;
+  background: color-mix(in srgb, var(--card) 85%, var(--loss) 15%) !important;
 }
 
 html[data-theme="dark"] .calendar-day.has-trades .calendar-day__count,
@@ -11104,7 +11105,7 @@ body[data-theme="dark"] .calendar-day.has-trades .calendar-day__count {
 
 html[data-theme="dark"] .calendar-day__pnl,
 body[data-theme="dark"] .calendar-day__pnl {
-  font-size: 16px !important;
+  font-size: 15px !important;
   font-weight: 700 !important;
 }
 
@@ -11167,6 +11168,34 @@ html[data-theme="dark"] .calendar-day.has-trades .calendar-day__meta,
 body[data-theme="dark"] .calendar-day.has-trades .calendar-day__meta {
   color: var(--text-2) !important;
   opacity: 0.76 !important;
+}
+
+html[data-theme="dark"] .calendar-month-panel .calendar-day.has-trades:hover,
+body[data-theme="dark"] .calendar-month-panel .calendar-day.has-trades:hover {
+  border-color: color-mix(in srgb, var(--ring) 28%, var(--border));
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .calendar-month-panel .calendar-day:focus-visible,
+body[data-theme="dark"] .calendar-month-panel .calendar-day:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 72%, white 8%);
+  outline-offset: 2px;
+}
+
+html[data-theme="dark"] .calendar-month-panel .calendar-day.is-selected,
+body[data-theme="dark"] .calendar-month-panel .calendar-day.is-selected {
+  border-color: color-mix(in srgb, var(--ring) 38%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+
+html[data-theme="dark"] .calendar-month-panel .calendar-day.is-today:not(.is-selected),
+body[data-theme="dark"] .calendar-month-panel .calendar-day.is-today:not(.is-selected) {
+  border-color: color-mix(in srgb, var(--foreground) 18%, var(--border));
+}
+
+html[data-theme="dark"] .calendar-month-panel .calendar-day.is-outside-month,
+body[data-theme="dark"] .calendar-month-panel .calendar-day.is-outside-month {
+  filter: saturate(0.72);
 }
 
 html[data-theme="dark"] .calendar-matrix-cell--active,
