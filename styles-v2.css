@@ -17385,7 +17385,7 @@ body[data-theme="dark"] .calendar-day-trades__item {
 html[data-theme="dark"] .calendar-day-trades__item--primary,
 body[data-theme="dark"] .calendar-day-trades__item--primary {
   background: transparent;
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--ring) 34%, transparent);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure--primary .focus-panel-disclosure__summary,
@@ -17445,31 +17445,14 @@ body[data-theme="dark"] .calendar-day-panel .focus-panel-disclosure__cell--symbo
 
 html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade,
 body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade {
-  display: grid;
-  gap: 3px;
-  max-width: min(360px, 42vw);
-  margin-top: 6px;
-  color: var(--muted-foreground);
+  display: block;
+  margin-top: 4px;
+  color: color-mix(in srgb, var(--ring) 54%, var(--muted-foreground));
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 620;
   font-style: normal;
-}
-
-html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__label,
-body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__label {
-  width: fit-content;
-  color: color-mix(in srgb, var(--ring) 72%, var(--foreground));
-  font-size: 9px;
-  line-height: 1;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-html[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__context,
-body[data-theme="dark"] .calendar-day-panel .calendar-day-primary-trade__context {
-  color: color-mix(in srgb, var(--foreground) 68%, var(--muted-foreground));
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 520;
+  letter-spacing: 0.02em;
 }
 
 html[data-theme="dark"] .calendar-day-panel .focus-panel-executions,
