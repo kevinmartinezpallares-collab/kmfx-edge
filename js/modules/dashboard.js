@@ -1,7 +1,7 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260406-213500";
-import { decisionLayerMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -482,6 +482,11 @@ function setNodeHTML(root, selector, value) {
   if (node) node.innerHTML = value;
 }
 
+function setNodeOuterHTML(root, selector, value) {
+  const node = root.querySelector(selector);
+  if (node) node.outerHTML = value;
+}
+
 function setNodeText(root, selector, value) {
   const node = root.querySelector(selector);
   if (node) node.textContent = value;
@@ -597,7 +602,7 @@ function updateDashboardLiveNodes(root, payload) {
     setNodeHTML(root, "[data-dashboard-open-trade-risk-table]", payload.openTradeRiskHtml);
   }
   if (payload.decisionLayerHtml != null) {
-    setNodeHTML(root, "[data-dashboard-decision-layer-shell]", payload.decisionLayerHtml);
+    setNodeOuterHTML(root, "[data-dashboard-decision-layer-shell]", payload.decisionLayerHtml);
   }
 }
 
@@ -619,6 +624,15 @@ function firstFiniteDashboardNumber(...values) {
     if (Number.isFinite(numericValue)) return numericValue;
   }
   return 0;
+}
+
+function escapeDashboardHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function formatSignedDashboardCurrency(value) {
@@ -663,34 +677,34 @@ function hasReliableDashboardSnapshot({ model, account, authority, dashboardPayl
 
 function buildDashboardEvidenceHtml(summary) {
   return `
-    <dl class="dashboard-decision__evidence">
+    <dl class="dashboard-decision-compact__evidence">
       <div>
         <dt>Equity</dt>
-        <dd>${summary.equityText}</dd>
+        <dd>${escapeDashboardHtml(summary.equityText)}</dd>
       </div>
       <div>
-        <dt>${summary.pnlLabel}</dt>
+        <dt>PnL neto</dt>
         <dd>${pnlTextMarkup({ value: summary.pnlValue, text: summary.pnlText })}</dd>
       </div>
       <div>
         <dt>DD actual</dt>
-        <dd>${summary.currentDrawdownText}</dd>
+        <dd>${escapeDashboardHtml(summary.currentDrawdownText)}</dd>
       </div>
       <div>
         <dt>Daily DD</dt>
-        <dd>${summary.dailyDrawdownText}</dd>
+        <dd>${escapeDashboardHtml(summary.dailyDrawdownText)}</dd>
       </div>
       <div>
         <dt>Riesgo abierto</dt>
-        <dd>${summary.openRiskText}</dd>
+        <dd>${escapeDashboardHtml(summary.openRiskText)}</dd>
       </div>
       <div>
         <dt>Muestra</dt>
-        <dd>${summary.sampleText}</dd>
+        <dd>${escapeDashboardHtml(summary.sampleText)}</dd>
       </div>
       <div>
         <dt>Edge</dt>
-        <dd>${summary.edgeText}</dd>
+        <dd>${escapeDashboardHtml(summary.edgeText)}</dd>
       </div>
     </dl>
   `;
@@ -874,40 +888,42 @@ function buildDashboardDecisionSummary({
 }
 
 function renderDashboardDecisionLayer(summary) {
-  return decisionLayerMarkup({
-    eyebrow: "LECTURA DEL TRADER",
-    title: "Estado global de la cuenta",
-    description: "Lectura rápida basada en riesgo, rendimiento y exposición actual.",
-    className: "dashboard-decision",
-    attrs: { "data-dashboard-decision-layer": true },
-    cards: [
-      {
-        label: "Estado",
-        title: summary.statusTitle,
-        description: summary.statusDescription,
-        tone: summary.tone,
-      },
-      {
-        label: "Causa",
-        title: summary.causeTitle,
-        description: summary.causeDescription,
-        tone: "neutral",
-      },
-      {
-        label: "Evidencia",
-        title: summary.evidenceTitle,
-        description: "",
-        tone: "neutral",
-        metaHtml: summary.evidenceHtml,
-      },
-      {
-        label: "Acción",
-        title: summary.actionTitle,
-        description: summary.actionDescription,
-        tone: getDashboardActionTone(summary.statusTitle),
-      },
-    ],
-  });
+  const actionTone = getDashboardActionTone(summary.statusTitle);
+
+  return `
+    <section class="dashboard-decision-compact" data-dashboard-decision-layer-shell>
+      <header class="dashboard-decision-compact__header">
+        <p class="dashboard-decision-compact__eyebrow">LECTURA DEL TRADER</p>
+        <h2 class="dashboard-decision-compact__title">Estado global de la cuenta</h2>
+        <p class="dashboard-decision-compact__description">Lectura rápida basada en riesgo, rendimiento y exposición actual.</p>
+      </header>
+
+      <div class="dashboard-decision-compact__grid">
+        <article class="dashboard-decision-compact__cell" data-role="estado" data-tone="${escapeDashboardHtml(summary.tone)}">
+          <span class="dashboard-decision-compact__label">Estado</span>
+          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.statusTitle)}</strong>
+          <p>${escapeDashboardHtml(summary.statusDescription)}</p>
+        </article>
+
+        <article class="dashboard-decision-compact__cell" data-role="causa" data-tone="neutral">
+          <span class="dashboard-decision-compact__label">Causa</span>
+          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.causeTitle)}</strong>
+          <p>${escapeDashboardHtml(summary.causeDescription)}</p>
+        </article>
+
+        <article class="dashboard-decision-compact__cell dashboard-decision-compact__cell--evidence" data-role="evidencia" data-tone="neutral">
+          <span class="dashboard-decision-compact__label">Evidencia</span>
+          ${summary.evidenceHtml}
+        </article>
+
+        <article class="dashboard-decision-compact__cell" data-role="accion" data-tone="${escapeDashboardHtml(actionTone)}">
+          <span class="dashboard-decision-compact__label">Acción</span>
+          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.actionTitle)}</strong>
+          <p>${escapeDashboardHtml(summary.actionDescription)}</p>
+        </article>
+      </div>
+    </section>
+  `;
 }
 
 function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsCount }) {
@@ -1173,9 +1189,7 @@ export function renderDashboard(root, state) {
           actionsClassName: "dashboard-screen__actions",
           actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
         })}
-        <div data-dashboard-decision-layer-shell>
-          ${renderDashboardDecisionLayer(buildMissingDashboardDecisionSummary())}
-        </div>
+        ${renderDashboardDecisionLayer(buildMissingDashboardDecisionSummary())}
       </section>
     `;
     root.__dashboardRendered = true;
@@ -1701,9 +1715,7 @@ export function renderDashboard(root, state) {
         actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
       })}
 
-      <div data-dashboard-decision-layer-shell>
-        ${dashboardDecisionLayerHtml}
-      </div>
+      ${dashboardDecisionLayerHtml}
 
       <section class="tl-kpi-row dashboard-summary-kpis">
         ${renderDashboardKpiCard({
