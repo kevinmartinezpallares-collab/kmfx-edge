@@ -1454,184 +1454,40 @@ body::after {
 }
 
 /* --------------------------------------------------------------------------
-   Calendario — Decision Layer
+   Calendario — Summary KPI Row
 -------------------------------------------------------------------------- */
 
-.calendar-decision-compact {
-  color: var(--card-foreground);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.5%, transparent), transparent 62%),
-    var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+.calendar-kpi-card {
+  min-height: 132px;
 }
 
-.calendar-decision-compact .kmfx-ui-decision-layer__header {
-  display: grid;
-  grid-template-columns: minmax(170px, 0.42fr) minmax(220px, 0.72fr) minmax(280px, 1fr);
-  align-items: baseline;
-  gap: 18px;
-  padding: 15px 18px 13px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+.calendar-kpi-card .kmfx-ui-kpi__body {
+  min-height: 100%;
 }
 
-.calendar-decision-compact .kmfx-ui-decision-layer__header > div {
-  display: contents;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-layer__eyebrow,
-.calendar-decision-compact .kmfx-ui-decision-layer__title,
-.calendar-decision-compact .kmfx-ui-decision-layer__description,
-.calendar-decision-compact .kmfx-ui-decision-card__description {
+.calendar-kpi-card .kmfx-ui-kpi__label {
   margin: 0;
 }
 
-.calendar-decision-compact .kmfx-ui-decision-layer__eyebrow,
-.calendar-decision-compact .kmfx-ui-decision-card__label {
-  color: var(--muted-foreground);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-layer__title {
+.calendar-kpi-card .kmfx-ui-kpi__value {
+  margin-top: 10px;
   color: var(--foreground);
-  font-size: 17px;
-  line-height: 1.18;
-  font-weight: 740;
-  letter-spacing: -0.025em;
 }
 
-.calendar-decision-compact .kmfx-ui-decision-layer__description,
-.calendar-decision-compact .kmfx-ui-decision-card__description {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-layer__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr minmax(270px, 1.24fr) 1fr;
-  gap: 0;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card {
-  min-width: 0;
-  padding: 14px 16px 15px;
-  background: transparent;
-  border: 0;
-  border-right: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card:last-child {
-  border-right: 0;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card__title {
-  display: block;
-  margin: 8px 0 5px;
-  color: var(--foreground);
-  font-size: 14px;
-  line-height: 1.25;
-  font-weight: 740;
-  letter-spacing: -0.015em;
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card[data-tone="success"] .kmfx-ui-decision-card__title {
+.calendar-kpi-card[data-tone="profit"] .kmfx-ui-kpi__value {
   color: var(--profit);
 }
 
-.calendar-decision-compact .kmfx-ui-decision-card[data-tone="info"] .kmfx-ui-decision-card__title {
-  color: var(--equity);
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card[data-tone="warning"] .kmfx-ui-decision-card__title {
-  color: var(--risk);
-}
-
-.calendar-decision-compact .kmfx-ui-decision-card[data-tone="danger"] .kmfx-ui-decision-card__title {
+.calendar-kpi-card[data-tone="loss"] .kmfx-ui-kpi__value {
   color: var(--loss);
 }
 
-.calendar-decision-compact__evidence {
-  display: grid;
-  margin: 8px 0 0;
+.calendar-kpi-card[data-tone="warning"] .kmfx-ui-kpi__value {
+  color: var(--risk);
 }
 
-.calendar-decision-compact__evidence div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 4px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 46%, transparent);
-}
-
-.calendar-decision-compact__evidence div:last-child {
-  border-bottom: 0;
-}
-
-.calendar-decision-compact__evidence dt,
-.calendar-decision-compact__evidence dd {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.calendar-decision-compact__evidence dt {
-  color: var(--muted-foreground);
-}
-
-.calendar-decision-compact__evidence dd {
-  color: var(--foreground);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-@media (max-width: 1100px) {
-  .calendar-decision-compact .kmfx-ui-decision-layer__header {
-    grid-template-columns: 1fr;
-    gap: 7px;
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-layer__header > div {
-    display: block;
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-layer__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-card:nth-child(2n) {
-    border-right: 0;
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-card:nth-child(n + 3) {
-    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
-  }
-}
-
-@media (max-width: 640px) {
-  .calendar-decision-compact .kmfx-ui-decision-layer__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-card,
-  .calendar-decision-compact .kmfx-ui-decision-card:nth-child(n) {
-    border-right: 0;
-    border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
-  }
-
-  .calendar-decision-compact .kmfx-ui-decision-card:first-child {
-    border-top: 0;
-  }
+.calendar-kpi-card .kmfx-ui-kpi__meta {
+  margin-top: 8px;
 }
 
 /* --------------------------------------------------------------------------
