@@ -15319,7 +15319,9 @@ body[data-theme="dark"] .trades-history-card .table-wrap {
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+  max-height: min(620px, calc(100vh - 280px));
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 html[data-theme="dark"] .trades-table-wrap::before,
@@ -15342,6 +15344,9 @@ body[data-theme="dark"] .trades-history-card table {
 
 html[data-theme="dark"] .trades-history-card thead th,
 body[data-theme="dark"] .trades-history-card thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
   padding: var(--space-3) var(--table-cell-padding-x);
   font-size: var(--kmfx-label-size);
   line-height: 1.2;
@@ -15350,7 +15355,7 @@ body[data-theme="dark"] .trades-history-card thead th {
   letter-spacing: 0.075em;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-0);
-  background: transparent;
+  background: var(--layer-2);
   white-space: nowrap;
 }
 
