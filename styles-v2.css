@@ -14856,23 +14856,38 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 }
 
 .trades-screen .trades-kpi-card {
-  min-height: 112px;
-  padding: 15px 16px;
-  gap: 10px;
+  justify-content: center;
+  min-height: 102px;
+  padding: 13px 15px;
+  gap: 8px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2%, transparent), transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.5%, transparent), transparent 62%),
     var(--card);
+  box-shadow: none;
 }
 
 .trades-screen .trades-kpi-card .kmfx-ui-kpi__body {
-  gap: 8px;
+  gap: 7px;
+}
+
+.trades-screen .trades-kpi-card .kmfx-ui-kpi__label {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.05;
+  font-weight: 760;
+  letter-spacing: 0.105em;
 }
 
 .trades-screen .trades-kpi-card .kmfx-ui-kpi__value {
   color: var(--foreground);
-  font-size: clamp(24px, 2vw, 30px);
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-size: clamp(22px, 1.75vw, 27px);
+  line-height: 1.04;
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.trades-screen .trades-kpi-card[data-tone="profit"] {
+  border-color: color-mix(in srgb, var(--profit) 11%, var(--border));
 }
 
 .trades-screen .trades-kpi-card[data-tone="profit"] .kmfx-ui-kpi__value,
@@ -14880,9 +14895,17 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   color: var(--profit);
 }
 
+.trades-screen .trades-kpi-card[data-tone="loss"] {
+  border-color: color-mix(in srgb, var(--loss) 11%, var(--border));
+}
+
 .trades-screen .trades-kpi-card[data-tone="loss"] .kmfx-ui-kpi__value,
 .trades-screen .trades-kpi-card[data-tone="loss"] .kmfx-ui-pnl {
   color: var(--loss);
+}
+
+.trades-screen .trades-kpi-card[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--equity) 10%, var(--border));
 }
 
 .trades-screen .trades-kpi-card[data-tone="info"] .kmfx-ui-kpi__value {
