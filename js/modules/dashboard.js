@@ -631,8 +631,16 @@ function getDashboardDecisionTone(statusTitle) {
   if (statusTitle === "Trader en control") return "success";
   if (statusTitle === "Bajo presión") return "warning";
   if (statusTitle === "Riesgo elevado") return "danger";
-  if (statusTitle === "Cuenta sin sincronizar") return "warning";
+  if (statusTitle === "Cuenta sin sincronizar") return "neutral";
+  if (statusTitle === "Sin muestra suficiente") return "warning";
   if (statusTitle === "Sin posiciones abiertas") return "info";
+  return "neutral";
+}
+
+function getDashboardActionTone(statusTitle) {
+  if (statusTitle === "Riesgo elevado") return "danger";
+  if (statusTitle === "Bajo presión" || statusTitle === "Sin muestra suficiente") return "warning";
+  if (statusTitle === "Trader en control" || statusTitle === "Sin posiciones abiertas") return "info";
   return "neutral";
 }
 
@@ -883,20 +891,20 @@ function renderDashboardDecisionLayer(summary) {
         label: "Causa",
         title: summary.causeTitle,
         description: summary.causeDescription,
-        tone: summary.tone === "danger" ? "danger" : summary.tone === "warning" ? "warning" : "neutral",
+        tone: "neutral",
       },
       {
         label: "Evidencia",
         title: summary.evidenceTitle,
-        description: summary.evidenceDescription,
-        tone: "info",
+        description: "",
+        tone: "neutral",
         metaHtml: summary.evidenceHtml,
       },
       {
         label: "Acción",
         title: summary.actionTitle,
         description: summary.actionDescription,
-        tone: summary.tone === "danger" ? "danger" : summary.tone === "warning" ? "warning" : "neutral",
+        tone: getDashboardActionTone(summary.statusTitle),
       },
     ],
   });
@@ -1753,7 +1761,7 @@ export function renderDashboard(root, state) {
           <article class="tl-section-card dashboard-secondary-card">
             <div class="calendar-panel-head dashboard-secondary-card__head">
               <div>
-                <div class="calendar-panel-title">Operational state</div>
+                <div class="calendar-panel-title">Estado operativo</div>
                 <div class="calendar-panel-sub" data-dashboard-operational-summary>${operationalRead.summary}</div>
               </div>
               ${hasOpenPositions ? renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity) : ""}
@@ -1807,7 +1815,7 @@ export function renderDashboard(root, state) {
           <article class="tl-section-card dashboard-secondary-card">
             <div class="calendar-panel-head">
               <div>
-                <div class="calendar-panel-title">Risk posture</div>
+                <div class="calendar-panel-title">Postura de riesgo</div>
                 <div class="calendar-panel-sub" data-dashboard-risk-summary>${riskPostureRead.summary}</div>
               </div>
             </div>

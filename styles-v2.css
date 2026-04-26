@@ -1202,7 +1202,6 @@ body::after {
 
 .dashboard-decision__evidence {
   display: grid;
-  gap: 7px;
   margin: 10px 0 0;
 }
 
@@ -1212,6 +1211,12 @@ body::after {
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+}
+
+.dashboard-decision__evidence div:last-child {
+  border-bottom: 0;
 }
 
 .dashboard-decision__evidence dt,
@@ -1230,6 +1235,19 @@ body::after {
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+}
+
+.dashboard-decision .kmfx-ui-decision-layer__header {
+  padding-top: 16px;
+}
+
+.dashboard-decision .kmfx-ui-decision-layer__grid {
+  padding-top: 14px;
+  padding-bottom: 16px;
+}
+
+.dashboard-decision .kmfx-ui-decision-card {
+  padding: 12px 13px;
 }
 
 @media (max-width: 900px) {
