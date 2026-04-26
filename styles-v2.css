@@ -14846,6 +14846,55 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
   justify-content: flex-end;
 }
 
+/* --------------------------------------------------------------------------
+   Operaciones — KPI Row
+-------------------------------------------------------------------------- */
+.trades-screen .trades-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.trades-screen .trades-kpi-card {
+  min-height: 112px;
+  padding: 15px 16px;
+  gap: 10px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2%, transparent), transparent 62%),
+    var(--card);
+}
+
+.trades-screen .trades-kpi-card .kmfx-ui-kpi__body {
+  gap: 8px;
+}
+
+.trades-screen .trades-kpi-card .kmfx-ui-kpi__value {
+  color: var(--foreground);
+  font-size: clamp(24px, 2vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.trades-screen .trades-kpi-card[data-tone="profit"] .kmfx-ui-kpi__value,
+.trades-screen .trades-kpi-card[data-tone="profit"] .kmfx-ui-pnl {
+  color: var(--profit);
+}
+
+.trades-screen .trades-kpi-card[data-tone="loss"] .kmfx-ui-kpi__value,
+.trades-screen .trades-kpi-card[data-tone="loss"] .kmfx-ui-pnl {
+  color: var(--loss);
+}
+
+.trades-screen .trades-kpi-card[data-tone="info"] .kmfx-ui-kpi__value {
+  color: var(--foreground);
+}
+
+.trades-screen .trades-kpi-card .kmfx-ui-pnl {
+  display: inline-flex;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
 body[data-theme="dark"] .trades-screen .tl-kpi-card {
   position: relative;
@@ -15252,6 +15301,10 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 1180px) {
+  .trades-screen .trades-kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .trades-screen .trades-truth-compact__header {
     grid-template-columns: 1fr;
     gap: 7px;
@@ -15286,6 +15339,10 @@ body[data-theme="dark"] .trades-empty-state {
 }
 
 @media (max-width: 760px) {
+  .trades-screen .trades-kpi-row {
+    grid-template-columns: 1fr;
+  }
+
   .trades-screen .trades-truth-compact__grid {
     grid-template-columns: 1fr;
   }

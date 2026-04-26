@@ -1,6 +1,6 @@
 import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function formatTableValue(value) {
   return value == null || value === "" ? "—" : value;
@@ -92,6 +92,13 @@ function formatSignedCurrency(value) {
   const amount = Number(value) || 0;
   const formatted = formatCurrency(amount);
   return amount > 0 ? `+${formatted}` : formatted;
+}
+
+function toneFromValue(value) {
+  const amount = Number(value) || 0;
+  if (amount > 0) return "profit";
+  if (amount < 0) return "loss";
+  return "neutral";
 }
 
 function buildTradeTruthSummary(trades = []) {
@@ -306,6 +313,54 @@ function renderTradeTruthSummary(summary) {
   `;
 }
 
+function renderTradesKpiRow({
+  filteredTradesCount,
+  filteredPnl,
+  filteredWinRate,
+  filteredAvgR,
+  avgDuration
+}) {
+  return `
+    <div class="trades-kpi-row" aria-label="Resumen de operaciones filtradas">
+      ${kpiCardMarkup({
+        label: "Trades filtrados",
+        value: String(filteredTradesCount),
+        tone: "neutral",
+        className: "trades-kpi-card",
+        attrs: { "data-trades-kpi": "filtered-trades" }
+      })}
+      ${kpiCardMarkup({
+        label: "PnL filtrado",
+        valueHtml: pnlTextMarkup({ value: filteredPnl, text: formatCurrency(filteredPnl) }),
+        tone: toneFromValue(filteredPnl),
+        className: "trades-kpi-card",
+        attrs: { "data-trades-kpi": "filtered-pnl" }
+      })}
+      ${kpiCardMarkup({
+        label: "Win Rate",
+        value: `${Math.round(filteredWinRate)}%`,
+        tone: "info",
+        className: "trades-kpi-card",
+        attrs: { "data-trades-kpi": "win-rate" }
+      })}
+      ${kpiCardMarkup({
+        label: "R medio",
+        value: `${filteredAvgR.toFixed(1)}R`,
+        tone: toneFromValue(filteredAvgR),
+        className: "trades-kpi-card",
+        attrs: { "data-trades-kpi": "average-r" }
+      })}
+      ${kpiCardMarkup({
+        label: "Duración media",
+        value: formatDurationHuman(avgDuration),
+        tone: "neutral",
+        className: "trades-kpi-card",
+        attrs: { "data-trades-kpi": "average-duration" }
+      })}
+    </div>
+  `;
+}
+
 function buildTradeExecutiveRead(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   const bestExecution = executions.reduce((top, execution) => {
@@ -502,13 +557,13 @@ export function renderTrades(root, state) {
 
     ${renderTradeTruthSummary(tradeTruthSummary)}
 
-    <div class="tl-kpi-row five">
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Trades filtrados</div><div class="tl-kpi-val">${filteredTrades.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">PnL filtrado</div><div class="tl-kpi-val ${filteredPnl >= 0 ? "green" : "red"}">${formatCurrency(filteredPnl)}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Win Rate</div><div class="tl-kpi-val">${Math.round(filteredWinRate)}%</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">R medio</div><div class="tl-kpi-val">${filteredAvgR.toFixed(1)}R</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Duración media</div><div class="tl-kpi-val">${formatDurationHuman(avgDuration)}</div></article>
-    </div>
+    ${renderTradesKpiRow({
+      filteredTradesCount: filteredTrades.length,
+      filteredPnl,
+      filteredWinRate,
+      filteredAvgR,
+      avgDuration
+    })}
 
     <div class="grid-2 equal">
       <article class="tl-section-card">
