@@ -331,7 +331,7 @@ function renderTradesKpiRow({
       })}
       ${kpiCardMarkup({
         label: "PnL filtrado",
-        valueHtml: pnlTextMarkup({ value: filteredPnl, text: formatCurrency(filteredPnl) }),
+        valueHtml: pnlTextMarkup({ value: filteredPnl, text: formatSignedCurrency(filteredPnl) }),
         tone: toneFromValue(filteredPnl),
         className: "trades-kpi-card",
         attrs: { "data-trades-kpi": "filtered-pnl" }
@@ -368,9 +368,6 @@ function renderTradesOverviewSections({
   profitFactor,
   symbols = []
 }) {
-  const bestSetupTone = toneFromValue(bestSetup?.pnl);
-  const bestSessionTone = toneFromValue(bestSession?.pnl);
-
   return `
     <div class="trades-overview-grid">
       <article class="trades-overview-card" aria-label="Resumen operativo">
@@ -381,14 +378,14 @@ function renderTradesOverviewSections({
           </div>
         </header>
         <div class="trades-overview-card__body">
-          <div class="trades-overview-row" data-tone="${escapeHtml(bestSetupTone)}">
+          <div class="trades-overview-row">
             <div>
               <span class="trades-overview-row__label">Setup con mejor edge</span>
               <span class="trades-overview-row__meta">Mayor P&amp;L agregado</span>
             </div>
             <strong class="trades-overview-row__value">${escapeHtml(bestSetupLabel)}</strong>
           </div>
-          <div class="trades-overview-row" data-tone="${escapeHtml(bestSessionTone)}">
+          <div class="trades-overview-row">
             <div>
               <span class="trades-overview-row__label">Sesión más rentable</span>
               <span class="trades-overview-row__meta">Mejor distribución de P&amp;L</span>

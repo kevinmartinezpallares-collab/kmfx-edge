@@ -15066,12 +15066,24 @@ body[data-theme="dark"] .trades-screen .trades-truth__metric strong {
 .trades-screen .trades-symbol-value {
   flex: 0 0 calc(var(--space-6) * 5);
   justify-content: flex-end;
-  color: var(--foreground);
   font-size: calc(var(--space-4) - 2px);
   line-height: 1;
   font-weight: 760;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.trades-screen .trades-symbol-value[data-tone="profit"] {
+  color: var(--profit);
+}
+
+.trades-screen .trades-symbol-value[data-tone="loss"] {
+  color: var(--loss);
+}
+
+.trades-screen .trades-symbol-value[data-tone="breakeven"],
+.trades-screen .trades-symbol-value[data-tone="neutral"] {
+  color: var(--muted-foreground);
 }
 
 html[data-theme="dark"] .trades-screen .tl-kpi-card,
