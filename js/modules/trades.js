@@ -600,15 +600,33 @@ function renderTradeExecutions(trade) {
   `;
 }
 
-function positionRail(position) {
+function positionDomId(position = {}) {
+  return position.id || `${position.symbol}-${position.side}-${position.entry}`;
+}
+
+function renderOpenPositionRow(position) {
   return `
-    <div class="open-position-summary">
-      <div class="open-position-summary__copy">
-        <div class="open-position-summary__title">${position.symbol} · ${position.side}</div>
-        <div class="open-position-summary__meta">Vol ${formatTableValue(position.volume)} · Entrada ${formatTableValue(position.entry)}</div>
-      </div>
-      ${pnlTextMarkup({ value: position.pnl, text: formatCurrency(position.pnl), className: `open-position-summary__pnl ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}` })}
-    </div>
+    <button
+      type="button"
+      class="open-position-row trades-position-row"
+      data-position-id="${escapeHtml(positionDomId(position))}"
+      role="row"
+    >
+      <span class="trades-position-row__main" role="cell">
+        <span class="trades-position-row__symbol">${position.symbol}</span>
+        <span class="trades-position-row__meta">Vol ${position.volume} · Entrada ${position.entry}</span>
+      </span>
+      <span class="trade-side trade-side--${String(position.side || "").toLowerCase()}" role="cell">${position.side}</span>
+      <span class="trades-position-row__value" role="cell">${position.volume}</span>
+      <span class="trades-position-row__value" role="cell">${position.entry}</span>
+      <span class="trades-position-row__pnl-cell" role="cell">
+        ${pnlTextMarkup({
+          value: position.pnl,
+          text: formatCurrency(position.pnl),
+          className: `trades-position-row__pnl ${position.pnl >= 0 ? "metric-positive" : "metric-negative"}`
+        })}
+      </span>
+    </button>
   `;
 }
 
@@ -870,41 +888,29 @@ export function renderTrades(root, state) {
       symbols: model.symbols
     })}
 
-    <div class="tl-section-card">
-      <div class="tl-section-header">
-        <div class="tl-section-title">Posiciones abiertas</div>
-        <div class="trades-table-summary">
+    <section class="trades-open-positions" aria-label="Posiciones abiertas">
+      <div class="trades-open-positions__header">
+        <div class="trades-open-positions__copy">
+          <h2 class="trades-open-positions__title">Posiciones abiertas</h2>
+          <p class="trades-open-positions__description">Riesgo vivo y exposición actual de la cuenta.</p>
+        </div>
+        <div class="trades-open-positions__summary">
           ${model.positions.length ? `<span>${model.positions.length} abiertas · ${formatCurrency(model.account.openPnl)}</span>` : ``}
         </div>
       </div>
-      <div class="table-wrap widget-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Par</th>
-              <th>Dir</th>
-              <th>Vol</th>
-              <th>Entrada</th>
-              <th>P&amp;L</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${model.positions.map((position) => `
-              <tr class="open-position-row" data-position-id="${position.id || `${position.symbol}-${position.side}-${position.entry}`}">
-                <td><span class="table-symbol">${position.symbol}</span></td>
-                <td><span class="trade-side trade-side--${String(position.side || "").toLowerCase()}">${position.side}</span></td>
-                <td>${position.volume}</td>
-                <td>${position.entry}</td>
-                <td>${pnlTextMarkup({ value: position.pnl, text: formatCurrency(position.pnl), className: position.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
+      <div class="trades-open-positions__table" role="table" aria-label="Riesgo vivo y exposición actual">
+        <div class="trades-open-positions__head" role="row">
+          <span role="columnheader">Par</span>
+          <span role="columnheader">Dir</span>
+          <span role="columnheader">Vol</span>
+          <span role="columnheader">Entrada</span>
+          <span role="columnheader">P&amp;L</span>
+        </div>
+        <div class="trades-open-positions__body" role="rowgroup">
+          ${model.positions.map((position) => renderOpenPositionRow(position)).join("")}
+        </div>
       </div>
-      <div class="widget-position-rails">
-        ${model.positions.map((position) => positionRail(position)).join("")}
-      </div>
-    </div>
+    </section>
 
     <div class="tl-section-card trades-history-surface trades-history-card">
       <div class="tl-section-header">
@@ -1025,7 +1031,7 @@ export function renderTrades(root, state) {
     });
   });
 
-  const positionsById = new Map(model.positions.map((position) => [String(position.id || `${position.symbol}-${position.side}-${position.entry}`), position]));
+  const positionsById = new Map(model.positions.map((position) => [String(positionDomId(position)), position]));
   root.querySelectorAll(".open-position-row").forEach((row) => {
     row.addEventListener("click", () => {
       showPositionContextMenu(positionsById.get(String(row.dataset.positionId)));
