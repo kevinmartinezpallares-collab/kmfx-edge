@@ -468,6 +468,82 @@ function renderTradeFocusKv(label, valueHtml, tone = "neutral") {
   `;
 }
 
+function tradeFocusTruthContent(tagState) {
+  const state = tagState?.state || "untagged";
+  const contentByState = {
+    untagged: {
+      title: "Sin tag",
+      description: "Completa el tag post-trade para cerrar la lectura de este trade.",
+      tone: "neutral",
+      action: "Completar tag post-trade"
+    },
+    pending: {
+      title: "Validación pendiente",
+      description: "El tag está parcial o marcado como pendiente.",
+      tone: "warning",
+      action: "Completar respuestas pendientes"
+    },
+    valid: {
+      title: "Trade válido",
+      description: "No hay reglas manuales incumplidas en el tag completado.",
+      tone: "success",
+      action: "Revisa si el resultado confirma el setup."
+    },
+    invalid: {
+      title: "Trade a revisar",
+      description: "Hay reglas manuales incumplidas en el tag completado.",
+      tone: "danger",
+      action: "Revisa la regla incumplida antes de repetir el setup."
+    }
+  };
+  return contentByState[state] || contentByState.untagged;
+}
+
+function renderTradeFocusTruth(trade) {
+  const tag = getTradeTag(trade, loadTradeTagMap());
+  const tagState = evaluateTradeTagState(trade, tag);
+  const content = tradeFocusTruthContent(tagState);
+  const failedRules = tagState.failedRules || [];
+  const note = String(tag?.note || "").trim();
+  const emotionalState = String(tag?.emotionalState || "").trim();
+
+  return `
+    <section class="trades-focus-section trades-focus-section--truth">
+      <div class="trades-focus-truth" data-tone="${content.tone}">
+        <div class="trades-focus-truth__main">
+          <span class="trades-focus-section__eyebrow">VERDAD DEL TRADE</span>
+          <div class="trades-focus-truth__title-row">
+            <strong class="trades-focus-truth__title">${escapeHtml(content.title)}</strong>
+            <span class="trades-focus-truth__action">${escapeHtml(content.action)}</span>
+          </div>
+          <p class="trades-focus-truth__description">${escapeHtml(content.description)}</p>
+        </div>
+        ${failedRules.length ? `
+          <div class="trades-focus-rule-list" aria-label="Reglas incumplidas">
+            ${failedRules.map((rule) => `<span class="trades-focus-rule-pill">${escapeHtml(rule)}</span>`).join("")}
+          </div>
+        ` : ""}
+        ${note || emotionalState ? `
+          <div class="trades-focus-truth__context">
+            ${note ? `
+              <div class="trades-focus-truth__context-item">
+                <span>Nota</span>
+                <p>${escapeHtml(note)}</p>
+              </div>
+            ` : ""}
+            ${emotionalState ? `
+              <div class="trades-focus-truth__context-item">
+                <span>Estado emocional</span>
+                <p>${escapeHtml(emotionalState)}</p>
+              </div>
+            ` : ""}
+          </div>
+        ` : ""}
+      </div>
+    </section>
+  `;
+}
+
 function renderTradeExecutions(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   if (!executions.length) return "";
@@ -625,15 +701,7 @@ function showTradeContextMenu(trade) {
           <p class="trades-focus-report__summary">${buildTradeExecutiveRead(trade)}</p>
         </section>
 
-        <section class="trades-focus-section trades-focus-section--truth">
-          <div class="trades-focus-section__head">
-            <div>
-              <div class="trades-focus-section__eyebrow">VERDAD DEL TRADE</div>
-              <div class="trades-focus-section__title">Validación pendiente</div>
-            </div>
-            <p class="trades-focus-section__description">Completa el tag post-trade para cerrar la lectura de este trade.</p>
-          </div>
-        </section>
+        ${renderTradeFocusTruth(trade)}
 
         <section class="trades-focus-section">
           <div class="trades-focus-section__head">
