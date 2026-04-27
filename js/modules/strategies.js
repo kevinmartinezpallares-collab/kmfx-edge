@@ -113,6 +113,157 @@ function deriveStrategyStats(strategy, journalEntries) {
   };
 }
 
+function buildStrategiesReadingSummary(items, setupStats) {
+  const totalStrategies = items.length;
+  const statusCounts = items.reduce((counts, item) => {
+    const status = (item.status || "testing").toLowerCase();
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {});
+  const totalTrades = setupStats.reduce((sum, item) => sum + safeNumber(item.trades), 0);
+  const totalPnl = setupStats.reduce((sum, item) => sum + safeNumber(item.pnl), 0);
+  const sampledSetups = setupStats.filter((item) => safeNumber(item.trades) > 0);
+  const bestSetup = sampledSetups[0] || null;
+  const worstSetup = sampledSetups.length
+    ? [...sampledSetups].sort((a, b) => safeNumber(a.pnl) - safeNumber(b.pnl))[0]
+    : null;
+  const scoredItems = items.filter((item) => safeNumber(item.score) > 0);
+  const averageScore = scoredItems.length
+    ? scoredItems.reduce((sum, item) => sum + safeNumber(item.score), 0) / scoredItems.length
+    : 0;
+  const missingDefinition = items.filter((item) => !item.description && !item.notes).length;
+  const weakSample = totalTrades < 12;
+  const enoughSample = totalTrades >= 12;
+  const enoughStrongSample = totalTrades >= 30;
+  const hasManualOrMissingEvidence = missingDefinition > 0 || scoredItems.length < totalStrategies;
+
+  if (!totalStrategies) {
+    return {
+      tone: "neutral",
+      actionTone: "info",
+      situation: "Sin estrategias",
+      reason: "No hay setups definidos",
+      reasonCopy: "Aún no existe una base de reglas para comparar ejecución.",
+      action: "Crea tu primera estrategia.",
+      evidence: [
+        ["Estrategias", "0"],
+        ["Trades asociados", "0"],
+        ["P&L asociado", formatCurrency(0)]
+      ]
+    };
+  }
+
+  if (enoughSample && totalPnl < 0) {
+    return {
+      tone: "danger",
+      actionTone: "danger",
+      situation: "Estrategia bajo presión",
+      reason: "P&L débil con muestra disponible",
+      reasonCopy: "La lectura usa el histórico asociado actual; aún falta validar reglas y tags.",
+      action: "Revisa estrategias con P&L débil.",
+      evidence: [
+        ["Estrategias", `${totalStrategies}`],
+        ["Trades asociados", `${totalTrades}`],
+        ["P&L asociado", pnlTextMarkup({ value: totalPnl, text: formatCurrency(totalPnl), className: totalPnl >= 0 ? "metric-positive" : "metric-negative" })],
+        ["Setup bajo presión", worstSetup?.name || "Sin muestra"],
+        ["Score medio", averageScore ? averageScore.toFixed(1) : "Sin score"]
+      ]
+    };
+  }
+
+  if (weakSample) {
+    return {
+      tone: "warning",
+      actionTone: "warning",
+      situation: "Estrategias en testing",
+      reason: "Muestra insuficiente",
+      reasonCopy: "Hay setups registrados, pero la muestra asociada aún no permite concluir edge.",
+      action: "Añade muestra antes de concluir.",
+      evidence: [
+        ["Estrategias", `${totalStrategies}`],
+        ["En testing", `${statusCounts.testing || 0}`],
+        ["Trades asociados", `${totalTrades}`],
+        ["P&L asociado", pnlTextMarkup({ value: totalPnl, text: formatCurrency(totalPnl), className: totalPnl >= 0 ? "metric-positive" : "metric-negative" })],
+        ["Muestra", sampleLabel(totalTrades)]
+      ]
+    };
+  }
+
+  if (hasManualOrMissingEvidence) {
+    return {
+      tone: "warning",
+      actionTone: "info",
+      situation: "Revisión pendiente",
+      reason: "Score manual sin validación",
+      reasonCopy: "Las estrategias tienen histórico, pero faltan reglas estructuradas o definición completa.",
+      action: "Conecta reglas y tags para validar ejecución.",
+      evidence: [
+        ["Estrategias", `${totalStrategies}`],
+        ["Activas", `${statusCounts.active || 0}`],
+        ["Trades asociados", `${totalTrades}`],
+        ["P&L asociado", pnlTextMarkup({ value: totalPnl, text: formatCurrency(totalPnl), className: totalPnl >= 0 ? "metric-positive" : "metric-negative" })],
+        ["Sin definición", `${missingDefinition}`]
+      ]
+    };
+  }
+
+  return {
+    tone: "info",
+    actionTone: totalPnl >= 0 ? "info" : "warning",
+    situation: "Edge en observación",
+    reason: enoughStrongSample ? "Conexión parcial con trades" : "Muestra todavía moderada",
+    reasonCopy: "Hay evidencia positiva, pero la validación de reglas y tags aún no está conectada.",
+    action: totalPnl >= 0 ? "Define reglas antes de validar edge." : "Revisa estrategias con P&L débil.",
+    evidence: [
+      ["Estrategias", `${totalStrategies}`],
+      ["Trades asociados", `${totalTrades}`],
+      ["P&L asociado", pnlTextMarkup({ value: totalPnl, text: formatCurrency(totalPnl), className: totalPnl >= 0 ? "metric-positive" : "metric-negative" })],
+      ["Mejor setup", bestSetup?.name || "Sin muestra"],
+      ["Score medio", averageScore ? averageScore.toFixed(1) : "Sin score"]
+    ]
+  };
+}
+
+function renderStrategiesReadingLayer(summary) {
+  return `
+    <section class="strategies-reading-compact" aria-labelledby="strategies-reading-title">
+      <header class="strategies-reading-compact__header">
+        <div class="strategies-reading-compact__eyebrow">LECTURA DE ESTRATEGIAS</div>
+        <h2 class="strategies-reading-compact__title" id="strategies-reading-title">Estado del sistema de setups</h2>
+        <p class="strategies-reading-compact__description">Reglas, muestra y edge resumidos sin sobrediagnosticar.</p>
+      </header>
+      <div class="strategies-reading-compact__grid">
+        <article class="strategies-reading-compact__cell" data-tone="${summary.tone}">
+          <span class="strategies-reading-compact__label">SITUACIÓN</span>
+          <strong class="strategies-reading-compact__cell-title">${summary.situation}</strong>
+          <p>Lectura conservadora sobre las estrategias registradas.</p>
+        </article>
+        <article class="strategies-reading-compact__cell" data-tone="neutral">
+          <span class="strategies-reading-compact__label">MOTIVO</span>
+          <strong class="strategies-reading-compact__cell-title">${summary.reason}</strong>
+          <p>${summary.reasonCopy}</p>
+        </article>
+        <article class="strategies-reading-compact__cell" data-tone="neutral">
+          <span class="strategies-reading-compact__label">DATOS CLAVE</span>
+          <dl class="strategies-reading-compact__evidence">
+            ${summary.evidence.map(([label, value]) => `
+              <div class="strategies-reading-compact__evidence-row">
+                <dt>${label}</dt>
+                <dd>${value}</dd>
+              </div>
+            `).join("")}
+          </dl>
+        </article>
+        <article class="strategies-reading-compact__cell" data-tone="${summary.actionTone}">
+          <span class="strategies-reading-compact__label">SIGUIENTE PASO</span>
+          <strong class="strategies-reading-compact__cell-title">${summary.action}</strong>
+          <p>Acción de proceso, no recomendación operativa.</p>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
 function renderStrategyEditor({ item, form, store }) {
   openModal({
     title: item ? "Editar estrategia" : "Nueva estrategia",
@@ -264,6 +415,7 @@ export function renderStrategies(root, state) {
   const items = state.workspace.strategies.items.map(normalizeStrategy);
   const journalEntries = state.workspace.journal.entries || [];
   const setupStats = buildSetupStats(items, journalEntries);
+  const readingSummary = buildStrategiesReadingSummary(items, setupStats);
 
   root.innerHTML = `
     <section class="strategies-screen strategies-page-stack">
@@ -279,6 +431,8 @@ export function renderStrategies(root, state) {
       actionsClassName: "strategies-screen__actions",
       actionsHtml: `<button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>`,
     })}
+
+    ${renderStrategiesReadingLayer(readingSummary)}
 
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
