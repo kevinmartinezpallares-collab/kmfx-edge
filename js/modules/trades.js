@@ -614,10 +614,6 @@ function showTradeContextMenu(trade) {
         <section class="trades-focus-section trades-focus-section--intro">
           <div class="trades-focus-context">
             <div class="trades-focus-context__item">
-              <span class="trades-focus-context__label">Fecha</span>
-              <span class="trades-focus-context__value">${trade.when.toLocaleDateString("es-ES")} · ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-            <div class="trades-focus-context__item">
               <span class="trades-focus-context__label">Sesión</span>
               <span class="trades-focus-context__value">${trade.session || "—"}</span>
             </div>
@@ -635,7 +631,7 @@ function showTradeContextMenu(trade) {
               <div class="trades-focus-section__eyebrow">VERDAD DEL TRADE</div>
               <div class="trades-focus-section__title">Validación pendiente</div>
             </div>
-            <p class="trades-focus-section__description">Los tags post-trade se conectarán en la siguiente fase.</p>
+            <p class="trades-focus-section__description">Completa el tag post-trade para cerrar la lectura de este trade.</p>
           </div>
         </section>
 
