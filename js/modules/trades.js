@@ -616,7 +616,7 @@ function renderOpenPositionRow(position) {
         <span class="trades-position-row__symbol">${position.symbol}</span>
         <span class="trades-position-row__meta">Vol ${position.volume} · Entrada ${position.entry}</span>
       </span>
-      <span class="trade-side trade-side--${String(position.side || "").toLowerCase()}" role="cell">${position.side}</span>
+      <span class="trades-position-row__side trades-position-row__side--${String(position.side || "").toLowerCase()}" role="cell">${position.side}</span>
       <span class="trades-position-row__value" role="cell">${position.volume}</span>
       <span class="trades-position-row__value" role="cell">${position.entry}</span>
       <span class="trades-position-row__pnl-cell" role="cell">
@@ -912,7 +912,14 @@ export function renderTrades(root, state) {
           <p class="trades-open-positions__description">Riesgo vivo y exposición actual de la cuenta.</p>
         </div>
         <div class="trades-open-positions__summary">
-          ${model.positions.length ? `<span>${model.positions.length} abiertas · ${formatCurrency(model.account.openPnl)}</span>` : ``}
+          ${model.positions.length ? `
+            <span>${model.positions.length} abiertas ·</span>
+            ${pnlTextMarkup({
+              value: model.account.openPnl,
+              text: formatSignedCurrency(model.account.openPnl),
+              className: "trades-open-positions__summary-pnl"
+            })}
+          ` : ``}
         </div>
       </div>
       <div class="trades-open-positions__table" role="table" aria-label="Riesgo vivo y exposición actual">

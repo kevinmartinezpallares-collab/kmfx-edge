@@ -15495,6 +15495,7 @@ body[data-theme="dark"] .trades-screen .trades-open-positions__summary {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
+  gap: calc(var(--space-2) - 2px);
   min-height: 28px;
   color: var(--muted-foreground);
   font-size: var(--kmfx-label-size);
@@ -15504,6 +15505,12 @@ body[data-theme="dark"] .trades-screen .trades-open-positions__summary {
   text-align: right;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+html[data-theme="dark"] .trades-screen .trades-open-positions__summary-pnl,
+body[data-theme="dark"] .trades-screen .trades-open-positions__summary-pnl {
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 html[data-theme="dark"] .trades-screen .trades-open-positions__table,
@@ -15516,9 +15523,9 @@ body[data-theme="dark"] .trades-screen .trades-open-positions__head,
 html[data-theme="dark"] .trades-screen .trades-position-row,
 body[data-theme="dark"] .trades-screen .trades-position-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) minmax(82px, 0.5fr) minmax(76px, 0.45fr) minmax(110px, 0.65fr) minmax(120px, 0.7fr);
+  grid-template-columns: minmax(180px, 1.35fr) minmax(58px, 0.36fr) minmax(70px, 0.42fr) minmax(104px, 0.62fr) minmax(118px, 0.7fr);
   align-items: center;
-  min-width: 680px;
+  min-width: 620px;
 }
 
 html[data-theme="dark"] .trades-screen .trades-open-positions__head,
@@ -15544,7 +15551,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  padding: calc(var(--space-2) + 1px) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   border-top: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
 }
 
@@ -15597,6 +15604,39 @@ body[data-theme="dark"] .trades-screen .trades-position-row__value {
   font-variant-numeric: tabular-nums;
 }
 
+html[data-theme="dark"] .trades-screen .trades-position-row__side,
+body[data-theme="dark"] .trades-screen .trades-position-row__side {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-height: 20px;
+  padding: 2px 7px;
+  border: 1px solid var(--border-0);
+  border-radius: var(--control-radius-pill);
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .trades-screen .trades-position-row__side--buy,
+body[data-theme="dark"] .trades-screen .trades-position-row__side--buy {
+  color: color-mix(in srgb, var(--positive) 82%, white);
+  background: color-mix(in srgb, var(--positive) 9%, transparent);
+  border-color: color-mix(in srgb, var(--positive) 18%, var(--border-0));
+}
+
+html[data-theme="dark"] .trades-screen .trades-position-row__side--sell,
+body[data-theme="dark"] .trades-screen .trades-position-row__side--sell {
+  color: color-mix(in srgb, var(--negative) 78%, white);
+  background: color-mix(in srgb, var(--negative) 9%, transparent);
+  border-color: color-mix(in srgb, var(--negative) 18%, var(--border-0));
+}
+
 html[data-theme="dark"] .trades-screen .trades-position-row__pnl-cell,
 body[data-theme="dark"] .trades-screen .trades-position-row__pnl-cell {
   display: flex;
@@ -15614,20 +15654,28 @@ body[data-theme="dark"] .trades-screen .trades-position-row__pnl {
   text-align: right;
 }
 
-html[data-theme="dark"] .trades-screen .trades-position-row .trade-side,
-body[data-theme="dark"] .trades-screen .trades-position-row .trade-side {
-  min-width: 0;
-  min-height: 22px;
-  padding: calc(var(--space-2) - 5px) var(--space-2);
-  font-size: calc(var(--kmfx-label-size) - 1px);
-  letter-spacing: 0.055em;
-}
-
 html[data-theme="dark"] .trades-position-focus,
 body[data-theme="dark"] .trades-position-focus {
   display: grid;
   gap: var(--space-3);
   color: var(--foreground);
+}
+
+html[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus),
+body[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus) {
+  width: min(70vw, 720px);
+  max-height: min(74vh, 680px);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__header,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__header {
+  padding: var(--space-4) calc(var(--space-6) * 3) var(--space-4) var(--space-5);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content {
+  margin: var(--space-4) var(--space-5) 0;
+  padding-bottom: var(--space-4);
 }
 
 html[data-theme="dark"] .trades-position-focus__head,
@@ -15636,7 +15684,7 @@ body[data-theme="dark"] .trades-position-focus__head {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
 }
 
@@ -15681,7 +15729,8 @@ body[data-theme="dark"] .trades-position-focus__description {
 html[data-theme="dark"] .trades-position-focus__grid,
 body[data-theme="dark"] .trades-position-focus__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 560px;
   border-top: 1px solid var(--border-0);
 }
 
@@ -15690,13 +15739,13 @@ body[data-theme="dark"] .trades-position-focus__item {
   display: grid;
   gap: calc(var(--space-2) - 4px);
   min-width: 0;
-  padding: var(--space-3);
+  padding: calc(var(--space-3) - 1px) var(--space-3);
   border-right: 1px solid var(--border-0);
   border-bottom: 1px solid var(--border-0);
 }
 
-html[data-theme="dark"] .trades-position-focus__item:nth-child(4n),
-body[data-theme="dark"] .trades-position-focus__item:nth-child(4n) {
+html[data-theme="dark"] .trades-position-focus__item:nth-child(2n),
+body[data-theme="dark"] .trades-position-focus__item:nth-child(2n) {
   border-right: 0;
 }
 
