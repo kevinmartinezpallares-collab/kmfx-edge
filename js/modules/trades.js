@@ -630,6 +630,15 @@ function renderOpenPositionRow(position) {
   `;
 }
 
+function renderPositionFocusKv(label, valueHtml) {
+  return `
+    <div class="trades-position-focus__item">
+      <span class="trades-position-focus__label">${label}</span>
+      <span class="trades-position-focus__value">${valueHtml}</span>
+    </div>
+  `;
+}
+
 function addLongPress(element, callback, delay = 500) {
   let timer = null;
 
@@ -798,15 +807,23 @@ function showPositionContextMenu(position) {
     pnlClass: position.pnl >= 0 ? "metric-positive" : "metric-negative",
     maxWidth: "80vw",
     content: `
-      <section class="focus-panel-section">
-        <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Detalle de la posición</div>
+      <section class="trades-position-focus">
+        <div class="trades-position-focus__head">
+          <div>
+            <span class="trades-position-focus__eyebrow">POSICIÓN ABIERTA</span>
+            <h3 class="trades-position-focus__title">Detalle de la posición</h3>
+          </div>
+          <p class="trades-position-focus__description">Entrada, protección y exposición actual.</p>
         </div>
-        <div class="focus-panel-pairs">
-          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(position.entry)}</span><strong>Salida</strong><span>—</span></div>
-          <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(position.sl)}</span><strong>TP</strong><span>${formatTableValue(position.tp)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(position.volume)}</span><strong>Duración</strong><span>Abierta</span></div>
-          <div class="focus-panel-pair-row"><strong>Fees</strong><span>—</span><strong>R múltiple</strong><span>—</span></div>
+        <div class="trades-position-focus__grid">
+          ${renderPositionFocusKv("Entrada", formatTableValue(position.entry))}
+          ${renderPositionFocusKv("Salida", "—")}
+          ${renderPositionFocusKv("SL", formatTableValue(position.sl))}
+          ${renderPositionFocusKv("TP", formatTableValue(position.tp))}
+          ${renderPositionFocusKv("Lote", formatTableValue(position.volume))}
+          ${renderPositionFocusKv("Duración", "Abierta")}
+          ${renderPositionFocusKv("Fees", "—")}
+          ${renderPositionFocusKv("R múltiple", "—")}
         </div>
       </section>
     `

@@ -15523,7 +15523,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row {
 
 html[data-theme="dark"] .trades-screen .trades-open-positions__head,
 body[data-theme="dark"] .trades-screen .trades-open-positions__head {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   color: var(--muted-foreground);
   font-size: var(--kmfx-label-size);
   line-height: 1.1;
@@ -15544,7 +15544,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  padding: var(--row-padding-y) var(--space-4);
+  padding: calc(var(--space-2) + 1px) var(--space-4);
   border-top: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
 }
 
@@ -15574,7 +15574,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row__main {
 html[data-theme="dark"] .trades-screen .trades-position-row__symbol,
 body[data-theme="dark"] .trades-screen .trades-position-row__symbol {
   color: var(--foreground);
-  font-size: var(--space-4);
+  font-size: calc(var(--space-4) - 1px);
   line-height: 1.12;
   font-weight: 760;
   letter-spacing: -0.015em;
@@ -15607,11 +15607,106 @@ body[data-theme="dark"] .trades-screen .trades-position-row__pnl-cell {
 html[data-theme="dark"] .trades-screen .trades-position-row__pnl,
 body[data-theme="dark"] .trades-screen .trades-position-row__pnl {
   justify-content: flex-end;
-  font-size: var(--space-4);
+  font-size: calc(var(--space-4) - 1px);
   line-height: 1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+html[data-theme="dark"] .trades-screen .trades-position-row .trade-side,
+body[data-theme="dark"] .trades-screen .trades-position-row .trade-side {
+  min-width: 0;
+  min-height: 22px;
+  padding: calc(var(--space-2) - 5px) var(--space-2);
+  font-size: calc(var(--kmfx-label-size) - 1px);
+  letter-spacing: 0.055em;
+}
+
+html[data-theme="dark"] .trades-position-focus,
+body[data-theme="dark"] .trades-position-focus {
+  display: grid;
+  gap: var(--space-3);
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .trades-position-focus__head,
+body[data-theme="dark"] .trades-position-focus__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+}
+
+html[data-theme="dark"] .trades-position-focus__eyebrow,
+body[data-theme="dark"] .trades-position-focus__eyebrow,
+html[data-theme="dark"] .trades-position-focus__label,
+body[data-theme="dark"] .trades-position-focus__label {
+  color: var(--muted-foreground);
+  font-size: var(--kmfx-label-size);
+  line-height: 1.1;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .trades-position-focus__title,
+body[data-theme="dark"] .trades-position-focus__title,
+html[data-theme="dark"] .trades-position-focus__description,
+body[data-theme="dark"] .trades-position-focus__description {
+  margin: 0;
+}
+
+html[data-theme="dark"] .trades-position-focus__title,
+body[data-theme="dark"] .trades-position-focus__title {
+  margin-top: calc(var(--space-2) - 4px);
+  color: var(--foreground);
+  font-size: calc(var(--space-4) - 1px);
+  line-height: 1.2;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme="dark"] .trades-position-focus__description,
+body[data-theme="dark"] .trades-position-focus__description {
+  max-width: 260px;
+  color: var(--muted-foreground);
+  font-size: var(--space-3);
+  line-height: 1.35;
+  text-align: right;
+}
+
+html[data-theme="dark"] .trades-position-focus__grid,
+body[data-theme="dark"] .trades-position-focus__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] .trades-position-focus__item,
+body[data-theme="dark"] .trades-position-focus__item {
+  display: grid;
+  gap: calc(var(--space-2) - 4px);
+  min-width: 0;
+  padding: var(--space-3);
+  border-right: 1px solid var(--border-0);
+  border-bottom: 1px solid var(--border-0);
+}
+
+html[data-theme="dark"] .trades-position-focus__item:nth-child(4n),
+body[data-theme="dark"] .trades-position-focus__item:nth-child(4n) {
+  border-right: 0;
+}
+
+html[data-theme="dark"] .trades-position-focus__value,
+body[data-theme="dark"] .trades-position-focus__value {
+  color: var(--foreground);
+  font-size: calc(var(--space-4) - 1px);
+  line-height: 1.2;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 html[data-theme="dark"] .trades-screen .widget-position-rails,
@@ -15804,6 +15899,28 @@ body[data-theme="dark"] .trades-empty-state {
   html[data-theme="dark"] .trades-screen .trades-position-row__value,
   body[data-theme="dark"] .trades-screen .trades-position-row__value {
     display: none;
+  }
+
+  html[data-theme="dark"] .trades-position-focus__head,
+  body[data-theme="dark"] .trades-position-focus__head {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  html[data-theme="dark"] .trades-position-focus__description,
+  body[data-theme="dark"] .trades-position-focus__description {
+    max-width: none;
+    text-align: left;
+  }
+
+  html[data-theme="dark"] .trades-position-focus__grid,
+  body[data-theme="dark"] .trades-position-focus__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-theme="dark"] .trades-position-focus__item:nth-child(2n),
+  body[data-theme="dark"] .trades-position-focus__item:nth-child(2n) {
+    border-right: 0;
   }
 
   .trades-screen .trades-truth-compact__grid {
