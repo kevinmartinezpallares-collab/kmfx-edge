@@ -17569,6 +17569,13 @@ body[data-theme="dark"] .modal-card--focus-panel:has(.trades-focus-report) {
   background: var(--popover);
 }
 
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report),
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) {
+  margin-right: 0;
+  padding-right: 0;
+  scrollbar-gutter: auto;
+}
+
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel-close,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel-close {
   top: 16px;
@@ -17619,6 +17626,25 @@ html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focu
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__content {
   margin: 0 26px;
   padding-bottom: 18px;
+}
+
+html[data-theme="dark"] .trades-focus-report,
+body[data-theme="dark"] .trades-focus-report,
+html[data-theme="dark"] .trades-focus-stats,
+body[data-theme="dark"] .trades-focus-stats,
+html[data-theme="dark"] .trades-focus-section,
+body[data-theme="dark"] .trades-focus-section,
+html[data-theme="dark"] .trades-focus-truth,
+body[data-theme="dark"] .trades-focus-truth,
+html[data-theme="dark"] .trades-focus-kv,
+body[data-theme="dark"] .trades-focus-kv,
+html[data-theme="dark"] .trades-focus-report .focus-panel-executions,
+body[data-theme="dark"] .trades-focus-report .focus-panel-executions,
+html[data-theme="dark"] .trades-focus-next-step,
+body[data-theme="dark"] .trades-focus-next-step {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
 }
 
 html[data-theme="dark"] .trades-focus-section,
