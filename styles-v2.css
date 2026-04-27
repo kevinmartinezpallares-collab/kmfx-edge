@@ -15658,6 +15658,8 @@ html[data-theme="dark"] .trades-position-focus,
 body[data-theme="dark"] .trades-position-focus {
   display: grid;
   gap: var(--space-3);
+  box-sizing: border-box;
+  width: 100%;
   color: var(--foreground);
 }
 
@@ -15684,6 +15686,8 @@ body[data-theme="dark"] .trades-position-focus__head {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
   padding-bottom: var(--space-2);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
 }
@@ -15730,7 +15734,9 @@ html[data-theme="dark"] .trades-position-focus__grid,
 body[data-theme="dark"] .trades-position-focus__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 560px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
   border-top: 1px solid var(--border-0);
 }
 
