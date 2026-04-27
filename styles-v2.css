@@ -17692,11 +17692,54 @@ body[data-theme="dark"] .trades-focus-truth[data-tone="danger"] .trades-focus-tr
 
 html[data-theme="dark"] .trades-focus-truth__action,
 body[data-theme="dark"] .trades-focus-truth__action {
-  color: var(--muted-foreground, var(--text-2));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-0);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: var(--foreground, var(--text-0));
   font-size: 10.5px;
   line-height: 1.2;
-  font-weight: 650;
+  font-family: inherit;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+html[data-theme="dark"] .trades-focus-truth__action:hover,
+body[data-theme="dark"] .trades-focus-truth__action:hover {
+  border-color: color-mix(in srgb, var(--foreground) 18%, var(--border-0));
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+html[data-theme="dark"] .trades-focus-truth__action:focus-visible,
+body[data-theme="dark"] .trades-focus-truth__action:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+html[data-theme="dark"] .trades-focus-truth[data-tone="success"] .trades-focus-truth__action,
+body[data-theme="dark"] .trades-focus-truth[data-tone="success"] .trades-focus-truth__action {
+  border-color: color-mix(in srgb, var(--profit) 28%, var(--border-0));
+  color: color-mix(in srgb, var(--profit) 86%, white);
+}
+
+html[data-theme="dark"] .trades-focus-truth[data-tone="warning"] .trades-focus-truth__action,
+body[data-theme="dark"] .trades-focus-truth[data-tone="warning"] .trades-focus-truth__action {
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 30%, var(--border-0));
+  color: color-mix(in srgb, var(--warning, #f59e0b) 84%, white);
+}
+
+html[data-theme="dark"] .trades-focus-truth[data-tone="danger"] .trades-focus-truth__action,
+body[data-theme="dark"] .trades-focus-truth[data-tone="danger"] .trades-focus-truth__action {
+  border-color: color-mix(in srgb, var(--loss) 30%, var(--border-0));
+  color: color-mix(in srgb, var(--loss) 84%, white);
 }
 
 html[data-theme="dark"] .trades-focus-truth__description,

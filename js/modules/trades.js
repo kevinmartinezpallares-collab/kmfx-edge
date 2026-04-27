@@ -1,4 +1,4 @@
-import { openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
+import { closeModal, openFocusPanel } from "./modal-system.js?v=build-20260406-213500";
 import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
@@ -475,25 +475,25 @@ function tradeFocusTruthContent(tagState) {
       title: "Sin tag",
       description: "Completa el tag post-trade para cerrar la lectura de este trade.",
       tone: "neutral",
-      action: "Completar tag post-trade"
+      action: "Completar tag"
     },
     pending: {
       title: "Validación pendiente",
       description: "El tag está parcial o marcado como pendiente.",
       tone: "warning",
-      action: "Completar respuestas pendientes"
+      action: "Completar validación"
     },
     valid: {
       title: "Trade válido",
       description: "No hay reglas manuales incumplidas en el tag completado.",
       tone: "success",
-      action: "Revisa si el resultado confirma el setup."
+      action: "Ver validación"
     },
     invalid: {
       title: "Trade a revisar",
       description: "Hay reglas manuales incumplidas en el tag completado.",
       tone: "danger",
-      action: "Revisa la regla incumplida antes de repetir el setup."
+      action: "Ver validación"
     }
   };
   return contentByState[state] || contentByState.untagged;
@@ -514,7 +514,12 @@ function renderTradeFocusTruth(trade) {
           <span class="trades-focus-section__eyebrow">VERDAD DEL TRADE</span>
           <div class="trades-focus-truth__title-row">
             <strong class="trades-focus-truth__title">${escapeHtml(content.title)}</strong>
-            <span class="trades-focus-truth__action">${escapeHtml(content.action)}</span>
+            <button
+              type="button"
+              class="trades-focus-truth__action trades-focus-tag-action"
+              data-trade-tag-action
+              data-trade-id="${escapeHtml(trade?.id || "")}"
+            >${escapeHtml(content.action)}</button>
           </div>
           <p class="trades-focus-truth__description">${escapeHtml(content.description)}</p>
         </div>
@@ -542,6 +547,22 @@ function renderTradeFocusTruth(trade) {
       </div>
     </section>
   `;
+}
+
+function dispatchTradeTagIntent(trade) {
+  if (!trade) return;
+  const tagTrade = {
+    ...trade,
+    direction: trade.direction || trade.side || trade.type || ""
+  };
+  closeModal();
+  window.dispatchEvent(new CustomEvent("kmfx:open-post-trade-tag", {
+    detail: {
+      source: "trades-focus-panel",
+      tradeId: tagTrade.id || "",
+      trade: tagTrade
+    }
+  }));
 }
 
 function renderTradeExecutions(trade) {
@@ -758,7 +779,14 @@ function showTradeContextMenu(trade) {
           <p>${tradeNextStepCopy(trade)}</p>
         </section>
       </article>
-    `
+    `,
+    onMount: (panel) => {
+      panel.querySelector("[data-trade-tag-action]")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchTradeTagIntent(trade);
+      });
+    }
   });
 }
 

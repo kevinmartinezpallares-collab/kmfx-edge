@@ -2,7 +2,7 @@ import { createStore } from "./js/modules/store.js?v=build-20260406-213500";
 import { initNavigation } from "./js/modules/navigation.js?v=build-20260406-213500";
 import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260406-213500";
 import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260406-213500";
-import { renderDiscipline } from "./js/modules/discipline.js?v=build-20260406-213500";
+import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260406-213500";
 import { renderRisk } from "./js/modules/risk.js?v=build-20260406-213500";
 import { renderTrades } from "./js/modules/trades.js?v=build-20260406-213500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260406-213500";
@@ -45,7 +45,7 @@ import {
   readLocalPreferences,
   saveSupabaseUserConfig
 } from "./js/modules/supabase-user-config.js?v=build-20260406-213500";
-import { resolveActiveAccountId } from "./js/modules/utils.js?v=build-20260406-213500";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260406-213500";
 
 const BUILD_TAG = "build-20260406-213500";
@@ -181,6 +181,43 @@ function renderActivePage() {
   }
   const renderer = pageRenderers[state.ui.activePage];
   renderer?.(state);
+}
+
+function openPostTradeTagFromIntent(trade) {
+  if (!trade) return;
+  const currentState = store.getState();
+  if (currentState.ui.activePage !== "discipline") {
+    store.setState((state) => ({
+      ...state,
+      ui: {
+        ...state.ui,
+        activePage: "discipline"
+      }
+    }));
+  }
+
+  requestAnimationFrame(() => {
+    const nextState = store.getState();
+    const root = document.getElementById("disciplineRoot");
+    renderDiscipline(root, nextState);
+
+    const account = selectCurrentAccount(nextState);
+    const model = selectCurrentModel(nextState);
+    const target = root?.querySelector("#section-discipline");
+    if (!target || !model) return;
+
+    openPostTradeModal(trade, {
+      target,
+      model,
+      accountLogin: account?.login || ""
+    });
+  });
+}
+
+function initPostTradeTagBridge() {
+  window.addEventListener("kmfx:open-post-trade-tag", (event) => {
+    openPostTradeTagFromIntent(event.detail?.trade);
+  });
 }
 
 function startClock() {
@@ -716,6 +753,7 @@ async function bootstrapApp() {
   initSidebarUI(store);
   initSidebarVNext();
   initConnectionWizard(store);
+  initPostTradeTagBridge();
   initSettings();
   startClock();
   store.subscribe(() => renderActivePage());
