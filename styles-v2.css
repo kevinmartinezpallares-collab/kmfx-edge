@@ -19005,6 +19005,59 @@ body[data-theme="dark"] .focus-panel__metrics--inline .focus-panel-metric {
 }
 /* FIN BLOQUE: floating-surfaces-runtime */
 
+/* --------------------------------------------------------------------------
+   Operaciones — Open Position Focus Panel Final Alignment
+-------------------------------------------------------------------------- */
+html[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus),
+body[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus) {
+  width: min(88vw, 680px);
+  max-width: min(88vw, 680px) !important;
+  max-height: min(74vh, 680px);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus),
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) {
+  margin-right: 0;
+  padding-right: 0;
+  scrollbar-gutter: auto;
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel-close,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel-close {
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__header,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__header {
+  margin: 0;
+  padding: var(--space-4) calc(var(--space-6) * 3) var(--space-4) var(--space-5);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 var(--space-4);
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus__head,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus__head,
+html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus__grid,
+body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .trades-position-focus__grid {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+}
+
 /* INICIO BLOQUE: topbar-date-cleanup */
 html[data-theme="dark"] .content-sticky-header,
 body[data-theme="dark"] .content-sticky-header,
