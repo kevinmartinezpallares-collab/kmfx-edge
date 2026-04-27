@@ -439,13 +439,46 @@ function buildTradeExecutiveRead(trade) {
   return `${trade.side} ${trade.symbol} cerrada en ${formatDurationHuman(trade.durationMin)} con resultado final de ${formatCurrency(trade.pnl)}.`;
 }
 
+function tradeFeesValue(trade) {
+  return Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0);
+}
+
+function tradeNextStepCopy(trade) {
+  const pnl = Number(trade?.pnl || 0);
+  if (pnl > 0) return "Revisa si la ejecución respetó el plan antes de escalar conclusiones.";
+  if (pnl < 0) return "Revisa entrada, gestión y reglas antes de repetir el setup.";
+  return "Completa la validación post-trade para cerrar el análisis.";
+}
+
+function renderTradeFocusStat({ label, valueHtml, tone = "neutral" }) {
+  return `
+    <article class="trades-focus-stats__item" data-tone="${tone}">
+      <span class="trades-focus-stats__label">${label}</span>
+      <span class="trades-focus-stats__value">${valueHtml}</span>
+    </article>
+  `;
+}
+
+function renderTradeFocusKv(label, valueHtml, tone = "neutral") {
+  return `
+    <div class="trades-focus-kv__item" data-tone="${tone}">
+      <span class="trades-focus-kv__label">${label}</span>
+      <span class="trades-focus-kv__value">${valueHtml}</span>
+    </div>
+  `;
+}
+
 function renderTradeExecutions(trade) {
   const executions = Array.isArray(trade?.executions) ? trade.executions : [];
   if (!executions.length) return "";
   return `
-    <section class="focus-panel-section">
-      <div class="focus-panel-section__head">
-        <div class="focus-panel-section__title">${executions.length > 1 ? "Parciales y ejecuciones" : "Ejecución"}</div>
+    <section class="trades-focus-section trades-focus-section--executions">
+      <div class="trades-focus-section__head">
+        <div>
+          <div class="trades-focus-section__eyebrow">EJECUCIÓN</div>
+          <div class="trades-focus-section__title">${executions.length > 1 ? "Parciales y ejecuciones" : "Ejecución"}</div>
+        </div>
+        <p class="trades-focus-section__description">Cierres registrados y P&amp;L acumulado del trade.</p>
       </div>
       <div class="focus-panel-executions">
         <div class="focus-panel-executions__head">
@@ -564,6 +597,10 @@ function updateTradeFilterAndRender(root, state, input) {
 
 function showTradeContextMenu(trade) {
   if (!trade) return;
+  const fees = tradeFeesValue(trade);
+  const rMultipleText = `${trade.rMultiple.toFixed(1)}R`;
+  const rMultipleTone = trade.rMultiple >= 0 ? "profit" : "loss";
+  const feesTone = fees < 0 ? "loss" : "neutral";
   openFocusPanel({
     title: trade.symbol,
     status: trade.side,
@@ -573,31 +610,90 @@ function showTradeContextMenu(trade) {
     pnlClass: trade.pnl >= 0 ? "metric-positive" : "metric-negative",
     maxWidth: "80vw",
     content: `
-      <section class="focus-panel-section focus-panel-section--lead">
-        <div class="focus-panel-read">
-          <p class="focus-panel-read__summary">${buildTradeExecutiveRead(trade)}</p>
-        </div>
-      </section>
-      <section class="focus-panel-section">
-        <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Resumen rápido</div>
-        </div>
-        <div class="focus-panel-pairs">
-          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatTableValue(trade.entry)}</span><strong>Salida</strong><span>${formatTableValue(trade.exit)}</span></div>
-          <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatTableValue(trade.sl)}</span><strong>TP</strong><span>${formatTableValue(trade.tp)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Lote</strong><span>${formatTableValue(trade.volume)}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
-          <div class="focus-panel-pair-row"><strong>Fees</strong><span class="${Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0) < 0 ? "metric-negative" : ""}">${formatCurrency(Number(trade.commission || 0) + Number(trade.fees || 0) + Number(trade.swap || 0))}</span><strong>R múltiple</strong><span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${trade.rMultiple.toFixed(1)}R</span></div>
-        </div>
-      </section>
-      <section class="focus-panel-section">
-        <div class="focus-panel-section__head">
-          <div class="focus-panel-section__title">Contexto</div>
-        </div>
-        <div class="focus-panel-pairs focus-panel-pairs--plain">
-          <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayTradeSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
-        </div>
-      </section>
-      ${renderTradeExecutions(trade)}
+      <article class="trades-focus-report">
+        <section class="trades-focus-section trades-focus-section--intro">
+          <div class="trades-focus-context">
+            <div class="trades-focus-context__item">
+              <span class="trades-focus-context__label">Fecha</span>
+              <span class="trades-focus-context__value">${trade.when.toLocaleDateString("es-ES")} · ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+            <div class="trades-focus-context__item">
+              <span class="trades-focus-context__label">Sesión</span>
+              <span class="trades-focus-context__value">${trade.session || "—"}</span>
+            </div>
+            <div class="trades-focus-context__item">
+              <span class="trades-focus-context__label">Setup</span>
+              <span class="trades-focus-context__value">${displayTradeSetup(trade.setup)}</span>
+            </div>
+          </div>
+          <p class="trades-focus-report__summary">${buildTradeExecutiveRead(trade)}</p>
+        </section>
+
+        <section class="trades-focus-section trades-focus-section--truth">
+          <div class="trades-focus-section__head">
+            <div>
+              <div class="trades-focus-section__eyebrow">VERDAD DEL TRADE</div>
+              <div class="trades-focus-section__title">Validación pendiente</div>
+            </div>
+            <p class="trades-focus-section__description">Los tags post-trade se conectarán en la siguiente fase.</p>
+          </div>
+        </section>
+
+        <section class="trades-focus-section">
+          <div class="trades-focus-section__head">
+            <div>
+              <div class="trades-focus-section__eyebrow">RESULTADO</div>
+              <div class="trades-focus-section__title">Resultado operativo</div>
+            </div>
+          </div>
+          <div class="trades-focus-stats">
+            ${renderTradeFocusStat({
+              label: "P&L neto",
+              valueHtml: pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: trade.pnl >= 0 ? "metric-positive" : "metric-negative" }),
+              tone: trade.pnl > 0 ? "profit" : trade.pnl < 0 ? "loss" : "neutral"
+            })}
+            ${renderTradeFocusStat({
+              label: "R múltiple",
+              valueHtml: `<span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${rMultipleText}</span>`,
+              tone: rMultipleTone
+            })}
+            ${renderTradeFocusStat({
+              label: "Fees",
+              valueHtml: `<span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span>`,
+              tone: feesTone
+            })}
+            ${renderTradeFocusStat({
+              label: "Duración",
+              valueHtml: formatDurationHuman(trade.durationMin)
+            })}
+          </div>
+        </section>
+
+        <section class="trades-focus-section">
+          <div class="trades-focus-section__head">
+            <div>
+              <div class="trades-focus-section__eyebrow">EVIDENCIA TÉCNICA</div>
+              <div class="trades-focus-section__title">Ejecución técnica</div>
+            </div>
+          </div>
+          <div class="trades-focus-kv">
+            ${renderTradeFocusKv("Entrada", formatTableValue(trade.entry))}
+            ${renderTradeFocusKv("Salida", formatTableValue(trade.exit))}
+            ${renderTradeFocusKv("SL", formatTableValue(trade.sl))}
+            ${renderTradeFocusKv("TP", formatTableValue(trade.tp))}
+            ${renderTradeFocusKv("Volumen", formatTableValue(trade.volume))}
+            ${renderTradeFocusKv("Setup", displayTradeSetup(trade.setup))}
+            ${renderTradeFocusKv("Sesión", trade.session || "—")}
+          </div>
+        </section>
+
+        ${renderTradeExecutions(trade)}
+
+        <section class="trades-focus-next-step">
+          <span class="trades-focus-next-step__label">Siguiente paso</span>
+          <p>${tradeNextStepCopy(trade)}</p>
+        </section>
+      </article>
     `
   });
 }
