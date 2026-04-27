@@ -15523,14 +15523,14 @@ body[data-theme="dark"] .trades-screen .trades-open-positions__head,
 html[data-theme="dark"] .trades-screen .trades-position-row,
 body[data-theme="dark"] .trades-screen .trades-position-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.35fr) minmax(58px, 0.36fr) minmax(70px, 0.42fr) minmax(104px, 0.62fr) minmax(118px, 0.7fr);
+  grid-template-columns: minmax(168px, 1.35fr) minmax(44px, 0.28fr) minmax(62px, 0.38fr) minmax(96px, 0.58fr) minmax(112px, 0.68fr);
   align-items: center;
-  min-width: 620px;
+  min-width: 560px;
 }
 
 html[data-theme="dark"] .trades-screen .trades-open-positions__head,
 body[data-theme="dark"] .trades-screen .trades-open-positions__head {
-  padding: var(--space-2) var(--space-4);
+  padding: calc(var(--space-2) - 2px) var(--space-4);
   color: var(--muted-foreground);
   font-size: var(--kmfx-label-size);
   line-height: 1.1;
@@ -15551,7 +15551,8 @@ body[data-theme="dark"] .trades-screen .trades-position-row {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  padding: var(--space-2) var(--space-4);
+  min-height: 42px;
+  padding: calc(var(--space-2) - 2px) var(--space-4);
   border-top: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
 }
 
@@ -15581,7 +15582,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row__main {
 html[data-theme="dark"] .trades-screen .trades-position-row__symbol,
 body[data-theme="dark"] .trades-screen .trades-position-row__symbol {
   color: var(--foreground);
-  font-size: calc(var(--space-4) - 1px);
+  font-size: calc(var(--space-4) - 2px);
   line-height: 1.12;
   font-weight: 760;
   letter-spacing: -0.015em;
@@ -15598,7 +15599,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row__meta {
 html[data-theme="dark"] .trades-screen .trades-position-row__value,
 body[data-theme="dark"] .trades-screen .trades-position-row__value {
   color: color-mix(in srgb, var(--foreground) 76%, var(--muted-foreground));
-  font-size: var(--space-3);
+  font-size: calc(var(--space-3) - 1px);
   line-height: 1.2;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
@@ -15610,13 +15611,13 @@ body[data-theme="dark"] .trades-screen .trades-position-row__side {
   align-items: center;
   justify-content: center;
   justify-self: start;
-  min-height: 20px;
-  padding: 2px 7px;
+  min-height: 18px;
+  padding: 1px 6px;
   border: 1px solid var(--border-0);
   border-radius: var(--control-radius-pill);
   color: var(--muted-foreground);
   background: color-mix(in srgb, var(--foreground) 3%, transparent);
-  font-size: 9px;
+  font-size: 8.5px;
   line-height: 1;
   font-weight: 760;
   letter-spacing: 0.055em;
@@ -15647,7 +15648,7 @@ body[data-theme="dark"] .trades-screen .trades-position-row__pnl-cell {
 html[data-theme="dark"] .trades-screen .trades-position-row__pnl,
 body[data-theme="dark"] .trades-screen .trades-position-row__pnl {
   justify-content: flex-end;
-  font-size: calc(var(--space-4) - 1px);
+  font-size: calc(var(--space-4) - 2px);
   line-height: 1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -15660,12 +15661,13 @@ body[data-theme="dark"] .trades-position-focus {
   gap: var(--space-3);
   box-sizing: border-box;
   width: 100%;
+  padding: var(--space-4) var(--space-5) 0;
   color: var(--foreground);
 }
 
 html[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus),
 body[data-theme="dark"] .modal-card--focus-panel:has(.trades-position-focus) {
-  width: min(70vw, 720px);
+  width: min(64vw, 700px);
   max-height: min(74vh, 680px);
 }
 
@@ -15676,7 +15678,7 @@ body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .fo
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-position-focus) .focus-panel__content {
-  margin: var(--space-4) var(--space-5) 0;
+  margin: 0;
   padding-bottom: var(--space-4);
 }
 
@@ -15745,7 +15747,7 @@ body[data-theme="dark"] .trades-position-focus__item {
   display: grid;
   gap: calc(var(--space-2) - 4px);
   min-width: 0;
-  padding: calc(var(--space-3) - 1px) var(--space-3);
+  padding: calc(var(--space-3) - 2px) var(--space-3);
   border-right: 1px solid var(--border-0);
   border-bottom: 1px solid var(--border-0);
 }
