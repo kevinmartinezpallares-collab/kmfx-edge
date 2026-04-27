@@ -499,7 +499,7 @@ function tradeFocusTruthContent(tagState) {
   return contentByState[state] || contentByState.untagged;
 }
 
-function renderTradeFocusTruth(trade) {
+function renderTradeFocusTruth(trade, summary = "") {
   const tag = getTradeTag(trade, loadTradeTagMap());
   const tagState = evaluateTradeTagState(trade, tag);
   const content = tradeFocusTruthContent(tagState);
@@ -522,6 +522,7 @@ function renderTradeFocusTruth(trade) {
             >${escapeHtml(content.action)}</button>
           </div>
           <p class="trades-focus-truth__description">${escapeHtml(content.description)}</p>
+          ${summary ? `<p class="trades-focus-truth__summary">${escapeHtml(summary)}</p>` : ""}
         </div>
         ${failedRules.length ? `
           <div class="trades-focus-rule-list" aria-label="Reglas incumplidas">
@@ -708,51 +709,29 @@ function showTradeContextMenu(trade) {
     maxWidth: "80vw",
     content: `
       <article class="trades-focus-report">
-        <section class="trades-focus-section trades-focus-section--intro">
-          <div class="trades-focus-context">
-            <div class="trades-focus-context__item">
-              <span class="trades-focus-context__label">Sesión</span>
-              <span class="trades-focus-context__value">${trade.session || "—"}</span>
-            </div>
-            <div class="trades-focus-context__item">
-              <span class="trades-focus-context__label">Setup</span>
-              <span class="trades-focus-context__value">${displayTradeSetup(trade.setup)}</span>
-            </div>
-          </div>
-          <p class="trades-focus-report__summary">${buildTradeExecutiveRead(trade)}</p>
-        </section>
+        <div class="trades-focus-stats" aria-label="Resultado operativo del trade">
+          ${renderTradeFocusStat({
+            label: "P&L neto",
+            valueHtml: pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: trade.pnl >= 0 ? "metric-positive" : "metric-negative" }),
+            tone: trade.pnl > 0 ? "profit" : trade.pnl < 0 ? "loss" : "neutral"
+          })}
+          ${renderTradeFocusStat({
+            label: "R múltiple",
+            valueHtml: `<span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${rMultipleText}</span>`,
+            tone: rMultipleTone
+          })}
+          ${renderTradeFocusStat({
+            label: "Fees",
+            valueHtml: `<span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span>`,
+            tone: feesTone
+          })}
+          ${renderTradeFocusStat({
+            label: "Duración",
+            valueHtml: formatDurationHuman(trade.durationMin)
+          })}
+        </div>
 
-        ${renderTradeFocusTruth(trade)}
-
-        <section class="trades-focus-section">
-          <div class="trades-focus-section__head">
-            <div>
-              <div class="trades-focus-section__eyebrow">RESULTADO</div>
-              <div class="trades-focus-section__title">Resultado operativo</div>
-            </div>
-          </div>
-          <div class="trades-focus-stats">
-            ${renderTradeFocusStat({
-              label: "P&L neto",
-              valueHtml: pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: trade.pnl >= 0 ? "metric-positive" : "metric-negative" }),
-              tone: trade.pnl > 0 ? "profit" : trade.pnl < 0 ? "loss" : "neutral"
-            })}
-            ${renderTradeFocusStat({
-              label: "R múltiple",
-              valueHtml: `<span class="${trade.rMultiple >= 0 ? "metric-positive" : "metric-negative"}">${rMultipleText}</span>`,
-              tone: rMultipleTone
-            })}
-            ${renderTradeFocusStat({
-              label: "Fees",
-              valueHtml: `<span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span>`,
-              tone: feesTone
-            })}
-            ${renderTradeFocusStat({
-              label: "Duración",
-              valueHtml: formatDurationHuman(trade.durationMin)
-            })}
-          </div>
-        </section>
+        ${renderTradeFocusTruth(trade, buildTradeExecutiveRead(trade))}
 
         <section class="trades-focus-section">
           <div class="trades-focus-section__head">

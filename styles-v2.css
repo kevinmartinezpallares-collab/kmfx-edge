@@ -17559,19 +17559,29 @@ body[data-theme="dark"] .focus-panel-trade-side--sell {
 html[data-theme="dark"] .trades-focus-report,
 body[data-theme="dark"] .trades-focus-report {
   display: grid;
-  gap: 10px;
+  gap: 0;
+}
+
+html[data-theme="dark"] .modal-card--focus-panel:has(.trades-focus-report),
+body[data-theme="dark"] .modal-card--focus-panel:has(.trades-focus-report) {
+  width: min(76vw, 980px);
+  max-height: min(76vh, 780px);
+  background: var(--popover);
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel-close,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel-close {
-  top: 22px;
-  right: 28px;
+  top: 16px;
+  right: 20px;
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__header,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__header {
   gap: 16px;
-  padding: 20px 64px 18px 28px;
+  margin: 0;
+  padding: 13px 58px 11px 26px;
+  background: var(--popover);
+  border-bottom-color: color-mix(in srgb, var(--border) 78%, transparent);
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__identity,
@@ -17581,13 +17591,15 @@ body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focu
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__title,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__title {
-  font-size: 27px;
+  font-size: clamp(19px, 1.75vw, 23px);
+  line-height: 1.08;
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__meta,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__meta {
-  font-size: 13px;
-  line-height: 1.35;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__status,
@@ -17599,21 +17611,23 @@ body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focu
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__pnl,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__pnl {
-  font-size: 27px;
+  padding-top: 1px;
+  font-size: clamp(21px, 1.9vw, 25px);
 }
 
 html[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__content,
 body[data-theme="dark"] .modal-body--focus-panel:has(.trades-focus-report) .focus-panel__content {
-  margin: 14px 22px 0 28px;
-  padding-bottom: 24px;
+  margin: 0 26px;
+  padding-bottom: 18px;
 }
 
 html[data-theme="dark"] .trades-focus-section,
 body[data-theme="dark"] .trades-focus-section {
   display: grid;
   gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-0);
+  padding: 10px 0;
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-section:first-child,
@@ -17624,18 +17638,20 @@ body[data-theme="dark"] .trades-focus-section:first-child {
 
 html[data-theme="dark"] .trades-focus-section--truth,
 body[data-theme="dark"] .trades-focus-section--truth {
-  padding-top: 8px;
-  border-top: 1px solid var(--border-0);
+  padding: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-truth,
 body[data-theme="dark"] .trades-focus-truth {
   display: grid;
-  gap: 7px;
-  padding: 8px 10px;
-  border: 1px solid var(--border-0);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--card) 54%, transparent);
+  gap: 6px;
+  margin: 10px 0;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--border) 56%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--foreground) 3.2%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-truth[data-tone="success"],
@@ -17750,6 +17766,16 @@ body[data-theme="dark"] .trades-focus-truth__description {
   line-height: 1.35;
 }
 
+html[data-theme="dark"] .trades-focus-truth__summary,
+body[data-theme="dark"] .trades-focus-truth__summary {
+  margin: 0;
+  max-width: 860px;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.42;
+  font-weight: 560;
+}
+
 html[data-theme="dark"] .trades-focus-rule-list,
 body[data-theme="dark"] .trades-focus-rule-list {
   display: flex;
@@ -17840,6 +17866,14 @@ body[data-theme="dark"] .trades-focus-section__title {
   font-weight: 720;
 }
 
+html[data-theme="dark"] .trades-focus-stats__label,
+body[data-theme="dark"] .trades-focus-stats__label {
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0.15em;
+}
+
 html[data-theme="dark"] .trades-focus-section__description,
 body[data-theme="dark"] .trades-focus-section__description {
   margin: 0;
@@ -17888,16 +17922,18 @@ html[data-theme="dark"] .trades-focus-stats,
 body[data-theme="dark"] .trades-focus-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--border-0);
-  border-bottom: 1px solid var(--border-0);
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-stats__item,
 body[data-theme="dark"] .trades-focus-stats__item {
   display: grid;
-  gap: 5px;
-  padding: 8px 12px;
-  border-right: 1px solid var(--border-0);
+  align-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 9px 16px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-stats__item:last-child,
@@ -17908,9 +17944,10 @@ body[data-theme="dark"] .trades-focus-stats__item:last-child {
 html[data-theme="dark"] .trades-focus-stats__value,
 body[data-theme="dark"] .trades-focus-stats__value {
   color: var(--foreground, var(--text-0));
-  font-size: 16px;
-  line-height: 1.15;
-  font-weight: 760;
+  font-size: 17px;
+  line-height: 1.05;
+  font-weight: 740;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -17945,29 +17982,30 @@ html[data-theme="dark"] .trades-focus-report .focus-panel-executions,
 body[data-theme="dark"] .trades-focus-report .focus-panel-executions {
   margin-top: 0;
   background: transparent;
-  border-color: var(--border-0);
-  border-radius: var(--radius-card, 16px);
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
 }
 
 html[data-theme="dark"] .trades-focus-report .focus-panel-executions__head,
 body[data-theme="dark"] .trades-focus-report .focus-panel-executions__head {
-  border-bottom-color: var(--border-0);
-  padding: 8px 12px;
+  padding: 0 0 6px;
+  border-bottom-color: color-mix(in srgb, var(--border) 56%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-report .focus-panel-execution,
 body[data-theme="dark"] .trades-focus-report .focus-panel-execution {
-  padding: 8px 12px;
+  padding: 7px 0;
+  border-bottom-color: color-mix(in srgb, var(--border) 48%, transparent);
 }
 
 html[data-theme="dark"] .trades-focus-next-step,
 body[data-theme="dark"] .trades-focus-next-step {
   display: grid;
   gap: 5px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-0);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--card) 58%, transparent);
+  padding: 10px 0 0;
+  border: 0;
+  background: transparent;
 }
 
 html[data-theme="dark"] .trades-focus-next-step p,
