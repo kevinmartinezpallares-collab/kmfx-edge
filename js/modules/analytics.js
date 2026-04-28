@@ -1,6 +1,6 @@
 import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
 import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
-import { computeRiskAlerts, riskAlertsMarkup } from "./risk-alerts.js?v=build-20260406-213500";
+import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260406-213500";
 
@@ -264,7 +264,7 @@ function resolveRiskProtectionMeta({
       tone: "positive",
       rulesState: "Activas",
       actionLabel: "Gestionar protección automática",
-      note: "El Risk Engine ya tiene una política activa y puede cortar la operativa si la sesión se degrada."
+      note: "El Risk Engine tiene una política activa para protección de sesión."
     };
   }
 
@@ -1185,56 +1185,74 @@ export function renderAnalytics(root, state) {
       ? "warning"
       : "safe";
   const riskHeroTitle = riskHeroTone === "critical"
-    ? "Pérdida de control"
+    ? "Control bajo presión"
     : riskHeroTone === "warning"
       ? "Control deteriorado"
       : "Control estable";
   const heroSignalTitle = lossStreak >= 4
-    ? `${lossStreak} pérdidas seguidas`
+    ? `Mayor racha negativa: ${lossStreak}`
     : inconsistencyLevel !== "stable"
       ? "Ejecución deteriorada"
       : scalingLevel !== "stable"
         ? "Riesgo por trade elevado"
         : overtradingLevel !== "stable"
           ? "Frecuencia fuera de plan"
-          : "Control en proceso";
+          : "Control en observación";
   const heroSignalNote = lossStreak >= 4
-    ? "La secuencia reciente ya está afectando la siguiente decisión y exige cortar impulso."
+    ? "Mayor secuencia negativa detectada en la muestra."
     : inconsistencyLevel !== "stable"
-      ? "La calidad de ejecución ya no está replicando el patrón limpio del mes."
+      ? "La calidad reciente se separa del patrón medio."
       : scalingLevel !== "stable"
-        ? "El tamaño por operación está por encima de la zona cómoda del plan."
+        ? "El riesgo por operación se acerca al límite definido."
         : overtradingLevel !== "stable"
-          ? "La frecuencia está invadiendo la calidad y estrechando el margen del sistema."
-          : "No hay una fricción dominante: el control sigue dentro del proceso.";
+          ? "La frecuencia sube frente a la media operativa."
+          : "No hay una fricción dominante en la muestra actual.";
   const riskHeroContext = riskHeroTone === "critical"
-    ? "El problema principal ya no es solo el resultado: es cómo está reaccionando la ejecución ante la presión."
+    ? "La presión principal viene de drawdown, mayor racha negativa y distribución reciente."
     : riskHeroTone === "warning"
-      ? "Todavía hay margen, pero el comportamiento reciente ya está deteriorando la calidad de las decisiones."
-      : "La exposición sigue contenida y el comportamiento actual todavía sostiene el plan.";
+      ? "La lectura muestra presión latente en riesgo, frecuencia o consistencia."
+      : "La exposición sigue contenida y las señales principales se mantienen dentro de rango.";
+  const controlEvidenceBadges = [
+    {
+      label: "Drawdown",
+      value: formatPercent(-currentDrawdownPct),
+      tone: currentDrawdownPct >= 1 ? "negative" : currentDrawdownPct > 0 ? "warning" : "positive"
+    },
+    {
+      label: "Mayor racha negativa",
+      value: `${lossStreak}`,
+      tone: lossStreak >= 4 ? "negative" : lossStreak >= 2 ? "warning" : "positive"
+    },
+    {
+      label: "WR reciente",
+      value: formatPercent(recentWinRate),
+      tone: recentWinRate < model.totals.winRate - 12 ? "negative" : recentWinRate < model.totals.winRate ? "warning" : "positive"
+    }
+  ];
   const riskBehaviorRows = [
     {
-      title: "Racha de pérdidas",
+      title: "Mayor racha negativa",
       tone: lossStreak >= 5 ? "critical" : lossStreak >= 3 ? "warning" : "stable",
       status: lossStreak >= 5 ? "Presión alta" : lossStreak >= 3 ? "En aumento" : "Contenida",
       metric: `${lossStreak}`,
       metricSuffix: "seguidas",
       note: lossStreak >= 4
-        ? "La secuencia negativa ya está condicionando el siguiente trade."
-        : "La secuencia aún no domina el proceso operativo.",
+        ? "Secuencia negativa detectada en la muestra."
+        : "Secuencia negativa contenida dentro de la muestra.",
       progress: Math.max(12, Math.min(100, (lossStreak / 6) * 100)),
       kind: "loss"
     },
     {
       title: "Presión operativa",
       tone: pressureLevel,
-      status: pressureLevel === "critical" ? "Alta" : pressureLevel === "warning" ? "Latente" : "Baja",
-      metric: `${currentRiskPct.toFixed(2)}% · ${peakTradesPerDay || 0} trades pico`,
+      status: pressureLevel === "critical" ? "Alta" : pressureLevel === "warning" ? "Latente" : "Contenida",
+      metric: `${currentRiskPct.toFixed(2)}%`,
+      metricSuffix: `${peakTradesPerDay || 0} trades pico`,
       note: scalingLevel !== "stable"
-        ? `El tamaño está forzando el plan: tope ${maxTradeRiskPct.toFixed(2)}% por operación.`
+        ? `Riesgo por operación cerca del límite definido: ${maxTradeRiskPct.toFixed(2)}%.`
         : averageTradesPerDay
-          ? `La frecuencia sube hasta ${peakTradesPerDay || 0} trades frente a ${averageTradesPerDay.toFixed(1)} de media.`
-          : "La presión sigue dentro de la zona operativa normal.",
+          ? `Frecuencia pico de ${peakTradesPerDay || 0} trades frente a ${averageTradesPerDay.toFixed(1)} de media.`
+          : "Presión dentro de la zona operativa normal.",
       progress: Math.max(12, Math.min(100, Math.max(riskPerTradeUsagePct || 0, averageTradesPerDay ? (peakTradesPerDay / Math.max(averageTradesPerDay * 2.1, 1)) * 100 : 0))),
       kind: "pressure"
     },
@@ -1243,7 +1261,7 @@ export function renderAnalytics(root, state) {
       tone: inconsistencyLevel,
       status: inconsistencyLevel === "critical" ? "Frágil" : inconsistencyLevel === "warning" ? "Irregular" : "Sólida",
       metric: `${Math.round(consistencyRatio)} / 100`,
-      note: `WR reciente ${Math.round(recentWinRate)}% · dispersión diaria ${formatCompactSignedCurrency(stdDevPnl)}.`,
+      note: `WR reciente ${Math.round(recentWinRate)}%. Dispersión diaria ${formatCompactSignedCurrency(stdDevPnl)}.`,
       progress: Math.max(12, Math.min(100, 100 - consistencyRatio)),
       kind: "consistency"
     }
@@ -1253,119 +1271,53 @@ export function renderAnalytics(root, state) {
     || riskBehaviorRows.find((row) => row.tone === "warning")
     || riskBehaviorRows[0];
   const riskInsight = dominantRiskIssue.kind === "loss"
-    ? "La racha actual está empujando a operar peor, no solo a perder más."
+    ? "La mayor fricción visible es la secuencia negativa dentro de la muestra."
     : dominantRiskIssue.kind === "pressure"
-      ? "La presión tras las pérdidas está subiendo el tamaño o la frecuencia fuera de plan."
-      : "La ejecución reciente ya no replica el patrón limpio que sí aparece en el resto del mes.";
-  const recommendedLossCut = dominantRiskIssue.kind === "loss" ? 2 : 3;
-  const recommendedRiskPct = dominantRiskIssue.kind === "loss"
-    ? Math.max(0.25, Math.min(currentRiskPct || 0.5, maxTradeRiskPct * 0.5))
-    : dominantRiskIssue.kind === "pressure"
-      ? Math.max(0.25, Math.min(currentRiskPct || maxTradeRiskPct || 0.5, maxTradeRiskPct * 0.75))
-      : Math.max(0.25, currentRiskPct || 0.5);
-  const recommendedTradeLimit = Math.max(2, Math.round(averageTradesPerDay || 2));
-  const riskDecision = dominantRiskIssue.kind === "loss"
-    ? `Hoy: baja a ${recommendedRiskPct.toFixed(2)}% por trade y corta la sesión tras ${recommendedLossCut} pérdidas.`
-    : dominantRiskIssue.kind === "pressure"
-      ? `Hoy: mantén ${recommendedRiskPct.toFixed(2)}% y no superes ${recommendedTradeLimit} trades de calidad.`
-      : `Hoy: mantén ${recommendedRiskPct.toFixed(2)}% y toma solo setups de máxima claridad hasta estabilizar la ejecución.`;
+      ? "La presión principal aparece en tamaño, frecuencia o cercanía al límite definido."
+      : "La señal dominante está en consistencia y dispersión de resultados.";
   const riskProtection = resolveRiskProtectionMeta({
     account,
     riskProfile,
     riskSnapshot,
     hasSuggestedRules: Boolean(lossStreak || currentRiskPct || averageTradesPerDay)
   });
-  const riskProtectionRules = [
-    `Cortar sesión tras ${recommendedLossCut} pérdidas seguidas`,
-    `Reducir riesgo a ${recommendedRiskPct.toFixed(2)}% por trade`,
-    `Limitar a ${recommendedTradeLimit} trades de calidad`
+  const riskProtectionEvidence = [
+    { label: "Protección", value: riskProtection.state },
+    { label: "Reglas", value: riskProtection.rulesState },
+    { label: "Riesgo actual", value: `${currentRiskPct.toFixed(2)}%` }
   ];
-  const riskMetricCards = [
+  const controlMetricGroups = [
     {
-      label: "Drawdown actual",
-      value: formatPercent(-currentDrawdownPct),
-      noteLead: formatCurrency(-currentDrawdownAmount),
-      noteTail: "desde el último pico",
-      tone: currentDrawdownPct > 0 ? "negative" : "",
-      noteTone: currentDrawdownPct >= 1 ? "negative" : currentDrawdownPct > 0 ? "warning" : "positive"
+      title: "Rendimiento",
+      items: [
+        { label: "P&L total", value: formatCurrency(model.totals.pnl), tone: model.totals.pnl >= 0 ? "positive" : "negative" },
+        { label: "Win rate", value: formatPercent(model.totals.winRate) },
+        { label: "Profit factor", value: model.totals.profitFactor.toFixed(2), tone: model.totals.profitFactor >= 1 ? "positive" : "negative" },
+        { label: "Expectancy", value: formatCurrency(model.totals.expectancy), tone: model.totals.expectancy >= 0 ? "positive" : "negative" }
+      ]
     },
     {
-      label: "Racha actual",
-      value: `${lossStreak}`,
-      note: lossStreak >= 4
-        ? `Presión alta · tope ${maxTradeRiskPct.toFixed(2)}% por trade`
-        : "Todavía dentro de tolerancia",
-      tone: lossStreak >= 4 ? "negative" : "",
-      noteTone: lossStreak >= 4 ? "negative" : lossStreak >= 2 ? "warning" : "positive"
-    }
-  ];
-  const riskAlertsLimited = riskAlertsMarkup(riskAlerts, 3);
-  const detailedMetrics = [
-    {
-      tone: "blue",
-      label: "Best Month",
-      value: model.totals.bestMonth ? formatCurrency(model.totals.bestMonth.pnl) : "—",
-      note: model.totals.bestMonth?.label || "Sin referencia mensual"
+      title: "Riesgo",
+      items: [
+        { label: "Drawdown actual", value: formatCurrency(-currentDrawdownAmount), note: formatPercent(-currentDrawdownPct), tone: currentDrawdownAmount > 0 ? "negative" : "positive" },
+        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: model.totals.drawdown.maxAmount > 0 ? "negative" : "positive" },
+        { label: "Recovery factor", value: Number(model.totals.ratios?.recovery || 0).toFixed(2) }
+      ]
     },
     {
-      tone: "red",
-      label: "Worst Month",
-      value: model.totals.worstMonth ? formatCurrency(model.totals.worstMonth.pnl) : "—",
-      note: model.totals.worstMonth?.label || "Sin referencia mensual"
+      title: "Coste",
+      items: [
+        { label: "Comisiones", value: formatCurrency(-model.totals.commissions), tone: model.totals.commissions ? "negative" : "" },
+        { label: "Swap", value: formatCurrency(-model.totals.swaps), tone: model.totals.swaps ? "negative" : "" }
+      ]
     },
     {
-      tone: "red",
-      label: "Total P&L",
-      value: formatCurrency(model.totals.pnl),
-      note: "P&L neto acumulado"
-    },
-    {
-      tone: "green",
-      label: "Total Number of Trades",
-      value: `${model.totals.totalTrades}`,
-      note: "Operaciones cerradas"
-    },
-    {
-      tone: "green",
-      label: "Win Rate",
-      value: formatPercent(model.totals.winRate),
-      note: "Porcentaje de aciertos"
-    },
-    {
-      tone: "red",
-      label: "Expectancy",
-      value: formatCurrency(model.totals.expectancy),
-      note: "Resultado esperado por trade"
-    },
-    {
-      tone: "red",
-      label: "Total Commissions",
-      value: formatCurrency(-model.totals.commissions),
-      note: "Coste operativo estimado"
-    },
-    {
-      tone: "green",
-      label: "Profit Factor",
-      value: model.totals.profitFactor.toFixed(2),
-      note: "Ratio entre beneficios y pérdidas"
-    },
-    {
-      tone: "green",
-      label: "Max Drawdown",
-      value: formatCurrency(-model.totals.drawdown.maxAmount),
-      note: "Drawdown máximo"
-    },
-    {
-      tone: "green",
-      label: "Current Drawdown",
-      value: formatCurrency(-model.totals.drawdown.currentAmount),
-      note: "Retroceso actual desde pico"
-    },
-    {
-      tone: "green",
-      label: "Risk Reward Ratio",
-      value: model.totals.rr.toFixed(2),
-      note: "Media beneficio / pérdida"
+      title: "Distribución",
+      items: [
+        { label: "Operaciones", value: `${model.totals.totalTrades}` },
+        { label: "R:R medio", value: model.totals.rr.toFixed(2) },
+        { label: "Beneficio bruto", value: formatCurrency(model.totals.grossProfit), tone: model.totals.grossProfit >= 0 ? "positive" : "" }
+      ]
     }
   ];
 
@@ -2004,13 +1956,20 @@ export function renderAnalytics(root, state) {
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "risk" ? "active" : ""}" data-tab="risk">
-      <div class="analytics-risk-layout">
-        <article class="tl-section-card analytics-risk-hero analytics-risk-hero--${riskHeroTone}">
+      <div class="analytics-risk-layout insights-control">
+        <article class="tl-section-card analytics-risk-hero insights-control__status analytics-risk-hero--${riskHeroTone}">
           <div class="analytics-risk-hero__copy">
             <div class="eyebrow">Estado de control</div>
             <h3>${riskHeroTitle}</h3>
             <p>${riskHeroContext}</p>
-            ${riskAlerts.length ? `<div class="analytics-risk-hero__alerts">${riskAlertsLimited}</div>` : ""}
+            <div class="insights-control__evidence">
+              ${controlEvidenceBadges.map((badge) => `
+                <span class="insights-control__badge insights-control__badge--${badge.tone}">
+                  <small>${badge.label}</small>
+                  <strong>${badge.value}</strong>
+                </span>
+              `).join("")}
+            </div>
           </div>
           <div class="analytics-risk-hero__signal ${lossStreak >= 4 ? "is-loss-streak" : ""}">
             <span class="analytics-risk-hero__signal-label">Señal dominante</span>
@@ -2019,22 +1978,37 @@ export function renderAnalytics(root, state) {
           </div>
         </article>
 
-        <div class="analytics-risk-kpis">
-          ${riskMetricCards.map((item) => `
-            <article class="tl-section-card analytics-risk-kpi">
-              <span class="analytics-risk-kpi__label">${item.label}</span>
-              <strong class="analytics-risk-kpi__value ${item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
-              <small class="analytics-risk-kpi__note">${item.noteLead ? `<span class="analytics-risk-kpi__note-value analytics-risk-kpi__note-value--${item.noteTone || "neutral"}">${item.noteLead}</span>${item.noteTail ? ` ${item.noteTail}` : ""}` : item.note}</small>
-            </article>
-          `).join("")}
-        </div>
+        <section class="tl-section-card insights-control-metrics">
+          <div class="tl-section-header">
+            <div>
+              <div class="tl-section-title">Métricas de control</div>
+              <div class="row-sub">Rendimiento, riesgo, coste y distribución sin cambiar los cálculos base.</div>
+            </div>
+          </div>
+          <div class="insights-control-metrics__grid">
+            ${controlMetricGroups.map((group) => `
+              <article class="insights-control-metrics__group">
+                <h4>${group.title}</h4>
+                <div class="insights-control-metrics__list">
+                  ${group.items.map((item) => `
+                    <div class="insights-control-metric">
+                      <span>${item.label}</span>
+                      <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+                      ${item.note ? `<small>${item.note}</small>` : ""}
+                    </div>
+                  `).join("")}
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </section>
 
-        <div class="analytics-risk-grid">
-          <article class="tl-section-card analytics-risk-behavior">
+        <div class="analytics-risk-grid insights-control__grid">
+          <article class="tl-section-card analytics-risk-behavior insights-control-signals">
             <div class="tl-section-header">
               <div>
-                <div class="tl-section-title">Qué está rompiendo el control</div>
-                <div class="row-sub">Problema principal, causa operativa y presión actual</div>
+                <div class="tl-section-title">Señales de deterioro</div>
+                <div class="row-sub">Puntos donde la calidad del sistema empieza a comprimirse.</div>
               </div>
             </div>
             <div class="analytics-risk-behavior__list">
@@ -2060,39 +2034,34 @@ export function renderAnalytics(root, state) {
             <article class="tl-section-card analytics-risk-copy-card">
               <div class="tl-section-header">
                 <div>
-                  <div class="tl-section-title">Insight</div>
+                  <div class="tl-section-title">Lectura de control</div>
                 </div>
               </div>
               <p>${riskInsight}</p>
             </article>
-            <article class="tl-section-card analytics-risk-copy-card analytics-risk-copy-card--decision">
+            <article class="tl-section-card analytics-risk-copy-card insights-control-risk-engine">
               <div class="tl-section-header">
                 <div>
-                  <div class="tl-section-title">Decisión</div>
+                  <div class="tl-section-title">Risk Engine</div>
+                  <div class="row-sub">Límites, reglas y protección activa viven en el módulo dedicado.</div>
                 </div>
               </div>
-              <div class="analytics-risk-decision">
-                <strong>${riskDecision}</strong>
-                <div class="analytics-risk-engine">
+              <div class="analytics-risk-engine">
                 <div class="analytics-risk-engine__meta">
                   <span class="analytics-risk-engine__state analytics-risk-engine__state--${riskProtection.tone}">${riskProtection.state}</span>
                   <small>${riskProtection.note}</small>
                 </div>
-                <div class="analytics-risk-engine__rules-header">
-                  <span>Protección</span>
-                  <em>${riskProtection.rulesState}</em>
+                <div class="insights-control-risk-engine__evidence">
+                  ${riskProtectionEvidence.map((item) => `
+                    <div>
+                      <span>${item.label}</span>
+                      <strong>${item.value}</strong>
+                    </div>
+                  `).join("")}
                 </div>
-                <ul class="analytics-risk-engine__rules">
-                  ${riskProtectionRules.map((rule) => `
-                      <li>
-                        <strong>${rule}</strong>
-                      </li>
-                    `).join("")}
-                </ul>
-                  <div class="analytics-risk-engine__footer">
-                    <small>Risk Engine ejecuta localmente solo cuando el motor está conectado y la política ha sido aplicada por el EA.</small>
-                    <button class="btn-primary btn-inline analytics-risk-engine__action" type="button" data-analytics-risk-engine-action="true">${riskProtection.actionLabel}</button>
-                  </div>
+                <div class="analytics-risk-engine__footer">
+                  <small>Este tab resume evidencia; la configuración operativa se gestiona en Risk Engine.</small>
+                  <button class="btn-primary btn-inline analytics-risk-engine__action" type="button" data-analytics-risk-engine-action="true">Abrir Risk Engine</button>
                 </div>
               </div>
             </article>
