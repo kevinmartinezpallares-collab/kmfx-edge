@@ -898,11 +898,23 @@ export function renderAnalytics(root, state) {
           ? `${dominantPositiveSessionEntry[0]} sostiene parte del patrón, aunque con continuidad irregular.`
           : "Hay una señal útil, pero todavía necesita más repetición para consolidarse."
         : "El mes mezcla resultados y conviene validar más repeticiones antes de reforzar la lectura.";
-  const dailyReadBullets = [
-    `${strongestSession.key} concentra los cierres más limpios.`,
-    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción operativa.`,
-    strongestSymbol.key !== "—" ? `${strongestSymbol.key} aporta la mayor tracción.` : "Setups simples. Mejor lectura del día.",
-    selectedDayTrades.length >= 2 ? "Alta frecuencia. Calidad más débil." : "Menos fricción. Mejor resolución del día."
+  const dailyReadingRows = [
+    {
+      title: strongestSession.key,
+      detail: "Concentra los cierres más limpios."
+    },
+    {
+      title: `${String(worstHour.hour).padStart(2, "0")}:00`,
+      detail: "Introduce fricción operativa."
+    },
+    {
+      title: strongestSymbol.key !== "—" ? strongestSymbol.key : "Setups simples",
+      detail: strongestSymbol.key !== "—" ? "Aporta la mayor tracción." : "Sostienen la mejor lectura del día."
+    },
+    {
+      title: selectedDayTrades.length >= 2 ? "Alta frecuencia" : "Menos fricción",
+      detail: selectedDayTrades.length >= 2 ? "Calidad más débil." : "Mejor resolución del día."
+    }
   ].slice(0, 4);
   const topInsightCards = [
     {
@@ -1836,11 +1848,23 @@ export function renderAnalytics(root, state) {
           </div>
           ${selectedDay ? `
             <div class="analytics-daily-detail">
-              <div class="analytics-daily-detail__pnl ${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</div>
-              <div class="analytics-daily-detail__grid">
-                <div><span>Trades</span><strong>${selectedDay.trades}</strong></div>
-                <div><span>Sesión principal</span><strong>${selectedDaySession}</strong></div>
-                <div><span>Símbolo dominante</span><strong>${selectedDaySymbol}</strong></div>
+              <div class="analytics-daily-detail__stats">
+                <div class="analytics-daily-detail__stat analytics-daily-detail__stat--pnl">
+                  <span>P&L</span>
+                  <strong class="${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</strong>
+                </div>
+                <div class="analytics-daily-detail__stat">
+                  <span>Trades</span>
+                  <strong>${selectedDay.trades}</strong>
+                </div>
+                <div class="analytics-daily-detail__stat">
+                  <span>Sesión principal</span>
+                  <strong>${selectedDaySession}</strong>
+                </div>
+                <div class="analytics-daily-detail__stat">
+                  <span>Símbolo dominante</span>
+                  <strong>${selectedDaySymbol}</strong>
+                </div>
               </div>
               <p class="analytics-daily-detail__note">${selectedDayBehavior}</p>
             </div>
@@ -1876,9 +1900,14 @@ export function renderAnalytics(root, state) {
                   <div class="row-sub">Señales de comportamiento que se repiten en los cierres del periodo.</div>
                 </div>
               </div>
-              <ul class="analytics-daily-bullets">
-                ${dailyReadBullets.map((item, index) => `<li class="${index === 0 ? "is-lead" : ""}">${item}</li>`).join("")}
-              </ul>
+              <div class="insights-daily-reading">
+                ${dailyReadingRows.map((item) => `
+                  <div class="insights-daily-reading__row">
+                    <strong>${item.title}</strong>
+                    <span>${item.detail}</span>
+                  </div>
+                `).join("")}
+              </div>
             </article>
 
             <article class="tl-section-card analytics-daily-card analytics-daily-card--confidence">
