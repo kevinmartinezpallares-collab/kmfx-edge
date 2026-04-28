@@ -1275,6 +1275,23 @@ export function renderAnalytics(root, state) {
     : dominantRiskIssue.kind === "pressure"
       ? "La presión principal aparece en tamaño, frecuencia o cercanía al límite definido."
       : "La señal dominante está en consistencia y dispersión de resultados.";
+  const controlReadingEvidence = [
+    {
+      label: "Mayor racha negativa",
+      value: `${lossStreak}`,
+      tone: lossStreak >= 4 ? "negative" : ""
+    },
+    {
+      label: "Drawdown actual",
+      value: formatPercent(-currentDrawdownPct),
+      tone: currentDrawdownPct > 0 ? "negative" : "positive"
+    },
+    {
+      label: "PF",
+      value: model.totals.profitFactor.toFixed(2),
+      tone: model.totals.profitFactor >= 1 ? "positive" : "negative"
+    }
+  ];
   const riskProtection = resolveRiskProtectionMeta({
     account,
     riskProfile,
@@ -1993,8 +2010,10 @@ export function renderAnalytics(root, state) {
                   ${group.items.map((item) => `
                     <div class="insights-control-metric">
                       <span>${item.label}</span>
-                      <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
-                      ${item.note ? `<small>${item.note}</small>` : ""}
+                      <div class="insights-control-metric__value">
+                        <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+                        ${item.note ? `<small>${item.note}</small>` : ""}
+                      </div>
                     </div>
                   `).join("")}
                 </div>
@@ -2031,13 +2050,21 @@ export function renderAnalytics(root, state) {
           </article>
 
           <div class="analytics-risk-side">
-            <article class="tl-section-card analytics-risk-copy-card">
+            <article class="tl-section-card analytics-risk-copy-card insights-control-reading">
               <div class="tl-section-header">
                 <div>
                   <div class="tl-section-title">Lectura de control</div>
                 </div>
               </div>
               <p>${riskInsight}</p>
+              <div class="insights-control-reading__evidence">
+                ${controlReadingEvidence.map((item) => `
+                  <div>
+                    <span>${item.label}</span>
+                    <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+                  </div>
+                `).join("")}
+              </div>
             </article>
             <article class="tl-section-card analytics-risk-copy-card insights-control-risk-engine">
               <div class="tl-section-header">
