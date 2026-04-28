@@ -1078,8 +1078,9 @@ export function renderAnalytics(root, state) {
     {
       hour: bestHour.hour,
       pnl: bestHour.pnl,
+      trades: bestHour.trades,
       tone: bestHour.pnl >= 0 ? "positive" : "negative",
-      label: "mejor franja",
+      label: "Mayor aporte",
       rowType: "leader"
     },
     ...bestWindowSupportingHours
@@ -1087,34 +1088,42 @@ export function renderAnalytics(root, state) {
       .map((hour) => ({
         hour: hour.hour,
         pnl: hour.pnl,
+        trades: hour.trades,
         tone: hour.pnl >= 0 ? "positive" : "negative",
-        label: "sostiene el edge",
+        label: "Sostiene el resultado",
         rowType: "support"
       })),
     {
       hour: weakestTimingWindow.hour,
       pnl: weakestTimingWindow.pnl,
-      tone: "negative",
-      label: "franja a vigilar",
-      rowType: "weak"
+      trades: weakestTimingWindow.trades,
+      tone: weakestTimingWindow.pnl < 0 ? "negative" : "neutral",
+      label: "Hora a revisar",
+      rowType: weakestTimingWindow.pnl < 0 ? "weak" : "support"
     },
     ...(secondaryPositiveHour ? [{
       hour: secondaryPositiveHour.hour,
       pnl: secondaryPositiveHour.pnl,
+      trades: secondaryPositiveHour.trades,
       tone: "positive",
-      label: "aporta pero no lidera",
+      label: secondaryPositiveHour.trades <= 1 ? "Muestra limitada" : "Sostiene el resultado",
       rowType: "support"
     }] : [])
   ].filter((row, index, list) => list.findIndex((item) => item.hour === row.hour) === index).slice(0, 4);
   const hourDetailRowsMarkup = detailHourRows.map((row) => `
     <div class="analytics-hour-detail-row analytics-hour-detail-row--${row.rowType}">
       <div class="analytics-hour-detail-row__time">${String(row.hour).padStart(2, "0")}:00</div>
-      <div class="analytics-hour-detail-row__value ${row.tone === "positive" ? "metric-positive" : "metric-negative"}">${formatHourlyValue(row.pnl)}</div>
+      <div class="analytics-hour-detail-row__metric">
+        <strong class="analytics-hour-detail-row__value ${row.tone === "positive" ? "metric-positive" : row.tone === "negative" ? "metric-negative" : ""}">${formatHourlyValue(row.pnl)}</strong>
+        <small>${formatTradeCount(row.trades)}</small>
+      </div>
       <div class="analytics-hour-detail-row__label">${row.label}</div>
     </div>
   `).join("");
-  const hourInsight = `${bestWindowLabel} concentra el edge; ${formatHourLabel(weakestTimingWindow.hour)} introduce la fricción a evitar.`;
-  const shortHourDecision = `Concentra la operativa entre ${String(bestWindow.start).padStart(2, "0")}:00 y ${String(bestWindow.end).padStart(2, "0")}:00. Filtra ${String(weakestTimingWindow.hour).padStart(2, "0")}:00 salvo excepción muy clara.`;
+  const hourReadingLead = `${bestWindowLabel} concentra el mayor aporte horario.`;
+  const hourReadingDetail = weakestTimingWindow.pnl < 0
+    ? `${formatHourLabel(weakestTimingWindow.hour)} concentra el mayor daño horario con ${formatHourlyValue(weakestTimingWindow.pnl)}.`
+    : `${formatHourLabel(weakestTimingWindow.hour)} queda como hora a revisar por impacto relativo.`;
   const startBalance = Number(account?.model?.account?.balance || model.account?.balance || 0) - Number(model.totals?.pnl || 0);
   let runningRiskBalance = startBalance;
   let riskPeak = startBalance;
@@ -1945,7 +1954,7 @@ export function renderAnalytics(root, state) {
           </div>
           <div class="insights-hour-header__stats">
             <div class="insights-hour-stat">
-              <span>Mejor franja</span>
+              <span>Mejor hora</span>
               <strong>${formatHourLabel(bestHour.hour)}</strong>
               <small class="${bestHour.pnl >= 0 ? "analytics-value-positive" : "analytics-value-negative"}">${formatHourlyValue(bestHour.pnl)}</small>
             </div>
@@ -1960,8 +1969,8 @@ export function renderAnalytics(root, state) {
         <article class="tl-section-card analytics-hour-timeline-card">
           <div class="tl-section-header">
             <div>
-              <div class="tl-section-title">Overview temporal</div>
-              <div class="row-sub">Lectura visual rápida de actividad, continuidad y fricción horaria.</div>
+              <div class="tl-section-title">Mapa horario</div>
+              <div class="row-sub">Distribución de P&L y actividad por hora.</div>
             </div>
             <div class="analytics-hour-toggle" role="tablist" aria-label="Unidad de valor para hora">
               <button class="analytics-hour-toggle__btn ${analyticsHourValueMode === "currency" ? "is-active" : ""}" type="button" data-analytics-hour-mode="currency">$</button>
@@ -1973,8 +1982,8 @@ export function renderAnalytics(root, state) {
           </div>
           <div class="analytics-hour-detail-shell">
             <div class="analytics-hour-detail-shell__head">
-              <div class="tl-section-title">Detalle operativo</div>
-              <div class="row-sub">Las horas que merecen foco o recorte dentro de la sesión.</div>
+              <div class="tl-section-title">Horas a revisar</div>
+              <div class="row-sub">Horas con mayor aporte, mayor daño o muestra relevante.</div>
             </div>
             <div class="analytics-hour-detail-list">
               ${hourDetailRowsMarkup}
@@ -1982,25 +1991,16 @@ export function renderAnalytics(root, state) {
           </div>
         </article>
 
-        <div class="analytics-hour-insight-grid">
-          <article class="tl-section-card analytics-hour-copy-card">
+        <div class="analytics-hour-insight-grid analytics-hour-insight-grid--reading">
+          <article class="tl-section-card analytics-hour-copy-card analytics-hour-copy-card--reading">
             <div class="tl-section-header">
               <div>
-                <div class="tl-section-title">Insight</div>
+                <div class="tl-section-title">Lectura final</div>
               </div>
             </div>
             <div class="analytics-hour-insights">
-              <p class="is-lead">${hourInsight}</p>
-            </div>
-          </article>
-          <article class="tl-section-card analytics-hour-copy-card analytics-hour-copy-card--decision">
-            <div class="tl-section-header">
-              <div>
-                <div class="tl-section-title">Decisión</div>
-              </div>
-            </div>
-            <div class="analytics-hour-decision">
-              <strong>${shortHourDecision}</strong>
+              <p class="is-lead">${hourReadingLead}</p>
+              <p>${hourReadingDetail}</p>
             </div>
           </article>
         </div>

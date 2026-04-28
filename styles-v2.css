@@ -8266,6 +8266,11 @@ body[data-theme="dark"] .analytics-hour-insight-grid {
   gap: 18px;
 }
 
+html[data-theme="dark"] .analytics-hour-insight-grid--reading,
+body[data-theme="dark"] .analytics-hour-insight-grid--reading {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 html[data-theme="dark"] .analytics-hour-copy-card,
 body[data-theme="dark"] .analytics-hour-copy-card {
   display: grid;
@@ -8275,6 +8280,11 @@ body[data-theme="dark"] .analytics-hour-copy-card {
 html[data-theme="dark"] .analytics-hour-copy-card .tl-section-title,
 body[data-theme="dark"] .analytics-hour-copy-card .tl-section-title {
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .analytics-hour-copy-card--reading .tl-section-title,
+body[data-theme="dark"] .analytics-hour-copy-card--reading .tl-section-title {
+  color: var(--text-0);
 }
 
 html[data-theme="dark"] .analytics-hour-copy-card--decision .tl-section-title,
@@ -8468,7 +8478,7 @@ html[data-theme="dark"] .analytics-hour-detail-row__time,
 body[data-theme="dark"] .analytics-hour-detail-row__time {
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--text-0);
 }
 
@@ -8477,8 +8487,22 @@ body[data-theme="dark"] .analytics-hour-detail-row__value {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .analytics-hour-detail-row__metric,
+body[data-theme="dark"] .analytics-hour-detail-row__metric {
+  display: grid;
+  gap: 3px;
+}
+
+html[data-theme="dark"] .analytics-hour-detail-row__metric small,
+body[data-theme="dark"] .analytics-hour-detail-row__metric small {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
