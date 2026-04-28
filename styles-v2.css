@@ -6344,6 +6344,54 @@ body[data-theme="dark"] .insights-pattern-card__meta {
   color: var(--muted-foreground);
 }
 
+html[data-theme="dark"] .insights-pattern-evidence,
+body[data-theme="dark"] .insights-pattern-evidence {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+html[data-theme="dark"] .insights-pattern-evidence__row,
+body[data-theme="dark"] .insights-pattern-evidence__row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .insights-pattern-evidence__row span,
+body[data-theme="dark"] .insights-pattern-evidence__row span {
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+}
+
+html[data-theme="dark"] .insights-pattern-evidence__row strong,
+body[data-theme="dark"] .insights-pattern-evidence__row strong {
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 720;
+  color: var(--foreground);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .insights-pattern-evidence__value--positive,
+body[data-theme="dark"] .insights-pattern-evidence__value--positive {
+  color: color-mix(in srgb, var(--profit) 82%, var(--foreground));
+}
+
+html[data-theme="dark"] .insights-pattern-evidence__value--negative,
+body[data-theme="dark"] .insights-pattern-evidence__value--negative {
+  color: color-mix(in srgb, var(--loss) 78%, var(--foreground));
+}
+
 html[data-theme="dark"] .insights-pattern-card--positive .insights-pattern-card__label,
 body[data-theme="dark"] .insights-pattern-card--positive .insights-pattern-card__label {
   color: color-mix(in srgb, var(--profit) 76%, var(--muted-foreground));
@@ -6782,7 +6830,8 @@ html[data-theme="dark"] .insights-evidence__grid,
 body[data-theme="dark"] .insights-evidence__grid {
   gap: 0;
   margin-top: 0;
-  border-top: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  padding-top: 8px;
+  border-top: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
 }
 

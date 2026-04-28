@@ -1387,63 +1387,108 @@ export function renderAnalytics(root, state) {
   const dominantVariable = variablePressure[0];
   const secondVariable = variablePressure[1];
   const hasDominantVariable = hasStrongPatternSample && dominantVariable?.value > 0 && dominantVariable.value >= (secondVariable?.value || 0) * 1.18;
+  const formatSignedCurrency = (value) => Number(value || 0) > 0 ? `+${formatCurrency(value)}` : formatCurrency(value);
+  const formatUnsignedPercent = (value) => formatPercent(value).replace(/^\+/, "");
+  const formatVariableType = (type = "") => type ? `${type.charAt(0).toUpperCase()}${type.slice(1)}` : "Variable";
   const patternInsights = [
     edgeDriver && hasBasicPatternSample ? {
       label: "EDGE",
       tone: "positive",
       title: `${edgeDriver.name} concentra el mejor resultado`,
-      meta: `${edgeDriver.type} · ${formatCurrency(edgeDriver.pnl)} · ${formatTradeCount(edgeDriver.trades)}${edgeDriver.winRate != null ? ` · WR ${formatPercent(edgeDriver.winRate)}` : ""}`
+      evidence: [
+        { label: "Variable", value: formatVariableType(edgeDriver.type) },
+        { label: "P&L", value: formatSignedCurrency(edgeDriver.pnl), tone: "positive" },
+        { label: "Muestra", value: formatTradeCount(edgeDriver.trades) },
+        ...(edgeDriver.winRate != null ? [{ label: "WR", value: formatUnsignedPercent(edgeDriver.winRate) }] : [])
+      ]
     } : {
       label: "MUESTRA",
       tone: "warning",
       title: "Falta repetición para confirmar edge",
-      meta: `${formatTradeCount(totalTrades)} · evita reforzar una variable todavía`
+      evidence: [
+        { label: "Muestra", value: formatTradeCount(totalTrades) },
+        { label: "Lectura", value: "Sin confirmación suficiente" }
+      ]
     },
     damageDriver ? {
       label: "DAÑO",
       tone: "negative",
       title: `${damageDriver.name} concentra el mayor daño`,
-      meta: `${damageDriver.type} · ${formatCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}${damageDriver.winRate != null ? ` · WR ${formatPercent(damageDriver.winRate)}` : ""}`
+      evidence: [
+        { label: "Variable", value: formatVariableType(damageDriver.type) },
+        { label: "P&L", value: formatSignedCurrency(damageDriver.pnl), tone: "negative" },
+        { label: "Muestra", value: formatTradeCount(damageDriver.trades) },
+        ...(damageDriver.winRate != null ? [{ label: "WR", value: formatUnsignedPercent(damageDriver.winRate) }] : [])
+      ]
     } : {
       label: "DAÑO",
       tone: "neutral",
       title: "No hay un drenaje dominante claro",
-      meta: "La pérdida no se concentra en una sola variable"
+      evidence: [
+        { label: "Concentración", value: "Sin drenaje único" },
+        { label: "Muestra", value: formatTradeCount(totalTrades) }
+      ]
     },
     hasDominantVariable ? {
       label: "PATRÓN",
       tone: "neutral",
       title: `${dominantVariable.label} pesa más que el resto`,
-      meta: `Variable dominante por impacto absoluto · ${formatCurrency(dominantVariable.value)}`
+      evidence: [
+        { label: "Lectura", value: "Variable dominante" },
+        { label: "Impacto", value: formatCurrency(dominantVariable.value) }
+      ]
     } : {
       label: "PATRÓN",
       tone: "neutral",
       title: "El resultado sigue repartido",
-      meta: hasStrongPatternSample ? "No hay una variable claramente dominante" : `${formatTradeCount(totalTrades)} · muestra todavía limitada`
+      evidence: [
+        { label: "Lectura", value: hasStrongPatternSample ? "Sin dominio claro" : "Muestra limitada" },
+        { label: "Muestra", value: formatTradeCount(totalTrades) }
+      ]
     },
     totalTrades < 20 ? {
       label: "MUESTRA",
       tone: "warning",
       title: "No conviertas una señal corta en regla",
-      meta: "La lectura necesita más trades antes de elevar conclusiones"
+      evidence: [
+        { label: "Muestra", value: formatTradeCount(totalTrades) },
+        { label: "Criterio", value: "Necesita más repetición" }
+      ]
     } : {
       label: "MUESTRA",
       tone: "neutral",
       title: "Muestra suficiente para comparar variables",
-      meta: `${formatTradeCount(totalTrades)} · contraste por sesión, símbolo y hora`
+      evidence: [
+        { label: "Muestra", value: formatTradeCount(totalTrades) },
+        { label: "Contraste", value: "Sesión, símbolo y hora" }
+      ]
     },
     {
       label: "REVISIÓN",
       tone: damageDriver ? "negative" : "neutral",
-      title: damageDriver ? `Revisa ${damageDriver.type} ${damageDriver.name}` : "Revisa el patrón con menor evidencia",
-      meta: damageDriver ? "Contrasta entradas, horario y contexto antes de repetir el setup" : "Prioriza completar más muestra antes de decidir"
+      title: damageDriver ? `Revisa ${damageDriver.name}` : "Revisa el patrón con menor evidencia",
+      evidence: damageDriver ? [
+        { label: "Motivo", value: "Mayor daño de la muestra" },
+        { label: "P&L", value: formatSignedCurrency(damageDriver.pnl), tone: "negative" },
+        { label: "Muestra", value: formatTradeCount(damageDriver.trades) }
+      ] : [
+        { label: "Motivo", value: "Evidencia todavía parcial" },
+        { label: "Muestra", value: formatTradeCount(totalTrades) }
+      ]
     }
   ].slice(0, 5);
   const patternInsightsMarkup = patternInsights.map((item) => `
     <article class="insights-pattern-card insights-pattern-card--${item.tone}">
       <span class="insights-pattern-card__label">${item.label}</span>
       <strong class="insights-pattern-card__title">${item.title}</strong>
-      <small class="insights-pattern-card__meta">${item.meta}</small>
+      <div class="insights-pattern-evidence">
+        ${(item.evidence || []).map((entry) => `
+          <div class="insights-pattern-evidence__row">
+            <span>${entry.label}</span>
+            <strong class="${entry.tone ? `insights-pattern-evidence__value--${entry.tone}` : ""}">${entry.value}</strong>
+          </div>
+        `).join("")}
+      </div>
     </article>
   `).join("");
   const summaryReviewTitle = `Revisa la franja de ${summaryDrain.value}`;
@@ -1455,7 +1500,7 @@ export function renderAnalytics(root, state) {
         <section class="insights-patterns" aria-labelledby="insights-patterns-title">
           <header class="insights-patterns__header">
             <div>
-              <div class="insights-patterns__eyebrow">COLA DE REVISIÓN</div>
+              <div class="insights-patterns__eyebrow">LECTURA TRANSVERSAL</div>
               <h3 id="insights-patterns-title" class="insights-patterns__title">Patrones detectados</h3>
               <p class="insights-patterns__description">Lectura transversal de variables que repiten edge, daño o falta de muestra.</p>
             </div>
