@@ -697,7 +697,7 @@ export function renderAnalytics(root, state) {
     ? "Riesgo estable y ejecución sólida."
     : model.totals.riskScore >= 65
       ? "Perfil saludable con margen de mejora."
-      : "Conviene reforzar control y consistencia.";
+      : "Edge positivo, margen todavía estrecho.";
   const decisionEngine = computeDecisionEngine(model);
   const hourlyRows = (model.hours || []).filter((hour) => hour.trades);
   const denseProfitDistribution = buildDenseProfitDistribution(model.trades, 10);
@@ -1461,7 +1461,7 @@ export function renderAnalytics(root, state) {
       <small class="insights-pattern-kpi__secondary ${item.secondaryTone ? `insights-pattern-kpi__secondary--${item.secondaryTone}` : ""}">${item.secondary}</small>
     </article>
   `).join("");
-  const summaryReviewTitle = `Revisa la franja de ${summaryDrain.value}`;
+  const summaryReviewTitle = `Franja a revisar: ${summaryDrain.value}`;
   const summaryReviewMeta = "Es la hora que más resta P&L en la muestra actual.";
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
@@ -1472,7 +1472,7 @@ export function renderAnalytics(root, state) {
             <div>
               <div class="insights-patterns__eyebrow">QUÉ SE REPITE</div>
               <h3 id="insights-patterns-title" class="insights-patterns__title">Patrones detectados</h3>
-              <p class="insights-patterns__description">Lectura transversal de variables que repiten edge, daño o falta de muestra.</p>
+              <p class="insights-patterns__description">Variables que aparecen de forma repetida en la muestra actual.</p>
             </div>
           </header>
           <div class="insights-patterns__grid">
@@ -1484,7 +1484,7 @@ export function renderAnalytics(root, state) {
             <div class="analytics-overview-copy insights-summary__header">
               <div class="analytics-overview-kicker insights-summary__eyebrow">QUÉ MUEVE EL RESULTADO</div>
               <h3 class="analytics-overview-title insights-summary__title">Variables que explican el rendimiento</h3>
-              <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo y horario con mayor impacto sobre la muestra actual.</p>
+              <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo y horario con mayor impacto sobre el resultado.</p>
             </div>
             <div class="analytics-overview-hero__grid insights-summary__grid">
               <div class="analytics-overview-primary insights-summary__evidence">
@@ -1507,7 +1507,7 @@ export function renderAnalytics(root, state) {
               </div>
             <div class="analytics-overview-profile insights-summary__profile">
               <div class="analytics-overview-profile__head">
-                <span>Perfil operativo</span>
+                <span>Estado del sistema</span>
                 <strong>${scoreInterpretation}</strong>
               </div>
               <div class="analytics-profile-highlights">
