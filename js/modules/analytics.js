@@ -1364,10 +1364,104 @@ export function renderAnalytics(root, state) {
     : model.totals.expectancy >= 0
       ? `La distribución sigue positiva, pero el margen se estrecha.`
       : `La pérdida media ya está comiendo demasiada ventaja del sistema.`;
+  const totalTrades = Number(model.totals?.totalTrades || model.trades?.length || 0);
+  const hasBasicPatternSample = totalTrades >= 8;
+  const hasStrongPatternSample = totalTrades >= 20;
+  const edgeCandidates = [
+    { type: "sesión", name: strongestSession.key, pnl: Number(strongestSession.pnl || 0), trades: Number(strongestSession.trades || 0), winRate: strongestSession.winRate },
+    { type: "símbolo", name: strongestSymbol.key, pnl: Number(strongestSymbol.pnl || 0), trades: Number(strongestSymbol.trades || 0), winRate: strongestSymbol.winRate },
+    { type: "hora", name: `${String(bestHour.hour).padStart(2, "0")}:00`, pnl: Number(bestHour.pnl || 0), trades: Number(bestHour.trades || 0), winRate: null }
+  ].filter((item) => item.trades > 0 && item.pnl > 0).sort((a, b) => b.pnl - a.pnl);
+  const damageCandidates = [
+    { type: "sesión", name: weakestSession.key, pnl: Number(weakestSession.pnl || 0), trades: Number(weakestSession.trades || 0), winRate: weakestSession.winRate },
+    { type: "símbolo", name: weakestSymbol.key, pnl: Number(weakestSymbol.pnl || 0), trades: Number(weakestSymbol.trades || 0), winRate: weakestSymbol.winRate },
+    { type: "hora", name: `${String(worstHour.hour).padStart(2, "0")}:00`, pnl: Number(worstHour.pnl || 0), trades: Number(worstHour.trades || 0), winRate: null }
+  ].filter((item) => item.trades > 0 && item.pnl < 0).sort((a, b) => a.pnl - b.pnl);
+  const edgeDriver = edgeCandidates[0] || null;
+  const damageDriver = damageCandidates[0] || null;
+  const variablePressure = [
+    { label: "La sesión", value: Math.max(Math.abs(Number(strongestSession.pnl || 0)), Math.abs(Number(weakestSession.pnl || 0))) },
+    { label: "El símbolo", value: Math.max(Math.abs(Number(strongestSymbol.pnl || 0)), Math.abs(Number(weakestSymbol.pnl || 0))) },
+    { label: "La hora", value: Math.max(Math.abs(Number(bestHour.pnl || 0)), Math.abs(Number(worstHour.pnl || 0))) }
+  ].sort((a, b) => b.value - a.value);
+  const dominantVariable = variablePressure[0];
+  const secondVariable = variablePressure[1];
+  const hasDominantVariable = hasStrongPatternSample && dominantVariable?.value > 0 && dominantVariable.value >= (secondVariable?.value || 0) * 1.18;
+  const patternInsights = [
+    edgeDriver && hasBasicPatternSample ? {
+      label: "EDGE",
+      tone: "positive",
+      title: `${edgeDriver.name} concentra el mejor resultado`,
+      meta: `${edgeDriver.type} · ${formatCurrency(edgeDriver.pnl)} · ${formatTradeCount(edgeDriver.trades)}${edgeDriver.winRate != null ? ` · WR ${formatPercent(edgeDriver.winRate)}` : ""}`
+    } : {
+      label: "MUESTRA",
+      tone: "warning",
+      title: "Falta repetición para confirmar edge",
+      meta: `${formatTradeCount(totalTrades)} · evita reforzar una variable todavía`
+    },
+    damageDriver ? {
+      label: "DAÑO",
+      tone: "negative",
+      title: `${damageDriver.name} concentra el mayor daño`,
+      meta: `${damageDriver.type} · ${formatCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}${damageDriver.winRate != null ? ` · WR ${formatPercent(damageDriver.winRate)}` : ""}`
+    } : {
+      label: "DAÑO",
+      tone: "neutral",
+      title: "No hay un drenaje dominante claro",
+      meta: "La pérdida no se concentra en una sola variable"
+    },
+    hasDominantVariable ? {
+      label: "PATRÓN",
+      tone: "neutral",
+      title: `${dominantVariable.label} pesa más que el resto`,
+      meta: `Variable dominante por impacto absoluto · ${formatCurrency(dominantVariable.value)}`
+    } : {
+      label: "PATRÓN",
+      tone: "neutral",
+      title: "El resultado sigue repartido",
+      meta: hasStrongPatternSample ? "No hay una variable claramente dominante" : `${formatTradeCount(totalTrades)} · muestra todavía limitada`
+    },
+    totalTrades < 20 ? {
+      label: "MUESTRA",
+      tone: "warning",
+      title: "No conviertas una señal corta en regla",
+      meta: "La lectura necesita más trades antes de elevar conclusiones"
+    } : {
+      label: "MUESTRA",
+      tone: "neutral",
+      title: "Muestra suficiente para comparar variables",
+      meta: `${formatTradeCount(totalTrades)} · contraste por sesión, símbolo y hora`
+    },
+    {
+      label: "REVISIÓN",
+      tone: damageDriver ? "negative" : "neutral",
+      title: damageDriver ? `Revisa ${damageDriver.type} ${damageDriver.name}` : "Revisa el patrón con menor evidencia",
+      meta: damageDriver ? "Contrasta entradas, horario y contexto antes de repetir el setup" : "Prioriza completar más muestra antes de decidir"
+    }
+  ].slice(0, 5);
+  const patternInsightsMarkup = patternInsights.map((item) => `
+    <article class="insights-pattern-card insights-pattern-card--${item.tone}">
+      <span class="insights-pattern-card__label">${item.label}</span>
+      <strong class="insights-pattern-card__title">${item.title}</strong>
+      <small class="insights-pattern-card__meta">${item.meta}</small>
+    </article>
+  `).join("");
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-overview-shell">
         ${adminTracePanel}
+        <section class="insights-patterns" aria-labelledby="insights-patterns-title">
+          <header class="insights-patterns__header">
+            <div>
+              <div class="insights-patterns__eyebrow">COLA DE REVISIÓN</div>
+              <h3 id="insights-patterns-title" class="insights-patterns__title">Patrones detectados</h3>
+              <p class="insights-patterns__description">Lectura transversal de variables que repiten edge, daño o falta de muestra.</p>
+            </div>
+          </header>
+          <div class="insights-patterns__grid">
+            ${patternInsightsMarkup}
+          </div>
+        </section>
         <article class="tl-section-card analytics-overview-hero">
           <div class="analytics-overview-hero__stack">
             <div class="analytics-overview-copy">

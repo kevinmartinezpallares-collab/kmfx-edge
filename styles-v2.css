@@ -6245,6 +6245,120 @@ body[data-theme="dark"] .analytics-overview-shell {
   gap: 28px;
 }
 
+html[data-theme="dark"] .insights-patterns,
+body[data-theme="dark"] .insights-patterns {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, var(--radius));
+  background: color-mix(in srgb, var(--card) 94%, var(--foreground) 3%);
+}
+
+html[data-theme="dark"] .insights-patterns__header,
+body[data-theme="dark"] .insights-patterns__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .insights-patterns__eyebrow,
+body[data-theme="dark"] .insights-patterns__eyebrow {
+  margin: 0 0 6px;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-patterns__title,
+body[data-theme="dark"] .insights-patterns__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.08;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .insights-patterns__description,
+body[data-theme="dark"] .insights-patterns__description {
+  margin: 7px 0 0;
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-patterns__grid,
+body[data-theme="dark"] .insights-patterns__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+html[data-theme="dark"] .insights-pattern-card,
+body[data-theme="dark"] .insights-pattern-card {
+  min-width: 0;
+  padding: 12px 14px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+html[data-theme="dark"] .insights-pattern-card:last-child,
+body[data-theme="dark"] .insights-pattern-card:last-child {
+  border-right: 0;
+}
+
+html[data-theme="dark"] .insights-pattern-card__label,
+body[data-theme="dark"] .insights-pattern-card__label {
+  display: block;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-pattern-card__title,
+body[data-theme="dark"] .insights-pattern-card__title {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.28;
+  font-weight: 740;
+  letter-spacing: -0.018em;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .insights-pattern-card__meta,
+body[data-theme="dark"] .insights-pattern-card__meta {
+  display: block;
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-pattern-card--positive .insights-pattern-card__label,
+body[data-theme="dark"] .insights-pattern-card--positive .insights-pattern-card__label {
+  color: color-mix(in srgb, var(--profit) 76%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-pattern-card--negative .insights-pattern-card__label,
+body[data-theme="dark"] .insights-pattern-card--negative .insights-pattern-card__label {
+  color: color-mix(in srgb, var(--loss) 72%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-pattern-card--warning .insights-pattern-card__label,
+body[data-theme="dark"] .insights-pattern-card--warning .insights-pattern-card__label {
+  color: color-mix(in srgb, var(--risk) 72%, var(--muted-foreground));
+}
+
 html[data-theme="dark"] .analytics-page-flow,
 body[data-theme="dark"] .analytics-page-flow {
   display: grid;
@@ -8438,6 +8552,11 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
     grid-template-columns: 1fr;
   }
 
+  html[data-theme="dark"] .insights-patterns__grid,
+  body[data-theme="dark"] .insights-patterns__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   html[data-theme="dark"] .analytics-risk-kpis,
   body[data-theme="dark"] .analytics-risk-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8466,9 +8585,22 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   body[data-theme="dark"] .analytics-pattern-footer--three,
   html[data-theme="dark"] .analytics-timing-hero,
   body[data-theme="dark"] .analytics-timing-hero,
+  html[data-theme="dark"] .insights-patterns__grid,
+  body[data-theme="dark"] .insights-patterns__grid,
   html[data-theme="dark"] .analytics-distribution-metrics,
   body[data-theme="dark"] .analytics-distribution-metrics {
     grid-template-columns: 1fr;
+  }
+
+  html[data-theme="dark"] .insights-pattern-card,
+  body[data-theme="dark"] .insights-pattern-card {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+
+  html[data-theme="dark"] .insights-pattern-card:last-child,
+  body[data-theme="dark"] .insights-pattern-card:last-child {
+    border-bottom: 0;
   }
 
   html[data-theme="dark"] .analytics-symbol-row__main,
