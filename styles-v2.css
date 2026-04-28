@@ -9256,6 +9256,16 @@ body[data-theme="dark"] .insights-control-metric strong {
   font-variant-numeric: tabular-nums;
 }
 
+html[data-theme="dark"] .insights-control-metric strong.metric-positive,
+body[data-theme="dark"] .insights-control-metric strong.metric-positive {
+  color: color-mix(in srgb, var(--positive) 80%, var(--text-1));
+}
+
+html[data-theme="dark"] .insights-control-metric strong.metric-negative,
+body[data-theme="dark"] .insights-control-metric strong.metric-negative {
+  color: color-mix(in srgb, var(--negative) 82%, var(--text-1));
+}
+
 html[data-theme="dark"] .insights-control-metric__text--warning,
 body[data-theme="dark"] .insights-control-metric__text--warning {
   color: color-mix(in srgb, var(--warning) 80%, var(--text-1));
@@ -9419,22 +9429,20 @@ body[data-theme="dark"] .insights-control-risk-engine .analytics-risk-engine__fo
 
 html[data-theme="dark"] .insights-control-risk-engine .analytics-risk-engine__action,
 body[data-theme="dark"] .insights-control-risk-engine .analytics-risk-engine__action {
-  min-height: 34px;
-  padding: 0 13px;
-  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, rgba(255,255,255,0.05)), rgba(255,255,255,0.035));
-  color: var(--text-0);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-  font-size: 12px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 html[data-theme="dark"] .insights-control-risk-engine .analytics-risk-engine__action:hover,
 body[data-theme="dark"] .insights-control-risk-engine .analytics-risk-engine__action:hover {
-  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, rgba(255,255,255,0.06)), rgba(255,255,255,0.05));
-  color: var(--text-0);
+  filter: brightness(1.08);
+  color: #ffffff;
 }
 
 html[data-theme="dark"] .analytics-timing-hero,

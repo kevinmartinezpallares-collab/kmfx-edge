@@ -1317,7 +1317,7 @@ export function renderAnalytics(root, state) {
       title: "Riesgo",
       items: [
         { label: "Drawdown actual", value: formatCurrency(-currentDrawdownAmount), note: formatPercent(-currentDrawdownPct), tone: currentDdUsagePct >= 70 ? "negative" : currentDrawdownAmount > 0 ? "warning" : "" },
-        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: ddUsagePct >= 70 ? "negative" : model.totals.drawdown.maxAmount > 0 ? "warning" : "" },
+        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: model.totals.drawdown.maxAmount > 0 ? "negative" : "" },
         { label: "Recovery factor", value: Number(model.totals.ratios?.recovery || 0).toFixed(2) }
       ]
     },
