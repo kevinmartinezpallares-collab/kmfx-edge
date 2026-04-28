@@ -1380,15 +1380,31 @@ export function renderAnalytics(root, state) {
   const edgeDriver = edgeCandidates[0] || null;
   const damageDriver = damageCandidates[0] || null;
   const variablePressure = [
-    { label: "La sesión", value: Math.max(Math.abs(Number(strongestSession.pnl || 0)), Math.abs(Number(weakestSession.pnl || 0))) },
-    { label: "El símbolo", value: Math.max(Math.abs(Number(strongestSymbol.pnl || 0)), Math.abs(Number(weakestSymbol.pnl || 0))) },
-    { label: "La hora", value: Math.max(Math.abs(Number(bestHour.pnl || 0)), Math.abs(Number(worstHour.pnl || 0))) }
+    {
+      label: "La sesión",
+      name: Math.abs(Number(strongestSession.pnl || 0)) >= Math.abs(Number(weakestSession.pnl || 0)) ? strongestSession.key : weakestSession.key,
+      value: Math.max(Math.abs(Number(strongestSession.pnl || 0)), Math.abs(Number(weakestSession.pnl || 0)))
+    },
+    {
+      label: "El símbolo",
+      name: Math.abs(Number(strongestSymbol.pnl || 0)) >= Math.abs(Number(weakestSymbol.pnl || 0)) ? strongestSymbol.key : weakestSymbol.key,
+      value: Math.max(Math.abs(Number(strongestSymbol.pnl || 0)), Math.abs(Number(weakestSymbol.pnl || 0)))
+    },
+    {
+      label: "La hora",
+      name: Math.abs(Number(bestHour.pnl || 0)) >= Math.abs(Number(worstHour.pnl || 0)) ? `${String(bestHour.hour).padStart(2, "0")}:00` : `${String(worstHour.hour).padStart(2, "0")}:00`,
+      value: Math.max(Math.abs(Number(bestHour.pnl || 0)), Math.abs(Number(worstHour.pnl || 0)))
+    }
   ].sort((a, b) => b.value - a.value);
   const dominantVariable = variablePressure[0];
   const secondVariable = variablePressure[1];
   const hasDominantVariable = hasStrongPatternSample && dominantVariable?.value > 0 && dominantVariable.value >= (secondVariable?.value || 0) * 1.18;
   const formatSignedCurrency = (value) => Number(value || 0) > 0 ? `+${formatCurrency(value)}` : formatCurrency(value);
   const formatUnsignedPercent = (value) => formatPercent(value).replace(/^\+/, "");
+  const formatDominantVariableLabel = (label = "") => {
+    const normalized = label.replace(/^(La|El)\s+/i, "");
+    return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} dominante`;
+  };
   const patternInsights = [
     edgeDriver && hasBasicPatternSample ? {
       label: "EDGE",
@@ -1421,9 +1437,9 @@ export function renderAnalytics(root, state) {
     hasDominantVariable ? {
       label: "PATRÓN",
       tone: "neutral",
-      value: `${dominantVariable.label.replace(/^La /, "")} dominante`,
-      meta: `${dominantVariable.label} concentra el mayor impacto`,
-      secondary: `Impacto absoluto ${formatSignedCurrency(dominantVariable.value)}`
+      value: formatDominantVariableLabel(dominantVariable.label),
+      meta: `${dominantVariable.name} concentra el mayor impacto`,
+      secondary: `Impacto ${formatSignedCurrency(dominantVariable.value)}`
     } : {
       label: "PATRÓN",
       tone: "neutral",
@@ -1463,6 +1479,49 @@ export function renderAnalytics(root, state) {
   `).join("");
   const summaryReviewTitle = `Franja a revisar: ${summaryDrain.value}`;
   const summaryReviewMeta = "Es la hora que más resta P&L en la muestra actual.";
+  const distributionMain = model.totals.expectancy >= 0 ? "Edge positivo" : "Edge bajo presión";
+  const distributionSecondary = model.totals.expectancy >= 0 && model.totals.profitFactor < 1.4
+    ? "Margen todavía estrecho"
+    : model.totals.expectancy >= 0
+      ? "Distribución favorable"
+      : "Expectancy negativa en la muestra";
+  const concentrationCards = [
+    {
+      label: "SESIÓN",
+      value: strongestSession.key,
+      meta: `${formatSignedCurrency(strongestSession.pnl)} · WR ${formatUnsignedPercent(strongestSession.winRate)}`,
+      metaTone: strongestSession.pnl >= 0 ? "positive" : "negative",
+      secondary: weakestSession?.key ? `Mayor drenaje: ${weakestSession.key} ${formatSignedCurrency(weakestSession.pnl)}` : "Muestra actual"
+    },
+    {
+      label: "SÍMBOLO",
+      value: strongestSymbol.key,
+      meta: `${formatSignedCurrency(strongestSymbol.pnl)} · ${formatTradeCount(strongestSymbol.trades)}`,
+      metaTone: strongestSymbol.pnl >= 0 ? "positive" : "negative",
+      secondary: weakestSymbol?.key ? `Mayor drenaje: ${weakestSymbol.key} ${formatSignedCurrency(weakestSymbol.pnl)}` : "Muestra actual"
+    },
+    {
+      label: "HORARIO",
+      value: `${String(bestHour.hour).padStart(2, "0")}:00`,
+      meta: `${formatSignedCurrency(bestHour.pnl)} · ${formatTradeCount(bestHour.trades)}`,
+      metaTone: bestHour.pnl >= 0 ? "positive" : "negative",
+      secondary: `${String(worstHour.hour).padStart(2, "0")}:00 resta ${formatSignedCurrency(worstHour.pnl)}`
+    },
+    {
+      label: "DISTRIBUCIÓN",
+      value: distributionMain,
+      meta: `PF ${model.totals.profitFactor.toFixed(2)} · WR ${formatUnsignedPercent(model.totals.winRate)}`,
+      secondary: distributionSecondary
+    }
+  ];
+  const concentrationCardsMarkup = concentrationCards.map((item) => `
+    <article class="insights-variable-card">
+      <span class="insights-variable-card__label">${item.label}</span>
+      <strong class="insights-variable-card__value">${item.value}</strong>
+      <span class="insights-variable-card__meta ${item.metaTone ? `insights-variable-card__meta--${item.metaTone}` : ""}">${item.meta}</span>
+      <small class="insights-variable-card__secondary">${item.secondary}</small>
+    </article>
+  `).join("");
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-overview-shell">
@@ -1479,41 +1538,20 @@ export function renderAnalytics(root, state) {
             ${patternInsightsMarkup}
           </div>
         </section>
-        <article class="tl-section-card analytics-overview-hero insights-summary">
+        <article class="tl-section-card analytics-overview-hero insights-summary insights-concentration">
           <div class="analytics-overview-hero__stack insights-summary__stack">
             <div class="analytics-overview-copy insights-summary__header">
-              <div class="analytics-overview-kicker insights-summary__eyebrow">QUÉ MUEVE EL RESULTADO</div>
-              <h3 class="analytics-overview-title insights-summary__title">Variables que explican el rendimiento</h3>
-              <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo y horario con mayor impacto sobre el resultado.</p>
+              <div class="analytics-overview-kicker insights-summary__eyebrow">DÓNDE SE CONCENTRA</div>
+              <h3 class="analytics-overview-title insights-summary__title">Dónde se concentra el resultado</h3>
+              <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo, horario y distribución que más pesan en la muestra actual.</p>
             </div>
-            <div class="analytics-overview-hero__grid insights-summary__grid">
-              <div class="analytics-overview-primary insights-summary__evidence">
-              <div class="analytics-insight-grid insights-evidence__grid">
-                ${topInsightCards.map((item) => `
-                  <article class="analytics-insight-card insights-evidence__card">
-                    <span>${item.label}</span>
-                    <strong>${item.value}</strong>
-                    <small><span class="analytics-value-${item.noteTone}">${item.noteLead}</span> · ${item.noteTail}</small>
-                  </article>
-                `).join("")}
-              </div>
-              <div class="analytics-focus-stack analytics-focus-stack--single insights-summary__review">
-                <div class="analytics-focus-item analytics-focus-item--warn insights-evidence__review">
-                  <span>Revisión sugerida</span>
-                  <strong>${summaryReviewTitle}</strong>
-                  <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryReviewMeta}</small>
-                </div>
-              </div>
-              </div>
-            <div class="analytics-overview-profile insights-summary__profile">
-              <div class="analytics-overview-profile__head">
-                <span>Estado del sistema</span>
-                <strong>${scoreInterpretation}</strong>
-              </div>
-              <div class="analytics-profile-highlights">
-                ${profileHighlights}
-              </div>
+            <div class="insights-concentration__grid">
+              ${concentrationCardsMarkup}
             </div>
+            <div class="insights-concentration__review">
+              <span>Revisión sugerida</span>
+              <strong>${summaryReviewTitle}</strong>
+              <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryReviewMeta}</small>
             </div>
           </div>
         </article>
