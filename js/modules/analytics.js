@@ -1446,6 +1446,8 @@ export function renderAnalytics(root, state) {
       <small class="insights-pattern-card__meta">${item.meta}</small>
     </article>
   `).join("");
+  const summaryReviewTitle = `Revisa la franja de ${summaryDrain.value}`;
+  const summaryReviewMeta = "Es la hora que más resta P&L en la muestra actual.";
   root.innerHTML = `
     <section class="analytics-panel ${state.ui.analyticsTab === "summary" ? "active" : ""}" data-tab="summary">
       <div class="analytics-overview-shell">
@@ -1462,32 +1464,33 @@ export function renderAnalytics(root, state) {
             ${patternInsightsMarkup}
           </div>
         </section>
-        <article class="tl-section-card analytics-overview-hero">
-          <div class="analytics-overview-hero__stack">
-            <div class="analytics-overview-copy">
-              <div class="analytics-overview-kicker">Dónde está el edge</div>
-              <h3 class="analytics-overview-title">Dónde insistir, qué activo reforzar y qué franja limitar.</h3>
+        <article class="tl-section-card analytics-overview-hero insights-summary">
+          <div class="analytics-overview-hero__stack insights-summary__stack">
+            <div class="analytics-overview-copy insights-summary__header">
+              <div class="analytics-overview-kicker insights-summary__eyebrow">EVIDENCIA TRANSVERSAL</div>
+              <h3 class="analytics-overview-title insights-summary__title">Variables que explican el rendimiento</h3>
+              <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo y horario con mayor impacto sobre la muestra actual.</p>
             </div>
-            <div class="analytics-overview-hero__grid">
-              <div class="analytics-overview-primary">
-              <div class="analytics-insight-grid">
+            <div class="analytics-overview-hero__grid insights-summary__grid">
+              <div class="analytics-overview-primary insights-summary__evidence">
+              <div class="analytics-insight-grid insights-evidence__grid">
                 ${topInsightCards.map((item) => `
-                  <article class="analytics-insight-card">
+                  <article class="analytics-insight-card insights-evidence__card">
                     <span>${item.label}</span>
                     <strong>${item.value}</strong>
                     <small><span class="analytics-value-${item.noteTone}">${item.noteLead}</span> · ${item.noteTail}</small>
                   </article>
                 `).join("")}
               </div>
-              <div class="analytics-focus-stack analytics-focus-stack--single">
-                <div class="analytics-focus-item analytics-focus-item--warn">
-                  <span>Decisión</span>
-                  <strong>${decisionEngine.primary}</strong>
-                  <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryDrain.value} · ${summaryDrain.noteTail}</small>
+              <div class="analytics-focus-stack analytics-focus-stack--single insights-summary__review">
+                <div class="analytics-focus-item analytics-focus-item--warn insights-evidence__review">
+                  <span>Revisión sugerida</span>
+                  <strong>${summaryReviewTitle}</strong>
+                  <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryReviewMeta}</small>
                 </div>
               </div>
               </div>
-            <div class="analytics-overview-profile">
+            <div class="analytics-overview-profile insights-summary__profile">
               <div class="analytics-overview-profile__head">
                 <span>Perfil operativo</span>
                 <strong>${scoreInterpretation}</strong>
