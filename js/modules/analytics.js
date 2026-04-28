@@ -848,8 +848,10 @@ export function renderAnalytics(root, state) {
           <article class="insights-daily-kpi insights-daily-kpi--${card.tone}">
             <span class="insights-daily-kpi__label">${card.label}</span>
             <strong class="insights-daily-kpi__value">${card.value}</strong>
-            <span class="insights-daily-kpi__meta ${card.metaTone ? `insights-daily-kpi__meta--${card.metaTone}` : ""}">${card.meta}</span>
-            <small class="insights-daily-kpi__secondary">${card.secondary}</small>
+            <div class="insights-daily-kpi__details">
+              <span class="insights-daily-kpi__meta ${card.metaTone ? `insights-daily-kpi__meta--${card.metaTone}` : ""}">${card.meta}</span>
+              <small class="insights-daily-kpi__secondary">${card.secondary}</small>
+            </div>
           </article>
         `).join("")}
       </div>

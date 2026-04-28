@@ -7337,7 +7337,7 @@ body[data-theme="dark"] .insights-daily-review__grid {
 html[data-theme="dark"] .insights-daily-kpi,
 body[data-theme="dark"] .insights-daily-kpi {
   min-width: 0;
-  padding: 12px 13px;
+  padding: 11px 13px 12px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: calc(var(--radius-card, var(--radius)) - 5px);
   background: color-mix(in srgb, var(--card) 91%, var(--foreground) 3%);
@@ -7357,7 +7357,7 @@ body[data-theme="dark"] .insights-daily-kpi__label {
 html[data-theme="dark"] .insights-daily-kpi__value,
 body[data-theme="dark"] .insights-daily-kpi__value {
   display: block;
-  margin-top: 8px;
+  margin-top: 7px;
   font-size: 18px;
   line-height: 1.12;
   font-weight: 780;
@@ -7365,10 +7365,18 @@ body[data-theme="dark"] .insights-daily-kpi__value {
   color: var(--foreground);
 }
 
+html[data-theme="dark"] .insights-daily-kpi__details,
+body[data-theme="dark"] .insights-daily-kpi__details {
+  display: grid;
+  gap: 4px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+}
+
 html[data-theme="dark"] .insights-daily-kpi__meta,
 body[data-theme="dark"] .insights-daily-kpi__meta {
   display: block;
-  margin-top: 8px;
   font-size: 12px;
   line-height: 1.35;
   font-weight: 720;
@@ -7378,7 +7386,6 @@ body[data-theme="dark"] .insights-daily-kpi__meta {
 html[data-theme="dark"] .insights-daily-kpi__secondary,
 body[data-theme="dark"] .insights-daily-kpi__secondary {
   display: block;
-  margin-top: 5px;
   font-size: 11px;
   line-height: 1.35;
   color: var(--muted-foreground);
