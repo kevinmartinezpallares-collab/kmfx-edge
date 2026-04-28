@@ -869,8 +869,8 @@ export function renderAnalytics(root, state) {
     <article class="analytics-symbol-row ${index === 0 ? "analytics-symbol-row--best" : index === 1 ? "analytics-symbol-row--worst" : index > 1 ? "analytics-symbol-row--secondary" : ""}">
       <div class="analytics-symbol-row__main">
         <div class="analytics-symbol-row__copy">
-          <strong>${index === 0 ? `Mayor contribución · ${row.key}` : row.key}</strong>
-          <span>${index === 0 ? "Más rentable por P&L" : index === 1 ? (row.pnl >= 0 ? "Aporta menos al resultado" : "Está drenando edge") : row.pnl >= 0 ? "Mantiene edge" : "Bajo presión"}</span>
+          <strong>${row.key}</strong>
+          <span>${index === 0 ? "Mayor contribución" : index === 1 ? (row.pnl >= 0 ? "Menor contribución" : "Mayor daño") : row.pnl >= 0 ? "Aporta en la muestra" : "Bajo presión"}</span>
         </div>
         <div class="analytics-symbol-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
@@ -901,7 +901,7 @@ export function renderAnalytics(root, state) {
       <div class="analytics-timing-row__main">
         <div class="analytics-timing-row__copy">
           <strong>${String(row.hour).padStart(2, "0")}:00</strong>
-          <span>${row.hour === bestHour.hour ? "Mejor franja" : row.hour === worstHour.hour ? "Franja débil" : ""}</span>
+          <span>${row.hour === bestHour.hour ? "Mayor aporte horario" : row.hour === worstHour.hour ? "Franja a revisar" : ""}</span>
         </div>
         <div class="analytics-timing-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
@@ -1355,15 +1355,19 @@ export function renderAnalytics(root, state) {
     ],
   });
   const edgeHealthLabel = model.totals.profitFactor >= 1.4 && model.totals.expectancy >= 0
-    ? "El edge sigue compensando"
-    : model.totals.profitFactor >= 1.1
-      ? "El edge sigue vivo, pero más frágil"
-      : "El edge está bajo presión";
+    ? "Edge positivo, margen amplio"
+    : model.totals.expectancy >= 0
+      ? "Edge positivo, margen estrecho"
+      : "Edge bajo presión";
   const edgeHealthNote = model.totals.profitFactor >= 1.4 && model.totals.expectancy >= 0
     ? `Profit factor ${model.totals.profitFactor.toFixed(2)} y expectancy ${formatCurrency(model.totals.expectancy)}.`
     : model.totals.expectancy >= 0
       ? `La distribución sigue positiva, pero el margen se estrecha.`
       : `La pérdida media ya está comiendo demasiada ventaja del sistema.`;
+  const sessionContrastTitle = weakestSession.pnl < 0
+    ? `${strongestSession.key} aporta más; ${weakestSession.key} concentra el mayor drenaje.`
+    : `${strongestSession.key} aporta más; ${weakestSession.key} queda como menor contribución.`;
+  const timingContrastTitle = `Contrasta ${String(bestHour.hour).padStart(2, "0")}:00 frente a ${String(worstHour.hour).padStart(2, "0")}:00 antes de sacar conclusiones.`;
   const totalTrades = Number(model.totals?.totalTrades || model.trades?.length || 0);
   const hasBasicPatternSample = totalTrades >= 8;
   const hasStrongPatternSample = totalTrades >= 20;
@@ -1557,11 +1561,11 @@ export function renderAnalytics(root, state) {
         </article>
 
         <div class="analytics-pattern-grid">
-          <article class="tl-section-card analytics-pattern-card">
-            <div class="tl-section-header">
+          <article class="tl-section-card analytics-pattern-card insights-session">
+            <div class="tl-section-header insights-evidence__header">
               <div>
                 <div class="tl-section-title">Rendimiento por sesión</div>
-                <div class="row-sub">Comparación directa del P&amp;L por sesión para reforzar la franja útil y limitar la que drena.</div>
+                <div class="row-sub">Comparativa de P&amp;L, muestra y win rate por sesión.</div>
               </div>
             </div>
             <div class="analytics-session-chart">
@@ -1569,28 +1573,28 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="analytics-pattern-footer analytics-pattern-footer--three">
               <div class="analytics-pattern-footer__item">
-                <span>Mejor sesión</span>
+                <span>Mayor contribución</span>
                 <strong>${strongestSession.key}</strong>
-                <small class="analytics-value-positive">${formatCurrency(strongestSession.pnl)} · ${formatTradeCount(strongestSession.trades)}</small>
+                <small class="analytics-value-${strongestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(strongestSession.pnl)} · ${formatTradeCount(strongestSession.trades)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
-                <span>Sesión a vigilar</span>
+                <span>${weakestSession.pnl < 0 ? "Mayor drenaje" : "Menor contribución"}</span>
                 <strong>${weakestSession.key}</strong>
-                <small class="analytics-value-negative">${formatCurrency(weakestSession.pnl)} · ${formatTradeCount(weakestSession.trades)}</small>
+                <small class="analytics-value-${weakestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(weakestSession.pnl)} · ${formatTradeCount(weakestSession.trades)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
-                <span>Decisión</span>
-                <strong>Refuerza ${strongestSession.key} y limita ${weakestSession.key}</strong>
+                <span>Contraste principal</span>
+                <strong>${sessionContrastTitle}</strong>
                 <small>${formatPercent(strongestSession.winRate)} WR frente a ${formatPercent(weakestSession.winRate)} WR.</small>
               </div>
             </div>
           </article>
 
-          <article class="tl-section-card analytics-pattern-card">
-            <div class="tl-section-header">
+          <article class="tl-section-card analytics-pattern-card insights-symbol">
+            <div class="tl-section-header insights-evidence__header">
               <div>
                 <div class="tl-section-title">Rendimiento por símbolo</div>
-                <div class="row-sub">Qué instrumentos merecen más capital atencional y cuáles están drenando edge.</div>
+                <div class="row-sub">Instrumentos con mayor contribución y mayor drenaje en la muestra.</div>
               </div>
             </div>
             <div class="analytics-symbol-stack">
@@ -1600,11 +1604,11 @@ export function renderAnalytics(root, state) {
         </div>
 
         <div class="analytics-pattern-grid analytics-pattern-grid--timing">
-          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--timing">
-            <div class="tl-section-header">
+          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--timing insights-timing">
+            <div class="tl-section-header insights-evidence__header">
               <div>
                 <div class="tl-section-title">Timing y ventana operativa</div>
-                <div class="row-sub">La lectura horaria sirve para concentrar execution quality y cortar franjas improductivas.</div>
+                <div class="row-sub">Franjas horarias que más aportan o restan en la muestra.</div>
               </div>
             </div>
             <div class="analytics-timing-list">
@@ -1612,21 +1616,21 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="analytics-pattern-footer analytics-pattern-footer--single">
               <div class="analytics-pattern-footer__item">
-                <span>Decisión</span>
-                <strong>Refuerza ${String(bestHour.hour).padStart(2, "0")}:00 y limita ${String(worstHour.hour).padStart(2, "0")}:00</strong>
+                <span>Contraste horario</span>
+                <strong>${timingContrastTitle}</strong>
                 <small>${formatTradeCount(activeHour.trades)} pasan por la franja más activa.</small>
               </div>
             </div>
           </article>
 
-          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--distribution">
-            <div class="tl-section-header">
+          <article class="tl-section-card analytics-pattern-card analytics-pattern-card--distribution insights-distribution">
+            <div class="tl-section-header insights-evidence__header">
               <div>
                 <div class="tl-section-title">Distribución win/loss</div>
-                <div class="row-sub">La lectura mínima para decidir si el sistema sigue compensando el riesgo.</div>
+                <div class="row-sub">Relación entre aciertos, profit factor y expectativa.</div>
               </div>
             </div>
-            <div class="analytics-winloss-card analytics-winloss-card--compact">
+            <div class="insights-distribution__body">
               <div class="analytics-winloss-summary">
                 <div class="analytics-winloss-header">
                   <div class="analytics-winloss-total">${edgeHealthLabel}</div>
@@ -1647,7 +1651,7 @@ export function renderAnalytics(root, state) {
                   <strong>${model.totals.profitFactor.toFixed(2)}</strong>
                 </div>
                 <div class="analytics-distribution-metric">
-                  <span>Expectancy</span>
+                  <span>Expectativa</span>
                   <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
                 </div>
               </div>

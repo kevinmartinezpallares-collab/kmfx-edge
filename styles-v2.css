@@ -6963,6 +6963,95 @@ body[data-theme="dark"] .insights-concentration__review small {
   color: var(--muted-foreground);
 }
 
+html[data-theme="dark"] .analytics-pattern-card .tl-section-title::before,
+body[data-theme="dark"] .analytics-pattern-card .tl-section-title::before {
+  display: none;
+  content: none;
+}
+
+html[data-theme="dark"] .insights-evidence__header,
+body[data-theme="dark"] .insights-evidence__header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+html[data-theme="dark"] .insights-session .analytics-session-chart,
+body[data-theme="dark"] .insights-session .analytics-session-chart,
+html[data-theme="dark"] .insights-symbol .analytics-symbol-stack,
+body[data-theme="dark"] .insights-symbol .analytics-symbol-stack,
+html[data-theme="dark"] .insights-timing .analytics-timing-list,
+body[data-theme="dark"] .insights-timing .analytics-timing-list {
+  gap: 8px;
+}
+
+html[data-theme="dark"] .insights-session .analytics-session-bar-row,
+body[data-theme="dark"] .insights-session .analytics-session-bar-row,
+html[data-theme="dark"] .insights-symbol .analytics-symbol-row,
+body[data-theme="dark"] .insights-symbol .analytics-symbol-row,
+html[data-theme="dark"] .insights-timing .analytics-timing-row,
+body[data-theme="dark"] .insights-timing .analytics-timing-row {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--border) 66%, transparent);
+}
+
+html[data-theme="dark"] .insights-session .analytics-pattern-footer,
+body[data-theme="dark"] .insights-session .analytics-pattern-footer,
+html[data-theme="dark"] .insights-timing .analytics-pattern-footer,
+body[data-theme="dark"] .insights-timing .analytics-pattern-footer {
+  gap: 0;
+  margin-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+html[data-theme="dark"] .insights-session .analytics-pattern-footer__item,
+body[data-theme="dark"] .insights-session .analytics-pattern-footer__item,
+html[data-theme="dark"] .insights-timing .analytics-pattern-footer__item,
+body[data-theme="dark"] .insights-timing .analytics-pattern-footer__item {
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .analytics-pattern-footer__item,
+body[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .analytics-pattern-footer__item {
+  border-left: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+html[data-theme="dark"] .insights-distribution__body,
+body[data-theme="dark"] .insights-distribution__body {
+  display: grid;
+  gap: 12px;
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-winloss-summary,
+body[data-theme="dark"] .insights-distribution .analytics-winloss-summary {
+  padding: 0 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: transparent;
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-distribution-metrics--tight,
+body[data-theme="dark"] .insights-distribution .analytics-distribution-metrics--tight {
+  gap: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-distribution-metric,
+body[data-theme="dark"] .insights-distribution .analytics-distribution-metric {
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-distribution-metric + .analytics-distribution-metric,
+body[data-theme="dark"] .insights-distribution .analytics-distribution-metric + .analytics-distribution-metric {
+  border-left: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
 html[data-theme="dark"] .analytics-pattern-grid,
 body[data-theme="dark"] .analytics-pattern-grid {
   display: grid;
@@ -8838,6 +8927,14 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   body[data-theme="dark"] .analytics-timing-row__main {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  html[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .analytics-pattern-footer__item,
+  body[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .analytics-pattern-footer__item,
+  html[data-theme="dark"] .insights-distribution .analytics-distribution-metric + .analytics-distribution-metric,
+  body[data-theme="dark"] .insights-distribution .analytics-distribution-metric + .analytics-distribution-metric {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   }
 
   html[data-theme="dark"] .analytics-hour-overview,
