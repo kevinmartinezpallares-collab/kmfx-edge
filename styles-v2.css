@@ -6926,7 +6926,7 @@ body[data-theme="dark"] .insights-variable-card__meta--negative {
 
 html[data-theme="dark"] .insights-concentration__review,
 body[data-theme="dark"] .insights-concentration__review {
-  padding: 13px 15px;
+  padding: 11px 14px;
   border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
   border-radius: calc(var(--radius-card, var(--radius)) - 5px);
   background: color-mix(in srgb, var(--card) 91%, var(--foreground) 3%);
@@ -6946,8 +6946,8 @@ body[data-theme="dark"] .insights-concentration__review span {
 html[data-theme="dark"] .insights-concentration__review strong,
 body[data-theme="dark"] .insights-concentration__review strong {
   display: block;
-  margin-top: 7px;
-  font-size: 17px;
+  margin-top: 6px;
+  font-size: 16px;
   line-height: 1.25;
   font-weight: 760;
   letter-spacing: -0.025em;
@@ -6957,7 +6957,7 @@ body[data-theme="dark"] .insights-concentration__review strong {
 html[data-theme="dark"] .insights-concentration__review small,
 body[data-theme="dark"] .insights-concentration__review small {
   display: block;
-  margin-top: 6px;
+  margin-top: 5px;
   font-size: 11px;
   line-height: 1.35;
   color: var(--muted-foreground);

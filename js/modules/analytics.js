@@ -1463,7 +1463,7 @@ export function renderAnalytics(root, state) {
     {
       label: "REVISIÓN",
       tone: damageDriver ? "negative" : "neutral",
-      value: damageDriver ? `Revisa ${damageDriver.name}` : "Revisa la muestra",
+      value: damageDriver ? `Mayor daño: ${damageDriver.name}` : "Evidencia parcial",
       meta: damageDriver ? "Mayor daño de la muestra" : "Evidencia todavía parcial",
       secondary: damageDriver ? `${formatSignedCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}` : formatTradeCount(totalTrades),
       secondaryTone: damageDriver ? "negative" : ""
@@ -1477,8 +1477,8 @@ export function renderAnalytics(root, state) {
       <small class="insights-pattern-kpi__secondary ${item.secondaryTone ? `insights-pattern-kpi__secondary--${item.secondaryTone}` : ""}">${item.secondary}</small>
     </article>
   `).join("");
-  const summaryReviewTitle = `Franja a revisar: ${summaryDrain.value}`;
-  const summaryReviewMeta = "Es la hora que más resta P&L en la muestra actual.";
+  const summaryReviewTitle = summaryDrain.value;
+  const summaryReviewMeta = "hora que más resta P&L";
   const distributionMain = model.totals.expectancy >= 0 ? "Edge positivo" : "Edge bajo presión";
   const distributionSecondary = model.totals.expectancy >= 0 && model.totals.profitFactor < 1.4
     ? "Margen todavía estrecho"
@@ -1549,7 +1549,7 @@ export function renderAnalytics(root, state) {
               ${concentrationCardsMarkup}
             </div>
             <div class="insights-concentration__review">
-              <span>Revisión sugerida</span>
+              <span>Horario a revisar</span>
               <strong>${summaryReviewTitle}</strong>
               <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryReviewMeta}</small>
             </div>
