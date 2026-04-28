@@ -706,6 +706,8 @@ export function renderAnalytics(root, state) {
       : "Edge positivo, margen todavía estrecho.";
   const decisionEngine = computeDecisionEngine(model);
   const hourlyRows = (model.hours || []).filter((hour) => hour.trades);
+  const activeHourCount = hourlyRows.length;
+  const activeHourTrades = hourlyRows.reduce((sum, hour) => sum + Number(hour.trades || 0), 0);
   const denseProfitDistribution = buildDenseProfitDistribution(model.trades, 10);
   const monthlyRows = monthlyMatrixRows(model);
   const winningTrades = model.trades.filter((trade) => trade.pnl > 0);
@@ -1037,6 +1039,10 @@ export function renderAnalytics(root, state) {
   const bestWindowLabel = `${formatHourLabel(bestWindow.start)}–${formatHourLabel(bestWindow.end)}`;
   const activeNegativeHours = hourlyTimeline.filter((hour) => hour.trades > 0 && hour.pnl < 0).sort((a, b) => a.pnl - b.pnl);
   const weakestTimingWindow = activeNegativeHours[0] || worstHour;
+  const reviewHour = weakestTimingWindow.pnl < 0
+    ? weakestTimingWindow
+    : [...hourlyRows].sort((a, b) => Math.abs(Number(b.pnl || 0)) - Math.abs(Number(a.pnl || 0)))[0] || worstHour;
+  const reviewHourReason = reviewHour.pnl < 0 ? "Mayor daño horario" : "Impacto horario a revisar";
   if (!root.__analyticsHourValueMode || !["currency", "percent"].includes(root.__analyticsHourValueMode)) {
     root.__analyticsHourValueMode = "currency";
   }
@@ -1930,6 +1936,40 @@ export function renderAnalytics(root, state) {
 
     <section class="analytics-panel ${state.ui.analyticsTab === "hourly" ? "active" : ""}" data-tab="hourly">
       <div class="analytics-hour-layout">
+        <section class="insights-hour-review">
+          <div class="insights-hour-review__header">
+            <div class="analytics-overview-kicker">HORA</div>
+            <h2 class="analytics-overview-title">Horas que explican la muestra</h2>
+            <p class="analytics-overview-subtitle">Aporte, daño y actividad horaria dentro del periodo analizado.</p>
+          </div>
+          <div class="insights-hour-review__grid">
+            <article class="tl-section-card insights-hour-kpi">
+              <span class="insights-hour-kpi__label">Mejor hora</span>
+              <strong class="insights-hour-kpi__value">${formatHourLabel(bestHour.hour)}</strong>
+              <span class="insights-hour-kpi__meta analytics-value-positive">${formatHourlyValue(bestHour.pnl)}</span>
+              <small class="insights-hour-kpi__secondary">${formatTradeCount(bestHour.trades)}</small>
+            </article>
+            <article class="tl-section-card insights-hour-kpi">
+              <span class="insights-hour-kpi__label">Peor hora</span>
+              <strong class="insights-hour-kpi__value">${formatHourLabel(worstHour.hour)}</strong>
+              <span class="insights-hour-kpi__meta ${worstHour.pnl < 0 ? "analytics-value-negative" : worstHour.pnl > 0 ? "analytics-value-positive" : ""}">${formatHourlyValue(worstHour.pnl)}</span>
+              <small class="insights-hour-kpi__secondary">${formatTradeCount(worstHour.trades)}</small>
+            </article>
+            <article class="tl-section-card insights-hour-kpi">
+              <span class="insights-hour-kpi__label">Horas activas</span>
+              <strong class="insights-hour-kpi__value">${activeHourCount}</strong>
+              <span class="insights-hour-kpi__meta">${activeHourTrades ? formatTradeCount(activeHourTrades) : "Sin trades"}</span>
+              <small class="insights-hour-kpi__secondary">Actividad con muestra horaria real</small>
+            </article>
+            <article class="tl-section-card insights-hour-kpi">
+              <span class="insights-hour-kpi__label">Hora a revisar</span>
+              <strong class="insights-hour-kpi__value">${formatHourLabel(reviewHour.hour)}</strong>
+              <span class="insights-hour-kpi__meta ${reviewHour.pnl < 0 ? "analytics-value-negative" : ""}">${reviewHourReason}</span>
+              <small class="insights-hour-kpi__secondary">${formatHourlyValue(reviewHour.pnl)}<br>${formatTradeCount(reviewHour.trades)}</small>
+            </article>
+          </div>
+        </section>
+
         <article class="tl-section-card analytics-hour-hero">
           <div class="analytics-hour-hero__copy">
             <div class="analytics-overview-kicker">Ventana óptima</div>
