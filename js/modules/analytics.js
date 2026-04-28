@@ -839,28 +839,26 @@ export function renderAnalytics(root, state) {
   );
   const sessionRowsMarkup = sessionChartRows.map((session) => {
     const pnl = Number(session.pnl || 0);
-    const widthPercent = pnl === 0 ? 0 : Math.max(7, (Math.abs(pnl) / maxSessionPnlAbs) * 50);
-    const toneClass = pnl >= 0 ? "analytics-session-bar-row--positive" : "analytics-session-bar-row--negative";
+    const widthPercent = pnl === 0 ? 0 : Math.max(8, (Math.abs(pnl) / maxSessionPnlAbs) * 100);
+    const toneClass = pnl >= 0 ? "insights-session-row--positive" : "insights-session-row--negative";
     const emphasisClass = session.key === strongestSession.key
-      ? "analytics-session-bar-row--best"
+      ? "insights-session-row--best"
       : session.key === weakestSession.key
-        ? "analytics-session-bar-row--worst"
+        ? "insights-session-row--worst"
         : "";
-    const positionStyle = pnl >= 0
-      ? `--session-bar-left: 50%; --session-bar-width: ${widthPercent.toFixed(2)}%;`
-      : `--session-bar-left: calc(50% - ${widthPercent.toFixed(2)}%); --session-bar-width: ${widthPercent.toFixed(2)}%;`;
     return `
-      <article class="analytics-session-bar-row ${toneClass} ${emphasisClass}">
-        <div class="analytics-session-bar-row__meta">
-          <strong>${session.key}</strong>
-          <span>${formatTradeCount(session.trades)}<br>WR ${formatPercent(session.winRate)}</span>
+      <article class="insights-session-row ${toneClass} ${emphasisClass}">
+        <div class="insights-session-row__main">
+          <div class="insights-session-row__copy">
+            <strong>${session.key}</strong>
+            <span>${formatTradeCount(session.trades)}<br>WR ${formatPercent(session.winRate)}</span>
+          </div>
+          <div class="insights-session-row__value ${pnl >= 0 ? "metric-positive" : "metric-negative"}">
+            ${formatCurrency(pnl)}
+          </div>
         </div>
-        <div class="analytics-session-bar-row__track" aria-hidden="true">
-          <span class="analytics-session-bar-row__axis"></span>
-          <span class="analytics-session-bar-row__fill" style="${positionStyle}"></span>
-        </div>
-        <div class="analytics-session-bar-row__value ${pnl >= 0 ? "metric-positive" : "metric-negative"}">
-          ${formatCurrency(pnl)}
+        <div class="insights-session-row__line" aria-hidden="true">
+          <span style="--session-contribution:${widthPercent.toFixed(2)}%;"></span>
         </div>
       </article>
     `;

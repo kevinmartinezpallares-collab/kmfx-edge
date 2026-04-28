@@ -6990,6 +6990,95 @@ body[data-theme="dark"] .insights-timing .analytics-timing-list {
   gap: 8px;
 }
 
+html[data-theme="dark"] .insights-session-row,
+body[data-theme="dark"] .insights-session-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
+}
+
+html[data-theme="dark"] .insights-session-row:first-child,
+body[data-theme="dark"] .insights-session-row:first-child {
+  padding-top: 0;
+}
+
+html[data-theme="dark"] .insights-session-row:last-child,
+body[data-theme="dark"] .insights-session-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+html[data-theme="dark"] .insights-session-row__main,
+body[data-theme="dark"] .insights-session-row__main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+html[data-theme="dark"] .insights-session-row__copy,
+body[data-theme="dark"] .insights-session-row__copy {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .insights-session-row__copy strong,
+body[data-theme="dark"] .insights-session-row__copy strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 760;
+  letter-spacing: -0.018em;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .insights-session-row__copy span,
+body[data-theme="dark"] .insights-session-row__copy span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-session-row__value,
+body[data-theme="dark"] .insights-session-row__value {
+  flex: 0 0 auto;
+  min-width: 92px;
+  text-align: right;
+  font-size: 14px;
+  line-height: 1.18;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+}
+
+html[data-theme="dark"] .insights-session-row__line,
+body[data-theme="dark"] .insights-session-row__line {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 52%, transparent);
+}
+
+html[data-theme="dark"] .insights-session-row__line span,
+body[data-theme="dark"] .insights-session-row__line span {
+  display: block;
+  width: min(var(--session-contribution, 0%), 100%);
+  height: 100%;
+  border-radius: inherit;
+}
+
+html[data-theme="dark"] .insights-session-row--positive .insights-session-row__line span,
+body[data-theme="dark"] .insights-session-row--positive .insights-session-row__line span {
+  background: color-mix(in srgb, var(--profit) 76%, var(--foreground));
+}
+
+html[data-theme="dark"] .insights-session-row--negative .insights-session-row__line span,
+body[data-theme="dark"] .insights-session-row--negative .insights-session-row__line span {
+  background: color-mix(in srgb, var(--loss) 74%, var(--foreground));
+}
+
 html[data-theme="dark"] .insights-session .analytics-session-bar-row,
 body[data-theme="dark"] .insights-session .analytics-session-bar-row,
 html[data-theme="dark"] .insights-symbol .analytics-symbol-row,
