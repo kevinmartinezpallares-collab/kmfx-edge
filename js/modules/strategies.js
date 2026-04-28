@@ -327,7 +327,7 @@ export function renderStrategies(root, state) {
 
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
-        <div>
+        <div class="strategies-section-heading">
           <div class="tl-section-title">Stats por Setup</div>
           <div class="row-sub">Muestra y P&amp;L asociados sin validar todavía reglas ni tags.</div>
         </div>
@@ -341,9 +341,9 @@ export function renderStrategies(root, state) {
               <div class="strategies-setup-item__sample">${sampleLabel(item.trades)}</div>
             </div>
             <div class="strategies-setup-item__stats">
-              <span>${item.trades} trades</span>
-              <span>${percent(item.winRate)} WR</span>
-              <span class="${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: item.pnl, text: formatCurrency(item.pnl), className: item.pnl >= 0 ? "metric-positive" : "metric-negative" })}</span>
+              <span class="strategies-setup-item__metric">${item.trades} trades</span>
+              <span class="strategies-setup-item__metric">${percent(item.winRate)} WR</span>
+              <span class="strategies-setup-item__metric strategies-setup-item__metric--pnl ${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: item.pnl, text: formatCurrency(item.pnl), className: item.pnl >= 0 ? "metric-positive" : "metric-negative" })}</span>
             </div>
           </div>
         `).join("") || `
@@ -357,7 +357,10 @@ export function renderStrategies(root, state) {
 
     <article class="tl-section-card strategies-table-card">
       <div class="tl-section-header">
-        <div class="tl-section-title">Lista de Estrategias</div>
+        <div class="strategies-section-heading">
+          <div class="tl-section-title">Lista de Estrategias</div>
+          <div class="row-sub">Definición, muestra y estado operativo de cada setup.</div>
+        </div>
         <div class="pill">${items.length} estrategias</div>
       </div>
       ${items.length ? `
