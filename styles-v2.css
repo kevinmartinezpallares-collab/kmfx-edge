@@ -8269,6 +8269,7 @@ body[data-theme="dark"] .analytics-hour-insight-grid {
 html[data-theme="dark"] .analytics-hour-insight-grid--reading,
 body[data-theme="dark"] .analytics-hour-insight-grid--reading {
   grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
 html[data-theme="dark"] .analytics-hour-copy-card,
@@ -8287,6 +8288,24 @@ body[data-theme="dark"] .analytics-hour-copy-card--reading .tl-section-title {
   color: var(--text-0);
 }
 
+html[data-theme="dark"] .analytics-hour-copy-card--reading,
+body[data-theme="dark"] .analytics-hour-copy-card--reading {
+  grid-template-columns: minmax(112px, 0.22fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  background: color-mix(in srgb, var(--card-surface) 82%, transparent);
+  border-color: rgba(255,255,255,0.035);
+}
+
+html[data-theme="dark"] .insights-hour-reading__label,
+body[data-theme="dark"] .insights-hour-reading__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
 html[data-theme="dark"] .analytics-hour-copy-card--decision .tl-section-title,
 body[data-theme="dark"] .analytics-hour-copy-card--decision .tl-section-title {
   color: var(--text-0);
@@ -8296,6 +8315,11 @@ html[data-theme="dark"] .analytics-hour-insights,
 body[data-theme="dark"] .analytics-hour-insights {
   display: grid;
   gap: 8px;
+}
+
+html[data-theme="dark"] .analytics-hour-copy-card--reading .analytics-hour-insights,
+body[data-theme="dark"] .analytics-hour-copy-card--reading .analytics-hour-insights {
+  gap: 4px;
 }
 
 html[data-theme="dark"] .analytics-hour-insights p,
@@ -8310,6 +8334,12 @@ html[data-theme="dark"] .analytics-hour-insights p.is-lead,
 body[data-theme="dark"] .analytics-hour-insights p.is-lead {
   color: var(--text-0);
   font-weight: 550;
+}
+
+html[data-theme="dark"] .analytics-hour-copy-card--reading .analytics-hour-insights p,
+body[data-theme="dark"] .analytics-hour-copy-card--reading .analytics-hour-insights p {
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 html[data-theme="dark"] .analytics-hour-copy-card--decision,
@@ -8411,10 +8441,18 @@ body[data-theme="dark"] .analytics-hour-segment.is-worst strong {
 html[data-theme="dark"] .analytics-hour-detail-shell,
 body[data-theme="dark"] .analytics-hour-detail-shell {
   display: grid;
-  gap: 14px;
-  margin-top: 10px;
-  padding-top: 14px;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,0.038);
+}
+
+html[data-theme="dark"] .analytics-hour-timeline-card .tl-section-title::before,
+body[data-theme="dark"] .analytics-hour-timeline-card .tl-section-title::before,
+html[data-theme="dark"] .analytics-hour-copy-card--reading .tl-section-title::before,
+body[data-theme="dark"] .analytics-hour-copy-card--reading .tl-section-title::before {
+  display: none;
+  content: none;
 }
 
 html[data-theme="dark"] .analytics-hour-detail-shell__head,
@@ -8426,25 +8464,25 @@ body[data-theme="dark"] .analytics-hour-detail-shell__head {
 html[data-theme="dark"] .analytics-hour-detail-list,
 body[data-theme="dark"] .analytics-hour-detail-list {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 html[data-theme="dark"] .analytics-hour-detail-row,
 body[data-theme="dark"] .analytics-hour-detail-row {
   display: grid;
-  grid-template-columns: 72px minmax(92px, 120px) 1fr;
+  grid-template-columns: 64px minmax(86px, 108px) 1fr;
   align-items: baseline;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   border-bottom: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.014));
 }
 
 html[data-theme="dark"] .analytics-hour-detail-row--leader,
 body[data-theme="dark"] .analytics-hour-detail-row--leader {
-  padding-top: 12px;
-  padding-bottom: 14px;
+  padding-top: 9px;
+  padding-bottom: 10px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.026), rgba(255,255,255,0.012)),
     color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(43, 112, 77, 0.06));
@@ -8455,7 +8493,7 @@ html[data-theme="dark"] .analytics-hour-detail-row--leader .analytics-hour-detai
 body[data-theme="dark"] .analytics-hour-detail-row--leader .analytics-hour-detail-row__time,
 html[data-theme="dark"] .analytics-hour-detail-row--leader .analytics-hour-detail-row__value,
 body[data-theme="dark"] .analytics-hour-detail-row--leader .analytics-hour-detail-row__value {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 html[data-theme="dark"] .analytics-hour-detail-row--support,
@@ -8465,9 +8503,9 @@ body[data-theme="dark"] .analytics-hour-detail-row--support {
 
 html[data-theme="dark"] .analytics-hour-detail-row--weak,
 body[data-theme="dark"] .analytics-hour-detail-row--weak {
-  margin-top: 10px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  margin-top: 5px;
+  padding-top: 9px;
+  padding-bottom: 10px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.008)),
     color-mix(in srgb, var(--layer-1-subtle) 93%, rgba(154, 46, 60, 0.07));
@@ -9367,6 +9405,8 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   body[data-theme="dark"] .analytics-profile-highlights,
   html[data-theme="dark"] .insights-hour-header__stats,
   body[data-theme="dark"] .insights-hour-header__stats,
+  html[data-theme="dark"] .analytics-hour-copy-card--reading,
+  body[data-theme="dark"] .analytics-hour-copy-card--reading,
   html[data-theme="dark"] .analytics-risk-kpis,
   body[data-theme="dark"] .analytics-risk-kpis,
   html[data-theme="dark"] .analytics-timing-list,

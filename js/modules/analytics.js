@@ -1993,11 +1993,7 @@ export function renderAnalytics(root, state) {
 
         <div class="analytics-hour-insight-grid analytics-hour-insight-grid--reading">
           <article class="tl-section-card analytics-hour-copy-card analytics-hour-copy-card--reading">
-            <div class="tl-section-header">
-              <div>
-                <div class="tl-section-title">Lectura final</div>
-              </div>
-            </div>
+            <div class="insights-hour-reading__label">Lectura final</div>
             <div class="analytics-hour-insights">
               <p class="is-lead">${hourReadingLead}</p>
               <p>${hourReadingDetail}</p>
