@@ -146,13 +146,19 @@ function buildAnalyticsMonthView(dayStats, monthKey) {
 function describeDayBehavior(day, trades, bestSessionKey, worstSessionKey, bestHour, worstHour) {
   const mainSession = dominantValue(trades.map((trade) => trade.session).filter(Boolean));
   const avgTrades = trades.length;
-  if (day.pnl > 0 && mainSession === bestSessionKey) return "Sesión fuerte -> cierre limpio.";
-  if (day.pnl < 0 && mainSession === worstSessionKey) return "Sesión débil -> la pérdida se amplifica.";
-  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "Entrada fuera de timing -> cae la calidad.";
-  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "Timing a favor -> el día suma con claridad.";
-  if (avgTrades >= 3 && day.pnl < 0) return "Más frecuencia -> baja la calidad del día.";
-  if (avgTrades === 1 && day.pnl > 0) return "Menos fricción -> mejor ejecución.";
-  return day.pnl >= 0 ? "Control del día -> cierre favorable." : "Gestión débil -> cierre negativo.";
+  if (day.pnl > 0 && mainSession === bestSessionKey) return "Sesión fuerte. Cierre positivo.";
+  if (day.pnl < 0 && mainSession === worstSessionKey) return "Sesión débil. La pérdida se amplifica.";
+  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "Timing débil. La calidad cae.";
+  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "Timing a favor. El día suma con claridad.";
+  if (avgTrades >= 3 && day.pnl < 0) return "Alta frecuencia. Calidad más débil.";
+  if (avgTrades === 1 && day.pnl > 0) return "Menos fricción. Mejor ejecución.";
+  return day.pnl >= 0 ? "Control del día. Cierre favorable." : "Gestión más débil. Cierre negativo.";
+}
+
+function describeDayReviewLabel(day, trades = []) {
+  if (day.pnl < 0) return trades.length >= 3 ? "Alta frecuencia" : "Mayor daño";
+  if (day.pnl > 0) return "Mayor aporte";
+  return "Impacto neutral";
 }
 
 function dominantValue(values = []) {
@@ -756,6 +762,7 @@ export function renderAnalytics(root, state) {
       const trades = dayTradeMap.get(day.key) || [];
       return {
         ...day,
+        reviewLabel: describeDayReviewLabel(day, trades),
         behavior: describeDayBehavior(day, trades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour)
       };
     });
@@ -890,10 +897,10 @@ export function renderAnalytics(root, state) {
           : "Hay una señal útil, pero todavía necesita más repetición para consolidarse."
         : "El mes mezcla resultados y conviene validar más repeticiones antes de reforzar la lectura.";
   const dailyReadBullets = [
-    `${strongestSession.key} -> concentra los cierres más limpios.`,
-    `${String(worstHour.hour).padStart(2, "0")}:00 -> introduce fricción operativa.`,
-    strongestSymbol.key !== "—" ? `${strongestSymbol.key} -> aporta la mayor tracción.` : "Setups simples -> mejor lectura del día.",
-    selectedDayTrades.length >= 2 ? "Más trades -> suele caer la calidad." : "Menos fricción -> mejor resolución del día."
+    `${strongestSession.key} concentra los cierres más limpios.`,
+    `${String(worstHour.hour).padStart(2, "0")}:00 introduce fricción operativa.`,
+    strongestSymbol.key !== "—" ? `${strongestSymbol.key} aporta la mayor tracción.` : "Setups simples. Mejor lectura del día.",
+    selectedDayTrades.length >= 2 ? "Alta frecuencia. Calidad más débil." : "Menos fricción. Mejor resolución del día."
   ].slice(0, 4);
   const topInsightCards = [
     {
@@ -1774,8 +1781,8 @@ export function renderAnalytics(root, state) {
         <section class="tl-section-card calendar-month-panel analytics-daily-calendar">
           <div class="calendar-month-panel__head analytics-daily-calendar__head">
             <div>
-              <div class="tl-section-title">Lectura diaria</div>
-              <div class="row-sub">Qué días funcionaron, qué patrón se repite y dónde cae la calidad de ejecución.</div>
+              <div class="tl-section-title">Mapa diario</div>
+              <div class="row-sub">Resultado y actividad diaria del mes seleccionado.</div>
             </div>
             <div class="calendar-month-nav" aria-label="Selector de mes del diario">
               <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="-1" ${analyticsDailyMonthIndex <= 0 ? "disabled" : ""}>‹</button>
@@ -1822,7 +1829,7 @@ export function renderAnalytics(root, state) {
             <div class="tl-section-header">
               <div>
                 <div class="tl-section-title">Días clave</div>
-              <div class="row-sub">Los días que más explican el mes, ordenados por impacto real en P&amp;L.</div>
+              <div class="row-sub">Días con mayor impacto real sobre el resultado.</div>
               </div>
             </div>
             <div class="analytics-key-days">
@@ -1830,6 +1837,7 @@ export function renderAnalytics(root, state) {
                 <button class="analytics-key-day ${index === 0 ? "analytics-key-day--lead" : ""} ${selectedDayKey === day.key ? "is-active" : ""}" type="button" data-analytics-day="${day.key}">
                   <span class="analytics-key-day__date">${new Date(day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</span>
                   <strong class="${day.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(day.pnl)}</strong>
+                  <span class="analytics-key-day__reason">${day.reviewLabel}</span>
                   <small>${day.behavior}</small>
                 </button>
               `).join("")}
@@ -1839,8 +1847,8 @@ export function renderAnalytics(root, state) {
           <article class="tl-section-card analytics-daily-card">
             <div class="tl-section-header">
               <div>
-                <div class="tl-section-title">Lectura diaria</div>
-                <div class="row-sub">Patrones de comportamiento que se repiten en los cierres del mes.</div>
+                <div class="tl-section-title">Lectura del mes</div>
+                <div class="row-sub">Señales de comportamiento que se repiten en los cierres del periodo.</div>
               </div>
             </div>
               <ul class="analytics-daily-bullets">
@@ -1851,8 +1859,8 @@ export function renderAnalytics(root, state) {
             <article class="tl-section-card analytics-daily-card analytics-daily-card--confidence">
               <div class="tl-section-header">
                 <div>
-                  <div class="tl-section-title">Confianza</div>
-                  <div class="row-sub">Qué tan repetible parece el patrón detectado en el mes activo.</div>
+                  <div class="tl-section-title">Fiabilidad del patrón</div>
+                  <div class="row-sub">Qué tan repetible parece la lectura del mes.</div>
                 </div>
               </div>
               <div class="analytics-daily-confidence analytics-daily-confidence--${confidenceLevel}">
@@ -1865,8 +1873,8 @@ export function renderAnalytics(root, state) {
             <article class="tl-section-card analytics-daily-card analytics-daily-card--detail ${selectedDay ? "is-active" : ""}">
               <div class="tl-section-header">
                 <div>
-                  <div class="tl-section-title">Detalle del día</div>
-                <div class="row-sub">${selectedDay ? `Día seleccionado en calendario · ${new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}` : "Selecciona un día operado del calendario"}</div>
+                  <div class="tl-section-title">Día seleccionado</div>
+                <div class="row-sub">${selectedDay ? `Detalle rápido del ${new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}.` : "Detalle rápido del día marcado en el mapa."}</div>
               </div>
             </div>
             ${selectedDay ? `
