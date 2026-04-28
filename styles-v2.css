@@ -7426,9 +7426,16 @@ body[data-theme="dark"] .insights-daily-review__empty {
 html[data-theme="dark"] .analytics-daily-layout,
 body[data-theme="dark"] .analytics-daily-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(420px, 1.18fr);
+  grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
   gap: 16px;
   align-items: start;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .insights-daily-map,
+body[data-theme="dark"] .insights-daily-map {
+  display: grid;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -7446,8 +7453,15 @@ body[data-theme="dark"] .analytics-daily-calendar__head {
 html[data-theme="dark"] .analytics-daily-side,
 body[data-theme="dark"] .analytics-daily-side {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
+  align-content: start;
+}
+
+html[data-theme="dark"] .insights-daily-side__stack,
+body[data-theme="dark"] .insights-daily-side__stack {
+  display: grid;
+  gap: 10px;
 }
 
 html[data-theme="dark"] .analytics-daily-card,
@@ -7460,6 +7474,11 @@ body[data-theme="dark"] .analytics-daily-card {
 html[data-theme="dark"] .analytics-daily-card--detail,
 body[data-theme="dark"] .analytics-daily-card--detail {
   padding: 14px 15px !important;
+}
+
+html[data-theme="dark"] .insights-daily-detail,
+body[data-theme="dark"] .insights-daily-detail {
+  margin-top: 0;
 }
 
 html[data-theme="dark"] .analytics-daily-calendar .tl-section-title::before,

@@ -1780,53 +1780,75 @@ export function renderAnalytics(root, state) {
     <section class="analytics-panel ${state.ui.analyticsTab === "daily" ? "active" : ""}" data-tab="daily">
       ${dailyReviewMarkup}
       <div class="analytics-daily-layout">
-        <section class="tl-section-card calendar-month-panel analytics-daily-calendar">
-          <div class="calendar-month-panel__head analytics-daily-calendar__head">
-            <div>
-              <div class="tl-section-title">Mapa diario</div>
-              <div class="row-sub">Resultado y actividad diaria del mes seleccionado.</div>
-            </div>
-            <div class="calendar-month-nav" aria-label="Selector de mes del diario">
-              <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="-1" ${analyticsDailyMonthIndex <= 0 ? "disabled" : ""}>‹</button>
-              <div class="calendar-month-nav__label">
-                <strong>${analyticsDayView.label}</strong>
-                <span>${monthDayStats.filter((day) => day.trades > 0).length} días operados</span>
+        <div class="insights-daily-map">
+          <section class="tl-section-card calendar-month-panel analytics-daily-calendar">
+            <div class="calendar-month-panel__head analytics-daily-calendar__head">
+              <div>
+                <div class="tl-section-title">Mapa diario</div>
+                <div class="row-sub">Resultado y actividad diaria del mes seleccionado.</div>
               </div>
-              <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="1" ${analyticsDailyMonthIndex >= analyticsMonths.length - 1 ? "disabled" : ""}>›</button>
+              <div class="calendar-month-nav" aria-label="Selector de mes del diario">
+                <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="-1" ${analyticsDailyMonthIndex <= 0 ? "disabled" : ""}>‹</button>
+                <div class="calendar-month-nav__label">
+                  <strong>${analyticsDayView.label}</strong>
+                  <span>${monthDayStats.filter((day) => day.trades > 0).length} días operados</span>
+                </div>
+                <button class="calendar-month-nav__btn" type="button" data-analytics-daily-shift="1" ${analyticsDailyMonthIndex >= analyticsMonths.length - 1 ? "disabled" : ""}>›</button>
+              </div>
+            </div>
+            <div class="calendar-month-grid">
+              ${ANALYTICS_CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
+              ${analyticsDayView.cells.map((cell) => {
+                const classes = [
+                  "calendar-day",
+                  cell.inMonth ? "is-current-month" : "is-outside-month",
+                  cell.trades ? "has-trades" : "is-idle",
+                  keyDaySet.has(cell.key) ? "is-key-day" : "",
+                  cell.state === "win" ? "is-win" : "",
+                  cell.state === "loss" ? "is-loss" : "",
+                  cell.isToday ? "is-today" : "",
+                  selectedDayKey === cell.key ? "is-selected" : ""
+                ].filter(Boolean).join(" ");
+                const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+                return `
+                  <button class="${classes}" type="button" ${cell.trades ? `data-analytics-day="${cell.key}"` : "disabled"}>
+                    <div class="calendar-day__top">
+                      <span class="calendar-day__date">${cell.date.getDate()}</span>
+                    </div>
+                    <div class="calendar-day__body">
+                      ${cell.trades
+                        ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
+                           <div class="calendar-day__meta">${tradesLabel}</div>`
+                        : `<div class="calendar-day__meta">${cell.inMonth ? "Sin op." : "—"}</div>`}
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </section>
+
+          <article class="tl-section-card analytics-daily-card analytics-daily-card--detail insights-daily-detail ${selectedDay ? "is-active" : ""}">
+            <div class="tl-section-header">
+              <div>
+                <div class="tl-section-title">Día seleccionado</div>
+              <div class="row-sub">${selectedDay ? `Detalle rápido del ${new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}.` : "Detalle rápido del día marcado en el mapa."}</div>
             </div>
           </div>
-          <div class="calendar-month-grid">
-            ${ANALYTICS_CALENDAR_HEADERS.map((header) => `<div class="calendar-month-grid__head">${header}</div>`).join("")}
-            ${analyticsDayView.cells.map((cell) => {
-              const classes = [
-                "calendar-day",
-                cell.inMonth ? "is-current-month" : "is-outside-month",
-                cell.trades ? "has-trades" : "is-idle",
-                keyDaySet.has(cell.key) ? "is-key-day" : "",
-                cell.state === "win" ? "is-win" : "",
-                cell.state === "loss" ? "is-loss" : "",
-                cell.isToday ? "is-today" : "",
-                selectedDayKey === cell.key ? "is-selected" : ""
-              ].filter(Boolean).join(" ");
-              const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
-              return `
-                <button class="${classes}" type="button" ${cell.trades ? `data-analytics-day="${cell.key}"` : "disabled"}>
-                  <div class="calendar-day__top">
-                    <span class="calendar-day__date">${cell.date.getDate()}</span>
-                  </div>
-                  <div class="calendar-day__body">
-                    ${cell.trades
-                      ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(cell.pnl)}</div>
-                         <div class="calendar-day__meta">${tradesLabel}</div>`
-                      : `<div class="calendar-day__meta">${cell.inMonth ? "Sin op." : "—"}</div>`}
-                  </div>
-                </button>
-              `;
-            }).join("")}
-          </div>
-        </section>
+          ${selectedDay ? `
+            <div class="analytics-daily-detail">
+              <div class="analytics-daily-detail__pnl ${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</div>
+              <div class="analytics-daily-detail__grid">
+                <div><span>Trades</span><strong>${selectedDay.trades}</strong></div>
+                <div><span>Sesión principal</span><strong>${selectedDaySession}</strong></div>
+                <div><span>Símbolo dominante</span><strong>${selectedDaySymbol}</strong></div>
+              </div>
+              <p class="analytics-daily-detail__note">${selectedDayBehavior}</p>
+            </div>
+          ` : `<p class="analytics-daily-detail__empty">Todavía no hay un día seleccionado con actividad.</p>`}
+        </article>
+        </div>
 
-        <aside class="analytics-daily-side">
+        <aside class="analytics-daily-side insights-daily-side">
           <article class="tl-section-card analytics-daily-card">
             <div class="tl-section-header">
               <div>
@@ -1846,13 +1868,14 @@ export function renderAnalytics(root, state) {
             </div>
           </article>
 
-          <article class="tl-section-card analytics-daily-card">
-            <div class="tl-section-header">
-              <div>
-                <div class="tl-section-title">Lectura del mes</div>
-                <div class="row-sub">Señales de comportamiento que se repiten en los cierres del periodo.</div>
+          <div class="insights-daily-side__stack">
+            <article class="tl-section-card analytics-daily-card">
+              <div class="tl-section-header">
+                <div>
+                  <div class="tl-section-title">Lectura del mes</div>
+                  <div class="row-sub">Señales de comportamiento que se repiten en los cierres del periodo.</div>
+                </div>
               </div>
-            </div>
               <ul class="analytics-daily-bullets">
                 ${dailyReadBullets.map((item, index) => `<li class="${index === 0 ? "is-lead" : ""}">${item}</li>`).join("")}
               </ul>
@@ -1871,26 +1894,7 @@ export function renderAnalytics(root, state) {
                 <p>${confidenceNote}</p>
               </div>
             </article>
-
-            <article class="tl-section-card analytics-daily-card analytics-daily-card--detail ${selectedDay ? "is-active" : ""}">
-              <div class="tl-section-header">
-                <div>
-                  <div class="tl-section-title">Día seleccionado</div>
-                <div class="row-sub">${selectedDay ? `Detalle rápido del ${new Date(selectedDay.key).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })}.` : "Detalle rápido del día marcado en el mapa."}</div>
-              </div>
-            </div>
-            ${selectedDay ? `
-              <div class="analytics-daily-detail">
-                <div class="analytics-daily-detail__pnl ${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</div>
-                <div class="analytics-daily-detail__grid">
-                  <div><span>Trades</span><strong>${selectedDay.trades}</strong></div>
-                  <div><span>Sesión principal</span><strong>${selectedDaySession}</strong></div>
-                  <div><span>Símbolo dominante</span><strong>${selectedDaySymbol}</strong></div>
-                </div>
-                <p class="analytics-daily-detail__note">${selectedDayBehavior}</p>
-              </div>
-            ` : `<p class="analytics-daily-detail__empty">Todavía no hay un día seleccionado con actividad.</p>`}
-          </article>
+          </div>
         </aside>
       </div>
     </section>
