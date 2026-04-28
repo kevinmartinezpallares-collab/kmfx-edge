@@ -796,16 +796,31 @@ function renderEmptyState(root) {
   `;
 }
 
-function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, openMenuAccountId = "") {
+function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, openMenuAccountId = "", registrySource = "empty") {
+  const activeCount = registryAccounts.some((account) => account.account_id === activeAccountId && activeAccount?.id === account.account_id) ? 1 : 0;
+  const connectedCount = registryAccounts.filter((account) => isConnectedStatus(account.status)).length;
   return `
-    <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
-      ${registryAccounts.map((account) => renderAccountCard(account, {
-          isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
-          activeAccount,
-          menuOpen: openMenuAccountId === account.account_id,
-          adminOpen: adminVisible && adminState.open,
-          adminState,
-        })).join("")}
+    <div class="connections-account-list__section">
+      <div class="connections-account-list__header">
+        <div>
+          <h2 class="connections-account-list__title">Cuentas conectadas</h2>
+          <p class="connections-account-list__description">Cuentas disponibles para análisis y selección del panel.</p>
+        </div>
+        <div class="connections-account-list__summary" aria-label="Resumen de cuentas conectadas">
+          <span>${activeCount} activa</span>
+          <span>${connectedCount} conectada${connectedCount === 1 ? "" : "s"}</span>
+        </div>
+      </div>
+      <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
+        ${registryAccounts.map((account) => renderAccountCard(account, {
+            isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+            activeAccount,
+            menuOpen: openMenuAccountId === account.account_id,
+            adminOpen: adminVisible && adminState.open,
+            adminState,
+            registrySource,
+          })).join("")}
+      </div>
     </div>
   `;
 }
@@ -844,20 +859,31 @@ function renderAccountAdminPanel(account, adminState) {
   `;
 }
 
-function resolveAccountBalanceLabel(account, activeAccount = null) {
-  const registryBalance = Number(account.balance ?? account.equity ?? account.account_balance ?? account.account_equity);
-  if (Number.isFinite(registryBalance)) {
-    return formatCurrency(registryBalance, account.currency || account.account_currency);
-  }
+function resolveAccountCurrency(account, activeAccount = null) {
+  return account.currency || account.account_currency || activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency || "";
+}
 
-  if (activeAccount?.id === account.account_id) {
-    const liveBalance = Number(activeAccount?.model?.account?.balance ?? activeAccount?.dashboardPayload?.balance);
-    if (Number.isFinite(liveBalance)) {
-      return formatCurrency(liveBalance, activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency);
-    }
-  }
+function resolveAccountBalanceValue(account, activeAccount = null) {
+  return firstFiniteNumber(
+    account.balance,
+    account.account_balance,
+    activeAccount?.id === account.account_id ? activeAccount?.model?.account?.balance : null,
+    activeAccount?.id === account.account_id ? activeAccount?.dashboardPayload?.balance : null
+  );
+}
 
-  return "Sin balance";
+function resolveAccountEquityValue(account, activeAccount = null) {
+  return firstFiniteNumber(
+    account.equity,
+    account.account_equity,
+    activeAccount?.id === account.account_id ? activeAccount?.model?.account?.equity : null,
+    activeAccount?.id === account.account_id ? activeAccount?.dashboardPayload?.equity : null
+  );
+}
+
+function resolveAccountMoneyLabel(value, account, activeAccount = null) {
+  if (!Number.isFinite(value)) return "—";
+  return formatCurrency(value, resolveAccountCurrency(account, activeAccount));
 }
 
 function resolveAccountPnlValue(account, activeAccount = null) {
@@ -932,50 +958,82 @@ function resolveAccountMetaLine(account, activeAccount = null) {
   return "Cuenta disponible";
 }
 
-function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
-  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
-  const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
+function renderAccountFact({ label, valueHtml, meta = "" }) {
+  return `
+    <div class="connections-account-row__fact">
+      <span>${escapeHtml(label)}</span>
+      <strong>${valueHtml}</strong>
+      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+    </div>
+  `;
+}
+
+function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null, registrySource = "empty" }) {
+  const lastSyncAt = account.last_sync_at || account.lastSyncAt || "";
+  const meta = accountStatusMeta(account.status, lastSyncAt);
+  const balanceValue = resolveAccountBalanceValue(account, activeAccount);
+  const equityValue = resolveAccountEquityValue(account, activeAccount);
+  const balanceLabel = resolveAccountMoneyLabel(balanceValue, account, activeAccount);
+  const equityLabel = resolveAccountMoneyLabel(equityValue, account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
-  const statusLine = isActive ? "Activa en panel" : meta.label;
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
   const accountTag = secondaryLabel === "Funded" || secondaryLabel === "Challenge" ? secondaryLabel : "Real";
   const metaLine = resolveAccountMetaLine(account, activeAccount);
-  const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
+  const source = resolveDataSourceLabel({ account, activeAccount, registrySource, isActiveMatch: isActive });
+  const reliability = resolveReliabilityLabel(account.status, lastSyncAt, registrySource);
+  const platform = account.platform || activeAccount?.platform || activeAccount?.meta?.platform || "mt5";
+  const title = account.alias || account.display_name || primaryLabel;
+  const identityMeta = [
+    title !== primaryLabel ? primaryLabel : "",
+    metaLine,
+  ].filter(Boolean).join(" · ");
 
   return `
-    <article class="widget-card connections-account-card">
-      <div class="connections-account-card__layout">
-        <div class="connections-account-card__identity">
-          <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
-          <div class="row-sub">${escapeHtml(metaLine)}</div>
+    <article class="widget-card connections-account-card connections-account-row ${isActive ? "is-active" : ""}">
+      <div class="connections-account-row__layout">
+        <div class="connections-account-row__identity">
+          <div class="connections-account-row__title-line">
+            <div class="connections-account-row__title">${escapeHtml(title)}</div>
+            ${isActive ? `<span class="connections-account-row__active-badge">Activa en panel</span>` : ""}
+          </div>
+          <div class="connections-account-row__meta">${escapeHtml(identityMeta || "Cuenta disponible")}</div>
+          <div class="connections-account-row__chips" aria-label="Contexto de cuenta">
+            <span>${escapeHtml(accountTag)}</span>
+            <span>${escapeHtml(String(platform).toUpperCase())}</span>
+          </div>
         </div>
-        <div class="connections-account-card__metric connections-account-card__metric--tag">
-          <div class="metric-label">Etiqueta</div>
-          <div class="row-sub connections-account-card__tag-text">${escapeHtml(accountTag)}</div>
+        <div class="connections-account-row__status-grid">
+          <div class="connections-account-row__status-item">
+            <span>Estado</span>
+            <strong><span class="connections-account-status connections-account-status--${escapeHtml(meta.tone)}">${escapeHtml(meta.label)}</span></strong>
+          </div>
+          <div class="connections-account-row__status-item">
+            <span>Última sincronización</span>
+            <strong>${escapeHtml(relativeTime(lastSyncAt))}</strong>
+          </div>
+          <div class="connections-account-row__status-item">
+            <span>Origen</span>
+            <strong>${escapeHtml(source.label)}</strong>
+          </div>
+          <div class="connections-account-row__status-item">
+            <span>Fiabilidad</span>
+            <strong class="connections-account-row__reliability connections-account-row__reliability--${escapeHtml(reliability.tone)}">${escapeHtml(reliability.label)}</strong>
+          </div>
         </div>
-        <div class="connections-account-card__metric">
-          <div class="metric-label">Estado</div>
-          <div class="row-sub">${escapeHtml(statusLine)}</div>
-        </div>
-        <div class="connections-account-card__metric">
-          <div class="metric-label">Última sincronización</div>
-          <div class="row-sub">${escapeHtml(lastSyncLabel)}</div>
-        </div>
-        <div class="connections-account-card__metric">
-          <div class="metric-label">Balance actual</div>
-          <div class="connections-account-card__metric-value">${escapeHtml(balanceLabel)}</div>
-        </div>
-        <div class="connections-account-card__metric">
-          <div class="metric-label">PnL actual</div>
-          <div class="connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">
-            ${pnlTextMarkup({
+        <div class="connections-account-row__financials">
+          ${renderAccountFact({ label: "Balance", valueHtml: escapeHtml(balanceLabel) })}
+          ${renderAccountFact({ label: "Equity", valueHtml: escapeHtml(equityLabel) })}
+          ${renderAccountFact({
+            label: "P&L",
+            valueHtml: pnlTextMarkup({
               value: pnl.value,
               text: pnl.label,
               tone: pnl.tone === "positive" ? "profit" : pnl.tone === "negative" ? "loss" : "neutral",
-              className: `connections-account-card__pnl--${pnl.tone}`,
-            })}
-          </div>
+              className: `connections-account-card__pnl connections-account-card__pnl--${pnl.tone}`,
+            }),
+            meta: "Resultado asociado",
+          })}
         </div>
         <div class="connections-account-card__actions">
           <button
@@ -1240,10 +1298,7 @@ export function renderConnections(root, state) {
       ${renderActiveAccountLayer(registryAccounts, activeAccountId, activeAccount, registrySource)}
       ${renderConnectionsKpis(registryAccounts)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
-        <div class="calendar-panel-head">
-          <div class="dashboard-risk-block__title">Cuentas conectadas</div>
-        </div>
-        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState.openMenuAccountId)}
+        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState.openMenuAccountId, registrySource)}
       </section>
     </div>
   `;
