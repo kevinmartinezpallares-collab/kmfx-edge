@@ -7283,6 +7283,143 @@ body[data-theme="dark"] .analytics-pattern-grid {
   gap: 14px;
 }
 
+html[data-theme="dark"] .insights-daily-review,
+body[data-theme="dark"] .insights-daily-review {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: var(--radius-card, var(--radius));
+  background: color-mix(in srgb, var(--card) 94%, var(--foreground) 3%);
+}
+
+html[data-theme="dark"] .insights-daily-review__header,
+body[data-theme="dark"] .insights-daily-review__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+html[data-theme="dark"] .insights-daily-review__eyebrow,
+body[data-theme="dark"] .insights-daily-review__eyebrow {
+  margin: 0 0 6px;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__title,
+body[data-theme="dark"] .insights-daily-review__title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.08;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__description,
+body[data-theme="dark"] .insights-daily-review__description {
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__grid,
+body[data-theme="dark"] .insights-daily-review__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html[data-theme="dark"] .insights-daily-review__card,
+body[data-theme="dark"] .insights-daily-review__card {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: calc(var(--radius-card, var(--radius)) - 5px);
+  background: color-mix(in srgb, var(--card) 91%, var(--foreground) 3%);
+}
+
+html[data-theme="dark"] .insights-daily-review__label,
+body[data-theme="dark"] .insights-daily-review__label {
+  display: block;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__value,
+body[data-theme="dark"] .insights-daily-review__value {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+  line-height: 1.12;
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  color: var(--foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__meta,
+body[data-theme="dark"] .insights-daily-review__meta {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 720;
+  color: color-mix(in srgb, var(--foreground) 84%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__secondary,
+body[data-theme="dark"] .insights-daily-review__secondary {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
+html[data-theme="dark"] .insights-daily-review__meta--positive,
+body[data-theme="dark"] .insights-daily-review__meta--positive {
+  color: color-mix(in srgb, var(--profit) 82%, var(--foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__meta--negative,
+body[data-theme="dark"] .insights-daily-review__meta--negative {
+  color: color-mix(in srgb, var(--loss) 78%, var(--foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__card--positive .insights-daily-review__label,
+body[data-theme="dark"] .insights-daily-review__card--positive .insights-daily-review__label {
+  color: color-mix(in srgb, var(--profit) 76%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__card--negative .insights-daily-review__label,
+body[data-theme="dark"] .insights-daily-review__card--negative .insights-daily-review__label {
+  color: color-mix(in srgb, var(--loss) 72%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__card--warning .insights-daily-review__label,
+body[data-theme="dark"] .insights-daily-review__card--warning .insights-daily-review__label {
+  color: color-mix(in srgb, var(--risk) 74%, var(--muted-foreground));
+}
+
+html[data-theme="dark"] .insights-daily-review__empty,
+body[data-theme="dark"] .insights-daily-review__empty {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
 html[data-theme="dark"] .analytics-daily-layout,
 body[data-theme="dark"] .analytics-daily-layout {
   display: grid;
@@ -9096,6 +9233,11 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  html[data-theme="dark"] .insights-daily-review__grid,
+  body[data-theme="dark"] .insights-daily-review__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   html[data-theme="dark"] .insights-concentration__grid,
   body[data-theme="dark"] .insights-concentration__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9129,6 +9271,8 @@ body[data-theme="dark"] #page-analytics .tl-tab.active {
   body[data-theme="dark"] .analytics-pattern-footer--three,
   html[data-theme="dark"] .analytics-timing-hero,
   body[data-theme="dark"] .analytics-timing-hero,
+  html[data-theme="dark"] .insights-daily-review__grid,
+  body[data-theme="dark"] .insights-daily-review__grid,
   html[data-theme="dark"] .insights-patterns__grid,
   body[data-theme="dark"] .insights-patterns__grid,
   html[data-theme="dark"] .insights-concentration__grid,

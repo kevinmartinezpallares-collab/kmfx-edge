@@ -769,7 +769,96 @@ export function renderAnalytics(root, state) {
   const selectedDaySession = dominantValue(selectedDayTrades.map((trade) => trade.session).filter(Boolean));
   const selectedDayBehavior = selectedDay ? describeDayBehavior(selectedDay, selectedDayTrades, strongestSession.key, weakestSession.key, bestHour.hour, worstHour.hour) : "Selecciona un día con operativa para leer su patrón.";
   const selectedDaySymbol = dominantValue(selectedDayTrades.map((trade) => trade.symbol).filter(Boolean));
+  const formatDailySignedCurrency = (value) => Number(value || 0) > 0 ? `+${formatCurrency(value)}` : formatCurrency(value);
   const positiveMonthDays = operatedMonthDays.filter((day) => day.pnl > 0);
+  const negativeMonthDays = operatedMonthDays.filter((day) => day.pnl < 0);
+  const neutralMonthDays = operatedMonthDays.filter((day) => day.pnl === 0);
+  const totalTradesInMonth = operatedMonthDays.reduce((sum, day) => sum + Number(day.trades || 0), 0);
+  const bestMonthDay = [...operatedMonthDays].sort((a, b) => b.pnl - a.pnl)[0] || null;
+  const worstMonthDay = [...operatedMonthDays].sort((a, b) => a.pnl - b.pnl)[0] || null;
+  const highestCostDay = [...operatedMonthDays]
+    .map((day) => ({
+      ...day,
+      totalCost: Math.abs(Number(day.commission || 0)) + Math.abs(Number(day.swap || 0))
+    }))
+    .sort((a, b) => b.totalCost - a.totalCost)[0] || null;
+  const reviewDay = negativeMonthDays.length
+    ? worstMonthDay
+    : keyDays[0] || bestMonthDay || null;
+  const formatDayReviewLabel = (dayKey) => new Date(dayKey).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  const reviewReason = !reviewDay
+    ? "Sin muestra diaria"
+    : negativeMonthDays.length && reviewDay?.key === worstMonthDay?.key
+      ? "Mayor perdida del mes"
+      : highestCostDay && reviewDay.key === highestCostDay.key && highestCostDay.totalCost > 0
+        ? "Coste diario mas alto"
+        : "Mayor impacto del mes";
+  const dailyReviewCards = operatedMonthDays.length ? [
+    {
+      label: "MEJOR DIA",
+      tone: "positive",
+      value: bestMonthDay ? formatDayReviewLabel(bestMonthDay.key) : "Sin datos",
+      meta: bestMonthDay ? formatDailySignedCurrency(bestMonthDay.pnl) : formatCurrency(0),
+      metaTone: bestMonthDay && bestMonthDay.pnl >= 0 ? "positive" : "",
+      secondary: bestMonthDay ? formatTradeCount(bestMonthDay.trades) : "Sin operaciones"
+    },
+    {
+      label: "PEOR DIA",
+      tone: worstMonthDay && worstMonthDay.pnl < 0 ? "negative" : "neutral",
+      value: worstMonthDay ? formatDayReviewLabel(worstMonthDay.key) : "Sin datos",
+      meta: worstMonthDay ? formatDailySignedCurrency(worstMonthDay.pnl) : formatCurrency(0),
+      metaTone: worstMonthDay
+        ? worstMonthDay.pnl < 0 ? "negative" : worstMonthDay.pnl > 0 ? "positive" : ""
+        : "",
+      secondary: worstMonthDay ? formatTradeCount(worstMonthDay.trades) : "Sin operaciones"
+    },
+    {
+      label: "DIAS OPERADOS",
+      tone: "neutral",
+      value: `${operatedMonthDays.length}`,
+      meta: totalTradesInMonth === 1 ? "1 trade en el mes" : `${totalTradesInMonth} trades en el mes`,
+      secondary: `${positiveMonthDays.length} positivos / ${negativeMonthDays.length} negativos / ${neutralMonthDays.length} neutros`
+    },
+    {
+      label: "DIA A REVISAR",
+      tone: negativeMonthDays.length ? "warning" : "neutral",
+      value: reviewDay ? formatDayReviewLabel(reviewDay.key) : "Sin datos",
+      meta: reviewReason,
+      secondary: reviewDay ? `${formatDailySignedCurrency(reviewDay.pnl)}<br>${formatTradeCount(reviewDay.trades)}` : "Selecciona un mes con operaciones"
+    }
+  ] : [];
+  const dailyReviewMarkup = operatedMonthDays.length ? `
+    <section class="insights-daily-review" aria-labelledby="insights-daily-review-title">
+      <header class="insights-daily-review__header">
+        <div>
+          <div class="insights-daily-review__eyebrow">DIARIO</div>
+          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Dias que explican el mes</h3>
+          <p class="insights-daily-review__description">Aporte, dano y dias a revisar dentro del periodo seleccionado.</p>
+        </div>
+      </header>
+      <div class="insights-daily-review__grid">
+        ${dailyReviewCards.map((card) => `
+          <article class="insights-daily-review__card insights-daily-review__card--${card.tone}">
+            <span class="insights-daily-review__label">${card.label}</span>
+            <strong class="insights-daily-review__value">${card.value}</strong>
+            <span class="insights-daily-review__meta ${card.metaTone ? `insights-daily-review__meta--${card.metaTone}` : ""}">${card.meta}</span>
+            <small class="insights-daily-review__secondary">${card.secondary}</small>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  ` : `
+    <section class="insights-daily-review insights-daily-review--empty" aria-labelledby="insights-daily-review-title">
+      <header class="insights-daily-review__header">
+        <div>
+          <div class="insights-daily-review__eyebrow">DIARIO</div>
+          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Dias que explican el mes</h3>
+          <p class="insights-daily-review__description">Sin operaciones</p>
+        </div>
+      </header>
+      <div class="insights-daily-review__empty">Selecciona un mes con operaciones para analizar dias clave.</div>
+    </section>
+  `;
   const positiveSessionCounts = positiveMonthDays.reduce((acc, day) => {
     const trades = dayTradeMap.get(day.key) || [];
     const session = dominantValue(trades.map((trade) => trade.session).filter(Boolean));
@@ -1680,6 +1769,7 @@ export function renderAnalytics(root, state) {
     </section>
 
     <section class="analytics-panel ${state.ui.analyticsTab === "daily" ? "active" : ""}" data-tab="daily">
+      ${dailyReviewMarkup}
       <div class="analytics-daily-layout">
         <section class="tl-section-card calendar-month-panel analytics-daily-calendar">
           <div class="calendar-month-panel__head analytics-daily-calendar__head">
