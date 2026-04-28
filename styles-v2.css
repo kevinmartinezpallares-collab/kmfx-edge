@@ -6999,7 +6999,7 @@ body[data-theme="dark"] .insights-session .analytics-pattern-footer,
 html[data-theme="dark"] .insights-timing .analytics-pattern-footer,
 body[data-theme="dark"] .insights-timing .analytics-pattern-footer {
   gap: 0;
-  margin-top: 12px;
+  margin-top: 9px;
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
 }
@@ -7008,10 +7008,29 @@ html[data-theme="dark"] .insights-session .analytics-pattern-footer__item,
 body[data-theme="dark"] .insights-session .analytics-pattern-footer__item,
 html[data-theme="dark"] .insights-timing .analytics-pattern-footer__item,
 body[data-theme="dark"] .insights-timing .analytics-pattern-footer__item {
-  padding: 11px 12px;
+  padding: 9px 10px;
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+html[data-theme="dark"] .insights-session .analytics-pattern-footer__item strong,
+body[data-theme="dark"] .insights-session .analytics-pattern-footer__item strong,
+html[data-theme="dark"] .insights-timing .analytics-pattern-footer__item strong,
+body[data-theme="dark"] .insights-timing .analytics-pattern-footer__item strong {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+}
+
+html[data-theme="dark"] .insights-session .analytics-pattern-footer__item small,
+body[data-theme="dark"] .insights-session .analytics-pattern-footer__item small,
+html[data-theme="dark"] .insights-timing .analytics-pattern-footer__item small,
+body[data-theme="dark"] .insights-timing .analytics-pattern-footer__item small {
+  margin-top: 4px;
+  line-height: 1.3;
 }
 
 html[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .analytics-pattern-footer__item,
@@ -7022,14 +7041,25 @@ body[data-theme="dark"] .insights-session .analytics-pattern-footer__item + .ana
 html[data-theme="dark"] .insights-distribution__body,
 body[data-theme="dark"] .insights-distribution__body {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 html[data-theme="dark"] .insights-distribution .analytics-winloss-summary,
 body[data-theme="dark"] .insights-distribution .analytics-winloss-summary {
-  padding: 0 0 12px;
+  padding: 0 0 9px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: transparent;
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-winloss-total,
+body[data-theme="dark"] .insights-distribution .analytics-winloss-total {
+  font-size: 18px;
+}
+
+html[data-theme="dark"] .insights-distribution .analytics-winloss-sub,
+body[data-theme="dark"] .insights-distribution .analytics-winloss-sub {
+  margin-top: 4px;
+  line-height: 1.35;
 }
 
 html[data-theme="dark"] .insights-distribution .analytics-distribution-metrics--tight,
@@ -7041,7 +7071,7 @@ body[data-theme="dark"] .insights-distribution .analytics-distribution-metrics--
 
 html[data-theme="dark"] .insights-distribution .analytics-distribution-metric,
 body[data-theme="dark"] .insights-distribution .analytics-distribution-metric {
-  padding: 11px 12px;
+  padding: 9px 10px;
   border: 0;
   border-radius: 0;
   background: transparent;
