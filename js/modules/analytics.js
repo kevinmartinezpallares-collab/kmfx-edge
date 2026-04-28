@@ -1470,7 +1470,7 @@ export function renderAnalytics(root, state) {
         <section class="insights-patterns" aria-labelledby="insights-patterns-title">
           <header class="insights-patterns__header">
             <div>
-              <div class="insights-patterns__eyebrow">LECTURA TRANSVERSAL</div>
+              <div class="insights-patterns__eyebrow">QUÉ SE REPITE</div>
               <h3 id="insights-patterns-title" class="insights-patterns__title">Patrones detectados</h3>
               <p class="insights-patterns__description">Lectura transversal de variables que repiten edge, daño o falta de muestra.</p>
             </div>
@@ -1482,7 +1482,7 @@ export function renderAnalytics(root, state) {
         <article class="tl-section-card analytics-overview-hero insights-summary">
           <div class="analytics-overview-hero__stack insights-summary__stack">
             <div class="analytics-overview-copy insights-summary__header">
-              <div class="analytics-overview-kicker insights-summary__eyebrow">EVIDENCIA TRANSVERSAL</div>
+              <div class="analytics-overview-kicker insights-summary__eyebrow">QUÉ MUEVE EL RESULTADO</div>
               <h3 class="analytics-overview-title insights-summary__title">Variables que explican el rendimiento</h3>
               <p class="analytics-overview-subtitle insights-summary__description">Sesión, símbolo y horario con mayor impacto sobre la muestra actual.</p>
             </div>
