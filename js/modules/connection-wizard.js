@@ -138,11 +138,12 @@ function renderMethodStep(state) {
     "Elige cómo quieres conectar esta cuenta.",
     `
       <div class="connection-wizard__option-grid connection-wizard__option-grid--methods">
-        <button class="connection-wizard__option ${selectedMethod === "direct" ? "is-selected" : ""}" type="button" data-wizard-method="direct">
-          <span class="connection-wizard__option-check" aria-hidden="true">${selectedMethod === "direct" ? "✓" : ""}</span>
+        <button class="connection-wizard__option connection-wizard__option--muted" type="button" disabled aria-disabled="true">
+          <span class="connection-wizard__option-check" aria-hidden="true"></span>
           <div class="connection-wizard__option-copy">
             <div class="connection-wizard__option-title">Conexión directa</div>
-            <div class="connection-wizard__option-subtitle">Cuenta, contraseña y servidor.</div>
+            <div class="connection-wizard__option-note">Próximamente</div>
+            <div class="connection-wizard__option-subtitle">Requiere verificación segura en backend.</div>
           </div>
         </button>
         <button class="connection-wizard__option ${selectedMethod === "ea" ? "is-selected" : ""}" type="button" data-wizard-method="ea">
@@ -160,23 +161,16 @@ function renderMethodStep(state) {
 
 function renderDirectStep(state) {
   return renderStepFrame(
-    "Configuración",
-    "Completa los datos de acceso.",
+    "Conexión directa no disponible",
+    "Esta ruta todavía necesita una verificación segura antes de usarse.",
     `
-      <div class="connection-wizard__warning">Puede no cumplir reglas de fondeo. Usa EA si operas prop firms.</div>
-      <div class="connection-wizard__form-grid">
-        <label class="form-stack">
-          <span>Account Number</span>
-          <input type="text" data-wizard-field="accountNumber" value="${escapeHtml(state.form.accountNumber)}" placeholder="12345678">
-        </label>
-        <label class="form-stack">
-          <span>Password</span>
-          <input type="password" data-wizard-field="password" value="${escapeHtml(state.form.password)}" placeholder="••••••••">
-        </label>
-        <label class="form-stack connection-wizard__form-grid--full">
-          <span>Server</span>
-          <input type="text" data-wizard-field="server" value="${escapeHtml(state.form.server)}" placeholder="Darwinex-Live">
-        </label>
+      <div class="connection-wizard__warning">
+        La conexión directa todavía requiere verificación segura en backend. Usa Expert Advisor (EA) para conectar la cuenta.
+      </div>
+      <div class="connection-wizard__checklist">
+        <div class="connection-wizard__checklist-item">No se solicitará ni guardará contraseña desde este asistente.</div>
+        <div class="connection-wizard__checklist-item">La cuenta solo aparecerá conectada cuando exista registro o snapshot real.</div>
+        <div class="connection-wizard__checklist-item">El flujo EA mantiene la conexión mediante Launcher y clave segura.</div>
       </div>
       ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
     `
@@ -215,19 +209,7 @@ function renderEaStep(state) {
 
 function renderConfirmationStep(state) {
   if (state.method === "direct") {
-    return renderStepFrame(
-      "Confirmación",
-      "La cuenta queda lista para continuar.",
-      `
-        <div class="connection-wizard__success">
-          <div class="connection-wizard__success-icon">✓</div>
-          <div class="connection-wizard__success-copy">
-            <div class="connection-wizard__success-title">Cuenta conectada</div>
-            <div class="connection-wizard__success-subtitle">La conexión directa ya está preparada.</div>
-          </div>
-        </div>
-      `
-    );
+    return renderDirectStep(state);
   }
 
   return renderStepFrame(
@@ -273,7 +255,7 @@ function renderActions(state) {
   if (state.step === 3 && state.method === "direct") {
     return `
       <button class="btn-secondary" type="button" data-wizard-back="true">Volver</button>
-      <button class="btn-primary" type="button" data-wizard-submit-direct="true">Conectar cuenta</button>
+      <button class="btn-primary" type="button" data-wizard-switch-ea="true">Usar Expert Advisor</button>
     `;
   }
 
@@ -353,14 +335,11 @@ function mountWizard(card, state, options = {}) {
     mountWizard(card, state, options);
   });
 
-  body.querySelector("[data-wizard-submit-direct='true']")?.addEventListener("click", () => {
-    if (!state.form.accountNumber || !state.form.password || !state.form.server) {
-      state.error = "Completa número de cuenta, contraseña y servidor.";
-      mountWizard(card, state, options);
-      return;
-    }
+  body.querySelector("[data-wizard-switch-ea='true']")?.addEventListener("click", () => {
+    state.method = "ea";
+    state.step = 3;
     state.error = "";
-    state.step = 4;
+    state.form = { accountNumber: "", password: "", server: "" };
     mountWizard(card, state, options);
   });
 
