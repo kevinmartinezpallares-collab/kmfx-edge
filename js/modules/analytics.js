@@ -1307,25 +1307,25 @@ export function renderAnalytics(root, state) {
     {
       title: "Rendimiento",
       items: [
-        { label: "P&L total", value: formatCurrency(model.totals.pnl), tone: model.totals.pnl >= 0 ? "positive" : "negative" },
+        { label: "P&L total", value: formatCurrency(model.totals.pnl), tone: model.totals.pnl > 0 ? "positive" : model.totals.pnl < 0 ? "negative" : "" },
         { label: "Win rate", value: formatPercent(model.totals.winRate) },
-        { label: "Profit factor", value: model.totals.profitFactor.toFixed(2), tone: model.totals.profitFactor >= 1 ? "positive" : "negative" },
-        { label: "Expectancy", value: formatCurrency(model.totals.expectancy), tone: model.totals.expectancy >= 0 ? "positive" : "negative" }
+        { label: "Profit factor", value: model.totals.profitFactor.toFixed(2), tone: model.totals.profitFactor > 1 ? "positive" : model.totals.profitFactor < 1 ? "negative" : "" },
+        { label: "Expectancy", value: formatCurrency(model.totals.expectancy), tone: model.totals.expectancy > 0 ? "positive" : model.totals.expectancy < 0 ? "negative" : "" }
       ]
     },
     {
       title: "Riesgo",
       items: [
-        { label: "Drawdown actual", value: formatCurrency(-currentDrawdownAmount), note: formatPercent(-currentDrawdownPct), tone: currentDrawdownAmount > 0 ? "negative" : "positive" },
-        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: model.totals.drawdown.maxAmount > 0 ? "negative" : "positive" },
+        { label: "Drawdown actual", value: formatCurrency(-currentDrawdownAmount), note: formatPercent(-currentDrawdownPct), tone: currentDdUsagePct >= 70 ? "negative" : currentDrawdownAmount > 0 ? "warning" : "" },
+        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: ddUsagePct >= 70 ? "negative" : model.totals.drawdown.maxAmount > 0 ? "warning" : "" },
         { label: "Recovery factor", value: Number(model.totals.ratios?.recovery || 0).toFixed(2) }
       ]
     },
     {
       title: "Coste",
       items: [
-        { label: "Comisiones", value: formatCurrency(-model.totals.commissions), tone: model.totals.commissions ? "negative" : "" },
-        { label: "Swap", value: formatCurrency(-model.totals.swaps), tone: model.totals.swaps ? "negative" : "" }
+        { label: "Comisiones", value: formatCurrency(-model.totals.commissions), tone: model.totals.commissions ? "warning" : "" },
+        { label: "Swap", value: formatCurrency(-model.totals.swaps), tone: model.totals.swaps ? "warning" : "" }
       ]
     },
     {
@@ -2011,7 +2011,7 @@ export function renderAnalytics(root, state) {
                     <div class="insights-control-metric">
                       <span>${item.label}</span>
                       <div class="insights-control-metric__value">
-                        <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+                        <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : item.tone === "warning" ? "insights-control-metric__text--warning" : ""}">${item.value}</strong>
                         ${item.note ? `<small>${item.note}</small>` : ""}
                       </div>
                     </div>
