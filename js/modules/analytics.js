@@ -853,7 +853,7 @@ export function renderAnalytics(root, state) {
       <article class="analytics-session-bar-row ${toneClass} ${emphasisClass}">
         <div class="analytics-session-bar-row__meta">
           <strong>${session.key}</strong>
-          <span>${formatTradeCount(session.trades)} · WR ${formatPercent(session.winRate)}</span>
+          <span>${formatTradeCount(session.trades)}<br>WR ${formatPercent(session.winRate)}</span>
         </div>
         <div class="analytics-session-bar-row__track" aria-hidden="true">
           <span class="analytics-session-bar-row__axis"></span>
@@ -874,7 +874,7 @@ export function renderAnalytics(root, state) {
         </div>
         <div class="analytics-symbol-row__meta">
           <strong class="${row.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.pnl)}</strong>
-          <span>${formatTradeCount(row.trades)} · WR ${formatPercent(row.winRate)}</span>
+          <span>${formatTradeCount(row.trades)}<br>WR ${formatPercent(row.winRate)}</span>
         </div>
       </div>
       <div class="analytics-symbol-row__aux">
@@ -1363,7 +1363,7 @@ export function renderAnalytics(root, state) {
     ? `Profit factor ${model.totals.profitFactor.toFixed(2)} y expectancy ${formatCurrency(model.totals.expectancy)}.`
     : model.totals.expectancy >= 0
       ? `La distribución sigue positiva, pero el margen se estrecha.`
-      : `La pérdida media ya está comiendo demasiada ventaja del sistema.`;
+      : `La expectancy queda negativa en la muestra actual.`;
   const sessionContrastTitle = weakestSession.pnl < 0
     ? `${strongestSession.key} aporta más; ${weakestSession.key} concentra el mayor drenaje.`
     : `${strongestSession.key} aporta más; ${weakestSession.key} queda como menor contribución.`;
@@ -1414,9 +1414,11 @@ export function renderAnalytics(root, state) {
       label: "EDGE",
       tone: "positive",
       value: edgeDriver.name,
-      meta: `${formatSignedCurrency(edgeDriver.pnl)} · ${formatTradeCount(edgeDriver.trades)}`,
+      meta: formatSignedCurrency(edgeDriver.pnl),
       metaTone: "positive",
-      secondary: edgeDriver.winRate != null ? `WR ${formatUnsignedPercent(edgeDriver.winRate)}` : "Mejor resultado de la muestra"
+      secondary: edgeDriver.winRate != null
+        ? `${formatTradeCount(edgeDriver.trades)}<br>WR ${formatUnsignedPercent(edgeDriver.winRate)}`
+        : formatTradeCount(edgeDriver.trades)
     } : {
       label: "MUESTRA",
       tone: "warning",
@@ -1428,9 +1430,11 @@ export function renderAnalytics(root, state) {
       label: "DAÑO",
       tone: "negative",
       value: damageDriver.name,
-      meta: `${formatSignedCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}`,
+      meta: formatSignedCurrency(damageDriver.pnl),
       metaTone: "negative",
-      secondary: damageDriver.winRate != null ? `WR ${formatUnsignedPercent(damageDriver.winRate)}` : "Mayor daño de la muestra"
+      secondary: damageDriver.winRate != null
+        ? `${formatTradeCount(damageDriver.trades)}<br>WR ${formatUnsignedPercent(damageDriver.winRate)}`
+        : formatTradeCount(damageDriver.trades)
     } : {
       label: "DAÑO",
       tone: "neutral",
@@ -1442,7 +1446,7 @@ export function renderAnalytics(root, state) {
       label: "PATRÓN",
       tone: "neutral",
       value: formatDominantVariableLabel(dominantVariable.label),
-      meta: `${dominantVariable.name} concentra el mayor impacto`,
+      meta: `Mayor impacto: ${dominantVariable.name}`,
       secondary: `Impacto ${formatSignedCurrency(dominantVariable.value)}`
     } : {
       label: "PATRÓN",
@@ -1469,7 +1473,7 @@ export function renderAnalytics(root, state) {
       tone: damageDriver ? "negative" : "neutral",
       value: damageDriver ? `Mayor daño: ${damageDriver.name}` : "Evidencia parcial",
       meta: damageDriver ? "Mayor daño de la muestra" : "Evidencia todavía parcial",
-      secondary: damageDriver ? `${formatSignedCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}` : formatTradeCount(totalTrades),
+      secondary: damageDriver ? `${formatSignedCurrency(damageDriver.pnl)}<br>${formatTradeCount(damageDriver.trades)}` : formatTradeCount(totalTrades),
       secondaryTone: damageDriver ? "negative" : ""
     }
   ].slice(0, 5);
@@ -1489,32 +1493,42 @@ export function renderAnalytics(root, state) {
     : model.totals.expectancy >= 0
       ? "Distribución favorable"
       : "Expectancy negativa en la muestra";
+  const distributionTradeTotal = winningTrades.length + losingTrades.length;
+  const distributionWinRateValue = formatUnsignedPercent(model.totals.winRate);
+  const distributionGaugeScore = clampPercent(model.totals.winRate);
+  const distributionNote = model.totals.expectancy >= 0
+    ? "Distribución positiva, pero con margen todavía estrecho."
+    : "Distribución negativa en la muestra actual.";
   const concentrationCards = [
     {
       label: "SESIÓN",
       value: strongestSession.key,
-      meta: `${formatSignedCurrency(strongestSession.pnl)} · WR ${formatUnsignedPercent(strongestSession.winRate)}`,
+      meta: `P&L ${formatSignedCurrency(strongestSession.pnl)}`,
       metaTone: strongestSession.pnl >= 0 ? "positive" : "negative",
-      secondary: weakestSession?.key ? `Mayor drenaje: ${weakestSession.key} ${formatSignedCurrency(weakestSession.pnl)}` : "Muestra actual"
+      secondary: weakestSession?.key
+        ? `WR ${formatUnsignedPercent(strongestSession.winRate)}. Mayor drenaje: ${weakestSession.key} ${formatSignedCurrency(weakestSession.pnl)}`
+        : `WR ${formatUnsignedPercent(strongestSession.winRate)}`
     },
     {
       label: "SÍMBOLO",
       value: strongestSymbol.key,
-      meta: `${formatSignedCurrency(strongestSymbol.pnl)} · ${formatTradeCount(strongestSymbol.trades)}`,
+      meta: `P&L ${formatSignedCurrency(strongestSymbol.pnl)}`,
       metaTone: strongestSymbol.pnl >= 0 ? "positive" : "negative",
-      secondary: weakestSymbol?.key ? `Mayor drenaje: ${weakestSymbol.key} ${formatSignedCurrency(weakestSymbol.pnl)}` : "Muestra actual"
+      secondary: weakestSymbol?.key
+        ? `${formatTradeCount(strongestSymbol.trades)}. Mayor drenaje: ${weakestSymbol.key} ${formatSignedCurrency(weakestSymbol.pnl)}`
+        : formatTradeCount(strongestSymbol.trades)
     },
     {
       label: "HORARIO",
       value: `${String(bestHour.hour).padStart(2, "0")}:00`,
-      meta: `${formatSignedCurrency(bestHour.pnl)} · ${formatTradeCount(bestHour.trades)}`,
+      meta: `P&L ${formatSignedCurrency(bestHour.pnl)}`,
       metaTone: bestHour.pnl >= 0 ? "positive" : "negative",
-      secondary: `${String(worstHour.hour).padStart(2, "0")}:00 resta ${formatSignedCurrency(worstHour.pnl)}`
+      secondary: `${formatTradeCount(bestHour.trades)}. ${String(worstHour.hour).padStart(2, "0")}:00 resta ${formatSignedCurrency(worstHour.pnl)}`
     },
     {
       label: "DISTRIBUCIÓN",
       value: distributionMain,
-      meta: `PF ${model.totals.profitFactor.toFixed(2)} · WR ${formatUnsignedPercent(model.totals.winRate)}`,
+      meta: `PF ${model.totals.profitFactor.toFixed(2)}`,
       secondary: distributionSecondary
     }
   ];
@@ -1553,9 +1567,12 @@ export function renderAnalytics(root, state) {
               ${concentrationCardsMarkup}
             </div>
             <div class="insights-concentration__review">
-              <span>Horario a revisar</span>
+              <span class="insights-concentration__review-label">Horario a revisar</span>
               <strong>${summaryReviewTitle}</strong>
-              <small><span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span> · ${summaryReviewMeta}</small>
+              <small>
+                <span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span>
+                <span>${summaryReviewMeta}</span>
+              </small>
             </div>
           </div>
         </article>
@@ -1575,12 +1592,12 @@ export function renderAnalytics(root, state) {
               <div class="analytics-pattern-footer__item">
                 <span>Mayor contribución</span>
                 <strong>${strongestSession.key}</strong>
-                <small class="analytics-value-${strongestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(strongestSession.pnl)} · ${formatTradeCount(strongestSession.trades)}</small>
+                <small class="analytics-value-${strongestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(strongestSession.pnl)}<br>${formatTradeCount(strongestSession.trades)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
                 <span>${weakestSession.pnl < 0 ? "Mayor drenaje" : "Menor contribución"}</span>
                 <strong>${weakestSession.key}</strong>
-                <small class="analytics-value-${weakestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(weakestSession.pnl)} · ${formatTradeCount(weakestSession.trades)}</small>
+                <small class="analytics-value-${weakestSession.pnl >= 0 ? "positive" : "negative"}">${formatCurrency(weakestSession.pnl)}<br>${formatTradeCount(weakestSession.trades)}</small>
               </div>
               <div class="analytics-pattern-footer__item">
                 <span>Contraste principal</span>
@@ -1631,30 +1648,33 @@ export function renderAnalytics(root, state) {
               </div>
             </div>
             <div class="insights-distribution__body">
-              <div class="analytics-winloss-summary">
-                <div class="analytics-winloss-header">
-                  <div class="analytics-winloss-total">${edgeHealthLabel}</div>
-                  <div class="analytics-winloss-sub">${edgeHealthNote}</div>
+              <div class="insights-distribution__layout">
+                <div class="insights-distribution-gauge" style="--distribution-score:${distributionGaugeScore.toFixed(2)};" role="img" aria-label="Win rate ${distributionWinRateValue}">
+                  <div class="insights-distribution-gauge__inner">
+                    <strong>${distributionWinRateValue}</strong>
+                    <span>Win rate</span>
+                  </div>
+                </div>
+                <div class="insights-distribution__read">
+                  <div class="insights-distribution__headline">${edgeHealthLabel}</div>
+                  <p>${edgeHealthNote}</p>
+                  <div class="insights-distribution__metrics">
+                    <div class="insights-distribution__metric">
+                      <span>PF</span>
+                      <strong>${model.totals.profitFactor.toFixed(2)}</strong>
+                    </div>
+                    <div class="insights-distribution__metric">
+                      <span>Expectancy</span>
+                      <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
+                    </div>
+                    <div class="insights-distribution__metric">
+                      <span>Muestra</span>
+                      <strong>${formatTradeCount(distributionTradeTotal)}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="analytics-distribution-metrics analytics-distribution-metrics--tight">
-                <div class="analytics-distribution-metric">
-                  <span>Trades</span>
-                  <strong>${formatTradeCount(winningTrades.length + losingTrades.length)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Win rate</span>
-                  <strong>${formatPercent(model.totals.winRate)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Profit factor</span>
-                  <strong>${model.totals.profitFactor.toFixed(2)}</strong>
-                </div>
-                <div class="analytics-distribution-metric">
-                  <span>Expectativa</span>
-                  <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
-                </div>
-              </div>
+              <div class="insights-distribution__note">${distributionNote}</div>
             </div>
           </article>
         </div>
