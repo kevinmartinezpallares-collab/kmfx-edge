@@ -789,13 +789,13 @@ export function renderAnalytics(root, state) {
   const reviewReason = !reviewDay
     ? "Sin muestra diaria"
     : negativeMonthDays.length && reviewDay?.key === worstMonthDay?.key
-      ? "Mayor perdida del mes"
+      ? "Mayor pérdida del mes"
       : highestCostDay && reviewDay.key === highestCostDay.key && highestCostDay.totalCost > 0
-        ? "Coste diario mas alto"
+        ? "Coste diario más alto"
         : "Mayor impacto del mes";
   const dailyReviewCards = operatedMonthDays.length ? [
     {
-      label: "MEJOR DIA",
+      label: "MEJOR DÍA",
       tone: "positive",
       value: bestMonthDay ? formatDayReviewLabel(bestMonthDay.key) : "Sin datos",
       meta: bestMonthDay ? formatDailySignedCurrency(bestMonthDay.pnl) : formatCurrency(0),
@@ -803,7 +803,7 @@ export function renderAnalytics(root, state) {
       secondary: bestMonthDay ? formatTradeCount(bestMonthDay.trades) : "Sin operaciones"
     },
     {
-      label: "PEOR DIA",
+      label: "PEOR DÍA",
       tone: worstMonthDay && worstMonthDay.pnl < 0 ? "negative" : "neutral",
       value: worstMonthDay ? formatDayReviewLabel(worstMonthDay.key) : "Sin datos",
       meta: worstMonthDay ? formatDailySignedCurrency(worstMonthDay.pnl) : formatCurrency(0),
@@ -813,14 +813,14 @@ export function renderAnalytics(root, state) {
       secondary: worstMonthDay ? formatTradeCount(worstMonthDay.trades) : "Sin operaciones"
     },
     {
-      label: "DIAS OPERADOS",
+      label: "DÍAS OPERADOS",
       tone: "neutral",
       value: `${operatedMonthDays.length}`,
       meta: totalTradesInMonth === 1 ? "1 trade en el mes" : `${totalTradesInMonth} trades en el mes`,
       secondary: `${positiveMonthDays.length} positivos / ${negativeMonthDays.length} negativos / ${neutralMonthDays.length} neutros`
     },
     {
-      label: "DIA A REVISAR",
+      label: "DÍA A REVISAR",
       tone: negativeMonthDays.length ? "warning" : "neutral",
       value: reviewDay ? formatDayReviewLabel(reviewDay.key) : "Sin datos",
       meta: reviewReason,
@@ -832,17 +832,17 @@ export function renderAnalytics(root, state) {
       <header class="insights-daily-review__header">
         <div>
           <div class="insights-daily-review__eyebrow">DIARIO</div>
-          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Dias que explican el mes</h3>
-          <p class="insights-daily-review__description">Aporte, dano y dias a revisar dentro del periodo seleccionado.</p>
+          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Días que explican el mes</h3>
+          <p class="insights-daily-review__description">Aporte, daño y días a revisar dentro del periodo seleccionado.</p>
         </div>
       </header>
       <div class="insights-daily-review__grid">
         ${dailyReviewCards.map((card) => `
-          <article class="insights-daily-review__card insights-daily-review__card--${card.tone}">
-            <span class="insights-daily-review__label">${card.label}</span>
-            <strong class="insights-daily-review__value">${card.value}</strong>
-            <span class="insights-daily-review__meta ${card.metaTone ? `insights-daily-review__meta--${card.metaTone}` : ""}">${card.meta}</span>
-            <small class="insights-daily-review__secondary">${card.secondary}</small>
+          <article class="insights-daily-kpi insights-daily-kpi--${card.tone}">
+            <span class="insights-daily-kpi__label">${card.label}</span>
+            <strong class="insights-daily-kpi__value">${card.value}</strong>
+            <span class="insights-daily-kpi__meta ${card.metaTone ? `insights-daily-kpi__meta--${card.metaTone}` : ""}">${card.meta}</span>
+            <small class="insights-daily-kpi__secondary">${card.secondary}</small>
           </article>
         `).join("")}
       </div>
@@ -852,11 +852,11 @@ export function renderAnalytics(root, state) {
       <header class="insights-daily-review__header">
         <div>
           <div class="insights-daily-review__eyebrow">DIARIO</div>
-          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Dias que explican el mes</h3>
+          <h3 id="insights-daily-review-title" class="insights-daily-review__title">Días que explican el mes</h3>
           <p class="insights-daily-review__description">Sin operaciones</p>
         </div>
       </header>
-      <div class="insights-daily-review__empty">Selecciona un mes con operaciones para analizar dias clave.</div>
+      <div class="insights-daily-review__empty">Selecciona un mes con operaciones para analizar días clave.</div>
     </section>
   `;
   const positiveSessionCounts = positiveMonthDays.reduce((acc, day) => {

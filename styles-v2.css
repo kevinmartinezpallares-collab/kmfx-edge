@@ -7287,11 +7287,7 @@ html[data-theme="dark"] .insights-daily-review,
 body[data-theme="dark"] .insights-daily-review {
   display: grid;
   gap: 12px;
-  padding: 18px;
   margin-bottom: 14px;
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-  border-radius: var(--radius-card, var(--radius));
-  background: color-mix(in srgb, var(--card) 94%, var(--foreground) 3%);
 }
 
 html[data-theme="dark"] .insights-daily-review__header,
@@ -7338,8 +7334,8 @@ body[data-theme="dark"] .insights-daily-review__grid {
   gap: 10px;
 }
 
-html[data-theme="dark"] .insights-daily-review__card,
-body[data-theme="dark"] .insights-daily-review__card {
+html[data-theme="dark"] .insights-daily-kpi,
+body[data-theme="dark"] .insights-daily-kpi {
   min-width: 0;
   padding: 12px 13px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
@@ -7347,8 +7343,8 @@ body[data-theme="dark"] .insights-daily-review__card {
   background: color-mix(in srgb, var(--card) 91%, var(--foreground) 3%);
 }
 
-html[data-theme="dark"] .insights-daily-review__label,
-body[data-theme="dark"] .insights-daily-review__label {
+html[data-theme="dark"] .insights-daily-kpi__label,
+body[data-theme="dark"] .insights-daily-kpi__label {
   display: block;
   font-size: 10px;
   line-height: 1.1;
@@ -7358,8 +7354,8 @@ body[data-theme="dark"] .insights-daily-review__label {
   color: var(--muted-foreground);
 }
 
-html[data-theme="dark"] .insights-daily-review__value,
-body[data-theme="dark"] .insights-daily-review__value {
+html[data-theme="dark"] .insights-daily-kpi__value,
+body[data-theme="dark"] .insights-daily-kpi__value {
   display: block;
   margin-top: 8px;
   font-size: 18px;
@@ -7369,8 +7365,8 @@ body[data-theme="dark"] .insights-daily-review__value {
   color: var(--foreground);
 }
 
-html[data-theme="dark"] .insights-daily-review__meta,
-body[data-theme="dark"] .insights-daily-review__meta {
+html[data-theme="dark"] .insights-daily-kpi__meta,
+body[data-theme="dark"] .insights-daily-kpi__meta {
   display: block;
   margin-top: 8px;
   font-size: 12px;
@@ -7379,8 +7375,8 @@ body[data-theme="dark"] .insights-daily-review__meta {
   color: color-mix(in srgb, var(--foreground) 84%, var(--muted-foreground));
 }
 
-html[data-theme="dark"] .insights-daily-review__secondary,
-body[data-theme="dark"] .insights-daily-review__secondary {
+html[data-theme="dark"] .insights-daily-kpi__secondary,
+body[data-theme="dark"] .insights-daily-kpi__secondary {
   display: block;
   margin-top: 5px;
   font-size: 11px;
@@ -7388,28 +7384,28 @@ body[data-theme="dark"] .insights-daily-review__secondary {
   color: var(--muted-foreground);
 }
 
-html[data-theme="dark"] .insights-daily-review__meta--positive,
-body[data-theme="dark"] .insights-daily-review__meta--positive {
+html[data-theme="dark"] .insights-daily-kpi__meta--positive,
+body[data-theme="dark"] .insights-daily-kpi__meta--positive {
   color: color-mix(in srgb, var(--profit) 82%, var(--foreground));
 }
 
-html[data-theme="dark"] .insights-daily-review__meta--negative,
-body[data-theme="dark"] .insights-daily-review__meta--negative {
+html[data-theme="dark"] .insights-daily-kpi__meta--negative,
+body[data-theme="dark"] .insights-daily-kpi__meta--negative {
   color: color-mix(in srgb, var(--loss) 78%, var(--foreground));
 }
 
-html[data-theme="dark"] .insights-daily-review__card--positive .insights-daily-review__label,
-body[data-theme="dark"] .insights-daily-review__card--positive .insights-daily-review__label {
+html[data-theme="dark"] .insights-daily-kpi--positive .insights-daily-kpi__label,
+body[data-theme="dark"] .insights-daily-kpi--positive .insights-daily-kpi__label {
   color: color-mix(in srgb, var(--profit) 76%, var(--muted-foreground));
 }
 
-html[data-theme="dark"] .insights-daily-review__card--negative .insights-daily-review__label,
-body[data-theme="dark"] .insights-daily-review__card--negative .insights-daily-review__label {
+html[data-theme="dark"] .insights-daily-kpi--negative .insights-daily-kpi__label,
+body[data-theme="dark"] .insights-daily-kpi--negative .insights-daily-kpi__label {
   color: color-mix(in srgb, var(--loss) 72%, var(--muted-foreground));
 }
 
-html[data-theme="dark"] .insights-daily-review__card--warning .insights-daily-review__label,
-body[data-theme="dark"] .insights-daily-review__card--warning .insights-daily-review__label {
+html[data-theme="dark"] .insights-daily-kpi--warning .insights-daily-kpi__label,
+body[data-theme="dark"] .insights-daily-kpi--warning .insights-daily-kpi__label {
   color: color-mix(in srgb, var(--risk) 74%, var(--muted-foreground));
 }
 
