@@ -1,25 +1,6 @@
-import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, renderAuthorityNotice, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
-
-const accountMeshMarkup = () => `
-  <div class="account-card-blobs" aria-hidden="true">
-    <div class="account-card-blob blob-1"></div>
-    <div class="account-card-blob blob-2"></div>
-    <div class="account-card-blob blob-3"></div>
-    <div class="account-card-blob blob-4"></div>
-  </div>
-`;
-
-function accountStatusBadge(account) {
-  const isConnected = Boolean(account?.connection?.connected);
-  return `
-    <span class="status-badge">
-      <span class="status-dot ${isConnected ? "connected" : ""}"></span>
-      ${isConnected ? "Conectada" : "Desconectada"}
-    </span>
-  `;
-}
 
 function formatCapitalPercent(value, digits = 2) {
   const numericValue = Number(value || 0);
@@ -43,6 +24,19 @@ function renderCapitalKpi({ label, valueHtml, meta = "", tone = "neutral" }) {
       <strong class="capital-kpi__value">${valueHtml}</strong>
       ${meta ? `<span class="capital-kpi__meta">${meta}</span>` : ""}
     </article>
+  `;
+}
+
+function renderCapitalDataNotice(authorityMeta) {
+  const authority = authorityMeta?.authority || {};
+  const period = authority.firstTradeLabel
+    ? `${authority.firstTradeLabel}${authority.lastTradeLabel ? ` — ${authority.lastTradeLabel}` : ""}`
+    : "";
+  return `
+    <section class="capital-data-note" aria-label="Fuente de datos de Capital">
+      <span>Análisis basado en el ledger disponible de la cuenta activa.</span>
+      ${period ? `<span><strong>Periodo:</strong> ${period}.</span>` : ""}
+    </section>
   `;
 }
 
@@ -130,83 +124,89 @@ function renderCapitalEvolution({ account, series }) {
   `;
 }
 
-function renderPortfolioAccountCard(account, isMain) {
-  const display = resolveAccountDisplayIdentity(account);
+function accountCapitalStatus(account) {
+  const connection = account?.connection || {};
+  const sourceType = String(account?.sourceType || "").toLowerCase();
+  const hasSnapshot = Boolean(account?.dashboardPayload && typeof account.dashboardPayload === "object" && Object.keys(account.dashboardPayload).length);
+  if (connection.connected || connection.state === "connected") {
+    return { label: "Conectada", tone: "connected" };
+  }
+  if (connection.state === "connecting" || connection.isSyncing) {
+    return { label: "Sincronizando", tone: "warning" };
+  }
+  if (connection.state === "error") {
+    return { label: "Conexión parcial", tone: "warning" };
+  }
+  if (sourceType === "mock") {
+    return { label: "Demo", tone: "neutral" };
+  }
+  if (hasSnapshot) {
+    return { label: "Snapshot", tone: "info" };
+  }
+  return { label: "Desconectada", tone: "muted" };
+}
+
+function renderCapitalChip(label, tone = "neutral") {
+  if (!label) return "";
+  return `<span class="capital-account-card__chip" data-tone="${tone}">${label}</span>`;
+}
+
+function accountCardPnlValue(account) {
   const pnlSummary = resolveAccountPnlSummary(account);
-  const pnl = account?.sourceType === "mt5"
+  return account?.sourceType === "mt5"
     ? Number(pnlSummary.heroOpenPnl || 0)
     : Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
+}
+
+function renderPortfolioAccountCard(account, isCurrent) {
+  const display = resolveAccountDisplayIdentity(account);
+  const status = accountCapitalStatus(account);
+  const pnl = accountCardPnlValue(account);
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const winRate = Number(account?.model?.totals?.winRate || 0);
   const accountTypeLabel = getAccountTypeLabel(account?.model?.profile?.mode, account?.name);
-  const meta = isMain ? `${accountTypeLabel} · activa` : accountTypeLabel;
-  const cardInlineStyle = `min-height:${isMain ? "240px" : "188px"};box-shadow:none;filter:none;`;
-  const topInlineStyle = isMain
-    ? "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:22px;"
-    : "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:16px;";
-  const nameInlineStyle = isMain
-    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
-    : "font-size:14px;font-weight:700;letter-spacing:-0.01em;";
-  const metaInlineStyle = isMain
-    ? "font-size:12px;color:rgba(255,255,255,0.45);margin-top:3px;"
-    : "font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;";
-  const equityInlineStyle = isMain
-    ? "font-size:34px;font-weight:700;letter-spacing:-0.04em;line-height:1;margin-bottom:4px;"
-    : "font-size:22px;font-weight:700;letter-spacing:-0.03em;line-height:1;margin-bottom:3px;";
-  const equityLabelInlineStyle = isMain
-    ? "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:18px;"
-    : "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:14px;";
-  const statsInlineStyle = isMain
-    ? "display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;"
-    : "display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;";
-  const statLabelInlineStyle = isMain
-    ? "font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.38);margin-bottom:4px;"
-    : "font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,0.35);margin-bottom:3px;";
-  const statValueInlineStyle = isMain
-    ? "font-size:18px;font-weight:700;letter-spacing:-0.02em;"
-    : "font-size:15px;font-weight:700;letter-spacing:-0.01em;";
+  const subtitle = display.subtitle || [display.broker, display.server].filter(Boolean).join(" · ") || "Cuenta registrada";
 
   return `
     <button
-      class="account-card account-hero-card portfolio-account-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"}"
+      class="portfolio-account-card capital-account-card ${isCurrent ? "is-current" : ""}"
       data-portfolio-account-id="${account.id}"
-      data-portfolio-card-layout="dashboard"
-      data-portfolio-card-variant="uniform"
       type="button"
-      style="${cardInlineStyle}"
     >
-      ${accountMeshMarkup()}
-      <div class="account-hero-card__content">
-        <div class="account-hero-card__top" style="${topInlineStyle}">
-          <div>
-              <div class="account-hero-card__name" style="${nameInlineStyle}">${display.title}</div>
-            <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
-          </div>
-          ${accountStatusBadge(account)}
+      <div class="capital-account-card__identity">
+        <div>
+          <strong class="capital-account-card__name">${display.title}</strong>
+          <span class="capital-account-card__meta">${subtitle}</span>
         </div>
-        <div class="account-hero-card__equity" style="${equityInlineStyle}">${formatCurrency(account.model.account.equity)}</div>
-        <div class="account-hero-card__equity-label" style="${equityLabelInlineStyle}">Equity actual</div>
-        <div class="account-hero-card__stats" style="${statsInlineStyle}">
-          <div>
-            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">P&amp;L</div>
-            <div class="account-hero-card__stat-val ${pnl >= 0 ? "green" : "metric-negative"}" style="${statValueInlineStyle}">
-              ${pnlTextMarkup({
-                value: pnl,
-                text: formatCurrency(pnl),
-                className: pnl >= 0 ? "green" : "metric-negative",
-              })}
-            </div>
-          </div>
-          <div>
-            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
-            <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${winRate.toFixed(1)}%</div>
-          </div>
-          ${isMain ? `
-            <div>
-              <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Trades</div>
-              <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${trades}</div>
-            </div>
-          ` : ""}
+        <div class="capital-account-card__chips" aria-label="Estado de cuenta">
+          ${isCurrent ? renderCapitalChip("Activa", "info") : ""}
+          ${renderCapitalChip(accountTypeLabel, "neutral")}
+          ${renderCapitalChip(status.label, status.tone)}
+        </div>
+      </div>
+      <div class="capital-account-card__metrics">
+        <div class="capital-account-card__metric">
+          <span>Equity</span>
+          <strong>${formatCurrency(account.model.account.equity)}</strong>
+        </div>
+        <div class="capital-account-card__metric">
+          <span>P&amp;L</span>
+          <strong>
+            ${pnlTextMarkup({
+              value: pnl,
+              text: formatCurrency(pnl),
+              tone: capitalToneFromValue(pnl),
+              className: pnl > 0 ? "metric-positive" : pnl < 0 ? "metric-negative" : "",
+            })}
+          </strong>
+        </div>
+        <div class="capital-account-card__metric">
+          <span>Acierto</span>
+          <strong>${winRate.toFixed(1)}%</strong>
+        </div>
+        <div class="capital-account-card__metric">
+          <span>Operaciones</span>
+          <strong>${trades}</strong>
         </div>
       </div>
     </button>
@@ -230,7 +230,6 @@ export function renderPortfolio(root, state) {
     sourceUsed: "live_plus_derived_aggregate",
   });
 
-  const activeAccounts = accounts.filter((account) => account.connection.state === "connected" || account.connection.state === "connecting" || account.connection.state === "error");
   const totalBalance = accounts.reduce((sum, account) => sum + (account.model?.account?.balance || 0), 0);
   const totalEquity = accounts.reduce((sum, account) => sum + (account.model?.account?.equity || 0), 0);
   const accountPnl = accounts.map((account) => accountPnlValues(account));
@@ -273,7 +272,7 @@ export function renderPortfolio(root, state) {
         descriptionClassName: "tl-page-sub",
       })}
 
-      ${renderAuthorityNotice(authorityMeta)}
+      ${renderCapitalDataNotice(authorityMeta)}
 
       <section class="capital-overview" aria-label="Resumen de capital">
         ${renderCapitalKpi({
@@ -318,46 +317,41 @@ export function renderPortfolio(root, state) {
         })}
       </section>
 
-      <section class="capital-cashflow-note" aria-label="Estado de movimientos de capital">
-        <strong>Movimientos</strong>
-        <span>Depósitos y retiradas pendientes de modelar.</span>
-      </section>
-
       ${renderCapitalEvolution({ account: currentAccount, series: capitalSeries })}
 
-      <article class="tl-section-card capital-section" data-portfolio-render="equal-cards">
-        <div class="tl-section-header capital-section__header">
+      <section class="capital-cashflow-notice" aria-label="Estado de movimientos de capital">
+        Depósitos y retiradas pendientes de modelar.
+      </section>
+
+      <article class="capital-section capital-section--accounts" data-portfolio-render="equal-cards">
+        <div class="capital-section__header">
           <div>
-            <div class="tl-section-title">Capital por cuenta</div>
-            <div class="tl-section-sub">Lectura agregada por cuenta conectada.</div>
+            <h2 class="capital-section__title">Capital por cuenta</h2>
+            <p class="capital-section__description">Composición por cuenta conectada o registrada.</p>
           </div>
-          <span class="capital-section__pill">${activeAccounts.length} activas</span>
+          <span class="capital-section__pill">${accounts.length} registradas</span>
         </div>
         <div class="portfolio-account-grid capital-account-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
-          ${accounts.map((account) => renderPortfolioAccountCard(account, false)).join("")}
+          ${accounts.map((account) => renderPortfolioAccountCard(account, account.id === currentAccount.id)).join("")}
         </div>
       </article>
 
-      <article class="tl-section-card capital-section">
-        <div class="tl-section-header capital-section__header">
+      <article class="capital-section capital-section--exposure">
+        <div class="capital-section__header">
           <div>
-            <div class="tl-section-title">Exposición abierta</div>
-            <div class="tl-section-sub">Posiciones abiertas que afectan a la equity actual.</div>
+            <h2 class="capital-section__title">Exposición abierta</h2>
+            <p class="capital-section__description">Posiciones abiertas que afectan a la equity actual.</p>
           </div>
         </div>
-        <div class="table-wrap portfolio-table-wrap">
+        <div class="capital-exposure-table">
           <table>
             <thead>
               <tr>
                 <th>Cuenta</th>
                 <th>Símbolo</th>
                 <th>Tipo</th>
-                <th>Vol</th>
-                <th>Entrada</th>
-                <th>Actual</th>
-                <th>SL ref.</th>
-                <th>TP ref.</th>
-                <th>PnL</th>
+                <th>Volumen</th>
+                <th>P&amp;L</th>
                 <th>Apertura</th>
               </tr>
             </thead>
@@ -368,10 +362,6 @@ export function renderPortfolio(root, state) {
                   <td>${position.symbol}</td>
                   <td><span class="trade-side trade-side--${position.side.toLowerCase()}">${position.side}</span></td>
                   <td class="table-num">${position.volume}</td>
-                  <td class="table-num">${position.entry}</td>
-                  <td class="table-num">${position.current}</td>
-                  <td class="table-num">${position.sl}</td>
-                  <td class="table-num">${position.tp}</td>
                   <td class="table-num">
                     ${pnlTextMarkup({
                       value: position.pnl,
@@ -383,13 +373,12 @@ export function renderPortfolio(root, state) {
                 </tr>
               `).join("") : `
                 <tr>
-                  <td colspan="10" class="capital-table-empty">Sin exposición abierta.</td>
+                  <td colspan="6" class="capital-table-empty">Sin exposición abierta.</td>
                 </tr>
               `}
             </tbody>
           </table>
         </div>
-        <p class="capital-section__footnote">SL/TP se muestran como referencia cuando el snapshot no trae valores explícitos.</p>
       </article>
     </section>
   `;
