@@ -571,6 +571,13 @@ function getDashboardDrawdownKpiTone(drawdownPct) {
   return "neutral";
 }
 
+function normalizeDashboardRiskKpiTone(tone) {
+  const normalizedTone = String(tone || "").toLowerCase();
+  if (["breach", "blocked", "risk", "danger"].includes(normalizedTone)) return "risk";
+  if (normalizedTone === "warning") return "warning";
+  return "neutral";
+}
+
 function renderDashboardKpiValue({ key = "", value, valueClass = "", tone = "neutral", meta = "", trend = "" }) {
   const metaHtml = (meta || trend)
     ? `<span class="dashboard-kpi-card__meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" / ")}</span>`
@@ -625,11 +632,6 @@ function renderDashboardKpiCard({
 function setNodeHTML(root, selector, value) {
   const node = root.querySelector(selector);
   if (node) node.innerHTML = value;
-}
-
-function setNodeOuterHTML(root, selector, value) {
-  const node = root.querySelector(selector);
-  if (node) node.outerHTML = value;
 }
 
 function setNodeText(root, selector, value) {
@@ -714,6 +716,24 @@ function updateDashboardLiveNodes(root, payload) {
   setNodeText(root, '[data-dashboard-kpi="dd"] [data-kpi-meta]', payload.drawdownMeta);
   setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-value]', payload.edgeValue);
   setNodeText(root, '[data-dashboard-kpi="edge"] [data-kpi-meta]', payload.edgeMeta);
+  animateNumberContent(
+    root.querySelector('[data-dashboard-kpi="open-risk"] [data-kpi-value]'),
+    payload.openRiskKpiValue,
+    (value) => formatRiskValuePct(value, 2),
+    620,
+  );
+  const openRiskKpi = root.querySelector('[data-dashboard-kpi="open-risk"]');
+  if (openRiskKpi) openRiskKpi.setAttribute("data-tone", payload.openRiskKpiTone);
+  setNodeText(root, '[data-dashboard-kpi="open-risk"] [data-kpi-meta]', payload.openRiskKpiMeta);
+  animateNumberContent(
+    root.querySelector('[data-dashboard-kpi="positions"] [data-kpi-value]'),
+    payload.positionsValue,
+    (value) => String(Math.max(0, Math.round(value))),
+    420,
+  );
+  const positionsKpi = root.querySelector('[data-dashboard-kpi="positions"]');
+  if (positionsKpi) positionsKpi.setAttribute("data-tone", payload.positionsTone);
+  setNodeText(root, '[data-dashboard-kpi="positions"] [data-kpi-meta]', payload.positionsMeta);
 
   setNodeText(root, "[data-dashboard-operational-summary]", payload.operationalSummary);
   setNodeText(root, "[data-dashboard-risk-summary]", payload.riskSummary);
@@ -757,9 +777,6 @@ function updateDashboardLiveNodes(root, payload) {
   if (payload.openTradeRiskHtml != null) {
     setNodeHTML(root, "[data-dashboard-open-trade-risk-table]", payload.openTradeRiskHtml);
   }
-  if (payload.decisionLayerHtml != null) {
-    setNodeOuterHTML(root, "[data-dashboard-decision-layer-shell]", payload.decisionLayerHtml);
-  }
 }
 
 function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutral", valueAttr = "", metaAttr = "" }) {
@@ -772,16 +789,6 @@ function renderDashboardInlineRiskCard({ label, value, meta = "", tone = "neutra
   `;
 }
 
-const DASHBOARD_MIN_SAMPLE_TRADES = 5;
-
-function firstFiniteDashboardNumber(...values) {
-  for (const value of values) {
-    const numericValue = Number(value);
-    if (Number.isFinite(numericValue)) return numericValue;
-  }
-  return 0;
-}
-
 function escapeDashboardHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -789,295 +796,6 @@ function escapeDashboardHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-function formatSignedDashboardCurrency(value) {
-  const numericValue = Number(value || 0);
-  if (Math.abs(numericValue) < 0.005) return formatCurrency(0);
-  return `${numericValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(numericValue))}`;
-}
-
-function getDashboardDecisionTone(statusTitle) {
-  if (statusTitle === "Riesgo bajo control") return "success";
-  if (statusTitle === "Trader en control") return "success";
-  if (statusTitle === "Bajo presión") return "warning";
-  if (statusTitle === "Riesgo elevado" || statusTitle === "Protección activa") return "danger";
-  if (statusTitle === "Cuenta sin sincronizar") return "neutral";
-  if (statusTitle === "Sin muestra suficiente") return "warning";
-  if (statusTitle === "Sin posiciones abiertas") return "info";
-  return "neutral";
-}
-
-function hasReliableDashboardSnapshot({ model, account, authority, dashboardPayload }) {
-  if (!model || !account) return false;
-  const sourceType = String(account?.sourceType || "").toLowerCase();
-  if (sourceType !== "mt5") return true;
-
-  const connectionState = String(account?.connection?.state || "").toLowerCase();
-  const explicitlyDisconnected = ["disconnected", "offline", "error", "failed"].includes(connectionState);
-  const hasUsableSnapshot = Boolean(authority?.hasUsableLiveSnapshot);
-  const hasHistory = Number(authority?.historyPoints || 0) > 0 || Array.isArray(model?.equityCurve) && model.equityCurve.length > 0;
-  const hasTrades = Number(authority?.tradeCount || model?.totals?.totalTrades || 0) > 0;
-  const hasPositions = Number(model?.account?.openPositionsCount || 0) > 0 || Array.isArray(dashboardPayload?.positions) && dashboardPayload.positions.length > 0;
-  const hasFiniteEquity = Number.isFinite(Number(model?.account?.equity));
-
-  if (hasUsableSnapshot || hasHistory || hasTrades || hasPositions) return true;
-  return !explicitlyDisconnected && hasFiniteEquity;
-}
-
-function buildMissingDashboardDecisionSummary() {
-  return {
-    statusTitle: "Cuenta sin sincronizar",
-    statusDescription: "No hay una cuenta activa con datos suficientes para leer el estado.",
-    causeTitle: "No hay snapshot fiable todavía",
-    causeDescription: "El panel no tiene una fuente de datos válida para evaluar riesgo y rendimiento.",
-    controlKpis: [
-      { label: "Riesgo abierto", value: "—", meta: "Sin snapshot", tone: "neutral" },
-      { label: "Riesgo por trade", value: "—", meta: "Sin política", tone: "neutral" },
-      { label: "DD diario", value: "—", meta: "Sin lectura", tone: "neutral" },
-      { label: "Posiciones", value: "—", meta: "Sin sincronizar", tone: "neutral" },
-      { label: "Restricción", value: "Sin dato", meta: "Cuenta pendiente", tone: "warning" },
-    ],
-    actionTitle: "Sincroniza la cuenta",
-    actionDescription: "Conecta o sincroniza una cuenta para evaluar el estado.",
-    tone: "warning",
-    signature: "missing-account",
-  };
-}
-
-function buildDashboardDecisionSummary({
-  model,
-  account,
-  authority,
-  dashboardPayload,
-  performanceView,
-  riskStatus,
-  riskSummary,
-  riskLimits,
-  primaryDistanceToLimit,
-  hasOpenPositions,
-  panelSecondMetricValue,
-  panelSecondMetricLabel,
-}) {
-  const reliableSnapshot = hasReliableDashboardSnapshot({ model, account, authority, dashboardPayload });
-  const totalTrades = Number(model?.totals?.totalTrades || model?.trades?.length || 0);
-  const winRate = Number(model?.totals?.winRate || 0);
-  const profitFactor = Number(model?.totals?.profitFactor || 0);
-  const currentDrawdownPct = firstFiniteDashboardNumber(
-    riskSummary?.floatingDrawdownPct,
-    riskSummary?.peakToEquityDrawdownPct,
-    0
-  );
-  const dailyDrawdownPct = firstFiniteDashboardNumber(riskSummary?.dailyDrawdownPct, 0);
-  const dailyLimitPct = Number(riskLimits?.policy?.dailyDdLimitPct || 0);
-  const totalOpenRiskPct = Number(riskSummary?.totalOpenRiskPct || 0);
-  const maxOpenTradeRiskPct = Number(riskSummary?.maxOpenTradeRiskPct || 0);
-  const maxRiskPerTradePct = Number(riskSummary?.maxRiskPerTradePct || 0);
-  const riskState = String(riskStatus?.riskStatus || "").toLowerCase();
-  const severity = String(riskStatus?.severity || "").toLowerCase();
-  const explicitRiskBreach = Boolean(
-    riskStatus?.riskBreach ||
-    riskStatus?.breach ||
-    riskStatus?.isBreach ||
-    riskSummary?.riskBreach ||
-    riskSummary?.breach
-  );
-  const hardEnforcement = Boolean(
-    riskStatus?.blockNewTrades ||
-    riskStatus?.reduceSize ||
-    riskStatus?.closePositionsRequired ||
-    explicitRiskBreach ||
-    ["blocked", "breach"].includes(riskState) ||
-    severity === "critical"
-  );
-  const nearDailyLimit = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.85;
-  const dailyPressure = dailyLimitPct > 0 && dailyDrawdownPct >= dailyLimitPct * 0.6;
-  const distanceIsKnown = Number.isFinite(Number(primaryDistanceToLimit)) && Number(primaryDistanceToLimit) > 0;
-  const riskSignalActive = hasOpenPositions || dailyDrawdownPct > 0 || currentDrawdownPct > 0 || hardEnforcement;
-  const lowRiskMargin = riskSignalActive && distanceIsKnown && Number(primaryDistanceToLimit) <= 0.35;
-  const openRiskElevated = hasOpenPositions && totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25);
-  const openRiskPressure = hasOpenPositions && totalOpenRiskPct > 0 && totalOpenRiskPct >= Math.max(maxRiskPerTradePct || 0.5, 0.75);
-  const tradeRiskPressure = hasOpenPositions && maxRiskPerTradePct > 0 && maxOpenTradeRiskPct >= maxRiskPerTradePct * 0.8;
-  const sampleIsEnough = totalTrades >= DASHBOARD_MIN_SAMPLE_TRADES;
-  const performancePressure = sampleIsEnough && (
-    Number(panelSecondMetricValue || 0) < 0 &&
-    ((Number.isFinite(profitFactor) && profitFactor > 0 && profitFactor < 1) || winRate < 45)
-  );
-  const elevatedRisk = hardEnforcement || nearDailyLimit || lowRiskMargin || openRiskElevated || currentDrawdownPct >= 5;
-  const underPressure = riskState === "warning" || dailyPressure || openRiskPressure || tradeRiskPressure || performancePressure || currentDrawdownPct >= 2;
-
-  const summary = {
-    equityText: formatCurrency(model?.account?.equity || 0),
-    pnlLabel: panelSecondMetricLabel || "PnL",
-    pnlValue: Number(panelSecondMetricValue || 0),
-    pnlText: formatSignedDashboardCurrency(panelSecondMetricValue),
-    currentDrawdownText: formatRiskValuePct(currentDrawdownPct, 2),
-    dailyDrawdownText: formatRiskValuePct(dailyDrawdownPct, 2),
-    openRiskText: hasOpenPositions
-      ? `${formatRiskValuePct(totalOpenRiskPct, 2)} · ${Number(performanceView?.openPositionsCount || 0)} posiciones`
-      : "Sin exposición",
-    sampleText: `${totalTrades} trades · WR ${totalTrades > 0 ? formatPercent(winRate / 100) : "—"}`,
-    edgeText: Number.isFinite(profitFactor) && profitFactor > 0 ? `PF ${profitFactor.toFixed(2)}` : "PF —",
-  };
-  const openPositionsCount = Number(performanceView?.openPositionsCount || 0);
-  const restrictionActive = hardEnforcement || riskState === "warning";
-  const restrictionLabel = hardEnforcement
-    ? riskStateDisplayLabel(riskStatus?.riskStatus)
-    : riskState === "warning"
-      ? "En vigilancia"
-      : "Sin restricción";
-  const restrictionMeta = hardEnforcement
-    ? "Restricción activa"
-    : riskState === "warning"
-      ? "Riesgo moderado"
-      : "Operativa disponible";
-  const controlKpis = [
-    {
-      label: "Riesgo abierto",
-      value: hasOpenPositions ? formatRiskValuePct(totalOpenRiskPct, 2) : formatRiskValuePct(0, 2),
-      meta: hasOpenPositions ? `${formatRiskCurrency(riskSummary?.totalOpenRiskAmount)} abiertos` : "Sin exposición viva",
-      tone: totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25) ? "danger" : totalOpenRiskPct > 0 ? "warning" : "neutral",
-    },
-    {
-      label: "Riesgo por trade",
-      value: hasOpenPositions ? formatRiskValuePct(maxOpenTradeRiskPct, 2) : formatRiskValuePct(0, 2),
-      meta: `Política ${formatRiskValuePct(maxRiskPerTradePct, 2)}`,
-      tone: tradeRiskPressure ? "danger" : maxOpenTradeRiskPct > 0 ? "warning" : "neutral",
-    },
-    {
-      label: "DD diario",
-      value: formatRiskValuePct(dailyDrawdownPct, 2),
-      meta: dailyLimitPct > 0 ? `Límite ${formatRiskValuePct(dailyLimitPct, 2)}` : "Sin límite diario",
-      tone: nearDailyLimit ? "danger" : dailyPressure ? "warning" : "neutral",
-    },
-    {
-      label: "Posiciones",
-      value: String(openPositionsCount),
-      meta: hasOpenPositions ? "Exposición viva" : "Sin exposición viva",
-      tone: hasOpenPositions ? "info" : "neutral",
-    },
-    {
-      label: "Restricción",
-      value: restrictionLabel,
-      meta: restrictionMeta,
-      tone: hardEnforcement ? "danger" : restrictionActive ? "warning" : "neutral",
-    },
-  ];
-
-  let statusTitle = "Riesgo bajo control";
-  let statusDescription = "Riesgo y rendimiento no muestran una presión dominante.";
-  let causeTitle = "Sin presión operativa";
-  let causeDescription = "No hay una señal urgente por riesgo, drawdown o exposición.";
-  let actionTitle = "Mantén el proceso";
-  let actionDescription = "Mantén riesgo actual y sigue registrando.";
-
-  if (!reliableSnapshot) {
-    statusTitle = "Cuenta sin sincronizar";
-    statusDescription = "La cuenta no tiene un snapshot fiable para evaluar el estado.";
-    causeTitle = "Cuenta sin snapshot fiable";
-    causeDescription = "Falta una fuente reciente de equity, posiciones o histórico.";
-    actionTitle = "Sincroniza la cuenta";
-    actionDescription = "Sincroniza la cuenta antes de evaluar el estado.";
-  } else if (elevatedRisk) {
-    statusTitle = hardEnforcement ? "Protección activa" : "Riesgo elevado";
-    statusDescription = hardEnforcement
-      ? "Hay una restricción activa para contener el riesgo."
-      : "Hay una señal interna que exige proteger la cuenta.";
-    causeTitle = hardEnforcement ? "Risk Engine limitando exposición" : nearDailyLimit ? "Drawdown diario cerca del límite" : lowRiskMargin ? "Margen de riesgo estrecho" : "Exposición abierta elevada";
-    causeDescription = hardEnforcement
-      ? "La cuenta tiene restricciones activas por riesgo, drawdown o exposición."
-      : "Riesgo, drawdown o distancia a límites requieren atención.";
-    actionTitle = hardEnforcement ? "Sigue la restricción activa" : hasOpenPositions ? "Reduce exposición" : "Pausa y revisa";
-    actionDescription = hardEnforcement
-      ? "Mantén la restricción activa antes de abrir o aumentar exposición."
-      : hasOpenPositions
-        ? "Reduce exposición antes de abrir nuevos trades."
-        : "Revisa límites antes de tomar nuevas decisiones.";
-  } else if (!sampleIsEnough) {
-    statusTitle = "Sin muestra suficiente";
-    statusDescription = "Todavía no hay suficientes trades cerrados para juzgar rendimiento.";
-    causeTitle = "Muestra insuficiente";
-    causeDescription = `${totalTrades} de ${DASHBOARD_MIN_SAMPLE_TRADES} trades mínimos para una lectura estable.`;
-    actionTitle = "Sigue registrando";
-    actionDescription = "No saques conclusiones hasta tener más muestra.";
-  } else if (underPressure) {
-    statusTitle = "Bajo presión";
-    statusDescription = "Hay presión moderada por drawdown, riesgo abierto o margen.";
-    causeTitle = dailyPressure ? "Drawdown diario cerca del límite" : openRiskPressure ? "Exposición abierta elevada" : performancePressure ? "Rendimiento reciente débil" : "Riesgo moderado activo";
-    causeDescription = "La cuenta sigue operativa, pero el margen de maniobra es menor.";
-    actionTitle = hasOpenPositions ? "Revisa exposición" : performancePressure ? "Revisa la muestra" : "Opera con cautela";
-    actionDescription = hasOpenPositions
-      ? "Revisa posiciones abiertas con mayor riesgo."
-      : performancePressure
-        ? "Revisa la muestra antes de aumentar exposición."
-      : "Mantén tamaño controlado y prioriza calidad de ejecución.";
-  } else if (!hasOpenPositions) {
-    statusTitle = "Sin posiciones abiertas";
-    statusDescription = "No hay riesgo vivo ahora mismo; la cuenta está en reposo.";
-    causeTitle = "Sin presión operativa";
-    causeDescription = "La exposición abierta es cero y no hay restricción activa.";
-    actionTitle = "Prepara la sesión";
-    actionDescription = "Mantén seguimiento y espera una nueva oportunidad válida.";
-  }
-
-  const tone = getDashboardDecisionTone(statusTitle);
-  const controlKpiSignature = controlKpis
-    .map((item) => `${item.label}:${item.value}:${item.meta}:${item.tone}`)
-    .join("|");
-
-  return {
-    ...summary,
-    controlKpis,
-    statusTitle,
-    statusDescription,
-    causeTitle,
-    causeDescription,
-    actionTitle,
-    actionDescription,
-    tone,
-    signature: JSON.stringify({
-      statusTitle,
-      statusDescription,
-      causeTitle,
-      actionTitle,
-      actionDescription,
-      controlKpis: controlKpiSignature,
-    }),
-  };
-}
-
-function renderDashboardDecisionLayer(summary) {
-  const statusTone = getDashboardDecisionTone(summary.statusTitle);
-
-  return `
-    <section class="dashboard-control-strip" data-dashboard-decision-layer-shell data-tone="${escapeDashboardHtml(statusTone)}">
-      <header class="dashboard-control-strip__header">
-        <div class="dashboard-control-strip__status">
-          <p class="dashboard-control-strip__eyebrow">CONTROL DE CUENTA</p>
-          <div class="dashboard-control-strip__title-row">
-            <h2 class="dashboard-control-strip__title">${escapeDashboardHtml(summary.statusTitle)}</h2>
-            <span class="dashboard-control-strip__badge" data-tone="${escapeDashboardHtml(summary.tone)}">${escapeDashboardHtml(summary.causeTitle)}</span>
-          </div>
-          <p class="dashboard-control-strip__description">${escapeDashboardHtml(summary.statusDescription)}</p>
-        </div>
-        <div class="dashboard-control-strip__action">
-          <span>Siguiente paso</span>
-          <strong>${escapeDashboardHtml(summary.actionTitle)}</strong>
-          <p>${escapeDashboardHtml(summary.actionDescription)}</p>
-        </div>
-      </header>
-
-      <div class="dashboard-control-kpis" aria-label="KPIs operativos de cuenta">
-        ${(summary.controlKpis || []).map((item) => `
-          <article class="dashboard-control-kpi" data-tone="${escapeDashboardHtml(item.tone || "neutral")}">
-            <span class="dashboard-control-kpi__label">${escapeDashboardHtml(item.label)}</span>
-            <strong class="dashboard-control-kpi__value">${escapeDashboardHtml(item.value)}</strong>
-            <span class="dashboard-control-kpi__meta">${escapeDashboardHtml(item.meta || "")}</span>
-          </article>
-        `).join("")}
-      </div>
-    </section>
-  `;
 }
 
 function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsCount }) {
@@ -1343,7 +1061,6 @@ export function renderDashboard(root, state) {
           actionsClassName: "dashboard-screen__actions",
           actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
         })}
-        ${renderDashboardDecisionLayer(buildMissingDashboardDecisionSummary())}
       </section>
     `;
     root.__dashboardRendered = true;
@@ -1650,24 +1367,15 @@ export function renderDashboard(root, state) {
   const hasExposureSignal = Array.isArray(riskExposure.symbolExposure) && riskExposure.symbolExposure.length > 0;
   const hasOpenTradeRisk = Array.isArray(riskExposure.openTradeRisks) && riskExposure.openTradeRisks.length > 0;
   const hasOpenPositions = Number(performanceView.openPositionsCount || 0) > 0;
-  const dashboardDecision = buildDashboardDecisionSummary({
-    model,
-    account,
-    authority,
-    dashboardPayload,
-    performanceView,
-    riskStatus,
-    riskSummary,
-    riskLimits,
-    primaryDistanceToLimit,
-    hasOpenPositions,
-    panelSecondMetricValue,
-    panelSecondMetricLabel,
-  });
-  const dashboardDecisionLayerHtml = renderDashboardDecisionLayer(dashboardDecision);
-  const dashboardSubtitle = hasOpenPositions
-    ? "Capital, riesgo y estado operativo de un vistazo."
-    : "Capital, riesgo y estado operativo de un vistazo. Sin posiciones abiertas.";
+  const openPositionsCount = Number(performanceView.openPositionsCount || 0);
+  const hasOpenRisk = Number(riskSummary.totalOpenRiskPct || 0) > 0;
+  const openRiskKpiTone = normalizeDashboardRiskKpiTone(postureTone);
+  const openRiskKpiMeta = hasOpenPositions || hasOpenRisk
+    ? formatRiskCurrency(riskSummary.totalOpenRiskAmount)
+    : "Sin exposición viva";
+  const positionsTone = hasOpenPositions ? "info" : "neutral";
+  const positionsMeta = hasOpenPositions ? "Abiertas ahora" : "Sin abiertas";
+  const dashboardSubtitle = "Capital, riesgo y estado operativo de un vistazo.";
   console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
     selectedAccountId: account?.id || activeAccountId || "",
     currentAccount: state.currentAccount,
@@ -1794,10 +1502,11 @@ export function renderDashboard(root, state) {
     edge: Number(model?.totals?.profitFactor || 0),
     heroDelta: Number(heroDelta || 0),
     openRisk: Number(riskSummary.totalOpenRiskPct || 0),
+    openRiskAmount: Number(riskSummary.totalOpenRiskAmount || 0),
     tradeRisk: Number(riskSummary.maxOpenTradeRiskPct || 0),
+    positions: openPositionsCount,
     dailyDd: Number(riskSummary.dailyDrawdownPct || 0),
     margin: Number(primaryDistanceToLimit || 0),
-    decision: dashboardDecision.signature,
     symbolExposure: (riskExposure.symbolExposure || []).map((item) => ({
       symbol: item.symbol || "",
       risk: Number(item.risk_pct || 0),
@@ -1823,7 +1532,13 @@ export function renderDashboard(root, state) {
     drawdownTone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
     drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
     edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-    edgeMeta: `Profit Factor · ${Number(model?.totals?.totalTrades || 0)} trades`,
+    edgeMeta: `${Number(model?.totals?.totalTrades || 0)} trades`,
+    openRiskKpiValue: Number(riskSummary.totalOpenRiskPct || 0),
+    openRiskKpiMeta,
+    openRiskKpiTone,
+    positionsValue: openPositionsCount,
+    positionsMeta,
+    positionsTone,
     operationalSummary: operationalRead.summary,
     riskSummary: riskPostureRead.summary,
     hasOpenPositions,
@@ -1841,7 +1556,6 @@ export function renderDashboard(root, state) {
     riskFoot: riskPostureRead.detail,
     exposureTableHtml: hasExposureSignal ? renderSymbolExposureTable(riskExposure.symbolExposure) : null,
     openTradeRiskHtml: hasOpenTradeRisk ? renderOpenTradeRiskTable(riskExposure.openTradeRisks) : null,
-    decisionLayerHtml: dashboardDecisionLayerHtml,
   };
 
   if (root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
@@ -1869,9 +1583,7 @@ export function renderDashboard(root, state) {
         actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
       })}
 
-      ${dashboardDecisionLayerHtml}
-
-      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row">
+      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview">
         ${renderDashboardKpiCard({
           key: "equity",
           label: "Equity",
@@ -1903,12 +1615,30 @@ export function renderDashboard(root, state) {
         })}
         ${renderDashboardKpiCard({
           key: "edge",
-          label: "Edge",
+          label: "Profit Factor",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-          meta: `Profit Factor · ${Number(model?.totals?.totalTrades || 0)} trades`,
+          meta: `${Number(model?.totals?.totalTrades || 0)} trades`,
           cardClass: "dashboard-kpi-support",
           tone: "neutral",
           badge: "PF",
+          trendTone: "neutral",
+        })}
+        ${renderDashboardKpiCard({
+          key: "open-risk",
+          label: "Riesgo abierto",
+          value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
+          meta: openRiskKpiMeta,
+          tone: openRiskKpiTone,
+          badge: "Riesgo",
+          trendTone: "neutral",
+        })}
+        ${renderDashboardKpiCard({
+          key: "positions",
+          label: "Posiciones",
+          value: String(openPositionsCount),
+          meta: positionsMeta,
+          tone: positionsTone,
+          badge: "Ahora",
           trendTone: "neutral",
         })}
       </section>
@@ -1934,6 +1664,7 @@ export function renderDashboard(root, state) {
           </div>
         </article>
 
+        ${hasOpenPositions ? `
         <div class="dashboard-secondary-stack dashboard-state-grid">
           <article class="kmfx-ui-card dashboard-state-card dashboard-secondary-card" data-dashboard-state-card="operational">
             <header class="dashboard-state-card__header dashboard-secondary-card__head">
@@ -1941,10 +1672,9 @@ export function renderDashboard(root, state) {
                 <h2 class="dashboard-state-card__title">Estado operativo</h2>
                 <p class="dashboard-state-card__description" data-dashboard-operational-summary>${operationalRead.summary}</p>
               </div>
-              ${hasOpenPositions ? renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity) : ""}
+              ${renderRiskStatusBadge(riskStatus.riskStatus, riskStatus.severity)}
             </header>
 
-            ${hasOpenPositions ? `
               <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics">
                 ${renderDashboardInlineRiskCard({
                   label: "DD diario",
@@ -1972,21 +1702,11 @@ export function renderDashboard(root, state) {
                 })}
               </div>
 
-              ${operationalRead.footer ? `
-                <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
-                  <span data-dashboard-operational-foot>${operationalRead.footer}</span>
-                </div>
-              ` : ""}
-            ` : `
-              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderDashboardInlineRiskCard({
-                  label: "Estado",
-                  value: "Sin posiciones abiertas",
-                  meta: "Sin riesgo activo.",
-                  tone: "neutral",
-                })}
+            ${operationalRead.footer ? `
+              <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
+                <span data-dashboard-operational-foot>${operationalRead.footer}</span>
               </div>
-            `}
+            ` : ""}
           </article>
 
           <article class="kmfx-ui-card dashboard-state-card dashboard-secondary-card" data-dashboard-state-card="risk">
@@ -1996,40 +1716,30 @@ export function renderDashboard(root, state) {
                 <p class="dashboard-state-card__description" data-dashboard-risk-summary>${riskPostureRead.summary}</p>
               </div>
             </header>
-            ${hasOpenPositions ? `
-              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderDashboardInlineRiskCard({
-                  label: "Riesgo abierto",
-                  value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
-                  meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
-                  tone: postureTone,
-                  valueAttr: 'data-dashboard-risk-open-value',
-                  metaAttr: 'data-dashboard-risk-open-meta',
-                })}
-                ${renderDashboardInlineRiskCard({
-                  label: "Riesgo por trade",
-                  value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
-                  meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
-                  tone: postureTone,
-                  valueAttr: 'data-dashboard-risk-trade-value',
-                  metaAttr: 'data-dashboard-risk-trade-meta',
-                })}
-              </div>
-              <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
-                <span data-dashboard-risk-foot>${riskPostureRead.detail}</span>
-              </div>
-            ` : `
-              <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
-                ${renderDashboardInlineRiskCard({
-                  label: "Exposición",
-                  value: "Sin exposición",
-                  meta: "Sin posiciones abiertas.",
-                  tone: "neutral",
-                })}
-              </div>
-            `}
+            <div class="dashboard-state-card__metrics dashboard-secondary-card__metrics dashboard-secondary-card__metrics--two">
+              ${renderDashboardInlineRiskCard({
+                label: "Riesgo abierto",
+                value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
+                meta: formatRiskCurrency(riskSummary.totalOpenRiskAmount),
+                tone: postureTone,
+                valueAttr: 'data-dashboard-risk-open-value',
+                metaAttr: 'data-dashboard-risk-open-meta',
+              })}
+              ${renderDashboardInlineRiskCard({
+                label: "Riesgo por trade",
+                value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
+                meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
+                tone: postureTone,
+                valueAttr: 'data-dashboard-risk-trade-value',
+                metaAttr: 'data-dashboard-risk-trade-meta',
+              })}
+            </div>
+            <div class="dashboard-state-card__foot dashboard-secondary-card__foot">
+              <span data-dashboard-risk-foot>${riskPostureRead.detail}</span>
+            </div>
           </article>
         </div>
+        ` : ""}
       </section>
 
       ${hasExposureSignal ? `
