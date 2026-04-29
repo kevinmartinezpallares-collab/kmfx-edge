@@ -798,19 +798,13 @@ function formatSignedDashboardCurrency(value) {
 }
 
 function getDashboardDecisionTone(statusTitle) {
+  if (statusTitle === "Riesgo bajo control") return "success";
   if (statusTitle === "Trader en control") return "success";
   if (statusTitle === "Bajo presión") return "warning";
   if (statusTitle === "Riesgo elevado" || statusTitle === "Protección activa") return "danger";
   if (statusTitle === "Cuenta sin sincronizar") return "neutral";
   if (statusTitle === "Sin muestra suficiente") return "warning";
   if (statusTitle === "Sin posiciones abiertas") return "info";
-  return "neutral";
-}
-
-function getDashboardActionTone(statusTitle) {
-  if (statusTitle === "Riesgo elevado" || statusTitle === "Protección activa") return "danger";
-  if (statusTitle === "Bajo presión" || statusTitle === "Sin muestra suficiente") return "warning";
-  if (statusTitle === "Trader en control" || statusTitle === "Sin posiciones abiertas") return "info";
   return "neutral";
 }
 
@@ -831,50 +825,19 @@ function hasReliableDashboardSnapshot({ model, account, authority, dashboardPayl
   return !explicitlyDisconnected && hasFiniteEquity;
 }
 
-function buildDashboardEvidenceHtml(summary) {
-  return `
-    <dl class="dashboard-decision-compact__evidence">
-      <div>
-        <dt>Equity</dt>
-        <dd>${escapeDashboardHtml(summary.equityText)}</dd>
-      </div>
-      <div>
-        <dt>PnL neto</dt>
-        <dd>${pnlTextMarkup({ value: summary.pnlValue, text: summary.pnlText })}</dd>
-      </div>
-      <div>
-        <dt>DD actual</dt>
-        <dd>${escapeDashboardHtml(summary.currentDrawdownText)}</dd>
-      </div>
-      <div>
-        <dt>Daily DD</dt>
-        <dd>${escapeDashboardHtml(summary.dailyDrawdownText)}</dd>
-      </div>
-      <div>
-        <dt>Riesgo abierto</dt>
-        <dd>${escapeDashboardHtml(summary.openRiskText)}</dd>
-      </div>
-      <div>
-        <dt>Muestra</dt>
-        <dd>${escapeDashboardHtml(summary.sampleText)}</dd>
-      </div>
-      <div>
-        <dt>Edge</dt>
-        <dd>${escapeDashboardHtml(summary.edgeText)}</dd>
-      </div>
-    </dl>
-  `;
-}
-
 function buildMissingDashboardDecisionSummary() {
   return {
     statusTitle: "Cuenta sin sincronizar",
     statusDescription: "No hay una cuenta activa con datos suficientes para leer el estado.",
     causeTitle: "No hay snapshot fiable todavía",
     causeDescription: "El panel no tiene una fuente de datos válida para evaluar riesgo y rendimiento.",
-    evidenceTitle: "Sin datos suficientes",
-    evidenceDescription: "Falta una muestra operativa para interpretar la cuenta.",
-    evidenceHtml: "",
+    controlKpis: [
+      { label: "Riesgo abierto", value: "—", meta: "Sin snapshot", tone: "neutral" },
+      { label: "Riesgo por trade", value: "—", meta: "Sin política", tone: "neutral" },
+      { label: "DD diario", value: "—", meta: "Sin lectura", tone: "neutral" },
+      { label: "Posiciones", value: "—", meta: "Sin sincronizar", tone: "neutral" },
+      { label: "Restricción", value: "Sin dato", meta: "Cuenta pendiente", tone: "warning" },
+    ],
     actionTitle: "Sincroniza la cuenta",
     actionDescription: "Conecta o sincroniza una cuenta para evaluar el estado.",
     tone: "warning",
@@ -956,8 +919,52 @@ function buildDashboardDecisionSummary({
     sampleText: `${totalTrades} trades · WR ${totalTrades > 0 ? formatPercent(winRate / 100) : "—"}`,
     edgeText: Number.isFinite(profitFactor) && profitFactor > 0 ? `PF ${profitFactor.toFixed(2)}` : "PF —",
   };
+  const openPositionsCount = Number(performanceView?.openPositionsCount || 0);
+  const restrictionActive = hardEnforcement || riskState === "warning";
+  const restrictionLabel = hardEnforcement
+    ? riskStateDisplayLabel(riskStatus?.riskStatus)
+    : riskState === "warning"
+      ? "En vigilancia"
+      : "Sin restricción";
+  const restrictionMeta = hardEnforcement
+    ? "Restricción activa"
+    : riskState === "warning"
+      ? "Riesgo moderado"
+      : "Operativa disponible";
+  const controlKpis = [
+    {
+      label: "Riesgo abierto",
+      value: hasOpenPositions ? formatRiskValuePct(totalOpenRiskPct, 2) : formatRiskValuePct(0, 2),
+      meta: hasOpenPositions ? `${formatRiskCurrency(riskSummary?.totalOpenRiskAmount)} abiertos` : "Sin exposición viva",
+      tone: totalOpenRiskPct >= Math.max(maxRiskPerTradePct * 1.5, 1.25) ? "danger" : totalOpenRiskPct > 0 ? "warning" : "neutral",
+    },
+    {
+      label: "Riesgo por trade",
+      value: hasOpenPositions ? formatRiskValuePct(maxOpenTradeRiskPct, 2) : formatRiskValuePct(0, 2),
+      meta: `Política ${formatRiskValuePct(maxRiskPerTradePct, 2)}`,
+      tone: tradeRiskPressure ? "danger" : maxOpenTradeRiskPct > 0 ? "warning" : "neutral",
+    },
+    {
+      label: "DD diario",
+      value: formatRiskValuePct(dailyDrawdownPct, 2),
+      meta: dailyLimitPct > 0 ? `Límite ${formatRiskValuePct(dailyLimitPct, 2)}` : "Sin límite diario",
+      tone: nearDailyLimit ? "danger" : dailyPressure ? "warning" : "neutral",
+    },
+    {
+      label: "Posiciones",
+      value: String(openPositionsCount),
+      meta: hasOpenPositions ? "Exposición viva" : "Sin exposición viva",
+      tone: hasOpenPositions ? "info" : "neutral",
+    },
+    {
+      label: "Restricción",
+      value: restrictionLabel,
+      meta: restrictionMeta,
+      tone: hardEnforcement ? "danger" : restrictionActive ? "warning" : "neutral",
+    },
+  ];
 
-  let statusTitle = "Trader en control";
+  let statusTitle = "Riesgo bajo control";
   let statusDescription = "Riesgo y rendimiento no muestran una presión dominante.";
   let causeTitle = "Sin presión operativa";
   let causeDescription = "No hay una señal urgente por riesgo, drawdown o exposición.";
@@ -970,7 +977,7 @@ function buildDashboardDecisionSummary({
     causeTitle = "Cuenta sin snapshot fiable";
     causeDescription = "Falta una fuente reciente de equity, posiciones o histórico.";
     actionTitle = "Sincroniza la cuenta";
-    actionDescription = "Sincroniza cuenta antes de evaluar el estado.";
+    actionDescription = "Sincroniza la cuenta antes de evaluar el estado.";
   } else if (elevatedRisk) {
     statusTitle = hardEnforcement ? "Protección activa" : "Riesgo elevado";
     statusDescription = hardEnforcement
@@ -1014,71 +1021,60 @@ function buildDashboardDecisionSummary({
   }
 
   const tone = getDashboardDecisionTone(statusTitle);
-  const evidenceDescription = [
-    summary.equityText,
-    summary.pnlText,
-    `DD actual ${summary.currentDrawdownText}`,
-    `Daily DD ${summary.dailyDrawdownText}`,
-    summary.openRiskText,
-    summary.sampleText,
-    summary.edgeText,
-  ].join(" | ");
+  const controlKpiSignature = controlKpis
+    .map((item) => `${item.label}:${item.value}:${item.meta}:${item.tone}`)
+    .join("|");
 
   return {
     ...summary,
+    controlKpis,
     statusTitle,
     statusDescription,
     causeTitle,
     causeDescription,
-    evidenceTitle: "Datos clave",
-    evidenceDescription: "Muestra compacta de capital, riesgo y rendimiento.",
-    evidenceHtml: buildDashboardEvidenceHtml(summary),
     actionTitle,
     actionDescription,
     tone,
     signature: JSON.stringify({
       statusTitle,
+      statusDescription,
       causeTitle,
       actionTitle,
-      evidenceDescription,
+      actionDescription,
+      controlKpis: controlKpiSignature,
     }),
   };
 }
 
 function renderDashboardDecisionLayer(summary) {
-  const actionTone = getDashboardActionTone(summary.statusTitle);
+  const statusTone = getDashboardDecisionTone(summary.statusTitle);
 
   return `
-    <section class="dashboard-decision-compact" data-dashboard-decision-layer-shell>
-      <header class="dashboard-decision-compact__header">
-        <p class="dashboard-decision-compact__eyebrow">LECTURA OPERATIVA</p>
-        <h2 class="dashboard-decision-compact__title">Estado actual de la cuenta</h2>
-        <p class="dashboard-decision-compact__description">Riesgo, rendimiento y exposición resumidos en una sola lectura.</p>
+    <section class="dashboard-control-strip" data-dashboard-decision-layer-shell data-tone="${escapeDashboardHtml(statusTone)}">
+      <header class="dashboard-control-strip__header">
+        <div class="dashboard-control-strip__status">
+          <p class="dashboard-control-strip__eyebrow">CONTROL DE CUENTA</p>
+          <div class="dashboard-control-strip__title-row">
+            <h2 class="dashboard-control-strip__title">${escapeDashboardHtml(summary.statusTitle)}</h2>
+            <span class="dashboard-control-strip__badge" data-tone="${escapeDashboardHtml(summary.tone)}">${escapeDashboardHtml(summary.causeTitle)}</span>
+          </div>
+          <p class="dashboard-control-strip__description">${escapeDashboardHtml(summary.statusDescription)}</p>
+        </div>
+        <div class="dashboard-control-strip__action">
+          <span>Siguiente paso</span>
+          <strong>${escapeDashboardHtml(summary.actionTitle)}</strong>
+          <p>${escapeDashboardHtml(summary.actionDescription)}</p>
+        </div>
       </header>
 
-      <div class="dashboard-decision-compact__grid">
-        <article class="dashboard-decision-compact__cell" data-role="estado" data-tone="${escapeDashboardHtml(summary.tone)}">
-          <span class="dashboard-decision-compact__label">Situación</span>
-          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.statusTitle)}</strong>
-          <p>${escapeDashboardHtml(summary.statusDescription)}</p>
-        </article>
-
-        <article class="dashboard-decision-compact__cell" data-role="causa" data-tone="neutral">
-          <span class="dashboard-decision-compact__label">Motivo</span>
-          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.causeTitle)}</strong>
-          <p>${escapeDashboardHtml(summary.causeDescription)}</p>
-        </article>
-
-        <article class="dashboard-decision-compact__cell dashboard-decision-compact__cell--evidence" data-role="evidencia" data-tone="neutral">
-          <span class="dashboard-decision-compact__label">Datos clave</span>
-          ${summary.evidenceHtml}
-        </article>
-
-        <article class="dashboard-decision-compact__cell" data-role="accion" data-tone="${escapeDashboardHtml(actionTone)}">
-          <span class="dashboard-decision-compact__label">Siguiente paso</span>
-          <strong class="dashboard-decision-compact__cell-title">${escapeDashboardHtml(summary.actionTitle)}</strong>
-          <p>${escapeDashboardHtml(summary.actionDescription)}</p>
-        </article>
+      <div class="dashboard-control-kpis" aria-label="KPIs operativos de cuenta">
+        ${(summary.controlKpis || []).map((item) => `
+          <article class="dashboard-control-kpi" data-tone="${escapeDashboardHtml(item.tone || "neutral")}">
+            <span class="dashboard-control-kpi__label">${escapeDashboardHtml(item.label)}</span>
+            <strong class="dashboard-control-kpi__value">${escapeDashboardHtml(item.value)}</strong>
+            <span class="dashboard-control-kpi__meta">${escapeDashboardHtml(item.meta || "")}</span>
+          </article>
+        `).join("")}
       </div>
     </section>
   `;
