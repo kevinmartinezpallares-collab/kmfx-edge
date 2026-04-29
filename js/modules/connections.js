@@ -222,275 +222,6 @@ function renderConnectionsKpis(accounts = []) {
   `;
 }
 
-function firstFiniteNumber(...values) {
-  for (const value of values) {
-    if (value === null || value === undefined || value === "") continue;
-    const numericValue = Number(value);
-    if (Number.isFinite(numericValue)) return numericValue;
-  }
-  return null;
-}
-
-function resolveActiveRegistryAccount(registryAccounts = [], activeAccountId = "", activeAccount = null) {
-  const exact = registryAccounts.find((account) => account?.account_id === activeAccountId || account?.account_id === activeAccount?.id);
-  if (exact) return exact;
-
-  const activeLogin = String(activeAccount?.login || activeAccount?.model?.account?.login || activeAccount?.dashboardPayload?.login || "").trim();
-  const activeServer = String(activeAccount?.meta?.server || activeAccount?.server || activeAccount?.dashboardPayload?.server || "").trim();
-  if (activeLogin) {
-    const byLogin = registryAccounts.find((account) => {
-      const loginMatches = String(account?.login || account?.mt5_login || "").trim() === activeLogin;
-      const serverMatches = !activeServer || !account?.server || String(account.server).trim() === activeServer;
-      return loginMatches && serverMatches;
-    });
-    if (byLogin) return byLogin;
-  }
-
-  return registryAccounts[0] || null;
-}
-
-function resolveActiveAccountLastSync(account = {}, activeAccount = null, isActiveMatch = false) {
-  return (
-    account.last_sync_at ||
-    account.lastSyncAt ||
-    (isActiveMatch ? activeAccount?.connection?.lastSync : "") ||
-    (isActiveMatch ? activeAccount?.dashboardPayload?.last_sync_at : "") ||
-    (isActiveMatch ? activeAccount?.dashboardPayload?.lastSyncAt : "") ||
-    (isActiveMatch ? activeAccount?.dashboardPayload?.timestamp : "") ||
-    ""
-  );
-}
-
-function resolveActiveAccountStatus(account = {}, activeAccount = null, isActiveMatch = false) {
-  if (account.status) return String(account.status);
-  if (!isActiveMatch) return "";
-  if (activeAccount?.connection?.connected) return "connected";
-  return activeAccount?.connection?.state || "";
-}
-
-function isRecentSync(value = "") {
-  if (!value) return false;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return false;
-  return Date.now() - parsed.getTime() <= 30 * 60 * 1000;
-}
-
-function resolveDataSourceLabel({ account = {}, activeAccount = null, registrySource = "empty", isActiveMatch = false } = {}) {
-  const safeAccount = account || {};
-  const payloadSource = isActiveMatch
-    ? String(activeAccount?.dashboardPayload?.payloadSource || activeAccount?.model?.sourceTrace?.payloadSource || "")
-    : "";
-  const connectionMode = String(safeAccount.connection_mode || safeAccount.connectionMode || activeAccount?.connectionMode || activeAccount?.meta?.connectionMode || "").trim();
-
-  if (payloadSource === "mt5_sync_live") {
-    return {
-      label: "Live MT5",
-      detail: "Snapshot sincronizado desde MT5",
-    };
-  }
-
-  if (registrySource === "snapshot") {
-    return {
-      label: "Snapshot",
-      detail: "Dato recuperado del último snapshot",
-    };
-  }
-
-  if (registrySource === "registry") {
-    return {
-      label: "Registro",
-      detail: connectionMode ? `Modo ${connectionMode}` : "Cuenta registrada en backend",
-    };
-  }
-
-  if (activeAccount?.sourceType === "mt5") {
-    return {
-      label: "Snapshot MT5",
-      detail: "Dato MT5 disponible parcialmente",
-    };
-  }
-
-  return {
-    label: "Demo",
-    detail: "Dato de muestra local",
-  };
-}
-
-function resolveReliabilityLabel(status = "", lastSyncAt = "", registrySource = "empty") {
-  const normalizedStatus = String(status || "").toLowerCase();
-  const hasSync = Boolean(lastSyncAt);
-
-  if (isConnectedStatus(normalizedStatus) && isRecentSync(lastSyncAt)) {
-    return {
-      label: "Dato reciente",
-      detail: `Actualizada ${relativeTime(lastSyncAt)}`,
-      tone: "connected",
-    };
-  }
-
-  if (isConnectedStatus(normalizedStatus) && hasSync) {
-    return {
-      label: "Snapshot disponible",
-      detail: `Última sincronización ${relativeTime(lastSyncAt)}`,
-      tone: "neutral",
-    };
-  }
-
-  if (["waiting_sync", "linked", "pending_setup", "pending", "pending_link", "draft"].includes(normalizedStatus)) {
-    return {
-      label: "Conexión parcial",
-      detail: "Esperando primera sincronización",
-      tone: "waiting",
-    };
-  }
-
-  if (hasSync || registrySource === "snapshot") {
-    return {
-      label: "Snapshot disponible",
-      detail: hasSync ? `Última actividad ${relativeTime(lastSyncAt)}` : "Sin marca temporal fiable",
-      tone: "neutral",
-    };
-  }
-
-  return {
-    label: "Sin sincronización reciente",
-    detail: "Revisa la conexión si esperabas dato live",
-    tone: "stale",
-  };
-}
-
-function renderActiveAccountMetric({ label, valueHtml, meta = "" }) {
-  return `
-    <div class="connections-active-account__metric">
-      <span class="connections-active-account__metric-label">${escapeHtml(label)}</span>
-      <strong class="connections-active-account__metric-value">${valueHtml}</strong>
-      ${meta ? `<span class="connections-active-account__metric-meta">${escapeHtml(meta)}</span>` : ""}
-    </div>
-  `;
-}
-
-function renderMoneyValue(value, currency = "") {
-  return Number.isFinite(value) ? escapeHtml(formatCurrency(value, currency)) : "—";
-}
-
-function renderPnlValue(value, currency = "", className = "") {
-  if (!Number.isFinite(value)) return "—";
-  return pnlTextMarkup({
-    value,
-    text: formatCurrency(value, currency),
-    className,
-  });
-}
-
-function renderActiveAccountLayer(registryAccounts = [], activeAccountId = "", activeAccount = null, registrySource = "empty") {
-  const account = resolveActiveRegistryAccount(registryAccounts, activeAccountId, activeAccount);
-  if (!account && !activeAccount) return "";
-
-  const isActiveMatch = Boolean(account?.account_id && activeAccount?.id === account.account_id);
-  const status = resolveActiveAccountStatus(account || {}, activeAccount, isActiveMatch);
-  const lastSyncAt = resolveActiveAccountLastSync(account || {}, activeAccount, isActiveMatch);
-  const statusMeta = accountStatusMeta(status, lastSyncAt);
-  const source = resolveDataSourceLabel({ account, activeAccount, registrySource, isActiveMatch });
-  const reliability = resolveReliabilityLabel(status, lastSyncAt, registrySource);
-  const currency = account?.currency || account?.account_currency || activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency || "";
-
-  const title = (
-    account?.alias ||
-    account?.display_name ||
-    activeAccount?.meta?.nickname ||
-    activeAccount?.dashboardPayload?.nickname ||
-    activeAccount?.name ||
-    account?.login ||
-    activeAccount?.login ||
-    "Cuenta MT5"
-  );
-  const broker = account?.broker || activeAccount?.broker || activeAccount?.dashboardPayload?.broker || "";
-  const server = account?.server || activeAccount?.meta?.server || activeAccount?.dashboardPayload?.server || "";
-  const platform = account?.platform || activeAccount?.platform || activeAccount?.meta?.platform || "mt5";
-  const login = resolveAccountPrimaryLabel(account || {}, activeAccount);
-  const accountType = resolveAccountSecondaryLabel(account || {}, activeAccount);
-  const brokerServer = [broker, server].filter(Boolean).join(" / ");
-  const identityMeta = [
-    login && login !== title ? login : "",
-    brokerServer,
-  ].filter(Boolean).join(" · ");
-  const balance = firstFiniteNumber(
-    account?.balance,
-    account?.account_balance,
-    isActiveMatch ? activeAccount?.model?.account?.balance : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.balance : null
-  );
-  const equity = firstFiniteNumber(
-    account?.equity,
-    account?.account_equity,
-    isActiveMatch ? activeAccount?.model?.account?.equity : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.equity : null
-  );
-  const openPnl = firstFiniteNumber(
-    account?.open_pnl,
-    account?.openPnl,
-    account?.floating_pnl,
-    account?.floatingPnl,
-    isActiveMatch ? activeAccount?.model?.account?.openPnl : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.openPnl : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.floatingPnl : null
-  );
-  const totalPnl = firstFiniteNumber(
-    account?.total_pnl,
-    account?.totalPnl,
-    account?.pnl,
-    isActiveMatch ? activeAccount?.model?.account?.totalPnl : null,
-    isActiveMatch ? activeAccount?.model?.totals?.pnl : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.totalPnl : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.pnl : null,
-    isActiveMatch ? activeAccount?.dashboardPayload?.closedPnl : null
-  );
-  const chips = [
-    platform ? String(platform).toUpperCase() : "",
-    accountType,
-  ].filter(Boolean);
-  const uniqueChips = [...new Set(chips)];
-
-  return `
-    <section class="connections-active-account" aria-labelledby="connections-active-account-title">
-      <div class="connections-active-account__identity">
-        <div class="connections-active-account__heading">
-          <h2 class="connections-active-account__title" id="connections-active-account-title">Cuenta activa</h2>
-          <span class="connections-account-status connections-account-status--${escapeHtml(statusMeta.tone)}">${escapeHtml(statusMeta.label)}</span>
-        </div>
-        <div class="connections-active-account__name">${escapeHtml(title)}</div>
-        ${identityMeta ? `<div class="connections-active-account__login">${escapeHtml(identityMeta)}</div>` : ""}
-        <div class="connections-active-account__chips" aria-label="Contexto de cuenta">
-          ${uniqueChips.map((chip) => `<span class="connections-active-account__chip">${escapeHtml(chip)}</span>`).join("")}
-        </div>
-        <div class="connections-active-account__status-line" aria-label="Estado del dato de cuenta activa">
-          <span class="connections-active-account__status-pill connections-active-account__status-pill--${escapeHtml(reliability.tone)}">${escapeHtml(reliability.label)}</span>
-          <span class="connections-active-account__status-pill">${escapeHtml(source.label)}</span>
-          <span class="connections-active-account__status-muted">${escapeHtml(lastSyncAt ? relativeTime(lastSyncAt) : source.detail)}</span>
-        </div>
-      </div>
-      <div class="connections-active-account__metrics" aria-label="Valores básicos de cuenta activa">
-        ${renderActiveAccountMetric({
-          label: "Balance",
-          valueHtml: renderMoneyValue(balance, currency),
-        })}
-        ${renderActiveAccountMetric({
-          label: "Equity",
-          valueHtml: renderMoneyValue(equity, currency),
-        })}
-        ${renderActiveAccountMetric({
-          label: "P&L abierto",
-          valueHtml: renderPnlValue(openPnl, currency, "connections-active-account__pnl"),
-        })}
-        ${renderActiveAccountMetric({
-          label: "P&L total",
-          valueHtml: renderPnlValue(totalPnl, currency, "connections-active-account__pnl"),
-        })}
-      </div>
-    </section>
-  `;
-}
-
 function isAdminUser(state) {
   return state?.auth?.user?.is_admin === true;
 }
@@ -790,22 +521,14 @@ function renderEmptyState(root) {
 
 function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, openMenuAccountId = "") {
   return `
-    <div class="connections-account-list__section">
-      <div class="connections-account-list__header">
-        <div>
-          <h2 class="connections-account-list__title">Cuentas conectadas</h2>
-          <p class="connections-account-list__description">Cuentas disponibles para análisis y gestión del panel.</p>
-        </div>
-      </div>
-      <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
-        ${registryAccounts.map((account) => renderAccountCard(account, {
-            isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
-            activeAccount,
-            menuOpen: openMenuAccountId === account.account_id,
-            adminOpen: adminVisible && adminState.open,
-            adminState,
-          })).join("")}
-      </div>
+    <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
+      ${registryAccounts.map((account) => renderAccountCard(account, {
+          isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
+          activeAccount,
+          menuOpen: openMenuAccountId === account.account_id,
+          adminOpen: adminVisible && adminState.open,
+          adminState,
+        })).join("")}
     </div>
   `;
 }
@@ -844,22 +567,20 @@ function renderAccountAdminPanel(account, adminState) {
   `;
 }
 
-function resolveAccountCurrency(account, activeAccount = null) {
-  return account.currency || account.account_currency || activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency || "";
-}
+function resolveAccountBalanceLabel(account, activeAccount = null) {
+  const registryBalance = Number(account.balance ?? account.equity ?? account.account_balance ?? account.account_equity);
+  if (Number.isFinite(registryBalance)) {
+    return formatCurrency(registryBalance, account.currency || account.account_currency);
+  }
 
-function resolveAccountBalanceValue(account, activeAccount = null) {
-  return firstFiniteNumber(
-    account.balance,
-    account.account_balance,
-    activeAccount?.id === account.account_id ? activeAccount?.model?.account?.balance : null,
-    activeAccount?.id === account.account_id ? activeAccount?.dashboardPayload?.balance : null
-  );
-}
+  if (activeAccount?.id === account.account_id) {
+    const liveBalance = Number(activeAccount?.model?.account?.balance ?? activeAccount?.dashboardPayload?.balance);
+    if (Number.isFinite(liveBalance)) {
+      return formatCurrency(liveBalance, activeAccount?.model?.account?.currency || activeAccount?.dashboardPayload?.currency);
+    }
+  }
 
-function resolveAccountMoneyLabel(value, account, activeAccount = null) {
-  if (!Number.isFinite(value)) return "—";
-  return formatCurrency(value, resolveAccountCurrency(account, activeAccount));
+  return "Sin balance";
 }
 
 function resolveAccountPnlValue(account, activeAccount = null) {
@@ -934,63 +655,50 @@ function resolveAccountMetaLine(account, activeAccount = null) {
   return "Cuenta disponible";
 }
 
-function renderAccountFact({ label, valueHtml, meta = "" }) {
-  return `
-    <div class="connections-account-row__fact">
-      <span>${escapeHtml(label)}</span>
-      <strong>${valueHtml}</strong>
-      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
-    </div>
-  `;
-}
-
 function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
-  const lastSyncAt = account.last_sync_at || account.lastSyncAt || "";
-  const meta = accountStatusMeta(account.status, lastSyncAt);
-  const balanceValue = resolveAccountBalanceValue(account, activeAccount);
-  const balanceLabel = resolveAccountMoneyLabel(balanceValue, account, activeAccount);
+  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
+  const statusLine = isActive ? "Activa en panel" : meta.label;
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
   const accountTag = secondaryLabel === "Funded" || secondaryLabel === "Challenge" ? secondaryLabel : "Real";
-  const platform = account.platform || activeAccount?.platform || activeAccount?.meta?.platform || "mt5";
-  const title = account.alias || account.display_name || primaryLabel;
-  const brokerServer = [account.broker, account.server || resolveAccountMetaLine(account, activeAccount)].filter(Boolean).join(" / ");
-  const identityMeta = [
-    title !== primaryLabel ? primaryLabel : "",
-    brokerServer,
-  ].filter(Boolean).join(" · ");
-  const statusSyncLabel = lastSyncAt ? relativeTime(lastSyncAt) : "Sin sincronización reciente";
+  const metaLine = resolveAccountMetaLine(account, activeAccount);
+  const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
 
   return `
-    <article class="widget-card connections-account-card connections-account-row ${isActive ? "is-active" : ""}">
-      <div class="connections-account-row__layout">
-        <div class="connections-account-row__identity">
-          <div class="connections-account-row__title-line">
-            <div class="connections-account-row__title">${escapeHtml(title)}</div>
-            ${isActive ? `<span class="connections-account-row__active-badge">Activa en panel</span>` : ""}
-          </div>
-          <div class="connections-account-row__meta">${escapeHtml(identityMeta || "Cuenta disponible")}</div>
-          <div class="connections-account-row__chips" aria-label="Contexto de cuenta">
-            <span>${escapeHtml(accountTag)}</span>
-            <span>${escapeHtml(String(platform).toUpperCase())}</span>
-          </div>
+    <article class="widget-card connections-account-card">
+      <div class="connections-account-card__layout">
+        <div class="connections-account-card__identity">
+          <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
+          <div class="row-sub">${escapeHtml(metaLine)}</div>
         </div>
-        <div class="connections-account-row__status-summary">
-          <span class="connections-account-status connections-account-status--${escapeHtml(meta.tone)}">${escapeHtml(meta.label)}</span>
-          <span class="connections-account-row__sync">${escapeHtml(statusSyncLabel)}</span>
+        <div class="connections-account-card__metric connections-account-card__metric--tag">
+          <div class="metric-label">Etiqueta</div>
+          <div class="row-sub connections-account-card__tag-text">${escapeHtml(accountTag)}</div>
         </div>
-        <div class="connections-account-row__financials">
-          ${renderAccountFact({ label: "Balance", valueHtml: escapeHtml(balanceLabel) })}
-          ${renderAccountFact({
-            label: "P&L",
-            valueHtml: pnlTextMarkup({
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Estado</div>
+          <div class="row-sub">${escapeHtml(statusLine)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Última sincronización</div>
+          <div class="row-sub">${escapeHtml(lastSyncLabel)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">Balance actual</div>
+          <div class="connections-account-card__metric-value">${escapeHtml(balanceLabel)}</div>
+        </div>
+        <div class="connections-account-card__metric">
+          <div class="metric-label">PnL actual</div>
+          <div class="connections-account-card__metric-value connections-account-card__pnl connections-account-card__pnl--${pnl.tone}">
+            ${pnlTextMarkup({
               value: pnl.value,
               text: pnl.label,
               tone: pnl.tone === "positive" ? "profit" : pnl.tone === "negative" ? "loss" : "neutral",
-              className: `connections-account-card__pnl connections-account-card__pnl--${pnl.tone}`,
-            }),
-          })}
+              className: `connections-account-card__pnl--${pnl.tone}`,
+            })}
+          </div>
         </div>
         <div class="connections-account-card__actions">
           <button
@@ -1252,9 +960,11 @@ export function renderConnections(root, state) {
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader({ adminVisible, adminState })}
-      ${renderActiveAccountLayer(registryAccounts, activeAccountId, activeAccount, registrySource)}
       ${renderConnectionsKpis(registryAccounts)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
+        <div class="calendar-panel-head">
+          <div class="dashboard-risk-block__title">Cuentas conectadas</div>
+        </div>
         ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState.openMenuAccountId)}
       </section>
     </div>
