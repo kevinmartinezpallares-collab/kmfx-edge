@@ -11,7 +11,7 @@ const pageTitle = {
   strategies: "Estrategias",
   funded: "Funded",
   market: "Mercado",
-  portfolio: "Portfolio",
+  portfolio: "Capital",
   glossary: "Glosario",
   debug: "Debug",
   settings: "Ajustes"
@@ -30,7 +30,7 @@ const pageContext = {
   strategies: "Catálogo de setups y validación",
   funded: "Seguimiento de cuenta fondeada y progreso de fases",
   market: "Watchlist, régimen y catalizadores",
-  portfolio: "Asignación entre cuentas y mandatos",
+  portfolio: "Gestión económica de capital y evolución por cuenta",
   glossary: "Glosario de métricas y definiciones",
   debug: "Diagnóstico local y contexto de restauración",
   settings: "Preferencias locales del frontend"
