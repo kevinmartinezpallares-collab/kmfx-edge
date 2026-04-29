@@ -20746,6 +20746,59 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-profile-menu-item.dang
 }
 /* FIN BLOQUE: unified-menu-glass */
 
+/* INICIO BLOQUE: connections-account-menu-compact */
+html[data-theme="dark"] .connections-account-card__menu,
+body[data-theme="dark"] .connections-account-card__menu {
+  top: calc(100% + 6px);
+  min-width: 148px !important;
+  width: max-content;
+  max-width: min(184px, calc(100vw - 32px));
+  padding: 5px !important;
+  gap: 3px;
+  border-radius: 11px !important;
+  background: rgba(20, 20, 23, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.075) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18) !important;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item,
+body[data-theme="dark"] .connections-account-card__menu-item {
+  min-height: 32px !important;
+  padding: 0 9px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  line-height: 1.1;
+  font-weight: 560 !important;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item:hover:not(:disabled),
+body[data-theme="dark"] .connections-account-card__menu-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item:focus-visible,
+body[data-theme="dark"] .connections-account-card__menu-item:focus-visible {
+  background: rgba(10, 132, 255, 0.14) !important;
+  color: var(--text-0) !important;
+  outline: 1px solid rgba(10, 132, 255, 0.48) !important;
+  outline-offset: 1px;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item--danger,
+body[data-theme="dark"] .connections-account-card__menu-item--danger {
+  color: color-mix(in srgb, var(--negative) 88%, #ffffff 12%) !important;
+}
+
+html[data-theme="dark"] .connections-account-card__menu-item--danger:hover:not(:disabled),
+body[data-theme="dark"] .connections-account-card__menu-item--danger:hover:not(:disabled),
+html[data-theme="dark"] .connections-account-card__menu-item--danger:focus-visible,
+body[data-theme="dark"] .connections-account-card__menu-item--danger:focus-visible {
+  background: rgba(255, 69, 58, 0.1) !important;
+  color: color-mix(in srgb, var(--negative) 92%, #ffffff 8%) !important;
+}
+/* FIN BLOQUE: connections-account-menu-compact */
+
 /* Shell tonal finish — controlled base refinement only */
 html,
 html[data-theme="dark"],
