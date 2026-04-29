@@ -15684,8 +15684,8 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card--blocked .risk-metri
 
 html[data-theme="dark"] .app-disclaimer-footer,
 body[data-theme="dark"] .app-disclaimer-footer {
-  margin-top: var(--dashboard-space-lg);
-  padding-top: var(--dashboard-space-sm);
+  margin-top: auto;
+  padding-top: 0;
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel,
@@ -21199,10 +21199,17 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.si
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
   padding-left: 0;
   padding-right: 0;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .page.active,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .page.active {
+  flex: 0 0 auto;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
