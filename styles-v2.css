@@ -3634,6 +3634,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .capital-page__header {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .capital-page .tl-page-title::before,
@@ -3722,6 +3724,12 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.capital-data-note {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .capital-data-note strong {
@@ -3898,13 +3906,21 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   align-items: start;
 }
 
+.capital-account-card__identity > div:first-child {
+  min-width: 0;
+}
+
 .capital-account-card__name {
-  display: block;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--foreground);
   font-size: 14px;
   line-height: 1.2;
   font-weight: 720;
   letter-spacing: -0.015em;
+  word-break: break-word;
 }
 
 .capital-account-card__meta {
@@ -3920,6 +3936,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
+  max-width: min(46%, 220px);
 }
 
 .capital-account-card__chip {
@@ -4061,6 +4078,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
   .capital-account-card__chips {
     justify-content: flex-start;
+    max-width: none;
   }
 
   .capital-account-card__metrics {

@@ -76,6 +76,24 @@ function normalizeCapitalSeries(account) {
     .filter(Boolean);
 }
 
+function compactCapitalAxisLabel(label) {
+  const text = String(label || "");
+  if (!text) return "";
+  const date = new Date(text);
+  if (!Number.isNaN(date.getTime()) && /\d{4}|\d{2}\/\d{2}|\d{2}-\d{2}/.test(text)) {
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  }
+  return text.length > 11 ? `${text.slice(0, 10)}…` : text;
+}
+
+function capitalXAxisLabel(label, index, labels = []) {
+  const total = labels.length;
+  if (total <= 3) return compactCapitalAxisLabel(label);
+  const lastIndex = total - 1;
+  const midpoint = Math.round(lastIndex / 2);
+  return index === 0 || index === midpoint || index === lastIndex ? compactCapitalAxisLabel(label) : "";
+}
+
 function renderCapitalEvolution({ account, series }) {
   const display = resolveAccountDisplayIdentity(account);
   if (!series.length || series.length < 2) {
@@ -158,6 +176,51 @@ function accountCardPnlValue(account) {
     : Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
 }
 
+function buildCapitalRenderSignature({
+  accounts,
+  currentAccount,
+  authorityMeta,
+  totals,
+  globalPositions,
+  capitalSeries,
+  viewportKey,
+}) {
+  const theme = document.documentElement.dataset.theme || document.body.dataset.theme || "";
+  return JSON.stringify({
+    theme,
+    viewportKey,
+    currentAccountId: currentAccount?.id || "",
+    period: [
+      authorityMeta?.authority?.firstTradeLabel || "",
+      authorityMeta?.authority?.lastTradeLabel || "",
+    ],
+    totals,
+    accounts: accounts.map((account) => ({
+      id: account.id,
+      title: resolveAccountDisplayIdentity(account).title,
+      subtitle: resolveAccountDisplayIdentity(account).subtitle,
+      status: accountCapitalStatus(account).label,
+      equity: Number(account?.model?.account?.equity || 0),
+      pnl: accountCardPnlValue(account),
+      trades: Number(account?.model?.totals?.totalTrades || 0),
+      winRate: Number(account?.model?.totals?.winRate || 0),
+    })),
+    positions: globalPositions.map((position) => ({
+      accountName: position.accountName,
+      symbol: position.symbol,
+      side: position.side,
+      volume: position.volume,
+      pnl: Number(position.pnl || 0),
+      openedAt: position.openedAt || "",
+    })),
+    series: capitalSeries.map((point) => ({
+      label: point.label,
+      value: Number(point.value || 0),
+      timestamp: point.timestamp || "",
+    })),
+  });
+}
+
 function renderPortfolioAccountCard(account, isCurrent) {
   const display = resolveAccountDisplayIdentity(account);
   const status = accountCapitalStatus(account);
@@ -216,6 +279,7 @@ function renderPortfolioAccountCard(account, isCurrent) {
 export function renderPortfolio(root, state) {
   const accounts = Object.values(state.accounts);
   if (!accounts.length) {
+    root.__capitalRenderSignature = "";
     root.innerHTML = "";
     return;
   }
@@ -249,7 +313,10 @@ export function renderPortfolio(root, state) {
           tone: "blue",
           showXAxis: true,
           showYAxis: true,
+          autoSkipXTicks: false,
+          maxXTicks: 3,
           maxYTicks: 4,
+          xAxisFormatter: capitalXAxisLabel,
           formatter: (value) => formatCurrency(value),
           axisFormatter: (value) => formatCurrency(value),
           fill: true,
@@ -258,6 +325,28 @@ export function renderPortfolio(root, state) {
       ]
     : [];
   const isMobileViewport = window.innerWidth <= 768;
+  const viewportKey = isMobileViewport ? "mobile" : "desktop";
+  const totalsSignature = {
+    totalBalance,
+    totalEquity,
+    floatingPnl,
+    totalPnl,
+    totalTrades,
+    drawdownPct,
+  };
+  const renderSignature = buildCapitalRenderSignature({
+    accounts,
+    currentAccount,
+    authorityMeta,
+    totals: totalsSignature,
+    globalPositions,
+    capitalSeries,
+    viewportKey,
+  });
+  if (root.__capitalRenderSignature === renderSignature) {
+    return;
+  }
+  root.__capitalRenderSignature = renderSignature;
   const gridInlineStyle = isMobileViewport
     ? "display:grid;grid-template-columns:1fr;gap:10px;"
     : "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;";
