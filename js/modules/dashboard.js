@@ -1372,9 +1372,16 @@ export function renderDashboard(root, state) {
   const openRiskKpiTone = normalizeDashboardRiskKpiTone(postureTone);
   const openRiskKpiMeta = hasOpenPositions || hasOpenRisk
     ? formatRiskCurrency(riskSummary.totalOpenRiskAmount)
-    : "Sin exposición viva";
+    : "Sin exposición";
+  const exposureLeader = hasExposureSignal ? riskExposure.symbolExposure[0] : null;
+  const exposureLeaderMeta = exposureLeader?.symbol
+    ? `${exposureLeader.symbol} / ${formatRiskValuePct(exposureLeader.risk_pct, 2)}`
+    : "Exposición viva";
   const positionsTone = hasOpenPositions ? "info" : "neutral";
-  const positionsMeta = hasOpenPositions ? "Abiertas ahora" : "Sin abiertas";
+  const positionsMeta = hasOpenPositions ? exposureLeaderMeta : "Sin exposición viva";
+  const totalTradesCount = Number(model?.totals?.totalTrades || 0);
+  const winRateMeta = totalTradesCount > 0 ? formatPercent(Number(model?.totals?.winRate || 0) / 100) : "—";
+  const profitFactorMeta = `${totalTradesCount} trades / WR ${winRateMeta}`;
   const dashboardSubtitle = "Capital, riesgo y estado operativo de un vistazo.";
   console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
     selectedAccountId: account?.id || activeAccountId || "",
@@ -1500,6 +1507,8 @@ export function renderDashboard(root, state) {
     pnl: Number(panelSecondMetricValue || 0),
     drawdown: Number(riskSummary.peakToEquityDrawdownPct || 0),
     edge: Number(model?.totals?.profitFactor || 0),
+    totalTrades: totalTradesCount,
+    winRate: Number(model?.totals?.winRate || 0),
     heroDelta: Number(heroDelta || 0),
     openRisk: Number(riskSummary.totalOpenRiskPct || 0),
     openRiskAmount: Number(riskSummary.totalOpenRiskAmount || 0),
@@ -1532,7 +1541,7 @@ export function renderDashboard(root, state) {
     drawdownTone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
     drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
     edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-    edgeMeta: `${Number(model?.totals?.totalTrades || 0)} trades`,
+    edgeMeta: profitFactorMeta,
     openRiskKpiValue: Number(riskSummary.totalOpenRiskPct || 0),
     openRiskKpiMeta,
     openRiskKpiTone,
@@ -1617,7 +1626,7 @@ export function renderDashboard(root, state) {
           key: "edge",
           label: "Profit Factor",
           value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-          meta: `${Number(model?.totals?.totalTrades || 0)} trades`,
+          meta: profitFactorMeta,
           cardClass: "dashboard-kpi-support",
           tone: "neutral",
           badge: "PF",
