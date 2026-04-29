@@ -632,11 +632,36 @@ function renderOpenPositionRow(position) {
 
 function renderPositionFocusKv(label, valueHtml) {
   return `
-    <div class="trades-position-focus__item">
-      <span class="trades-position-focus__label">${label}</span>
-      <span class="trades-position-focus__value">${valueHtml}</span>
+    <div class="trades-position-kv__item">
+      <span class="trades-position-kv__label">${label}</span>
+      <span class="trades-position-kv__value">${valueHtml}</span>
     </div>
   `;
+}
+
+function renderPositionFocusState(label, valueHtml, tone = "neutral") {
+  return `
+    <div class="trades-position-state__item" data-tone="${escapeHtml(tone)}">
+      <span class="trades-position-state__label">${label}</span>
+      <span class="trades-position-state__value">${valueHtml}</span>
+    </div>
+  `;
+}
+
+function renderPositionRiskItem(label, valueHtml) {
+  return `
+    <div class="trades-position-risk__item">
+      <span class="trades-position-risk__label">${label}</span>
+      <span class="trades-position-risk__value">${valueHtml}</span>
+    </div>
+  `;
+}
+
+function hasPositionProtectionValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text || text === "—") return false;
+  const normalizedNumber = Number(text.replace(",", "."));
+  return !Number.isFinite(normalizedNumber) || normalizedNumber !== 0;
 }
 
 function addLongPress(element, callback, delay = 500) {
@@ -798,6 +823,12 @@ function showTradeContextMenu(trade) {
 
 function showPositionContextMenu(position) {
   if (!position) return;
+  const hasStopLoss = hasPositionProtectionValue(position.sl);
+  const floatingPnlMarkup = pnlTextMarkup({
+    value: position.pnl,
+    text: formatCurrency(position.pnl),
+    className: position.pnl >= 0 ? "metric-positive" : "metric-negative"
+  });
   openFocusPanel({
     title: position.symbol,
     status: position.side,
@@ -805,7 +836,7 @@ function showPositionContextMenu(position) {
     meta: "Posición abierta",
     pnl: formatCurrency(position.pnl),
     pnlClass: position.pnl >= 0 ? "metric-positive" : "metric-negative",
-    maxWidth: "80vw",
+    maxWidth: "720px",
     content: `
       <section class="trades-position-focus">
         <div class="trades-position-focus__head">
@@ -815,16 +846,49 @@ function showPositionContextMenu(position) {
           </div>
           <p class="trades-position-focus__description">Entrada, protección y exposición actual.</p>
         </div>
-        <div class="trades-position-focus__grid">
-          ${renderPositionFocusKv("Entrada", formatTableValue(position.entry))}
-          ${renderPositionFocusKv("Salida", "—")}
-          ${renderPositionFocusKv("SL", formatTableValue(position.sl))}
-          ${renderPositionFocusKv("TP", formatTableValue(position.tp))}
-          ${renderPositionFocusKv("Lote", formatTableValue(position.volume))}
-          ${renderPositionFocusKv("Duración", "Abierta")}
-          ${renderPositionFocusKv("Fees", "—")}
-          ${renderPositionFocusKv("R múltiple", "—")}
-        </div>
+
+        <section class="trades-position-state" aria-label="Estado de la posición">
+          ${renderPositionFocusState("Estado", "Abierta", "neutral")}
+          ${renderPositionFocusState("P&L flotante", floatingPnlMarkup, position.pnl > 0 ? "profit" : position.pnl < 0 ? "loss" : "neutral")}
+          ${renderPositionFocusState("Lote", formatTableValue(position.volume), "neutral")}
+          ${renderPositionFocusState("Entrada", formatTableValue(position.entry), "neutral")}
+        </section>
+
+        <section class="trades-position-focus__section trades-position-risk" aria-label="Protección y riesgo">
+          <div class="trades-position-focus__section-head">
+            <div>
+              <span class="trades-position-focus__section-eyebrow">PROTECCIÓN</span>
+              <h4 class="trades-position-focus__section-title">Protección y riesgo</h4>
+            </div>
+            ${hasStopLoss ? "" : `<span class="trades-position-risk__badge">Sin SL definido</span>`}
+          </div>
+          <div class="trades-position-risk__grid">
+            ${renderPositionRiskItem("SL", formatTableValue(position.sl))}
+            ${renderPositionRiskItem("TP", formatTableValue(position.tp))}
+            ${renderPositionRiskItem("R múltiple", "—")}
+            ${renderPositionRiskItem("Fees", "—")}
+          </div>
+          ${hasStopLoss ? "" : `<p class="trades-position-risk__note">Protección no definida en el snapshot.</p>`}
+        </section>
+
+        <section class="trades-position-focus__section" aria-label="Evidencia técnica">
+          <div class="trades-position-focus__section-head">
+            <div>
+              <span class="trades-position-focus__section-eyebrow">EVIDENCIA TÉCNICA</span>
+              <h4 class="trades-position-focus__section-title">Detalle de la posición</h4>
+            </div>
+          </div>
+          <div class="trades-position-kv">
+            ${renderPositionFocusKv("Entrada", formatTableValue(position.entry))}
+            ${renderPositionFocusKv("Salida", "—")}
+            ${renderPositionFocusKv("SL", formatTableValue(position.sl))}
+            ${renderPositionFocusKv("TP", formatTableValue(position.tp))}
+            ${renderPositionFocusKv("Lote", formatTableValue(position.volume))}
+            ${renderPositionFocusKv("Duración", "Abierta")}
+            ${renderPositionFocusKv("Fees", "—")}
+            ${renderPositionFocusKv("R múltiple", "—")}
+          </div>
+        </section>
       </section>
     `
   });
