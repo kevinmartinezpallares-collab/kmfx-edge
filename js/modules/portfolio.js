@@ -1,5 +1,5 @@
 import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260406-213500";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260406-213500";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
 function formatCapitalPercent(value, digits = 2) {
@@ -17,25 +17,81 @@ function capitalToneFromValue(value) {
   return "neutral";
 }
 
-function renderCapitalKpi({ label, valueHtml, meta = "", tone = "neutral" }) {
+function renderCapitalKpi({ key, label, valueHtml, meta = "", tone = "neutral" }) {
   return `
-    <article class="capital-kpi" data-tone="${tone}">
+    <article class="capital-kpi" data-tone="${tone}" ${key ? `data-capital-kpi="${key}"` : ""}>
       <span class="capital-kpi__label">${label}</span>
-      <strong class="capital-kpi__value">${valueHtml}</strong>
-      ${meta ? `<span class="capital-kpi__meta">${meta}</span>` : ""}
+      <strong class="capital-kpi__value" data-capital-kpi-value>${valueHtml}</strong>
+      ${meta ? `<span class="capital-kpi__meta" data-capital-kpi-meta>${meta}</span>` : ""}
     </article>
   `;
 }
 
-function renderCapitalDataNotice(authorityMeta) {
+function buildCapitalKpis({ totalEquity, totalBalance, floatingPnl, totalPnl, totalTrades, globalPositions, drawdownPct, drawdownValues, drawdownTone }) {
+  return [
+    {
+      key: "equity",
+      label: "Equity",
+      valueHtml: formatCurrency(totalEquity),
+      meta: "Capital con flotante",
+      tone: "info",
+    },
+    {
+      key: "balance",
+      label: "Balance",
+      valueHtml: formatCurrency(totalBalance),
+      meta: "Capital cerrado",
+      tone: "neutral",
+    },
+    {
+      key: "open-pnl",
+      label: "P&L abierto",
+      valueHtml: pnlTextMarkup({
+        value: floatingPnl,
+        text: formatCurrency(floatingPnl),
+        tone: capitalToneFromValue(floatingPnl),
+        className: floatingPnl > 0 ? "metric-positive" : floatingPnl < 0 ? "metric-negative" : "",
+      }),
+      meta: `${globalPositions.length} posiciones abiertas`,
+      tone: capitalToneFromValue(floatingPnl),
+    },
+    {
+      key: "total-pnl",
+      label: "P&L total",
+      valueHtml: pnlTextMarkup({
+        value: totalPnl,
+        text: formatCurrency(totalPnl),
+        tone: capitalToneFromValue(totalPnl),
+        className: totalPnl > 0 ? "metric-positive" : totalPnl < 0 ? "metric-negative" : "",
+      }),
+      meta: `${totalTrades} trades registrados`,
+      tone: capitalToneFromValue(totalPnl),
+    },
+    {
+      key: "drawdown",
+      label: "Drawdown",
+      valueHtml: formatCapitalPercent(drawdownPct),
+      meta: drawdownValues.length ? "Máx. disponible en cuentas" : "Sin drawdown disponible",
+      tone: drawdownTone,
+    },
+  ];
+}
+
+function renderCapitalDataNoticeContent(authorityMeta) {
   const authority = authorityMeta?.authority || {};
   const period = authority.firstTradeLabel
     ? `${authority.firstTradeLabel}${authority.lastTradeLabel ? ` — ${authority.lastTradeLabel}` : ""}`
     : "";
   return `
-    <section class="capital-data-note" aria-label="Fuente de datos de Capital">
-      <span>Análisis basado en el ledger disponible de la cuenta activa.</span>
-      ${period ? `<span><strong>Periodo:</strong> ${period}.</span>` : ""}
+    <span>Análisis basado en el ledger disponible de la cuenta activa.</span>
+    ${period ? `<span><strong>Periodo:</strong> ${period}.</span>` : ""}
+  `;
+}
+
+function renderCapitalDataNotice(authorityMeta) {
+  return `
+    <section class="capital-data-note" aria-label="Fuente de datos de Capital" data-capital-data-note>
+      ${renderCapitalDataNoticeContent(authorityMeta)}
     </section>
   `;
 }
@@ -86,12 +142,47 @@ function compactCapitalAxisLabel(label) {
   return text.length > 11 ? `${text.slice(0, 10)}…` : text;
 }
 
-function capitalXAxisLabel(label, index, labels = []) {
-  const total = labels.length;
-  if (total <= 3) return compactCapitalAxisLabel(label);
-  const lastIndex = total - 1;
-  const midpoint = Math.round(lastIndex / 2);
-  return index === 0 || index === midpoint || index === lastIndex ? compactCapitalAxisLabel(label) : "";
+function formatCapitalAxisPoint(point, index, lastIndex) {
+  const dateSource = point?.timestamp || point?.date || point?.time || point?.label || "";
+  const parsedDate = dateSource ? new Date(dateSource) : null;
+  if (parsedDate && !Number.isNaN(parsedDate.getTime()) && /\d{4}|\d{2}\/\d{2}|\d{2}-\d{2}/.test(String(dateSource))) {
+    return parsedDate.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  }
+  const label = String(point?.label || "");
+  const normalized = label.toLowerCase();
+  if (normalized.includes("balance")) return "Inicio";
+  if (normalized.includes("equity") || normalized.includes("ahora") || normalized.includes("actual")) {
+    return index === lastIndex ? "Actual" : "Equity";
+  }
+  if (/^p\d+$/i.test(label)) {
+    if (index === 0) return "Inicio";
+    if (index === lastIndex) return "Actual";
+  }
+  return compactCapitalAxisLabel(label);
+}
+
+function buildCapitalAxisOptions(series) {
+  const lastIndex = Math.max(series.length - 1, 0);
+  const tickValues = lastIndex <= 2
+    ? series.map((_, index) => index)
+    : [0, Math.round(lastIndex / 2), lastIndex];
+  return {
+    xScaleType: "linear",
+    xScaleOffset: false,
+    xValues: series.map((_, index) => index),
+    xMin: 0,
+    xMax: lastIndex,
+    xTickValues: [...new Set(tickValues)],
+    xTickValueFormatter: (value) => {
+      const index = Math.max(0, Math.min(lastIndex, Math.round(Number(value) || 0)));
+      return formatCapitalAxisPoint(series[index], index, lastIndex);
+    },
+  };
+}
+
+function setCapitalHtml(root, selector, html) {
+  const node = root.querySelector(selector);
+  if (node && node.innerHTML !== html) node.innerHTML = html;
 }
 
 function renderCapitalEvolution({ account, series }) {
@@ -114,9 +205,6 @@ function renderCapitalEvolution({ account, series }) {
     `;
   }
 
-  const firstValue = Number(series[0]?.value || 0);
-  const lastValue = Number(series.at(-1)?.value || 0);
-  const delta = lastValue - firstValue;
   return `
     <article class="capital-evolution-card">
       <div class="capital-section__header">
@@ -125,20 +213,29 @@ function renderCapitalEvolution({ account, series }) {
           <h2 class="capital-section__title">Evolución del capital</h2>
           <p class="capital-section__description">Serie de equity disponible para ${display.title || "la cuenta activa"}.</p>
         </div>
-        <div class="capital-evolution-card__summary">
-          ${pnlTextMarkup({
-            value: delta,
-            text: `${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`,
-            tone: capitalToneFromValue(delta),
-            className: delta > 0 ? "metric-positive" : delta < 0 ? "metric-negative" : "",
-          })}
-          <span>${series.length} puntos</span>
+        <div class="capital-evolution-card__summary" data-capital-evolution-summary>
+          ${renderCapitalEvolutionSummary(series)}
         </div>
       </div>
       <div class="capital-evolution-card__chart">
         ${chartCanvas("capital-evolution-chart", 236, "kmfx-chart-shell--feature capital-evolution-chart")}
       </div>
     </article>
+  `;
+}
+
+function renderCapitalEvolutionSummary(series) {
+  const firstValue = Number(series[0]?.value || 0);
+  const lastValue = Number(series.at(-1)?.value || 0);
+  const delta = lastValue - firstValue;
+  return `
+    ${pnlTextMarkup({
+      value: delta,
+      text: `${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`,
+      tone: capitalToneFromValue(delta),
+      className: delta > 0 ? "metric-positive" : delta < 0 ? "metric-negative" : "",
+    })}
+    <span>${series.length} puntos</span>
   `;
 }
 
@@ -176,20 +273,25 @@ function accountCardPnlValue(account) {
     : Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
 }
 
-function buildCapitalRenderSignature({
+function buildCapitalStructureSignature({ accounts, currentAccount, hasChart, viewportKey }) {
+  return JSON.stringify({
+    viewportKey,
+    hasChart,
+    currentAccountId: currentAccount?.id || "",
+    accountIds: accounts.map((account) => account.id || ""),
+  });
+}
+
+function buildCapitalLiveSignature({
   accounts,
-  currentAccount,
   authorityMeta,
   totals,
   globalPositions,
   capitalSeries,
-  viewportKey,
 }) {
   const theme = document.documentElement.dataset.theme || document.body.dataset.theme || "";
   return JSON.stringify({
     theme,
-    viewportKey,
-    currentAccountId: currentAccount?.id || "",
     period: [
       authorityMeta?.authority?.firstTradeLabel || "",
       authorityMeta?.authority?.lastTradeLabel || "",
@@ -216,9 +318,29 @@ function buildCapitalRenderSignature({
     series: capitalSeries.map((point) => ({
       label: point.label,
       value: Number(point.value || 0),
-      timestamp: point.timestamp || "",
     })),
   });
+}
+
+function updateCapitalLiveNodes(root, { kpis, accounts, currentAccount, authorityMeta, globalPositions, capitalSeries, chartSpecs }) {
+  setCapitalHtml(root, "[data-capital-data-note]", renderCapitalDataNoticeContent(authorityMeta));
+  kpis.forEach((kpi) => {
+    const card = root.querySelector(`[data-capital-kpi="${kpi.key}"]`);
+    if (!card) return;
+    card.dataset.tone = kpi.tone;
+    setCapitalHtml(card, "[data-capital-kpi-value]", kpi.valueHtml);
+    setCapitalHtml(card, "[data-capital-kpi-meta]", kpi.meta);
+  });
+  if (capitalSeries.length >= 2) {
+    setCapitalHtml(root, "[data-capital-evolution-summary]", renderCapitalEvolutionSummary(capitalSeries));
+  }
+  setCapitalHtml(
+    root,
+    "[data-capital-account-grid]",
+    accounts.map((account) => renderPortfolioAccountCard(account, account.id === currentAccount.id)).join("")
+  );
+  setCapitalHtml(root, "[data-capital-exposure-body]", renderCapitalExposureRows(globalPositions));
+  updateCharts(root, chartSpecs);
 }
 
 function renderPortfolioAccountCard(account, isCurrent) {
@@ -276,10 +398,35 @@ function renderPortfolioAccountCard(account, isCurrent) {
   `;
 }
 
+function renderCapitalExposureRows(globalPositions) {
+  return globalPositions.length ? globalPositions.map((position) => `
+    <tr>
+      <td>${position.accountName}</td>
+      <td>${position.symbol}</td>
+      <td><span class="trade-side trade-side--${position.side.toLowerCase()}">${position.side}</span></td>
+      <td class="table-num">${position.volume}</td>
+      <td class="table-num">
+        ${pnlTextMarkup({
+          value: position.pnl,
+          text: formatCurrency(position.pnl),
+          className: position.pnl >= 0 ? "metric-positive" : "metric-negative",
+        })}
+      </td>
+      <td>${formatDateTime(position.openedAt)}</td>
+    </tr>
+  `).join("") : `
+    <tr>
+      <td colspan="6" class="capital-table-empty">Sin exposición abierta.</td>
+    </tr>
+  `;
+}
+
 export function renderPortfolio(root, state) {
   const accounts = Object.values(state.accounts);
   if (!accounts.length) {
-    root.__capitalRenderSignature = "";
+    root.__capitalRendered = false;
+    root.__capitalStructureSignature = "";
+    root.__capitalLiveSignature = "";
     root.innerHTML = "";
     return;
   }
@@ -307,6 +454,7 @@ export function renderPortfolio(root, state) {
   const drawdownTone = drawdownPct >= 5 ? "risk" : drawdownPct > 0 ? "warning" : "neutral";
   const globalPositions = accounts.flatMap((account) => buildPortfolioPositions(account));
   const capitalSeries = normalizeCapitalSeries(currentAccount);
+  const capitalAxisOptions = capitalSeries.length >= 2 ? buildCapitalAxisOptions(capitalSeries) : {};
   const chartSpecs = capitalSeries.length >= 2
     ? [
         lineAreaSpec("capital-evolution-chart", capitalSeries, {
@@ -314,18 +462,33 @@ export function renderPortfolio(root, state) {
           showXAxis: true,
           showYAxis: true,
           autoSkipXTicks: false,
-          maxXTicks: 3,
+          ...capitalAxisOptions,
+          maxXTicks: capitalAxisOptions.xTickValues?.length || 3,
           maxYTicks: 4,
-          xAxisFormatter: capitalXAxisLabel,
           formatter: (value) => formatCurrency(value),
           axisFormatter: (value) => formatCurrency(value),
           fill: true,
           tension: 0.58,
+          animationDisabled: true,
+          animationDuration: 0,
+          layoutPaddingLeft: 12,
+          layoutPaddingRight: 18,
         }),
       ]
     : [];
   const isMobileViewport = window.innerWidth <= 768;
   const viewportKey = isMobileViewport ? "mobile" : "desktop";
+  const kpis = buildCapitalKpis({
+    totalEquity,
+    totalBalance,
+    floatingPnl,
+    totalPnl,
+    totalTrades,
+    globalPositions,
+    drawdownPct,
+    drawdownValues,
+    drawdownTone,
+  });
   const totalsSignature = {
     totalBalance,
     totalEquity,
@@ -334,19 +497,26 @@ export function renderPortfolio(root, state) {
     totalTrades,
     drawdownPct,
   };
-  const renderSignature = buildCapitalRenderSignature({
+  const structureSignature = buildCapitalStructureSignature({
     accounts,
     currentAccount,
+    hasChart: capitalSeries.length >= 2,
+    viewportKey,
+  });
+  const liveSignature = buildCapitalLiveSignature({
+    accounts,
     authorityMeta,
     totals: totalsSignature,
     globalPositions,
     capitalSeries,
-    viewportKey,
   });
-  if (root.__capitalRenderSignature === renderSignature) {
+  if (root.__capitalStructureSignature === structureSignature && root.__capitalRendered) {
+    if (root.__capitalLiveSignature !== liveSignature) {
+      updateCapitalLiveNodes(root, { kpis, accounts, currentAccount, authorityMeta, globalPositions, capitalSeries, chartSpecs });
+      root.__capitalLiveSignature = liveSignature;
+    }
     return;
   }
-  root.__capitalRenderSignature = renderSignature;
   const gridInlineStyle = isMobileViewport
     ? "display:grid;grid-template-columns:1fr;gap:10px;"
     : "display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;";
@@ -364,46 +534,7 @@ export function renderPortfolio(root, state) {
       ${renderCapitalDataNotice(authorityMeta)}
 
       <section class="capital-overview" aria-label="Resumen de capital">
-        ${renderCapitalKpi({
-          label: "Equity",
-          valueHtml: formatCurrency(totalEquity),
-          meta: "Capital con flotante",
-          tone: "info",
-        })}
-        ${renderCapitalKpi({
-          label: "Balance",
-          valueHtml: formatCurrency(totalBalance),
-          meta: "Capital cerrado",
-          tone: "neutral",
-        })}
-        ${renderCapitalKpi({
-          label: "P&L abierto",
-          valueHtml: pnlTextMarkup({
-            value: floatingPnl,
-            text: formatCurrency(floatingPnl),
-            tone: capitalToneFromValue(floatingPnl),
-            className: floatingPnl > 0 ? "metric-positive" : floatingPnl < 0 ? "metric-negative" : "",
-          }),
-          meta: `${globalPositions.length} posiciones abiertas`,
-          tone: capitalToneFromValue(floatingPnl),
-        })}
-        ${renderCapitalKpi({
-          label: "P&L total",
-          valueHtml: pnlTextMarkup({
-            value: totalPnl,
-            text: formatCurrency(totalPnl),
-            tone: capitalToneFromValue(totalPnl),
-            className: totalPnl > 0 ? "metric-positive" : totalPnl < 0 ? "metric-negative" : "",
-          }),
-          meta: `${totalTrades} trades registrados`,
-          tone: capitalToneFromValue(totalPnl),
-        })}
-        ${renderCapitalKpi({
-          label: "Drawdown",
-          valueHtml: formatCapitalPercent(drawdownPct),
-          meta: drawdownValues.length ? "Máx. disponible en cuentas" : "Sin drawdown disponible",
-          tone: drawdownTone,
-        })}
+        ${kpis.map((kpi) => renderCapitalKpi(kpi)).join("")}
       </section>
 
       ${renderCapitalEvolution({ account: currentAccount, series: capitalSeries })}
@@ -420,7 +551,7 @@ export function renderPortfolio(root, state) {
           </div>
           <span class="capital-section__pill">${accounts.length} registradas</span>
         </div>
-        <div class="portfolio-account-grid capital-account-grid" data-portfolio-layout="dashboard" style="${gridInlineStyle}">
+        <div class="portfolio-account-grid capital-account-grid" data-capital-account-grid data-portfolio-layout="dashboard" style="${gridInlineStyle}">
           ${accounts.map((account) => renderPortfolioAccountCard(account, account.id === currentAccount.id)).join("")}
         </div>
       </article>
@@ -444,27 +575,8 @@ export function renderPortfolio(root, state) {
                 <th>Apertura</th>
               </tr>
             </thead>
-            <tbody>
-              ${globalPositions.length ? globalPositions.map((position) => `
-                <tr>
-                  <td>${position.accountName}</td>
-                  <td>${position.symbol}</td>
-                  <td><span class="trade-side trade-side--${position.side.toLowerCase()}">${position.side}</span></td>
-                  <td class="table-num">${position.volume}</td>
-                  <td class="table-num">
-                    ${pnlTextMarkup({
-                      value: position.pnl,
-                      text: formatCurrency(position.pnl),
-                      className: position.pnl >= 0 ? "metric-positive" : "metric-negative",
-                    })}
-                  </td>
-                  <td>${formatDateTime(position.openedAt)}</td>
-                </tr>
-              `).join("") : `
-                <tr>
-                  <td colspan="6" class="capital-table-empty">Sin exposición abierta.</td>
-                </tr>
-              `}
+            <tbody data-capital-exposure-body>
+              ${renderCapitalExposureRows(globalPositions)}
             </tbody>
           </table>
         </div>
@@ -472,6 +584,9 @@ export function renderPortfolio(root, state) {
     </section>
   `;
   mountCharts(root, chartSpecs);
+  root.__capitalRendered = true;
+  root.__capitalStructureSignature = structureSignature;
+  root.__capitalLiveSignature = liveSignature;
 }
 
 function buildPortfolioPositions(account) {

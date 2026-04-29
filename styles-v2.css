@@ -3901,7 +3901,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .capital-account-card__identity {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, 158px);
   gap: 12px;
   align-items: start;
 }
@@ -3935,8 +3935,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-self: start;
+  align-content: flex-start;
   gap: 6px;
-  max-width: min(46%, 220px);
+  width: 100%;
 }
 
 .capital-account-card__chip {
