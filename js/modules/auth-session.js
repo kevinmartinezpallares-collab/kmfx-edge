@@ -375,6 +375,37 @@ export function isAdminUser(state) {
   return auth.user.is_admin === true;
 }
 
+function authIdentity(auth = DEFAULT_AUTH_STATE) {
+  const sanitized = sanitizeAuthState(auth);
+  if (sanitized.status !== "authenticated") return "anonymous";
+  return String(sanitized.user.id || sanitized.user.email || "authenticated").trim().toLowerCase();
+}
+
+function stripLiveAccountStateForAuth(current = {}, nextAuth = DEFAULT_AUTH_STATE) {
+  const currentIdentity = authIdentity(current.auth || DEFAULT_AUTH_STATE);
+  const nextIdentity = authIdentity(nextAuth);
+  const authChanged = currentIdentity !== nextIdentity;
+  if (!authChanged && nextAuth.status === "authenticated") return current;
+
+  const safeAccounts = Object.fromEntries(
+    Object.entries(current.accounts || {}).filter(([, account]) => account?.sourceType !== "mt5")
+  );
+  const fallbackAccount = safeAccounts.sandbox ? "sandbox" : Object.keys(safeAccounts)[0] || null;
+  const currentAccountIsSafe = current.currentAccount && safeAccounts[current.currentAccount];
+
+  return {
+    ...current,
+    accounts: safeAccounts,
+    accountDirectory: {},
+    managedAccounts: [],
+    liveAccountIds: [],
+    activeLiveAccountId: null,
+    activeAccountId: null,
+    mode: "mock",
+    currentAccount: currentAccountIsSafe ? current.currentAccount : fallbackAccount,
+  };
+}
+
 export function initAuthSession(store) {
   const resolvePreferredAccount = (state, candidateId = "") => {
     const liveIds = Array.isArray(state?.liveAccountIds) ? state.liveAccountIds : [];
@@ -409,14 +440,23 @@ export function initAuthSession(store) {
     const resolvedCurrentAccount = resolvePreferredAccount(state, sanitized.profile.defaultAccount);
     const currentAuthSerialized = JSON.stringify(sanitizeAuthState(state.auth || DEFAULT_AUTH_STATE));
     const nextAuthSerialized = JSON.stringify(sanitized);
-    if (currentAuthSerialized === nextAuthSerialized && resolvedCurrentAccount === state.currentAccount) {
+    const hasLiveState = Boolean(
+      (Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0)
+      || Object.values(state.accounts || {}).some((account) => account?.sourceType === "mt5")
+    );
+    if (currentAuthSerialized === nextAuthSerialized
+      && resolvedCurrentAccount === state.currentAccount
+      && (sanitized.status === "authenticated" || !hasLiveState)) {
       return sanitized;
     }
-    store.setState((current) => ({
-      ...current,
-      auth: sanitized,
-      currentAccount: resolvePreferredAccount(current, sanitized.profile.defaultAccount)
-    }));
+    store.setState((current) => {
+      const isolated = stripLiveAccountStateForAuth(current, sanitized);
+      return {
+        ...isolated,
+        auth: sanitized,
+        currentAccount: resolvePreferredAccount(isolated, sanitized.profile.defaultAccount)
+      };
+    });
     console.info("[KMFX][BOOT]", {
       label: "auth-state-updated",
       currentAccount: store.getState().currentAccount,
@@ -433,7 +473,7 @@ export function initAuthSession(store) {
     const persistedSerialized = JSON.stringify(persisted);
     if (currentSerialized !== persistedSerialized) {
       store.setState((state) => ({
-        ...state,
+        ...stripLiveAccountStateForAuth(state, persisted),
         auth: persisted
       }));
     }

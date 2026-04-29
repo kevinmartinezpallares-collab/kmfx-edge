@@ -231,6 +231,7 @@ function buildAuthHeaders(state, extra = {}) {
     Accept: "application/json",
     ...extra,
   };
+  if (state?.auth?.status !== "authenticated") return headers;
   const token = state?.auth?.session?.accessToken;
   const email = state?.auth?.user?.email;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -466,6 +467,13 @@ async function deleteManagedAccount({ store, root, accountId }) {
 
 async function fetchAccountsRegistry(store) {
   const url = resolveAccountsRegistryUrl();
+  if (store.getState()?.auth?.status !== "authenticated") {
+    store.setState((state) => ({
+      ...state,
+      managedAccounts: [],
+    }));
+    return;
+  }
   if (!url) {
     console.info("[KMFX][API]", {
       label: "accounts-fetch-disabled",
@@ -475,7 +483,13 @@ async function fetchAccountsRegistry(store) {
   }
   try {
     const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
-    if (!response.ok) return;
+    if (!response.ok) {
+      store.setState((state) => ({
+        ...state,
+        managedAccounts: [],
+      }));
+      return;
+    }
     const payload = await response.json();
     applyAdminAccess(store, payload?.is_admin);
     const accounts = Array.isArray(payload?.accounts) ? payload.accounts : [];

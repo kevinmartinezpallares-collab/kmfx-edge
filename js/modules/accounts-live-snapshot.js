@@ -80,11 +80,71 @@ function chooseMostReliablePayload(...candidates) {
 
 function buildAuthHeaders(state) {
   const headers = { Accept: "application/json" };
+  if (state?.auth?.status !== "authenticated") return headers;
   const token = state?.auth?.session?.accessToken;
   const email = state?.auth?.user?.email;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (email) headers["X-KMFX-User-Email"] = email;
   return headers;
+}
+
+function authContext(state = {}) {
+  const auth = state.auth || {};
+  return {
+    isAuthenticated: auth.status === "authenticated",
+    userId: String(auth.user?.id || "").trim().toLowerCase(),
+    email: String(auth.user?.email || "").trim().toLowerCase(),
+    isAdmin: Boolean(auth.user?.is_admin || auth.user?.role === "admin"),
+    hasToken: Boolean(auth.session?.accessToken),
+  };
+}
+
+function hasLiveAccountAccess(state = {}) {
+  const auth = authContext(state);
+  return auth.isAuthenticated && Boolean(auth.email) && (auth.hasToken || isLocalRuntime());
+}
+
+function isAccountOwnedByAuth(account = {}, state = {}, snapshot = {}) {
+  const auth = authContext(state);
+  if (!auth.isAuthenticated || !auth.email) return false;
+  const accountUserId = String(account.userId || account.user_id || "").trim().toLowerCase();
+  const snapshotUserId = String(snapshot.user_id || snapshot.scope_user_id || "").trim().toLowerCase();
+  const isAdminSnapshot = Boolean(snapshot.is_admin) || auth.isAdmin;
+
+  if (accountUserId && (accountUserId === auth.userId || accountUserId === auth.email)) return true;
+  if (!accountUserId && snapshotUserId && (snapshotUserId === auth.userId || snapshotUserId === auth.email)) return true;
+
+  // Legacy live accounts were stored under "local"; only the explicit owner/admin can see them.
+  if ((accountUserId === "local" || snapshotUserId === "local") && isAdminSnapshot) return true;
+  return false;
+}
+
+function resolveSafeCurrentAccount(accounts = {}, preferred = "") {
+  if (preferred && accounts[preferred] && accounts[preferred]?.sourceType !== "mt5") return preferred;
+  if (accounts.sandbox) return "sandbox";
+  return Object.keys(accounts).find((accountId) => accounts[accountId]?.sourceType !== "mt5") || Object.keys(accounts)[0] || null;
+}
+
+function clearLiveAccounts(store, reason = "unauthorized") {
+  store.setState((state) => {
+    const nextAccounts = Object.fromEntries(
+      Object.entries(state.accounts || {}).filter(([, account]) => account?.sourceType !== "mt5")
+    );
+    const nextCurrentAccount = resolveSafeCurrentAccount(nextAccounts, state.currentAccount);
+    return {
+      ...state,
+      accounts: nextAccounts,
+      accountDirectory: {},
+      managedAccounts: [],
+      liveAccountIds: [],
+      activeLiveAccountId: null,
+      activeAccountId: null,
+      mode: "mock",
+      bootResolved: true,
+      currentAccount: nextCurrentAccount,
+      lastLiveAccountIsolationReason: reason,
+    };
+  });
 }
 
 function applyAdminAccess(store, isAdmin) {
@@ -136,6 +196,7 @@ function normalizeAccountEntry(entry = {}) {
   );
   return {
     accountId: String(safe.account_id || safe.id || ""),
+    userId: String(safe.user_id || safe.owner_user_id || ""),
     broker: String(safe.broker || "MT5"),
     platform: String(safe.platform || "mt5"),
     login: String(safe.login || ""),
@@ -154,14 +215,39 @@ function normalizeAccountEntry(entry = {}) {
 
 function mergeLiveAccounts(store, snapshot) {
   const state = store.getState();
-  const normalizedAccounts = Array.isArray(snapshot?.accounts) ? snapshot.accounts.map(normalizeAccountEntry) : [];
+  if (!hasLiveAccountAccess(state)) {
+    console.warn("[KMFX][ACCOUNTS] live snapshot blocked", {
+      reason: "missing_authenticated_user",
+      status: state.auth?.status || "unknown",
+    });
+    clearLiveAccounts(store, "missing_authenticated_user");
+    return;
+  }
+
+  const normalizedAccounts = Array.isArray(snapshot?.accounts)
+    ? snapshot.accounts
+      .map(normalizeAccountEntry)
+      .filter((account) => isAccountOwnedByAuth(account, state, snapshot))
+    : [];
+  const blockedCount = Array.isArray(snapshot?.accounts) ? snapshot.accounts.length - normalizedAccounts.length : 0;
+  if (blockedCount > 0) {
+    console.warn("[KMFX][ACCOUNTS] snapshot accounts blocked by ownership guard", {
+      blockedCount,
+      allowedCount: normalizedAccounts.length,
+    });
+  }
+  if (!normalizedAccounts.length) {
+    clearLiveAccounts(store, blockedCount > 0 ? "ownership_mismatch" : "empty_snapshot");
+    return;
+  }
   console.log("[KMFX][ACCOUNTS] merge snapshot", {
     count: normalizedAccounts.length,
     activeAccountId: snapshot?.active_account_id || "",
     accounts: normalizedAccounts.map((account) => ({
       accountId: account.accountId,
-      login: account.login,
+      login: account.login ? "[redacted]" : "",
       broker: account.broker,
+      userId: account.userId,
       status: account.status,
       payloadSource: account.dashboardPayload?.payloadSource || "",
       balance: account.dashboardPayload?.balance ?? null,
@@ -225,13 +311,13 @@ function mergeLiveAccounts(store, snapshot) {
   });
   console.info("[KMFX][ACCOUNT_SELECTION_RESOLVED]", {
     selectedAccountId: selectedAccount?.accountId || resolvedCurrentAccount || "",
-    selectedLogin: selectedAccount?.login || "",
+    selectedLogin: selectedAccount?.login ? "[redacted]" : "",
     broker: selectedAccount?.broker || "",
     sourceType: "mt5",
   });
   console.info("[KMFX][ACCOUNT_CANONICAL]", {
     account_id: selectedAccount?.accountId || resolvedCurrentAccount || "",
-    login: selectedAccount?.login || "",
+    login: selectedAccount?.login ? "[redacted]" : "",
     broker: selectedAccount?.broker || "",
     payloadSource: selectedAccount?.dashboardPayload?.payloadSource || "",
   });
@@ -287,11 +373,11 @@ function mergeLiveAccounts(store, snapshot) {
     console.info("[KMFX][BOOT][LIVE-DETECTED]", {
       accountsCount: liveAccountIds.length,
       selectedAccountId: selectedAccount.accountId,
-      login: selectedAccount.login || "",
+      login: selectedAccount.login ? "[redacted]" : "",
     });
     console.info("[KMFX][LIVE_ACCOUNT_SELECTED]", {
       account_id: selectedAccount.accountId,
-      login: selectedAccount.login || "",
+      login: selectedAccount.login ? "[redacted]" : "",
       broker: selectedAccount.broker || "",
       payloadSource: selectedAccount.dashboardPayload?.payloadSource || "",
     });
@@ -344,27 +430,23 @@ export function initAccountsLiveSnapshot(store) {
 
   const pollHttpSnapshot = async () => {
     const url = resolveAccountsSnapshotUrl();
+    if (!hasLiveAccountAccess(store.getState())) {
+      clearLiveAccounts(store, "missing_authenticated_user");
+      return { ok: false, count: 0, reason: "missing_authenticated_user" };
+    }
     if (!url) {
       console.info("[KMFX][API]", {
         label: "snapshot-fetch-disabled",
         reason: "missing_api_base_url",
       });
-      store.setState((state) => ({
-        ...state,
-        bootResolved: true,
-        mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
-      }));
+      clearLiveAccounts(store, "missing_api_base_url");
       return { ok: false, count: 0 };
     }
     try {
       const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
-        store.setState((state) => ({
-          ...state,
-          bootResolved: true,
-          mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
-        }));
+        clearLiveAccounts(store, `http_${response.status}`);
         return { ok: false, count: 0, status: response.status };
       }
       const payload = await response.json();
@@ -374,52 +456,23 @@ export function initAccountsLiveSnapshot(store) {
         activeAccountId: payload?.active_account_id || "",
       });
       if (!payload || !Array.isArray(payload.accounts)) {
-        store.setState((state) => ({
-          ...state,
-          bootResolved: true,
-          mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
-        }));
+        clearLiveAccounts(store, "invalid_snapshot");
         return { ok: false, count: 0 };
       }
       if (!payload.accounts.length) {
-        const state = store.getState();
-        if (Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0) {
-          console.warn("[KMFX][ACCOUNTS] empty snapshot ignored", {
-            reason: "keep_existing_live_state",
-            liveAccountIds: state.liveAccountIds,
-          });
-          store.setState((current) => ({
-            ...current,
-            bootResolved: true,
-            mode: "live",
-          }));
-          return {
-            ok: true,
-            count: state.liveAccountIds.length,
-            selectedAccountId: state.currentAccount || state.activeLiveAccountId || state.liveAccountIds[0] || "",
-          };
-        }
+        clearLiveAccounts(store, "empty_snapshot");
+        return { ok: true, count: 0, selectedAccountId: "" };
       }
       mergeLiveAccounts(store, payload);
-      if (!payload.accounts.length) {
-        store.setState((state) => ({
-          ...state,
-          bootResolved: true,
-          mode: "mock",
-        }));
-      }
+      const nextState = store.getState();
       return {
         ok: true,
-        count: payload.accounts.length,
-        selectedAccountId: payload.accounts[0]?.account_id || "",
+        count: Array.isArray(nextState.liveAccountIds) ? nextState.liveAccountIds.length : 0,
+        selectedAccountId: nextState.currentAccount || "",
       };
     } catch (error) {
       console.warn("[KMFX][ACCOUNTS] http snapshot error", error);
-      store.setState((state) => ({
-        ...state,
-        bootResolved: true,
-        mode: Array.isArray(state.liveAccountIds) && state.liveAccountIds.length > 0 ? "live" : "mock",
-      }));
+      clearLiveAccounts(store, "http_error");
       return { ok: false, count: 0, error: true };
     }
   };
@@ -429,6 +482,13 @@ export function initAccountsLiveSnapshot(store) {
   };
 
   const connect = () => {
+    if (!hasLiveAccountAccess(store.getState())) {
+      console.info("[KMFX][BOOT]", {
+        label: "accounts-ws-blocked",
+        reason: "missing_authenticated_user",
+      });
+      return;
+    }
     const bridgeUrl = getPreferredBridgeUrl();
     if (!bridgeUrl) {
       console.info("[KMFX][BOOT]", {

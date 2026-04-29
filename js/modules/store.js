@@ -23,8 +23,17 @@ function safeStorageSet(key, value) {
   }
 }
 
-function hydratePreferences() {
-  const raw = safeStorageGet(STORAGE_KEY);
+function storageKeyForAuth(auth = {}) {
+  const user = auth?.user || {};
+  const isAuthenticated = auth?.status === "authenticated";
+  const identity = isAuthenticated
+    ? String(user.id || user.email || "authenticated").trim().toLowerCase()
+    : "anonymous";
+  const safeIdentity = identity.replace(/[^a-z0-9_.@-]/gi, "_") || "anonymous";
+  return `${STORAGE_KEY}:${safeIdentity}`;
+}
+
+function parsePersistedPreferences(raw) {
   if (!raw) return {};
   try {
     return JSON.parse(raw) || {};
@@ -34,16 +43,30 @@ function hydratePreferences() {
   }
 }
 
+function hydratePreferences(auth = readPersistedAuthState()) {
+  const scoped = parsePersistedPreferences(safeStorageGet(storageKeyForAuth(auth)));
+  if (Object.keys(scoped).length) return scoped;
+  if (auth?.status === "authenticated") return {};
+  return parsePersistedPreferences(safeStorageGet(STORAGE_KEY));
+}
+
 function persistPreferences(state) {
-  safeStorageSet(STORAGE_KEY, JSON.stringify({
-    currentAccount: state.currentAccount,
+  const nonLiveAccounts = Object.values(state.accounts || {})
+    .filter((account) => account?.sourceType !== "mt5");
+  safeStorageSet(storageKeyForAuth(state.auth), JSON.stringify({
+    owner: {
+      status: state.auth?.status || "anonymous",
+      userId: state.auth?.status === "authenticated" ? state.auth?.user?.id || "" : "",
+      email: state.auth?.status === "authenticated" ? state.auth?.user?.email || "" : "",
+    },
+    currentAccount: state.accounts?.[state.currentAccount]?.sourceType === "mt5" ? "sandbox" : state.currentAccount,
     ui: {
       activePage: state.ui.activePage,
       analyticsTab: state.ui.analyticsTab,
       theme: state.ui.theme
     },
     accountRuntime: Object.fromEntries(
-      Object.values(state.accounts).map((account) => [account.id, {
+      nonLiveAccounts.map((account) => [account.id, {
         connection: account.connection,
         compliance: account.compliance
       }])
@@ -157,7 +180,8 @@ function applyCompliance(accounts, workspace) {
 }
 
 function createInitialState() {
-  const persisted = hydratePreferences();
+  const persistedAuth = readPersistedAuthState();
+  const persisted = hydratePreferences(persistedAuth);
   const workspace = sanitizeWorkspace(persisted.workspace);
   const accounts = applyCompliance(
     mergeAccountRuntime(adaptMockAccounts(rawMockAccounts), persisted.accountRuntime),
@@ -178,7 +202,7 @@ function createInitialState() {
     currentAccount,
     ui: sanitizeUi(persisted.ui),
     workspace,
-    auth: readPersistedAuthState()
+    auth: persistedAuth
   };
 }
 

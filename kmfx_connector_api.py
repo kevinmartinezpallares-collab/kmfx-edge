@@ -337,24 +337,28 @@ def _extract_bearer_token(request: Request) -> str:
     return authorization.split(" ", 1)[1].strip()
 
 
-def _resolve_verified_bearer_email(request: Request) -> str:
+def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
     token = _extract_bearer_token(request)
     secret = safe_str(os.getenv("SUPABASE_JWT_SECRET"))
     if not token or not secret:
-        return ""
+        return {}
     parts = token.split(".")
     if len(parts) != 3:
-        return ""
+        return {}
     header = _decode_base64url_json(parts[0])
     if safe_str(header.get("alg")).upper() != "HS256":
-        return ""
+        return {}
     signing_input = f"{parts[0]}.{parts[1]}".encode("ascii")
     expected = base64.urlsafe_b64encode(
         hmac.new(secret.encode("utf-8"), signing_input, hashlib.sha256).digest()
     ).rstrip(b"=").decode("ascii")
     if not hmac.compare_digest(expected, parts[2]):
-        return ""
-    claims = _decode_base64url_json(parts[1])
+        return {}
+    return _decode_base64url_json(parts[1])
+
+
+def _resolve_verified_bearer_email(request: Request) -> str:
+    claims = _resolve_verified_bearer_claims(request)
     email = safe_str(claims.get("email") or ensure_dict(claims.get("user_metadata")).get("email")).lower()
     return email
 
@@ -371,11 +375,59 @@ def resolve_authenticated_email(request: Request) -> str:
     return _resolve_verified_bearer_email(request) or _resolve_trusted_header_email(request)
 
 
+def resolve_authenticated_identity(request: Request) -> dict[str, str]:
+    claims = _resolve_verified_bearer_claims(request)
+    email = safe_str(claims.get("email") or ensure_dict(claims.get("user_metadata")).get("email")).lower()
+    user_id = safe_str(claims.get("sub"))
+    if email or user_id:
+        return {
+            "email": email,
+            "user_id": user_id or email,
+            "source": "verified_bearer",
+        }
+
+    trusted_email = _resolve_trusted_header_email(request)
+    if trusted_email:
+        return {
+            "email": trusted_email,
+            "user_id": trusted_email,
+            "source": "trusted_header",
+        }
+
+    return {"email": "", "user_id": "", "source": ""}
+
+
 def build_admin_context(request: Request) -> dict[str, Any]:
-    email = resolve_authenticated_email(request)
+    identity = resolve_authenticated_identity(request)
+    email = identity["email"]
     return {
         "email": email,
+        "user_id": identity["user_id"],
+        "source": identity["source"],
         "is_admin": bool(email and email in ADMIN_EMAILS),
+    }
+
+
+def resolve_account_scope(request: Request) -> tuple[str, dict[str, Any]]:
+    context = build_admin_context(request)
+    if not context["email"]:
+        return "", context
+    if context["is_admin"]:
+        # Legacy owner/dev live accounts are stored under "local"; keep them private to explicit admins.
+        return "local", context
+    return safe_str(context["user_id"] or context["email"]), context
+
+
+def empty_accounts_payload(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "accounts": [],
+        "active_account_id": "",
+        "updated_at": now_iso(),
+        "is_admin": bool(context.get("is_admin")),
+        "auth_email": context.get("email", ""),
+        "scope_user_id": context.get("user_id", ""),
+        "auth_required": not bool(context.get("email")),
     }
 
 
@@ -1218,6 +1270,18 @@ async def render_healthcheck() -> JSONResponse:
 
 @app.post("/accounts")
 async def create_account(request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "accounts": [],
+                "is_admin": False,
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
     try:
         payload = await request.json()
     except Exception:
@@ -1238,7 +1302,7 @@ async def create_account(request: Request) -> JSONResponse:
 
     try:
         created = account_service.create_pending_account(
-            user_id="local",
+            user_id=scope_user_id,
             alias=alias,
             platform=platform or "mt5",
         )
@@ -1261,6 +1325,7 @@ async def create_account(request: Request) -> JSONResponse:
             "connection_key": created.api_key,
             "status": created.status,
             "created_at": created.created_at.isoformat(),
+            "is_admin": auth_context["is_admin"],
             "timestamp": now_iso(),
         },
         status_code=201,
@@ -1269,12 +1334,22 @@ async def create_account(request: Request) -> JSONResponse:
 
 @app.post("/api/accounts/link")
 async def link_account(request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
     try:
         payload = await request.json()
     except Exception:
         payload = {}
 
-    user_id = safe_str(payload.get("user_id") or "local")
+    user_id = scope_user_id
     label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname") or "Nueva cuenta MT5")
     platform = safe_str(payload.get("platform"), "mt5") or "mt5"
     requested_account_id = safe_str(payload.get("account_id"))
@@ -1349,6 +1424,7 @@ async def link_account(request: Request) -> JSONResponse:
             "account_id": account_id,
             "connection_key": connection_key,
             "launcher_config": launcher_config,
+            "is_admin": auth_context["is_admin"],
             "timestamp": now_iso(),
         }
     )
@@ -1356,12 +1432,16 @@ async def link_account(request: Request) -> JSONResponse:
 
 @app.get("/accounts")
 async def list_accounts(request: Request) -> JSONResponse:
-    admin_context = build_admin_context(request)
+    scope_user_id, admin_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(empty_accounts_payload(admin_context))
     return connector_json_response(
         {
             "ok": True,
-            "accounts": account_service.build_accounts_registry("local"),
+            "accounts": account_service.build_accounts_registry(scope_user_id),
             "is_admin": admin_context["is_admin"],
+            "auth_email": admin_context["email"],
+            "scope_user_id": scope_user_id,
             "timestamp": now_iso(),
         }
     )
@@ -1369,10 +1449,12 @@ async def list_accounts(request: Request) -> JSONResponse:
 
 @app.get("/accounts/pending")
 async def list_pending_accounts(request: Request) -> JSONResponse:
-    admin_context = build_admin_context(request)
+    scope_user_id, admin_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(empty_accounts_payload(admin_context))
     pending_accounts = [
         account
-        for account in account_service.build_accounts_registry("local")
+        for account in account_service.build_accounts_registry(scope_user_id)
         if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
     ]
     return connector_json_response(
@@ -1688,8 +1770,9 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "raw": payload,
         }
 
+        sync_user_id = bound_account.user_id if bound_account else "local"
         previous_account = bound_account or account_service.get_account_by_identity(
-            user_id="local",
+            user_id=sync_user_id,
             platform="mt5",
             broker=safe_str(sanitized_account.get("broker"), "Unknown broker"),
             server=safe_str(sanitized_account.get("server")),
@@ -1746,7 +1829,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             len(dashboard_payload.get("positions") or []),
         )
         synced_account = account_service.link_connector_sync(
-            user_id="local",
+            user_id=sync_user_id,
             account_info={
                 **sanitized_account,
                 "platform": "mt5",
@@ -1983,10 +2066,18 @@ async def mt5_policy(
 
 @app.get("/api/accounts/snapshot")
 async def accounts_snapshot(request: Request) -> JSONResponse:
-    snapshot = build_live_accounts_snapshot("local")
-    snapshot["is_admin"] = build_admin_context(request)["is_admin"]
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        snapshot = empty_accounts_payload(auth_context)
+        log.info("Accounts snapshot denied closed | reason=auth_required")
+        return connector_json_response(snapshot)
+    snapshot = build_live_accounts_snapshot(scope_user_id)
+    snapshot["is_admin"] = auth_context["is_admin"]
+    snapshot["auth_email"] = auth_context["email"]
+    snapshot["scope_user_id"] = scope_user_id
     log.info(
-        "Accounts snapshot built | accounts=%s active_account_id=%s",
+        "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s",
+        scope_user_id,
         len(snapshot.get("accounts") or []),
         snapshot.get("active_account_id") or "",
     )
