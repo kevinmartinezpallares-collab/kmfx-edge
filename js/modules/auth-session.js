@@ -35,6 +35,27 @@ export const DEFAULT_AUTH_STATE = {
   profile: { ...DEFAULT_AUTH_PROFILE }
 };
 
+// Temporary local-owner bridge until live MT5 accounts carry per-user ownership metadata.
+const LOCAL_OWNER_ADMIN_EMAILS = new Set(["kevinmartinezpallares@gmail.com"]);
+
+function readConfiguredAdminEmails() {
+  if (typeof window === "undefined") return [];
+  const configured = window.__KMFX_ADMIN_EMAILS__;
+  if (Array.isArray(configured)) return configured;
+  if (typeof configured === "string") return configured.split(",");
+  return [];
+}
+
+function isLocalOwnerAdminEmail(email = "") {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) return false;
+  if (LOCAL_OWNER_ADMIN_EMAILS.has(normalized)) return true;
+  return readConfiguredAdminEmails()
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
+    .includes(normalized);
+}
+
 const DEFAULT_RECOVERY_STATE = {
   active: false,
   email: "",
@@ -160,7 +181,7 @@ function sanitizeAuthUser(user = {}) {
   const email = String(user.email || "").trim();
   const fallbackName = email ? formatNameFromEmail(email) : DEFAULT_AUTH_USER.name;
   const name = String(user.name || fallbackName).trim() || fallbackName;
-  const isAdmin = user.is_admin === true || user.role === "admin";
+  const isAdmin = user.is_admin === true || user.role === "admin" || isLocalOwnerAdminEmail(email);
   const role = isAdmin ? "admin" : "user";
   return {
     id: String(user.id || DEFAULT_AUTH_USER.id),

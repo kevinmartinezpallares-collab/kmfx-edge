@@ -715,6 +715,7 @@ async function bootstrapApp() {
   });
   logBootState("startup-before-init");
 
+  initAuthSession(store);
   const snapshotBootstrap = await initAccountsLiveSnapshot(store);
   if (snapshotBootstrap?.ok && snapshotBootstrap.count > 0) {
     const state = store.getState();
@@ -747,7 +748,6 @@ async function bootstrapApp() {
     return window.kmfxBridge?.refresh?.();
   });
   initAccountRuntime(store);
-  initAuthSession(store);
   initAuthUI(store);
   initTopbarStatus(store);
   initSidebarUI(store);

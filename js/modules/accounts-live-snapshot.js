@@ -99,6 +99,17 @@ function authContext(state = {}) {
   };
 }
 
+function liveAccessSignature(state = {}) {
+  const auth = authContext(state);
+  return JSON.stringify({
+    isAuthenticated: auth.isAuthenticated,
+    userId: auth.userId,
+    email: auth.email,
+    isAdmin: auth.isAdmin,
+    hasToken: auth.hasToken,
+  });
+}
+
 function hasLiveAccountAccess(state = {}) {
   const auth = authContext(state);
   return auth.isAuthenticated && Boolean(auth.email) && (auth.hasToken || isLocalRuntime());
@@ -114,7 +125,8 @@ function isAccountOwnedByAuth(account = {}, state = {}, snapshot = {}) {
   if (accountUserId && (accountUserId === auth.userId || accountUserId === auth.email)) return true;
   if (!accountUserId && snapshotUserId && (snapshotUserId === auth.userId || snapshotUserId === auth.email)) return true;
 
-  // Legacy live accounts were stored under "local"; only the explicit owner/admin can see them.
+  // Temporary bridge: legacy launcher/live accounts stored under "local" remain admin-only
+  // until the launcher can attach explicit per-user account ownership metadata.
   if ((accountUserId === "local" || snapshotUserId === "local") && isAdminSnapshot) return true;
   return false;
 }
@@ -481,6 +493,19 @@ export function initAccountsLiveSnapshot(store) {
     scheduleNextHttpPoll();
   };
 
+  const closeSocket = () => {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    const currentSocket = socket;
+    socket = null;
+    if (!currentSocket) return;
+    try {
+      currentSocket.close();
+    } catch {
+      // noop
+    }
+  };
+
   const connect = () => {
     if (!hasLiveAccountAccess(store.getState())) {
       console.info("[KMFX][BOOT]", {
@@ -489,6 +514,9 @@ export function initAccountsLiveSnapshot(store) {
       });
       return;
     }
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    if (socket && [WebSocket.CONNECTING, WebSocket.OPEN].includes(socket.readyState)) return;
     const bridgeUrl = getPreferredBridgeUrl();
     if (!bridgeUrl) {
       console.info("[KMFX][BOOT]", {
@@ -500,7 +528,9 @@ export function initAccountsLiveSnapshot(store) {
     try {
       socket = new WebSocket(bridgeUrl);
     } catch (error) {
-      reconnectTimer = window.setTimeout(connect, 3000);
+      if (hasLiveAccountAccess(store.getState())) {
+        reconnectTimer = window.setTimeout(connect, 3000);
+      }
       return;
     }
 
@@ -526,7 +556,9 @@ export function initAccountsLiveSnapshot(store) {
     socket.addEventListener("close", () => {
       socket = null;
       clearTimeout(reconnectTimer);
-      reconnectTimer = window.setTimeout(connect, 3000);
+      if (hasLiveAccountAccess(store.getState())) {
+        reconnectTimer = window.setTimeout(connect, 3000);
+      }
     });
 
     socket.addEventListener("error", () => {
@@ -538,8 +570,33 @@ export function initAccountsLiveSnapshot(store) {
     });
   };
 
-  const initialSnapshotPromise = pollHttpSnapshot();
+  const refreshLiveAccounts = async (reason = "manual") => {
+    console.info("[KMFX][ACCOUNTS]", {
+      label: "live-refresh",
+      reason,
+    });
+    const result = await pollHttpSnapshot();
+    if (hasLiveAccountAccess(store.getState())) {
+      connect();
+    } else {
+      closeSocket();
+    }
+    return result;
+  };
+
+  const initialSnapshotPromise = refreshLiveAccounts("initial");
   startHttpPolling();
-  connect();
+  let lastAccessSignature = liveAccessSignature(store.getState());
+  store.subscribe((state) => {
+    const nextAccessSignature = liveAccessSignature(state);
+    if (nextAccessSignature === lastAccessSignature) return;
+    lastAccessSignature = nextAccessSignature;
+    if (hasLiveAccountAccess(state)) {
+      refreshLiveAccounts("auth_context_changed");
+      return;
+    }
+    closeSocket();
+    clearLiveAccounts(store, "missing_authenticated_user");
+  });
   return initialSnapshotPromise;
 }
