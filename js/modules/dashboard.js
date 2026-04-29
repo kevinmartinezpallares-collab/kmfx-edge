@@ -506,6 +506,9 @@ function renderDashboardEnforcementCard(riskStatus = {}) {
   const description = hasSpecificRestriction
     ? "El Risk Engine está aplicando restricciones para proteger la cuenta."
     : "El Risk Engine detectó una condición de vigilancia; revisa el estado antes de continuar.";
+  const generalStatusDescription = hasSpecificRestriction
+    ? "Restricción activa por el estado de riesgo."
+    : "Revisa el estado antes de ampliar exposición.";
 
   return `
     <section class="dashboard-section-stack dashboard-enforcement">
@@ -532,19 +535,19 @@ function renderDashboardEnforcementCard(riskStatus = {}) {
           })}
           ${renderDashboardEnforcementRow({
             label: "Tamaño de posición",
-            description: "Control sobre exposición incremental.",
+            description: "Ajuste aplicado al tamaño de nuevas posiciones.",
             value: reduceSize ? "Reducir" : "Sin ajuste",
             tone: dashboardEnforcementTone(reduceSize, "warning"),
           })}
           ${renderDashboardEnforcementRow({
             label: "Cierre requerido",
-            description: "Señal interna para cerrar posiciones.",
+            description: "Indica si hay cierre de posiciones requerido.",
             value: closePositionsRequired ? "Sí" : "No",
             tone: dashboardEnforcementTone(closePositionsRequired, "risk"),
           })}
           ${renderDashboardEnforcementRow({
             label: "Estado general",
-            description: riskStatus.actionRequired || "Sigue el estado operativo antes de ampliar exposición.",
+            description: generalStatusDescription,
             value: riskStateDisplayLabel(riskStatus.riskStatus),
             tone: statusTone,
           })}
@@ -797,7 +800,7 @@ function formatSignedDashboardCurrency(value) {
 function getDashboardDecisionTone(statusTitle) {
   if (statusTitle === "Trader en control") return "success";
   if (statusTitle === "Bajo presión") return "warning";
-  if (statusTitle === "Riesgo elevado") return "danger";
+  if (statusTitle === "Riesgo elevado" || statusTitle === "Protección activa") return "danger";
   if (statusTitle === "Cuenta sin sincronizar") return "neutral";
   if (statusTitle === "Sin muestra suficiente") return "warning";
   if (statusTitle === "Sin posiciones abiertas") return "info";
@@ -805,7 +808,7 @@ function getDashboardDecisionTone(statusTitle) {
 }
 
 function getDashboardActionTone(statusTitle) {
-  if (statusTitle === "Riesgo elevado") return "danger";
+  if (statusTitle === "Riesgo elevado" || statusTitle === "Protección activa") return "danger";
   if (statusTitle === "Bajo presión" || statusTitle === "Sin muestra suficiente") return "warning";
   if (statusTitle === "Trader en control" || statusTitle === "Sin posiciones abiertas") return "info";
   return "neutral";
@@ -969,15 +972,17 @@ function buildDashboardDecisionSummary({
     actionTitle = "Sincroniza la cuenta";
     actionDescription = "Sincroniza cuenta antes de evaluar el estado.";
   } else if (elevatedRisk) {
-    statusTitle = "Riesgo elevado";
-    statusDescription = "Hay una señal interna que exige proteger la cuenta.";
-    causeTitle = hardEnforcement ? "Risk Engine activo" : nearDailyLimit ? "Drawdown diario cerca del límite" : lowRiskMargin ? "Margen de riesgo estrecho" : "Exposición abierta elevada";
+    statusTitle = hardEnforcement ? "Protección activa" : "Riesgo elevado";
+    statusDescription = hardEnforcement
+      ? "Hay una restricción activa para contener el riesgo."
+      : "Hay una señal interna que exige proteger la cuenta.";
+    causeTitle = hardEnforcement ? "Risk Engine limitando exposición" : nearDailyLimit ? "Drawdown diario cerca del límite" : lowRiskMargin ? "Margen de riesgo estrecho" : "Exposición abierta elevada";
     causeDescription = hardEnforcement
-      ? (riskStatus?.actionRequired || "El Risk Engine marcó una condición operativa.")
+      ? "La cuenta tiene restricciones activas por riesgo, drawdown o exposición."
       : "Riesgo, drawdown o distancia a límites requieren atención.";
-    actionTitle = hardEnforcement ? "Respeta el enforcement" : hasOpenPositions ? "Reduce exposición" : "Pausa y revisa";
+    actionTitle = hardEnforcement ? "Sigue la restricción activa" : hasOpenPositions ? "Reduce exposición" : "Pausa y revisa";
     actionDescription = hardEnforcement
-      ? "Respeta el enforcement del Risk Engine."
+      ? "Mantén la restricción activa antes de abrir o aumentar exposición."
       : hasOpenPositions
         ? "Reduce exposición antes de abrir nuevos trades."
         : "Revisa límites antes de tomar nuevas decisiones.";
@@ -1003,7 +1008,7 @@ function buildDashboardDecisionSummary({
     statusTitle = "Sin posiciones abiertas";
     statusDescription = "No hay riesgo vivo ahora mismo; la cuenta está en reposo.";
     causeTitle = "Sin presión operativa";
-    causeDescription = "La exposición abierta es cero y no hay enforcement activo.";
+    causeDescription = "La exposición abierta es cero y no hay restricción activa.";
     actionTitle = "Prepara la sesión";
     actionDescription = "Mantén seguimiento y espera una nueva oportunidad válida.";
   }
@@ -1083,9 +1088,9 @@ function getOperationalRead({ riskStatus, primaryDistanceToLimit, openPositionsC
   const normalized = String(riskStatus?.riskStatus || "").toLowerCase();
   if (normalized === "blocked" || normalized === "breach") {
     return {
-      summary: "Actúa ahora.",
-      detail: "Intervención requerida.",
-      footer: "Reduce riesgo.",
+      summary: "Intervención requerida.",
+      detail: "Restricción activa.",
+      footer: "Riesgo restringido.",
     };
   }
 
@@ -1171,7 +1176,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (riskStatus?.severity === "critical" || ["blocked", "breach"].includes(String(riskStatus?.riskStatus || "").toLowerCase())) {
     return {
       title: "Riesgo dominante",
-      summary: riskStatus?.actionRequired || "Atención inmediata requerida.",
+      summary: "Restricción activa por el estado de riesgo.",
       metrics: [
         {
           label: "Distance to limit",
