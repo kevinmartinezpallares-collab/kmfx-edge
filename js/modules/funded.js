@@ -177,7 +177,7 @@ function deriveFundedAccount(raw, linked) {
   const totalTrades = Number(linked?.model?.totals?.totalTrades || 0);
   const tradesPerDay = daysCompleted ? totalTrades / daysCompleted : 0;
   const completedDaysVsRule = noMinimumDays || !requiredTradingDays
-    ? "No minimum trading days"
+    ? "Sin mínimo de días operados"
     : `${daysCompleted} / ${requiredTradingDays} días`;
 
   let globalStatus = "SAFE";
@@ -198,18 +198,18 @@ function deriveFundedAccount(raw, linked) {
   );
 
   const alerts = [];
-  if (dailyUsagePct >= 100) alerts.push({ tone: "error", title: "Daily DD breached", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
-  else if (dailyUsagePct >= 80) alerts.push({ tone: "warn", title: "Daily DD near limit", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
-  if (maxUsagePct >= 100) alerts.push({ tone: "error", title: "Max DD breached", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
-  else if (maxUsagePct >= 80) alerts.push({ tone: "warn", title: "Max DD under pressure", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
+  if (dailyUsagePct >= 100) alerts.push({ tone: "error", title: "Límite diario superado", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
+  else if (dailyUsagePct >= 80) alerts.push({ tone: "warn", title: "Drawdown diario cerca del límite", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
+  if (maxUsagePct >= 100) alerts.push({ tone: "error", title: "Límite total superado", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
+  else if (maxUsagePct >= 80) alerts.push({ tone: "warn", title: "Drawdown total bajo presión", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
   if (phase !== "Funded" && targetPct > 0) {
-    if (currentProfitPct >= targetPct) alerts.push({ tone: "ok", title: "Target reached", detail: `Objetivo ${formatPercent(targetPct)} conseguido.` });
-    else alerts.push({ tone: "info", title: "Challenge progress", detail: `${formatPercent(currentProfitPct)} / ${formatPercent(targetPct)} objetivo.` });
+    if (currentProfitPct >= targetPct) alerts.push({ tone: "ok", title: "Objetivo alcanzado", detail: `Objetivo ${formatPercent(targetPct)} conseguido.` });
+    else alerts.push({ tone: "info", title: "Progreso de fase", detail: `${formatPercent(currentProfitPct)} / ${formatPercent(targetPct)} objetivo.` });
   }
   if (noMinimumDays) {
-    alerts.push({ tone: "neutral", title: "Trading days", detail: "No minimum trading days for this phase." });
+    alerts.push({ tone: "neutral", title: "Días operados", detail: "Esta fase no exige mínimo de días." });
   } else if (requiredTradingDays) {
-    alerts.push({ tone: daysCompleted >= requiredTradingDays ? "ok" : "info", title: "Trading days", detail: completedDaysVsRule });
+    alerts.push({ tone: daysCompleted >= requiredTradingDays ? "ok" : "info", title: "Días operados", detail: completedDaysVsRule });
   }
 
   return {
@@ -253,16 +253,16 @@ function deriveFundedAccount(raw, linked) {
 }
 
 function fundedStatusMeta(status) {
-  if (status === "DANGER") return { label: "DANGER", tone: "error" };
-  if (status === "WARNING") return { label: "WARNING", tone: "warn" };
-  return { label: "SAFE", tone: "ok" };
+  if (status === "DANGER") return { label: "Presión alta", tone: "error" };
+  if (status === "WARNING") return { label: "En vigilancia", tone: "warn" };
+  return { label: "Estable", tone: "ok" };
 }
 
 function challengeStateMeta(state) {
-  if (state === "failed") return { label: "Failed", tone: "error" };
-  if (state === "passed") return { label: "Passed", tone: "ok" };
-  if (state === "on-track") return { label: "On track", tone: "info" };
-  return { label: "Watch", tone: "warn" };
+  if (state === "failed") return { label: "Fuera de regla", tone: "error" };
+  if (state === "passed") return { label: "Objetivo superado", tone: "ok" };
+  if (state === "on-track") return { label: "En progreso", tone: "info" };
+  return { label: "A revisar", tone: "warn" };
 }
 
 function progressFillClass(usage) {
@@ -272,13 +272,38 @@ function progressFillClass(usage) {
 }
 
 function ruleNote(account) {
-  if (account.preset?.editable) return "Preset editable: revisa y ajusta reglas manualmente.";
-  if (PROP_RULES[account.propFirm]?.verified) return `Preset verificado · ${account.propFirm} / ${account.programModel}`;
-  return `Preset editable · ${account.propFirm}`;
+  if (account.preset?.editable) return "Preset editable: reglas ajustables manualmente.";
+  if (PROP_RULES[account.propFirm]?.verified) return `Preset verificado: ${account.propFirm} / ${account.programModel}`;
+  return `Preset editable: ${account.propFirm}`;
 }
 
 function currencySymbol(code = "USD") {
   return code === "EUR" ? "€" : "$";
+}
+
+function fundedAttentionScore(account) {
+  if (account.globalStatus === "DANGER" || account.challengeState === "failed") return 4;
+  if (account.globalStatus === "WARNING") return 3;
+  if (account.challengeState === "watch") return 2;
+  if (account.alerts?.some((alert) => alert.tone === "warn" || alert.tone === "error")) return 1;
+  return 0;
+}
+
+function fundedProgressLabel(account) {
+  if (!account.targetUsd) return "Sin objetivo de fase";
+  return `${Math.round(account.targetCompletionPct)}% del objetivo`;
+}
+
+function fundedProgressMeta(account) {
+  if (!account.targetUsd) return "Preservación de capital";
+  return `${formatCurrency(account.currentProfitUsd)} / ${formatCurrency(account.targetUsd)}`;
+}
+
+function fundedAlertBadge(alert) {
+  if (alert.tone === "error") return { label: "Alta", tone: "error" };
+  if (alert.tone === "warn") return { label: "Media", tone: "warn" };
+  if (alert.tone === "ok") return { label: "OK", tone: "ok" };
+  return { label: "Info", tone: alert.tone };
 }
 
 export function initFunded(store) {
@@ -299,11 +324,12 @@ export function initFunded(store) {
     if (!account) return;
     const linked = store.getState().accounts[account.accountId];
     const enriched = deriveFundedAccount(account, linked);
+    const enrichedStatus = fundedStatusMeta(enriched.globalStatus);
     const adminView = store.getState().auth?.user?.role === "admin";
 
     openModal({
       title: `${enriched.propFirm} · ${linked?.name || account.label}`,
-      subtitle: "Detalle de seguimiento funded",
+      subtitle: "Detalle de seguimiento funding",
       maxWidth: 620,
       content: `
         <div class="info-list compact">
@@ -312,12 +338,12 @@ export function initFunded(store) {
           <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
           <div><strong>Fase</strong><span>${enriched.phase}</span></div>
           <div><strong>Tamaño</strong><span>${formatCurrency(enriched.accountSize)}</span></div>
-          <div><strong>Profit actual</strong><span>${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}</span></div>
+          <div><strong>Resultado actual</strong><span>${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}</span></div>
           <div><strong>Objetivo</strong><span>${enriched.targetPct ? formatPercent(enriched.targetPct) : "Sin objetivo de challenge"}</span></div>
-          <div><strong>Daily DD</strong><span>${formatPercent(enriched.dailyDdPct)} / ${enriched.dailyLimitPct ? formatPercent(enriched.dailyLimitPct) : "—"}</span></div>
-          <div><strong>Max DD</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
+          <div><strong>DD diario</strong><span>${formatPercent(enriched.dailyDdPct)} / ${enriched.dailyLimitPct ? formatPercent(enriched.dailyLimitPct) : "—"}</span></div>
+          <div><strong>DD máximo</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
           <div><strong>Días</strong><span>${enriched.completedDaysVsRule}</span></div>
-          <div><strong>Estado</strong><span>${enriched.globalStatus}</span></div>
+          <div><strong>Estado</strong><span>${enrichedStatus.label}</span></div>
           <div><strong>Preset</strong><span>${ruleNote(enriched)}</span></div>
           ${adminView ? `<div><strong>Última sync</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
         </div>
@@ -370,7 +396,7 @@ export function renderFunded(root, state) {
     root.innerHTML = `
       <div class="funded-page-stack">
         ${pageHeaderMarkup({
-          title: "Funded",
+          title: "Funding",
           description: "Aún no hay cuentas funded configuradas.",
           className: "tl-page-header",
           titleClassName: "tl-page-title",
@@ -402,12 +428,21 @@ export function renderFunded(root, state) {
   const appCurrency = state.workspace?.baseCurrency || state.preferences?.baseCurrency || "USD";
   const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
   const accountCurrencySymbol = currencySymbol(accountCurrency);
+  const totalAccountSize = fundedAccounts.reduce((sum, account) => sum + Number(account.accountSize || 0), 0);
+  const accountsToReview = fundedAccounts.filter((account) => fundedAttentionScore(account) > 0);
+  const attentionAccount = [...fundedAccounts]
+    .sort((a, b) => fundedAttentionScore(b) - fundedAttentionScore(a))[0];
+  const hasAttentionAccount = attentionAccount && fundedAttentionScore(attentionAccount) > 0;
+  const selectedProgressValue = selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "Sin objetivo";
+  const selectedProgressMeta = selected.targetUsd
+    ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}`
+    : "Fase orientada a preservar capital";
 
   root.innerHTML = `
     <div class="funded-page-stack">
       ${pageHeaderMarkup({
-        title: "Funded",
-        description: "Mission progress, compliance y preservación de capital para cuentas prop.",
+        title: "Funding",
+        description: "Seguimiento de cuentas fondeadas, progreso de fase y preservación de capital.",
         className: "tl-page-header",
         titleClassName: "tl-page-title",
         descriptionClassName: "tl-page-sub",
@@ -415,19 +450,53 @@ export function renderFunded(root, state) {
 
       ${renderAuthorityNotice(authorityMeta)}
 
+      <section class="funding-overview" aria-label="Resumen de funding">
+        <article class="funding-kpi" data-tone="info">
+          <div class="funding-kpi__label">Cuentas funded</div>
+          <div class="funding-kpi__value">${fundedAccounts.length}</div>
+          <div class="funding-kpi__meta">${accountsToReview.length ? `${accountsToReview.length} a revisar` : "Sin alertas críticas"}</div>
+        </article>
+        <article class="funding-kpi">
+          <div class="funding-kpi__label">Capital bajo seguimiento</div>
+          <div class="funding-kpi__value">${formatCurrency(totalAccountSize)}</div>
+          <div class="funding-kpi__meta">Tamaño total de cuentas</div>
+        </article>
+        <article class="funding-kpi" data-tone="${selected.targetUsd ? (selected.currentProfitUsd >= 0 ? "profit" : "loss") : "neutral"}">
+          <div class="funding-kpi__label">Progreso seleccionado</div>
+          <div class="funding-kpi__value">${selectedProgressValue}</div>
+          <div class="funding-kpi__meta">${selectedProgressMeta}</div>
+        </article>
+        <article class="funding-kpi" data-tone="${hasAttentionAccount ? "warning" : "neutral"}">
+          <div class="funding-kpi__label">Cuenta a revisar</div>
+          <div class="funding-kpi__value">${hasAttentionAccount ? (attentionAccount.linked?.name || attentionAccount.label) : "Sin alertas"}</div>
+          <div class="funding-kpi__meta">${hasAttentionAccount ? challengeStateMeta(attentionAccount.challengeState).label : "Sin presión crítica visible"}</div>
+        </article>
+        <article class="funding-kpi funding-kpi--note">
+          <div class="funding-kpi__label">Costes y payouts</div>
+          <div class="funding-kpi__value">Pendiente</div>
+          <div class="funding-kpi__meta">Costes, payouts y recuperaciones pendientes de modelar.</div>
+        </article>
+      </section>
+
       <article class="tl-section-card funded-hero-card">
         <div class="funded-account-switch">
           ${fundedAccounts.map((account) => `
-            <button class="funded-account-pill ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}">
-              <span>${account.linked?.name || account.label}</span>
-              ${badgeMarkup(challengeStateMeta(account.challengeState), "ui-badge--compact")}
+            <button class="funded-account-pill funding-challenge-card ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}">
+              <span class="funding-challenge-card__main">
+                <span class="funding-challenge-card__name">${account.linked?.name || account.label}</span>
+                <span class="funding-challenge-card__meta">${account.propFirm} · ${account.phase}</span>
+              </span>
+              <span class="funding-challenge-card__side">
+                ${badgeMarkup(challengeStateMeta(account.challengeState), "ui-badge--compact")}
+                <span class="funding-challenge-card__progress">${fundedProgressLabel(account)}</span>
+              </span>
             </button>
           `).join("")}
         </div>
 
         <div class="funded-hero-grid">
           <div class="funded-hero-copy">
-            <div class="banner-kicker">Mission status</div>
+            <div class="banner-kicker">Estado del challenge</div>
             <div class="funded-hero-head">
               <div>
                 <div class="banner-title">${selected.linked?.name || selected.label}</div>
@@ -443,17 +512,24 @@ export function renderFunded(root, state) {
             </div>
 
             <div class="funded-hero-kpis">
-              <div class="metric-item"><div class="metric-label">Account size</div><div class="metric-value">${formatCurrency(selected.accountSize)}</div></div>
+              <div class="metric-item"><div class="metric-label">Tamaño de cuenta</div><div class="metric-value">${formatCurrency(selected.accountSize)}</div></div>
               <div class="metric-item"><div class="metric-label">Balance</div><div class="metric-value">${formatCurrency(selected.balance)}</div></div>
               <div class="metric-item"><div class="metric-label">Equity</div><div class="metric-value">${formatCurrency(selected.equity)}</div></div>
-              <div class="metric-item"><div class="metric-label">Open P&L</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
+              <div class="metric-item"><div class="metric-label">P&L abierto</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
+              <div class="metric-item"><div class="metric-label">Resultado actual</div><div class="metric-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
             </div>
           </div>
 
           <div class="funded-hero-config">
+            <div class="funded-config-header">
+              <div>
+                <div class="funded-config-title">Configuración de seguimiento</div>
+                <div class="funded-config-sub">Ajustes de fase y reglas del challenge.</div>
+              </div>
+            </div>
             <div class="funded-config-grid">
               <label class="form-stack">
-                <span>Prop firm</span>
+                <span>Firma</span>
                 <div class="funded-select-wrap">
                   <select data-funded-field="propFirm" data-funded-id="${selected.id}">
                     ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
@@ -466,7 +542,7 @@ export function renderFunded(root, state) {
                 </div>
               </label>
               <label class="form-stack">
-                <span>Program model</span>
+                <span>Modelo</span>
                 <div class="funded-select-wrap">
                   <select data-funded-field="programModel" data-funded-id="${selected.id}">
                     ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
@@ -479,7 +555,7 @@ export function renderFunded(root, state) {
                 </div>
               </label>
               <label class="form-stack">
-                <span>Phase</span>
+                <span>Fase</span>
                 <div class="funded-select-wrap">
                   <select data-funded-field="phase" data-funded-id="${selected.id}">
                     ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
@@ -492,7 +568,7 @@ export function renderFunded(root, state) {
                 </div>
               </label>
               <label class="form-stack">
-                <span>Account size</span>
+                <span>Tamaño de cuenta</span>
                 <div class="funded-size-wrap">
                   <span class="funded-size-prefix">${accountCurrencySymbol}</span>
                   <input class="funded-size-input" type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
@@ -517,23 +593,23 @@ export function renderFunded(root, state) {
       <article class="tl-section-card funded-progress-card">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">Progress vs target</div>
+            <div class="tl-section-title">Progreso frente al objetivo</div>
             <div class="tl-section-sub">Ancla principal del challenge: beneficio actual frente al objetivo de la fase.</div>
           </div>
-          <div class="funded-progress-metric">${selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : "Capital preservation"}</div>
+          <div class="funded-progress-metric">${fundedProgressMeta(selected)}</div>
         </div>
         <div class="funded-progress-layout">
           <div class="funded-progress-main">
             <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.currentProfitUsd, text: selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</div>
-            <div class="row-sub">${selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}% completado · Remaining: ${formatCurrency(selected.remainingUsd)}` : "Sin profit target en esta fase"}</div>
+            <div class="row-sub">${selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}% completado. Pendiente: ${formatCurrency(selected.remainingUsd)}` : "Sin objetivo de beneficio en esta fase"}</div>
           </div>
           <div class="funded-progress-track">
             <div class="funded-progress-bar">
               <div class="funded-progress-fill ${progressFillClass(selected.targetCompletionPct)}" style="width:${selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
             </div>
             <div class="funded-progress-meta">
-              <span>Current profit: ${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
-              <span>${selected.targetUsd ? `Target: ${formatCurrency(selected.targetUsd)}` : "Target no aplicable"}</span>
+              <span>Resultado actual: ${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
+              <span>${selected.targetUsd ? `Objetivo: ${formatCurrency(selected.targetUsd)}` : "Objetivo no aplicable"}</span>
             </div>
           </div>
         </div>
@@ -541,38 +617,38 @@ export function renderFunded(root, state) {
 
       <div class="grid-3 funded-rules-grid">
         <article class="tl-kpi-card funded-rule-card">
-          <div class="tl-kpi-label">Daily Drawdown</div>
+          <div class="tl-kpi-label">Drawdown diario</div>
           <div class="tl-kpi-val ${selected.dailyUsagePct >= 80 ? "red" : ""}">${formatPercent(selected.dailyDdPct)}</div>
           <div class="row-sub">${selected.dailyLimitPct ? `${Math.round(selected.dailyUsagePct)}% del límite ${formatPercent(selected.dailyLimitPct)}` : "Límite no configurado"}</div>
           <div class="funded-mini-track"><div class="funded-mini-fill ${progressFillClass(selected.dailyUsagePct)}" style="width:${clamp(selected.dailyUsagePct)}%"></div></div>
         </article>
         <article class="tl-kpi-card funded-rule-card">
-          <div class="tl-kpi-label">Max Drawdown</div>
+          <div class="tl-kpi-label">Drawdown máximo</div>
           <div class="tl-kpi-val ${selected.maxUsagePct >= 80 ? "red" : ""}">${formatPercent(selected.maxDdPct)}</div>
           <div class="row-sub">${selected.maxLimitPct ? `${Math.round(selected.maxUsagePct)}% del límite ${formatPercent(selected.maxLimitPct)}` : "Límite no configurado"}</div>
           <div class="funded-mini-track"><div class="funded-mini-fill ${progressFillClass(selected.maxUsagePct)}" style="width:${clamp(selected.maxUsagePct)}%"></div></div>
         </article>
         <article class="tl-kpi-card funded-rule-card">
-          <div class="tl-kpi-label">Trading Days</div>
+          <div class="tl-kpi-label">Días operados</div>
           <div class="tl-kpi-val">${selected.noMinimumDays ? "Libre" : selected.daysCompleted}</div>
           <div class="row-sub">${selected.completedDaysVsRule}</div>
-          <div class="funded-days-note">${selected.noMinimumDays ? "No minimum trading days" : selected.requiredTradingDays ? `${Math.max(selected.requiredTradingDays - selected.daysCompleted, 0)} días por completar` : "Sin requisito de días"}</div>
+          <div class="funded-days-note">${selected.noMinimumDays ? "Sin mínimo de días operados" : selected.requiredTradingDays ? `${Math.max(selected.requiredTradingDays - selected.daysCompleted, 0)} días por completar` : "Sin requisito de días"}</div>
         </article>
       </div>
 
       <div class="tl-kpi-row five funded-secondary-kpis">
-        <article class="tl-kpi-card"><div class="tl-kpi-label">Winrate</div><div class="tl-kpi-val">${formatPercent(selected.winRate)}</div></article>
-        <article class="tl-kpi-card"><div class="tl-kpi-label">Avg R</div><div class="tl-kpi-val">${selected.avgRValue.toFixed(2)}R</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Acierto</div><div class="tl-kpi-val">${formatPercent(selected.winRate)}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">R medio</div><div class="tl-kpi-val">${selected.avgRValue.toFixed(2)}R</div></article>
         <article class="tl-kpi-card"><div class="tl-kpi-label">Profit Factor</div><div class="tl-kpi-val">${selected.profitFactor.toFixed(2)}</div></article>
-        <article class="tl-kpi-card"><div class="tl-kpi-label">Open P&L</div><div class="tl-kpi-val ${selected.openPnl >= 0 ? "green" : "red"}">${formatCurrency(selected.openPnl)}</div></article>
-        <article class="tl-kpi-card"><div class="tl-kpi-label">Days</div><div class="tl-kpi-val">${selected.noMinimumDays ? selected.daysCompleted : `${selected.daysCompleted}/${selected.requiredTradingDays || 0}`}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">P&L abierto</div><div class="tl-kpi-val ${selected.openPnl >= 0 ? "green" : "red"}">${formatCurrency(selected.openPnl)}</div></article>
+        <article class="tl-kpi-card"><div class="tl-kpi-label">Días</div><div class="tl-kpi-val">${selected.noMinimumDays ? selected.daysCompleted : `${selected.daysCompleted}/${selected.requiredTradingDays || 0}`}</div></article>
       </div>
 
       <article class="tl-section-card funded-alerts-card">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">Account health & alerts</div>
-            <div class="tl-section-sub">Warnings, breaches y lectura de misión en una sola vista.</div>
+            <div class="tl-section-title">Alertas y estado de cuenta</div>
+            <div class="tl-section-sub">Señales de presión, progreso y reglas visibles en la muestra.</div>
           </div>
         </div>
         <div class="breakdown-list">
@@ -582,7 +658,7 @@ export function renderFunded(root, state) {
                 <div class="row-title">${alert.title}</div>
                 <div class="row-sub">${alert.detail}</div>
               </div>
-              ${badgeMarkup({ label: alert.tone === "error" ? "DANGER" : alert.tone === "warn" ? "WARNING" : alert.tone === "ok" ? "SAFE" : "INFO", tone: alert.tone }, "ui-badge--compact")}
+              ${badgeMarkup(fundedAlertBadge(alert), "ui-badge--compact")}
             </div>
           `).join("")}
         </div>
