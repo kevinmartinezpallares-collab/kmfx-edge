@@ -8,9 +8,12 @@ import json
 import logging
 import os
 import tempfile
+import time
 import traceback
 from datetime import datetime, timedelta, timezone
 from typing import Any
+import urllib.error
+import urllib.request
 from uuid import UUID
 
 from fastapi import FastAPI, Query, Request
@@ -28,6 +31,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("kmfx_connector_api")
 
 RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
+SUPABASE_PROJECT_URL = str(os.getenv("SUPABASE_URL") or os.getenv("KMFX_SUPABASE_URL") or "https://uuhiqreifisppqkawzif.supabase.co").strip().rstrip("/")
+SUPABASE_ANON_KEY = str(os.getenv("SUPABASE_ANON_KEY") or os.getenv("KMFX_SUPABASE_ANON_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGlxcmVpZmlzcHBxa2F3emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDY0MDIsImV4cCI6MjA4OTgyMjQwMn0.-9nOoN8smRXiYscUeNzOCkeDKSakv416JflmhnhVHfM").strip()
 ADMIN_OWNER_USER_ID = "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"
 ADMIN_OWNER_LAUNCHER_CONNECTION_KEY = "d6a04f74-7972-4927-8c7e-4ec101f7b445"
 ADMIN_USER_IDS = {
@@ -76,6 +81,7 @@ log.info(
 
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
+VERIFIED_BEARER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
 JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
@@ -363,7 +369,7 @@ def _extract_bearer_token(request: Request) -> str:
     return authorization.split(" ", 1)[1].strip()
 
 
-def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
+def _resolve_signed_bearer_claims(request: Request) -> dict[str, Any]:
     token = _extract_bearer_token(request)
     secret = safe_str(os.getenv("SUPABASE_JWT_SECRET"))
     if not token or not secret:
@@ -383,6 +389,49 @@ def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
     return _decode_base64url_json(parts[1])
 
 
+def _resolve_supabase_user_claims(request: Request) -> dict[str, Any]:
+    token = _extract_bearer_token(request)
+    if not token or not SUPABASE_PROJECT_URL or not SUPABASE_ANON_KEY:
+        return {}
+    cache_key = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    cached = VERIFIED_BEARER_CACHE.get(cache_key)
+    if cached and cached[0] > time.time():
+        return deepcopy(cached[1])
+    request_url = f"{SUPABASE_PROJECT_URL}/auth/v1/user"
+    auth_request = urllib.request.Request(
+        request_url,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+            "apikey": SUPABASE_ANON_KEY,
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(auth_request, timeout=3) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        log.warning("Supabase bearer verification failed | source=auth_user endpoint=%s error=%s", request_url, exc)
+        return {}
+    if not isinstance(payload, dict) or not safe_str(payload.get("id")):
+        return {}
+    claims = {
+        "sub": safe_str(payload.get("id")),
+        "email": safe_str(payload.get("email")).lower(),
+        "user_metadata": ensure_dict(payload.get("user_metadata")),
+        "app_metadata": ensure_dict(payload.get("app_metadata")),
+        "source": "supabase_auth_user",
+    }
+    VERIFIED_BEARER_CACHE[cache_key] = (time.time() + 60, claims)
+    return deepcopy(claims)
+
+
+def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
+    # Prefer local JWT validation when SUPABASE_JWT_SECRET is configured; otherwise
+    # verify the bearer with Supabase Auth. Public X-KMFX-* headers are never enough.
+    return _resolve_signed_bearer_claims(request) or _resolve_supabase_user_claims(request)
+
+
 def _resolve_verified_bearer_email(request: Request) -> str:
     claims = _resolve_verified_bearer_claims(request)
     email = safe_str(claims.get("email") or ensure_dict(claims.get("user_metadata")).get("email")).lower()
@@ -391,19 +440,14 @@ def _resolve_verified_bearer_email(request: Request) -> str:
 
 def _resolve_trusted_header_email(request: Request) -> str:
     client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
-    allow_header = safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
-    if not allow_header and client_host not in {"127.0.0.1", "::1", "localhost"}:
+    if client_host not in {"127.0.0.1", "::1", "localhost"}:
         return ""
     return safe_str(request.headers.get("x-kmfx-user-email")).lower()
 
 
 def _resolve_trusted_header_user_id(request: Request) -> str:
     client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
-    allow_header = (
-        safe_str(os.getenv("KMFX_TRUST_ADMIN_ID_HEADER")).lower() in {"1", "true", "yes"}
-        or safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
-    )
-    if not allow_header and client_host not in {"127.0.0.1", "::1", "localhost"}:
+    if client_host not in {"127.0.0.1", "::1", "localhost"}:
         return ""
     return safe_str(request.headers.get("x-kmfx-user-id")).lower()
 
