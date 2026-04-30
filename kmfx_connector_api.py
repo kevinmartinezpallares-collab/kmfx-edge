@@ -28,9 +28,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("kmfx_connector_api")
 
 RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
+ADMIN_USER_IDS = {
+    user_id.strip().lower()
+    for user_id in str(os.getenv("KMFX_ADMIN_USER_IDS") or "421e2f82-d3c9-4965-bda5-35d6e88cbd0f").split(",")
+    if user_id.strip()
+}
 ADMIN_EMAILS = {
     email.strip().lower()
-    for email in str(os.getenv("KMFX_ADMIN_EMAILS") or "kevinmartinezpallares@gmail.com").split(",")
+    for email in str(os.getenv("KMFX_ADMIN_EMAILS") or "").split(",")
     if email.strip()
 }
 
@@ -371,6 +376,14 @@ def _resolve_trusted_header_email(request: Request) -> str:
     return safe_str(request.headers.get("x-kmfx-user-email")).lower()
 
 
+def _resolve_trusted_header_user_id(request: Request) -> str:
+    client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
+    allow_header = safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
+    if not allow_header and client_host not in {"127.0.0.1", "::1", "localhost"}:
+        return ""
+    return safe_str(request.headers.get("x-kmfx-user-id")).lower()
+
+
 def resolve_authenticated_email(request: Request) -> str:
     return _resolve_verified_bearer_email(request) or _resolve_trusted_header_email(request)
 
@@ -387,10 +400,11 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
         }
 
     trusted_email = _resolve_trusted_header_email(request)
-    if trusted_email:
+    trusted_user_id = _resolve_trusted_header_user_id(request)
+    if trusted_email or trusted_user_id:
         return {
             "email": trusted_email,
-            "user_id": trusted_email,
+            "user_id": trusted_user_id or trusted_email,
             "source": "trusted_header",
         }
 
@@ -400,20 +414,22 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
 def build_admin_context(request: Request) -> dict[str, Any]:
     identity = resolve_authenticated_identity(request)
     email = identity["email"]
+    user_id = safe_str(identity["user_id"]).lower()
     return {
         "email": email,
-        "user_id": identity["user_id"],
+        "user_id": user_id,
         "source": identity["source"],
-        "is_admin": bool(email and email in ADMIN_EMAILS),
+        "is_admin": bool((user_id and user_id in ADMIN_USER_IDS) or (email and email in ADMIN_EMAILS)),
     }
 
 
 def resolve_account_scope(request: Request) -> tuple[str, dict[str, Any]]:
     context = build_admin_context(request)
-    if not context["email"]:
+    if not (context["email"] or context["user_id"]):
         return "", context
     if context["is_admin"]:
-        # Legacy owner/dev live accounts are stored under "local"; keep them private to explicit admins.
+        # Temporary admin bridge: unowned legacy launcher/live accounts stored under "local"
+        # stay private to explicit admin user IDs until per-user account linking exists.
         return "local", context
     return safe_str(context["user_id"] or context["email"]), context
 
@@ -427,7 +443,7 @@ def empty_accounts_payload(context: dict[str, Any]) -> dict[str, Any]:
         "is_admin": bool(context.get("is_admin")),
         "auth_email": context.get("email", ""),
         "scope_user_id": context.get("user_id", ""),
-        "auth_required": not bool(context.get("email")),
+        "auth_required": not bool(context.get("email") or context.get("user_id")),
     }
 
 

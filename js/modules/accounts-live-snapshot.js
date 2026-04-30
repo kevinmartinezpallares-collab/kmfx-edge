@@ -1,6 +1,7 @@
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260406-213500";
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-213500";
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260406-213500";
+import { isAdminUserId } from "./auth-session.js?v=build-20260406-213500";
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
@@ -83,18 +84,21 @@ function buildAuthHeaders(state) {
   if (state?.auth?.status !== "authenticated") return headers;
   const token = state?.auth?.session?.accessToken;
   const email = state?.auth?.user?.email;
+  const userId = state?.auth?.user?.id;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (email) headers["X-KMFX-User-Email"] = email;
+  if (userId) headers["X-KMFX-User-Id"] = userId;
   return headers;
 }
 
 function authContext(state = {}) {
   const auth = state.auth || {};
+  const userId = String(auth.user?.id || "").trim().toLowerCase();
   return {
     isAuthenticated: auth.status === "authenticated",
-    userId: String(auth.user?.id || "").trim().toLowerCase(),
+    userId,
     email: String(auth.user?.email || "").trim().toLowerCase(),
-    isAdmin: Boolean(auth.user?.is_admin || auth.user?.role === "admin"),
+    isAdmin: isAdminUserId(userId),
     hasToken: Boolean(auth.session?.accessToken),
   };
 }

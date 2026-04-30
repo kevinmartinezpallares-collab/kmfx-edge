@@ -234,8 +234,10 @@ function buildAuthHeaders(state, extra = {}) {
   if (state?.auth?.status !== "authenticated") return headers;
   const token = state?.auth?.session?.accessToken;
   const email = state?.auth?.user?.email;
+  const userId = state?.auth?.user?.id;
   if (token) headers.Authorization = `Bearer ${token}`;
   if (email) headers["X-KMFX-User-Email"] = email;
+  if (userId) headers["X-KMFX-User-Id"] = userId;
   return headers;
 }
 

@@ -35,22 +35,22 @@ export const DEFAULT_AUTH_STATE = {
   profile: { ...DEFAULT_AUTH_PROFILE }
 };
 
-// Temporary local-owner bridge until live MT5 accounts carry per-user ownership metadata.
-const LOCAL_OWNER_ADMIN_EMAILS = new Set(["kevinmartinezpallares@gmail.com"]);
+// Temporary admin bridge until live MT5 accounts carry per-user ownership metadata.
+const ADMIN_USER_IDS = new Set(["421e2f82-d3c9-4965-bda5-35d6e88cbd0f"]);
 
-function readConfiguredAdminEmails() {
+function readConfiguredAdminUserIds() {
   if (typeof window === "undefined") return [];
-  const configured = window.__KMFX_ADMIN_EMAILS__;
+  const configured = window.__KMFX_ADMIN_USER_IDS__;
   if (Array.isArray(configured)) return configured;
   if (typeof configured === "string") return configured.split(",");
   return [];
 }
 
-function isLocalOwnerAdminEmail(email = "") {
-  const normalized = String(email || "").trim().toLowerCase();
+export function isAdminUserId(userId = "") {
+  const normalized = String(userId || "").trim().toLowerCase();
   if (!normalized) return false;
-  if (LOCAL_OWNER_ADMIN_EMAILS.has(normalized)) return true;
-  return readConfiguredAdminEmails()
+  if (ADMIN_USER_IDS.has(normalized)) return true;
+  return readConfiguredAdminUserIds()
     .map((value) => String(value || "").trim().toLowerCase())
     .filter(Boolean)
     .includes(normalized);
@@ -178,13 +178,14 @@ export function getInitialsFromAuthName(name = "") {
 }
 
 function sanitizeAuthUser(user = {}) {
+  const userId = String(user.id || DEFAULT_AUTH_USER.id);
   const email = String(user.email || "").trim();
   const fallbackName = email ? formatNameFromEmail(email) : DEFAULT_AUTH_USER.name;
   const name = String(user.name || fallbackName).trim() || fallbackName;
-  const isAdmin = user.is_admin === true || user.role === "admin" || isLocalOwnerAdminEmail(email);
+  const isAdmin = isAdminUserId(userId);
   const role = isAdmin ? "admin" : "user";
   return {
-    id: String(user.id || DEFAULT_AUTH_USER.id),
+    id: userId,
     name,
     email: email || DEFAULT_AUTH_USER.email,
     avatar: user.avatar || null,
