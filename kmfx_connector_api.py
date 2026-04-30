@@ -28,11 +28,32 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("kmfx_connector_api")
 
 RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
+ADMIN_OWNER_USER_ID = "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"
+ADMIN_OWNER_LAUNCHER_CONNECTION_KEY = "d6a04f74-7972-4927-8c7e-4ec101f7b445"
 ADMIN_USER_IDS = {
     user_id.strip().lower()
-    for user_id in str(os.getenv("KMFX_ADMIN_USER_IDS") or "421e2f82-d3c9-4965-bda5-35d6e88cbd0f").split(",")
+    for user_id in str(os.getenv("KMFX_ADMIN_USER_IDS") or ADMIN_OWNER_USER_ID).split(",")
     if user_id.strip()
 }
+ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID: dict[str, set[str]] = {}
+for mapping in str(
+    os.getenv("KMFX_ADMIN_LAUNCHER_CONNECTION_KEYS")
+    or f"{ADMIN_OWNER_USER_ID}={ADMIN_OWNER_LAUNCHER_CONNECTION_KEY}"
+).replace(";", ",").split(","):
+    separator = "=" if "=" in mapping else ":"
+    if separator not in mapping:
+        continue
+    user_id, connection_keys = mapping.split(separator, 1)
+    normalized_user_id = user_id.strip().lower()
+    if not normalized_user_id:
+        continue
+    normalized_keys = {
+        connection_key.strip().lower()
+        for connection_key in connection_keys.replace("|", " ").split()
+        if connection_key.strip()
+    }
+    if normalized_keys:
+        ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID.setdefault(normalized_user_id, set()).update(normalized_keys)
 ADMIN_EMAILS = {
     email.strip().lower()
     for email in str(os.getenv("KMFX_ADMIN_EMAILS") or "").split(",")
@@ -378,7 +399,10 @@ def _resolve_trusted_header_email(request: Request) -> str:
 
 def _resolve_trusted_header_user_id(request: Request) -> str:
     client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
-    allow_header = safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
+    allow_header = (
+        safe_str(os.getenv("KMFX_TRUST_ADMIN_ID_HEADER")).lower() in {"1", "true", "yes"}
+        or safe_str(os.getenv("KMFX_TRUST_ADMIN_EMAIL_HEADER")).lower() in {"1", "true", "yes"}
+    )
     if not allow_header and client_host not in {"127.0.0.1", "::1", "localhost"}:
         return ""
     return safe_str(request.headers.get("x-kmfx-user-id")).lower()
@@ -427,11 +451,16 @@ def resolve_account_scope(request: Request) -> tuple[str, dict[str, Any]]:
     context = build_admin_context(request)
     if not (context["email"] or context["user_id"]):
         return "", context
-    if context["is_admin"]:
-        # Temporary admin bridge: unowned legacy launcher/live accounts stored under "local"
-        # stay private to explicit admin user IDs until per-user account linking exists.
-        return "local", context
     return safe_str(context["user_id"] or context["email"]), context
+
+
+def admin_launcher_connection_keys_for_context(context: dict[str, Any]) -> set[str]:
+    user_id = safe_str(context.get("user_id")).lower()
+    if not user_id or not context.get("is_admin"):
+        return set()
+    # Temporary admin launcher bridge: this maps a specific owner user id to known
+    # launcher connection keys until real per-user account linking exists.
+    return set(ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID.get(user_id) or set())
 
 
 def empty_accounts_payload(context: dict[str, Any]) -> dict[str, Any]:
@@ -548,7 +577,53 @@ def forget_live_account_snapshot(account_id: str) -> None:
     RECENT_LIVE_ACCOUNTS.pop(normalized, None)
 
 
-def build_live_accounts_snapshot(user_id: str = "local") -> dict[str, Any]:
+def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
+    return {
+        "account_id": getattr(account, "account_id", ""),
+        "user_id": getattr(account, "user_id", "local"),
+        "alias": getattr(account, "alias", "") or getattr(account, "nickname", "") or "",
+        "platform": getattr(account, "platform", "mt5"),
+        "connection_key": getattr(account, "api_key", ""),
+        "status": getattr(account, "status", ""),
+        "lifecycle_status": getattr(account, "status", ""),
+        "broker": getattr(account, "broker", ""),
+        "login": getattr(account, "login", ""),
+        "mt5_login": getattr(account, "mt5_login", "") or getattr(account, "login", ""),
+        "server": getattr(account, "server", ""),
+        "last_sync_at": getattr(account, "last_sync_at", None).isoformat() if getattr(account, "last_sync_at", None) else "",
+        "first_sync_at": getattr(account, "first_sync_at", None).isoformat() if getattr(account, "first_sync_at", None) else "",
+        "last_policy_at": getattr(account, "last_policy_at", None).isoformat() if getattr(account, "last_policy_at", None) else "",
+        "last_error_code": getattr(account, "last_error_code", ""),
+        "last_error_message": getattr(account, "last_error_message", ""),
+        "connector_version": getattr(account, "connector_version", ""),
+        "archived_at": getattr(account, "archived_at", None).isoformat() if getattr(account, "archived_at", None) else "",
+        "is_default": bool(getattr(account, "is_default", False) or getattr(account, "is_primary", False)),
+        "is_primary": bool(getattr(account, "is_default", False) or getattr(account, "is_primary", False)),
+        "created_at": getattr(account, "created_at", None).isoformat() if getattr(account, "created_at", None) else "",
+        "updated_at": getattr(account, "updated_at", None).isoformat() if getattr(account, "updated_at", None) else "",
+        "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
+        "source": "admin_connection_key_bridge",
+    }
+
+
+def merge_admin_launcher_registry_accounts(accounts: list[dict[str, Any]], allowed_connection_keys: set[str]) -> list[dict[str, Any]]:
+    merged = list(accounts)
+    seen_ids = {safe_str(account.get("account_id")) for account in merged if isinstance(account, dict)}
+    for connection_key in allowed_connection_keys:
+        account = resolve_account_by_connection_key(connection_key)
+        if account is None or account.account_id in seen_ids:
+            continue
+        merged.append(build_registry_entry_for_account(account))
+        seen_ids.add(account.account_id)
+    return merged
+
+
+def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys: set[str] | None = None) -> dict[str, Any]:
+    allowed_connection_keys = {
+        safe_str(connection_key).lower()
+        for connection_key in (allowed_connection_keys or set())
+        if safe_str(connection_key)
+    }
     persisted_snapshot = account_service.build_accounts_snapshot(user_id)
     merged_accounts: dict[str, dict[str, Any]] = {}
 
@@ -562,8 +637,18 @@ def build_live_accounts_snapshot(user_id: str = "local") -> dict[str, Any]:
         merged_entry["source"] = merged_entry.get("source") or "store"
         merged_accounts[account_id] = merged_entry
 
+    for connection_key in allowed_connection_keys:
+        account = resolve_account_by_connection_key(connection_key)
+        if account is None:
+            continue
+        entry = build_live_snapshot_entry(account, source="admin_connection_key_bridge")
+        account_id = safe_str(entry.get("account_id"))
+        if account_id:
+            merged_accounts[account_id] = entry
+
     for account_id, entry in RECENT_LIVE_ACCOUNTS.items():
-        if safe_str(entry.get("user_id"), "local") != user_id:
+        entry_connection_key = safe_str(entry.get("connection_key") or entry.get("api_key")).lower()
+        if safe_str(entry.get("user_id"), "local") != user_id and entry_connection_key not in allowed_connection_keys:
             continue
         cached_last_sync = _parse_datetime(entry.get("last_sync_at"))
         persisted_last_sync = _parse_datetime((merged_accounts.get(account_id) or {}).get("last_sync_at"))
@@ -1451,13 +1536,19 @@ async def list_accounts(request: Request) -> JSONResponse:
     scope_user_id, admin_context = resolve_account_scope(request)
     if not scope_user_id:
         return connector_json_response(empty_accounts_payload(admin_context))
+    allowed_connection_keys = admin_launcher_connection_keys_for_context(admin_context)
+    accounts = merge_admin_launcher_registry_accounts(
+        account_service.build_accounts_registry(scope_user_id),
+        allowed_connection_keys,
+    )
     return connector_json_response(
         {
             "ok": True,
-            "accounts": account_service.build_accounts_registry(scope_user_id),
+            "accounts": accounts,
             "is_admin": admin_context["is_admin"],
             "auth_email": admin_context["email"],
             "scope_user_id": scope_user_id,
+            "admin_launcher_bridge": bool(allowed_connection_keys),
             "timestamp": now_iso(),
         }
     )
@@ -2087,10 +2178,12 @@ async def accounts_snapshot(request: Request) -> JSONResponse:
         snapshot = empty_accounts_payload(auth_context)
         log.info("Accounts snapshot denied closed | reason=auth_required")
         return connector_json_response(snapshot)
-    snapshot = build_live_accounts_snapshot(scope_user_id)
+    allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
+    snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
     snapshot["is_admin"] = auth_context["is_admin"]
     snapshot["auth_email"] = auth_context["email"]
     snapshot["scope_user_id"] = scope_user_id
+    snapshot["admin_launcher_bridge"] = bool(allowed_connection_keys)
     log.info(
         "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s",
         scope_user_id,
