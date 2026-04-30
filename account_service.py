@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -35,6 +36,84 @@ def _display_name(account: Account) -> str:
     if account.broker and account.login:
         return f"{account.broker} · {account.login}"
     return account.login or account.account_id
+
+
+def _first_finite_number(*values: Any) -> float | None:
+    for value in values:
+        if value is None or value == "":
+            continue
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(parsed):
+            return parsed
+    return None
+
+
+def _first_text(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def account_summary_fields_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Expose display-only account totals already present in the latest MT5 snapshot."""
+    safe_payload = payload if isinstance(payload, dict) else {}
+    account_payload = safe_payload.get("account") if isinstance(safe_payload.get("account"), dict) else {}
+    summary: dict[str, Any] = {}
+
+    balance = _first_finite_number(safe_payload.get("balance"), account_payload.get("balance"))
+    equity = _first_finite_number(safe_payload.get("equity"), account_payload.get("equity"))
+    open_pnl = _first_finite_number(
+        safe_payload.get("openPnl"),
+        safe_payload.get("floatingPnl"),
+        safe_payload.get("open_pnl"),
+        safe_payload.get("floating_pnl"),
+        account_payload.get("profit"),
+        account_payload.get("openPnl"),
+        account_payload.get("floatingPnl"),
+    )
+    total_pnl = _first_finite_number(
+        safe_payload.get("totalPnl"),
+        safe_payload.get("total_pnl"),
+        safe_payload.get("pnl"),
+        safe_payload.get("netPnl"),
+        safe_payload.get("net_pnl"),
+    )
+    closed_pnl = _first_finite_number(
+        safe_payload.get("closedPnl"),
+        safe_payload.get("closed_pnl"),
+    )
+    currency = _first_text(safe_payload.get("currency"), account_payload.get("currency"))
+
+    if balance is not None:
+        summary["balance"] = balance
+        summary["account_balance"] = balance
+    if equity is not None:
+        summary["equity"] = equity
+        summary["account_equity"] = equity
+    if open_pnl is not None:
+        summary["open_pnl"] = open_pnl
+        summary["openPnl"] = open_pnl
+        summary["floating_pnl"] = open_pnl
+        summary["floatingPnl"] = open_pnl
+    if total_pnl is not None:
+        summary["total_pnl"] = total_pnl
+        summary["totalPnl"] = total_pnl
+        summary["pnl"] = total_pnl
+        summary["net_pnl"] = total_pnl
+        summary["netPnl"] = total_pnl
+    if closed_pnl is not None:
+        summary["closed_pnl"] = closed_pnl
+        summary["closedPnl"] = closed_pnl
+    if currency:
+        summary["currency"] = currency
+        summary["account_currency"] = currency
+
+    return summary
 
 
 def _resolve_account_id(platform: str, broker: str, server: str, login: str) -> str:
@@ -670,6 +749,7 @@ class AccountService:
                 "created_at": account.created_at.isoformat(),
                 "updated_at": account.updated_at.isoformat(),
                 "display_name": _display_name(account),
+                **account_summary_fields_from_payload(account.latest_payload),
             }
             for account in accounts
         ]

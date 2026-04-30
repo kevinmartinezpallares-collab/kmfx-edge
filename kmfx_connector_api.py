@@ -20,7 +20,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from account_service import AccountService
+from account_service import AccountService, account_summary_fields_from_payload
 from account_store import JsonFileAccountStore
 from risk_enforcement_engine import build_risk_status
 from risk_metrics_engine import build_risk_metrics, extract_previous_risk_snapshot
@@ -629,6 +629,7 @@ def forget_live_account_snapshot(account_id: str) -> None:
 
 
 def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
+    latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
     return {
         "account_id": getattr(account, "account_id", ""),
         "user_id": getattr(account, "user_id", "local"),
@@ -654,6 +655,7 @@ def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
         "updated_at": getattr(account, "updated_at", None).isoformat() if getattr(account, "updated_at", None) else "",
         "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
         "source": "admin_connection_key_bridge",
+        **account_summary_fields_from_payload(latest_payload),
     }
 
 
