@@ -38,6 +38,11 @@ def platform_data_dir() -> Path:
 
 
 def bridge_config_path() -> Path:
+    custom_path = os.getenv("KMFX_BRIDGE_CONFIG_PATH", "").strip()
+    if custom_path:
+        path = Path(custom_path).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
     root = platform_data_dir()
     root.mkdir(parents=True, exist_ok=True)
     return root / "kmfx_bridge_config.json"

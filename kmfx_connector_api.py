@@ -35,6 +35,13 @@ SUPABASE_PROJECT_URL = str(os.getenv("SUPABASE_URL") or os.getenv("KMFX_SUPABASE
 SUPABASE_ANON_KEY = str(os.getenv("SUPABASE_ANON_KEY") or os.getenv("KMFX_SUPABASE_ANON_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGlxcmVpZmlzcHBxa2F3emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDY0MDIsImV4cCI6MjA4OTgyMjQwMn0.-9nOoN8smRXiYscUeNzOCkeDKSakv416JflmhnhVHfM").strip()
 ADMIN_OWNER_USER_ID = "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"
 ADMIN_OWNER_LAUNCHER_CONNECTION_KEY = "d6a04f74-7972-4927-8c7e-4ec101f7b445"
+ADMIN_ORION_LAUNCHER_CONNECTION_KEY = "78dc1d0b-aeb4-4d75-9094-4b5e84f1d558"
+DEFAULT_ADMIN_LAUNCHER_CONNECTION_KEYS = " ".join(
+    [
+        ADMIN_OWNER_LAUNCHER_CONNECTION_KEY,
+        ADMIN_ORION_LAUNCHER_CONNECTION_KEY,
+    ]
+)
 ADMIN_USER_IDS = {
     user_id.strip().lower()
     for user_id in str(os.getenv("KMFX_ADMIN_USER_IDS") or ADMIN_OWNER_USER_ID).split(",")
@@ -43,7 +50,7 @@ ADMIN_USER_IDS = {
 ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID: dict[str, set[str]] = {}
 for mapping in str(
     os.getenv("KMFX_ADMIN_LAUNCHER_CONNECTION_KEYS")
-    or f"{ADMIN_OWNER_USER_ID}={ADMIN_OWNER_LAUNCHER_CONNECTION_KEY}"
+    or f"{ADMIN_OWNER_USER_ID}={DEFAULT_ADMIN_LAUNCHER_CONNECTION_KEYS}"
 ).replace(";", ",").split(","):
     separator = "=" if "=" in mapping else ":"
     if separator not in mapping:
