@@ -181,6 +181,16 @@ function linkedAccountContextLabel(account = {}) {
   return [broker, login, server].filter(Boolean).join(" · ");
 }
 
+function selectedChallengeIdentity(account = {}) {
+  const broker = account.linked ? accountBroker(account.linked) : account.propFirm;
+  const server = account.linked ? accountServer(account.linked) : "";
+  const venue = broker && server && normalizeText(broker) !== normalizeText(server)
+    ? `${broker} / ${server}`
+    : broker || server;
+  const login = account.linked ? accountLogin(account.linked) : "";
+  return [account.label, venue, login].filter(Boolean).join(" · ");
+}
+
 function hasAccountSizeMismatch({ linked = null, accountSize = 0, balance = 0, equity = 0 } = {}) {
   if (!linked || !accountSize) return false;
   const liveCapital = Number(equity || balance || 0);
@@ -423,15 +433,23 @@ function fundedChallengeStatus(account) {
       detail: "Esta fase no tiene objetivo de beneficio configurado; la lectura se centra en preservación.",
     };
   }
-  if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100 || account.challengeState === "failed") {
+  if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100 || account.globalStatus === "DANGER" || account.challengeState === "failed") {
     return {
       label: "En riesgo",
       tone: "error",
       dataTone: "risk",
-      detail: "Algún margen de drawdown está fuera de regla o en zona crítica.",
+      detail: "El challenge requiere revisión por presión de drawdown o reglas.",
     };
   }
-  if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80 || account.globalStatus === "WARNING" || account.currentProfitUsd < 0) {
+  if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) {
+    return {
+      label: "En riesgo",
+      tone: "warn",
+      dataTone: "warning",
+      detail: "El margen de drawdown está reducido; revisa la fase sin sobrerreaccionar al resultado.",
+    };
+  }
+  if (account.globalStatus === "WARNING" || account.currentProfitUsd < 0 || account.challengeState === "watch") {
     return {
       label: "En vigilancia",
       tone: "warn",
@@ -458,15 +476,6 @@ function fundedResultMarkup(account, className = "") {
   });
 }
 
-function fundedProgressDescription(account) {
-  if (account.accountSizeMismatch) {
-    return "Revisa el tamaño de cuenta antes de interpretar el progreso de fase.";
-  }
-  return account.targetUsd
-    ? `${Math.round(account.targetCompletionPct)}% completado. Pendiente: ${formatCurrency(account.remainingUsd)}`
-    : "Sin objetivo de beneficio en esta fase";
-}
-
 function formatRuleValue(value) {
   return Number(value) ? formatPercent(value) : "—";
 }
@@ -481,13 +490,6 @@ function drawdownTone(usagePct, limitPct) {
   if (usagePct >= 100) return "risk";
   if (usagePct >= 80) return "warning";
   return "profit";
-}
-
-function drawdownStatusLabel(usagePct, limitPct) {
-  if (!Number(limitPct)) return "Límite no configurado";
-  if (usagePct >= 100) return "Fuera de margen";
-  if (usagePct >= 80) return "Margen reducido";
-  return "Margen disponible";
 }
 
 function tradingDaysStatus(account) {
@@ -568,13 +570,6 @@ function fundedReviewAlerts(account) {
     badge: "Info",
   });
   return alerts;
-}
-
-function fundedAlertBadge(alert) {
-  if (alert.tone === "error") return { label: alert.badge || "Alta", tone: "error" };
-  if (alert.tone === "warn") return { label: alert.badge || "Media", tone: "warn" };
-  if (alert.tone === "ok") return { label: alert.badge || "OK", tone: "ok" };
-  return { label: alert.badge || "Info", tone: alert.tone };
 }
 
 export function initFunded(store) {
@@ -698,8 +693,6 @@ export function renderFunded(root, state) {
     sourceUsed: "derived_funded_progress",
   });
 
-  const statusMeta = fundedStatusMeta(selected.globalStatus);
-  const challengeMeta = fundedDisplayStateMeta(selected);
   const modelOptions = availableModels(selected.propFirm);
   const appCurrency = state.workspace?.baseCurrency || state.preferences?.baseCurrency || "USD";
   const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
@@ -709,17 +702,11 @@ export function renderFunded(root, state) {
   const attentionAccount = [...fundedAccounts]
     .sort((a, b) => fundedAttentionScore(b) - fundedAttentionScore(a))[0];
   const hasAttentionAccount = attentionAccount && fundedAttentionScore(attentionAccount) > 0;
-  const selectedProgressValue = selected.accountSizeMismatch
-    ? "Revisar tamaño"
-    : selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "Sin objetivo";
-  const selectedProgressMeta = selected.accountSizeMismatch
-    ? "Configura el tamaño de cuenta"
-    : selected.targetUsd
-      ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}`
-      : "Fase orientada a preservar capital";
   const challengeStatus = fundedChallengeStatus(selected);
   const daysStatus = tradingDaysStatus(selected);
   const reviewAlerts = fundedReviewAlerts(selected);
+  const visibleReviewAlerts = reviewAlerts.slice(0, 3);
+  const hiddenReviewAlertCount = Math.max(reviewAlerts.length - visibleReviewAlerts.length, 0);
   const dailyMargin = drawdownMarginPct(selected.dailyLimitPct, selected.dailyDdPct);
   const maxMargin = drawdownMarginPct(selected.maxLimitPct, selected.maxDdPct);
 
@@ -742,34 +729,29 @@ export function renderFunded(root, state) {
           <div class="funding-kpi__meta">${accountsToReview.length ? `${accountsToReview.length} a revisar` : "Sin alertas críticas"}</div>
         </article>
         <article class="funding-kpi">
-          <div class="funding-kpi__label">Capital bajo seguimiento</div>
+          <div class="funding-kpi__label">Capital seguimiento</div>
           <div class="funding-kpi__value">${formatCurrency(totalAccountSize)}</div>
           <div class="funding-kpi__meta">Tamaño total de cuentas</div>
         </article>
-        <article class="funding-kpi" data-tone="${selected.targetUsd ? (selected.currentProfitUsd >= 0 ? "profit" : "loss") : "neutral"}">
-          <div class="funding-kpi__label">Progreso seleccionado</div>
-          <div class="funding-kpi__value">${selectedProgressValue}</div>
-          <div class="funding-kpi__meta">${selectedProgressMeta}</div>
-        </article>
         <article class="funding-kpi" data-tone="${hasAttentionAccount ? "warning" : "neutral"}">
           <div class="funding-kpi__label">Cuenta a revisar</div>
-          <div class="funding-kpi__value">${hasAttentionAccount ? (attentionAccount.linked?.name || attentionAccount.label) : "Sin alertas"}</div>
+          <div class="funding-kpi__value">${hasAttentionAccount ? escapeHtml(attentionAccount.linked?.name || attentionAccount.label) : "Sin alertas"}</div>
           <div class="funding-kpi__meta">${hasAttentionAccount ? fundedDisplayStateMeta(attentionAccount).label : "Sin presión crítica visible"}</div>
         </article>
         <article class="funding-kpi funding-kpi--note">
-          <div class="funding-kpi__label">Costes y payouts</div>
+          <div class="funding-kpi__label">Costes pendientes</div>
           <div class="funding-kpi__value">Pendiente</div>
           <div class="funding-kpi__meta">Costes, payouts y recuperaciones pendientes de modelar.</div>
         </article>
       </section>
 
-      <article class="tl-section-card funded-hero-card">
-        <div class="funded-account-switch">
+      ${fundedAccounts.length > 1 ? `
+        <div class="funded-account-switch" aria-label="Seleccionar challenge funded">
           ${fundedAccounts.map((account) => `
             <button class="funded-account-pill funding-challenge-card ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}">
               <span class="funding-challenge-card__main">
-                <span class="funding-challenge-card__name">${account.linked?.name || account.label}</span>
-                <span class="funding-challenge-card__meta">${account.propFirm} · ${account.phase}</span>
+                <span class="funding-challenge-card__name">${escapeHtml(account.label)}</span>
+                <span class="funding-challenge-card__meta">${escapeHtml(account.propFirm)} · ${escapeHtml(account.phase)}</span>
                 <span class="funding-challenge-card__meta">${escapeHtml(linkedAccountContextLabel(account))}</span>
               </span>
               <span class="funding-challenge-card__side">
@@ -779,23 +761,18 @@ export function renderFunded(root, state) {
             </button>
           `).join("")}
         </div>
+      ` : ""}
 
+      <article class="tl-section-card funded-hero-card funding-selected-challenge" data-tone="${challengeStatus.dataTone}">
         <div class="funded-hero-grid">
           <div class="funded-hero-copy">
-            <div class="banner-kicker">Estado del challenge</div>
-            <div class="funded-hero-head">
+            <div class="funding-selected-challenge__header">
               <div>
-                <div class="banner-title">${selected.linked?.name || selected.label}</div>
-                <div class="row-sub">${selected.propFirm} · ${selected.programModel} · ${selected.phase}</div>
-                <div class="row-sub">${escapeHtml(linkedAccountContextLabel(selected))}</div>
+                <div class="tl-section-title">Challenge seleccionado</div>
+                <div class="funding-selected-challenge__identity">${escapeHtml(selectedChallengeIdentity(selected))}</div>
+                <div class="funding-selected-challenge__meta">${escapeHtml(`${selected.propFirm} · ${selected.programModel} · ${selected.phase}`)}</div>
               </div>
-              ${badgeMarkup(statusMeta)}
-            </div>
-
-            <div class="account-banner-badges">
-              ${badgeMarkup(getConnectionStatusMeta(selected.linked?.connection))}
-              ${badgeMarkup(getFundedStatusMeta(selected.status, selected.linked?.compliance))}
-              ${badgeMarkup(challengeMeta, "ui-badge--compact")}
+              ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
             </div>
 
             ${selected.accountSizeMismatch ? `
@@ -805,19 +782,19 @@ export function renderFunded(root, state) {
               </div>
             ` : ""}
 
-            <div class="funded-hero-kpis">
-              <div class="metric-item"><div class="metric-label">Tamaño de cuenta</div><div class="metric-value">${formatCurrency(selected.accountSize)}</div></div>
-              <div class="metric-item"><div class="metric-label">Balance</div><div class="metric-value">${formatCurrency(selected.balance)}</div></div>
-              <div class="metric-item"><div class="metric-label">Equity</div><div class="metric-value">${formatCurrency(selected.equity)}</div></div>
-              <div class="metric-item"><div class="metric-label">P&L abierto</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
-              <div class="metric-item"><div class="metric-label">Resultado actual</div><div class="metric-value ${selected.accountSizeMismatch ? "" : selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${fundedResultMarkup(selected)}</div></div>
+            <div class="funding-selected-challenge__stats">
+              <div><span>Estado</span><strong>${escapeHtml(challengeStatus.label)}</strong></div>
+              <div><span>Tamaño</span><strong>${formatCurrency(selected.accountSize)}</strong></div>
+              <div><span>Balance</span><strong>${formatCurrency(selected.balance)}</strong></div>
+              <div><span>Equity</span><strong>${formatCurrency(selected.equity)}</strong></div>
+              <div><span>Resultado</span><strong>${fundedResultMarkup(selected)}</strong></div>
             </div>
           </div>
 
           <div class="funded-hero-config">
             <div class="funded-config-header">
               <div>
-                <div class="funded-config-title">Configuración de seguimiento</div>
+                <div class="funded-config-title">Configuración</div>
                 <div class="funded-config-sub">Ajustes de fase y reglas del challenge.</div>
               </div>
             </div>
@@ -884,130 +861,66 @@ export function renderFunded(root, state) {
         </div>
       </article>
 
-      <section class="funding-challenge-board" aria-label="Control del challenge">
-        <article class="tl-section-card funding-status-strip" data-tone="${challengeStatus.dataTone}">
-          <div class="funding-status-strip__main">
+      <section class="funding-challenge-board" aria-label="Progreso y revisión del challenge">
+        <article class="tl-section-card funding-limits-panel">
+          <div class="funding-section-head">
             <div>
-              <div class="tl-section-title">Estado del challenge</div>
+              <div class="tl-section-title">Progreso y límites</div>
               <div class="tl-section-sub">${escapeHtml(challengeStatus.detail)}</div>
             </div>
-            ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
           </div>
-          <div class="funding-status-grid">
-            <div><span>Cuenta</span><strong>${escapeHtml(selected.linked?.name || selected.label)}</strong></div>
-            <div><span>Fase</span><strong>${escapeHtml(`${selected.propFirm} · ${selected.phase}`)}</strong></div>
-            <div><span>Live</span><strong>${escapeHtml(linkedAccountContextLabel(selected))}</strong></div>
-            <div><span>Tamaño</span><strong>${formatCurrency(selected.accountSize)}</strong></div>
-            <div><span>Resultado</span><strong>${fundedResultMarkup(selected)}</strong></div>
-          </div>
-        </article>
-
-        <div class="funding-stage-grid">
-          <article class="tl-section-card funding-progress-panel">
-            <div class="funding-section-head">
-              <div>
-                <div class="tl-section-title">Progreso de fase</div>
-                <div class="tl-section-sub">${fundedProgressDescription(selected)}</div>
-              </div>
-              <span class="funding-section-chip">${fundedProgressMeta(selected)}</span>
-            </div>
-            <div class="funding-progress-stats">
-              <div><span>Resultado actual</span><strong>${selected.accountSizeMismatch ? "Revisar tamaño" : pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</strong></div>
-              <div><span>Objetivo beneficio</span><strong>${selected.targetUsd ? formatCurrency(selected.targetUsd) : "Sin objetivo"}</strong></div>
-              <div><span>Pendiente</span><strong>${selected.accountSizeMismatch ? "Revisar config" : selected.targetUsd ? formatCurrency(selected.remainingUsd) : "No aplica"}</strong></div>
-              <div><span>% completado</span><strong>${selected.accountSizeMismatch ? "—" : selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "—"}</strong></div>
-            </div>
-            <div class="funding-progress-rail" aria-hidden="true">
-              <div class="funding-progress-rail__fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
-            </div>
-          </article>
-
-          <article class="tl-section-card funding-days-panel">
-            <div class="funding-section-head">
-              <div>
-                <div class="tl-section-title">Días operados</div>
-                <div class="tl-section-sub">Requisito temporal de la fase seleccionada.</div>
-              </div>
-              ${badgeMarkup({ label: daysStatus.label, tone: daysStatus.tone === "profit" ? "ok" : daysStatus.tone === "warning" ? "warn" : "neutral" }, "ui-badge--compact")}
-            </div>
-            <div class="funding-days-count">
-              <strong>${selected.daysCompleted}</strong>
-              <span>${selected.requiredTradingDays ? `/ ${selected.requiredTradingDays}` : "días registrados"}</span>
-            </div>
-            <div class="funding-days-note">${escapeHtml(daysStatus.remaining)}</div>
-          </article>
-        </div>
-
-        <article class="tl-section-card funding-drawdown-panel">
-          <div class="funding-section-head">
-            <div>
-              <div class="tl-section-title">Margen de drawdown</div>
-              <div class="tl-section-sub">Uso actual frente a los límites configurados del challenge.</div>
-            </div>
-          </div>
-          <div class="funding-dd-grid">
-            <article class="funding-dd-card" data-tone="${drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct)}">
-              <div class="funding-dd-card__head">
-                <span>Drawdown diario</span>
-                <strong>${drawdownStatusLabel(selected.dailyUsagePct, selected.dailyLimitPct)}</strong>
-              </div>
-              <div class="funding-dd-card__value">${Math.round(selected.dailyUsagePct)}% <span>usado</span></div>
-              <div class="funding-dd-card__bar"><div style="width:${clamp(selected.dailyUsagePct)}%"></div></div>
-              <div class="funding-dd-card__meta">
-                <span>Actual ${formatRuleValue(selected.dailyDdPct)}</span>
-                <span>Límite ${formatRuleValue(selected.dailyLimitPct)}</span>
-                <span>Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)}</span>
+          <div class="funding-limit-grid">
+            <article class="funding-limit-card" data-tone="${selected.accountSizeMismatch ? "warning" : selected.targetCompletionPct >= 100 ? "profit" : selected.currentProfitUsd < 0 ? "warning" : "neutral"}">
+              <div class="funding-limit-card__label">Progreso fase</div>
+              <div class="funding-limit-card__value">${selected.accountSizeMismatch ? "Revisar" : selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "Sin objetivo"}</div>
+              <div class="funding-limit-card__meta">${selected.accountSizeMismatch ? "Tamaño de cuenta pendiente" : fundedProgressMeta(selected)}</div>
+              <div class="funding-progress-rail" aria-hidden="true">
+                <div class="funding-progress-rail__fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
               </div>
             </article>
-            <article class="funding-dd-card" data-tone="${drawdownTone(selected.maxUsagePct, selected.maxLimitPct)}">
-              <div class="funding-dd-card__head">
-                <span>Drawdown máximo</span>
-                <strong>${drawdownStatusLabel(selected.maxUsagePct, selected.maxLimitPct)}</strong>
+            <article class="funding-limit-card" data-tone="${drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct)}">
+              <div class="funding-limit-card__label">DD diario</div>
+              <div class="funding-limit-card__value">${Math.round(selected.dailyUsagePct)}% usado</div>
+              <div class="funding-limit-card__meta">Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)} · límite ${formatRuleValue(selected.dailyLimitPct)}</div>
+              <div class="funding-progress-rail" aria-hidden="true">
+                <div class="funding-progress-rail__fill ${progressFillClass(selected.dailyUsagePct)}" style="width:${clamp(selected.dailyUsagePct)}%"></div>
               </div>
-              <div class="funding-dd-card__value">${Math.round(selected.maxUsagePct)}% <span>usado</span></div>
-              <div class="funding-dd-card__bar"><div style="width:${clamp(selected.maxUsagePct)}%"></div></div>
-              <div class="funding-dd-card__meta">
-                <span>Actual ${formatRuleValue(selected.maxDdPct)}</span>
-                <span>Límite ${formatRuleValue(selected.maxLimitPct)}</span>
-                <span>Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)}</span>
+            </article>
+            <article class="funding-limit-card" data-tone="${drawdownTone(selected.maxUsagePct, selected.maxLimitPct)}">
+              <div class="funding-limit-card__label">DD máximo</div>
+              <div class="funding-limit-card__value">${Math.round(selected.maxUsagePct)}% usado</div>
+              <div class="funding-limit-card__meta">Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)} · límite ${formatRuleValue(selected.maxLimitPct)}</div>
+              <div class="funding-progress-rail" aria-hidden="true">
+                <div class="funding-progress-rail__fill ${progressFillClass(selected.maxUsagePct)}" style="width:${clamp(selected.maxUsagePct)}%"></div>
               </div>
+            </article>
+            <article class="funding-limit-card" data-tone="${daysStatus.tone}">
+              <div class="funding-limit-card__label">Días operados</div>
+              <div class="funding-limit-card__value">${selected.requiredTradingDays ? `${selected.daysCompleted}/${selected.requiredTradingDays}` : selected.daysCompleted}</div>
+              <div class="funding-limit-card__meta">${escapeHtml(daysStatus.remaining)}</div>
+              <div class="funding-limit-card__status">${escapeHtml(daysStatus.label)}</div>
             </article>
           </div>
         </article>
 
-        <article class="tl-section-card funding-sample-panel">
+        <article class="tl-section-card funding-review-panel">
           <div class="funding-section-head">
             <div>
-              <div class="tl-section-title">Muestra operativa</div>
-              <div class="tl-section-sub">Contexto compacto; la historia principal sigue siendo el challenge.</div>
+              <div class="tl-section-title">Revisión</div>
+              <div class="tl-section-sub">Señales que requieren una lectura antes de interpretar el challenge.</div>
             </div>
           </div>
-          <div class="funding-sample-grid">
-            <div><span>Acierto</span><strong>${formatPercent(selected.winRate)}</strong></div>
-            <div><span>Profit Factor</span><strong>${selected.profitFactor.toFixed(2)}</strong></div>
-            <div><span>R medio</span><strong>${selected.avgRValue.toFixed(2)}R</strong></div>
-            <div><span>Operaciones</span><strong>${selected.totalTrades}</strong></div>
-            <div><span>P&L abierto</span><strong>${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</strong></div>
-          </div>
-        </article>
-
-        <article class="tl-section-card funding-alerts-panel">
-          <div class="funding-section-head">
-            <div>
-              <div class="tl-section-title">Alertas de cuenta</div>
-              <div class="tl-section-sub">Cola de revisión para configuración, reglas y sincronización.</div>
-            </div>
-          </div>
-          <div class="funding-alert-list">
-            ${reviewAlerts.map((alert) => `
-              <div class="funding-alert-row" data-tone="${escapeHtml(alert.tone)}">
+          <div class="funding-review-list">
+            ${visibleReviewAlerts.map((alert) => `
+              <div class="funding-review-row" data-tone="${escapeHtml(alert.tone)}">
+                <span class="funding-review-row__dot" aria-hidden="true"></span>
                 <div>
-                  <div class="row-title">${escapeHtml(alert.title)}</div>
-                  <div class="row-sub">${escapeHtml(alert.detail)}</div>
+                  <strong>${escapeHtml(alert.title)}</strong>
+                  <span>${escapeHtml(alert.detail)}</span>
                 </div>
-                ${badgeMarkup(fundedAlertBadge(alert), "ui-badge--compact")}
               </div>
             `).join("")}
+            ${hiddenReviewAlertCount ? `<div class="funding-review-more">+${hiddenReviewAlertCount} más en seguimiento</div>` : ""}
           </div>
         </article>
       </section>
