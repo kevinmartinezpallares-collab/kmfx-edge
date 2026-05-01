@@ -4327,6 +4327,61 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   white-space: nowrap;
 }
 
+.funding-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.funding-rule-item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 50%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--foreground) 1.6%, transparent);
+}
+
+.funding-rule-item[data-tone="profit"] {
+  border-color: color-mix(in srgb, var(--profit) 24%, var(--border-0));
+}
+
+.funding-rule-item[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--risk) 28%, var(--border-0));
+  background: color-mix(in srgb, var(--risk) 4%, transparent);
+}
+
+.funding-rule-item small {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.funding-rule-item strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 13.5px;
+  line-height: 1.15;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-rule-item em {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  font-style: normal;
+  font-weight: 540;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .funding-detail-block {
   display: grid;
   gap: 10px;
@@ -4553,6 +4608,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .funding-rule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .funding-economics-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4606,6 +4665,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   }
 
   .funding-insight-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .funding-rule-grid {
     grid-template-columns: 1fr;
   }
 

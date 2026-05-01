@@ -100,11 +100,26 @@ function normalizePhaseStatus(status = "") {
   return FUNDING_PHASE_STATUSES.includes(status) ? status : "planned";
 }
 
+function hasExplicitFailedState(account = {}) {
+  const phaseStatus = String(account.phaseStatus || account.status || "").trim().toLowerCase();
+  return Boolean(
+    account.failedAt
+      || account.manualFailed === true
+      || account.phaseFailed === true
+      || account.providerFailed === true
+      || phaseStatus === "failed"
+      || phaseStatus === "phase_failed"
+      || phaseStatus === "phase_1_failed"
+      || phaseStatus === "phase_2_failed"
+      || phaseStatus === "fallida"
+  );
+}
+
 function phaseStatusFromFundedAccount(account = {}) {
+  if (hasExplicitFailedState(account)) return "failed";
   if (normalizePhaseBucket(account.phase) === "funded") {
-    return account.globalStatus === "DANGER" ? "suspended" : "funded";
+    return account.fundedSuspended === true || account.providerStatus === "suspended" ? "suspended" : "funded";
   }
-  if (account.challengeState === "failed" || account.globalStatus === "DANGER") return "failed";
   if (account.challengeState === "passed") return "passed";
   return "active";
 }
@@ -152,6 +167,7 @@ function createCurrentPhase(account = {}, journeyId = "", storedPhases = []) {
       || (phase.journeyId === journeyId && phase.login && String(phase.login) === login)
   )) || {};
   const status = normalizePhaseStatus(storedCurrent.status || phaseStatusFromFundedAccount(account));
+  const explicitFailedAt = storedCurrent.failedAt || account.failedAt || null;
 
   return {
     id: storedCurrent.id || `phase-${phaseKey}`,
@@ -166,7 +182,7 @@ function createCurrentPhase(account = {}, journeyId = "", storedPhases = []) {
     endedAt: storedCurrent.endedAt || null,
     status,
     passedAt: storedCurrent.passedAt || (status === "passed" ? account.updatedAt || null : null),
-    failedAt: storedCurrent.failedAt || (status === "failed" ? account.updatedAt || null : null),
+    failedAt: status === "failed" ? explicitFailedAt : null,
     resultSnapshot: {
       balance: account.balance ?? null,
       equity: account.equity ?? null,
