@@ -3,98 +3,19 @@ import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import { isAdminUserId } from "./auth-session.js?v=build-20260406-213500";
+import {
+  FUNDING_RULE_PHASES,
+  availableFundingFirms,
+  availableFundingPrograms,
+  fundingRuleNote,
+  inferFundingProgramModel,
+  normalizeFundingPhase,
+  resolveFundingRulePreset,
+} from "./funding-rules.js?v=build-20260406-213500";
 
-const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
 const ORION_FUNDING_LINK = {
   login: "80571774",
   serverNeedle: "ogminternational",
-};
-
-const PROP_RULES = {
-  FTMO: {
-    verified: true,
-    models: {
-      "2-Step": {
-        phases: {
-          Challenge: { profitTargetPct: 10, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Verification: { profitTargetPct: 5, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Funded: { profitTargetPct: 0, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 }
-        }
-      }
-    }
-  },
-  FundingPips: {
-    verified: true,
-    models: {
-      "Baseline": {
-        phases: {
-          Challenge: { profitTargetPct: null, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Verification: { profitTargetPct: null, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Funded: { profitTargetPct: 0, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 }
-        }
-      }
-    }
-  },
-  The5ers: {
-    verified: true,
-    models: {
-      "High Stakes": {
-        phases: {
-          Challenge: { profitTargetPct: 10, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 3 },
-          Verification: { profitTargetPct: 5, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 3 },
-          Funded: { profitTargetPct: 0, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 3 }
-        }
-      }
-    }
-  },
-  FundedNext: {
-    verified: true,
-    models: {
-      "Stellar 2-Step": {
-        phases: {
-          Challenge: { profitTargetPct: null, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Verification: { profitTargetPct: null, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0 },
-          Funded: { profitTargetPct: 0, dailyLossLimitPct: 5, maxLossLimitPct: 10, requiredTradingDays: 0, noMinimumDays: true }
-        }
-      }
-    }
-  },
-  "Orion Funded": {
-    verified: false,
-    models: {
-      Editable: {
-        phases: {
-          Challenge: { editable: true },
-          Verification: { editable: true },
-          Funded: { editable: true }
-        }
-      }
-    }
-  },
-  "Wall Street Funded": {
-    verified: false,
-    models: {
-      Editable: {
-        phases: {
-          Challenge: { editable: true },
-          Verification: { editable: true },
-          Funded: { editable: true }
-        }
-      }
-    }
-  },
-  Apex: {
-    verified: false,
-    models: {
-      "Legacy / Editable": {
-        phases: {
-          Challenge: { editable: true },
-          Verification: { editable: true },
-          Funded: { editable: true }
-        }
-      }
-    }
-  }
 };
 
 function clamp(value, min = 0, max = 100) {
@@ -240,7 +161,7 @@ function applyFundedFieldChange(store, fundedId, fieldName, value) {
   if (fieldName === "propFirm") {
     updateFundedAccount(store, fundedId, (account) => {
       const nextModels = availableModels(value);
-      const nextProgram = nextModels.includes(account.programModel) ? account.programModel : nextModels[0];
+      const nextProgram = nextModels.includes(account.programModel) ? account.programModel : nextModels[0] || "Editable";
       return {
         ...account,
         propFirm: value,
@@ -268,29 +189,27 @@ function applyFundedFieldChange(store, fundedId, fieldName, value) {
 }
 
 function normalizePhase(phase = "") {
-  const normalized = String(phase || "").toLowerCase();
-  if (normalized.includes("phase 1") || normalized.includes("challenge") || normalized.includes("step 1")) return "Challenge";
-  if (normalized.includes("phase 2") || normalized.includes("verification") || normalized.includes("step 2")) return "Verification";
-  if (normalized.includes("funded")) return "Funded";
-  return "Challenge";
+  return normalizeFundingPhase(phase);
 }
 
 function inferProgramModel(account = {}) {
-  if (account.programModel) return account.programModel;
-  if (account.firm === "FTMO") return "2-Step";
-  if (account.firm === "FundedNext") return "Stellar 2-Step";
-  if (account.firm === "The5ers") return "High Stakes";
-  if (account.firm === "Apex") return "Legacy / Editable";
-  if (account.firm === "FundingPips") return "Baseline";
-  return "Editable";
+  return inferFundingProgramModel(account);
 }
 
-function availableModels(firm = "") {
-  return Object.keys(PROP_RULES[firm]?.models || {});
+function availableModels(firm = "", currentModel = "") {
+  const models = availableFundingPrograms(firm);
+  if (currentModel && !models.includes(currentModel)) return [currentModel, ...models];
+  return models.length ? models : ["Editable"];
 }
 
-function resolveRulePreset(propFirm, programModel, phase) {
-  return PROP_RULES[propFirm]?.models?.[programModel]?.phases?.[phase] || null;
+function availableFirms(currentFirm = "") {
+  const firms = availableFundingFirms();
+  if (currentFirm && !firms.includes(currentFirm)) return [currentFirm, ...firms];
+  return firms;
+}
+
+function resolveRulePreset(propFirm, programModel, phase, accountSize) {
+  return resolveFundingRulePreset({ propFirm, programModel, phase, accountSize });
 }
 
 function avgR(trades = []) {
@@ -307,7 +226,8 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   const programModel = raw.programModel || inferProgramModel(raw);
   const phase = normalizePhase(raw.phase);
   const accountSize = Number(raw.accountSize || raw.size || linked?.model?.account?.balance || 0);
-  const preset = resolveRulePreset(propFirm, programModel, phase);
+  const preset = resolveRulePreset(propFirm, programModel, phase, accountSize);
+  const canUsePresetValues = Boolean(preset?.verified && !preset?.requiresReview && !preset?.editable && !preset?.legacy);
   const balance = Number(linked?.model?.account?.balance || raw.balance || accountSize || 0);
   const equity = Number(linked?.model?.account?.equity || balance);
   const totalPnl = Number(linked?.model?.totals?.pnl || (balance - accountSize));
@@ -316,7 +236,7 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   const currentProfitPct = accountSize ? (currentProfitUsd / accountSize) * 100 : 0;
   const accountSizeMismatch = hasAccountSizeMismatch({ linked, accountSize, balance, equity });
   const targetPct = Number(
-    raw.targetPct ?? raw.profitTargetPct ?? preset?.profitTargetPct ?? 0
+    raw.targetPct ?? raw.profitTargetPct ?? (canUsePresetValues ? preset?.profitTargetPct : undefined) ?? 0
   ) || 0;
   const targetUsd = targetPct > 0 ? (accountSize * targetPct) / 100 : 0;
   const progressRatio = targetUsd > 0 ? clamp(currentProfitUsd / targetUsd, 0, 1) : (phase === "Funded" ? 1 : 0);
@@ -324,13 +244,27 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   const remainingUsd = targetUsd > 0 ? Math.max(targetUsd - Math.max(currentProfitUsd, 0), 0) : 0;
   const dailyDdPct = Number(raw.dailyDdPct ?? linked?.model?.riskSummary?.dailyDrawdownPct ?? 0) || 0;
   const maxDdPct = Number(raw.maxDdPct ?? linked?.model?.totals?.drawdown?.maxPct ?? 0) || 0;
-  const dailyLimitPct = Number(raw.dailyLossLimitPct ?? preset?.dailyLossLimitPct ?? linked?.model?.riskProfile?.dailyLossLimitPct ?? 0) || 0;
-  const maxLimitPct = Number(raw.maxLossLimitPct ?? preset?.maxLossLimitPct ?? linked?.model?.account?.maxDrawdownLimit ?? 0) || 0;
+  const dailyLimitPct = Number(
+    raw.dailyLossLimitPct
+      ?? (canUsePresetValues ? preset?.dailyLossLimitPct : undefined)
+      ?? linked?.model?.riskProfile?.dailyLossLimitPct
+      ?? 0
+  ) || 0;
+  const maxLimitPct = Number(
+    raw.maxLossLimitPct
+      ?? (canUsePresetValues ? preset?.maxLossLimitPct : undefined)
+      ?? linked?.model?.account?.maxDrawdownLimit
+      ?? 0
+  ) || 0;
   const dailyUsagePct = dailyLimitPct ? (dailyDdPct / dailyLimitPct) * 100 : 0;
   const maxUsagePct = maxLimitPct ? (maxDdPct / maxLimitPct) * 100 : 0;
   const daysCompleted = tradingDaysCompleted(linked?.model);
-  const requiredTradingDays = Number(raw.requiredTradingDays ?? preset?.requiredTradingDays ?? 0) || 0;
-  const noMinimumDays = Boolean(raw.noMinimumDays ?? preset?.noMinimumDays ?? false);
+  const requiredTradingDays = Number(
+    raw.requiredTradingDays
+      ?? (canUsePresetValues ? preset?.minTradingDays ?? preset?.requiredTradingDays : undefined)
+      ?? 0
+  ) || 0;
+  const noMinimumDays = Boolean(raw.noMinimumDays ?? (canUsePresetValues ? preset?.noMinimumDays : undefined) ?? false);
   const winRate = Number(linked?.model?.totals?.winRate || 0);
   const avgRValue = avgR(linked?.model?.trades || []);
   const profitFactor = Number(linked?.model?.totals?.profitFactor || 0);
@@ -391,6 +325,8 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
     phase,
     accountSize,
     preset,
+    ruleStatus: preset?.ruleStatus || null,
+    rulesVerified: canUsePresetValues,
     balance,
     equity,
     totalPnl,
@@ -430,16 +366,8 @@ function fundedStatusMeta(status) {
   return { label: "Estable", tone: "ok" };
 }
 
-function progressFillClass(usage) {
-  if (usage >= 100) return "danger";
-  if (usage >= 80) return "warn";
-  return "ok";
-}
-
 function ruleNote(account) {
-  if (account.preset?.editable) return "Preset editable: reglas ajustables manualmente.";
-  if (PROP_RULES[account.propFirm]?.verified) return `Preset verificado: ${account.propFirm} / ${account.programModel}`;
-  return `Preset editable: ${account.propFirm}`;
+  return fundingRuleNote(account.preset);
 }
 
 function currencySymbol(code = "USD") {
@@ -741,7 +669,8 @@ function fundedReviewAlerts(account) {
 }
 
 function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
-  const modelOptions = availableModels(account.propFirm);
+  const firmOptions = availableFirms(account.propFirm);
+  const modelOptions = availableModels(account.propFirm, account.programModel);
   openModal({
     title: "Editar configuración",
     subtitle: fundedChallengeDisplayName(account),
@@ -751,7 +680,7 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
         <label class="form-stack">
           <span>Firma</span>
           <select data-funded-field="propFirm" data-funded-id="${account.id}">
-            ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === account.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
+            ${firmOptions.map((firm) => `<option value="${firm}" ${firm === account.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
           </select>
         </label>
         <label class="form-stack">
@@ -763,7 +692,7 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
         <label class="form-stack">
           <span>Fase</span>
           <select data-funded-field="phase" data-funded-id="${account.id}">
-            ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === account.phase ? "selected" : ""}>${phase}</option>`).join("")}
+            ${FUNDING_RULE_PHASES.map((phase) => `<option value="${phase}" ${phase === account.phase ? "selected" : ""}>${phase}</option>`).join("")}
           </select>
         </label>
         <label class="form-stack">
