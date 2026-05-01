@@ -51,7 +51,7 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 
 - [ ] Crear `api.kmfxedge.com` apuntando al backend Render.
 - [ ] Cambiar `js/modules/api-config.js`, `launcher/config.py` y `launcher_config.example.json` a `https://api.kmfxedge.com` cuando el DNS responda.
-- [ ] Restringir CORS a `https://kmfxedge.com` y aliases temporales.
+- [x] Restringir CORS a `https://kmfxedge.com` y aliases temporales.
 - [ ] Ejecutar smoke test:
   - `https://kmfxedge.com`
   - `https://api.kmfxedge.com/health`

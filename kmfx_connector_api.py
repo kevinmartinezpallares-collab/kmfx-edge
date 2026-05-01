@@ -72,17 +72,93 @@ ADMIN_EMAILS = {
     if email.strip()
 }
 
+
+PRODUCTION_CORS_ORIGINS = (
+    "https://kmfxedge.com",
+    "https://www.kmfxedge.com",
+    "https://dashboard.kmfxedge.com",
+)
+LOCAL_CORS_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$"
+
+
+def _env_value(*names: str) -> str:
+    for name in names:
+        value = str(os.getenv(name) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _env_flag(name: str, *, default: bool = False) -> bool:
+    value = str(os.getenv(name) or "").strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "y", "on"}
+
+
+def _is_production_runtime() -> bool:
+    runtime = _env_value("KMFX_ENV", "APP_ENV", "ENVIRONMENT", "PYTHON_ENV").lower()
+    if runtime in {"production", "prod"}:
+        return True
+    if runtime in {"development", "dev", "local", "test", "testing"}:
+        return False
+    return _env_flag("KMFX_PRODUCTION") or _env_flag("RENDER")
+
+
+def _split_env_list(value: str) -> list[str]:
+    seen: set[str] = set()
+    items: list[str] = []
+    for raw_item in str(value or "").replace(";", ",").split(","):
+        item = raw_item.strip().rstrip("/")
+        if not item or item == "*" or item in seen:
+            continue
+        seen.add(item)
+        items.append(item)
+    return items
+
+
+def resolve_cors_allow_origins() -> list[str]:
+    explicit_origins = _env_value("KMFX_CORS_ALLOW_ORIGINS", "CORS_ALLOW_ORIGINS")
+    if explicit_origins:
+        return _split_env_list(explicit_origins)
+    return list(PRODUCTION_CORS_ORIGINS)
+
+
+def resolve_cors_allow_origin_regex() -> str | None:
+    explicit_regex = _env_value("KMFX_CORS_ALLOW_ORIGIN_REGEX", "CORS_ALLOW_ORIGIN_REGEX")
+    if explicit_regex:
+        return explicit_regex
+    if _env_flag("KMFX_ALLOW_LOCAL_CORS", default=not _is_production_runtime()):
+        return LOCAL_CORS_ORIGIN_REGEX
+    return None
+
+
+CORS_ALLOW_ORIGINS = resolve_cors_allow_origins()
+CORS_ALLOW_ORIGIN_REGEX = resolve_cors_allow_origin_regex()
+CORS_ALLOW_METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
+CORS_ALLOW_HEADERS = [
+    "Authorization",
+    "Content-Type",
+    "X-KMFX-Connection-Key",
+    "X-KMFX-User-Email",
+    "X-KMFX-User-ID",
+    "X-Requested-With",
+]
+
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_origin_regex=CORS_ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
 )
 log.info(
-    "Connector API startup configured | response_helper=connector_json_response marker=%s routes=%s",
+    "Connector API startup configured | response_helper=connector_json_response marker=%s cors_origins=%s cors_regex=%s routes=%s",
     RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+    CORS_ALLOW_ORIGINS,
+    CORS_ALLOW_ORIGIN_REGEX or "",
     ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot"],
 )
 

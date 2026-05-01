@@ -257,7 +257,7 @@ Responsable: backend/frontend.
 
 - [ ] Mover admin user IDs y admin launcher key mapping completamente a env vars de Render.
 - [ ] Eliminar o desactivar fallback hardcoded de admin launcher en producción.
-- [ ] Restringir CORS del backend a orígenes reales:
+- [x] Restringir CORS del backend a orígenes reales:
   - `https://kmfxedge.com`
   - `https://www.kmfxedge.com`, solo si no redirige antes de tocar API
   - `https://dashboard.kmfxedge.com`, solo durante transición
@@ -539,4 +539,3 @@ Issues iniciales:
 - [ ] Tests y smoke checks de producción pasan.
 - [ ] Terms, privacy, refunds y risk disclaimer están finales.
 - [ ] Rollback path está claro.
-
