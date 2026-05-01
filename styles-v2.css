@@ -22811,16 +22811,17 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
 }
 
 
-/* KMFX brand lockup: horizontal logo when expanded, contained icon when collapsed */
+/* KMFX brand mark: transparent symbol only, no wordmark */
 .app-shell.sidebar-vnext .sidebar-topbar {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  min-height: 56px;
 }
 
 .app-shell.sidebar-vnext .brand-lockup--adaptive {
   width: fit-content;
-  max-width: 176px;
-  min-height: 28px;
+  max-width: 72px;
+  min-height: 52px;
   padding: 0;
   margin: 0;
   border: 0;
@@ -22833,26 +22834,27 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
 .app-shell.sidebar-vnext .sidebar-brand-logo {
   display: block;
   flex: 0 0 auto;
-  width: auto;
-  max-width: 168px;
+  width: 68px;
+  max-width: 68px;
+  height: 52px;
   object-fit: contain;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
-  height: 24px;
+  height: 52px;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
   display: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   max-width: none;
-  min-height: 32px;
+  min-height: 36px;
   display: grid;
   place-items: center;
 }
@@ -22869,15 +22871,15 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  min-height: 36px;
+  min-height: 56px;
   padding-left: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive,
 body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
   width: fit-content;
-  max-width: 168px;
-  min-height: 32px;
+  max-width: 72px;
+  min-height: 52px;
   display: flex;
   place-items: initial;
   margin: 0;
@@ -22885,19 +22887,19 @@ body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
-  width: auto;
-  height: 26px;
-  max-width: 168px;
+  width: 68px;
+  height: 52px;
+  max-width: 68px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   max-width: none;
-  min-height: 32px;
+  min-height: 36px;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -22905,8 +22907,8 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
 }
 
 /* === DISCIPLINE SECTION === */

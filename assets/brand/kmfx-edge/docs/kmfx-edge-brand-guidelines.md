@@ -27,6 +27,7 @@ El logo se compone de tres piezas:
 | Version | Uso |
 | --- | --- |
 | Simbolo glass original | Logo principal, app icon, favicon, redes, presentaciones y hero visual. |
+| Simbolo glass transparente | Dashboard, favicon SVG y lugares donde el fondo cambia entre claro y oscuro. |
 | Wordmark glass | Nombre KMFX EDGE con estetica metalica/azul. |
 | Lockup glass | Simbolo + nombre para dashboard, web, videos y Figma. |
 
@@ -57,8 +58,8 @@ Jerarquia recomendada:
 
 En el dashboard, el logo debe funcionar como ancla de confianza, no como decoracion. Recomendaciones:
 
-- Sidebar expandida: lockup glass.
-- Sidebar colapsada: simbolo glass.
+- Sidebar expandida: simbolo glass transparente, sin nombre.
+- Sidebar colapsada: simbolo glass transparente.
 - Login/auth: simbolo glass con mucho espacio.
 - Favicon/PWA: export cuadrado del simbolo glass.
 - Loading/splash: icono contenido con pulso azul sutil.
@@ -71,3 +72,4 @@ En el dashboard, el logo debe funcionar como ancla de confianza, no como decorac
 - No agregar contornos o sombras extra sobre el logo principal.
 - No usar versiones antiguas de raya.
 - No separar piezas del logo salvo en animacion/storyboard.
+- No poner el logo dentro de una caja negra cuando el dashboard ya tiene su propio fondo.
