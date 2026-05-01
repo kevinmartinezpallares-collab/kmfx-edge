@@ -1,5 +1,5 @@
 import { openModal } from "./modal-system.js?v=build-20260406-213500";
-import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import { isAdminUserId } from "./auth-session.js?v=build-20260406-213500";
@@ -232,6 +232,39 @@ function updateFundedAccount(store, fundedId, updater) {
       ))
     }
   }));
+}
+
+function applyFundedFieldChange(store, fundedId, fieldName, value) {
+  if (!fundedId || !fieldName) return;
+
+  if (fieldName === "propFirm") {
+    updateFundedAccount(store, fundedId, (account) => {
+      const nextModels = availableModels(value);
+      const nextProgram = nextModels.includes(account.programModel) ? account.programModel : nextModels[0];
+      return {
+        ...account,
+        propFirm: value,
+        firm: value,
+        programModel: nextProgram
+      };
+    });
+    return;
+  }
+
+  if (fieldName === "programModel") {
+    updateFundedAccount(store, fundedId, (account) => ({ ...account, programModel: value }));
+    return;
+  }
+
+  if (fieldName === "phase") {
+    updateFundedAccount(store, fundedId, (account) => ({ ...account, phase: value }));
+    return;
+  }
+
+  if (fieldName === "accountSize") {
+    const size = Number(value || 0);
+    updateFundedAccount(store, fundedId, (account) => ({ ...account, accountSize: size, size }));
+  }
 }
 
 function normalizePhase(phase = "") {
@@ -565,6 +598,13 @@ function fundedLinkedAccountShortMeta(account = {}) {
   return [login, server].filter(Boolean).join(" · ") || "Cuenta live vinculada";
 }
 
+function drawdownCombinedTone(account = {}) {
+  if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100) return "risk";
+  if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "warning";
+  if (account.dailyLimitPct || account.maxLimitPct) return "profit";
+  return "neutral";
+}
+
 function isLinkedAccountStale(account) {
   if (!account.linked) return true;
   if (account.linked.connection?.connected === false || account.linked.connection?.state === "disconnected") return true;
@@ -634,6 +674,59 @@ function fundedReviewAlerts(account) {
   return alerts;
 }
 
+function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
+  const modelOptions = availableModels(account.propFirm);
+  openModal({
+    title: "Editar configuración",
+    subtitle: fundedChallengeDisplayName(account),
+    maxWidth: 620,
+    content: `
+      <div class="funding-config-modal">
+        <label class="form-stack">
+          <span>Firma</span>
+          <select data-funded-field="propFirm" data-funded-id="${account.id}">
+            ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === account.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
+          </select>
+        </label>
+        <label class="form-stack">
+          <span>Modelo</span>
+          <select data-funded-field="programModel" data-funded-id="${account.id}">
+            ${modelOptions.map((model) => `<option value="${model}" ${model === account.programModel ? "selected" : ""}>${model}</option>`).join("")}
+          </select>
+        </label>
+        <label class="form-stack">
+          <span>Fase</span>
+          <select data-funded-field="phase" data-funded-id="${account.id}">
+            ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === account.phase ? "selected" : ""}>${phase}</option>`).join("")}
+          </select>
+        </label>
+        <label class="form-stack">
+          <span>Tamaño de cuenta</span>
+          <div class="funded-size-wrap">
+            <span class="funded-size-prefix">${accountCurrencySymbol}</span>
+            <input class="funded-size-input" type="number" min="0" step="1000" value="${account.accountSize}" data-funded-field="accountSize" data-funded-id="${account.id}">
+          </div>
+        </label>
+        <div class="goal-card-sub funded-preset-note">
+          <svg class="funded-preset-note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"></circle>
+            <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+            <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
+          </svg>
+          <span>${ruleNote(account)}</span>
+        </div>
+      </div>
+    `,
+    onMount: (card) => {
+      card?.addEventListener("change", (event) => {
+        const field = event.target.closest("[data-funded-field]");
+        if (!field) return;
+        applyFundedFieldChange(store, field.dataset.fundedId || account.id, field.dataset.fundedField, field.value);
+      });
+    }
+  });
+}
+
 export function initFunded(store) {
   const root = document.getElementById("fundedRoot");
   if (!root) return;
@@ -644,6 +737,19 @@ export function initFunded(store) {
       root.dataset.selectedFundedId = selectButton.dataset.fundedId;
       root.dataset.fundedSelectionMode = "manual";
       renderFunded(root, store.getState());
+      return;
+    }
+
+    const configButton = event.target.closest("[data-funded-action='edit-config']");
+    if (configButton) {
+      const currentState = store.getState();
+      const account = currentState.workspace.fundedAccounts.find((item) => item.id === configButton.dataset.fundedId);
+      if (!account) return;
+      const linkContext = resolveFundedAccountLink(account, currentState);
+      const enriched = deriveFundedAccount(account, linkContext.linked, linkContext);
+      const appCurrency = currentState.workspace?.baseCurrency || currentState.preferences?.baseCurrency || "USD";
+      const accountCurrency = enriched.linked?.currency || enriched.linked?.model?.account?.currency || appCurrency;
+      openFundedConfigModal(store, enriched, currencySymbol(accountCurrency));
       return;
     }
 
@@ -688,36 +794,7 @@ export function initFunded(store) {
     const fundedId = field.dataset.fundedId || root.dataset.selectedFundedId;
     if (!fundedId) return;
     const fieldName = field.dataset.fundedField;
-    const value = field.value;
-
-    if (fieldName === "propFirm") {
-      updateFundedAccount(store, fundedId, (account) => {
-        const nextModels = availableModels(value);
-        const nextProgram = nextModels.includes(account.programModel) ? account.programModel : nextModels[0];
-        return {
-          ...account,
-          propFirm: value,
-          firm: value,
-          programModel: nextProgram
-        };
-      });
-      return;
-    }
-
-    if (fieldName === "programModel") {
-      updateFundedAccount(store, fundedId, (account) => ({ ...account, programModel: value }));
-      return;
-    }
-
-    if (fieldName === "phase") {
-      updateFundedAccount(store, fundedId, (account) => ({ ...account, phase: value }));
-      return;
-    }
-
-    if (fieldName === "accountSize") {
-      const size = Number(value || 0);
-      updateFundedAccount(store, fundedId, (account) => ({ ...account, accountSize: size, size }));
-    }
+    applyFundedFieldChange(store, fundedId, fieldName, field.value);
   });
 }
 
@@ -764,14 +841,12 @@ export function renderFunded(root, state) {
     sourceUsed: "derived_funded_progress",
   });
 
-  const modelOptions = availableModels(selected.propFirm);
-  const appCurrency = state.workspace?.baseCurrency || state.preferences?.baseCurrency || "USD";
-  const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
-  const accountCurrencySymbol = currencySymbol(accountCurrency);
   const totalAccountSize = fundedAccounts.reduce((sum, account) => sum + Number(account.accountSize || 0), 0);
+  const reviewCount = fundedAccounts.filter((account) => fundedReviewScore(account) > 0).length;
   const attentionAccount = [...fundedAccounts]
     .sort((a, b) => fundedReviewScore(b) - fundedReviewScore(a))[0];
   const hasAttentionAccount = attentionAccount && fundedReviewScore(attentionAccount) > 0;
+  const attentionStatus = hasAttentionAccount ? fundedChallengeStatus(attentionAccount) : null;
   const challengeStatus = fundedChallengeStatus(selected);
   const daysStatus = tradingDaysStatus(selected);
   const reviewAlerts = fundedReviewAlerts(selected);
@@ -791,13 +866,27 @@ export function renderFunded(root, state) {
       })}
 
       <section class="funding-overview" aria-label="Resumen de funding">
-        <span><strong>${fundedAccounts.length}</strong> cuentas funded</span>
-        <span><strong>${formatCurrency(totalAccountSize)}</strong> bajo seguimiento</span>
-        <span data-tone="${hasAttentionAccount ? "warning" : "neutral"}"><strong>${hasAttentionAccount ? escapeHtml(fundedChallengeDisplayName(attentionAccount)) : "Sin alertas"}</strong> a revisar</span>
-        <span class="funding-overview__muted"><strong>Pendiente</strong> costes/payouts</span>
+        <article class="funding-kpi" data-tone="info">
+          <span class="funding-kpi__label">Cuentas funded</span>
+          <strong class="funding-kpi__value">${fundedAccounts.length}</strong>
+          <span class="funding-kpi__meta">${reviewCount ? `${reviewCount} a revisar` : "Sin revisión"}</span>
+        </article>
+        <article class="funding-kpi">
+          <span class="funding-kpi__label">Capital bajo seguimiento</span>
+          <strong class="funding-kpi__value">${formatCurrency(totalAccountSize)}</strong>
+          <span class="funding-kpi__meta">Tamaño total de cuentas</span>
+        </article>
+        <article class="funding-kpi" data-tone="${attentionStatus?.dataTone || "neutral"}">
+          <span class="funding-kpi__label">Cuenta a revisar</span>
+          <strong class="funding-kpi__value">${hasAttentionAccount ? escapeHtml(fundedChallengeDisplayName(attentionAccount)) : "Sin alertas"}</strong>
+          <span class="funding-kpi__meta">${attentionStatus?.label || "Sin presión crítica visible"}</span>
+        </article>
+        <article class="funding-kpi funding-kpi--muted">
+          <span class="funding-kpi__label">Costes pendientes</span>
+          <strong class="funding-kpi__value">Pendiente</strong>
+          <span class="funding-kpi__meta">Costes/payouts no modelados</span>
+        </article>
       </section>
-
-      ${renderAuthorityNotice(authorityMeta)}
 
       <section class="tl-section-card funding-accounts-panel" aria-label="Cuentas de fondeo">
         <div class="funding-section-head">
@@ -809,14 +898,12 @@ export function renderFunded(root, state) {
         <div class="funding-account-table" aria-label="Listado de cuentas de fondeo">
           <div class="funding-account-table__head" aria-hidden="true">
             <span>Cuenta</span>
-            <span>Firma</span>
             <span>Fase</span>
             <span>Tamaño</span>
             <span>Equity</span>
             <span>Resultado</span>
             <span>Objetivo</span>
-            <span>DD diario</span>
-            <span>DD máximo</span>
+            <span>DD</span>
             <span>Estado</span>
           </div>
           ${rankedFundedAccounts.map((account) => {
@@ -825,21 +912,16 @@ export function renderFunded(root, state) {
               <button class="funding-account-row ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}" data-tone="${status.dataTone}">
                 <span class="funding-account-cell funding-account-cell--main">
                   <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
-                  <small>${escapeHtml(fundedLinkedAccountShortMeta(account))}</small>
+                  <small>${escapeHtml(`${account.propFirm} · ${fundedLinkedAccountShortMeta(account)}`)}</small>
                 </span>
-                <span class="funding-account-cell">${escapeHtml(account.propFirm)}</span>
                 <span class="funding-account-cell">${escapeHtml(account.phase)}</span>
                 <span class="funding-account-cell">${formatCurrency(account.accountSize)}</span>
                 <span class="funding-account-cell">${formatCurrency(account.equity)}</span>
                 <span class="funding-account-cell">${fundedResultMarkup(account)}</span>
                 <span class="funding-account-cell">${account.targetUsd ? formatCurrency(account.targetUsd) : "Sin objetivo"}</span>
-                <span class="funding-account-cell" data-tone="${drawdownTone(account.dailyUsagePct, account.dailyLimitPct)}">
-                  ${account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—"}
-                  <small>${drawdownStatusLabel(account.dailyUsagePct, account.dailyLimitPct)}</small>
-                </span>
-                <span class="funding-account-cell" data-tone="${drawdownTone(account.maxUsagePct, account.maxLimitPct)}">
-                  ${account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—"}
-                  <small>${drawdownStatusLabel(account.maxUsagePct, account.maxLimitPct)}</small>
+                <span class="funding-account-cell funding-account-cell--dd" data-tone="${drawdownCombinedTone(account)}">
+                  <strong>Día ${account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—"} · Máx ${account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—"}</strong>
+                  <small>${drawdownStatusLabel(account.dailyUsagePct, account.dailyLimitPct)} / ${drawdownStatusLabel(account.maxUsagePct, account.maxLimitPct)}</small>
                 </span>
                 <span class="funding-account-cell funding-account-cell--status">
                   ${badgeMarkup({ label: status.label, tone: status.tone }, "ui-badge--compact")}
@@ -859,6 +941,7 @@ export function renderFunded(root, state) {
           </div>
           <div class="funding-detail-actions">
             ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
+            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
             <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
           </div>
         </div>
@@ -926,71 +1009,6 @@ export function renderFunded(root, state) {
           ${hiddenReviewAlertCount ? `<div class="funding-review-more">+${hiddenReviewAlertCount} más en seguimiento</div>` : ""}
         </div>
       </article>
-
-      <details class="tl-section-card funding-config-drawer">
-        <summary class="funding-config-drawer__summary">
-          <span>
-            <strong>Editar configuración</strong>
-            <small>Firma, fase y tamaño de cuenta</small>
-          </span>
-        </summary>
-        <div class="funded-config-grid">
-          <label class="form-stack">
-            <span>Firma</span>
-            <div class="funded-select-wrap">
-              <select data-funded-field="propFirm" data-funded-id="${selected.id}">
-                ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
-              </select>
-              <span class="funded-select-chevron" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-              </span>
-            </div>
-          </label>
-          <label class="form-stack">
-            <span>Modelo</span>
-            <div class="funded-select-wrap">
-              <select data-funded-field="programModel" data-funded-id="${selected.id}">
-                ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
-              </select>
-              <span class="funded-select-chevron" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-              </span>
-            </div>
-          </label>
-          <label class="form-stack">
-            <span>Fase</span>
-            <div class="funded-select-wrap">
-              <select data-funded-field="phase" data-funded-id="${selected.id}">
-                ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
-              </select>
-              <span class="funded-select-chevron" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-              </span>
-            </div>
-          </label>
-          <label class="form-stack">
-            <span>Tamaño de cuenta</span>
-            <div class="funded-size-wrap">
-              <span class="funded-size-prefix">${accountCurrencySymbol}</span>
-              <input class="funded-size-input" type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
-            </div>
-          </label>
-        </div>
-        <div class="goal-card-sub funded-preset-note">
-          <svg class="funded-preset-note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"></circle>
-            <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
-            <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
-          </svg>
-          <span>${ruleNote(selected)}</span>
-        </div>
-      </details>
     </div>
   `;
 }
