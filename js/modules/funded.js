@@ -2,8 +2,13 @@ import { openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { isAdminUserId } from "./auth-session.js?v=build-20260406-213500";
 
 const FUNDED_PHASES = ["Challenge", "Verification", "Funded"];
+const ORION_FUNDING_LINK = {
+  login: "80571774",
+  serverNeedle: "ogminternational",
+};
 
 const PROP_RULES = {
   FTMO: {
@@ -96,6 +101,86 @@ function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizeText(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isAdminState(state = {}) {
+  const user = state.auth?.user || {};
+  return Boolean(user.is_admin || user.role === "admin" || isAdminUserId(user.id));
+}
+
+function accountLogin(account = {}) {
+  return String(account.login || account.model?.account?.login || account.dashboardPayload?.login || account.meta?.login || "");
+}
+
+function accountServer(account = {}) {
+  return String(account.meta?.server || account.model?.account?.server || account.dashboardPayload?.server || account.server || "");
+}
+
+function accountBroker(account = {}) {
+  return String(account.broker || account.model?.account?.broker || account.dashboardPayload?.broker || "");
+}
+
+function isOrionLiveAccount(account = {}) {
+  if (!account || account.sourceType !== "mt5") return false;
+  const loginMatches = accountLogin(account) === ORION_FUNDING_LINK.login;
+  const serverMatches = normalizeText(accountServer(account)).includes(ORION_FUNDING_LINK.serverNeedle)
+    || normalizeText(accountBroker(account)).includes(ORION_FUNDING_LINK.serverNeedle);
+  return loginMatches && serverMatches;
+}
+
+function isOrionFundingCandidate(fundedAccount = {}) {
+  const identity = normalizeText([
+    fundedAccount.accountId,
+    fundedAccount.firm,
+    fundedAccount.propFirm,
+    fundedAccount.label,
+  ].filter(Boolean).join(" "));
+  return identity.includes("orion") || fundedAccount.accountId === "funded";
+}
+
+function findOrionLiveAccount(state = {}) {
+  return Object.values(state.accounts || {}).find(isOrionLiveAccount) || null;
+}
+
+function resolveFundedAccountLink(fundedAccount = {}, state = {}) {
+  const explicit = state.accounts?.[fundedAccount.accountId] || null;
+  const canUseAdminFallback = isAdminState(state) && isOrionFundingCandidate(fundedAccount);
+  const orion = canUseAdminFallback ? findOrionLiveAccount(state) : null;
+
+  if (orion && explicit?.sourceType !== "mt5") {
+    return {
+      linked: orion,
+      accountId: orion.id || fundedAccount.accountId,
+      source: "admin_orion_live_fallback",
+    };
+  }
+
+  return {
+    linked: explicit,
+    accountId: explicit?.id || fundedAccount.accountId,
+    source: explicit ? "explicit_account_id" : "unlinked",
+  };
+}
+
+function linkedAccountContextLabel(account = {}) {
+  if (!account.linked) return "Sin cuenta live vinculada";
+  const broker = accountBroker(account.linked) || "MT5";
+  const login = accountLogin(account.linked);
+  const server = accountServer(account.linked);
+  return [broker, login, server].filter(Boolean).join(" · ");
+}
+
 function updateFundedAccount(store, fundedId, updater) {
   store.setState((state) => ({
     ...state,
@@ -143,7 +228,7 @@ function tradingDaysCompleted(model) {
   return Array.isArray(model?.dailyReturns) ? model.dailyReturns.length : 0;
 }
 
-function deriveFundedAccount(raw, linked) {
+function deriveFundedAccount(raw, linked, linkContext = {}) {
   const propFirm = raw.propFirm || raw.firm || "FTMO";
   const programModel = raw.programModel || inferProgramModel(raw);
   const phase = normalizePhase(raw.phase);
@@ -215,6 +300,10 @@ function deriveFundedAccount(raw, linked) {
   return {
     ...raw,
     linked,
+    configuredAccountId: raw.accountId || "",
+    linkedAccountId: linked?.id || "",
+    accountId: linkContext.accountId || linked?.id || raw.accountId || "",
+    linkSource: linkContext.source || (linked ? "explicit_account_id" : "unlinked"),
     propFirm,
     programModel,
     phase,
@@ -322,8 +411,9 @@ export function initFunded(store) {
     if (!detailButton) return;
     const account = store.getState().workspace.fundedAccounts.find((item) => item.id === detailButton.dataset.fundedId);
     if (!account) return;
-    const linked = store.getState().accounts[account.accountId];
-    const enriched = deriveFundedAccount(account, linked);
+    const linkContext = resolveFundedAccountLink(account, store.getState());
+    const linked = linkContext.linked;
+    const enriched = deriveFundedAccount(account, linked, linkContext);
     const enrichedStatus = fundedStatusMeta(enriched.globalStatus);
     const adminView = store.getState().auth?.user?.role === "admin";
 
@@ -334,6 +424,7 @@ export function initFunded(store) {
       content: `
         <div class="info-list compact">
           <div><strong>Cuenta</strong><span>${linked?.name || "Sin vincular"}</span></div>
+          <div><strong>Cuenta live</strong><span>${escapeHtml(linkedAccountContextLabel(enriched))}</span></div>
           <div><strong>Firma</strong><span>${enriched.propFirm}</span></div>
           <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
           <div><strong>Fase</strong><span>${enriched.phase}</span></div>
@@ -391,7 +482,10 @@ export function initFunded(store) {
 }
 
 export function renderFunded(root, state) {
-  const fundedAccounts = state.workspace.fundedAccounts.map((account) => deriveFundedAccount(account, state.accounts[account.accountId]));
+  const fundedAccounts = state.workspace.fundedAccounts.map((account) => {
+    const linkContext = resolveFundedAccountLink(account, state);
+    return deriveFundedAccount(account, linkContext.linked, linkContext);
+  });
   if (!fundedAccounts.length) {
     root.innerHTML = `
       <div class="funded-page-stack">
@@ -407,7 +501,7 @@ export function renderFunded(root, state) {
     return;
   }
 
-  const selectedByCurrentAccount = fundedAccounts.find((item) => item.accountId === state.currentAccount);
+  const selectedByCurrentAccount = fundedAccounts.find((item) => item.accountId === state.currentAccount || item.linkedAccountId === state.currentAccount);
   const selected = fundedAccounts.find((item) => item.id === root.dataset.selectedFundedId)
     || selectedByCurrentAccount
     || fundedAccounts[0];
@@ -485,6 +579,7 @@ export function renderFunded(root, state) {
               <span class="funding-challenge-card__main">
                 <span class="funding-challenge-card__name">${account.linked?.name || account.label}</span>
                 <span class="funding-challenge-card__meta">${account.propFirm} · ${account.phase}</span>
+                <span class="funding-challenge-card__meta">${escapeHtml(linkedAccountContextLabel(account))}</span>
               </span>
               <span class="funding-challenge-card__side">
                 ${badgeMarkup(challengeStateMeta(account.challengeState), "ui-badge--compact")}
@@ -501,6 +596,7 @@ export function renderFunded(root, state) {
               <div>
                 <div class="banner-title">${selected.linked?.name || selected.label}</div>
                 <div class="row-sub">${selected.propFirm} · ${selected.programModel} · ${selected.phase}</div>
+                <div class="row-sub">${escapeHtml(linkedAccountContextLabel(selected))}</div>
               </div>
               ${badgeMarkup(statusMeta)}
             </div>
