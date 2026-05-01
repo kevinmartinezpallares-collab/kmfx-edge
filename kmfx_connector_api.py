@@ -33,44 +33,6 @@ log = logging.getLogger("kmfx_connector_api")
 RUNTIME_SYNC_KEY_LOOKUP_MARKER = "sync-key-any-user-6d8a6ab-20260411"
 SUPABASE_PROJECT_URL = str(os.getenv("SUPABASE_URL") or os.getenv("KMFX_SUPABASE_URL") or "https://uuhiqreifisppqkawzif.supabase.co").strip().rstrip("/")
 SUPABASE_ANON_KEY = str(os.getenv("SUPABASE_ANON_KEY") or os.getenv("KMFX_SUPABASE_ANON_KEY") or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1aGlxcmVpZmlzcHBxa2F3emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDY0MDIsImV4cCI6MjA4OTgyMjQwMn0.-9nOoN8smRXiYscUeNzOCkeDKSakv416JflmhnhVHfM").strip()
-ADMIN_OWNER_USER_ID = "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"
-ADMIN_OWNER_LAUNCHER_CONNECTION_KEY = "d6a04f74-7972-4927-8c7e-4ec101f7b445"
-ADMIN_ORION_LAUNCHER_CONNECTION_KEY = "78dc1d0b-aeb4-4d75-9094-4b5e84f1d558"
-DEFAULT_ADMIN_LAUNCHER_CONNECTION_KEYS = " ".join(
-    [
-        ADMIN_OWNER_LAUNCHER_CONNECTION_KEY,
-        ADMIN_ORION_LAUNCHER_CONNECTION_KEY,
-    ]
-)
-ADMIN_USER_IDS = {
-    user_id.strip().lower()
-    for user_id in str(os.getenv("KMFX_ADMIN_USER_IDS") or ADMIN_OWNER_USER_ID).split(",")
-    if user_id.strip()
-}
-ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID: dict[str, set[str]] = {}
-for mapping in str(
-    os.getenv("KMFX_ADMIN_LAUNCHER_CONNECTION_KEYS")
-    or f"{ADMIN_OWNER_USER_ID}={DEFAULT_ADMIN_LAUNCHER_CONNECTION_KEYS}"
-).replace(";", ",").split(","):
-    separator = "=" if "=" in mapping else ":"
-    if separator not in mapping:
-        continue
-    user_id, connection_keys = mapping.split(separator, 1)
-    normalized_user_id = user_id.strip().lower()
-    if not normalized_user_id:
-        continue
-    normalized_keys = {
-        connection_key.strip().lower()
-        for connection_key in connection_keys.replace("|", " ").split()
-        if connection_key.strip()
-    }
-    if normalized_keys:
-        ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID.setdefault(normalized_user_id, set()).update(normalized_keys)
-ADMIN_EMAILS = {
-    email.strip().lower()
-    for email in str(os.getenv("KMFX_ADMIN_EMAILS") or "").split(",")
-    if email.strip()
-}
 
 
 PRODUCTION_CORS_ORIGINS = (
@@ -117,6 +79,46 @@ def _split_env_list(value: str) -> list[str]:
     return items
 
 
+def _parse_admin_launcher_connection_key_mappings(value: str) -> dict[str, set[str]]:
+    mappings: dict[str, set[str]] = {}
+    for mapping in str(value or "").replace(";", ",").split(","):
+        separator = "=" if "=" in mapping else ":"
+        if separator not in mapping:
+            continue
+        user_id, connection_keys = mapping.split(separator, 1)
+        normalized_user_id = user_id.strip().lower()
+        if not normalized_user_id:
+            continue
+        normalized_keys = {
+            connection_key.strip().lower()
+            for connection_key in connection_keys.replace("|", " ").split()
+            if connection_key.strip()
+        }
+        if normalized_keys:
+            mappings.setdefault(normalized_user_id, set()).update(normalized_keys)
+    return mappings
+
+
+def resolve_admin_user_ids() -> set[str]:
+    configured = _split_env_list(_env_value("KMFX_ADMIN_USER_IDS"))
+    if configured:
+        return {user_id.lower() for user_id in configured}
+    if _env_flag("KMFX_ENABLE_DEV_ADMIN_FALLBACK", default=False) and not _is_production_runtime():
+        return {"local-dev-admin"}
+    return set()
+
+
+def resolve_admin_emails() -> set[str]:
+    return {email.lower() for email in _split_env_list(_env_value("KMFX_ADMIN_EMAILS"))}
+
+
+def resolve_admin_launcher_connection_keys_by_user_id() -> dict[str, set[str]]:
+    configured = _env_value("KMFX_ADMIN_LAUNCHER_CONNECTION_KEYS")
+    if not configured:
+        return {}
+    return _parse_admin_launcher_connection_key_mappings(configured)
+
+
 def resolve_cors_allow_origins() -> list[str]:
     explicit_origins = _env_value("KMFX_CORS_ALLOW_ORIGINS", "CORS_ALLOW_ORIGINS")
     if explicit_origins:
@@ -144,6 +146,9 @@ CORS_ALLOW_HEADERS = [
     "X-KMFX-User-ID",
     "X-Requested-With",
 ]
+ADMIN_USER_IDS = resolve_admin_user_ids()
+ADMIN_EMAILS = resolve_admin_emails()
+ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID = resolve_admin_launcher_connection_keys_by_user_id()
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
@@ -155,10 +160,13 @@ app.add_middleware(
     allow_headers=CORS_ALLOW_HEADERS,
 )
 log.info(
-    "Connector API startup configured | response_helper=connector_json_response marker=%s cors_origins=%s cors_regex=%s routes=%s",
+    "Connector API startup configured | response_helper=connector_json_response marker=%s cors_origins=%s cors_regex=%s admin_ids=%d admin_emails=%d admin_bridge_users=%d routes=%s",
     RUNTIME_SYNC_KEY_LOOKUP_MARKER,
     CORS_ALLOW_ORIGINS,
     CORS_ALLOW_ORIGIN_REGEX or "",
+    len(ADMIN_USER_IDS),
+    len(ADMIN_EMAILS),
+    len(ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID),
     ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot"],
 )
 
