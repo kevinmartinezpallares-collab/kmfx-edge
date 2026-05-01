@@ -4767,7 +4767,19 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .tools-page-stack {
   display: grid;
-  gap: 18px;
+  gap: 16px;
+}
+
+.tools-page-stack .tl-page-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.tools-page-stack .tl-page-title::before,
+.tools-page-stack .tl-section-title::before {
+  content: none;
+  display: none;
 }
 
 .tools-hub-grid {
@@ -4779,22 +4791,22 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .tools-card {
   display: grid;
   align-content: space-between;
-  gap: 9px;
-  min-height: 118px;
+  gap: 8px;
+  min-height: 108px;
   min-width: 0;
-  padding: 13px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 62%, transparent);
-  border-radius: calc(var(--radius) + 6px);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 54%, transparent);
+  border-radius: var(--radius-card);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.2%, transparent), transparent 62%),
-    color-mix(in srgb, var(--foreground) 0.9%, transparent);
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.7%, transparent), transparent 64%),
+    color-mix(in srgb, var(--foreground) 0.65%, transparent);
 }
 
 .tools-card.is-active {
-  border-color: color-mix(in srgb, var(--equity) 34%, var(--border-0));
+  border-color: color-mix(in srgb, var(--equity) 24%, var(--border-0));
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--equity) 7%, transparent), transparent 64%),
-    color-mix(in srgb, var(--foreground) 1.4%, transparent);
+    linear-gradient(180deg, color-mix(in srgb, var(--equity) 4.8%, transparent), transparent 68%),
+    color-mix(in srgb, var(--foreground) 1%, transparent);
 }
 
 .tools-card.is-included {
@@ -4803,7 +4815,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .tools-card.is-disabled {
-  opacity: 0.48;
+  opacity: 0.42;
 }
 
 .tools-card__top {
@@ -4815,9 +4827,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .tools-card strong {
   overflow: hidden;
   color: var(--foreground);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.15;
-  font-weight: 740;
+  font-weight: 720;
   letter-spacing: -0.018em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4825,9 +4837,16 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .tools-card span:not(.ui-badge) {
   color: var(--muted-foreground);
-  font-size: 11.5px;
+  font-size: 11px;
   line-height: 1.35;
   font-weight: 520;
+}
+
+.tools-card .ui-badge {
+  min-height: 22px;
+  padding: 3px 8px;
+  font-size: 10px;
+  letter-spacing: 0.045em;
 }
 
 .calculator-active-shell {
@@ -4849,7 +4868,12 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card,
 .calculator-spec-card {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  border-color: color-mix(in srgb, var(--border-0) 66%, transparent);
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.8%, transparent), transparent 58%),
+    color-mix(in srgb, var(--card) 90%, transparent);
 }
 
 .calculator-result-head {
@@ -4864,28 +4888,27 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: grid;
   gap: 6px;
   min-width: 0;
-  padding: 18px;
-  border: 1px solid color-mix(in srgb, var(--equity) 20%, var(--border-0));
-  border-radius: calc(var(--radius) + 8px);
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--equity) 15%, var(--border-0));
+  border-radius: var(--radius-card);
   background:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--equity) 10%, transparent), transparent 34%),
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--equity) 7%, transparent), transparent 34%),
     color-mix(in srgb, var(--foreground) 1.4%, transparent);
 }
 
 .calculator-primary-result span,
-.calculator-advice-primary span,
 .calculator-metric span {
   color: var(--muted-foreground);
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 660;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .calculator-primary-result strong {
   color: var(--foreground);
-  font-size: clamp(34px, 4.4vw, 58px);
+  font-size: clamp(34px, 4vw, 52px);
   line-height: 0.92;
   font-weight: 780;
   letter-spacing: -0.06em;
@@ -4916,10 +4939,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: grid;
   gap: 5px;
   min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 44%, transparent);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--foreground) 1%, transparent);
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 34%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--foreground) 0.72%, transparent);
 }
 
 .calculator-metric strong {
@@ -4949,11 +4972,11 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-variant-numeric: tabular-nums;
 }
 
-.calculator-advice-grid {
+.calculator-advice-panel {
   display: grid;
-  grid-template-columns: minmax(120px, 0.38fr) minmax(0, 1fr);
+  grid-template-columns: minmax(110px, 0.32fr) minmax(0, 1fr);
   gap: 12px;
-  align-items: start;
+  align-items: center;
 }
 
 .calculator-advice-primary,
@@ -4961,15 +4984,28 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: grid;
   gap: 6px;
   min-width: 0;
-  padding: 13px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 42%, transparent);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--foreground) 1%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.calculator-advice-empty.calculator-advice-panel {
+  grid-template-columns: 1fr;
+}
+
+.calculator-advice-primary span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 660;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .calculator-advice-primary strong {
   color: var(--foreground);
-  font-size: 28px;
+  font-size: clamp(24px, 2.1vw, 32px);
   line-height: 0.95;
   font-weight: 760;
   letter-spacing: -0.045em;
@@ -4977,7 +5013,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .calculator-advice-copy {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   color: var(--foreground);
   font-size: 13px;
   line-height: 1.42;
@@ -4999,7 +5035,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-form-grid {
-  gap: 12px;
+  gap: 10px;
 }
 
 .calculator-form-grid,
@@ -5011,9 +5047,43 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-spec-card .form-stack small,
 .calculator-spec-note {
   color: var(--muted-foreground);
-  font-size: 11.5px;
+  font-size: 11px;
   line-height: 1.35;
   font-weight: 540;
+}
+
+.calculator-config-card .form-stack,
+.calculator-spec-card .form-stack {
+  gap: 7px;
+}
+
+.calculator-config-card .form-stack > span,
+.calculator-spec-card .form-stack > span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+}
+
+.calculator-config-card :where(input, select),
+.calculator-spec-card :where(input, select) {
+  min-height: 42px;
+  border-color: color-mix(in srgb, var(--border-0) 48%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--foreground) 2.2%, transparent);
+  box-shadow: none;
+}
+
+.calculator-config-card .calc-chip-group {
+  margin-bottom: 2px;
+}
+
+.calculator-config-card .calc-pill,
+.calculator-config-card .calc-chip {
+  min-height: 28px;
+  padding: 5px 10px;
+  letter-spacing: 0.035em;
 }
 
 .calculator-mode-field {
@@ -5024,7 +5094,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: none;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .calculator-price-fields.is-visible {
@@ -5032,23 +5102,31 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-spec-note {
-  padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 44%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--foreground) 1%, transparent);
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 30%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--foreground) 0.7%, transparent);
 }
 
 .calculator-advice-action {
   justify-self: start;
-  min-height: 34px;
-  padding: 8px 12px;
+  width: auto;
+  min-width: 0;
+  min-height: 32px;
+  padding: 7px 11px;
   font-size: 12px;
+  border-radius: 999px;
 }
 
 .calculator-spec-card input[readonly],
 .calculator-config-card input[readonly] {
   color: var(--muted-foreground);
   cursor: default;
+}
+
+.calculator-threshold-note {
+  font-size: 11px;
+  opacity: 0.72;
 }
 
 @media (max-width: 1320px) {
@@ -5076,7 +5154,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   .tools-hub-grid,
   .calculator-metric-grid,
   .calculator-spec-list,
-  .calculator-advice-grid,
+  .calculator-advice-panel,
   .calculator-form-grid,
   .calculator-spec-form,
   .calculator-price-fields {

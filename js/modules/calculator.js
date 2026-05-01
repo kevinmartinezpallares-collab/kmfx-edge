@@ -254,9 +254,11 @@ function calculatorMetricMarkup(label, value, meta = "") {
 function riskAdviceMarkup(model, adviceTone) {
   if (!model.riskAdvice) {
     return `
-      <div class="calculator-advice-empty">
-        <strong>Sin lectura del Risk Engine</strong>
-        <span>La calculadora sigue operativa aunque el motor de riesgo no esté disponible.</span>
+      <div class="calculator-advice-empty calculator-advice-panel">
+        <div>
+          <strong>Sin lectura del Risk Engine</strong>
+          <span>La calculadora sigue operativa aunque el motor de riesgo no esté disponible.</span>
+        </div>
       </div>
     `;
   }
@@ -269,7 +271,7 @@ function riskAdviceMarkup(model, adviceTone) {
       : `Aumenta ${delta.toFixed(2)} puntos frente al riesgo configurado.`;
 
   return `
-    <div class="calculator-advice-grid">
+    <div class="calculator-advice-panel">
       <div class="calculator-advice-primary">
         <span>Riesgo recomendado</span>
         <strong>${model.riskAdvice.recommendedRiskPct.toFixed(2)}%</strong>
@@ -277,9 +279,9 @@ function riskAdviceMarkup(model, adviceTone) {
       <div class="calculator-advice-copy">
         <span>${model.riskAdvice.explanation || "El motor no detecta presión extraordinaria en este momento."}</span>
         <small>${deltaCopy}</small>
+        <button class="btn-secondary btn-inline calculator-advice-action" type="button" data-calc-apply-risk>Aplicar riesgo sugerido</button>
       </div>
     </div>
-    <button class="btn-secondary btn-inline calculator-advice-action" type="button" data-calc-apply-risk>Aplicar riesgo sugerido</button>
   `;
 }
 
@@ -455,7 +457,7 @@ export function renderCalculator(root, state) {
             </div>
             <strong>${model.realRiskPct.toFixed(2)}%</strong>
           </div>
-          <div class="tl-section-sub">Verde ≤ 1% · Amarillo ≤ 2% · Rojo &gt; 2%</div>
+          <div class="tl-section-sub calculator-threshold-note">Verde ≤ 1% · Amarillo ≤ 2% · Rojo &gt; 2%</div>
         </article>
 
         <article class="tl-section-card calculator-advice-card">
@@ -538,7 +540,7 @@ export function renderCalculator(root, state) {
             ${badgeMarkup({ label: specSourceLabel, tone: "neutral" }, "ui-badge--compact")}
           </div>
           <div class="calculator-spec-note">
-            Los valores de contrato/pip son editables. Verifica las especificaciones de tu broker antes de ejecutar.
+            Supuestos editables. Verifica las especificaciones de tu broker.
           </div>
           <div class="form-grid-clean calc-form-grid calculator-spec-form">
             <label class="form-stack">
