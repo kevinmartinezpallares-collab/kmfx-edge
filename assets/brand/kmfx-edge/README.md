@@ -22,12 +22,11 @@ Figma editable: https://www.figma.com/design/xWEKmrpzD3oW9pGha6w3He
 | Necesidad | Archivo recomendado |
 | --- | --- |
 | Logo principal | `logo/raster/kmfx-edge-symbol-glass-original.png` |
-| Logo transparente para UI | `logo/svg/kmfx-edge-symbol-glass-transparent.svg` |
+| Logo transparente para UI | `logo/raster/kmfx-edge-symbol-transparent.png` |
 | Wordmark premium | `logo/svg/kmfx-edge-wordmark-glass.svg` |
 | Logo + nombre | `logo/svg/kmfx-edge-lockup-glass.svg` |
-| Sidebar/dashboard | `logo/svg/kmfx-edge-symbol-glass-transparent.svg` |
-| Favicon principal | `logo/svg/kmfx-edge-symbol-glass-transparent.svg` |
-| Favicon fallback PNG | `logo/app-icons/favicon-16.png`, `favicon-32.png`, `favicon-48.png` |
+| Sidebar/dashboard | `logo/app-icons/webapp-512.png` |
+| Favicon PNG | `logo/app-icons/favicon-16.png`, `favicon-32.png`, `favicon-48.png` |
 | Apple/iOS icon | `logo/app-icons/apple-touch-icon-180.png` |
 | PWA icon | `logo/app-icons/webapp-192.png`, `webapp-512.png`, `webapp-1024.png` |
 | Social avatar | `social/profile-avatar-400.png` |
@@ -49,7 +48,7 @@ La lectura completa es: disciplina, estrategia y resultados.
 
 ## Reglas cortas
 
-- Usa el simbolo transparente en el dashboard para que no aparezca ningun bloque de fondo.
+- Usa el PNG transparente en el dashboard para conservar el acabado glass real sin bloque de fondo.
 - Usa el lockup glass solo en presentaciones, landing o piezas donde el nombre tenga espacio.
 - Usa el simbolo glass cuando el espacio sea pequeno o cuadrado.
 - No mezclar con logos antiguos de raya o versiones planas.

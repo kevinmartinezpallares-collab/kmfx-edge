@@ -3,7 +3,7 @@
 La version que debe vivir en Figma es esta:
 
 - Logo principal: `logo/raster/kmfx-edge-symbol-glass-original.png`
-- Logo transparente para dashboard/favicon: `logo/svg/kmfx-edge-symbol-glass-transparent.svg`
+- Logo transparente para dashboard/favicon: `logo/raster/kmfx-edge-symbol-transparent.png`
 - Nombre premium: `logo/svg/kmfx-edge-wordmark-glass.svg`
 - Logo + nombre: `logo/svg/kmfx-edge-lockup-glass.svg`
 
@@ -19,7 +19,7 @@ La version que debe vivir en Figma es esta:
 2. Arrastra `kmfx-edge-lockup-glass.svg` para tener el logo con nombre.
 3. Usa fondo `#050608`.
 4. Mantener el logo principal como imagen/raster para conservar el efecto glass en piezas grandes.
-5. Usar el SVG transparente para dashboard y favicon.
+5. Usar el PNG transparente para dashboard y favicon.
 5. Usar Figma para ordenar, documentar, prototipar y exportar, no para reconstruir desde cero el efecto 3D.
 
 ## Por que no reconstruirlo todo en Figma

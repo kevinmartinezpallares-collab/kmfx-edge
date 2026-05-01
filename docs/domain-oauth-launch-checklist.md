@@ -9,6 +9,8 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 - `api.kmfxedge.com` queda pendiente para el backend.
 - El código web ya no hardcodea el redirect OAuth a `dashboard.kmfxedge.com`; usa el origen actual.
 - El launcher usa `https://kmfxedge.com?auth=recovery` por defecto y permite sobrescribirlo con `KMFX_DASHBOARD_RECOVERY_URL`.
+- Supabase Auth ya acepta `https://kmfxedge.com` como redirect y devuelve el flujo OAuth hacia Google.
+- El dominio personalizado de Supabase Auth queda aplazado por coste mensual.
 
 ## Vercel y DNS
 
@@ -22,16 +24,19 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 
 ## Supabase Auth
 
-- [ ] Configurar Site URL como `https://kmfxedge.com`.
-- [ ] Añadir Redirect URLs:
+- [x] Configurar Site URL como `https://kmfxedge.com`.
+- [x] Añadir Redirect URLs:
   - `https://kmfxedge.com`
   - `https://kmfxedge.com/*`
+  - `https://www.kmfxedge.com`
+  - `https://www.kmfxedge.com/*`
   - `https://dashboard.kmfxedge.com`
   - `https://dashboard.kmfxedge.com/*`, solo durante transición
   - URLs locales de desarrollo
 - [ ] Mantener `https://dashboard.kmfxedge.com` solo mientras exista como alias temporal.
 - [ ] Probar magic links, recovery y OAuth Google.
-- [ ] Evaluar dominio personalizado de Auth para reducir exposición de `supabase.co`.
+- [x] Evaluar dominio personalizado de Auth para reducir exposición de `supabase.co`.
+- [ ] Reconsiderar `auth.kmfxedge.com` cuando el coste mensual encaje.
 
 ## Google OAuth
 

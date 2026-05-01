@@ -27,7 +27,7 @@ El logo se compone de tres piezas:
 | Version | Uso |
 | --- | --- |
 | Simbolo glass original | Logo principal, app icon, favicon, redes, presentaciones y hero visual. |
-| Simbolo glass transparente | Dashboard, favicon SVG y lugares donde el fondo cambia entre claro y oscuro. |
+| Simbolo glass transparente PNG | Dashboard, favicon y lugares donde el fondo cambia entre claro y oscuro. |
 | Wordmark glass | Nombre KMFX EDGE con estetica metalica/azul. |
 | Lockup glass | Simbolo + nombre para dashboard, web, videos y Figma. |
 
@@ -58,8 +58,8 @@ Jerarquia recomendada:
 
 En el dashboard, el logo debe funcionar como ancla de confianza, no como decoracion. Recomendaciones:
 
-- Sidebar expandida: simbolo glass transparente, sin nombre.
-- Sidebar colapsada: simbolo glass transparente.
+- Sidebar expandida: simbolo glass transparente PNG, sin nombre.
+- Sidebar colapsada: simbolo glass transparente PNG.
 - Login/auth: simbolo glass con mucho espacio.
 - Favicon/PWA: export cuadrado del simbolo glass.
 - Loading/splash: icono contenido con pulso azul sutil.
