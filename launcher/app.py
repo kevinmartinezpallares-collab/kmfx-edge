@@ -263,6 +263,17 @@ class KMFXApi:
         self.fetch_json("/bridge/reload-config")
         return {"ok": True, "message": "Sesión cerrada.", "session": self.get_session()}
 
+    def _clear_expired_auth_session(self) -> None:
+        self.config.auth_access_token = ""
+        self.config.auth_refresh_token = ""
+        self.config.auth_expires_at = 0
+        self.config.auth_user_id = ""
+        self.config.auth_email = ""
+        self.config.auth_name = ""
+        self.config.backend_token = ""
+        save_config(self.config)
+        self.backend.config = self.config
+
     def ensure_session(self) -> dict[str, Any]:
         if self.config.auth_access_token:
             self.config.backend_token = self.config.auth_access_token
@@ -271,6 +282,9 @@ class KMFXApi:
             response = self.backend.refresh_auth_session(refresh_token=self.config.auth_refresh_token)
             if response.ok:
                 self._store_auth_response(response.body)
+            elif response.status_code in {400, 401, 403}:
+                self.logger.warning("[KMFX][AUTH] refresh rejected; clearing expired launcher session")
+                self._clear_expired_auth_session()
             else:
                 self.logger.warning("[KMFX][AUTH] refresh failed; keeping launcher session until logout")
         return self.get_session()
