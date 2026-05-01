@@ -605,6 +605,72 @@ function drawdownCombinedTone(account = {}) {
   return "neutral";
 }
 
+function targetProgressTone(account = {}) {
+  if (account.accountSizeMismatch) return "warning";
+  if (!account.targetUsd) return "neutral";
+  if (account.targetCompletionPct >= 100) return "profit";
+  if (account.currentProfitUsd > 0) return "profit";
+  return "neutral";
+}
+
+function daysProgressPct(account = {}) {
+  if (!account.requiredTradingDays) return 0;
+  return clamp((Number(account.daysCompleted || 0) / Number(account.requiredTradingDays)) * 100);
+}
+
+function daysProgressTone(account = {}) {
+  if (!account.requiredTradingDays || account.noMinimumDays) return "neutral";
+  return account.daysCompleted >= account.requiredTradingDays ? "profit" : "warning";
+}
+
+function fundedTableStatusMeta(account = {}) {
+  const status = fundedChallengeStatus(account);
+  if (account.accountSizeMismatch) return { label: "Revisar", fullLabel: status.label, tone: "warning" };
+  if (!account.targetUsd) return { label: "Sin objetivo", fullLabel: status.label, tone: "neutral" };
+  if (status.dataTone === "risk") return { label: "En riesgo", fullLabel: status.label, tone: "risk" };
+  if (status.dataTone === "warning") return { label: "En curso", fullLabel: status.label, tone: "warning" };
+  return { label: "OK", fullLabel: status.label, tone: "profit" };
+}
+
+function fundingStatusChipMarkup(account = {}) {
+  const status = fundedTableStatusMeta(account);
+  return `
+    <span class="funding-status-chip" data-tone="${escapeHtml(status.tone)}" title="${escapeHtml(status.fullLabel)}" aria-label="${escapeHtml(status.fullLabel)}">
+      <span class="funding-status-chip__dot" aria-hidden="true"></span>
+      <span>${escapeHtml(status.label)}</span>
+    </span>
+  `;
+}
+
+function fundingMiniBarMarkup({ label = "", value = 0, tone = "neutral", valueLabel = "" } = {}) {
+  return `
+    <span class="funding-bar" data-tone="${escapeHtml(tone)}">
+      <span class="funding-bar__top">
+        <span>${escapeHtml(label)}</span>
+        ${valueLabel ? `<strong>${escapeHtml(valueLabel)}</strong>` : ""}
+      </span>
+      <span class="funding-bar__rail" aria-hidden="true">
+        <span class="funding-bar__fill" style="width:${clamp(Number(value || 0))}%"></span>
+      </span>
+    </span>
+  `;
+}
+
+function fundingDetailBarMarkup({ label = "", value = 0, tone = "neutral", primary = "", meta = "" } = {}) {
+  return `
+    <div class="funding-detail-bar" data-tone="${escapeHtml(tone)}">
+      <div class="funding-detail-bar__head">
+        <span>${escapeHtml(label)}</span>
+        ${primary ? `<strong>${primary}</strong>` : ""}
+      </div>
+      <div class="funding-bar__rail" aria-hidden="true">
+        <span class="funding-bar__fill" style="width:${clamp(Number(value || 0))}%"></span>
+      </div>
+      ${meta ? `<div class="funding-detail-bar__meta">${meta}</div>` : ""}
+    </div>
+  `;
+}
+
 function isLinkedAccountStale(account) {
   if (!account.linked) return true;
   if (account.linked.connection?.connected === false || account.linked.connection?.state === "disconnected") return true;
@@ -918,13 +984,31 @@ export function renderFunded(root, state) {
                 <span class="funding-account-cell">${formatCurrency(account.accountSize)}</span>
                 <span class="funding-account-cell">${formatCurrency(account.equity)}</span>
                 <span class="funding-account-cell">${fundedResultMarkup(account)}</span>
-                <span class="funding-account-cell">${account.targetUsd ? formatCurrency(account.targetUsd) : "Sin objetivo"}</span>
+                <span class="funding-account-cell funding-account-cell--progress">
+                  <strong>${account.targetUsd ? `${Math.round(account.targetCompletionPct)}%` : "Sin objetivo"}</strong>
+                  ${fundingMiniBarMarkup({
+                    label: "Objetivo",
+                    value: account.targetUsd ? account.targetCompletionPct : 0,
+                    tone: targetProgressTone(account),
+                    valueLabel: account.targetUsd ? formatCurrency(account.targetUsd) : "",
+                  })}
+                </span>
                 <span class="funding-account-cell funding-account-cell--dd" data-tone="${drawdownCombinedTone(account)}">
-                  <strong>Día ${account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—"} · Máx ${account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—"}</strong>
-                  <small>${drawdownStatusLabel(account.dailyUsagePct, account.dailyLimitPct)} / ${drawdownStatusLabel(account.maxUsagePct, account.maxLimitPct)}</small>
+                  ${fundingMiniBarMarkup({
+                    label: "Día",
+                    value: account.dailyLimitPct ? account.dailyUsagePct : 0,
+                    tone: drawdownTone(account.dailyUsagePct, account.dailyLimitPct),
+                    valueLabel: account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—",
+                  })}
+                  ${fundingMiniBarMarkup({
+                    label: "Máx",
+                    value: account.maxLimitPct ? account.maxUsagePct : 0,
+                    tone: drawdownTone(account.maxUsagePct, account.maxLimitPct),
+                    valueLabel: account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—",
+                  })}
                 </span>
                 <span class="funding-account-cell funding-account-cell--status">
-                  ${badgeMarkup({ label: status.label, tone: status.tone }, "ui-badge--compact")}
+                  ${fundingStatusChipMarkup(account)}
                 </span>
               </button>
             `;
@@ -962,28 +1046,48 @@ export function renderFunded(root, state) {
               <div><span>Pendiente</span><strong>${selected.accountSizeMismatch ? "Revisar config" : selected.targetUsd ? formatCurrency(selected.remainingUsd) : "No aplica"}</strong></div>
               <div><span>Equity</span><strong>${formatCurrency(selected.equity)}</strong></div>
             </div>
-            <div class="funding-progress-rail" aria-hidden="true">
-              <div class="funding-progress-rail__fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? clamp(selected.targetCompletionPct) : 0}%"></div>
+            <div class="funding-detail-bars">
+              ${fundingDetailBarMarkup({
+                label: "Objetivo",
+                value: selected.accountSizeMismatch ? 0 : selected.targetUsd ? selected.targetCompletionPct : 0,
+                tone: targetProgressTone(selected),
+                primary: selected.accountSizeMismatch
+                  ? "Revisar configuración"
+                  : selected.targetUsd
+                    ? `${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatCurrency(selected.targetUsd)}`
+                    : "Sin objetivo",
+                meta: selected.accountSizeMismatch
+                  ? "El tamaño configurado no coincide con el capital live."
+                  : selected.targetUsd
+                    ? `Pendiente ${formatCurrency(selected.remainingUsd)}`
+                    : "Sin objetivo de beneficio en esta fase.",
+              })}
             </div>
           </div>
           <div class="funding-detail-block">
             <div class="funding-detail-kicker">Límites</div>
             <div class="funding-mini-rules">
-              <div class="funding-mini-rule" data-tone="${drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct)}">
-                <span>DD diario</span>
-                <strong>${selected.dailyLimitPct ? `${Math.round(selected.dailyUsagePct)}% usado` : "Sin límite"}</strong>
-                <small>Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)} · límite ${formatRuleValue(selected.dailyLimitPct)}</small>
-              </div>
-              <div class="funding-mini-rule" data-tone="${drawdownTone(selected.maxUsagePct, selected.maxLimitPct)}">
-                <span>DD máximo</span>
-                <strong>${selected.maxLimitPct ? `${Math.round(selected.maxUsagePct)}% usado` : "Sin límite"}</strong>
-                <small>Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)} · límite ${formatRuleValue(selected.maxLimitPct)}</small>
-              </div>
-              <div class="funding-mini-rule" data-tone="${daysStatus.tone}">
-                <span>Días operados</span>
-                <strong>${selected.requiredTradingDays ? `${selected.daysCompleted}/${selected.requiredTradingDays}` : selected.daysCompleted}</strong>
-                <small>${escapeHtml(daysStatus.label)}</small>
-              </div>
+              ${fundingDetailBarMarkup({
+                label: "DD diario",
+                value: selected.dailyLimitPct ? selected.dailyUsagePct : 0,
+                tone: drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct),
+                primary: selected.dailyLimitPct ? `${Math.round(selected.dailyUsagePct)}% usado` : "Sin límite",
+                meta: `Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)} · límite ${formatRuleValue(selected.dailyLimitPct)}`,
+              })}
+              ${fundingDetailBarMarkup({
+                label: "DD máximo",
+                value: selected.maxLimitPct ? selected.maxUsagePct : 0,
+                tone: drawdownTone(selected.maxUsagePct, selected.maxLimitPct),
+                primary: selected.maxLimitPct ? `${Math.round(selected.maxUsagePct)}% usado` : "Sin límite",
+                meta: `Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)} · límite ${formatRuleValue(selected.maxLimitPct)}`,
+              })}
+              ${fundingDetailBarMarkup({
+                label: "Días",
+                value: selected.requiredTradingDays ? daysProgressPct(selected) : 0,
+                tone: daysProgressTone(selected),
+                primary: selected.requiredTradingDays ? `${selected.daysCompleted}/${selected.requiredTradingDays}` : "Sin mínimo requerido",
+                meta: selected.requiredTradingDays ? escapeHtml(daysStatus.label) : `${selected.daysCompleted} días operados`,
+              })}
             </div>
           </div>
         </div>

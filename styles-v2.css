@@ -4028,6 +4028,66 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   justify-items: start;
 }
 
+.funding-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 24px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 2.6%, transparent);
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 720;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.funding-status-chip span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funding-status-chip__dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+}
+
+.funding-status-chip[data-tone="profit"] {
+  border-color: color-mix(in srgb, var(--profit) 26%, var(--border-0));
+  color: var(--profit);
+}
+
+.funding-status-chip[data-tone="profit"] .funding-status-chip__dot {
+  background: var(--profit);
+}
+
+.funding-status-chip[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--risk) 28%, var(--border-0));
+  color: var(--risk);
+}
+
+.funding-status-chip[data-tone="warning"] .funding-status-chip__dot {
+  background: var(--risk);
+}
+
+.funding-status-chip[data-tone="risk"] {
+  border-color: color-mix(in srgb, var(--loss) 30%, var(--border-0));
+  color: var(--loss);
+}
+
+.funding-status-chip[data-tone="risk"] .funding-status-chip__dot {
+  background: var(--loss);
+}
+
 .funding-account-cell--dd strong {
   color: inherit;
   font-size: 11.5px;
@@ -4051,6 +4111,119 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-account-cell[data-tone="risk"] {
   color: var(--loss);
+}
+
+.funding-account-cell--progress,
+.funding-account-cell--dd {
+  gap: 4px;
+}
+
+.funding-account-cell--progress > strong {
+  color: var(--foreground);
+  font-size: 11.5px;
+  line-height: 1.15;
+  font-weight: 720;
+}
+
+.funding-bar,
+.funding-detail-bar {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.funding-bar__top,
+.funding-detail-bar__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 650;
+}
+
+.funding-bar__top span,
+.funding-detail-bar__head span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-bar__top strong,
+.funding-detail-bar__head strong {
+  flex: 0 0 auto;
+  color: var(--foreground);
+  font-size: 10.5px;
+  line-height: 1.15;
+  font-weight: 740;
+  font-variant-numeric: tabular-nums;
+}
+
+.funding-bar__rail {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.funding-detail-bar .funding-bar__rail {
+  height: 6px;
+}
+
+.funding-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--muted-foreground) 58%, transparent);
+}
+
+.funding-bar[data-tone="profit"] .funding-bar__fill,
+.funding-detail-bar[data-tone="profit"] .funding-bar__fill {
+  background: var(--profit);
+}
+
+.funding-bar[data-tone="warning"] .funding-bar__fill,
+.funding-detail-bar[data-tone="warning"] .funding-bar__fill {
+  background: var(--risk);
+}
+
+.funding-bar[data-tone="risk"] .funding-bar__fill,
+.funding-detail-bar[data-tone="risk"] .funding-bar__fill {
+  background: var(--loss);
+}
+
+.funding-detail-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.funding-detail-bar {
+  gap: 6px;
+}
+
+.funding-detail-bar__head {
+  font-size: 11px;
+}
+
+.funding-detail-bar__head strong {
+  font-size: 12px;
+}
+
+.funding-detail-bar__head .kmfx-ui-pnl {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.funding-detail-bar__meta {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 540;
 }
 
 .funding-detail-panel {
@@ -4152,77 +4325,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .funding-mini-rules {
   display: grid;
   gap: 6px;
-}
-
-.funding-mini-rule {
-  display: grid;
-  grid-template-columns: minmax(92px, 0.85fr) minmax(96px, 1fr) minmax(0, 1.45fr);
-  gap: 8px;
-  align-items: baseline;
-  min-width: 0;
-  padding: 6px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-0) 48%, transparent);
-}
-
-.funding-mini-rule:last-child {
-  border-bottom: 0;
-}
-
-.funding-mini-rule span {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  line-height: 1.2;
-  font-weight: 680;
-}
-
-.funding-mini-rule strong {
-  color: var(--foreground);
-  font-size: 12.5px;
-  line-height: 1.2;
-  font-weight: 730;
-  font-variant-numeric: tabular-nums;
-}
-
-.funding-mini-rule small {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 540;
-}
-
-.funding-mini-rule[data-tone="profit"] strong {
-  color: var(--profit);
-}
-
-.funding-mini-rule[data-tone="warning"] strong {
-  color: var(--risk);
-}
-
-.funding-mini-rule[data-tone="risk"] strong {
-  color: var(--loss);
-}
-
-.funding-progress-rail {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-}
-
-.funding-progress-rail__fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--profit);
-}
-
-.funding-progress-rail__fill.warn {
-  background: var(--risk);
-}
-
-.funding-progress-rail__fill.danger {
-  background: var(--loss);
 }
 
 .funding-review-list {
@@ -4368,10 +4470,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     grid-template-columns: 1fr;
   }
 
-  .funding-mini-rule {
-    grid-template-columns: 1fr;
-    gap: 3px;
-  }
 }
 
 .capital-data-note,
