@@ -3,29 +3,33 @@ import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-202604
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 
-const INSTRUMENTS = [
-  { id: "forex", label: "Forex", symbols: ["EURUSD", "GBPUSD", "USDJPY"] },
-  { id: "nas100", label: "NAS100", symbols: ["NAS100"] },
-  { id: "sp500", label: "S&P500", symbols: ["US500"] },
-  { id: "gold", label: "Oro", symbols: ["XAUUSD"] }
+const QUICK_INSTRUMENTS = [
+  { symbol: "EURUSD", label: "EURUSD" },
+  { symbol: "GBPUSD", label: "GBPUSD" },
+  { symbol: "XAUUSD", label: "XAUUSD" },
+  { symbol: "NAS100", label: "NAS100" },
+  { symbol: "US30", label: "US30" },
+  { symbol: "US500", label: "S&P500" }
 ];
 
-const BROKERS = {
-  FTMO: { pointValue: 1, contractSize: 1, note: "Perfil estándar para índices." },
-  FundingPips: { pointValue: 1, contractSize: 1, note: "Sizing conservador y microajustes." },
-  Orion: { pointValue: 1, contractSize: 1, note: "Contrato simulado para cuenta principal." },
-  "Darwinex Zero": { pointValue: 1, contractSize: 1, note: "Referencia DMA / FX profesional." },
-  "Wall Street": { pointValue: 1, contractSize: 1, note: "Perfil de índice con punto entero." },
-  "IC Markets": { pointValue: 1, contractSize: 100000, note: "Broker de referencia para FX spot." }
+const CALCULATION_PROFILES = {
+  Manual: { pointValue: 1, contractSize: 1, note: "Perfil manual. Verifica valor por pip/punto antes de operar." },
+  FTMO: { pointValue: 1, contractSize: 1, note: "Preset operativo editable para cuentas tipo challenge." },
+  FundingPips: { pointValue: 1, contractSize: 1, note: "Preset operativo editable para cuentas tipo challenge." },
+  Orion: { pointValue: 1, contractSize: 1, note: "Preset operativo editable para cuenta principal." },
+  "Darwinex Zero": { pointValue: 1, contractSize: 1, note: "Preset operativo editable para referencia profesional." },
+  "Wall Street": { pointValue: 1, contractSize: 1, note: "Preset operativo editable para índices." },
+  "IC Markets": { pointValue: 1, contractSize: 1, note: "Preset operativo editable para FX/CFD." }
 };
 
 const SYMBOL_SPECS = {
-  EURUSD: { pipValue: 10, pipMultiplier: 10000, lotUnit: 100000, decimals: 4, type: "Forex" },
-  GBPUSD: { pipValue: 10, pipMultiplier: 10000, lotUnit: 100000, decimals: 4, type: "Forex" },
-  USDJPY: { pipValue: 9.1, pipMultiplier: 100, lotUnit: 100000, decimals: 3, type: "Forex" },
-  NAS100: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice" },
-  US500: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice" },
-  XAUUSD: { pipValue: 10, pipMultiplier: 10, lotUnit: 100, decimals: 2, type: "Metal" }
+  EURUSD: { pipValue: 10, pipMultiplier: 10000, lotUnit: 100000, decimals: 4, type: "Forex", instrumentId: "forex", unitLabel: "pips" },
+  GBPUSD: { pipValue: 10, pipMultiplier: 10000, lotUnit: 100000, decimals: 4, type: "Forex", instrumentId: "forex", unitLabel: "pips" },
+  USDJPY: { pipValue: 9.1, pipMultiplier: 100, lotUnit: 100000, decimals: 3, type: "Forex", instrumentId: "forex", unitLabel: "pips" },
+  XAUUSD: { pipValue: 10, pipMultiplier: 10, lotUnit: 100, decimals: 2, type: "Metal", instrumentId: "gold", unitLabel: "puntos" },
+  NAS100: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice", instrumentId: "indices", unitLabel: "puntos" },
+  US30: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice", instrumentId: "indices", unitLabel: "puntos" },
+  US500: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice", instrumentId: "indices", unitLabel: "puntos" }
 };
 
 const TOOL_CARDS = [
@@ -74,18 +78,50 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toOptionalNumber(value, fallback = 0) {
+  if (value === "" || value === null || typeof value === "undefined") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function normalizeSymbol(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function inferInstrumentId(symbol) {
+  return SYMBOL_SPECS[normalizeSymbol(symbol)]?.instrumentId || "custom";
+}
+
 function ensureCalculatorState(calc = {}, currentModel) {
+  const symbol = calc.symbol || "EURUSD";
   return {
-    instrument: calc.instrument || "forex",
+    instrument: calc.instrument || inferInstrumentId(symbol),
     broker: calc.broker || "FTMO",
-    symbol: calc.symbol || "EURUSD",
+    symbol,
+    slMode: calc.slMode || "distance",
     accountSize: calc.accountSize || currentModel?.account.balance || "",
     riskPct: calc.riskPct ?? 0.5,
     stopPips: calc.stopPips ?? 15,
     entry: calc.entry ?? 1.0842,
     stop: calc.stop ?? 1.0827,
     target: calc.target ?? 1.0878,
-    rrPreset: calc.rrPreset || "1:2"
+    rrPreset: calc.rrPreset || "1:2",
+    instrumentType: calc.instrumentType || "",
+    pipValuePerLot: calc.pipValuePerLot ?? "",
+    pipMultiplier: calc.pipMultiplier ?? "",
+    lotUnit: calc.lotUnit ?? "",
+    unitLabel: calc.unitLabel || "",
+    quoteCurrency: calc.quoteCurrency || "USD"
   };
 }
 
@@ -99,23 +135,56 @@ function getCalculatorRiskAdvice(currentModel) {
   }
 }
 
+function resolveInstrumentSpec(calc) {
+  const symbolKey = normalizeSymbol(calc.symbol);
+  const presetSpec = SYMBOL_SPECS[symbolKey];
+  const type = calc.instrumentType || presetSpec?.type || "Personalizado";
+  const unitLabel = calc.unitLabel || presetSpec?.unitLabel || unitLabelForType(type);
+  const spec = {
+    pipValue: toOptionalNumber(calc.pipValuePerLot, presetSpec?.pipValue ?? 1),
+    pipMultiplier: toOptionalNumber(calc.pipMultiplier, presetSpec?.pipMultiplier ?? 1),
+    lotUnit: toOptionalNumber(calc.lotUnit, presetSpec?.lotUnit ?? 1),
+    decimals: presetSpec?.decimals ?? (type === "Forex" ? 4 : 2),
+    type,
+    unitLabel,
+    source: presetSpec ? "preset" : "custom"
+  };
+  return spec;
+}
+
+function unitLabelForType(type) {
+  if (type === "Forex") return "pips";
+  if (type === "Índice" || type === "Metal") return "puntos";
+  return "pips/puntos";
+}
+
+function instrumentProfileCopy(spec) {
+  if (spec.source === "custom") return "Perfil personalizado. Verifica valor por punto.";
+  if (spec.type === "Forex") return "Perfil estándar Forex.";
+  if (spec.type === "Índice") return "Perfil estándar para índices.";
+  if (spec.type === "Metal") return "Perfil estándar para metales.";
+  return "Perfil editable. Verifica las especificaciones del instrumento.";
+}
+
 function calculateModel(state) {
   const currentModel = selectCurrentModel(state);
   const calc = ensureCalculatorState(state.workspace.calculator, currentModel);
   const riskAdvice = getCalculatorRiskAdvice(currentModel);
-  const spec = SYMBOL_SPECS[calc.symbol] || SYMBOL_SPECS.EURUSD;
-  const broker = BROKERS[calc.broker] || BROKERS.FTMO;
+  const spec = resolveInstrumentSpec(calc);
+  const profile = CALCULATION_PROFILES[calc.broker] || CALCULATION_PROFILES.Manual;
 
   const accountSize = toNumber(calc.accountSize, currentModel?.account.balance || 0);
   const riskPct = toNumber(calc.riskPct, 0.5);
   const entry = toNumber(calc.entry, 0);
   const stop = toNumber(calc.stop, 0);
-  const stopPips = Math.max(toNumber(calc.stopPips, Math.abs(entry - stop) * spec.pipMultiplier), 0.1);
+  const priceStopPips = Math.abs(entry - stop) * spec.pipMultiplier;
+  const directStopPips = toNumber(calc.stopPips, priceStopPips || 15);
+  const stopPips = Math.max(calc.slMode === "price" ? priceStopPips || directStopPips : directStopPips, 0.1);
   const riskUsd = accountSize * (riskPct / 100);
-  const pipValue = spec.pipValue * broker.pointValue;
+  const pipValue = spec.pipValue * profile.pointValue;
   const rawLots = riskUsd / (stopPips * pipValue || 1);
   const lotSize = Math.max(0, rawLots);
-  const roundedLots = roundLotSize(calc.instrument, lotSize);
+  const roundedLots = roundLotSize(spec.type, lotSize);
   const realRiskUsd = roundedLots * stopPips * pipValue;
   const realRiskPct = accountSize ? (realRiskUsd / accountSize) * 100 : 0;
   const rr = rrPresetValue(calc.rrPreset);
@@ -124,18 +193,19 @@ function calculateModel(state) {
   const units = roundedLots * spec.lotUnit;
   const exposureTone = realRiskPct <= 1 ? "green" : realRiskPct <= 2 ? "gold" : "red";
   const stopDistance = stopPips / spec.pipMultiplier;
-  const target = calc.instrument === "forex" || calc.symbol === "XAUUSD"
-    ? entry + (entry >= stop ? stopDistance * rr : -stopDistance * rr)
-    : entry + (entry >= stop ? tpPips : -tpPips);
+  const target = entry
+    ? entry + (entry >= stop || !stop ? stopDistance * rr : -stopDistance * rr)
+    : null;
 
   return {
     calc,
     riskAdvice,
     spec,
-    broker,
+    profile,
     accountSize,
     riskPct,
     stopPips,
+    priceStopPips,
     pipValue,
     riskUsd,
     lotSize,
@@ -147,16 +217,24 @@ function calculateModel(state) {
     tpUsd,
     units,
     exposureTone,
-    target: roundPrice(target, spec.decimals)
+    target: target === null ? null : roundPrice(target, spec.decimals),
+    profileCopy: instrumentProfileCopy(spec)
   };
 }
 
 function toolCardMarkup(tool) {
+  const className = [
+    "tools-card",
+    tool.id === "position" ? "is-active" : "",
+    tool.active && tool.id !== "position" ? "is-included" : "",
+    !tool.active ? "is-disabled" : ""
+  ].filter(Boolean).join(" ");
+  const tone = tool.id === "position" ? "ok" : tool.active ? "neutral" : "neutral";
   return `
-    <article class="tools-card ${tool.active ? "is-active" : "is-disabled"}" aria-current="${tool.id === "position" ? "true" : "false"}">
+    <article class="${className}" aria-current="${tool.id === "position" ? "true" : "false"}">
       <div class="tools-card__top">
         <strong>${tool.title}</strong>
-        ${badgeMarkup({ label: tool.status, tone: tool.active ? "ok" : "neutral" }, "ui-badge--compact")}
+        ${badgeMarkup({ label: tool.status, tone }, "ui-badge--compact")}
       </div>
       <span>${tool.copy}</span>
     </article>
@@ -201,7 +279,7 @@ function riskAdviceMarkup(model, adviceTone) {
         <small>${deltaCopy}</small>
       </div>
     </div>
-    <button class="btn-secondary btn-inline" type="button" data-calc-apply-risk>Aplicar sugerencia</button>
+    <button class="btn-secondary btn-inline calculator-advice-action" type="button" data-calc-apply-risk>Aplicar riesgo sugerido</button>
   `;
 }
 
@@ -210,6 +288,29 @@ export function initCalculator(store) {
   if (!root) return;
 
   root.addEventListener("input", (event) => {
+    const field = event.target.closest("[data-calc-field]");
+    if (!field) return;
+    const key = field.dataset.calcField;
+    store.setState((state) => ({
+      ...state,
+      workspace: {
+        ...state.workspace,
+        calculator: (() => {
+          const current = ensureCalculatorState(state.workspace.calculator, selectCurrentModel(state));
+          const next = {
+            ...current,
+            [key]: field.value
+          };
+          if (key === "symbol") {
+            next.instrument = inferInstrumentId(field.value);
+          }
+          return next;
+        })()
+      }
+    }));
+  });
+
+  root.addEventListener("change", (event) => {
     const field = event.target.closest("[data-calc-field]");
     if (!field) return;
     const key = field.dataset.calcField;
@@ -226,20 +327,24 @@ export function initCalculator(store) {
   });
 
   root.addEventListener("click", (event) => {
-    const instrument = event.target.closest("[data-calc-instrument]");
+    const symbolPreset = event.target.closest("[data-calc-symbol]");
     const preset = event.target.closest("[data-calc-preset]");
     const applyRisk = event.target.closest("[data-calc-apply-risk]");
-    if (instrument) {
-      const nextInstrument = instrument.dataset.calcInstrument;
-      const firstSymbol = INSTRUMENTS.find((item) => item.id === nextInstrument)?.symbols?.[0] || "EURUSD";
+    if (symbolPreset) {
+      const nextSymbol = symbolPreset.dataset.calcSymbol;
       store.setState((state) => ({
         ...state,
         workspace: {
           ...state.workspace,
           calculator: {
             ...ensureCalculatorState(state.workspace.calculator, selectCurrentModel(state)),
-            instrument: nextInstrument,
-            symbol: firstSymbol
+            instrument: inferInstrumentId(nextSymbol),
+            symbol: nextSymbol,
+            instrumentType: "",
+            pipValuePerLot: "",
+            pipMultiplier: "",
+            lotUnit: "",
+            unitLabel: ""
           }
         }
       }));
@@ -247,13 +352,14 @@ export function initCalculator(store) {
     if (preset) {
       const kind = preset.dataset.calcPreset;
       const value = preset.dataset.calcValue;
+      const nextValue = kind === "rrPreset" || kind === "slMode" ? value : Number(value);
       store.setState((state) => ({
         ...state,
         workspace: {
           ...state.workspace,
           calculator: {
             ...ensureCalculatorState(state.workspace.calculator, selectCurrentModel(state)),
-            [kind]: kind === "rrPreset" ? value : Number(value)
+            [kind]: nextValue
           }
         }
       }));
@@ -292,7 +398,11 @@ export function renderCalculator(root, state) {
     sourceUsed: "workspace_risk_tool",
   });
   const calc = model.calc;
-  const instrumentSymbols = INSTRUMENTS.find((item) => item.id === calc.instrument)?.symbols || [];
+  const symbolKey = normalizeSymbol(calc.symbol);
+  const unitLabel = model.spec.unitLabel || "pips/puntos";
+  const targetCopy = model.target === null ? "Opcional" : String(model.target);
+  const stopModeLabel = calc.slMode === "price" ? "SL por precio" : "SL por distancia";
+  const specSourceLabel = model.spec.source === "preset" ? "Preset editable" : "Instrumento custom";
   const adviceTone = model.riskAdvice?.risk_state === "LOCKED" || model.riskAdvice?.risk_state === "DANGER"
     ? "error"
     : model.riskAdvice?.risk_state === "CAUTION"
@@ -320,7 +430,7 @@ export function renderCalculator(root, state) {
           <div class="calculator-result-head">
             <div>
               <div class="tl-section-title">Calculadora de posición</div>
-              <div class="tl-section-sub">Sizing activo para ${calc.symbol} con ${calc.broker}.</div>
+              <div class="tl-section-sub">Sizing activo para ${escapeHtml(calc.symbol)} · ${stopModeLabel} · ${escapeHtml(calc.broker)}.</div>
             </div>
             ${badgeMarkup({ label: "Activa", tone: "ok" }, "ui-badge--compact")}
           </div>
@@ -333,8 +443,8 @@ export function renderCalculator(root, state) {
 
           <div class="calculator-metric-grid">
             ${calculatorMetricMarkup("Riesgo $", formatCurrency(model.realRiskUsd), `${model.riskPct.toFixed(2)}% configurado`)}
-            ${calculatorMetricMarkup("R:R", `1:${model.rr}`, `${model.tpPips.toFixed(1)} pips TP`)}
-            ${calculatorMetricMarkup("Resultado TP", formatCurrency(model.tpUsd), `Precio TP ${model.target}`)}
+            ${calculatorMetricMarkup("R:R", `1:${model.rr}`, `${model.tpPips.toFixed(1)} ${unitLabel} TP`)}
+            ${calculatorMetricMarkup("Resultado TP", formatCurrency(model.tpUsd), `Precio TP ${targetCopy}`)}
             ${calculatorMetricMarkup("Exposición", `${model.realRiskPct.toFixed(2)}%`, `${Math.round(model.units).toLocaleString("es-ES")} unidades`)}
           </div>
 
@@ -365,26 +475,26 @@ export function renderCalculator(root, state) {
           <div class="tl-section-header">
             <div>
               <div class="tl-section-title">Configuración del trade</div>
-              <div class="tl-section-sub">Ajusta instrumento, riesgo, stop y R:R sin cambiar el motor de cálculo.</div>
+              <div class="tl-section-sub">Ajusta instrumento, perfil, riesgo, stop y R:R sin cambiar la fórmula base.</div>
             </div>
           </div>
 
           <div class="calc-chip-group">
-            ${INSTRUMENTS.map((item) => `<button class="calc-chip ${calc.instrument === item.id ? "active" : ""}" type="button" data-calc-instrument="${item.id}">${item.label}</button>`).join("")}
+            ${QUICK_INSTRUMENTS.map((item) => `<button class="calc-chip ${symbolKey === item.symbol ? "active" : ""}" type="button" data-calc-symbol="${item.symbol}">${item.label}</button>`).join("")}
           </div>
 
           <div class="form-grid-clean calc-form-grid calculator-form-grid">
             <label class="form-stack">
-              <span>Broker</span>
+              <span>Perfil de cálculo</span>
               <select data-calc-field="broker">
-                ${Object.keys(BROKERS).map((broker) => `<option value="${broker}" ${calc.broker === broker ? "selected" : ""}>${broker}</option>`).join("")}
+                ${Object.keys(CALCULATION_PROFILES).map((profile) => `<option value="${profile}" ${calc.broker === profile ? "selected" : ""}>${profile}</option>`).join("")}
               </select>
+              <small>Preset editable, no verdad absoluta del broker.</small>
             </label>
             <label class="form-stack">
-              <span>Par / instrumento</span>
-              <select data-calc-field="symbol">
-                ${instrumentSymbols.map((symbol) => `<option value="${symbol}" ${calc.symbol === symbol ? "selected" : ""}>${symbol}</option>`).join("")}
-              </select>
+              <span>Instrumento</span>
+              <input type="text" data-calc-field="symbol" value="${escapeHtml(calc.symbol)}" placeholder="EURJPY, GER40, BTCUSD, US100.cash">
+              <small>Escribe cualquier símbolo y valida sus supuestos.</small>
             </label>
             <label class="form-stack"><span>Capital ($)</span><input type="number" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}"></label>
             <label class="form-stack">
@@ -394,9 +504,22 @@ export function renderCalculator(root, state) {
                 ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${Number(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
               </div>
             </label>
-            <label class="form-stack"><span>Stop Loss</span><input type="number" step="0.1" data-calc-field="stopPips" value="${calc.stopPips}"></label>
-            <label class="form-stack"><span>Precio entrada</span><input type="number" step="0.0001" data-calc-field="entry" value="${calc.entry}"></label>
-            <label class="form-stack"><span>Precio SL</span><input type="number" step="0.0001" data-calc-field="stop" value="${calc.stop}"></label>
+            <div class="form-stack calculator-mode-field">
+              <span>Modo de Stop Loss</span>
+              <div class="calc-inline-presets">
+                <button class="calc-pill ${calc.slMode === "distance" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="distance">SL por distancia</button>
+                <button class="calc-pill ${calc.slMode === "price" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="price">SL por precio</button>
+              </div>
+            </div>
+            <label class="form-stack">
+              <span>Distancia SL (${unitLabel})</span>
+              <input type="number" step="0.1" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" ${calc.slMode === "price" ? "readonly" : ""}>
+              <small>${calc.slMode === "price" ? "Calculado desde entrada y SL." : "Puedes calcular lotaje solo con esta distancia."}</small>
+            </label>
+            <div class="calculator-price-fields ${calc.slMode === "price" ? "is-visible" : ""}">
+              <label class="form-stack"><span>Precio entrada</span><input type="number" step="0.0001" data-calc-field="entry" value="${calc.entry}"></label>
+              <label class="form-stack"><span>Precio SL</span><input type="number" step="0.0001" data-calc-field="stop" value="${calc.stop}"></label>
+            </div>
             <label class="form-stack">
               <span>R:R</span>
               <div class="calc-inline-presets">
@@ -410,24 +533,52 @@ export function renderCalculator(root, state) {
           <div class="tl-section-header">
             <div>
               <div class="tl-section-title">Contexto / especificación</div>
-              <div class="tl-section-sub">Valores del instrumento usados por la calculadora actual.</div>
+              <div class="tl-section-sub">Supuestos editables usados para convertir distancia SL en lotaje.</div>
             </div>
+            ${badgeMarkup({ label: specSourceLabel, tone: "neutral" }, "ui-badge--compact")}
           </div>
-          <div class="calculator-spec-list">
-            ${calculatorMetricMarkup("Instrumento", calc.symbol, model.spec.type)}
-            ${calculatorMetricMarkup("Pip value", formatCurrency(model.pipValue), `${model.spec.pipMultiplier} multiplicador`)}
-            ${calculatorMetricMarkup("Lote base", model.spec.lotUnit.toLocaleString("es-ES"), calc.broker)}
-            ${calculatorMetricMarkup("Precio TP", String(model.target), `${model.tpPips.toFixed(1)} pips`)}
+          <div class="calculator-spec-note">
+            Los valores de contrato/pip son editables. Verifica las especificaciones de tu broker antes de ejecutar.
           </div>
-          <div class="tl-section-sub">${model.broker.note}</div>
+          <div class="form-grid-clean calc-form-grid calculator-spec-form">
+            <label class="form-stack">
+              <span>Tipo de instrumento</span>
+              <select data-calc-field="instrumentType">
+                ${["Forex", "Índice", "Metal", "Cripto", "Personalizado"].map((type) => `<option value="${type}" ${model.spec.type === type ? "selected" : ""}>${type}</option>`).join("")}
+              </select>
+            </label>
+            <label class="form-stack">
+              <span>Unidad SL</span>
+              <select data-calc-field="unitLabel">
+                ${["pips", "puntos", "pips/puntos"].map((unit) => `<option value="${unit}" ${unitLabel === unit ? "selected" : ""}>${unit}</option>`).join("")}
+              </select>
+            </label>
+            <label class="form-stack">
+              <span>Valor por pip/punto por lote</span>
+              <input type="number" step="0.01" data-calc-field="pipValuePerLot" value="${model.spec.pipValue}">
+            </label>
+            <label class="form-stack">
+              <span>Multiplicador pip/punto</span>
+              <input type="number" step="1" data-calc-field="pipMultiplier" value="${model.spec.pipMultiplier}">
+            </label>
+            <label class="form-stack">
+              <span>Tamaño contrato / lote base</span>
+              <input type="number" step="1" data-calc-field="lotUnit" value="${model.spec.lotUnit}">
+            </label>
+            <label class="form-stack">
+              <span>Precio TP</span>
+              <input type="text" value="${targetCopy}" readonly>
+            </label>
+          </div>
+          <div class="tl-section-sub">${model.profileCopy} ${model.profile.note}</div>
         </article>
       </section>
     </div>
   `;
 }
 
-function roundLotSize(instrument, value) {
-  const precision = instrument === "forex" || instrument === "gold" ? 0.01 : 0.1;
+function roundLotSize(instrumentType, value) {
+  const precision = instrumentType === "Forex" || instrumentType === "Metal" ? 0.01 : 0.1;
   return Math.floor(value / precision) * precision;
 }
 

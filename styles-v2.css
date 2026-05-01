@@ -4773,16 +4773,16 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .tools-hub-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
+  gap: 9px;
 }
 
 .tools-card {
   display: grid;
   align-content: space-between;
-  gap: 10px;
-  min-height: 138px;
+  gap: 9px;
+  min-height: 118px;
   min-width: 0;
-  padding: 14px;
+  padding: 13px;
   border: 1px solid color-mix(in srgb, var(--border-0) 62%, transparent);
   border-radius: calc(var(--radius) + 6px);
   background:
@@ -4797,8 +4797,13 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     color-mix(in srgb, var(--foreground) 1.4%, transparent);
 }
 
+.tools-card.is-included {
+  border-color: color-mix(in srgb, var(--border-0) 72%, transparent);
+  background: color-mix(in srgb, var(--foreground) 0.8%, transparent);
+}
+
 .tools-card.is-disabled {
-  opacity: 0.66;
+  opacity: 0.48;
 }
 
 .tools-card__top {
@@ -4997,6 +5002,55 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   gap: 12px;
 }
 
+.calculator-form-grid,
+.calculator-spec-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.calculator-config-card .form-stack small,
+.calculator-spec-card .form-stack small,
+.calculator-spec-note {
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.35;
+  font-weight: 540;
+}
+
+.calculator-mode-field {
+  align-content: start;
+}
+
+.calculator-price-fields {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calculator-price-fields.is-visible {
+  display: grid;
+}
+
+.calculator-spec-note {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 44%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--foreground) 1%, transparent);
+}
+
+.calculator-advice-action {
+  justify-self: start;
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.calculator-spec-card input[readonly],
+.calculator-config-card input[readonly] {
+  color: var(--muted-foreground);
+  cursor: default;
+}
+
 @media (max-width: 1320px) {
   .tools-hub-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5022,7 +5076,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   .tools-hub-grid,
   .calculator-metric-grid,
   .calculator-spec-list,
-  .calculator-advice-grid {
+  .calculator-advice-grid,
+  .calculator-form-grid,
+  .calculator-spec-form,
+  .calculator-price-fields {
     grid-template-columns: 1fr;
   }
 
