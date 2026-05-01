@@ -61,7 +61,7 @@ En el dashboard, el logo debe funcionar como ancla de confianza, no como decorac
 - Sidebar expandida: simbolo glass transparente PNG, sin nombre.
 - Sidebar colapsada: simbolo glass transparente PNG.
 - Login/auth: simbolo glass con mucho espacio.
-- Favicon/PWA: export cuadrado del simbolo glass.
+- Favicon/PWA: simbolo contenido cuadrado de alto contraste.
 - Loading/splash: icono contenido con pulso azul sutil.
 
 ## No hacer
