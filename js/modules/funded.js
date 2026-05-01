@@ -1,6 +1,6 @@
 import { openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta } from "./status-badges.js?v=build-20260406-213500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 import { isAdminUserId } from "./auth-session.js?v=build-20260406-213500";
 
@@ -199,11 +199,19 @@ function formatCompactAccountSize(value) {
 function fundedChallengeDisplayName(account = {}) {
   const label = String(account.label || account.name || "Challenge");
   const compactSize = formatCompactAccountSize(account.accountSize);
+  let displayLabel = label;
   if (!compactSize) return label;
   const normalizedSize = compactSize.replace(/\s+/g, "");
-  if (new RegExp(`\\b${normalizedSize}\\b`, "i").test(label.replace(/\s+/g, ""))) return label;
-  if (/\b\d+\s*k\b/i.test(label)) return label.replace(/\b\d+\s*k\b/i, compactSize);
-  return label;
+  if (!new RegExp(`\\b${normalizedSize}\\b`, "i").test(label.replace(/\s+/g, "")) && /\b\d+\s*k\b/i.test(label)) {
+    displayLabel = label.replace(/\b\d+\s*k\b/i, compactSize);
+  }
+  const firmPrefix = String(account.propFirm || account.firm || "")
+    .replace(/\s*Funded\s*$/i, "")
+    .trim();
+  if (firmPrefix && /^challenge\b/i.test(displayLabel)) {
+    return `${firmPrefix} ${displayLabel}`;
+  }
+  return displayLabel;
 }
 
 function hasAccountSizeMismatch({ linked = null, accountSize = 0, balance = 0, equity = 0 } = {}) {
@@ -456,17 +464,6 @@ function compareFundedRelevance(a, b) {
   return String(a.label || "").localeCompare(String(b.label || ""));
 }
 
-function fundedProgressLabel(account) {
-  if (account.accountSizeMismatch) return "Revisar tamaño";
-  if (!account.targetUsd) return "Sin objetivo de fase";
-  return `${Math.round(account.targetCompletionPct)}% del objetivo`;
-}
-
-function fundedDisplayStateMeta(account) {
-  const status = fundedChallengeStatus(account);
-  return { label: status.label, tone: status.tone };
-}
-
 function fundedChallengeStatus(account) {
   if (account.accountSizeMismatch) {
     return {
@@ -554,11 +551,18 @@ function tradingDaysStatus(account) {
   return { label: "Pendiente", tone: "warning", remaining: `${remaining} días por completar` };
 }
 
-function objectiveStatusLabel(account) {
-  if (account.accountSizeMismatch) return "Revisar";
-  if (!account.targetUsd) return "Sin objetivo";
-  if (account.targetCompletionPct >= 100) return "Cumplido";
-  return "Pendiente";
+function drawdownStatusLabel(usagePct, limitPct) {
+  if (!Number(limitPct)) return "Sin límite";
+  if (usagePct >= 100) return "Fuera";
+  if (usagePct >= 80) return "Reducido";
+  return "Disponible";
+}
+
+function fundedLinkedAccountShortMeta(account = {}) {
+  if (!account.linked) return "Sin cuenta live";
+  const login = accountLogin(account.linked);
+  const server = accountServer(account.linked);
+  return [login, server].filter(Boolean).join(" · ") || "Cuenta live vinculada";
 }
 
 function isLinkedAccountStale(account) {
@@ -795,198 +799,198 @@ export function renderFunded(root, state) {
 
       ${renderAuthorityNotice(authorityMeta)}
 
-      ${fundedAccounts.length > 1 ? `
-        <div class="funded-account-switch" aria-label="Seleccionar challenge funded">
-          ${rankedFundedAccounts.map((account) => `
-            <button class="funded-account-pill funding-challenge-card ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}">
-              <span class="funding-challenge-card__main">
-                <span class="funding-challenge-card__name">${escapeHtml(fundedChallengeDisplayName(account))}</span>
-                <span class="funding-challenge-card__meta">${escapeHtml(account.propFirm)} · ${escapeHtml(account.phase)}</span>
-              </span>
-              <span class="funding-challenge-card__side">
-                ${badgeMarkup(fundedDisplayStateMeta(account), "ui-badge--compact")}
-                <span class="funding-challenge-card__progress">${account.accountSizeMismatch ? "Revisar config" : account.targetUsd ? `${Math.round(account.targetCompletionPct)}% objetivo` : fundedDisplayStateMeta(account).label}</span>
-              </span>
-            </button>
-          `).join("")}
+      <section class="tl-section-card funding-accounts-panel" aria-label="Cuentas de fondeo">
+        <div class="funding-section-head">
+          <div>
+            <div class="tl-section-title">Cuentas de fondeo</div>
+            <div class="tl-section-sub">Lectura principal por challenge, prioridad y margen.</div>
+          </div>
         </div>
-      ` : ""}
+        <div class="funding-account-table" aria-label="Listado de cuentas de fondeo">
+          <div class="funding-account-table__head" aria-hidden="true">
+            <span>Cuenta</span>
+            <span>Firma</span>
+            <span>Fase</span>
+            <span>Tamaño</span>
+            <span>Equity</span>
+            <span>Resultado</span>
+            <span>Objetivo</span>
+            <span>DD diario</span>
+            <span>DD máximo</span>
+            <span>Estado</span>
+          </div>
+          ${rankedFundedAccounts.map((account) => {
+            const status = fundedChallengeStatus(account);
+            return `
+              <button class="funding-account-row ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}" data-tone="${status.dataTone}">
+                <span class="funding-account-cell funding-account-cell--main">
+                  <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
+                  <small>${escapeHtml(fundedLinkedAccountShortMeta(account))}</small>
+                </span>
+                <span class="funding-account-cell">${escapeHtml(account.propFirm)}</span>
+                <span class="funding-account-cell">${escapeHtml(account.phase)}</span>
+                <span class="funding-account-cell">${formatCurrency(account.accountSize)}</span>
+                <span class="funding-account-cell">${formatCurrency(account.equity)}</span>
+                <span class="funding-account-cell">${fundedResultMarkup(account)}</span>
+                <span class="funding-account-cell">${account.targetUsd ? formatCurrency(account.targetUsd) : "Sin objetivo"}</span>
+                <span class="funding-account-cell" data-tone="${drawdownTone(account.dailyUsagePct, account.dailyLimitPct)}">
+                  ${account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—"}
+                  <small>${drawdownStatusLabel(account.dailyUsagePct, account.dailyLimitPct)}</small>
+                </span>
+                <span class="funding-account-cell" data-tone="${drawdownTone(account.maxUsagePct, account.maxLimitPct)}">
+                  ${account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—"}
+                  <small>${drawdownStatusLabel(account.maxUsagePct, account.maxLimitPct)}</small>
+                </span>
+                <span class="funding-account-cell funding-account-cell--status">
+                  ${badgeMarkup({ label: status.label, tone: status.tone }, "ui-badge--compact")}
+                </span>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </section>
 
-      <article class="tl-section-card funded-hero-card funding-selected-challenge" data-tone="${challengeStatus.dataTone}">
-        <div class="funded-hero-grid">
-          <div class="funded-hero-copy">
-            <div class="funding-selected-challenge__header">
-              <div>
-                <div class="tl-section-title">Challenge seleccionado</div>
-                <div class="funding-selected-challenge__identity">${escapeHtml(fundedChallengeDisplayName(selected))}</div>
-                <div class="funding-selected-challenge__meta">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
-                <div class="funding-selected-challenge__meta">${escapeHtml(`${selected.propFirm} · ${selected.programModel} · ${selected.phase} · ${formatCurrency(selected.accountSize)}`)}</div>
-              </div>
-              ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
-            </div>
+      <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
+        <div class="funding-detail-header">
+          <div>
+            <div class="tl-section-title">Detalle del challenge</div>
+            <div class="funding-detail-title">${escapeHtml(fundedChallengeDisplayName(selected))}</div>
+            <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
+          </div>
+          <div class="funding-detail-actions">
+            ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
+            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
+          </div>
+        </div>
 
-            ${selected.accountSizeMismatch ? `
-              <div class="funded-mismatch-note" role="status">
-                <strong>Revisa el tamaño de cuenta configurado.</strong>
-                <span>El tamaño configurado no coincide con el balance live recibido.</span>
-              </div>
-            ` : ""}
+        ${selected.accountSizeMismatch ? `
+          <div class="funded-mismatch-note" role="status">
+            <strong>Revisa el tamaño de cuenta configurado.</strong>
+            <span>El tamaño configurado no coincide con el balance live recibido.</span>
+          </div>
+        ` : ""}
 
-            <div class="funding-selected-challenge__stats">
-              <div><span>Resultado actual</span><strong>${fundedResultMarkup(selected)}</strong></div>
+        <div class="funding-detail-grid">
+          <div class="funding-detail-block">
+            <div class="funding-detail-kicker">Resultado y objetivo</div>
+            <div class="funding-detail-metrics">
+              <div><span>Resultado</span><strong>${fundedResultMarkup(selected)}</strong></div>
               <div><span>Objetivo</span><strong>${selected.targetUsd ? formatCurrency(selected.targetUsd) : "Sin objetivo"}</strong></div>
               <div><span>Pendiente</span><strong>${selected.accountSizeMismatch ? "Revisar config" : selected.targetUsd ? formatCurrency(selected.remainingUsd) : "No aplica"}</strong></div>
               <div><span>Equity</span><strong>${formatCurrency(selected.equity)}</strong></div>
             </div>
+            <div class="funding-progress-rail" aria-hidden="true">
+              <div class="funding-progress-rail__fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? clamp(selected.targetCompletionPct) : 0}%"></div>
+            </div>
           </div>
-
-          <details class="funded-hero-config">
-            <summary class="funded-config-summary">
-              <span>
-                <strong>Configuración</strong>
-                <small>Firma, fase y tamaño</small>
-              </span>
-            </summary>
-            <div class="funded-config-grid">
-              <label class="form-stack">
-                <span>Firma</span>
-                <div class="funded-select-wrap">
-                  <select data-funded-field="propFirm" data-funded-id="${selected.id}">
-                    ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
-                  </select>
-                  <span class="funded-select-chevron" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </span>
-                </div>
-              </label>
-              <label class="form-stack">
-                <span>Modelo</span>
-                <div class="funded-select-wrap">
-                  <select data-funded-field="programModel" data-funded-id="${selected.id}">
-                    ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
-                  </select>
-                  <span class="funded-select-chevron" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </span>
-                </div>
-              </label>
-              <label class="form-stack">
-                <span>Fase</span>
-                <div class="funded-select-wrap">
-                  <select data-funded-field="phase" data-funded-id="${selected.id}">
-                    ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
-                  </select>
-                  <span class="funded-select-chevron" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </span>
-                </div>
-              </label>
-              <label class="form-stack">
-                <span>Tamaño de cuenta</span>
-                <div class="funded-size-wrap">
-                  <span class="funded-size-prefix">${accountCurrencySymbol}</span>
-                  <input class="funded-size-input" type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
-                </div>
-              </label>
+          <div class="funding-detail-block">
+            <div class="funding-detail-kicker">Límites</div>
+            <div class="funding-mini-rules">
+              <div class="funding-mini-rule" data-tone="${drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct)}">
+                <span>DD diario</span>
+                <strong>${selected.dailyLimitPct ? `${Math.round(selected.dailyUsagePct)}% usado` : "Sin límite"}</strong>
+                <small>Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)} · límite ${formatRuleValue(selected.dailyLimitPct)}</small>
+              </div>
+              <div class="funding-mini-rule" data-tone="${drawdownTone(selected.maxUsagePct, selected.maxLimitPct)}">
+                <span>DD máximo</span>
+                <strong>${selected.maxLimitPct ? `${Math.round(selected.maxUsagePct)}% usado` : "Sin límite"}</strong>
+                <small>Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)} · límite ${formatRuleValue(selected.maxLimitPct)}</small>
+              </div>
+              <div class="funding-mini-rule" data-tone="${daysStatus.tone}">
+                <span>Días operados</span>
+                <strong>${selected.requiredTradingDays ? `${selected.daysCompleted}/${selected.requiredTradingDays}` : selected.daysCompleted}</strong>
+                <small>${escapeHtml(daysStatus.label)}</small>
+              </div>
             </div>
-            <div class="goal-card-sub funded-preset-note">
-              <svg class="funded-preset-note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"></circle>
-                <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
-                <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
-              </svg>
-              <span>${ruleNote(selected)}</span>
-            </div>
-            <div class="funded-config-actions">
-              <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
-            </div>
-          </details>
+          </div>
         </div>
       </article>
 
-      <section class="funding-challenge-board" aria-label="Progreso y revisión del challenge">
-        <article class="tl-section-card funding-limits-panel">
-          <div class="funding-section-head">
-            <div>
-              <div class="tl-section-title">Progreso y límites</div>
-              <div class="tl-section-sub">Reglas principales de la fase, con margen restante visible.</div>
-            </div>
+      <article class="tl-section-card funding-review-panel">
+        <div class="funding-section-head">
+          <div>
+            <div class="tl-section-title">Revisión</div>
+            <div class="tl-section-sub">Máximo tres señales para revisar antes de actuar.</div>
           </div>
-          <div class="funding-rules-table" role="table" aria-label="Progreso y límites del challenge">
-            <div class="funding-rules-table__head" role="row">
-              <span>Regla</span>
-              <span>Actual</span>
-              <span>Límite</span>
-              <span>Margen</span>
-              <span>Estado</span>
-            </div>
-            <div class="funding-rule-row" data-tone="${selected.accountSizeMismatch ? "warning" : selected.targetCompletionPct >= 100 ? "profit" : selected.currentProfitUsd < 0 ? "warning" : "neutral"}" role="row">
-              <span class="funding-rule-row__name">Objetivo</span>
-              <span>${selected.accountSizeMismatch ? "Revisar" : pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
-              <span>${selected.targetUsd ? formatCurrency(selected.targetUsd) : "Sin objetivo"}</span>
-              <span>${selected.accountSizeMismatch ? "Config" : selected.targetUsd ? formatCurrency(selected.remainingUsd) : "—"}</span>
-              <span>${objectiveStatusLabel(selected)}</span>
-              <div class="funding-progress-rail" aria-hidden="true">
-                <div class="funding-progress-rail__fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? clamp(selected.targetCompletionPct) : 0}%"></div>
+        </div>
+        <div class="funding-review-list">
+          ${visibleReviewAlerts.map((alert) => `
+            <div class="funding-review-row" data-tone="${escapeHtml(alert.tone)}">
+              <span class="funding-review-row__dot" aria-hidden="true"></span>
+              <div>
+                <strong>${escapeHtml(alert.title)}</strong>
+                <span>${escapeHtml(alert.detail)}</span>
               </div>
             </div>
-            <div class="funding-rule-row" data-tone="${drawdownTone(selected.dailyUsagePct, selected.dailyLimitPct)}" role="row">
-              <span class="funding-rule-row__name">DD diario</span>
-              <span>${Math.round(selected.dailyUsagePct)}% usado</span>
-              <span>${formatRuleValue(selected.dailyLimitPct)}</span>
-              <span>${dailyMargin == null ? "—" : formatPercent(dailyMargin)}</span>
-              <span>${selected.dailyUsagePct >= 100 ? "Fuera" : selected.dailyUsagePct >= 80 ? "Reducido" : "Disponible"}</span>
-              <div class="funding-progress-rail" aria-hidden="true">
-                <div class="funding-progress-rail__fill ${progressFillClass(selected.dailyUsagePct)}" style="width:${clamp(selected.dailyUsagePct)}%"></div>
-              </div>
-            </div>
-            <div class="funding-rule-row" data-tone="${drawdownTone(selected.maxUsagePct, selected.maxLimitPct)}" role="row">
-              <span class="funding-rule-row__name">DD máximo</span>
-              <span>${Math.round(selected.maxUsagePct)}% usado</span>
-              <span>${formatRuleValue(selected.maxLimitPct)}</span>
-              <span>${maxMargin == null ? "—" : formatPercent(maxMargin)}</span>
-              <span>${selected.maxUsagePct >= 100 ? "Fuera" : selected.maxUsagePct >= 80 ? "Reducido" : "Disponible"}</span>
-              <div class="funding-progress-rail" aria-hidden="true">
-                <div class="funding-progress-rail__fill ${progressFillClass(selected.maxUsagePct)}" style="width:${clamp(selected.maxUsagePct)}%"></div>
-              </div>
-            </div>
-            <div class="funding-rule-row" data-tone="${daysStatus.tone}" role="row">
-              <span class="funding-rule-row__name">Días operados</span>
-              <span>${selected.daysCompleted}</span>
-              <span>${selected.requiredTradingDays || "Sin mínimo"}</span>
-              <span>—</span>
-              <span>${escapeHtml(daysStatus.label)}</span>
-            </div>
-          </div>
-        </article>
+          `).join("")}
+          ${hiddenReviewAlertCount ? `<div class="funding-review-more">+${hiddenReviewAlertCount} más en seguimiento</div>` : ""}
+        </div>
+      </article>
 
-        <article class="tl-section-card funding-review-panel">
-          <div class="funding-section-head">
-            <div>
-              <div class="tl-section-title">Revisión</div>
-              <div class="tl-section-sub">Señales que requieren una lectura antes de interpretar el challenge.</div>
+      <details class="tl-section-card funding-config-drawer">
+        <summary class="funding-config-drawer__summary">
+          <span>
+            <strong>Editar configuración</strong>
+            <small>Firma, fase y tamaño de cuenta</small>
+          </span>
+        </summary>
+        <div class="funded-config-grid">
+          <label class="form-stack">
+            <span>Firma</span>
+            <div class="funded-select-wrap">
+              <select data-funded-field="propFirm" data-funded-id="${selected.id}">
+                ${Object.keys(PROP_RULES).map((firm) => `<option value="${firm}" ${firm === selected.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
+              </select>
+              <span class="funded-select-chevron" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
             </div>
-          </div>
-          <div class="funding-review-list">
-            ${visibleReviewAlerts.map((alert) => `
-              <div class="funding-review-row" data-tone="${escapeHtml(alert.tone)}">
-                <span class="funding-review-row__dot" aria-hidden="true"></span>
-                <div>
-                  <strong>${escapeHtml(alert.title)}</strong>
-                  <span>${escapeHtml(alert.detail)}</span>
-                </div>
-              </div>
-            `).join("")}
-            ${hiddenReviewAlertCount ? `<div class="funding-review-more">+${hiddenReviewAlertCount} más en seguimiento</div>` : ""}
-          </div>
-        </article>
-      </section>
+          </label>
+          <label class="form-stack">
+            <span>Modelo</span>
+            <div class="funded-select-wrap">
+              <select data-funded-field="programModel" data-funded-id="${selected.id}">
+                ${modelOptions.map((model) => `<option value="${model}" ${model === selected.programModel ? "selected" : ""}>${model}</option>`).join("")}
+              </select>
+              <span class="funded-select-chevron" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </div>
+          </label>
+          <label class="form-stack">
+            <span>Fase</span>
+            <div class="funded-select-wrap">
+              <select data-funded-field="phase" data-funded-id="${selected.id}">
+                ${FUNDED_PHASES.map((phase) => `<option value="${phase}" ${phase === selected.phase ? "selected" : ""}>${phase}</option>`).join("")}
+              </select>
+              <span class="funded-select-chevron" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="#636366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </div>
+          </label>
+          <label class="form-stack">
+            <span>Tamaño de cuenta</span>
+            <div class="funded-size-wrap">
+              <span class="funded-size-prefix">${accountCurrencySymbol}</span>
+              <input class="funded-size-input" type="number" min="0" step="1000" value="${selected.accountSize}" data-funded-field="accountSize" data-funded-id="${selected.id}">
+            </div>
+          </label>
+        </div>
+        <div class="goal-card-sub funded-preset-note">
+          <svg class="funded-preset-note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"></circle>
+            <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+            <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
+          </svg>
+          <span>${ruleNote(selected)}</span>
+        </div>
+      </details>
     </div>
   `;
 }

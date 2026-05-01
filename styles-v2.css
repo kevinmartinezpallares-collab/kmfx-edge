@@ -3766,68 +3766,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 650;
 }
 
-.funded-page-stack .funded-hero-card {
-  gap: 14px;
-}
-
-.funded-page-stack .funded-account-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.funding-challenge-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: auto;
-  min-width: min(280px, 100%);
-  min-height: 62px;
-  padding: 11px 12px;
-  border-radius: var(--radius-card);
-  text-align: left;
-}
-
-.funding-challenge-card__main,
-.funding-challenge-card__side {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.funding-challenge-card__side {
-  justify-items: end;
-}
-
-.funding-challenge-card__name {
-  color: var(--foreground);
-  font-size: 14px;
-  line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.funding-challenge-card__meta,
-.funding-challenge-card__progress {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 520;
-}
-
-.funding-challenge-card__progress {
-  font-variant-numeric: tabular-nums;
-}
-
-.funded-page-stack .funded-hero-grid {
-  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.5fr);
-  gap: 14px;
-}
-
 .funded-page-stack .funded-mismatch-note {
   display: grid;
   gap: 3px;
@@ -3860,68 +3798,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   letter-spacing: -0.025em;
 }
 
-.funded-page-stack .funded-hero-config {
-  align-self: stretch;
-  align-content: start;
-  gap: 8px;
-  padding: 10px;
-  border-radius: var(--radius-card);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2%, transparent), transparent 72%),
-    color-mix(in srgb, var(--card) 90%, transparent);
-}
-
-.funded-hero-config:not([open]) {
-  align-self: start;
-  background: color-mix(in srgb, var(--foreground) 1.5%, transparent);
-}
-
-.funded-config-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-  list-style: none;
-  color: var(--foreground);
-}
-
-.funded-config-summary::-webkit-details-marker {
-  display: none;
-}
-
-.funded-config-summary::after {
-  content: "+";
-  color: var(--muted-foreground);
-  font-size: 16px;
-  line-height: 1;
-  font-weight: 560;
-}
-
-.funded-hero-config[open] .funded-config-summary::after {
-  content: "-";
-}
-
-.funded-config-summary span {
-  display: grid;
-  gap: 2px;
-}
-
-.funded-config-summary strong {
-  color: var(--foreground);
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 720;
-  letter-spacing: 0;
-}
-
-.funded-config-summary small {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  line-height: 1.25;
-  font-weight: 520;
-}
-
 .funded-page-stack .funded-config-grid {
   gap: 8px;
   grid-template-columns: 1fr;
@@ -3945,7 +3821,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   box-shadow: var(--focus-ring);
 }
 
-.funded-page-stack .funded-hero-config .form-stack select,
+.funding-config-drawer .form-stack select,
 .funded-page-stack .funded-size-input {
   min-height: 38px;
   padding-top: 9px;
@@ -3991,20 +3867,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-size: 12.5px;
 }
 
-.funding-selected-challenge {
-  border-color: color-mix(in srgb, var(--border-0) 72%, transparent);
-}
-
-.funding-selected-challenge[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 30%, var(--border-0));
-}
-
-.funding-selected-challenge[data-tone="risk"] {
-  border-color: color-mix(in srgb, var(--loss) 30%, var(--border-0));
-}
-
-.funding-selected-challenge__header,
-.funding-section-head {
+.funding-section-head,
+.funding-detail-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -4012,17 +3876,163 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   min-width: 0;
 }
 
-.funding-selected-challenge__identity {
+.funding-accounts-panel,
+.funding-detail-panel,
+.funding-review-panel,
+.funding-config-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.funding-account-table {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--border-0) 70%, transparent);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--foreground) 1.6%, transparent);
+}
+
+.funding-account-table__head,
+.funding-account-row {
+  display: grid;
+  grid-template-columns:
+    minmax(210px, 1.55fr)
+    minmax(92px, 0.82fr)
+    minmax(86px, 0.72fr)
+    minmax(84px, 0.72fr)
+    minmax(88px, 0.78fr)
+    minmax(92px, 0.82fr)
+    minmax(92px, 0.82fr)
+    minmax(84px, 0.72fr)
+    minmax(84px, 0.72fr)
+    minmax(128px, 0.9fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 1120px;
+  padding: 9px 12px;
+}
+
+.funding-account-table__head {
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--foreground) 2.4%, transparent);
+}
+
+.funding-account-row {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 54%, transparent);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+
+.funding-account-row:hover {
+  background: color-mix(in srgb, var(--foreground) 3.2%, transparent);
+}
+
+.funding-account-row.is-active {
+  background: color-mix(in srgb, var(--equity) 8%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--equity) 72%, transparent);
+}
+
+.funding-account-row[data-tone="warning"].is-active {
+  background: color-mix(in srgb, var(--risk) 7%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--risk) 72%, transparent);
+}
+
+.funding-account-row[data-tone="risk"].is-active {
+  background: color-mix(in srgb, var(--loss) 7%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--loss) 72%, transparent);
+}
+
+.funding-account-cell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.22;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.funding-account-cell small {
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 560;
+}
+
+.funding-account-cell--main strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 730;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-account-cell--main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-account-cell--status {
+  justify-items: start;
+}
+
+.funding-account-cell .kmfx-ui-pnl,
+.funding-detail-metrics .kmfx-ui-pnl {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.funding-account-cell[data-tone="profit"] {
+  color: var(--profit);
+}
+
+.funding-account-cell[data-tone="warning"] {
+  color: var(--risk);
+}
+
+.funding-account-cell[data-tone="risk"] {
+  color: var(--loss);
+}
+
+.funding-detail-panel {
+  border-color: color-mix(in srgb, var(--border-0) 72%, transparent);
+}
+
+.funding-detail-panel[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--risk) 30%, var(--border-0));
+}
+
+.funding-detail-panel[data-tone="risk"] {
+  border-color: color-mix(in srgb, var(--loss) 30%, var(--border-0));
+}
+
+.funding-detail-title {
   margin-top: 4px;
   color: var(--foreground);
-  font-size: 24px;
-  line-height: 1.06;
+  font-size: clamp(18px, 1.28vw, 22px);
+  line-height: 1.08;
   font-weight: 760;
-  letter-spacing: 0;
+  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
 }
 
-.funding-selected-challenge__meta {
+.funding-detail-sub {
   margin-top: 4px;
   color: var(--muted-foreground);
   font-size: 12px;
@@ -4030,111 +4040,119 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 560;
 }
 
-.funding-selected-challenge__stats {
+.funding-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.funding-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.82fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.funding-detail-block {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 58%, transparent);
+}
+
+.funding-detail-kicker {
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.funding-detail-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.funding-selected-challenge__stats > div {
+.funding-detail-metrics > div {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 70%, transparent);
-  border-radius: calc(var(--radius) + 4px);
-  background: color-mix(in srgb, var(--foreground) 2.2%, transparent);
 }
 
-.funding-selected-challenge__stats span {
+.funding-detail-metrics span {
   color: var(--muted-foreground);
   font-size: 10.5px;
   line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-weight: 680;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.funding-selected-challenge__stats strong {
+.funding-detail-metrics strong {
   color: var(--foreground);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.15;
   font-weight: 740;
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
-.funding-challenge-board {
+.funding-mini-rules {
   display: grid;
-  gap: 14px;
+  gap: 6px;
 }
 
-.funding-limits-panel,
-.funding-review-panel {
-  gap: 14px;
-}
-
-.funding-rules-table {
+.funding-mini-rule {
   display: grid;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border-0) 70%, transparent);
-  border-radius: calc(var(--radius) + 4px);
-  background: color-mix(in srgb, var(--foreground) 1.8%, transparent);
+  grid-template-columns: minmax(92px, 0.85fr) minmax(96px, 1fr) minmax(0, 1.45fr);
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-0) 48%, transparent);
 }
 
-.funding-rules-table__head,
-.funding-rule-row {
-  display: grid;
-  grid-template-columns: minmax(130px, 1.1fr) repeat(4, minmax(92px, 1fr));
-  gap: 12px;
-  align-items: center;
-  padding: 9px 12px;
+.funding-mini-rule:last-child {
+  border-bottom: 0;
 }
 
-.funding-rules-table__head {
+.funding-mini-rule span {
   color: var(--muted-foreground);
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: color-mix(in srgb, var(--foreground) 2.4%, transparent);
+  font-weight: 680;
 }
 
-.funding-rule-row {
-  position: relative;
+.funding-mini-rule strong {
   color: var(--foreground);
   font-size: 12.5px;
-  line-height: 1.25;
-  font-weight: 620;
-}
-
-.funding-rule-row + .funding-rule-row {
-  border-top: 1px solid color-mix(in srgb, var(--border-0) 58%, transparent);
-}
-
-.funding-rule-row__name {
-  color: var(--foreground);
+  line-height: 1.2;
   font-weight: 730;
+  font-variant-numeric: tabular-nums;
 }
 
-.funding-rule-row[data-tone="profit"] > span:last-of-type {
+.funding-mini-rule small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 540;
+}
+
+.funding-mini-rule[data-tone="profit"] strong {
   color: var(--profit);
 }
 
-.funding-rule-row[data-tone="warning"] > span:last-of-type {
+.funding-mini-rule[data-tone="warning"] strong {
   color: var(--risk);
 }
 
-.funding-rule-row[data-tone="risk"] > span:last-of-type {
+.funding-mini-rule[data-tone="risk"] strong {
   color: var(--loss);
-}
-
-.funding-rule-row .funding-progress-rail {
-  grid-column: 1 / -1;
-  height: 4px;
-  margin-top: 1px;
 }
 
 .funding-progress-rail {
@@ -4158,6 +4176,66 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-progress-rail__fill.danger {
   background: var(--loss);
+}
+
+.funding-config-drawer {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--foreground) 1.6%, transparent);
+}
+
+.funding-config-drawer:not([open]) {
+  justify-self: start;
+  width: auto;
+}
+
+.funding-config-drawer__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--foreground);
+}
+
+.funding-config-drawer__summary::-webkit-details-marker {
+  display: none;
+}
+
+.funding-config-drawer__summary::after {
+  content: "+";
+  color: var(--muted-foreground);
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 560;
+}
+
+.funding-config-drawer[open] .funding-config-drawer__summary::after {
+  content: "-";
+}
+
+.funding-config-drawer__summary span {
+  display: grid;
+  gap: 2px;
+}
+
+.funding-config-drawer__summary strong {
+  color: var(--foreground);
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 730;
+}
+
+.funding-config-drawer__summary small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 530;
+}
+
+.funding-config-drawer[open] .funded-config-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 12px;
 }
 
 .funding-review-list {
@@ -4226,65 +4304,78 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 @media (max-width: 1280px) {
-  .funding-selected-challenge__stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .funding-account-table__head,
+  .funding-account-row {
+    min-width: 1040px;
+  }
+
+  .funding-detail-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 980px) {
-  .funded-page-stack .funded-hero-grid {
+  .funding-detail-grid {
     grid-template-columns: 1fr;
   }
 
-  .funded-page-stack .funded-config-grid,
-  .funding-selected-challenge__stats {
+  .funding-config-drawer[open] .funded-config-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .funding-rules-table__head,
-  .funding-rule-row {
-    grid-template-columns: minmax(120px, 1fr) repeat(4, minmax(76px, 0.85fr));
-    gap: 10px;
   }
 }
 
 @media (max-width: 640px) {
-  .funded-page-stack .funded-account-switch,
-  .funded-page-stack .funded-config-grid,
-  .funding-selected-challenge__stats {
-    grid-template-columns: 1fr;
+  .funding-account-table {
+    gap: 8px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
   }
 
-  .funding-challenge-card {
-    grid-template-columns: 1fr;
+  .funding-account-table__head {
+    display: none;
   }
 
-  .funding-challenge-card__side {
+  .funding-account-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    padding: 10px 11px;
+    border: 1px solid color-mix(in srgb, var(--border-0) 62%, transparent);
+    border-radius: calc(var(--radius) + 4px);
+    background: color-mix(in srgb, var(--foreground) 1.8%, transparent);
+  }
+
+  .funding-account-cell--main,
+  .funding-account-cell--status {
+    grid-column: 1 / -1;
+  }
+
+  .funding-account-cell--status {
     justify-items: start;
   }
 
-  .funding-selected-challenge__header,
+  .funding-detail-header,
   .funding-section-head {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .funding-rules-table {
-    overflow: visible;
+  .funding-detail-actions {
+    justify-content: flex-start;
   }
 
-  .funding-rules-table__head {
-    display: none;
+  .funding-detail-metrics,
+  .funding-config-drawer[open] .funded-config-grid {
+    grid-template-columns: 1fr;
   }
 
-  .funding-rule-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 10px;
-    padding: 10px 11px;
+  .funding-mini-rule {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 
-  .funding-rule-row__name {
-    grid-column: 1 / -1;
+  .funding-config-drawer:not([open]) {
+    justify-self: stretch;
   }
 }
 
