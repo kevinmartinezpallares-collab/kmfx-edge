@@ -12,6 +12,12 @@ import {
   normalizeFundingPhase,
   resolveFundingRulePreset,
 } from "./funding-rules.js?v=build-20260406-213500";
+import {
+  buildFundingJourneys,
+  fundingJourneyCurrentPhaseLine,
+  fundingJourneyStatusLabel,
+  fundingPhaseStatusLabel,
+} from "./funding-journeys.js?v=build-20260406-213500";
 
 const ORION_FUNDING_LINK = {
   login: "80571774",
@@ -360,6 +366,32 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   };
 }
 
+function attachFundingJourneyContext(fundedAccounts = [], state = {}) {
+  const journeyContext = buildFundingJourneys({
+    fundedAccounts,
+    journeys: state.workspace?.fundingJourneys,
+    phases: state.workspace?.fundingPhases,
+  });
+
+  return fundedAccounts.map((account) => ({
+    ...account,
+    fundingJourney: journeyContext.journeyByFundedId.get(account.id) || null,
+    fundingPhase: journeyContext.phaseByFundedId.get(account.id) || null,
+  }));
+}
+
+function enrichFundedAccounts(state = {}) {
+  const fundedAccounts = (state.workspace?.fundedAccounts || []).map((account) => {
+    const linkContext = resolveFundedAccountLink(account, state);
+    return deriveFundedAccount(account, linkContext.linked, linkContext);
+  });
+  return attachFundingJourneyContext(fundedAccounts, state);
+}
+
+function enrichFundedAccount(state = {}, fundedId = "") {
+  return enrichFundedAccounts(state).find((account) => account.id === fundedId) || null;
+}
+
 function fundedStatusMeta(status) {
   if (status === "DANGER") return { label: "Presión alta", tone: "error" };
   if (status === "WARNING") return { label: "En vigilancia", tone: "warn" };
@@ -543,6 +575,19 @@ function fundedLinkedAccountShortMeta(account = {}) {
   const login = accountLogin(account.linked);
   const server = accountServer(account.linked);
   return [login, server].filter(Boolean).join(" · ") || "Cuenta live vinculada";
+}
+
+function fundingJourneyMetaLine(account = {}) {
+  const line = fundingJourneyCurrentPhaseLine(account.fundingJourney);
+  if (!line) return "";
+  const status = fundingJourneyStatusLabel(account.fundingJourney?.status);
+  return `${line} · ${status}`;
+}
+
+function fundingPhaseMetaLine(account = {}) {
+  const phase = account.fundingPhase;
+  if (!phase) return "";
+  return `${phase.phaseName || phase.phaseId} · ${fundingPhaseStatusLabel(phase.status)}`;
 }
 
 function drawdownCombinedTone(account = {}) {
@@ -799,10 +844,8 @@ export function initFunded(store) {
     const configButton = event.target.closest("[data-funded-action='edit-config']");
     if (configButton) {
       const currentState = store.getState();
-      const account = currentState.workspace.fundedAccounts.find((item) => item.id === configButton.dataset.fundedId);
-      if (!account) return;
-      const linkContext = resolveFundedAccountLink(account, currentState);
-      const enriched = deriveFundedAccount(account, linkContext.linked, linkContext);
+      const enriched = enrichFundedAccount(currentState, configButton.dataset.fundedId);
+      if (!enriched) return;
       const appCurrency = currentState.workspace?.baseCurrency || currentState.preferences?.baseCurrency || "USD";
       const accountCurrency = enriched.linked?.currency || enriched.linked?.model?.account?.currency || appCurrency;
       openFundedConfigModal(store, enriched, currencySymbol(accountCurrency));
@@ -811,22 +854,23 @@ export function initFunded(store) {
 
     const detailButton = event.target.closest("[data-funded-action='view']");
     if (!detailButton) return;
-    const account = store.getState().workspace.fundedAccounts.find((item) => item.id === detailButton.dataset.fundedId);
-    if (!account) return;
-    const linkContext = resolveFundedAccountLink(account, store.getState());
-    const linked = linkContext.linked;
-    const enriched = deriveFundedAccount(account, linked, linkContext);
+    const currentState = store.getState();
+    const enriched = enrichFundedAccount(currentState, detailButton.dataset.fundedId);
+    if (!enriched) return;
+    const linked = enriched.linked;
     const enrichedStatus = fundedStatusMeta(enriched.globalStatus);
-    const adminView = store.getState().auth?.user?.role === "admin";
+    const adminView = currentState.auth?.user?.role === "admin";
 
     openModal({
-      title: `${enriched.propFirm} · ${linked?.name || account.label}`,
+      title: `${enriched.propFirm} · ${linked?.name || enriched.label}`,
       subtitle: "Detalle de seguimiento funding",
       maxWidth: 620,
       content: `
         <div class="info-list compact">
           <div><strong>Cuenta</strong><span>${linked?.name || "Sin vincular"}</span></div>
           <div><strong>Cuenta live</strong><span>${escapeHtml(linkedAccountContextLabel(enriched))}</span></div>
+          <div><strong>Recorrido</strong><span>${escapeHtml(fundingJourneyMetaLine(enriched) || "Recorrido derivado de la cuenta funded")}</span></div>
+          <div><strong>Fase actual</strong><span>${escapeHtml(fundingPhaseMetaLine(enriched) || enriched.phase)}</span></div>
           <div><strong>Firma</strong><span>${enriched.propFirm}</span></div>
           <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
           <div><strong>Fase</strong><span>${enriched.phase}</span></div>
@@ -855,10 +899,7 @@ export function initFunded(store) {
 }
 
 export function renderFunded(root, state) {
-  const fundedAccounts = state.workspace.fundedAccounts.map((account) => {
-    const linkContext = resolveFundedAccountLink(account, state);
-    return deriveFundedAccount(account, linkContext.linked, linkContext);
-  });
+  const fundedAccounts = enrichFundedAccounts(state);
   if (!fundedAccounts.length) {
     root.innerHTML = `
       <div class="funded-page-stack">
@@ -957,7 +998,7 @@ export function renderFunded(root, state) {
                 <span class="funding-challenge-card__head">
                   <span class="funding-challenge-card__identity">
                     <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
-                    <small>${escapeHtml(fundedLinkedAccountShortMeta(account))}</small>
+                    <small>${escapeHtml(fundingJourneyMetaLine(account) || fundedLinkedAccountShortMeta(account))}</small>
                   </span>
                   ${fundingCardStatusMarkup(account)}
                 </span>
@@ -986,6 +1027,7 @@ export function renderFunded(root, state) {
             <div class="tl-section-title">Detalle del challenge</div>
             <div class="funding-detail-title">${escapeHtml(fundedChallengeDisplayName(selected))}</div>
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
+            ${fundingJourneyMetaLine(selected) ? `<div class="funding-detail-sub">${escapeHtml(fundingJourneyMetaLine(selected))}</div>` : ""}
           </div>
           <div class="funding-detail-actions">
             ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
