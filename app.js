@@ -26,6 +26,7 @@ import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260406-21350
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260406-213500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260406-213500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260406-213500";
+import { pageFromLocation } from "./js/modules/route-map.js?v=build-20260406-213500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -181,6 +182,18 @@ function renderActivePage() {
   }
   const renderer = pageRenderers[state.ui.activePage];
   renderer?.(state);
+}
+
+function applyInitialRouteState() {
+  const routedPage = pageFromLocation(window.location);
+  if (!routedPage || routedPage === store.getState().ui.activePage) return;
+  store.setState((state) => ({
+    ...state,
+    ui: {
+      ...state.ui,
+      activePage: routedPage
+    }
+  }));
 }
 
 function openPostTradeTagFromIntent(trade) {
@@ -735,6 +748,7 @@ async function bootstrapApp() {
     }));
   }
 
+  applyInitialRouteState();
   renderActivePage();
   initNavigation(store);
   initAccountsUI(store);

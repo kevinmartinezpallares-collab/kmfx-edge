@@ -5,6 +5,136 @@
       "source": "/kmfx-edge.html",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/analytics",
+      "destination": "/insights",
+      "permanent": true
+    },
+    {
+      "source": "/analisis",
+      "destination": "/insights",
+      "permanent": true
+    },
+    {
+      "source": "/execution",
+      "destination": "/ejecucion",
+      "permanent": true
+    },
+    {
+      "source": "/discipline",
+      "destination": "/ejecucion",
+      "permanent": true
+    },
+    {
+      "source": "/risk",
+      "destination": "/risk-engine",
+      "permanent": true
+    },
+    {
+      "source": "/trades",
+      "destination": "/operaciones",
+      "permanent": true
+    },
+    {
+      "source": "/calendar",
+      "destination": "/calendario",
+      "permanent": true
+    },
+    {
+      "source": "/accounts",
+      "destination": "/cuentas",
+      "permanent": true
+    },
+    {
+      "source": "/connections",
+      "destination": "/cuentas",
+      "permanent": true
+    },
+    {
+      "source": "/tools",
+      "destination": "/herramientas",
+      "permanent": true
+    },
+    {
+      "source": "/calculator",
+      "destination": "/herramientas",
+      "permanent": true
+    },
+    {
+      "source": "/strategies",
+      "destination": "/estrategias",
+      "permanent": true
+    },
+    {
+      "source": "/settings",
+      "destination": "/ajustes",
+      "permanent": true
+    },
+    {
+      "source": "/configuracion",
+      "destination": "/ajustes",
+      "permanent": true
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/capital",
+      "permanent": true
+    },
+    {
+      "source": "/funded",
+      "destination": "/funding",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/calendario",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/operaciones",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/estrategias",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/insights",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cuentas",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/capital",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/funding",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ejecucion",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/risk-engine",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/herramientas",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ajustes",
+      "destination": "/index.html"
     }
   ],
   "headers": [

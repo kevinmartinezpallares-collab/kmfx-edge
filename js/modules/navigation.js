@@ -1,3 +1,10 @@
+import {
+  hasAuthUrlState,
+  isKnownRoutedPage,
+  pageFromLocation,
+  routeForPage
+} from "./route-map.js?v=build-20260406-213500";
+
 const pageTitle = {
   dashboard: "Panel",
   analytics: "Análisis",
@@ -46,6 +53,35 @@ export function initNavigation(store) {
   const analyticsTabs = document.getElementById("analyticsTabs");
   let previousActivePage = store.getState().ui.activePage;
   let pageTransitionTimeout = null;
+  let isApplyingBrowserRoute = false;
+
+  const syncBrowserRoute = (activePage, { replace = false } = {}) => {
+    if (typeof window === "undefined") return;
+    if (isApplyingBrowserRoute || !isKnownRoutedPage(activePage) || hasAuthUrlState(window.location)) return;
+
+    const nextPath = routeForPage(activePage);
+    const currentPath = window.location.pathname.replace(/\/+$/g, "") || "/";
+    if (currentPath === nextPath && !window.location.search && !window.location.hash) return;
+
+    const routeState = { page: activePage };
+    const method = replace || currentPath === "/" ? "replaceState" : "pushState";
+    window.history[method](routeState, document.title, nextPath);
+  };
+
+  const applyBrowserRoute = () => {
+    if (typeof window === "undefined") return;
+    const routedPage = pageFromLocation(window.location);
+    if (!routedPage || routedPage === store.getState().ui.activePage) return;
+    isApplyingBrowserRoute = true;
+    store.setState((state) => ({
+      ...state,
+      ui: {
+        ...state.ui,
+        activePage: routedPage
+      }
+    }));
+    isApplyingBrowserRoute = false;
+  };
 
   const resetPageTransitionClasses = () => {
     pages.forEach((panel) => panel.classList.remove("page-enter", "page-exit"));
@@ -103,6 +139,7 @@ export function initNavigation(store) {
       detail: { activePage, analyticsTab }
     }));
 
+    syncBrowserRoute(activePage, { replace: !pageChanged });
     previousActivePage = activePage;
   };
 
@@ -154,6 +191,7 @@ export function initNavigation(store) {
     if (trigger) trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
 
+  window.addEventListener("popstate", applyBrowserRoute);
   syncNavigation(store.getState());
   store.subscribe(syncNavigation);
 }
