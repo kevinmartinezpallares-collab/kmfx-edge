@@ -3855,6 +3855,38 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   gap: 10px;
 }
 
+.funded-page-stack .funded-mismatch-note {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--risk) 34%, var(--border-0));
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--risk) 10%, transparent);
+  color: var(--foreground);
+}
+
+.funded-page-stack .funded-mismatch-note strong {
+  color: var(--risk);
+  font-size: 12.5px;
+  line-height: 1.25;
+  font-weight: 740;
+}
+
+.funded-page-stack .funded-mismatch-note span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.funded-page-stack .funded-mismatch-value {
+  color: var(--risk);
+  font-size: 0.78em;
+  line-height: 1.1;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+}
+
 .funded-page-stack .funded-hero-config {
   align-self: stretch;
   align-content: start;
@@ -3892,6 +3924,24 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   gap: 10px;
 }
 
+.funded-page-stack .funded-size-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-1);
+  border-radius: var(--control-radius);
+  background: var(--layer-2);
+  color: var(--text-0);
+}
+
+.funded-page-stack .funded-size-wrap:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
 .funded-page-stack .funded-hero-config .form-stack select,
 .funded-page-stack .funded-size-input {
   min-height: 38px;
@@ -3901,12 +3951,29 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funded-page-stack .funded-size-input {
-  padding-left: 44px;
+  width: 100%;
+  min-width: 0;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.funded-page-stack .funded-size-input:focus {
+  border: 0;
+  box-shadow: none;
+  outline: none;
 }
 
 .funded-page-stack .funded-size-prefix {
-  left: 13px;
+  position: static;
+  min-width: max-content;
+  color: var(--muted-foreground);
   font-size: 13px;
+  font-weight: 680;
 }
 
 .funded-page-stack .funded-preset-note {

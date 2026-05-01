@@ -181,6 +181,14 @@ function linkedAccountContextLabel(account = {}) {
   return [broker, login, server].filter(Boolean).join(" · ");
 }
 
+function hasAccountSizeMismatch({ linked = null, accountSize = 0, balance = 0, equity = 0 } = {}) {
+  if (!linked || !accountSize) return false;
+  const liveCapital = Number(equity || balance || 0);
+  if (!Number.isFinite(liveCapital) || liveCapital <= 0) return false;
+  const ratio = accountSize / liveCapital;
+  return ratio >= 3 || ratio <= 0.33;
+}
+
 function updateFundedAccount(store, fundedId, updater) {
   store.setState((state) => ({
     ...state,
@@ -240,6 +248,7 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   const openPnl = Number(linked?.model?.account?.openPnl || 0);
   const currentProfitUsd = balance - accountSize;
   const currentProfitPct = accountSize ? (currentProfitUsd / accountSize) * 100 : 0;
+  const accountSizeMismatch = hasAccountSizeMismatch({ linked, accountSize, balance, equity });
   const targetPct = Number(
     raw.targetPct ?? raw.profitTargetPct ?? preset?.profitTargetPct ?? 0
   ) || 0;
@@ -283,11 +292,18 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   );
 
   const alerts = [];
+  if (accountSizeMismatch) {
+    alerts.push({
+      tone: "warn",
+      title: "Revisa el tamaño de cuenta configurado",
+      detail: "El tamaño configurado no coincide con el balance live recibido.",
+    });
+  }
   if (dailyUsagePct >= 100) alerts.push({ tone: "error", title: "Límite diario superado", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
   else if (dailyUsagePct >= 80) alerts.push({ tone: "warn", title: "Drawdown diario cerca del límite", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
   if (maxUsagePct >= 100) alerts.push({ tone: "error", title: "Límite total superado", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
   else if (maxUsagePct >= 80) alerts.push({ tone: "warn", title: "Drawdown total bajo presión", detail: `Uso ${Math.round(maxUsagePct)}% del límite total.` });
-  if (phase !== "Funded" && targetPct > 0) {
+  if (!accountSizeMismatch && phase !== "Funded" && targetPct > 0) {
     if (currentProfitPct >= targetPct) alerts.push({ tone: "ok", title: "Objetivo alcanzado", detail: `Objetivo ${formatPercent(targetPct)} conseguido.` });
     else alerts.push({ tone: "info", title: "Progreso de fase", detail: `${formatPercent(currentProfitPct)} / ${formatPercent(targetPct)} objetivo.` });
   }
@@ -315,6 +331,7 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
     openPnl,
     currentProfitUsd,
     currentProfitPct,
+    accountSizeMismatch,
     targetPct,
     targetUsd,
     progressRatio,
@@ -371,6 +388,7 @@ function currencySymbol(code = "USD") {
 }
 
 function fundedAttentionScore(account) {
+  if (account.accountSizeMismatch) return 3;
   if (account.globalStatus === "DANGER" || account.challengeState === "failed") return 4;
   if (account.globalStatus === "WARNING") return 3;
   if (account.challengeState === "watch") return 2;
@@ -379,13 +397,51 @@ function fundedAttentionScore(account) {
 }
 
 function fundedProgressLabel(account) {
+  if (account.accountSizeMismatch) return "Revisar tamaño";
   if (!account.targetUsd) return "Sin objetivo de fase";
   return `${Math.round(account.targetCompletionPct)}% del objetivo`;
 }
 
 function fundedProgressMeta(account) {
+  if (account.accountSizeMismatch) return "Tamaño incompatible con balance live";
   if (!account.targetUsd) return "Preservación de capital";
   return `${formatCurrency(account.currentProfitUsd)} / ${formatCurrency(account.targetUsd)}`;
+}
+
+function fundedDisplayStateMeta(account) {
+  if (account.accountSizeMismatch) return { label: "Revisar tamaño", tone: "warn" };
+  return challengeStateMeta(account.challengeState);
+}
+
+function fundedResultMarkup(account, className = "") {
+  if (account.accountSizeMismatch) {
+    return `<span class="funded-mismatch-value ${escapeHtml(className)}">Revisar tamaño</span>`;
+  }
+  return pnlTextMarkup({
+    value: account.currentProfitUsd,
+    text: formatCurrency(account.currentProfitUsd),
+    className: account.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative",
+  });
+}
+
+function fundedProgressValueMarkup(account) {
+  if (account.accountSizeMismatch) {
+    return `<span class="funded-mismatch-value">Config pendiente</span>`;
+  }
+  return pnlTextMarkup({
+    value: account.currentProfitUsd,
+    text: account.targetUsd ? `${formatCurrency(account.currentProfitUsd)} / ${formatCurrency(account.targetUsd)}` : formatCurrency(account.currentProfitUsd),
+    className: account.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative",
+  });
+}
+
+function fundedProgressDescription(account) {
+  if (account.accountSizeMismatch) {
+    return "Revisa el tamaño de cuenta antes de interpretar el progreso de fase.";
+  }
+  return account.targetUsd
+    ? `${Math.round(account.targetCompletionPct)}% completado. Pendiente: ${formatCurrency(account.remainingUsd)}`
+    : "Sin objetivo de beneficio en esta fase";
 }
 
 function fundedAlertBadge(alert) {
@@ -429,7 +485,7 @@ export function initFunded(store) {
           <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
           <div><strong>Fase</strong><span>${enriched.phase}</span></div>
           <div><strong>Tamaño</strong><span>${formatCurrency(enriched.accountSize)}</span></div>
-          <div><strong>Resultado actual</strong><span>${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}</span></div>
+          <div><strong>Resultado actual</strong><span>${enriched.accountSizeMismatch ? "Revisar tamaño de cuenta" : `${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}`}</span></div>
           <div><strong>Objetivo</strong><span>${enriched.targetPct ? formatPercent(enriched.targetPct) : "Sin objetivo de challenge"}</span></div>
           <div><strong>DD diario</strong><span>${formatPercent(enriched.dailyDdPct)} / ${enriched.dailyLimitPct ? formatPercent(enriched.dailyLimitPct) : "—"}</span></div>
           <div><strong>DD máximo</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
@@ -517,7 +573,7 @@ export function renderFunded(root, state) {
   });
 
   const statusMeta = fundedStatusMeta(selected.globalStatus);
-  const challengeMeta = challengeStateMeta(selected.challengeState);
+  const challengeMeta = fundedDisplayStateMeta(selected);
   const modelOptions = availableModels(selected.propFirm);
   const appCurrency = state.workspace?.baseCurrency || state.preferences?.baseCurrency || "USD";
   const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
@@ -527,10 +583,14 @@ export function renderFunded(root, state) {
   const attentionAccount = [...fundedAccounts]
     .sort((a, b) => fundedAttentionScore(b) - fundedAttentionScore(a))[0];
   const hasAttentionAccount = attentionAccount && fundedAttentionScore(attentionAccount) > 0;
-  const selectedProgressValue = selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "Sin objetivo";
-  const selectedProgressMeta = selected.targetUsd
-    ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}`
-    : "Fase orientada a preservar capital";
+  const selectedProgressValue = selected.accountSizeMismatch
+    ? "Revisar tamaño"
+    : selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}%` : "Sin objetivo";
+  const selectedProgressMeta = selected.accountSizeMismatch
+    ? "Configura el tamaño de cuenta"
+    : selected.targetUsd
+      ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}`
+      : "Fase orientada a preservar capital";
 
   root.innerHTML = `
     <div class="funded-page-stack">
@@ -563,7 +623,7 @@ export function renderFunded(root, state) {
         <article class="funding-kpi" data-tone="${hasAttentionAccount ? "warning" : "neutral"}">
           <div class="funding-kpi__label">Cuenta a revisar</div>
           <div class="funding-kpi__value">${hasAttentionAccount ? (attentionAccount.linked?.name || attentionAccount.label) : "Sin alertas"}</div>
-          <div class="funding-kpi__meta">${hasAttentionAccount ? challengeStateMeta(attentionAccount.challengeState).label : "Sin presión crítica visible"}</div>
+          <div class="funding-kpi__meta">${hasAttentionAccount ? fundedDisplayStateMeta(attentionAccount).label : "Sin presión crítica visible"}</div>
         </article>
         <article class="funding-kpi funding-kpi--note">
           <div class="funding-kpi__label">Costes y payouts</div>
@@ -582,7 +642,7 @@ export function renderFunded(root, state) {
                 <span class="funding-challenge-card__meta">${escapeHtml(linkedAccountContextLabel(account))}</span>
               </span>
               <span class="funding-challenge-card__side">
-                ${badgeMarkup(challengeStateMeta(account.challengeState), "ui-badge--compact")}
+                ${badgeMarkup(fundedDisplayStateMeta(account), "ui-badge--compact")}
                 <span class="funding-challenge-card__progress">${fundedProgressLabel(account)}</span>
               </span>
             </button>
@@ -607,12 +667,19 @@ export function renderFunded(root, state) {
               ${badgeMarkup(challengeMeta, "ui-badge--compact")}
             </div>
 
+            ${selected.accountSizeMismatch ? `
+              <div class="funded-mismatch-note" role="status">
+                <strong>Revisa el tamaño de cuenta configurado.</strong>
+                <span>El tamaño configurado no coincide con el balance live recibido.</span>
+              </div>
+            ` : ""}
+
             <div class="funded-hero-kpis">
               <div class="metric-item"><div class="metric-label">Tamaño de cuenta</div><div class="metric-value">${formatCurrency(selected.accountSize)}</div></div>
               <div class="metric-item"><div class="metric-label">Balance</div><div class="metric-value">${formatCurrency(selected.balance)}</div></div>
               <div class="metric-item"><div class="metric-label">Equity</div><div class="metric-value">${formatCurrency(selected.equity)}</div></div>
               <div class="metric-item"><div class="metric-label">P&L abierto</div><div class="metric-value ${selected.openPnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.openPnl, text: formatCurrency(selected.openPnl), className: selected.openPnl >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
-              <div class="metric-item"><div class="metric-label">Resultado actual</div><div class="metric-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</div></div>
+              <div class="metric-item"><div class="metric-label">Resultado actual</div><div class="metric-value ${selected.accountSizeMismatch ? "" : selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${fundedResultMarkup(selected)}</div></div>
             </div>
           </div>
 
@@ -696,15 +763,15 @@ export function renderFunded(root, state) {
         </div>
         <div class="funded-progress-layout">
           <div class="funded-progress-main">
-            <div class="funded-progress-value ${selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: selected.currentProfitUsd, text: selected.targetUsd ? `${formatCurrency(selected.currentProfitUsd)} / ${formatCurrency(selected.targetUsd)}` : formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</div>
-            <div class="row-sub">${selected.targetUsd ? `${Math.round(selected.targetCompletionPct)}% completado. Pendiente: ${formatCurrency(selected.remainingUsd)}` : "Sin objetivo de beneficio en esta fase"}</div>
+            <div class="funded-progress-value ${selected.accountSizeMismatch ? "" : selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative"}">${fundedProgressValueMarkup(selected)}</div>
+            <div class="row-sub">${fundedProgressDescription(selected)}</div>
           </div>
           <div class="funded-progress-track">
             <div class="funded-progress-bar">
-              <div class="funded-progress-fill ${progressFillClass(selected.targetCompletionPct)}" style="width:${selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
+              <div class="funded-progress-fill ${selected.accountSizeMismatch ? "warn" : progressFillClass(selected.targetCompletionPct)}" style="width:${selected.accountSizeMismatch ? 0 : selected.targetUsd ? selected.targetCompletionPct : 0}%"></div>
             </div>
             <div class="funded-progress-meta">
-              <span>Resultado actual: ${pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
+              <span>Resultado actual: ${selected.accountSizeMismatch ? "pendiente de revisar" : pnlTextMarkup({ value: selected.currentProfitUsd, text: formatCurrency(selected.currentProfitUsd), className: selected.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })}</span>
               <span>${selected.targetUsd ? `Objetivo: ${formatCurrency(selected.targetUsd)}` : "Objetivo no aplicable"}</span>
             </div>
           </div>
