@@ -25,7 +25,7 @@ Figma editable: https://www.figma.com/design/xWEKmrpzD3oW9pGha6w3He
 | Logo transparente para UI | `logo/raster/kmfx-edge-symbol-transparent.png` |
 | Wordmark premium | `logo/svg/kmfx-edge-wordmark-glass.svg` |
 | Logo + nombre | `logo/svg/kmfx-edge-lockup-glass.svg` |
-| Sidebar/dashboard | `logo/app-icons/webapp-512.png` |
+| Sidebar/dashboard | `logo/raster/kmfx-edge-symbol-transparent.png` |
 | Favicon PNG | `logo/app-icons/favicon-16.png`, `favicon-32.png`, `favicon-48.png` |
 | Apple/iOS icon | `logo/app-icons/apple-touch-icon-180.png` |
 | PWA icon | `logo/app-icons/webapp-192.png`, `webapp-512.png`, `webapp-1024.png` |

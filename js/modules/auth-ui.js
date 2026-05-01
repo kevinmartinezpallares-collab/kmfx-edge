@@ -362,7 +362,7 @@ export function initAuthUI(store) {
           <section class="auth-showcase" aria-label="KMFX Edge overview">
             <div class="auth-showcase-brand">
               <div class="auth-showcase-brand-mark">
-                <img class="brand-logo auth-brand-logo" src="./assets/brand/kmfx-edge/logo/app-icons/webapp-512.png" alt="KMFX Edge">
+                <img class="brand-logo auth-brand-logo" src="./assets/brand/kmfx-edge/logo/raster/kmfx-edge-symbol-transparent.png" alt="KMFX Edge">
               </div>
               <div class="auth-showcase-brand-name"><span>KMFX</span> <em>Edge</em></div>
             </div>
