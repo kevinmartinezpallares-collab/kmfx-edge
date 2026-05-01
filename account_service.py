@@ -17,6 +17,7 @@ VALID_ALIAS_RE = re.compile(r"^[\w\s.\-·]{1,80}$", re.UNICODE)
 PENDING_STATUSES = {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
 OPERATIONAL_STATUSES = {"active"}
 ARCHIVED_STATUSES = {"archived"}
+CLAIMABLE_LAUNCHER_USER_IDS = {"", "local"}
 
 
 def _now_utc() -> datetime:
@@ -167,6 +168,10 @@ def _is_operational(account: Account) -> bool:
         and bool(account.first_sync_at or account.last_sync_at)
         and bool(account.latest_payload)
     )
+
+
+def _is_claimable_launcher_user_id(user_id: str) -> bool:
+    return str(user_id or "").strip().lower() in CLAIMABLE_LAUNCHER_USER_IDS
 
 
 class AccountService:
@@ -405,6 +410,77 @@ class AccountService:
             None,
         )
         return deepcopy(account) if account else None
+
+    def claim_account_by_api_key(self, *, user_id: str, api_key: str, alias: str = "") -> Account | None:
+        normalized = str(api_key or "").strip()
+        if not normalized:
+            return None
+        target_user_id = str(user_id or "").strip()
+        if not target_user_id:
+            raise ValueError("missing_user_id")
+        alias = _clean_alias(alias or "")
+        accounts = self.store.list_accounts()
+        target = next(
+            (
+                account
+                for account in accounts
+                if account.api_key == normalized and not _is_archived(account)
+            ),
+            None,
+        )
+        if target is None:
+            return None
+
+        now = _now_utc()
+        changed = False
+        previous_user_id = target.user_id
+        if target.user_id != target_user_id:
+            if not _is_claimable_launcher_user_id(target.user_id):
+                raise ValueError("connection_key_already_linked")
+            target.user_id = target_user_id
+            target.linked_at = target.linked_at or now
+            changed = True
+
+        if alias:
+            if not target.alias:
+                target.alias = alias
+                changed = True
+            if not target.nickname:
+                target.nickname = alias
+                changed = True
+
+        if _is_operational(target):
+            has_other_operational = any(
+                account.account_id != target.account_id
+                and account.user_id == target_user_id
+                and _is_operational(account)
+                for account in accounts
+            )
+            if not has_other_operational and not (target.is_default or target.is_primary):
+                target.is_default = True
+                target.is_primary = True
+                changed = True
+
+        if target.is_default or target.is_primary:
+            for account in accounts:
+                if account.account_id != target.account_id and account.user_id == target_user_id:
+                    if account.is_default or account.is_primary:
+                        account.is_default = False
+                        account.is_primary = False
+                        account.updated_at = now
+                        changed = True
+
+        if changed:
+            target.updated_at = now
+            self.store.save_accounts(accounts)
+            log.info(
+                "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s previous_user_id=%s event=launcher_key_claimed key=%s",
+                target.account_id,
+                target.user_id,
+                previous_user_id,
+                normalized[:8],
+            )
+        return deepcopy(target)
 
     def update_account_status(
         self,

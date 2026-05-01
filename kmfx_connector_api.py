@@ -1591,56 +1591,85 @@ async def link_account(request: Request) -> JSONResponse:
     label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname") or "Nueva cuenta MT5")
     platform = safe_str(payload.get("platform"), "mt5") or "mt5"
     requested_account_id = safe_str(payload.get("account_id"))
+    launcher_connection_key = resolve_connection_key(payload, request)
 
-    registry = account_service.build_accounts_registry(user_id)
     existing: dict[str, Any] | None = None
-    if requested_account_id:
-        existing = next((account for account in registry if account.get("account_id") == requested_account_id), None)
-    if existing is None:
-        existing = next(
-            (
-                account
-                for account in registry
-                if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
-                and safe_str(account.get("alias")) == label
-                and safe_str(account.get("connection_key"))
-            ),
-            None,
-        )
-    if existing is None:
-        existing = next(
-            (
-                account
-                for account in registry
-                if account.get("platform") == platform
-                and safe_str(account.get("alias")) == label
-                and safe_str(account.get("connection_key"))
-            ),
-            None,
-        )
-
-    if existing is not None and safe_str(existing.get("connection_key")):
-        connection_key = safe_str(existing.get("connection_key"))
-        account_id = safe_str(existing.get("account_id"))
-    else:
+    claimed_account = None
+    if launcher_connection_key:
         try:
-            created = account_service.create_pending_account(
+            claimed_account = account_service.claim_account_by_api_key(
                 user_id=user_id,
+                api_key=launcher_connection_key,
                 alias=label,
-                platform=platform,
             )
         except ValueError as exc:
+            reason = str(exc)
+            status_code = 409 if reason == "connection_key_already_linked" else 400
             return connector_json_response(
                 {
                     "ok": False,
-                    "reason": str(exc),
-                    "details": {"field": "alias"},
+                    "reason": reason,
+                    "details": {
+                        "field": "connection_key",
+                        "connection_key": mask_connection_key(launcher_connection_key),
+                    },
                     "timestamp": now_iso(),
                 },
-                status_code=400,
+                status_code=status_code,
             )
-        connection_key = created.api_key
-        account_id = created.account_id
+
+    if claimed_account is not None:
+        connection_key = claimed_account.api_key
+        account_id = claimed_account.account_id
+    else:
+        registry = account_service.build_accounts_registry(user_id)
+        if requested_account_id:
+            existing = next((account for account in registry if account.get("account_id") == requested_account_id), None)
+        if existing is None:
+            existing = next(
+                (
+                    account
+                    for account in registry
+                    if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+                    and safe_str(account.get("alias")) == label
+                    and safe_str(account.get("connection_key"))
+                ),
+                None,
+            )
+        if existing is None:
+            existing = next(
+                (
+                    account
+                    for account in registry
+                    if account.get("platform") == platform
+                    and safe_str(account.get("alias")) == label
+                    and safe_str(account.get("connection_key"))
+                ),
+                None,
+            )
+
+        if existing is not None and safe_str(existing.get("connection_key")):
+            connection_key = safe_str(existing.get("connection_key"))
+            account_id = safe_str(existing.get("account_id"))
+        else:
+            try:
+                created = account_service.create_pending_account(
+                    user_id=user_id,
+                    alias=label,
+                    platform=platform,
+                )
+            except ValueError as exc:
+                return connector_json_response(
+                    {
+                        "ok": False,
+                        "reason": str(exc),
+                        "details": {"field": "alias"},
+                        "timestamp": now_iso(),
+                    },
+                    status_code=400,
+                )
+            connection_key = created.api_key
+            account_id = created.account_id
 
     launcher_config = {
         "KMFXBackendBaseUrl": "http://127.0.0.1:8766",
@@ -1662,6 +1691,7 @@ async def link_account(request: Request) -> JSONResponse:
             "account_id": account_id,
             "connection_key": connection_key,
             "launcher_config": launcher_config,
+            "linked_existing_launcher_key": bool(claimed_account is not None),
             "is_admin": auth_context["is_admin"],
             "timestamp": now_iso(),
         }

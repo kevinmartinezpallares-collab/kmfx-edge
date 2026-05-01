@@ -76,6 +76,53 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual([second.account_id], default_ids)
         self.assertNotEqual(first.account_id, default_ids[0])
 
+    def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
+        local = self.service.ingest_account_snapshot(
+            user_id="local",
+            account_info={
+                "broker": "Broker A",
+                "platform": "mt5",
+                "login": "111",
+                "server": "A",
+            },
+            connection_mode="connector",
+            payload={"balance": 100000, "equity": 100500},
+            api_key="launcher-key",
+        )
+
+        claimed = self.service.claim_account_by_api_key(
+            user_id="user-123",
+            api_key="launcher-key",
+            alias="KMFX Connector MT5",
+        )
+
+        self.assertIsNotNone(claimed)
+        self.assertEqual(local.account_id, claimed.account_id)
+        self.assertEqual("user-123", claimed.user_id)
+        self.assertEqual("launcher-key", claimed.api_key)
+        self.assertEqual("active", claimed.status)
+        snapshot = self.service.build_accounts_snapshot("user-123")
+        self.assertEqual(local.account_id, snapshot["active_account_id"])
+        self.assertEqual(100500, snapshot["accounts"][0]["dashboard_payload"]["equity"])
+        self.assertEqual([], self.service.list_accounts("local"))
+
+    def test_claim_account_by_api_key_rejects_account_owned_by_another_user(self) -> None:
+        self.service.create_pending_account_with_key(
+            user_id="other-user",
+            alias="Existing user",
+            connection_key="owned-key",
+        )
+
+        with self.assertRaisesRegex(ValueError, "connection_key_already_linked"):
+            self.service.claim_account_by_api_key(
+                user_id="user-123",
+                api_key="owned-key",
+                alias="KMFX Connector MT5",
+            )
+
+        owner_account = self.service.get_account_by_api_key(user_id="other-user", api_key="owned-key")
+        self.assertIsNotNone(owner_account)
+
 
 if __name__ == "__main__":
     unittest.main()
