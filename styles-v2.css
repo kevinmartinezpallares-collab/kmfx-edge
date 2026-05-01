@@ -3790,6 +3790,22 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   color: color-mix(in srgb, var(--foreground) 82%, var(--muted-foreground));
 }
 
+.funded-page-stack .calendar-inline-note {
+  margin-top: -4px;
+  padding: 7px 10px;
+  border-color: color-mix(in srgb, var(--border-0) 58%, transparent);
+  background: color-mix(in srgb, var(--foreground) 1.8%, transparent);
+  color: color-mix(in srgb, var(--muted-foreground) 88%, var(--foreground));
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.funded-page-stack .calendar-inline-note strong {
+  color: color-mix(in srgb, var(--foreground) 72%, var(--muted-foreground));
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
 .funded-page-stack .funded-hero-card {
   gap: 14px;
 }

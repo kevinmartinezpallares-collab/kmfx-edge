@@ -397,6 +397,48 @@ function fundedAttentionScore(account) {
   return 0;
 }
 
+function isLiveFundedAccount(account = {}) {
+  return Boolean(account.linked && (account.linked.sourceType === "mt5" || account.linked.source === "mt5"));
+}
+
+function fundedReviewScore(account = {}) {
+  const attentionScore = fundedAttentionScore(account);
+  if (!attentionScore) return 0;
+  const status = fundedChallengeStatus(account);
+  const liveBonus = isLiveFundedAccount(account) ? 100 : 0;
+  const toneBonus = status.dataTone === "risk" ? 40 : status.dataTone === "warning" ? 25 : 0;
+  return liveBonus + toneBonus + attentionScore * 10;
+}
+
+function fundedDefaultSelectionScore(account = {}) {
+  const isLive = isLiveFundedAccount(account);
+  const reviewScore = fundedReviewScore(account);
+  if (isLive && reviewScore) return 500 + reviewScore;
+  if (isLive && account.targetUsd) return 400;
+  if (isLive) return 300;
+  if (reviewScore) return 200 + reviewScore;
+  if (account.targetUsd) return 100;
+  return 0;
+}
+
+function fundedSelectorScore(account = {}) {
+  if (!account.linked) return 0;
+  const reviewScore = fundedReviewScore(account);
+  if (reviewScore) return 500 + reviewScore;
+  const status = fundedChallengeStatus(account);
+  const liveBonus = isLiveFundedAccount(account) ? 10 : 0;
+  if (status.label === "En vigilancia") return 400 + liveBonus;
+  if (status.label === "En objetivo") return 300 + liveBonus;
+  if (!account.targetUsd) return 200 + liveBonus;
+  return 100 + liveBonus;
+}
+
+function compareFundedRelevance(a, b) {
+  const scoreDiff = fundedSelectorScore(b) - fundedSelectorScore(a);
+  if (scoreDiff) return scoreDiff;
+  return String(a.label || "").localeCompare(String(b.label || ""));
+}
+
 function fundedProgressLabel(account) {
   if (account.accountSizeMismatch) return "Revisar tamaño";
   if (!account.targetUsd) return "Sin objetivo de fase";
@@ -572,6 +614,7 @@ export function initFunded(store) {
     const selectButton = event.target.closest("[data-funded-select]");
     if (selectButton) {
       root.dataset.selectedFundedId = selectButton.dataset.fundedId;
+      root.dataset.fundedSelectionMode = "manual";
       renderFunded(root, store.getState());
       return;
     }
@@ -670,11 +713,19 @@ export function renderFunded(root, state) {
     return;
   }
 
+  const rankedFundedAccounts = [...fundedAccounts].sort(compareFundedRelevance);
   const selectedByCurrentAccount = fundedAccounts.find((item) => item.accountId === state.currentAccount || item.linkedAccountId === state.currentAccount);
-  const selected = fundedAccounts.find((item) => item.id === root.dataset.selectedFundedId)
-    || selectedByCurrentAccount
-    || fundedAccounts[0];
+  const savedSelection = fundedAccounts.find((item) => item.id === root.dataset.selectedFundedId);
+  const prioritySelection = rankedFundedAccounts[0] || fundedAccounts[0];
+  const isManualSelection = root.dataset.fundedSelectionMode === "manual";
+  const currentCandidate = savedSelection || selectedByCurrentAccount || fundedAccounts[0];
+  const selected = isManualSelection && savedSelection
+    ? savedSelection
+    : fundedDefaultSelectionScore(prioritySelection) > fundedDefaultSelectionScore(currentCandidate)
+      ? prioritySelection
+      : currentCandidate;
   root.dataset.selectedFundedId = selected.id;
+  if (!isManualSelection) root.dataset.fundedSelectionMode = "auto";
   const authorityMeta = describeAccountAuthority(selected.linked || selectCurrentAccount(state), "derived");
   console.info("[KMFX][FUNDED_AUTHORITY]", {
     account_id: selected.linked?.id || "",
@@ -690,10 +741,10 @@ export function renderFunded(root, state) {
   const accountCurrency = selected.linked?.currency || selected.linked?.model?.account?.currency || appCurrency;
   const accountCurrencySymbol = currencySymbol(accountCurrency);
   const totalAccountSize = fundedAccounts.reduce((sum, account) => sum + Number(account.accountSize || 0), 0);
-  const accountsToReview = fundedAccounts.filter((account) => fundedAttentionScore(account) > 0);
+  const accountsToReview = fundedAccounts.filter((account) => fundedReviewScore(account) > 0);
   const attentionAccount = [...fundedAccounts]
-    .sort((a, b) => fundedAttentionScore(b) - fundedAttentionScore(a))[0];
-  const hasAttentionAccount = attentionAccount && fundedAttentionScore(attentionAccount) > 0;
+    .sort((a, b) => fundedReviewScore(b) - fundedReviewScore(a))[0];
+  const hasAttentionAccount = attentionAccount && fundedReviewScore(attentionAccount) > 0;
   const challengeStatus = fundedChallengeStatus(selected);
   const daysStatus = tradingDaysStatus(selected);
   const reviewAlerts = fundedReviewAlerts(selected);
@@ -712,8 +763,6 @@ export function renderFunded(root, state) {
         descriptionClassName: "tl-page-sub",
       })}
 
-      ${renderAuthorityNotice(authorityMeta)}
-
       <section class="funding-overview" aria-label="Resumen de funding">
         <article class="funding-kpi" data-tone="info">
           <div class="funding-kpi__label">Cuentas funded</div>
@@ -721,7 +770,7 @@ export function renderFunded(root, state) {
           <div class="funding-kpi__meta">${accountsToReview.length ? `${accountsToReview.length} a revisar` : "Sin alertas críticas"}</div>
         </article>
         <article class="funding-kpi">
-          <div class="funding-kpi__label">Capital seguimiento</div>
+          <div class="funding-kpi__label">Capital bajo seguimiento</div>
           <div class="funding-kpi__value">${formatCurrency(totalAccountSize)}</div>
           <div class="funding-kpi__meta">Tamaño total de cuentas</div>
         </article>
@@ -737,9 +786,11 @@ export function renderFunded(root, state) {
         </article>
       </section>
 
+      ${renderAuthorityNotice(authorityMeta)}
+
       ${fundedAccounts.length > 1 ? `
         <div class="funded-account-switch" aria-label="Seleccionar challenge funded">
-          ${fundedAccounts.map((account) => `
+          ${rankedFundedAccounts.map((account) => `
             <button class="funded-account-pill funding-challenge-card ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}">
               <span class="funding-challenge-card__main">
                 <span class="funding-challenge-card__name">${escapeHtml(account.label)}</span>
