@@ -1,6 +1,6 @@
 # KMFX Edge Brand Kit
 
-Este paquete organiza la identidad de KMFX Edge para uso real en producto, web app, dashboard, favicon, redes sociales y presentacion del logo.
+Este paquete organiza la identidad de KMFX Edge usando como logo principal el simbolo glass/metalico original. Las versiones planas o de raya quedaron fuera del paquete para evitar confusiones.
 
 Figma editable: https://www.figma.com/design/xWEKmrpzD3oW9pGha6w3He
 
@@ -8,8 +8,9 @@ Figma editable: https://www.figma.com/design/xWEKmrpzD3oW9pGha6w3He
 
 | Carpeta | Uso |
 | --- | --- |
-| `logo/svg` | Logos vectoriales para dashboard, web, docs y diseno. |
-| `logo/app-icons` | Favicon, Apple touch icon y PWA icons. |
+| `logo/raster` | Logo principal glass original. Esta es la fuente visual de marca. |
+| `logo/svg` | Wordmark y lockup con estetica metal/glass para web, dashboard y Figma. |
+| `logo/app-icons` | Favicons, Apple touch icon y PWA icons generados desde el logo principal. |
 | `social` | Avatar, posts cuadrados, Open Graph y banners. |
 | `tokens` | Tokens CSS/JSON para mantener color, tipografia y marca consistentes. |
 | `presentation` | Referencias originales y storyboard del video de logo. |
@@ -20,9 +21,11 @@ Figma editable: https://www.figma.com/design/xWEKmrpzD3oW9pGha6w3He
 
 | Necesidad | Archivo recomendado |
 | --- | --- |
-| Sidebar/dashboard expandido | `logo/svg/kmfx-edge-logo-horizontal-on-dark.svg` |
-| Sidebar/dashboard colapsado | `logo/svg/kmfx-edge-icon-contained-dark.svg` |
-| Favicon SVG | `logo/app-icons/favicon.svg` |
+| Logo principal | `logo/raster/kmfx-edge-symbol-glass-original.png` |
+| Wordmark premium | `logo/svg/kmfx-edge-wordmark-glass.svg` |
+| Logo + nombre | `logo/svg/kmfx-edge-lockup-glass.svg` |
+| Sidebar/dashboard expandido | `logo/svg/kmfx-edge-lockup-glass.svg` |
+| Sidebar/dashboard colapsado | `logo/app-icons/webapp-192.png` o `logo/app-icons/webapp-512.png` |
 | Favicon PNG | `logo/app-icons/favicon-16.png`, `favicon-32.png`, `favicon-48.png` |
 | Apple/iOS icon | `logo/app-icons/apple-touch-icon-180.png` |
 | PWA icon | `logo/app-icons/webapp-192.png`, `webapp-512.png`, `webapp-1024.png` |
@@ -45,9 +48,8 @@ La lectura completa es: disciplina, estrategia y resultados.
 
 ## Reglas cortas
 
-- Usa el logo horizontal cuando haya espacio para leer la marca.
-- Usa el icono contenido cuando el espacio sea pequeno o cuadrado.
-- Usa la version plana para producto y favicon; usa la version glass para presentacion, redes y piezas de impacto.
+- Usa el lockup glass cuando haya espacio para leer la marca.
+- Usa el simbolo glass cuando el espacio sea pequeno o cuadrado.
+- No mezclar con logos antiguos de raya o versiones planas.
 - Mantener margen libre minimo igual al diametro del circulo del logo.
 - No deformar, recolorear sin criterio, agregar sombras extra o colocar sobre fondos con poco contraste.
-

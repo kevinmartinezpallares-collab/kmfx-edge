@@ -2,7 +2,7 @@
 
 ## Esencia
 
-KMFX Edge debe sentirse como una herramienta de precision para traders: sobria, tecnologica, disciplinada y orientada a datos. La marca no promete riqueza rapida; comunica control, evaluacion y ventaja operativa.
+KMFX Edge debe sentirse como una herramienta de precision para traders: sobria, tecnologica, disciplinada y orientada a datos. La marca principal es el simbolo glass/metalico con luz fria azul. No usar versiones planas ni marcas antiguas de raya como identidad principal.
 
 ## Posicionamiento
 
@@ -26,10 +26,9 @@ El logo se compone de tres piezas:
 
 | Version | Uso |
 | --- | --- |
-| Icono contenido oscuro | App icon, favicon, sidebar colapsada, launcher. |
-| Logo horizontal on dark | Dashboard, landing en dark mode, headers oscuros. |
-| Logo horizontal on light | Documentos claros, contratos, PDFs o fondos blancos. |
-| Logo glass/render | Redes, video de marca, presentaciones y hero visual. |
+| Simbolo glass original | Logo principal, app icon, favicon, redes, presentaciones y hero visual. |
+| Wordmark glass | Nombre KMFX EDGE con estetica metalica/azul. |
+| Lockup glass | Simbolo + nombre para dashboard, web, videos y Figma. |
 
 ## Color
 
@@ -58,10 +57,10 @@ Jerarquia recomendada:
 
 En el dashboard, el logo debe funcionar como ancla de confianza, no como decoracion. Recomendaciones:
 
-- Sidebar expandida: logo horizontal.
-- Sidebar colapsada: icono contenido.
-- Login/auth: icono glass o mark contenido, con mucho espacio.
-- Favicon/PWA: icono contenido plano.
+- Sidebar expandida: lockup glass.
+- Sidebar colapsada: simbolo glass.
+- Login/auth: simbolo glass con mucho espacio.
+- Favicon/PWA: export cuadrado del simbolo glass.
 - Loading/splash: icono contenido con pulso azul sutil.
 
 ## No hacer
@@ -69,7 +68,6 @@ En el dashboard, el logo debe funcionar como ancla de confianza, no como decorac
 - No usar el logo sobre fondos muy ruidosos sin contenedor.
 - No aplicar gradientes nuevos a las formas planas.
 - No estirar ni comprimir.
-- No agregar contornos o sombras extra sobre la version flat.
-- No usar el render glass como favicon pequeno.
+- No agregar contornos o sombras extra sobre el logo principal.
+- No usar versiones antiguas de raya.
 - No separar piezas del logo salvo en animacion/storyboard.
-

@@ -1,0 +1,48 @@
+<svg width="1240" height="260" viewBox="0 0 1240 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kmfxMetal" x1="0" y1="24" x2="0" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.22" stop-color="#C8D0DC"/>
+      <stop offset="0.48" stop-color="#4A505C"/>
+      <stop offset="0.72" stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#777F8E"/>
+    </linearGradient>
+    <linearGradient id="edgeBlue" x1="660" y1="20" x2="660" y2="214" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9BC7FF"/>
+      <stop offset="0.2" stop-color="#4D83FF"/>
+      <stop offset="0.52" stop-color="#1F5CFF"/>
+      <stop offset="0.78" stop-color="#7AB7FF"/>
+      <stop offset="1" stop-color="#1239B7"/>
+    </linearGradient>
+    <filter id="coldGlow" x="-5%" y="-30%" width="110%" height="180%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#FFFFFF" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#2F6BFF" flood-opacity="0.22"/>
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#02040A" flood-opacity="0.8"/>
+    </filter>
+    <filter id="blueGlow" x="-8%" y="-35%" width="116%" height="190%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="2" stdDeviation="1.2" flood-color="#FFFFFF" flood-opacity="0.5"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#2F6BFF" flood-opacity="0.58"/>
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#02040A" flood-opacity="0.78"/>
+    </filter>
+    <style>
+      .word {
+        font-family: Inter, Avenir Next, Arial Black, Arial, sans-serif;
+        font-size: 148px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+      .tag {
+        font-family: Inter, Avenir Next, Arial, sans-serif;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: 0.34em;
+      }
+    </style>
+  </defs>
+  <text class="word" x="8" y="154" fill="#07090D" stroke="#111827" stroke-width="8" opacity="0.9">KMFX</text>
+  <text class="word" x="8" y="154" fill="url(#kmfxMetal)" stroke="#F6F8FB" stroke-opacity="0.72" stroke-width="1.4" filter="url(#coldGlow)">KMFX</text>
+  <text class="word" x="573" y="154" fill="#04123A" stroke="#0B1F73" stroke-width="8" opacity="0.92">EDGE</text>
+  <text class="word" x="573" y="154" fill="url(#edgeBlue)" stroke="#B9D8FF" stroke-opacity="0.75" stroke-width="1.25" filter="url(#blueGlow)">EDGE</text>
+  <rect x="10" y="184" width="1088" height="1" fill="url(#kmfxMetal)" opacity="0.18"/>
+  <text class="tag" x="14" y="226" fill="#AAB5C6">PRECISION. RENDIMIENTO. PROGRESO.</text>
+</svg>
