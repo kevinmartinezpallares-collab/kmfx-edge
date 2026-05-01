@@ -22999,50 +22999,59 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
 }
 
 
-/* KMFX brand mark: transparent symbol only, no wordmark */
+/* KMFX brand mark: tokenized transparent symbol only, no wordmark */
+.app-shell.sidebar-vnext {
+  --sidebar-brand-slot-size: 44px;
+  --sidebar-brand-expanded-width: 54px;
+  --sidebar-brand-expanded-height: 42px;
+  --sidebar-brand-collapsed-size: 32px;
+}
+
 .app-shell.sidebar-vnext .sidebar-topbar {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  min-height: 56px;
+  min-height: var(--sidebar-brand-slot-size);
+  align-items: center;
 }
 
 .app-shell.sidebar-vnext .brand-lockup--adaptive {
-  width: fit-content;
-  max-width: 72px;
-  min-height: 52px;
+  width: var(--sidebar-brand-expanded-width);
+  max-width: var(--sidebar-brand-expanded-width);
+  height: var(--sidebar-brand-slot-size);
+  min-height: 0;
   padding: 0;
   margin: 0;
   border: 0;
   background: transparent;
-  display: flex;
+  display: grid;
   align-items: center;
-  justify-content: flex-start;
+  justify-items: start;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo {
   display: block;
   flex: 0 0 auto;
-  width: 68px;
-  max-width: 68px;
-  height: 52px;
+  width: var(--sidebar-brand-expanded-width);
+  max-width: var(--sidebar-brand-expanded-width);
+  height: var(--sidebar-brand-expanded-height);
   object-fit: contain;
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
-  height: 52px;
+  height: var(--sidebar-brand-expanded-height);
 }
 
 .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
   display: none;
-  width: 36px;
-  height: 36px;
+  width: var(--sidebar-brand-collapsed-size);
+  height: var(--sidebar-brand-collapsed-size);
 }
 
 .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
-  width: 36px;
-  height: 36px;
+  width: var(--sidebar-brand-slot-size);
+  height: var(--sidebar-brand-slot-size);
   max-width: none;
-  min-height: 36px;
+  min-height: var(--sidebar-brand-slot-size);
   display: grid;
   place-items: center;
 }
@@ -23059,35 +23068,37 @@ html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-topbar {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  min-height: 56px;
+  min-height: var(--sidebar-brand-slot-size);
   padding-left: 12px;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive,
 body[data-theme="dark"] .app-shell.sidebar-vnext .brand-lockup--adaptive {
-  width: fit-content;
-  max-width: 72px;
-  min-height: 52px;
-  display: flex;
-  place-items: initial;
+  width: var(--sidebar-brand-expanded-width);
+  max-width: var(--sidebar-brand-expanded-width);
+  height: var(--sidebar-brand-slot-size);
+  min-height: 0;
+  display: grid;
+  align-items: center;
+  justify-items: start;
   margin: 0;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--expanded {
-  width: 68px;
-  height: 52px;
-  max-width: 68px;
+  width: var(--sidebar-brand-expanded-width);
+  height: var(--sidebar-brand-expanded-height);
+  max-width: var(--sidebar-brand-expanded-width);
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-lockup--adaptive {
-  width: 36px;
-  height: 36px;
+  width: var(--sidebar-brand-slot-size);
+  height: var(--sidebar-brand-slot-size);
   display: grid;
   place-items: center;
   max-width: none;
-  min-height: 36px;
+  min-height: var(--sidebar-brand-slot-size);
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -23095,8 +23106,8 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-vnext-collapsed .brand-
 
 html[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed,
 body[data-theme="dark"] .app-shell.sidebar-vnext .sidebar-brand-logo--collapsed {
-  width: 36px;
-  height: 36px;
+  width: var(--sidebar-brand-collapsed-size);
+  height: var(--sidebar-brand-collapsed-size);
 }
 
 /* === DISCIPLINE SECTION === */
