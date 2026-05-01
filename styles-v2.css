@@ -29070,6 +29070,381 @@ body[data-theme="dark"] #section-discipline .rule-profile-pairs input::placehold
   }
 }
 
+/* Sidebar 07 adaptation — shadcn structure, preserving KMFX logo/account/user hooks */
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
+  --sidebar-vnext-expanded-width: 280px;
+  --sidebar-vnext-collapsed-width: 72px;
+  --sidebar-vnext-current-width: var(--sidebar-vnext-expanded-width);
+  --sidebar-vnext-divider-offset: 0px;
+  background: #09090b !important;
+  grid-template-columns: var(--sidebar-vnext-current-width) minmax(0, 1fr);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed {
+  --sidebar-vnext-current-width: var(--sidebar-vnext-collapsed-width);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
+  width: auto !important;
+  padding: 16px 18px 10px 0 !important;
+  background: #18181b !important;
+  border-right: 1px solid #27272a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
+  background: #09090b !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header {
+  gap: 14px !important;
+  padding: 0 0 22px 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot {
+  margin-top: 0 !important;
+  padding: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) 18px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 8px 10px 8px 0 !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  justify-self: center;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: 0.86;
+  transform: rotate(45deg) translateY(-2px);
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher:hover,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  background: #101013 !important;
+  border: 1px solid #27272a !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__copy {
+  gap: 2px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__title,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__select,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__title,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__select {
+  font-size: 15px !important;
+  line-height: 1.12 !important;
+  font-weight: 610 !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__meta,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__meta,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__balance,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__balance {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #a1a1aa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav {
+  padding: 2px 0 0 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list {
+  display: grid !important;
+  gap: 34px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group {
+  gap: 14px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger {
+  min-height: 18px !important;
+  padding: 0 !important;
+  pointer-events: auto;
+  color: #a1a1aa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label {
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 610 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #a1a1aa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items {
+  display: grid !important;
+  gap: 18px !important;
+  padding-top: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  align-items: center !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  gap: 12px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #fafafa !important;
+  font-size: 15px !important;
+  font-weight: 440 !important;
+  line-height: 1.2 !important;
+  transform: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active::before,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active::before {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg {
+  width: 21px !important;
+  height: 21px !important;
+  opacity: 1 !important;
+  stroke-width: 2 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items {
+  gap: 16px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem {
+  grid-template-columns: minmax(0, 1fr) !important;
+  margin-left: 14px !important;
+  padding-left: 26px !important;
+  border-left: 1px solid #27272a !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-item-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-item-label {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-icon {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--muted,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--muted {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  padding: 22px 0 0 0 !important;
+  border-top: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger {
+  min-height: 54px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger:hover,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger:hover {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main {
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  gap: 12px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-name,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-name {
+  font-size: 15px !important;
+  line-height: 1.16 !important;
+  font-weight: 610 !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-sub,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-sub {
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn {
+  width: 22px !important;
+  height: 22px !important;
+  background: transparent !important;
+  color: #fafafa !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: calc(var(--sidebar-vnext-current-width) - 1px) !important;
+  width: 10px !important;
+  cursor: ew-resize;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line {
+  background: #27272a !important;
+  width: 1px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel {
+  padding: 16px 0 10px 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-header.sidebar-section--header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-header.sidebar-section--header {
+  padding-bottom: 20px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty {
+  grid-template-columns: 40px !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  padding: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher::after,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher::after,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list {
+  gap: 20px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items {
+  gap: 10px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem {
+  grid-template-columns: 40px !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  min-height: 40px !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  border-left: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-icon {
+  display: block !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-trigger {
+  width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+}
+
 /* === BOTTOM SECTIONS === */
 html[data-theme="dark"] #section-discipline #entry-precision-card,
 body[data-theme="dark"] #section-discipline #entry-precision-card {
