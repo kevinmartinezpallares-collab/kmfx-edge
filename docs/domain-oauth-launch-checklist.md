@@ -5,19 +5,20 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 ## Estado actual
 
 - `dashboard.kmfxedge.com` funciona en Vercel.
-- `kmfxedge.com`, `www.kmfxedge.com` y `api.kmfxedge.com` no resolvían por DNS durante esta revisión.
+- `kmfxedge.com` y `www.kmfxedge.com` funcionan en Vercel con SSL.
+- `api.kmfxedge.com` queda pendiente para el backend.
 - El código web ya no hardcodea el redirect OAuth a `dashboard.kmfxedge.com`; usa el origen actual.
-- El launcher permite configurar la recovery URL con `KMFX_DASHBOARD_RECOVERY_URL`.
+- El launcher usa `https://kmfxedge.com?auth=recovery` por defecto y permite sobrescribirlo con `KMFX_DASHBOARD_RECOVERY_URL`.
 
 ## Vercel y DNS
 
-- [ ] Añadir `kmfxedge.com` al proyecto Vercel `kmfx-edge`.
-- [ ] Apuntar DNS apex siguiendo los valores que indique Vercel.
-- [ ] Añadir `www.kmfxedge.com`.
+- [x] Añadir `kmfxedge.com` al proyecto Vercel `kmfx-edge`.
+- [x] Apuntar DNS apex a Vercel.
+- [x] Añadir `www.kmfxedge.com`.
 - [ ] Redirigir `www.kmfxedge.com` a `kmfxedge.com`.
 - [ ] Mantener `dashboard.kmfxedge.com` como alias temporal hasta verificar el dominio raíz.
 - [ ] Activar redirect de `dashboard.kmfxedge.com` a `kmfxedge.com` solo cuando `kmfxedge.com` responda 200.
-- [ ] Revisar que `/kmfx-edge.html` redirige a `/` en Vercel.
+- [x] Revisar que `/kmfx-edge.html` redirige a `/` en Vercel.
 
 ## Supabase Auth
 
@@ -28,6 +29,7 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
   - `https://dashboard.kmfxedge.com`
   - `https://dashboard.kmfxedge.com/*`, solo durante transición
   - URLs locales de desarrollo
+- [ ] Mantener `https://dashboard.kmfxedge.com` solo mientras exista como alias temporal.
 - [ ] Probar magic links, recovery y OAuth Google.
 - [ ] Evaluar dominio personalizado de Auth para reducir exposición de `supabase.co`.
 
@@ -50,4 +52,3 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
   - login Google
   - password recovery
   - account snapshot autenticado
-
