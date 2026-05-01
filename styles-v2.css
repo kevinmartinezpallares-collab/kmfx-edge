@@ -29077,7 +29077,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
   --sidebar-vnext-collapsed-width: 72px;
   --sidebar-vnext-current-width: var(--sidebar-vnext-expanded-width);
   --sidebar-vnext-divider-offset: 0px;
-  background: #09090b !important;
   grid-template-columns: var(--sidebar-vnext-current-width) minmax(0, 1fr);
 }
 
@@ -29090,16 +29089,6 @@ html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sideb
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
   width: auto !important;
   padding: 16px 18px 10px 0 !important;
-  background: #18181b !important;
-  border-right: 1px solid #27272a !important;
-  box-shadow: none !important;
-}
-
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
-  background: #09090b !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
@@ -29125,10 +29114,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-accou
   width: 100% !important;
   min-height: 58px !important;
   padding: 8px 10px 8px 0 !important;
-  border: 0 !important;
   border-radius: 10px !important;
-  background: transparent !important;
-  color: #fafafa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after,
@@ -29143,20 +29129,11 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-accou
   transform: rotate(45deg) translateY(-2px);
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher:hover,
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty:hover {
-  background: rgba(255, 255, 255, 0.035) !important;
-}
-
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon {
   width: 40px !important;
   height: 40px !important;
   border-radius: 12px !important;
-  background: #101013 !important;
-  border: 1px solid #27272a !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__copy,
@@ -29171,7 +29148,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-accou
   font-size: 15px !important;
   line-height: 1.12 !important;
   font-weight: 610 !important;
-  color: #fafafa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__meta,
@@ -29182,7 +29158,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-accou
   line-height: 1.2 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
-  color: #a1a1aa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav,
@@ -29206,7 +29181,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-tri
   min-height: 18px !important;
   padding: 0 !important;
   pointer-events: auto;
-  color: #a1a1aa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label,
@@ -29216,7 +29190,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-lab
   font-weight: 610 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
-  color: #a1a1aa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron,
@@ -29240,33 +29213,10 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item {
   padding: 0 !important;
   gap: 12px !important;
   border-radius: 10px !important;
-  background: transparent !important;
-  color: #fafafa !important;
   font-size: 15px !important;
   font-weight: 440 !important;
   line-height: 1.2 !important;
   transform: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item:hover {
-  background: rgba(255, 255, 255, 0.035) !important;
-}
-
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active {
-  background: transparent !important;
-  color: #ffffff !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active::before,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item.active::before {
-  content: none !important;
-  display: none !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
@@ -29289,8 +29239,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[dat
   grid-template-columns: minmax(0, 1fr) !important;
   margin-left: 14px !important;
   padding-left: 26px !important;
-  border-left: 1px solid #27272a !important;
-  color: #fafafa !important;
+  border-left: 1px solid var(--border-0) !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="platform"] .nav-group-items .nav-item--subitem .nav-item-label,
@@ -29304,30 +29253,16 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[dat
   display: none !important;
 }
 
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--muted,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--muted {
-  color: #a1a1aa !important;
-}
-
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer {
   padding: 22px 0 0 0 !important;
-  border-top: 0 !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger {
   min-height: 54px !important;
   padding: 0 !important;
-  border: 0 !important;
   border-radius: 10px !important;
-  background: transparent !important;
-  color: #fafafa !important;
-}
-
-html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger:hover,
-body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger:hover {
-  background: rgba(255, 255, 255, 0.035) !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main,
@@ -29348,22 +29283,18 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profi
   font-size: 15px !important;
   line-height: 1.16 !important;
   font-weight: 610 !important;
-  color: #fafafa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-sub,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-sub {
   font-size: 13px !important;
   line-height: 1.2 !important;
-  color: #fafafa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn {
   width: 22px !important;
   height: 22px !important;
-  background: transparent !important;
-  color: #fafafa !important;
 }
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
@@ -29377,7 +29308,6 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext
 
 html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line,
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider__line {
-  background: #27272a !important;
   width: 1px !important;
 }
 
