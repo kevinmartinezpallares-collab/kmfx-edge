@@ -125,19 +125,20 @@ class LauncherServiceRuntime:
         self.backend.config = self.config
 
     def ensure_remote_account_link(self) -> dict[str, Any]:
-        if (
+        has_local_link = (
             self.config.connection_key
             and self.config.connection_key_user_id
             and self.config.connection_key_user_id == self.config.auth_user_id
-        ):
-            save_bridge_config(self.config, user_id=self.config.auth_user_id)
-            self.reload_bridge_config(force_log=True)
-            return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
+        )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
         response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
+            if has_local_link:
+                save_bridge_config(self.config, user_id=self.config.auth_user_id)
+                self.reload_bridge_config(force_log=True)
+                return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
             return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
 
         body = response.body or {}
