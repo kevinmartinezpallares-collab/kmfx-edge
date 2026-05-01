@@ -3924,13 +3924,13 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(390px, 1fr));
   gap: 14px;
 }
 
 .funding-challenge-card {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   min-width: 0;
   padding: 18px;
@@ -4021,6 +4021,53 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 520;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.funding-card-summary {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.funding-card-summary > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.funding-card-summary strong {
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.2;
+  font-weight: 660;
+}
+
+.funding-card-summary em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 13.5px;
+  line-height: 1.2;
+  font-style: normal;
+  font-weight: 710;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-card-summary [data-tone="risk"] em {
+  color: var(--loss);
+}
+
+.funding-card-summary [data-tone="warning"] em {
+  color: var(--risk);
+}
+
+.funding-card-summary [data-tone="profit"] em {
+  color: var(--profit);
 }
 
 .funding-card-badges {
@@ -4171,15 +4218,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-card-gauges {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 11px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
 }
 
 .funding-gauge {
   display: grid;
   gap: 8px;
   min-width: 0;
-  padding: 11px;
+  padding: 12px;
   border: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
   border-radius: 16px;
   background: color-mix(in srgb, var(--foreground) 1.6%, transparent);
@@ -4213,6 +4260,12 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-variant-numeric: tabular-nums;
 }
 
+.funding-card-summary .kmfx-ui-pnl,
+.funding-state-row .kmfx-ui-pnl {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
 .funding-rule-chip {
   align-self: end;
   justify-self: end;
@@ -4240,7 +4293,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   color: var(--risk);
 }
 
-.funding-detail-metrics .kmfx-ui-pnl,
 .funding-challenge-card__snapshot .kmfx-ui-pnl {
   font: inherit;
   letter-spacing: inherit;
@@ -4285,39 +4337,107 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   gap: 8px;
 }
 
-.funding-detail-grid {
+.funding-reading-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.82fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
 
-.funding-insight-facts {
+.funding-rule-card,
+.funding-state-card {
   display: grid;
-  grid-template-columns: 0.78fr 1.5fr 0.82fr 0.7fr;
-  gap: 8px;
-}
-
-.funding-insight-facts > span {
-  display: grid;
-  gap: 4px;
+  gap: 10px;
   min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 48%, transparent);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--foreground) 1.4%, transparent);
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 58%, transparent);
+  border-radius: calc(var(--radius) + 6px);
+  background: color-mix(in srgb, var(--foreground) 1.7%, transparent);
 }
 
-.funding-insight-facts small {
-  color: var(--muted-foreground);
-  font-size: 10px;
+.funding-rule-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.funding-rule-card__head strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 15px;
   line-height: 1.2;
-  font-weight: 720;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 740;
+  letter-spacing: -0.018em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.funding-insight-facts strong {
+.funding-rule-card__head span {
+  flex: 0 1 auto;
+  overflow: hidden;
+  max-width: 52%;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 65%, transparent);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-rule-card__head span[data-tone="risk"] {
+  border-color: color-mix(in srgb, var(--loss) 30%, var(--border-0));
+  color: var(--loss);
+}
+
+.funding-rule-card__head span[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--risk) 30%, var(--border-0));
+  color: var(--risk);
+}
+
+.funding-rule-card__head span[data-tone="profit"] {
+  border-color: color-mix(in srgb, var(--profit) 26%, var(--border-0));
+  color: var(--profit);
+}
+
+.funding-rule-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
+}
+
+.funding-rule-row,
+.funding-state-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.82fr) minmax(0, 0.78fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.funding-rule-row + .funding-rule-row,
+.funding-state-row + .funding-state-row {
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 40%, transparent);
+}
+
+.funding-rule-row small,
+.funding-state-row small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-rule-row strong,
+.funding-state-row strong {
   overflow: hidden;
   color: var(--foreground);
   font-size: 13px;
@@ -4327,59 +4447,30 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   white-space: nowrap;
 }
 
-.funding-rule-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.funding-rule-item {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px 11px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 50%, transparent);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--foreground) 1.6%, transparent);
-}
-
-.funding-rule-item[data-tone="profit"] {
-  border-color: color-mix(in srgb, var(--profit) 24%, var(--border-0));
-}
-
-.funding-rule-item[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 28%, var(--border-0));
-  background: color-mix(in srgb, var(--risk) 4%, transparent);
-}
-
-.funding-rule-item small {
-  color: var(--muted-foreground);
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 720;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.funding-rule-item strong {
-  overflow: hidden;
-  color: var(--foreground);
-  font-size: 13.5px;
-  line-height: 1.15;
-  font-weight: 760;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.funding-rule-item em {
+.funding-rule-row em,
+.funding-state-row em {
   overflow: hidden;
   color: var(--muted-foreground);
-  font-size: 11px;
+  font-size: 11.5px;
   line-height: 1.25;
   font-style: normal;
   font-weight: 540;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.funding-rule-row[data-tone="warning"] strong,
+.funding-state-row[data-tone="warning"] strong {
+  color: var(--risk);
+}
+
+.funding-state-row[data-tone="risk"] strong {
+  color: var(--loss);
+}
+
+.funding-state-row[data-tone="profit"] strong {
+  color: var(--profit);
 }
 
 .funding-detail-block {
@@ -4399,41 +4490,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.funding-detail-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.funding-detail-metrics > div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 8px 0;
-}
-
-.funding-detail-metrics span {
-  color: var(--muted-foreground);
-  font-size: 10.5px;
-  line-height: 1.2;
-  font-weight: 680;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.funding-detail-metrics strong {
-  color: var(--foreground);
-  font-size: 14px;
-  line-height: 1.15;
-  font-weight: 740;
-  letter-spacing: 0;
-  overflow-wrap: anywhere;
-}
-
-.funding-detail-metrics--rules {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .funding-rule-note-line {
@@ -4461,7 +4517,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-economics-metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -4582,12 +4638,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 @media (max-width: 1280px) {
-  .funding-detail-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .funding-economics-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -4600,16 +4652,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     grid-template-columns: 1fr;
   }
 
-  .funding-detail-grid {
+  .funding-reading-grid {
     grid-template-columns: 1fr;
-  }
-
-  .funding-insight-facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .funding-rule-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .funding-economics-metrics {
@@ -4628,7 +4672,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
   .funding-challenge-card__meta,
   .funding-card-gauges {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .funding-challenge-card__head,
@@ -4660,16 +4704,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     flex-direction: column;
   }
 
-  .funding-detail-metrics {
+  .funding-rule-row,
+  .funding-state-row {
     grid-template-columns: 1fr;
+    gap: 3px;
   }
 
-  .funding-insight-facts {
-    grid-template-columns: 1fr;
-  }
-
-  .funding-rule-grid {
-    grid-template-columns: 1fr;
+  .funding-rule-row em,
+  .funding-state-row em {
+    text-align: left;
   }
 
   .funding-economics-metrics {

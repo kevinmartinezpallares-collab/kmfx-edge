@@ -699,19 +699,17 @@ function economicsRoiMarkup(roiOnCosts = null) {
 
 function fundingEconomicsMarkup(economics = {}) {
   const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
+  if (!economics.hasTransactions) {
+    return `<div class="funding-economics-empty">Costes y payouts pendientes de registrar.</div>`;
+  }
   return `
     <div class="funding-economics-metrics">
       <div><span>Costes</span><strong>${formatCurrency(economics.totalSpent || 0)}</strong></div>
-      <div><span>Refunds</span><strong>${formatCurrency(economics.totalRefunds || 0)}</strong></div>
       <div><span>Payouts/Retiros</span><strong>${formatCurrency(payoutAndWithdrawals)}</strong></div>
       <div><span>Neto funding</span><strong>${economicsAmountMarkup(economics.netFundingResult || 0)}</strong></div>
       <div><span>ROI costes</span><strong>${economicsRoiMarkup(economics.roiOnCosts)}</strong></div>
     </div>
-    ${economics.hasTransactions ? `
-      <div class="funding-economics-note">Lectura económica manual. No incluye P&L de trading ni equity live.</div>
-    ` : `
-      <div class="funding-economics-empty">Costes y payouts pendientes de registrar.</div>
-    `}
+    <div class="funding-economics-note">Lectura económica manual. No incluye P&L de trading ni equity live.</div>
   `;
 }
 
@@ -760,66 +758,154 @@ function fundingInsightSummary(account = {}, economics = {}) {
   return "Challenge dentro de objetivo y sin alertas críticas visibles.";
 }
 
-function fundingRulesCompactLine(account = {}) {
-  const target = account.targetPct ? `objetivo ${formatPercent(account.targetPct)}` : "sin objetivo";
-  const daily = account.dailyLimitPct ? `DD diario ${formatRuleLimitValue(account.dailyLimitPct)}` : "DD diario —";
-  const max = account.maxLimitPct ? `DD máximo ${formatRuleLimitValue(account.maxLimitPct)}` : "DD máximo —";
-  return `${target} · ${daily} · ${max}`;
-}
-
 function fundingRuleTone(account = {}) {
   if (account.preset?.verified) return "profit";
   if (requiresRuleVerification(account)) return "warning";
   return "neutral";
 }
 
+function drawdownTypeLabel(type = "") {
+  const normalized = normalizeText(type);
+  if (normalized === "static") return "Estático";
+  if (normalized === "trailing") return "Trailing";
+  if (normalized === "relative") return "Relativo";
+  if (normalized === "daily_balance") return "Diario sobre balance";
+  if (normalized === "daily_equity") return "Diario sobre equity";
+  if (normalized === "daily_balance_or_equity") return "Balance o equity";
+  return "Por verificar";
+}
+
+function maxLossBasisShortLabel(basis = "", drawdownType = "") {
+  const label = maxLossBasisLabel(basis, drawdownType);
+  return label.replace(/^Base:\s*/i, "");
+}
+
+function minimumDaysRuleLabel(account = {}) {
+  if (account.noMinimumDays || !account.requiredTradingDays) return "Sin mínimo";
+  return `${account.requiredTradingDays} días`;
+}
+
+function fundingRuleRowMarkup(label = "", value = "", meta = "", tone = "neutral") {
+  return `
+    <span class="funding-rule-row" data-tone="${escapeHtml(tone)}">
+      <small>${escapeHtml(label)}</small>
+      <strong>${escapeHtml(value)}</strong>
+      ${meta ? `<em>${escapeHtml(meta)}</em>` : ""}
+    </span>
+  `;
+}
+
+function ruleLimitMeta(account = {}, pct = 0, suffix = "") {
+  if (!Number(pct)) return "No configurado";
+  return [ruleAmountFromPct(account, pct), suffix].filter(Boolean).join(" · ");
+}
+
 function fundingRulesVisualMarkup(account = {}) {
   const preset = account.preset || {};
   const targetValue = account.targetPct ? formatPercent(account.targetPct) : "Sin objetivo";
   const targetMeta = account.targetUsd ? formatCurrency(account.targetUsd) : "No configurado";
-  const dailyMeta = [
-    ruleAmountFromPct(account, account.dailyLimitPct),
-    dailyResetLabel(preset.dailyReset),
-  ].filter(Boolean).join(" · ");
-  const maxMeta = [
-    ruleAmountFromPct(account, account.maxLimitPct),
-    maxLossBasisLabel(preset.maxLossBasis, preset.drawdownType),
-  ].filter(Boolean).join(" · ");
   const presetLabel = account.ruleStatus?.label || "Sin preset";
   const presetMeta = requiresRuleVerification(account)
-    ? "Reglas editables hasta confirmar programa exacto"
+    ? "Editable hasta confirmar programa/fase"
     : (preset.versionLabel || "Fuente oficial vinculada");
   return `
-    <div class="funding-rule-grid" aria-label="Reglas aplicadas">
-      <span class="funding-rule-item">
-        <small>Objetivo</small>
-        <strong>${escapeHtml(targetValue)}</strong>
-        <em>${escapeHtml(targetMeta)}</em>
-      </span>
-      <span class="funding-rule-item">
-        <small>DD diario</small>
-        <strong>${escapeHtml(formatRuleLimitValue(account.dailyLimitPct))}</strong>
-        <em>${escapeHtml(dailyMeta)}</em>
-      </span>
-      <span class="funding-rule-item">
-        <small>DD máximo</small>
-        <strong>${escapeHtml(formatRuleLimitValue(account.maxLimitPct))}</strong>
-        <em>${escapeHtml(maxMeta)}</em>
-      </span>
-      <span class="funding-rule-item" data-tone="${escapeHtml(fundingRuleTone(account))}">
-        <small>Preset</small>
-        <strong>${escapeHtml(presetLabel)}</strong>
-        <em>${escapeHtml(presetMeta)}</em>
-      </span>
+    <div class="funding-rule-card" aria-label="Reglas de la fase">
+      <div class="funding-rule-card__head">
+        <strong>Reglas de la fase</strong>
+        <span data-tone="${escapeHtml(fundingRuleTone(account))}">${escapeHtml(presetLabel)}</span>
+      </div>
+      <div class="funding-rule-list">
+        ${fundingRuleRowMarkup("Objetivo de beneficio", targetValue, targetMeta)}
+        ${fundingRuleRowMarkup("Drawdown diario", formatRuleLimitValue(account.dailyLimitPct), ruleLimitMeta(account, account.dailyLimitPct, dailyResetLabel(preset.dailyReset)))}
+        ${fundingRuleRowMarkup("Pérdida máxima", formatRuleLimitValue(account.maxLimitPct), ruleLimitMeta(account, account.maxLimitPct))}
+        ${fundingRuleRowMarkup("Tipo de drawdown", drawdownTypeLabel(preset.drawdownType), "")}
+        ${fundingRuleRowMarkup("Base de cálculo", maxLossBasisShortLabel(preset.maxLossBasis, preset.drawdownType), "")}
+        ${fundingRuleRowMarkup("Días mínimos", minimumDaysRuleLabel(account), "")}
+        ${fundingRuleRowMarkup("Recompensa", "No modelado", "No se infiere de P&L")}
+        ${fundingRuleRowMarkup("Preset", presetLabel, presetMeta, fundingRuleTone(account))}
+      </div>
     </div>
   `;
 }
 
-function drawdownCombinedTone(account = {}) {
-  if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100) return "risk";
-  if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "warning";
-  if (account.dailyLimitPct || account.maxLimitPct) return "profit";
-  return "neutral";
+function drawdownCurrentLine(usagePct = 0, limitPct = 0, usedPct = 0) {
+  if (!Number(limitPct)) return "Sin regla configurada";
+  const margin = drawdownMarginPct(limitPct, usedPct);
+  const marginLabel = margin <= 0 ? "sin margen" : `margen ${formatRuleValue(margin)}`;
+  return `${Math.round(usagePct)}% usado · ${marginLabel}`;
+}
+
+function fundingCardSummaryMarkup(account = {}, economics = {}) {
+  const targetLabel = account.targetUsd ? `objetivo ${formatCurrency(account.targetUsd)}` : "sin objetivo";
+  return `
+    <span class="funding-card-summary">
+      <span><strong>Resultado</strong><em>${fundedResultMarkup(account)} / ${escapeHtml(targetLabel)}</em></span>
+      <span data-tone="${escapeHtml(drawdownTone(account.dailyUsagePct, account.dailyLimitPct))}">
+        <strong>DD diario</strong><em>${escapeHtml(drawdownCurrentLine(account.dailyUsagePct, account.dailyLimitPct, account.dailyDdPct))}</em>
+      </span>
+      <span data-tone="${escapeHtml(drawdownTone(account.maxUsagePct, account.maxLimitPct))}">
+        <strong>DD máximo</strong><em>${escapeHtml(drawdownCurrentLine(account.maxUsagePct, account.maxLimitPct, account.maxDdPct))}</em>
+      </span>
+      <span><strong>Neto funding</strong><em>${fundingCardEconomicsValue(economics)}</em></span>
+    </span>
+  `;
+}
+
+function currentStateValueMarkup({ label = "", value = "", meta = "", tone = "neutral" } = {}) {
+  return `
+    <span class="funding-state-row" data-tone="${escapeHtml(tone)}">
+      <small>${escapeHtml(label)}</small>
+      <strong>${value}</strong>
+      ${meta ? `<em>${escapeHtml(meta)}</em>` : ""}
+    </span>
+  `;
+}
+
+function fundingCurrentStateMarkup(account = {}, economics = {}, daysStatus = tradingDaysStatus(account)) {
+  const targetMeta = account.targetUsd ? `objetivo ${formatCurrency(account.targetUsd)}` : "Sin objetivo";
+  return `
+    <div class="funding-state-card" aria-label="Estado actual del challenge">
+      <div class="funding-rule-card__head">
+        <strong>Estado actual</strong>
+        <span data-tone="${escapeHtml(fundedChallengeStatus(account).dataTone)}">${escapeHtml(fundedChallengeStatus(account).label)}</span>
+      </div>
+      <div class="funding-rule-list">
+        ${currentStateValueMarkup({
+          label: "Resultado actual",
+          value: fundedResultMarkup(account),
+          tone: account.currentProfitUsd < 0 ? "risk" : "profit",
+        })}
+        ${currentStateValueMarkup({
+          label: "Pendiente objetivo",
+          value: escapeHtml(account.targetUsd ? formatCurrency(account.remainingUsd) : "—"),
+          meta: targetMeta,
+        })}
+        ${currentStateValueMarkup({
+          label: "DD diario usado",
+          value: escapeHtml(account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}%` : "—"),
+          meta: drawdownCurrentLine(account.dailyUsagePct, account.dailyLimitPct, account.dailyDdPct),
+          tone: drawdownTone(account.dailyUsagePct, account.dailyLimitPct),
+        })}
+        ${currentStateValueMarkup({
+          label: "DD máximo usado",
+          value: escapeHtml(account.maxLimitPct ? `${Math.round(account.maxUsagePct)}%` : "—"),
+          meta: drawdownCurrentLine(account.maxUsagePct, account.maxLimitPct, account.maxDdPct),
+          tone: drawdownTone(account.maxUsagePct, account.maxLimitPct),
+        })}
+        ${currentStateValueMarkup({
+          label: "Días operados",
+          value: escapeHtml(String(account.daysCompleted || 0)),
+          meta: daysStatus.label,
+        })}
+        ${currentStateValueMarkup({
+          label: "Neto funding",
+          value: fundingCardEconomicsValue(economics),
+          meta: economics.hasTransactions ? "Ledger manual" : "Pendiente de registrar",
+          tone: economics.hasTransactions && economics.netFundingResult < 0 ? "warning" : "neutral",
+        })}
+      </div>
+    </div>
+  `;
 }
 
 function targetProgressTone(account = {}) {
@@ -828,16 +914,6 @@ function targetProgressTone(account = {}) {
   if (account.targetCompletionPct >= 100) return "profit";
   if (account.currentProfitUsd > 0) return "profit";
   return "neutral";
-}
-
-function daysProgressPct(account = {}) {
-  if (!account.requiredTradingDays) return 0;
-  return clamp((Number(account.daysCompleted || 0) / Number(account.requiredTradingDays)) * 100);
-}
-
-function daysProgressTone(account = {}) {
-  if (!account.requiredTradingDays || account.noMinimumDays) return "neutral";
-  return account.daysCompleted >= account.requiredTradingDays ? "profit" : "warning";
 }
 
 function fundingGaugeMarkup({ label = "", value = 0, tone = "neutral", primary = "", meta = "" } = {}) {
@@ -885,7 +961,6 @@ function fundingAccountContextBadgeMarkup(account = {}) {
 function fundingAccountGaugesMarkup(account = {}) {
   const dailyMargin = drawdownMarginPct(account.dailyLimitPct, account.dailyDdPct);
   const maxMargin = drawdownMarginPct(account.maxLimitPct, account.maxDdPct);
-  const daysStatus = tradingDaysStatus(account);
   return `
     <span class="funding-card-gauges" aria-label="Progreso y límites del challenge">
       ${fundingGaugeMarkup({
@@ -920,13 +995,6 @@ function fundingAccountGaugesMarkup(account = {}) {
         meta: account.maxLimitPct
           ? `${maxMargin <= 0 ? "Sin margen" : `Margen ${formatRuleValue(maxMargin)}`} · límite ${formatRuleValue(account.maxLimitPct)}`
           : "Sin regla configurada",
-      })}
-      ${fundingGaugeMarkup({
-        label: "Días",
-        value: account.requiredTradingDays ? daysProgressPct(account) : 0,
-        tone: daysProgressTone(account),
-        primary: account.requiredTradingDays ? `${account.daysCompleted}/${account.requiredTradingDays}` : `${account.daysCompleted} días`,
-        meta: account.requiredTradingDays ? daysStatus.remaining : "Sin mínimo",
       })}
     </span>
   `;
@@ -1342,19 +1410,15 @@ export function renderFunded(root, state) {
                   <span class="funding-challenge-card__identity">
                     <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
                     <small>${escapeHtml(`${account.propFirm} · ${account.phase}`)}</small>
-                    <em>${escapeHtml(fundingJourneyMetaLine(account) || fundedLinkedAccountShortMeta(account))}</em>
+                    <em>${escapeHtml(fundedLinkedAccountShortMeta(account))}</em>
                   </span>
                   <span class="funding-card-badges">
                     ${fundingCardStatusMarkup(account)}
                     ${fundingAccountContextBadgeMarkup(account)}
+                    ${requiresRuleVerification(account) ? `<span class="funding-rule-chip" data-tone="warning">Reglas por verificar</span>` : ""}
                   </span>
                 </span>
-                <span class="funding-challenge-card__snapshot">
-                  <span><small>Resultado</small><strong>${fundedResultMarkup(account)}</strong></span>
-                  <span><small>Objetivo</small><strong>${account.targetUsd ? `${formatCurrency(account.targetUsd)} · pendiente ${formatCurrency(account.remainingUsd)}` : "Sin objetivo"}</strong></span>
-                  <span><small>Equity</small><strong>${formatCurrency(account.equity)}</strong></span>
-                  <span><small>Neto funding</small><strong>${fundingCardEconomicsValue(accountFundingEconomics)}</strong></span>
-                </span>
+                ${fundingCardSummaryMarkup(account, accountFundingEconomics)}
                 ${fundingAccountGaugesMarkup(account)}
               </button>
             `;
@@ -1373,6 +1437,7 @@ export function renderFunded(root, state) {
           <div class="funding-detail-actions">
             ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
             <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
             <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
           </div>
         </div>
@@ -1384,22 +1449,17 @@ export function renderFunded(root, state) {
           </div>
         ` : ""}
 
-        ${fundingRulesVisualMarkup(selected)}
-
-        <div class="funding-insight-facts funding-insight-facts--compact">
-          <span><small>Preset</small><strong>${escapeHtml(selected.ruleStatus?.label || "Sin preset")}</strong></span>
-          <span><small>Economía</small><strong>${fundingCardEconomicsValue(selectedFundingEconomics)}</strong></span>
-          <span><small>Días</small><strong>${escapeHtml(daysStatus.label)}</strong></span>
-          <span><small>Lectura</small><strong>${escapeHtml(challengeStatus.label)}</strong></span>
+        <div class="funding-reading-grid">
+          ${fundingRulesVisualMarkup(selected)}
+          ${fundingCurrentStateMarkup(selected, selectedFundingEconomics, daysStatus)}
         </div>
 
         <div class="funding-economics-panel" aria-label="Economía del fondeo">
           <div class="funding-economics-head">
             <div>
               <div class="funding-detail-kicker">Economía del fondeo</div>
-              <div class="funding-rule-note-line">Costes, refunds, payouts y ajustes manuales del recorrido.</div>
+              <div class="funding-rule-note-line">Ledger manual separado del P&L de trading.</div>
             </div>
-            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
           </div>
           ${fundingEconomicsMarkup(selectedFundingEconomics)}
         </div>
