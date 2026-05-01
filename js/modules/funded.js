@@ -1,4 +1,4 @@
-import { openModal } from "./modal-system.js?v=build-20260406-213500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
@@ -18,6 +18,13 @@ import {
   fundingJourneyStatusLabel,
   fundingPhaseStatusLabel,
 } from "./funding-journeys.js?v=build-20260406-213500";
+import {
+  FUNDING_TRANSACTION_TYPES,
+  deriveFundingEconomics,
+  fundingTransactionTypeLabel,
+  fundingTransactionsForJourney,
+  normalizeFundingTransaction,
+} from "./funding-ledger.js?v=build-20260406-213500";
 
 const ORION_FUNDING_LINK = {
   login: "80571774",
@@ -158,6 +165,19 @@ function updateFundedAccount(store, fundedId, updater) {
         item.id === fundedId ? updater(item) : item
       ))
     }
+  }));
+}
+
+function addFundingTransaction(store, transaction) {
+  store.setState((state) => ({
+    ...state,
+    workspace: {
+      ...state.workspace,
+      fundingTransactions: [
+        ...(Array.isArray(state.workspace?.fundingTransactions) ? state.workspace.fundingTransactions : []),
+        transaction,
+      ],
+    },
   }));
 }
 
@@ -590,6 +610,42 @@ function fundingPhaseMetaLine(account = {}) {
   return `${phase.phaseName || phase.phaseId} · ${fundingPhaseStatusLabel(phase.status)}`;
 }
 
+function economicsAmountMarkup(value = 0) {
+  return pnlTextMarkup({
+    value,
+    text: formatCurrency(value),
+    className: value >= 0 ? "metric-positive" : "metric-negative",
+  });
+}
+
+function economicsRoiMarkup(roiOnCosts = null) {
+  if (roiOnCosts == null) return "—";
+  const pct = roiOnCosts * 100;
+  return pnlTextMarkup({
+    value: pct,
+    text: formatPercent(pct),
+    className: pct >= 0 ? "metric-positive" : "metric-negative",
+  });
+}
+
+function fundingEconomicsMarkup(economics = {}) {
+  const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
+  return `
+    <div class="funding-economics-metrics">
+      <div><span>Costes</span><strong>${formatCurrency(economics.totalSpent || 0)}</strong></div>
+      <div><span>Refunds</span><strong>${formatCurrency(economics.totalRefunds || 0)}</strong></div>
+      <div><span>Payouts/Retiros</span><strong>${formatCurrency(payoutAndWithdrawals)}</strong></div>
+      <div><span>Neto funding</span><strong>${economicsAmountMarkup(economics.netFundingResult || 0)}</strong></div>
+      <div><span>ROI costes</span><strong>${economicsRoiMarkup(economics.roiOnCosts)}</strong></div>
+    </div>
+    ${economics.hasTransactions ? `
+      <div class="funding-economics-note">Lectura económica manual. No incluye P&L de trading ni equity live.</div>
+    ` : `
+      <div class="funding-economics-empty">Costes y payouts pendientes de registrar.</div>
+    `}
+  `;
+}
+
 function drawdownCombinedTone(account = {}) {
   if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100) return "risk";
   if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "warning";
@@ -715,7 +771,7 @@ function isLinkedAccountStale(account) {
   return Date.now() - parsed.getTime() > 15 * 60 * 1000;
 }
 
-function fundedReviewAlerts(account) {
+function fundedReviewAlerts(account, fundingEconomics = {}) {
   const alerts = [];
   if (account.dailyLimitPct && account.dailyUsagePct >= 80) {
     alerts.push({
@@ -765,12 +821,14 @@ function fundedReviewAlerts(account) {
       badge: "OK",
     });
   }
-  alerts.push({
-    tone: "neutral",
-    title: "Costes y payouts pendientes",
-    detail: "Costes, payouts y recuperaciones todavía no están modelados.",
-    badge: "Info",
-  });
+  if (!fundingEconomics.hasTransactions) {
+    alerts.push({
+      tone: "neutral",
+      title: "Costes y payouts pendientes",
+      detail: "Costes, payouts y recuperaciones todavía no están registrados.",
+      badge: "Info",
+    });
+  }
   return alerts;
 }
 
@@ -828,6 +886,73 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
   });
 }
 
+function openFundingTransactionModal(store, root, account, currency = "USD") {
+  const journey = account.fundingJourney;
+  const phase = account.fundingPhase;
+  if (!journey?.id) return;
+
+  openModal({
+    title: "Añadir movimiento",
+    subtitle: `${fundedChallengeDisplayName(account)} · economía del fondeo`,
+    maxWidth: 620,
+    content: `
+      <form class="funding-ledger-form" data-funding-transaction-form>
+        <label class="form-stack">
+          <span>Tipo</span>
+          <select name="type" required>
+            ${FUNDING_TRANSACTION_TYPES.map((type) => `<option value="${type}">${fundingTransactionTypeLabel(type)}</option>`).join("")}
+          </select>
+        </label>
+        <label class="form-stack">
+          <span>Importe</span>
+          <input type="number" name="amount" step="0.01" required placeholder="0.00">
+        </label>
+        <label class="form-stack">
+          <span>Fecha</span>
+          <input type="date" name="date" value="${new Date().toISOString().slice(0, 10)}">
+        </label>
+        <label class="form-stack">
+          <span>Etiqueta</span>
+          <input type="text" name="label" placeholder="Ej. Challenge fee Orion">
+        </label>
+        <label class="form-stack">
+          <span>Notas</span>
+          <textarea name="notes" rows="3" placeholder="Referencia, invoice, payout o contexto manual"></textarea>
+        </label>
+        <div class="funding-economics-note">
+          Los costes se guardan como importes negativos. Esta economía no se infiere del P&L de trading.
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
+          <button class="btn-primary" type="submit">Guardar movimiento</button>
+        </div>
+      </form>
+    `,
+    onMount: (card) => {
+      const form = card?.querySelector("[data-funding-transaction-form]");
+      form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const transaction = normalizeFundingTransaction({
+          type: data.get("type"),
+          amount: data.get("amount"),
+          date: data.get("date"),
+          label: data.get("label"),
+          notes: data.get("notes"),
+        }, {
+          journeyId: journey.id,
+          phaseId: phase?.id || journey.currentPhaseId || "",
+          currency,
+        });
+        if (!transaction.amount) return;
+        addFundingTransaction(store, transaction);
+        closeModal();
+        renderFunded(root, store.getState());
+      });
+    },
+  });
+}
+
 export function initFunded(store) {
   const root = document.getElementById("fundedRoot");
   if (!root) return;
@@ -849,6 +974,17 @@ export function initFunded(store) {
       const appCurrency = currentState.workspace?.baseCurrency || currentState.preferences?.baseCurrency || "USD";
       const accountCurrency = enriched.linked?.currency || enriched.linked?.model?.account?.currency || appCurrency;
       openFundedConfigModal(store, enriched, currencySymbol(accountCurrency));
+      return;
+    }
+
+    const transactionButton = event.target.closest("[data-funded-action='add-transaction']");
+    if (transactionButton) {
+      const currentState = store.getState();
+      const enriched = enrichFundedAccount(currentState, transactionButton.dataset.fundedId);
+      if (!enriched) return;
+      const appCurrency = currentState.workspace?.baseCurrency || currentState.preferences?.baseCurrency || "USD";
+      const accountCurrency = enriched.linked?.currency || enriched.linked?.model?.account?.currency || appCurrency;
+      openFundingTransactionModal(store, root, enriched, accountCurrency);
       return;
     }
 
@@ -946,7 +1082,12 @@ export function renderFunded(root, state) {
   const attentionStatus = hasAttentionAccount ? fundedChallengeStatus(attentionAccount) : null;
   const challengeStatus = fundedChallengeStatus(selected);
   const daysStatus = tradingDaysStatus(selected);
-  const reviewAlerts = fundedReviewAlerts(selected);
+  const selectedFundingTransactions = fundingTransactionsForJourney(
+    state.workspace?.fundingTransactions,
+    selected.fundingJourney?.id
+  );
+  const selectedFundingEconomics = deriveFundingEconomics(selectedFundingTransactions);
+  const reviewAlerts = fundedReviewAlerts(selected, selectedFundingEconomics);
   const visibleReviewAlerts = reviewAlerts.slice(0, 3);
   const hiddenReviewAlertCount = Math.max(reviewAlerts.length - visibleReviewAlerts.length, 0);
 
@@ -1066,6 +1207,17 @@ export function renderFunded(root, state) {
             </div>
             <div class="funding-rule-note-line">${escapeHtml(daysStatus.label)} · ${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
           </div>
+        </div>
+
+        <div class="funding-economics-panel" aria-label="Economía del fondeo">
+          <div class="funding-economics-head">
+            <div>
+              <div class="funding-detail-kicker">Economía del fondeo</div>
+              <div class="funding-rule-note-line">Costes, refunds, payouts y ajustes manuales del recorrido.</div>
+            </div>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
+          </div>
+          ${fundingEconomicsMarkup(selectedFundingEconomics)}
         </div>
       </article>
 

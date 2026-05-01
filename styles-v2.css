@@ -4319,6 +4319,78 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 540;
 }
 
+.funding-economics-panel {
+  display: grid;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 62%, transparent);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--foreground) 1.8%, transparent);
+}
+
+.funding-economics-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.funding-economics-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.funding-economics-metrics > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 52%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--background) 64%, transparent);
+}
+
+.funding-economics-metrics span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.funding-economics-metrics strong {
+  color: var(--foreground);
+  font-size: 13.5px;
+  line-height: 1.15;
+  font-weight: 760;
+  overflow-wrap: anywhere;
+}
+
+.funding-economics-metrics .kmfx-ui-pnl {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.funding-economics-empty,
+.funding-economics-note {
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.35;
+  font-weight: 540;
+}
+
+.funding-ledger-form {
+  display: grid;
+  gap: 14px;
+}
+
+.funding-ledger-form textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
 .funding-review-list {
   display: grid;
   gap: 0;
@@ -4389,6 +4461,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   .funding-detail-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .funding-economics-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -4402,6 +4478,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
   .funding-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .funding-economics-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -4439,7 +4519,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
     justify-content: flex-start;
   }
 
+  .funding-economics-head {
+    flex-direction: column;
+  }
+
   .funding-detail-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .funding-economics-metrics {
     grid-template-columns: 1fr;
   }
 }
