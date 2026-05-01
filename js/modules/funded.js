@@ -31,6 +31,12 @@ const ORION_FUNDING_LINK = {
   serverNeedle: "ogminternational",
 };
 
+const RULE_CONFIRMATION_STATUS = {
+  UNCONFIRMED: "unconfirmed",
+  USER_CONFIRMED: "user_confirmed",
+  OFFICIAL_VERIFIED: "official_verified",
+};
+
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -192,25 +198,48 @@ function applyFundedFieldChange(store, fundedId, fieldName, value) {
         ...account,
         propFirm: value,
         firm: value,
-        programModel: nextProgram
+        programModel: nextProgram,
+        rulesConfirmationStatus: RULE_CONFIRMATION_STATUS.UNCONFIRMED,
       };
     });
     return;
   }
 
   if (fieldName === "programModel") {
-    updateFundedAccount(store, fundedId, (account) => ({ ...account, programModel: value }));
+    updateFundedAccount(store, fundedId, (account) => ({
+      ...account,
+      programModel: value,
+      rulesConfirmationStatus: RULE_CONFIRMATION_STATUS.UNCONFIRMED,
+    }));
     return;
   }
 
   if (fieldName === "phase") {
-    updateFundedAccount(store, fundedId, (account) => ({ ...account, phase: value }));
+    updateFundedAccount(store, fundedId, (account) => ({
+      ...account,
+      phase: value,
+      rulesConfirmationStatus: RULE_CONFIRMATION_STATUS.UNCONFIRMED,
+    }));
     return;
   }
 
   if (fieldName === "accountSize") {
     const size = Number(value || 0);
     updateFundedAccount(store, fundedId, (account) => ({ ...account, accountSize: size, size }));
+    return;
+  }
+
+  if (fieldName === "rulesConfirmationStatus") {
+    const allowed = new Set([
+      RULE_CONFIRMATION_STATUS.UNCONFIRMED,
+      RULE_CONFIRMATION_STATUS.USER_CONFIRMED,
+      RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED,
+    ]);
+    updateFundedAccount(store, fundedId, (account) => ({
+      ...account,
+      rulesConfirmationStatus: allowed.has(value) ? value : RULE_CONFIRMATION_STATUS.UNCONFIRMED,
+      rulesConfirmedByUser: value === RULE_CONFIRMATION_STATUS.USER_CONFIRMED,
+    }));
   }
 }
 
@@ -299,6 +328,11 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
   const preset = resolveRulePreset(propFirm, programModel, phase, accountSize);
   const canUsePresetValues = canApplyPresetValues(preset);
   const rulesVerified = Boolean(preset?.verified && !preset?.requiresReview && !preset?.editable && !preset?.legacy);
+  const resolvedRulesConfirmationStatus = rulesVerified
+    ? RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED
+    : (raw.rulesConfirmedByUser || raw.rulesConfirmationStatus === RULE_CONFIRMATION_STATUS.USER_CONFIRMED)
+      ? RULE_CONFIRMATION_STATUS.USER_CONFIRMED
+      : RULE_CONFIRMATION_STATUS.UNCONFIRMED;
   const balance = Number(linked?.model?.account?.balance || raw.balance || accountSize || 0);
   const equity = Number(linked?.model?.account?.equity || balance);
   const totalPnl = Number(linked?.model?.totals?.pnl || (balance - accountSize));
@@ -398,6 +432,8 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
     preset,
     ruleStatus: preset?.ruleStatus || null,
     rulesVerified,
+    rulesConfirmationStatus: resolvedRulesConfirmationStatus,
+    rulesConfirmedByUser: resolvedRulesConfirmationStatus === RULE_CONFIRMATION_STATUS.USER_CONFIRMED,
     balance,
     equity,
     totalPnl,
@@ -496,7 +532,32 @@ function hasExplicitPhaseFailure(account = {}) {
   );
 }
 
+function hasOfficialVerifiedRules(account = {}) {
+  const preset = account.preset || {};
+  return Boolean(preset.verified && !preset.requiresReview && !preset.editable && !preset.legacy && preset.sourceType === "official");
+}
+
+function ruleConfirmationStatus(account = {}) {
+  if (hasOfficialVerifiedRules(account)) return RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED;
+  const rawStatus = normalizeText(account.rulesConfirmationStatus);
+  if (
+    account.rulesConfirmedByUser === true
+      || rawStatus === RULE_CONFIRMATION_STATUS.USER_CONFIRMED
+      || rawStatus === "confirmed"
+      || rawStatus === "user-confirmed"
+      || rawStatus === "confirmadas"
+  ) {
+    return RULE_CONFIRMATION_STATUS.USER_CONFIRMED;
+  }
+  return RULE_CONFIRMATION_STATUS.UNCONFIRMED;
+}
+
+function hasUserConfirmedRules(account = {}) {
+  return ruleConfirmationStatus(account) === RULE_CONFIRMATION_STATUS.USER_CONFIRMED;
+}
+
 function requiresRuleVerification(account = {}) {
+  if (ruleConfirmationStatus(account) !== RULE_CONFIRMATION_STATUS.UNCONFIRMED) return false;
   const statusLabel = normalizeText(account.ruleStatus?.label);
   return Boolean(
     account.preset?.requiresReview
@@ -617,8 +678,8 @@ function fundedChallengeStatus(account) {
   if (account.globalStatus === "WARNING" || account.currentProfitUsd < 0 || account.challengeState === "watch") {
     return {
       label: "En vigilancia",
-      tone: "warn",
-      dataTone: "warning",
+      tone: "neutral",
+      dataTone: "neutral",
       detail: "El challenge requiere revisión por presión de resultado o margen.",
     };
   }
@@ -682,8 +743,9 @@ function drawdownMarginPct(limitPct, usedPct) {
 function drawdownTone(usagePct, limitPct) {
   if (!Number(limitPct)) return "neutral";
   if (usagePct >= 100) return "risk";
-  if (usagePct >= 50) return "warning";
-  return "profit";
+  if (usagePct >= 80) return "warning";
+  if (usagePct <= 35) return "profit";
+  return "neutral";
 }
 
 function tradingDaysStatus(account) {
@@ -798,23 +860,37 @@ function fundingInsightSummary(account = {}, economics = {}) {
   if (account.accountSizeMismatch) return "Configuración pendiente antes de interpretar progreso.";
   if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "Margen de drawdown reducido; operar con lectura conservadora.";
   if (!account.targetUsd) return "Sin objetivo de beneficio activo; lectura centrada en preservación.";
-  if (status.label === "En vigilancia" && account.preset?.sourceType === "user_manual") return "Challenge en vigilancia; reglas cargadas desde referencia manual.";
+  if (status.label === "En vigilancia" && hasUserConfirmedRules(account)) return "Challenge en vigilancia; reglas confirmadas por usuario.";
+  if (status.label === "En vigilancia" && requiresRuleVerification(account)) return "Challenge en vigilancia; reglas pendientes de validar.";
   if (status.label === "En vigilancia") return "Challenge en vigilancia; revisar evolución sin señal crítica.";
   if (economics.hasTransactions && economics.netFundingResult < 0) return "Challenge en seguimiento con economía funding todavía negativa.";
   return "Challenge dentro de objetivo y sin alertas críticas visibles.";
 }
 
 function fundingRuleTone(account = {}) {
-  if (account.preset?.verified) return "profit";
+  const confirmation = ruleConfirmationStatus(account);
+  if (confirmation === RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED) return "profit";
+  if (confirmation === RULE_CONFIRMATION_STATUS.USER_CONFIRMED) return "info";
   if (requiresRuleVerification(account)) return "warning";
   return "neutral";
 }
 
 function fundingRuleDisplayLabel(account = {}) {
-  if (account.preset?.sourceType === "user_manual" && requiresRuleVerification(account)) {
-    return "Reglas por confirmar";
-  }
+  const confirmation = ruleConfirmationStatus(account);
+  if (confirmation === RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED) return "Preset verificado";
+  if (confirmation === RULE_CONFIRMATION_STATUS.USER_CONFIRMED) return "Reglas confirmadas";
+  if (requiresRuleVerification(account)) return "Pendiente de validar";
   return account.ruleStatus?.label || "Sin preset";
+}
+
+function fundingRuleDisplayMeta(account = {}) {
+  const confirmation = ruleConfirmationStatus(account);
+  if (confirmation === RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED) {
+    return account.preset?.sourceNote || account.preset?.versionLabel || "Fuente oficial vinculada";
+  }
+  if (confirmation === RULE_CONFIRMATION_STATUS.USER_CONFIRMED) return "Confirmadas por usuario";
+  if (requiresRuleVerification(account)) return "Reglas cargadas · validar contra dashboard";
+  return account.preset?.versionLabel || "Fuente no configurada";
 }
 
 function drawdownTypeLabel(type = "") {
@@ -858,9 +934,7 @@ function fundingRulesVisualMarkup(account = {}) {
   const targetValue = account.targetPct ? formatPercent(account.targetPct) : "Sin objetivo";
   const targetMeta = account.targetUsd ? formatCurrency(account.targetUsd) : "No configurado";
   const presetLabel = fundingRuleDisplayLabel(account);
-  const presetMeta = requiresRuleVerification(account)
-    ? "Reglas cargadas · verificar fuente"
-    : (preset.versionLabel || "Fuente oficial vinculada");
+  const presetMeta = fundingRuleDisplayMeta(account);
   const programLabel = preset.programName || account.programModel || "Preset";
   const rewardPct = Number(preset.rewardPct ?? preset.payoutSplitPct ?? 0);
   return `
@@ -1102,10 +1176,10 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
   }
   if (requiresRuleVerification(account)) {
     alerts.push({
-      tone: "warn",
-      title: account.preset?.sourceType === "user_manual" ? "Confirmar reglas del programa" : "Reglas por verificar",
+      tone: "neutral",
+      title: account.preset?.sourceType === "user_manual" ? "Reglas pendientes" : "Confirmar reglas del programa",
       detail: account.preset?.sourceType === "user_manual"
-        ? "Preset cargado desde referencia manual; confirma fuente oficial cuando esté disponible."
+        ? "Valida que coinciden con el dashboard de la prop firm."
         : "Confirma el programa exacto de la prop firm.",
       badge: "Reglas",
     });
@@ -1169,6 +1243,8 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
 function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
   const firmOptions = availableFirms(account.propFirm);
   const modelOptions = availableModels(account.propFirm, account.programModel);
+  const confirmationStatus = ruleConfirmationStatus(account);
+  const officialRulesAvailable = hasOfficialVerifiedRules(account);
   openModal({
     title: "Editar configuración",
     subtitle: fundedChallengeDisplayName(account),
@@ -1194,6 +1270,14 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
           </select>
         </label>
         <label class="form-stack">
+          <span>Confirmación de reglas</span>
+          <select data-funded-field="rulesConfirmationStatus" data-funded-id="${account.id}">
+            <option value="${RULE_CONFIRMATION_STATUS.UNCONFIRMED}" ${confirmationStatus === RULE_CONFIRMATION_STATUS.UNCONFIRMED ? "selected" : ""}>Pendiente de confirmar</option>
+            <option value="${RULE_CONFIRMATION_STATUS.USER_CONFIRMED}" ${confirmationStatus === RULE_CONFIRMATION_STATUS.USER_CONFIRMED ? "selected" : ""}>Confirmadas por mí</option>
+            ${officialRulesAvailable ? `<option value="${RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED}" selected>Usar preset oficial</option>` : ""}
+          </select>
+        </label>
+        <label class="form-stack">
           <span>Tamaño de cuenta</span>
           <div class="funded-size-wrap">
             <span class="funded-size-prefix">${accountCurrencySymbol}</span>
@@ -1206,7 +1290,7 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
             <path d="M12 10v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
             <circle cx="12" cy="7.2" r="1" fill="currentColor"></circle>
           </svg>
-          <span>${ruleNote(account)}</span>
+          <span>Marca las reglas como confirmadas si coinciden con el dashboard de la prop firm. ${ruleNote(account)}</span>
         </div>
       </div>
     `,
@@ -1351,7 +1435,7 @@ export function initFunded(store) {
           <div><strong>DD máximo</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
           <div><strong>Días</strong><span>${enriched.completedDaysVsRule}</span></div>
           <div><strong>Estado</strong><span>${enrichedStatus.label}</span></div>
-          <div><strong>Preset</strong><span>${ruleNote(enriched)}</span></div>
+          <div><strong>Reglas</strong><span>${escapeHtml(`${fundingRuleDisplayLabel(enriched)} · ${fundingRuleDisplayMeta(enriched)}`)}</span></div>
           ${adminView ? `<div><strong>Última sync</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
         </div>
       `

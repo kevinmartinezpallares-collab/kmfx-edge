@@ -3784,7 +3784,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-kpi[data-tone="warning"] .funding-kpi__value {
-  color: var(--risk);
+  color: color-mix(in srgb, var(--risk) 78%, var(--foreground));
 }
 
 .funding-kpi[data-tone="risk"] .funding-kpi__value {
@@ -3960,8 +3960,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-challenge-card[data-tone="warning"].is-active {
-  border-color: color-mix(in srgb, var(--risk) 46%, var(--border-0));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--risk) 18%, transparent);
+  border-color: color-mix(in srgb, var(--risk) 28%, var(--border-0));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--risk) 10%, transparent);
 }
 
 .funding-challenge-card[data-tone="risk"].is-active {
@@ -4181,12 +4181,23 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-status-chip[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 28%, var(--border-0));
-  color: var(--risk);
+  border-color: color-mix(in srgb, var(--risk) 22%, var(--border-0));
+  color: color-mix(in srgb, var(--risk) 78%, var(--foreground));
+  background: color-mix(in srgb, var(--risk) 5%, transparent);
 }
 
 .funding-status-chip[data-tone="warning"] .funding-status-chip__dot {
-  background: var(--risk);
+  background: color-mix(in srgb, var(--risk) 78%, var(--foreground));
+}
+
+.funding-status-chip[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--equity) 24%, var(--border-0));
+  color: color-mix(in srgb, var(--equity) 78%, var(--foreground));
+  background: color-mix(in srgb, var(--equity) 5%, transparent);
+}
+
+.funding-status-chip[data-tone="info"] .funding-status-chip__dot {
+  background: color-mix(in srgb, var(--equity) 78%, var(--foreground));
 }
 
 .funding-status-chip[data-tone="risk"] {
@@ -4219,7 +4230,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-gauge[data-tone="warning"] .funding-bar__fill {
-  background: var(--risk);
+  background: color-mix(in srgb, var(--risk) 78%, var(--foreground));
 }
 
 .funding-gauge[data-tone="risk"] .funding-bar__fill {
@@ -4299,8 +4310,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-rule-chip[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 26%, var(--border-0));
-  color: var(--risk);
+  border-color: color-mix(in srgb, var(--risk) 20%, var(--border-0));
+  background: color-mix(in srgb, var(--risk) 4%, transparent);
+  color: color-mix(in srgb, var(--risk) 76%, var(--foreground));
+}
+
+.funding-rule-chip[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--equity) 22%, var(--border-0));
+  background: color-mix(in srgb, var(--equity) 5%, transparent);
+  color: color-mix(in srgb, var(--equity) 78%, var(--foreground));
 }
 
 .funding-challenge-card__snapshot .kmfx-ui-pnl {
@@ -4314,7 +4332,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-detail-panel[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 30%, var(--border-0));
+  border-color: color-mix(in srgb, var(--risk) 20%, var(--border-0));
 }
 
 .funding-detail-panel[data-tone="risk"] {
@@ -4410,13 +4428,20 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .funding-rule-card__head span[data-tone="warning"] {
-  border-color: color-mix(in srgb, var(--risk) 30%, var(--border-0));
-  color: var(--risk);
+  border-color: color-mix(in srgb, var(--risk) 20%, var(--border-0));
+  background: color-mix(in srgb, var(--risk) 4%, transparent);
+  color: color-mix(in srgb, var(--risk) 76%, var(--foreground));
 }
 
 .funding-rule-card__head span[data-tone="profit"] {
   border-color: color-mix(in srgb, var(--profit) 26%, var(--border-0));
   color: var(--profit);
+}
+
+.funding-rule-card__head span[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--equity) 24%, var(--border-0));
+  background: color-mix(in srgb, var(--equity) 5%, transparent);
+  color: color-mix(in srgb, var(--equity) 78%, var(--foreground));
 }
 
 .funding-rule-list {
@@ -4477,7 +4502,12 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .funding-rule-row[data-tone="warning"] strong,
 .funding-state-row[data-tone="warning"] strong {
-  color: var(--risk);
+  color: color-mix(in srgb, var(--risk) 78%, var(--foreground));
+}
+
+.funding-rule-row[data-tone="info"] strong,
+.funding-state-row[data-tone="info"] strong {
+  color: color-mix(in srgb, var(--equity) 78%, var(--foreground));
 }
 
 .funding-state-row[data-tone="risk"] strong {
