@@ -656,6 +656,37 @@ function fundingEconomicsKpiMarkup(economics = {}) {
   `;
 }
 
+function fundingCardEconomicsValue(economics = {}) {
+  if (!economics.hasTransactions) return "Pendiente";
+  return economicsAmountMarkup(economics.netFundingResult || 0);
+}
+
+function fundingInsightSummary(account = {}, economics = {}) {
+  const status = fundedChallengeStatus(account);
+  if (status.label === "Fase fallida") {
+    const maxPressure = account.maxUsagePct >= 80 ? " margen máximo reducido" : " revisar reglas aplicadas";
+    const failureCause = account.dailyUsagePct >= 100
+      ? "límite diario"
+      : account.maxUsagePct >= 100
+        ? "límite máximo"
+        : "regla de fase";
+    return `Fase fallida por ${failureCause};${maxPressure}.`;
+  }
+  if (status.label === "Regla incumplida") return "Regla incumplida; revisa DD y continuidad de fase.";
+  if (account.accountSizeMismatch) return "Configuración pendiente antes de interpretar progreso.";
+  if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "Margen de drawdown reducido; operar con lectura conservadora.";
+  if (!account.targetUsd) return "Sin objetivo de beneficio activo; lectura centrada en preservación.";
+  if (economics.hasTransactions && economics.netFundingResult < 0) return "Challenge en seguimiento con economía funding todavía negativa.";
+  return "Challenge dentro de objetivo y sin alertas críticas visibles.";
+}
+
+function fundingRulesCompactLine(account = {}) {
+  const target = account.targetPct ? `objetivo ${formatPercent(account.targetPct)}` : "sin objetivo";
+  const daily = account.dailyLimitPct ? `DD diario ${formatRuleValue(account.dailyLimitPct)}` : "DD diario —";
+  const max = account.maxLimitPct ? `DD máximo ${formatRuleValue(account.maxLimitPct)}` : "DD máximo —";
+  return `${target} · ${daily} · ${max}`;
+}
+
 function drawdownCombinedTone(account = {}) {
   if (account.dailyUsagePct >= 100 || account.maxUsagePct >= 100) return "risk";
   if (account.dailyUsagePct >= 80 || account.maxUsagePct >= 80) return "warning";
@@ -721,16 +752,6 @@ function fundingAccountContextBadgeMarkup(account = {}) {
   `;
 }
 
-function fundingRuleStatusMarkup(account = {}) {
-  if (!account.ruleStatus?.label) return "";
-  const tone = account.ruleStatus.tone === "ok" ? "profit" : account.ruleStatus.tone === "warning" ? "warning" : "neutral";
-  return `
-    <span class="funding-rule-chip" data-tone="${escapeHtml(tone)}" title="${escapeHtml(ruleNote(account))}">
-      ${escapeHtml(account.ruleStatus.label)}
-    </span>
-  `;
-}
-
 function fundingAccountGaugesMarkup(account = {}) {
   const dailyMargin = drawdownMarginPct(account.dailyLimitPct, account.dailyDdPct);
   const maxMargin = drawdownMarginPct(account.maxLimitPct, account.maxDdPct);
@@ -744,7 +765,7 @@ function fundingAccountGaugesMarkup(account = {}) {
         primary: account.accountSizeMismatch
           ? "Revisar"
           : account.targetUsd
-            ? `${Math.round(account.targetCompletionPct)}%`
+            ? `${Math.round(account.targetCompletionPct)}% objetivo`
             : "Sin objetivo",
         meta: account.accountSizeMismatch
           ? "Tamaño incompatible"
@@ -758,7 +779,7 @@ function fundingAccountGaugesMarkup(account = {}) {
         tone: drawdownTone(account.dailyUsagePct, account.dailyLimitPct),
         primary: account.dailyLimitPct ? `${Math.round(account.dailyUsagePct)}% usado` : "Sin límite",
         meta: account.dailyLimitPct
-          ? `Margen ${dailyMargin == null ? "—" : formatPercent(dailyMargin)} · límite ${formatRuleValue(account.dailyLimitPct)}`
+          ? `${dailyMargin <= 0 ? "Sin margen" : `Margen ${formatPercent(dailyMargin)}`} · límite ${formatRuleValue(account.dailyLimitPct)}`
           : "Sin regla configurada",
       })}
       ${fundingGaugeMarkup({
@@ -767,15 +788,15 @@ function fundingAccountGaugesMarkup(account = {}) {
         tone: drawdownTone(account.maxUsagePct, account.maxLimitPct),
         primary: account.maxLimitPct ? `${Math.round(account.maxUsagePct)}% usado` : "Sin límite",
         meta: account.maxLimitPct
-          ? `Margen ${maxMargin == null ? "—" : formatPercent(maxMargin)} · límite ${formatRuleValue(account.maxLimitPct)}`
+          ? `${maxMargin <= 0 ? "Sin margen" : `Margen ${formatPercent(maxMargin)}`} · límite ${formatRuleValue(account.maxLimitPct)}`
           : "Sin regla configurada",
       })}
       ${fundingGaugeMarkup({
         label: "Días",
         value: account.requiredTradingDays ? daysProgressPct(account) : 0,
         tone: daysProgressTone(account),
-        primary: account.requiredTradingDays ? `${account.daysCompleted}/${account.requiredTradingDays}` : "Sin mínimo",
-        meta: account.requiredTradingDays ? daysStatus.remaining : `${account.daysCompleted} días operados`,
+        primary: account.requiredTradingDays ? `${account.daysCompleted}/${account.requiredTradingDays}` : `${account.daysCompleted} días`,
+        meta: account.requiredTradingDays ? daysStatus.remaining : "Sin mínimo",
       })}
     </span>
   `;
@@ -1124,6 +1145,7 @@ export function renderFunded(root, state) {
     visibleJourneyIds.has(transaction?.journeyId)
   ));
   const visibleFundingEconomics = deriveFundingEconomics(visibleFundingTransactions);
+  const fundingTransactions = Array.isArray(state.workspace?.fundingTransactions) ? state.workspace.fundingTransactions : [];
   const reviewAlerts = fundedReviewAlerts(selected, selectedFundingEconomics);
   const visibleReviewAlerts = reviewAlerts.slice(0, 3);
   const hiddenReviewAlertCount = Math.max(reviewAlerts.length - visibleReviewAlerts.length, 0);
@@ -1170,27 +1192,28 @@ export function renderFunded(root, state) {
         <div class="funding-card-grid" aria-label="Cuentas de fondeo">
           ${rankedFundedAccounts.map((account) => {
             const status = fundedChallengeStatus(account);
+            const accountFundingEconomics = deriveFundingEconomics(fundingTransactionsForJourney(
+              fundingTransactions,
+              account.fundingJourney?.id
+            ));
             return `
-              <button class="funding-challenge-card ${account.id === selected.id ? "is-active" : ""}" data-funded-select data-funded-id="${account.id}" data-tone="${status.dataTone}">
+              <button class="funding-challenge-card ${account.id === selected.id ? "is-active" : ""} ${isLiveFundedAccount(account) ? "" : "is-secondary"}" data-funded-select data-funded-id="${account.id}" data-tone="${status.dataTone}">
                 <span class="funding-challenge-card__head">
                   <span class="funding-challenge-card__identity">
                     <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
-                    <small>${escapeHtml(fundingJourneyMetaLine(account) || fundedLinkedAccountShortMeta(account))}</small>
+                    <small>${escapeHtml(`${account.propFirm} · ${account.phase}`)}</small>
+                    <em>${escapeHtml(fundingJourneyMetaLine(account) || fundedLinkedAccountShortMeta(account))}</em>
                   </span>
-                  ${fundingCardStatusMarkup(account)}
-                </span>
-                <span class="funding-challenge-card__meta">
-                  <span><small>Firma</small><strong>${escapeHtml(account.propFirm)}</strong></span>
-                  <span><small>Modelo</small><strong>${escapeHtml(account.programModel)}</strong></span>
-                  <span><small>Fase</small><strong>${escapeHtml(account.phase)}</strong></span>
-                  <span><small>Tamaño</small><strong>${formatCurrency(account.accountSize)}</strong></span>
+                  <span class="funding-card-badges">
+                    ${fundingCardStatusMarkup(account)}
+                    ${fundingAccountContextBadgeMarkup(account)}
+                  </span>
                 </span>
                 <span class="funding-challenge-card__snapshot">
                   <span><small>Resultado</small><strong>${fundedResultMarkup(account)}</strong></span>
-                  <span><small>Objetivo</small><strong>${account.targetUsd ? formatCurrency(account.targetUsd) : "Sin objetivo"}</strong></span>
+                  <span><small>Objetivo</small><strong>${account.targetUsd ? `${formatCurrency(account.targetUsd)} · pendiente ${formatCurrency(account.remainingUsd)}` : "Sin objetivo"}</strong></span>
                   <span><small>Equity</small><strong>${formatCurrency(account.equity)}</strong></span>
-                  ${fundingRuleStatusMarkup(account)}
-                  ${fundingAccountContextBadgeMarkup(account)}
+                  <span><small>Neto funding</small><strong>${fundingCardEconomicsValue(accountFundingEconomics)}</strong></span>
                 </span>
                 ${fundingAccountGaugesMarkup(account)}
               </button>
@@ -1202,8 +1225,8 @@ export function renderFunded(root, state) {
       <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
         <div class="funding-detail-header">
           <div>
-            <div class="tl-section-title">Detalle del challenge</div>
-            <div class="funding-detail-title">${escapeHtml(fundedChallengeDisplayName(selected))}</div>
+            <div class="tl-section-title">Lectura del challenge</div>
+            <div class="funding-detail-title">${escapeHtml(fundingInsightSummary(selected, selectedFundingEconomics))}</div>
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
             ${fundingJourneyMetaLine(selected) ? `<div class="funding-detail-sub">${escapeHtml(fundingJourneyMetaLine(selected))}</div>` : ""}
           </div>
@@ -1221,27 +1244,11 @@ export function renderFunded(root, state) {
           </div>
         ` : ""}
 
-        <div class="funding-detail-grid">
-          <div class="funding-detail-block">
-            <div class="funding-detail-kicker">Reglas aplicadas</div>
-            <div class="funding-detail-metrics funding-detail-metrics--rules">
-              <div><span>Preset</span><strong>${escapeHtml(selected.ruleStatus?.label || "Sin preset")}</strong></div>
-              <div><span>Objetivo</span><strong>${selected.targetPct ? formatPercent(selected.targetPct) : "Sin objetivo"}</strong></div>
-              <div><span>DD diario</span><strong>${formatRuleValue(selected.dailyLimitPct)}</strong></div>
-              <div><span>DD máximo</span><strong>${formatRuleValue(selected.maxLimitPct)}</strong></div>
-            </div>
-            <div class="funding-rule-note-line">${escapeHtml(ruleNote(selected))}</div>
-          </div>
-          <div class="funding-detail-block">
-            <div class="funding-detail-kicker">Lectura seleccionada</div>
-            <div class="funding-detail-metrics">
-              <div><span>Resultado</span><strong>${fundedResultMarkup(selected)}</strong></div>
-              <div><span>Pendiente</span><strong>${selected.accountSizeMismatch ? "Revisar config" : selected.targetUsd ? formatCurrency(selected.remainingUsd) : "No aplica"}</strong></div>
-              <div><span>Equity</span><strong>${formatCurrency(selected.equity)}</strong></div>
-              <div><span>Días</span><strong>${selected.requiredTradingDays ? `${selected.daysCompleted}/${selected.requiredTradingDays}` : selected.daysCompleted}</strong></div>
-            </div>
-            <div class="funding-rule-note-line">${escapeHtml(daysStatus.label)} · ${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
-          </div>
+        <div class="funding-insight-facts">
+          <span><small>Preset</small><strong>${escapeHtml(selected.ruleStatus?.label || "Sin preset")}</strong></span>
+          <span><small>Reglas</small><strong>${escapeHtml(fundingRulesCompactLine(selected))}</strong></span>
+          <span><small>Economía</small><strong>${fundingCardEconomicsValue(selectedFundingEconomics)}</strong></span>
+          <span><small>Días</small><strong>${escapeHtml(daysStatus.label)}</strong></span>
         </div>
 
         <div class="funding-economics-panel" aria-label="Economía del fondeo">
