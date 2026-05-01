@@ -10,6 +10,7 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 - El código web ya no hardcodea el redirect OAuth a `dashboard.kmfxedge.com`; usa el origen actual.
 - El launcher usa `https://kmfxedge.com?auth=recovery` por defecto y permite sobrescribirlo con `KMFX_DASHBOARD_RECOVERY_URL`.
 - Supabase Auth ya acepta `https://kmfxedge.com` como redirect y devuelve el flujo OAuth hacia Google.
+- Google OAuth tiene configurada la informacion de marca, dominios autorizados y callback de Supabase.
 - El dominio personalizado de Supabase Auth queda aplazado por coste mensual.
 
 ## Vercel y DNS
@@ -40,10 +41,10 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 
 ## Google OAuth
 
-- [ ] Configurar OAuth consent screen con nombre `KMFX Edge`.
-- [ ] Añadir dominio autorizado `kmfxedge.com`.
-- [ ] Revisar logo, email de soporte, Privacy Policy y Terms.
-- [ ] Revisar redirect URIs requeridas por Supabase.
+- [x] Configurar OAuth consent screen con nombre `KMFX Edge`.
+- [x] Añadir dominio autorizado `kmfxedge.com`.
+- [x] Revisar logo, email de soporte, Privacy Policy y Terms.
+- [x] Revisar redirect URIs requeridas por Supabase.
 - [ ] Verificar que el usuario vuelve a `https://kmfxedge.com` tras login.
 
 ## Backend/API
