@@ -222,6 +222,39 @@ function inferProgramModel(account = {}) {
   return inferFundingProgramModel(account);
 }
 
+function isEditableProgramModel(programModel = "") {
+  const normalized = normalizeText(programModel);
+  return !normalized
+    || normalized === "editable"
+    || normalized === "manual"
+    || normalized.includes("manual / sin preset")
+    || normalized.includes("sin preset")
+    || normalized.includes("legacy / editable");
+}
+
+function shouldUseOrionStandardSwingFallback(account = {}, linked = null, accountSize = 0) {
+  const firm = normalizeText(account.propFirm || account.firm);
+  if (!firm.includes("orion")) return false;
+  if (!isEditableProgramModel(account.programModel)) return false;
+  const identity = normalizeText([
+    account.id,
+    account.accountId,
+    account.label,
+    account.name,
+    account.programModel,
+  ].filter(Boolean).join(" "));
+  return identity.includes("orion challenge 5k")
+    || identity.includes("orion standard")
+    || identity.includes("standard")
+    || identity.includes("swing")
+    || (Number(accountSize) === 5000 && isOrionLiveAccount(linked));
+}
+
+function resolveProgramModel(account = {}, linked = null, accountSize = 0) {
+  if (shouldUseOrionStandardSwingFallback(account, linked, accountSize)) return "Orion Standard/Swing";
+  return account.programModel || inferProgramModel(account);
+}
+
 function availableModels(firm = "", currentModel = "") {
   const models = availableFundingPrograms(firm);
   if (currentModel && !models.includes(currentModel)) return [currentModel, ...models];
@@ -238,6 +271,17 @@ function resolveRulePreset(propFirm, programModel, phase, accountSize) {
   return resolveFundingRulePreset({ propFirm, programModel, phase, accountSize });
 }
 
+function canApplyPresetValues(preset = null) {
+  if (!preset || preset.editable || preset.legacy) return false;
+  if (preset.verified && !preset.requiresReview) return true;
+  return preset.sourceType === "user_manual" && Boolean(
+    preset.profitTargetPct
+      || preset.dailyLossLimitPct
+      || preset.maxLossLimitPct
+      || preset.minTradingDays
+  );
+}
+
 function avgR(trades = []) {
   if (!trades.length) return 0;
   return trades.reduce((sum, trade) => sum + Number(trade.rMultiple || 0), 0) / trades.length;
@@ -249,11 +293,12 @@ function tradingDaysCompleted(model) {
 
 function deriveFundedAccount(raw, linked, linkContext = {}) {
   const propFirm = raw.propFirm || raw.firm || "FTMO";
-  const programModel = raw.programModel || inferProgramModel(raw);
   const phase = normalizePhase(raw.phase);
   const accountSize = Number(raw.accountSize || raw.size || linked?.model?.account?.balance || 0);
+  const programModel = resolveProgramModel(raw, linked, accountSize);
   const preset = resolveRulePreset(propFirm, programModel, phase, accountSize);
-  const canUsePresetValues = Boolean(preset?.verified && !preset?.requiresReview && !preset?.editable && !preset?.legacy);
+  const canUsePresetValues = canApplyPresetValues(preset);
+  const rulesVerified = Boolean(preset?.verified && !preset?.requiresReview && !preset?.editable && !preset?.legacy);
   const balance = Number(linked?.model?.account?.balance || raw.balance || accountSize || 0);
   const equity = Number(linked?.model?.account?.equity || balance);
   const totalPnl = Number(linked?.model?.totals?.pnl || (balance - accountSize));
@@ -352,7 +397,7 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
     accountSize,
     preset,
     ruleStatus: preset?.ruleStatus || null,
-    rulesVerified: canUsePresetValues,
+    rulesVerified,
     balance,
     equity,
     totalPnl,
@@ -764,6 +809,13 @@ function fundingRuleTone(account = {}) {
   return "neutral";
 }
 
+function fundingRuleDisplayLabel(account = {}) {
+  if (account.preset?.sourceType === "user_manual" && requiresRuleVerification(account)) {
+    return "Reglas por confirmar";
+  }
+  return account.ruleStatus?.label || "Sin preset";
+}
+
 function drawdownTypeLabel(type = "") {
   const normalized = normalizeText(type);
   if (normalized === "static") return "Estático";
@@ -804,15 +856,17 @@ function fundingRulesVisualMarkup(account = {}) {
   const preset = account.preset || {};
   const targetValue = account.targetPct ? formatPercent(account.targetPct) : "Sin objetivo";
   const targetMeta = account.targetUsd ? formatCurrency(account.targetUsd) : "No configurado";
-  const presetLabel = account.ruleStatus?.label || "Sin preset";
+  const presetLabel = fundingRuleDisplayLabel(account);
   const presetMeta = requiresRuleVerification(account)
-    ? "Editable hasta confirmar programa/fase"
+    ? "Reglas cargadas · verificar fuente"
     : (preset.versionLabel || "Fuente oficial vinculada");
+  const programLabel = preset.programName || account.programModel || "Preset";
+  const rewardPct = Number(preset.rewardPct ?? preset.payoutSplitPct ?? 0);
   return `
     <div class="funding-rule-card" aria-label="Reglas de la fase">
       <div class="funding-rule-card__head">
         <strong>Reglas de la fase</strong>
-        <span data-tone="${escapeHtml(fundingRuleTone(account))}">${escapeHtml(presetLabel)}</span>
+        <span data-tone="${escapeHtml(fundingRuleTone(account))}">${escapeHtml(programLabel)}</span>
       </div>
       <div class="funding-rule-list">
         ${fundingRuleRowMarkup("Objetivo de beneficio", targetValue, targetMeta)}
@@ -821,7 +875,7 @@ function fundingRulesVisualMarkup(account = {}) {
         ${fundingRuleRowMarkup("Tipo de drawdown", drawdownTypeLabel(preset.drawdownType), "")}
         ${fundingRuleRowMarkup("Base de cálculo", maxLossBasisShortLabel(preset.maxLossBasis, preset.drawdownType), "")}
         ${fundingRuleRowMarkup("Días mínimos", minimumDaysRuleLabel(account), "")}
-        ${fundingRuleRowMarkup("Recompensa", "No modelado", "No se infiere de P&L")}
+        ${fundingRuleRowMarkup("Recompensa", rewardPct ? `${formatRuleValue(rewardPct)}` : "No modelado", rewardPct ? "Payout split" : "No se infiere de P&L")}
         ${fundingRuleRowMarkup("Preset", presetLabel, presetMeta, fundingRuleTone(account))}
       </div>
     </div>
@@ -1043,8 +1097,10 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
   if (requiresRuleVerification(account)) {
     alerts.push({
       tone: "warn",
-      title: "Reglas por verificar",
-      detail: "Confirma el programa exacto de la prop firm.",
+      title: account.preset?.sourceType === "user_manual" ? "Confirmar reglas del programa" : "Reglas por verificar",
+      detail: account.preset?.sourceType === "user_manual"
+        ? "Preset cargado desde referencia manual; confirma fuente oficial cuando esté disponible."
+        : "Confirma el programa exacto de la prop firm.",
       badge: "Reglas",
     });
   }
@@ -1415,7 +1471,7 @@ export function renderFunded(root, state) {
                   <span class="funding-card-badges">
                     ${fundingCardStatusMarkup(account)}
                     ${fundingAccountContextBadgeMarkup(account)}
-                    ${requiresRuleVerification(account) ? `<span class="funding-rule-chip" data-tone="warning">Reglas por verificar</span>` : ""}
+                    ${requiresRuleVerification(account) ? `<span class="funding-rule-chip" data-tone="warning">${escapeHtml(fundingRuleDisplayLabel(account))}</span>` : ""}
                   </span>
                 </span>
                 ${fundingCardSummaryMarkup(account, accountFundingEconomics)}

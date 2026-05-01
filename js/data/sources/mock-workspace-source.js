@@ -130,7 +130,7 @@ const workspaceTemplate = {
       accountId: "orion-ogm",
       firm: "Orion Funded",
       propFirm: "Orion Funded",
-      programModel: "Editable",
+      programModel: "Orion Standard/Swing",
       label: "Orion Challenge 5k",
       phase: "Challenge",
       size: 5000,
