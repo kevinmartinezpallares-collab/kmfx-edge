@@ -1,0 +1,93 @@
+{
+  "brand": "KMFX Edge",
+  "duration_seconds": 12,
+  "formats": ["16:9", "9:16", "1:1"],
+  "tagline": "Precision. Rendimiento. Progreso.",
+  "scenes": [
+    {
+      "id": "01",
+      "time": "00:00-00:01",
+      "title": "El inicio",
+      "copy": "De la oscuridad, nace el enfoque.",
+      "visual": "Aparece el circulo con luz fria."
+    },
+    {
+      "id": "02",
+      "time": "00:01-00:02",
+      "title": "Precision",
+      "copy": "Cada linea representa precision.",
+      "visual": "Entra la linea central con filo metalico."
+    },
+    {
+      "id": "03",
+      "time": "00:02-00:03",
+      "title": "Progreso",
+      "copy": "La curva se forma, el progreso es inevitable.",
+      "visual": "Se dibuja el arco."
+    },
+    {
+      "id": "04",
+      "time": "00:03-00:04",
+      "title": "Unidad",
+      "copy": "Tres elementos. Un proposito.",
+      "visual": "Las tres piezas se alinean."
+    },
+    {
+      "id": "05",
+      "time": "00:04-00:06",
+      "title": "Profundidad",
+      "copy": "Disenado para destacar. Hecho para durar.",
+      "visual": "El logo gana volumen y brillo."
+    },
+    {
+      "id": "06",
+      "time": "00:06-00:07",
+      "title": "Energia",
+      "copy": "Impulsado por tecnologia y vision.",
+      "visual": "Pulso azul alrededor del mark."
+    },
+    {
+      "id": "07",
+      "time": "00:07-00:08",
+      "title": "Rendimiento",
+      "copy": "Datos que importan. Resultados que hablan.",
+      "visual": "Grid y curva de rendimiento al fondo."
+    },
+    {
+      "id": "08",
+      "time": "00:08-00:09",
+      "title": "Identidad",
+      "copy": "KMFX Edge. Tu ventaja en cada operacion.",
+      "visual": "Entra wordmark."
+    },
+    {
+      "id": "09",
+      "time": "00:09-00:10",
+      "title": "Velocidad",
+      "copy": "Moviendonos mas rapido. Siempre adelante.",
+      "visual": "Barrido de luz horizontal."
+    },
+    {
+      "id": "10",
+      "time": "00:10-00:11",
+      "title": "Presencia",
+      "copy": "Una marca que deja huella.",
+      "visual": "App icon contenido."
+    },
+    {
+      "id": "11",
+      "time": "00:11-00:12",
+      "title": "Cierre",
+      "copy": "Este es tu edge. Este es tu momento.",
+      "visual": "Logo + tagline."
+    },
+    {
+      "id": "12",
+      "time": "End",
+      "title": "Fin",
+      "copy": "KMFX Edge.",
+      "visual": "Wordmark solo, fade out."
+    }
+  ]
+}
+

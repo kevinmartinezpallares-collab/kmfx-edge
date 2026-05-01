@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 import webbrowser
+import os
 
 try:
     import webview
@@ -37,7 +38,7 @@ LAUNCHER_VERSION = "1.0.0"
 DEFAULT_CONNECTOR_VERSION = "2.75"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-icon-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
-DASHBOARD_RECOVERY_URL = "https://dashboard.kmfxedge.com?auth=recovery"
+DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://dashboard.kmfxedge.com?auth=recovery")
 
 
 def _read_connector_version() -> str:

@@ -1,0 +1,34 @@
+{
+  "brand": {
+    "name": "KMFX Edge",
+    "colors": {
+      "ink": "#050608",
+      "black": "#141413",
+      "surface": "#111318",
+      "surfaceElevated": "#191D24",
+      "white": "#F6F8FB",
+      "muted": "#8D95A3",
+      "edgeBlue": "#2F6BFF",
+      "equityCyan": "#6BB6FF",
+      "profit": "#22C55E",
+      "loss": "#EF4444",
+      "warning": "#F59E0B"
+    },
+    "radius": {
+      "icon": "24%",
+      "ui": "8px",
+      "button": "8px"
+    },
+    "font": {
+      "family": "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      "displayWeight": 700,
+      "bodyWeight": 400
+    },
+    "spacing": {
+      "clearspaceLogo": "1x circle diameter",
+      "minimumIconSize": "24px",
+      "minimumHorizontalLogoWidth": "120px"
+    }
+  }
+}
+

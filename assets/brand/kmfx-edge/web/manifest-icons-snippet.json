@@ -1,13 +1,4 @@
 {
-  "name": "KMFX Edge",
-  "short_name": "KMFX",
-  "description": "Risk control, performance and trading discipline in one dashboard.",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#050608",
-  "theme_color": "#2F6BFF",
-  "start_url": "./?app=build-20260406-213500",
-  "scope": "./",
   "icons": [
     {
       "src": "./assets/logos/kmfx-edge-webapp-192.png",
@@ -29,3 +20,4 @@
     }
   ]
 }
+

@@ -14,7 +14,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://uuhiqreifisppqkawzif.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=https://kmfxedge.com
 BILLING_SUCCESS_PATH=/settings/billing?checkout=success
 BILLING_CANCEL_PATH=/settings/billing?checkout=cancelled
 ```

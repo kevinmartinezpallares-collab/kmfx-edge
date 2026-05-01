@@ -139,7 +139,7 @@ function resolveOAuthRedirectUrl() {
     return `${origin}${pathname || "/"}`;
   }
 
-  return "https://dashboard.kmfxedge.com";
+  return `${window.location.origin}${pathname || "/"}`;
 }
 
 function normalizeAuthError(error, fallback = "No se pudo completar la autenticación.") {

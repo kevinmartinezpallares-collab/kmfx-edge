@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KMFX Edge Brand Downloads</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050608;
+      --panel: #111318;
+      --panel-2: #191d24;
+      --text: #f6f8fb;
+      --muted: #8d95a3;
+      --line: rgba(246, 248, 251, 0.14);
+      --blue: #2f6bff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    header {
+      display: grid;
+      gap: 24px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    header img {
+      width: min(465px, 100%);
+      height: auto;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: clamp(36px, 6vw, 72px);
+      line-height: 0.95;
+    }
+
+    p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    section {
+      padding: 32px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    a.asset {
+      display: grid;
+      min-height: 92px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      text-decoration: none;
+      align-content: space-between;
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    a.asset:hover {
+      border-color: color-mix(in srgb, var(--blue), white 18%);
+      transform: translateY(-1px);
+    }
+
+    .asset span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .preview {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      overflow: hidden;
+    }
+
+    .preview img {
+      max-width: min(100%, 520px);
+      max-height: 420px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="logo/svg/kmfx-edge-logo-horizontal-on-dark.svg" alt="KMFX Edge">
+      <h1>Brand downloads</h1>
+      <p>Logos, favicons, app icons, social assets, tokens y storyboard para aplicar la identidad de KMFX Edge en producto, web, redes y presentaciones.</p>
+    </header>
+
+    <section>
+      <h2>Logo</h2>
+      <div class="grid">
+        <a class="asset" href="logo/svg/kmfx-edge-icon-contained-dark.svg" download>Icon contained dark <span>SVG</span></a>
+        <a class="asset" href="logo/svg/kmfx-edge-logo-horizontal-on-dark.svg" download>Horizontal on dark <span>SVG</span></a>
+        <a class="asset" href="logo/svg/kmfx-edge-logo-horizontal-on-light.svg" download>Horizontal on light <span>SVG</span></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>App icons</h2>
+      <div class="grid">
+        <a class="asset" href="logo/app-icons/favicon.svg" download>Favicon SVG <span>SVG</span></a>
+        <a class="asset" href="logo/app-icons/favicon-32.png" download>Favicon 32 <span>PNG</span></a>
+        <a class="asset" href="logo/app-icons/apple-touch-icon-180.png" download>Apple touch icon <span>180 PNG</span></a>
+        <a class="asset" href="logo/app-icons/webapp-512.png" download>Web app icon <span>512 PNG</span></a>
+        <a class="asset" href="logo/app-icons/webapp-1024.png" download>Web app icon <span>1024 PNG</span></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Social</h2>
+      <div class="grid">
+        <a class="asset" href="social/profile-avatar-400.png" download>Profile avatar <span>400 PNG</span></a>
+        <a class="asset" href="social/social-square-1080.png" download>Social square <span>1080 PNG</span></a>
+        <a class="asset" href="social/og-image-1200x630.png" download>Open Graph <span>1200 x 630 PNG</span></a>
+        <a class="asset" href="social/x-header-1500x500.png" download>X header <span>1500 x 500 PNG</span></a>
+        <a class="asset" href="social/linkedin-cover-1584x396.png" download>LinkedIn cover <span>1584 x 396 PNG</span></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Preview</h2>
+      <div class="preview">
+        <img src="presentation/reference/kmfx-edge-logo-original-glass.png" alt="KMFX Edge glass logo">
+      </div>
+    </section>
+  </main>
+</body>
+</html>
