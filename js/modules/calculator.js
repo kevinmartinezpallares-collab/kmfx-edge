@@ -28,6 +28,47 @@ const SYMBOL_SPECS = {
   XAUUSD: { pipValue: 10, pipMultiplier: 10, lotUnit: 100, decimals: 2, type: "Metal" }
 };
 
+const TOOL_CARDS = [
+  {
+    id: "position",
+    title: "Calculadora de posición",
+    copy: "Calcula lotaje, riesgo real y objetivo antes de abrir una operación.",
+    status: "Activa",
+    active: true,
+  },
+  {
+    id: "risk",
+    title: "Riesgo por operación",
+    copy: "Contrasta el riesgo con la lectura actual del Risk Engine.",
+    status: "Incluido",
+    active: true,
+  },
+  {
+    id: "rr",
+    title: "RR / SL / TP",
+    copy: "Planifica entrada, stop y objetivo con presets de R:R.",
+    status: "Preparado",
+  },
+  {
+    id: "drawdown",
+    title: "Simulador de DD",
+    copy: "Evalúa el impacto de una pérdida antes de abrir operación.",
+    status: "Próximamente",
+  },
+  {
+    id: "checklist",
+    title: "Checklist pre-operativa",
+    copy: "Preparará una revisión rápida antes de operar.",
+    status: "Próximamente",
+  },
+  {
+    id: "prop-guard",
+    title: "Prop challenge guard",
+    copy: "Validará trades contra reglas de Funding.",
+    status: "Próximamente",
+  },
+];
+
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -108,6 +149,60 @@ function calculateModel(state) {
     exposureTone,
     target: roundPrice(target, spec.decimals)
   };
+}
+
+function toolCardMarkup(tool) {
+  return `
+    <article class="tools-card ${tool.active ? "is-active" : "is-disabled"}" aria-current="${tool.id === "position" ? "true" : "false"}">
+      <div class="tools-card__top">
+        <strong>${tool.title}</strong>
+        ${badgeMarkup({ label: tool.status, tone: tool.active ? "ok" : "neutral" }, "ui-badge--compact")}
+      </div>
+      <span>${tool.copy}</span>
+    </article>
+  `;
+}
+
+function calculatorMetricMarkup(label, value, meta = "") {
+  return `
+    <div class="calculator-metric">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      ${meta ? `<small>${meta}</small>` : ""}
+    </div>
+  `;
+}
+
+function riskAdviceMarkup(model, adviceTone) {
+  if (!model.riskAdvice) {
+    return `
+      <div class="calculator-advice-empty">
+        <strong>Sin lectura del Risk Engine</strong>
+        <span>La calculadora sigue operativa aunque el motor de riesgo no esté disponible.</span>
+      </div>
+    `;
+  }
+
+  const delta = Number(model.riskAdvice.recommendedRiskPct || 0) - Number(model.riskPct || 0);
+  const deltaCopy = Math.abs(delta) < 0.01
+    ? "La sugerencia coincide prácticamente con tu riesgo actual."
+    : delta < 0
+      ? `Reduce ${Math.abs(delta).toFixed(2)} puntos frente al riesgo configurado.`
+      : `Aumenta ${delta.toFixed(2)} puntos frente al riesgo configurado.`;
+
+  return `
+    <div class="calculator-advice-grid">
+      <div class="calculator-advice-primary">
+        <span>Riesgo recomendado</span>
+        <strong>${model.riskAdvice.recommendedRiskPct.toFixed(2)}%</strong>
+      </div>
+      <div class="calculator-advice-copy">
+        <span>${model.riskAdvice.explanation || "El motor no detecta presión extraordinaria en este momento."}</span>
+        <small>${deltaCopy}</small>
+      </div>
+    </div>
+    <button class="btn-secondary btn-inline" type="button" data-calc-apply-risk>Aplicar sugerencia</button>
+  `;
 }
 
 export function initCalculator(store) {
@@ -203,138 +298,131 @@ export function renderCalculator(root, state) {
     : model.riskAdvice?.risk_state === "CAUTION"
       ? "warn"
       : "ok";
-  const advisoryMesh = `
-    <div class="calc-advisory-blobs" aria-hidden="true">
-      <div class="calc-advisory-blob blob-1"></div>
-      <div class="calc-advisory-blob blob-2"></div>
-      <div class="calc-advisory-blob blob-3"></div>
-      <div class="calc-advisory-blob blob-4"></div>
-    </div>
-  `;
 
   root.innerHTML = `
-    ${pageHeaderMarkup({
-      title: "Calculadora de Lotaje",
-      description: "Sizing rápido con broker, instrumento, riesgo real y exposición operativa controlada.",
-      className: "tl-page-header",
-      titleClassName: "tl-page-title",
-      descriptionClassName: "tl-page-sub",
-    })}
+    <div class="tools-page-stack">
+      ${pageHeaderMarkup({
+        title: "Herramientas",
+        description: "Utilidades para planificar riesgo, lotaje y escenarios antes de operar.",
+        className: "tl-page-header",
+        titleClassName: "tl-page-title",
+        descriptionClassName: "tl-page-sub",
+      })}
 
-    ${renderAuthorityNotice(authorityMeta)}
+      ${renderAuthorityNotice(authorityMeta)}
 
-    <div class="grid-2 equal">
-      <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Configuración del trade</div></div>
+      <section class="tools-hub-grid" aria-label="Herramientas disponibles">
+        ${TOOL_CARDS.map(toolCardMarkup).join("")}
+      </section>
 
-        <div class="calc-advisory-block">
-          ${advisoryMesh}
-          <div class="calc-advisory-top">
+      <section class="calculator-active-shell" aria-label="Calculadora de posición">
+        <article class="tl-section-card calculator-result-card">
+          <div class="calculator-result-head">
             <div>
-              <div class="calc-advisory-title">Riesgo recomendado</div>
-              <div class="goal-card-sub">Lectura orientativa del motor de riesgo. No altera tu cálculo automáticamente.</div>
+              <div class="tl-section-title">Calculadora de posición</div>
+              <div class="tl-section-sub">Sizing activo para ${calc.symbol} con ${calc.broker}.</div>
             </div>
-            ${model.riskAdvice ? badgeMarkup({ label: model.riskAdvice.risk_state, tone: adviceTone }, "ui-badge--compact") : badgeMarkup({ label: "Sin lectura", tone: "neutral" }, "ui-badge--compact")}
+            ${badgeMarkup({ label: "Activa", tone: "ok" }, "ui-badge--compact")}
           </div>
-          ${model.riskAdvice ? `
-            <div class="calc-advisory-grid">
-              <div class="calc-advisory-metric">
-                <span>Riesgo recomendado</span>
-                <strong>${model.riskAdvice.recommendedRiskPct.toFixed(2)}%</strong>
-              </div>
-              <div class="calc-advisory-copy">${model.riskAdvice.explanation || "El motor no detecta presión extraordinaria en este momento."}</div>
-            </div>
-            <div class="calc-advisory-actions">
-              <button class="btn-secondary btn-inline" type="button" data-calc-apply-risk>Aplicar sugerencia</button>
-            </div>
-          ` : `
-            <div class="calc-advisory-copy">La calculadora sigue operativa aunque el motor de riesgo no esté disponible.</div>
-          `}
-        </div>
 
-        <div class="calc-chip-group">
-          ${INSTRUMENTS.map((item) => `<button class="calc-chip ${calc.instrument === item.id ? "active" : ""}" type="button" data-calc-instrument="${item.id}">${item.label}</button>`).join("")}
-        </div>
+          <div class="calculator-primary-result">
+            <span>Lotaje calculado</span>
+            <strong>${model.roundedLots.toFixed(2)} lotes</strong>
+            <small>Riesgo real ${model.realRiskPct.toFixed(2)}% · ${formatCurrency(model.realRiskUsd)}</small>
+          </div>
 
-        <div class="form-grid-clean calc-form-grid">
-          <label class="form-stack">
-            <span>Broker</span>
-            <select data-calc-field="broker">
-              ${Object.keys(BROKERS).map((broker) => `<option value="${broker}" ${calc.broker === broker ? "selected" : ""}>${broker}</option>`).join("")}
-            </select>
-          </label>
-          <label class="form-stack">
-            <span>Par / instrumento</span>
-            <select data-calc-field="symbol">
-              ${instrumentSymbols.map((symbol) => `<option value="${symbol}" ${calc.symbol === symbol ? "selected" : ""}>${symbol}</option>`).join("")}
-            </select>
-          </label>
-          <label class="form-stack"><span>Capital ($)</span><input type="number" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}"></label>
-          <label class="form-stack">
-            <span>Riesgo %</span>
-            <input type="number" step="0.1" data-calc-field="riskPct" value="${calc.riskPct}">
-            <div class="calc-inline-presets">
-              ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${Number(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
-            </div>
-          </label>
-          <label class="form-stack"><span>Stop Loss</span><input type="number" step="0.1" data-calc-field="stopPips" value="${calc.stopPips}"></label>
-          <label class="form-stack"><span>Precio entrada</span><input type="number" step="0.0001" data-calc-field="entry" value="${calc.entry}"></label>
-          <label class="form-stack"><span>Precio SL</span><input type="number" step="0.0001" data-calc-field="stop" value="${calc.stop}"></label>
-          <label class="form-stack">
-            <span>R:R</span>
-            <div class="calc-inline-presets">
-              ${["1:1", "1:2", "1:3", "1:4"].map((preset) => `<button class="calc-pill ${calc.rrPreset === preset ? "active" : ""}" type="button" data-calc-preset="rrPreset" data-calc-value="${preset}">${preset}</button>`).join("")}
-            </div>
-          </label>
-        </div>
-      </article>
+          <div class="calculator-metric-grid">
+            ${calculatorMetricMarkup("Riesgo $", formatCurrency(model.realRiskUsd), `${model.riskPct.toFixed(2)}% configurado`)}
+            ${calculatorMetricMarkup("R:R", `1:${model.rr}`, `${model.tpPips.toFixed(1)} pips TP`)}
+            ${calculatorMetricMarkup("Resultado TP", formatCurrency(model.tpUsd), `Precio TP ${model.target}`)}
+            ${calculatorMetricMarkup("Exposición", `${model.realRiskPct.toFixed(2)}%`, `${Math.round(model.units).toLocaleString("es-ES")} unidades`)}
+          </div>
 
-      <article class="tl-section-card calc-result-surface">
-        <div class="tl-section-header"><div class="tl-section-title">Resultado principal</div></div>
-        <div class="calc-main-lot">${model.roundedLots.toFixed(2)} lotes</div>
-        <div class="goal-card-sub">Lotes calculados con riesgo real redondeado y exposición compatible con ${calc.broker}.</div>
-
-        <div class="detail-metrics-grid">
-          <div class="metric-item"><div class="metric-label">Riesgo $</div><div class="metric-value">${formatCurrency(model.realRiskUsd)}</div></div>
-          <div class="metric-item"><div class="metric-label">Riesgo %</div><div class="metric-value">${model.realRiskPct.toFixed(2)}%</div></div>
-          <div class="metric-item"><div class="metric-label">TP $</div><div class="metric-value">${formatCurrency(model.tpUsd)}</div></div>
-          <div class="metric-item"><div class="metric-label">TP pips</div><div class="metric-value">${model.tpPips.toFixed(1)}</div></div>
-          <div class="metric-item"><div class="metric-label">Pip value</div><div class="metric-value">${formatCurrency(model.pipValue)}</div></div>
-          <div class="metric-item"><div class="metric-label">Unidades</div><div class="metric-value">${Math.round(model.units).toLocaleString("es-ES")}</div></div>
-        </div>
-
-        <div class="calc-exposure-block">
-          <div class="score-bar-row">
+          <div class="calculator-exposure-strip">
             <span>Exposición</span>
             <div class="score-bar-track calc-exposure-track">
               <div class="score-bar-fill calc-exposure-fill calc-exposure-fill--${model.exposureTone}" style="width:${Math.min(model.realRiskPct * 50, 100)}%"></div>
             </div>
             <strong>${model.realRiskPct.toFixed(2)}%</strong>
           </div>
-          <div class="goal-card-sub">Verde ≤ 1% · Amarillo ≤ 2% · Rojo &gt; 2%</div>
-        </div>
-      </article>
-    </div>
+          <div class="tl-section-sub">Verde ≤ 1% · Amarillo ≤ 2% · Rojo &gt; 2%</div>
+        </article>
 
-    <article class="tl-section-card">
-      <div class="tl-section-header"><div class="tl-section-title">Especificaciones del instrumento</div></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Instrumento</th><th>Tipo</th><th>Pip value</th><th>Multiplicador</th><th>Lote base</th><th>Broker</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>${calc.symbol}</td>
-              <td>${model.spec.type}</td>
-              <td>${formatCurrency(model.pipValue)}</td>
-              <td>${model.spec.pipMultiplier}</td>
-              <td>${model.spec.lotUnit.toLocaleString("es-ES")}</td>
-              <td>${calc.broker}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="goal-card-sub" style="margin-top:12px;">${model.broker.note}</div>
-    </article>
+        <article class="tl-section-card calculator-advice-card">
+          <div class="calculator-result-head">
+            <div>
+              <div class="tl-section-title">Riesgo</div>
+              <div class="tl-section-sub">Contexto operativo antes de ejecutar.</div>
+            </div>
+            ${model.riskAdvice ? badgeMarkup({ label: model.riskAdvice.risk_state, tone: adviceTone }, "ui-badge--compact") : badgeMarkup({ label: "Sin lectura", tone: "neutral" }, "ui-badge--compact")}
+          </div>
+          ${riskAdviceMarkup(model, adviceTone)}
+        </article>
+      </section>
+
+      <section class="calculator-workbench-grid" aria-label="Configuración del trade">
+        <article class="tl-section-card calculator-config-card">
+          <div class="tl-section-header">
+            <div>
+              <div class="tl-section-title">Configuración del trade</div>
+              <div class="tl-section-sub">Ajusta instrumento, riesgo, stop y R:R sin cambiar el motor de cálculo.</div>
+            </div>
+          </div>
+
+          <div class="calc-chip-group">
+            ${INSTRUMENTS.map((item) => `<button class="calc-chip ${calc.instrument === item.id ? "active" : ""}" type="button" data-calc-instrument="${item.id}">${item.label}</button>`).join("")}
+          </div>
+
+          <div class="form-grid-clean calc-form-grid calculator-form-grid">
+            <label class="form-stack">
+              <span>Broker</span>
+              <select data-calc-field="broker">
+                ${Object.keys(BROKERS).map((broker) => `<option value="${broker}" ${calc.broker === broker ? "selected" : ""}>${broker}</option>`).join("")}
+              </select>
+            </label>
+            <label class="form-stack">
+              <span>Par / instrumento</span>
+              <select data-calc-field="symbol">
+                ${instrumentSymbols.map((symbol) => `<option value="${symbol}" ${calc.symbol === symbol ? "selected" : ""}>${symbol}</option>`).join("")}
+              </select>
+            </label>
+            <label class="form-stack"><span>Capital ($)</span><input type="number" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}"></label>
+            <label class="form-stack">
+              <span>Riesgo %</span>
+              <input type="number" step="0.1" data-calc-field="riskPct" value="${calc.riskPct}">
+              <div class="calc-inline-presets">
+                ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${Number(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
+              </div>
+            </label>
+            <label class="form-stack"><span>Stop Loss</span><input type="number" step="0.1" data-calc-field="stopPips" value="${calc.stopPips}"></label>
+            <label class="form-stack"><span>Precio entrada</span><input type="number" step="0.0001" data-calc-field="entry" value="${calc.entry}"></label>
+            <label class="form-stack"><span>Precio SL</span><input type="number" step="0.0001" data-calc-field="stop" value="${calc.stop}"></label>
+            <label class="form-stack">
+              <span>R:R</span>
+              <div class="calc-inline-presets">
+                ${["1:1", "1:2", "1:3", "1:4"].map((preset) => `<button class="calc-pill ${calc.rrPreset === preset ? "active" : ""}" type="button" data-calc-preset="rrPreset" data-calc-value="${preset}">${preset}</button>`).join("")}
+              </div>
+            </label>
+          </div>
+        </article>
+
+        <article class="tl-section-card calculator-spec-card">
+          <div class="tl-section-header">
+            <div>
+              <div class="tl-section-title">Contexto / especificación</div>
+              <div class="tl-section-sub">Valores del instrumento usados por la calculadora actual.</div>
+            </div>
+          </div>
+          <div class="calculator-spec-list">
+            ${calculatorMetricMarkup("Instrumento", calc.symbol, model.spec.type)}
+            ${calculatorMetricMarkup("Pip value", formatCurrency(model.pipValue), `${model.spec.pipMultiplier} multiplicador`)}
+            ${calculatorMetricMarkup("Lote base", model.spec.lotUnit.toLocaleString("es-ES"), calc.broker)}
+            ${calculatorMetricMarkup("Precio TP", String(model.target), `${model.tpPips.toFixed(1)} pips`)}
+          </div>
+          <div class="tl-section-sub">${model.broker.note}</div>
+        </article>
+      </section>
+    </div>
   `;
 }
 
