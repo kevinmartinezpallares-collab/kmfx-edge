@@ -29585,9 +29585,16 @@ body[data-theme="dark"] #section-discipline #discipline-score-card .execution-sc
 html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span,
 body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge span {
   margin-top: 4px !important;
+  display: block !important;
+  max-width: 58px !important;
   font-size: 10px !important;
   font-weight: 750 !important;
+  line-height: 1.05 !important;
   letter-spacing: 0.1em !important;
+  overflow: hidden !important;
+  text-align: center !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
 }
 
 html[data-theme="dark"] #section-discipline #discipline-score-card .execution-subscore-list,

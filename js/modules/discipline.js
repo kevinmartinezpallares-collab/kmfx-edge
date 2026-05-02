@@ -930,11 +930,11 @@ function scoreColor(score) {
 }
 
 function scoreLabel(score) {
-  if (!Number.isFinite(Number(score))) return "Pendiente";
-  if (score >= 80) return "Sólido";
-  if (score >= 65) return "Aceptable";
-  if (score >= 45) return "Débil";
-  return "Bajo";
+  if (!Number.isFinite(Number(score))) return "PEND.";
+  if (score >= 80) return "ALTO";
+  if (score >= 65) return "BUENO";
+  if (score >= 45) return "ACEPTABLE";
+  return "BAJO";
 }
 
 function precisionColor(value) {
@@ -3137,7 +3137,7 @@ function renderScoreGauge(score, { isPartial = false } = {}) {
   const center = 60;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
-  const label = isPartial ? `${scoreLabel(score)} · parcial` : scoreLabel(score);
+  const label = scoreLabel(score);
   return `
     <div class="execution-score-gauge execution-tone-${scoreDisplayTone(score, isPartial)}">
       <svg viewBox="0 0 120 120" aria-hidden="true">
