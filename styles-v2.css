@@ -29829,6 +29829,324 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
   }
 }
 
+/* Sidebar 07 specificity lock: layout only, keeps the current KMFX palette intact. */
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
+  --sidebar-vnext-expanded-width: 16rem !important;
+  --sidebar-vnext-collapsed-width: 3rem !important;
+  --sidebar-vnext-current-width: var(--sidebar-vnext-expanded-width) !important;
+  --sidebar-vnext-main-gap: 0px !important;
+  --sidebar-vnext-divider-offset: 0px !important;
+  display: grid !important;
+  grid-template-columns: var(--sidebar-vnext-current-width) minmax(0, 1fr) !important;
+  transition: grid-template-columns 210ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed {
+  --sidebar-vnext-current-width: var(--sidebar-vnext-collapsed-width) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
+  width: var(--sidebar-vnext-current-width) !important;
+  max-width: var(--sidebar-vnext-current-width) !important;
+  min-width: 0 !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  padding: 16px 8px 8px 12px !important;
+  overflow: hidden !important;
+  transition:
+    width 210ms cubic-bezier(0.2, 0, 0, 1),
+    max-width 210ms cubic-bezier(0.2, 0, 0, 1),
+    padding 210ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header {
+  flex: 0 0 auto !important;
+  gap: 12px !important;
+  padding: 0 0 14px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-content.sidebar-section--content,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-content.sidebar-section--content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-nav {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  padding: 0 4px 12px 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list {
+  display: grid !important;
+  gap: 22px !important;
+  align-content: start !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger {
+  min-height: 20px !important;
+  padding: 0 8px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-label {
+  padding: 0 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-chevron {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items {
+  display: grid !important;
+  gap: 2px !important;
+  padding-top: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item {
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  min-height: 32px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 450 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) 20px !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 56px !important;
+  padding: 8px 8px 8px 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after {
+  content: none !important;
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__icon {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__chevrons,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__chevrons {
+  display: inline-grid !important;
+  width: 20px !important;
+  height: 20px !important;
+  place-items: center !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  flex: 0 0 auto !important;
+  margin-top: 0 !important;
+  padding: 8px 0 0 !important;
+  overflow: visible !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile {
+  position: relative !important;
+  display: grid !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 24px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 56px !important;
+  padding: 8px !important;
+  width: 100% !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar-wrap,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar-wrap {
+  position: relative !important;
+  display: inline-grid !important;
+  width: 36px !important;
+  height: 36px !important;
+  place-items: center !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: calc(var(--sidebar-vnext-current-width) - 1px) !important;
+  width: 8px !important;
+  transition: left 210ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel {
+  padding: 16px 4px 8px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-admin-badge,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-admin-badge,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item-label,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__chevrons,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__chevrons,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-copy,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-copy,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-menu-btn,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-menu-btn {
+  display: none !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list {
+  gap: 12px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items {
+  gap: 8px !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item {
+  grid-template-columns: 32px !important;
+  width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  margin-inline: auto !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-slot,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-slot,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  display: grid !important;
+  justify-items: center !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-trigger,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-trigger {
+  grid-template-columns: 32px !important;
+  width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-main,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-main {
+  grid-template-columns: 32px !important;
+  gap: 0 !important;
+  justify-items: center !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar-wrap,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar-wrap,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* === BOTTOM SECTIONS === */
 html[data-theme="dark"] #section-discipline #entry-precision-card,
 body[data-theme="dark"] #section-discipline #entry-precision-card {

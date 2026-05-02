@@ -59,6 +59,27 @@ function buildSidebarMenuIcon(kind) {
   return "";
 }
 
+function buildSidebarChromeIcon(kind) {
+  if (kind === "chevrons") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m7 15 5 5 5-5"></path>
+        <path d="m7 9 5-5 5 5"></path>
+      </svg>
+    `;
+  }
+
+  if (kind === "badge-check") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m9 12 2 2 4-4"></path>
+      </svg>
+    `;
+  }
+
+  return "";
+}
+
 function resolveAccountBalance(account) {
   const modelBalance = Number(account?.model?.account?.balance);
   if (Number.isFinite(modelBalance)) return formatCurrency(modelBalance, account?.model?.account?.currency);
@@ -337,6 +358,7 @@ export function initSidebarUI(store) {
               ${activeAccountContext ? `<div class="sidebar-account-switcher__meta">${escapeHtml(activeAccountContext)}</div>` : ""}
               <div class="sidebar-account-switcher__balance">${escapeHtml(activeAccountBalance)}</div>
             </div>
+            <span class="sidebar-account-switcher__chevrons" aria-hidden="true">${buildSidebarChromeIcon("chevrons")}</span>
           </button>
         `;
 
@@ -347,7 +369,10 @@ export function initSidebarUI(store) {
     profileRoot.innerHTML = `
       <button class="sidebar-profile-trigger" type="button" aria-label="Abrir acciones de usuario" aria-expanded="${isMenuOpen ? "true" : "false"}" data-sidebar-menu-toggle>
         <div class="sidebar-profile-main">
-          <div class="sidebar-profile-avatar" data-user-avatar></div>
+          <span class="sidebar-profile-avatar-wrap">
+            <span class="sidebar-profile-avatar" data-user-avatar></span>
+            <span class="sidebar-profile-avatar-badge" aria-hidden="true">${buildSidebarChromeIcon("badge-check")}</span>
+          </span>
           <div class="sidebar-profile-copy">
             <div class="sidebar-profile-name">${traderName}</div>
             <div class="sidebar-profile-sub" title="${email}">${email}</div>

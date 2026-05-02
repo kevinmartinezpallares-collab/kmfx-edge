@@ -28,7 +28,12 @@ function emitLayoutChange(isCollapsed) {
 }
 
 function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
+  const sidebar = shell.querySelector(".sidebar");
   shell.classList.toggle("sidebar-vnext-collapsed", isCollapsed);
+  shell.dataset.sidebarState = isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE;
+  shell.dataset.collapsible = isCollapsed ? "icon" : "";
+  sidebar?.setAttribute("data-state", isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE);
+  sidebar?.setAttribute("data-collapsible", isCollapsed ? "icon" : "");
   toggle?.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
   toggle?.setAttribute("aria-label", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
   toggle?.setAttribute("title", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
@@ -50,6 +55,15 @@ export function initSidebarVNext() {
   applySidebarState(shell, toggle, storedState === COLLAPSED_VALUE, false);
 
   toggle?.addEventListener("click", () => {
+    const isCollapsed = !shell.classList.contains("sidebar-vnext-collapsed");
+    applySidebarState(shell, toggle, isCollapsed);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const isEditableTarget = event.target instanceof HTMLElement
+      && Boolean(event.target.closest("input, textarea, select, [contenteditable='true']"));
+    if (isEditableTarget || event.key.toLowerCase() !== "b" || (!event.metaKey && !event.ctrlKey)) return;
+    event.preventDefault();
     const isCollapsed = !shell.classList.contains("sidebar-vnext-collapsed");
     applySidebarState(shell, toggle, isCollapsed);
   });
