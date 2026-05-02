@@ -3,6 +3,7 @@ const state = {
   session: { authenticated: false, user: {} },
   status: {},
   installations: [],
+  accountConnections: [],
   appInfo: {},
   toolFilter: "all",
   busy: false,
@@ -15,6 +16,7 @@ let oauthPollStartedAt = 0;
 let lastHomeSignature = "";
 let lastInstallationsSignature = "";
 let lastAppInfoSignature = "";
+let lastConnectionsSignature = "";
 let initStarted = false;
 
 const $ = (selector) => document.querySelector(selector);
@@ -33,7 +35,7 @@ async function callApi(method, ...args) {
 
 function setBusy(value) {
   state.busy = Boolean(value);
-  ["#login-submit", "#login-google", "#password-reset-button", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#logout-button"].forEach((selector) => {
+  ["#login-submit", "#login-google", "#password-reset-button", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#create-connection-button", "#logout-button"].forEach((selector) => {
     const element = $(selector);
     if (element) element.disabled = state.busy;
   });
@@ -128,8 +130,9 @@ function renderHome() {
   const hasMt5 = Number(status.mt5_count || 0) > 0;
   const recentSync = Boolean(status.has_recent_sync);
   const needsRepair = Boolean(status.repair_recommended);
-  const toolCard = $('[data-tool="mt5"]');
-  if (toolCard) toolCard.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
+  $$('[data-tool="mt5"]').forEach((element) => {
+    element.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
+  });
 
   const badgeText = installed ? (needsRepair ? "Reparación recomendada" : "Instalado") : "No instalado";
   const badgeKind = installed ? (needsRepair ? "warning" : "success") : "neutral";
@@ -154,6 +157,60 @@ function renderHome() {
   } else {
     message.textContent = "Connector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
   }
+}
+
+function renderAccountConnections() {
+  const container = $("#connections-list");
+  if (!container) return;
+  const nextSignature = stableStringify({
+    connections: state.accountConnections,
+    busy: state.busy,
+    toolFilter: state.toolFilter
+  });
+  if (nextSignature === lastConnectionsSignature) return;
+  lastConnectionsSignature = nextSignature;
+
+  if (!state.accountConnections.length) {
+    container.innerHTML = `<div class="empty-state">Crea una conexión para obtener la key que pegarás en el EA.</div>`;
+    return;
+  }
+
+  container.innerHTML = state.accountConnections
+    .map((connection) => {
+      const meta = [connection.broker, connection.login ? `Login ${connection.login}` : "", connection.server]
+        .filter(Boolean)
+        .join(" · ");
+      const primaryMeta = meta || "Sin datos de broker hasta el primer sync";
+      return `
+        <article class="connection-row">
+          <div class="connection-main">
+            <div class="connection-title-row">
+              <strong>${escapeHtml(connection.label || "Cuenta MT5")}</strong>
+              <span class="status-badge ${escapeHtml(connection.status_kind || "neutral")}">${escapeHtml(connection.status_label || "Pendiente")}</span>
+            </div>
+            <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
+            <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
+          </div>
+          <div class="connection-copy-grid">
+            <div class="copy-readout">
+              <span>Clave de conexión</span>
+              <code>${escapeHtml(connection.connection_key_masked || "")}</code>
+            </div>
+            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.connection_key || "")}" data-copy-label="Clave copiada.">
+              Copiar key
+            </button>
+            <div class="copy-readout">
+              <span>Endpoint EA</span>
+              <code>${escapeHtml(connection.endpoint_base || "")}</code>
+            </div>
+            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.endpoint_base || "")}" data-copy-label="Endpoint copiado.">
+              Copiar endpoint
+            </button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderInstallations() {
@@ -208,6 +265,7 @@ function render() {
   renderShell();
   if (!state.session?.authenticated) return;
   renderHome();
+  renderAccountConnections();
   renderInstallations();
   renderAppInfo();
 }
@@ -225,6 +283,7 @@ async function loadAll() {
   const payload = await callApi("startup");
   state.status = payload.status || {};
   state.installations = payload.installations || [];
+  state.accountConnections = payload.account_connections || [];
   state.appInfo = payload.app_info || {};
   state.session = payload.session || state.session;
   render();
@@ -355,6 +414,7 @@ async function performAction(method, successMessage) {
     showToast(result.message || successMessage);
     if (result.status) state.status = result.status;
     if (result.installations) state.installations = result.installations;
+    if (result.account_connections) state.accountConnections = result.account_connections;
     await refreshEverything();
   } catch (err) {
     showToast(err.message || "No se pudo completar la acción.");
@@ -368,8 +428,40 @@ async function refreshEverything() {
   const payload = await callApi("refresh");
   state.status = payload.status || state.status;
   state.installations = payload.installations || state.installations;
+  state.accountConnections = payload.account_connections || state.accountConnections;
   state.appInfo = payload.app_info || state.appInfo;
   state.session = payload.session || state.session;
+}
+
+async function copyToClipboard(value, successMessage) {
+  const text = String(value || "").trim();
+  if (!text) {
+    showToast("No hay nada que copiar.");
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      fallbackCopy(text);
+    }
+    showToast(successMessage || "Copiado.");
+  } catch {
+    fallbackCopy(text);
+    showToast(successMessage || "Copiado.");
+  }
+}
+
+function fallbackCopy(text) {
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  document.execCommand("copy");
+  area.remove();
 }
 
 function bindEvents() {
@@ -420,6 +512,12 @@ function bindEvents() {
   });
   $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Connector instalado."));
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto."));
+  $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-copy-value]");
+    if (!button) return;
+    copyToClipboard(button.dataset.copyValue || "", button.dataset.copyLabel || "Copiado.");
+  });
 }
 
 async function init() {

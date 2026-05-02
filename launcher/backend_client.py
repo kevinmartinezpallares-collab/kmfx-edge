@@ -240,6 +240,9 @@ class BackendClient:
     def get_pending_accounts(self) -> BackendResponse:
         return self._request("GET", "/accounts/pending")
 
+    def get_accounts_registry(self) -> BackendResponse:
+        return self._request("GET", "/accounts")
+
     def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
         return self._request(
             "POST",

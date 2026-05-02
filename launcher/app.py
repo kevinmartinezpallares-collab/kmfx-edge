@@ -41,6 +41,11 @@ STATUS_CACHE_TTL_SECONDS = 18
 DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://kmfxedge.com?auth=recovery")
 
 
+def _safe_str(value: Any, fallback: str = "") -> str:
+    text = str(value or "").strip()
+    return text or fallback
+
+
 def _read_connector_version() -> str:
     source = resource_path("KMFXConnector.mq5")
     if not source.exists():
@@ -115,6 +120,7 @@ class KMFXApi:
         self._service_failure_count = 0
         self._stable_service_on = False
         self._last_sync: dict[str, Any] = {}
+        self._last_account_connections: list[dict[str, Any]] = []
         self.refresh_installations()
         self.ensure_session()
 
@@ -128,6 +134,7 @@ class KMFXApi:
             return {
                 "status": self.get_status(),
                 "installations": self.get_installations(),
+                "account_connections": self.get_account_connections(),
                 "app_info": self.get_app_info(),
                 "session": self.get_session(),
             }
@@ -175,6 +182,9 @@ class KMFXApi:
                 "mt5_count": len(self.installations),
                 "selected_installation": installation.label if installation else "",
                 "backend_base_url": service_status.get("backend_base_url") or self.config.backend_base_url,
+                "service_url": self.service_url(""),
+                "connection_key": self.config.connection_key,
+                "connection_key_masked": mask_connection_key(self.config.connection_key),
                 "status_code": service_status.get("backend_status_code", 0),
             }
 
@@ -318,6 +328,52 @@ class KMFXApi:
         self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
         return {"ok": True, "connection_key": mask_connection_key(connection_key)}
 
+    def get_account_connections(self) -> list[dict[str, Any]]:
+        with self._lock:
+            if not self.get_session().get("authenticated"):
+                return []
+            response = self.backend.get_accounts_registry()
+            if not response.ok:
+                connections = list(self._last_account_connections)
+                if not connections and self.config.connection_key:
+                    connections = [self.serialize_local_connection_fallback()]
+                return connections
+
+            accounts = response.body.get("accounts") if isinstance(response.body, dict) else []
+            if not isinstance(accounts, list):
+                accounts = []
+            connections = [
+                self.serialize_account_connection(account)
+                for account in accounts
+                if isinstance(account, dict)
+                and _safe_str(account.get("connection_key"))
+                and self.should_show_account_connection(account)
+            ]
+            if self.config.connection_key and not self._connection_key_present(connections, self.config.connection_key):
+                connections.append(self.serialize_local_connection_fallback())
+            connections.sort(key=lambda item: (item["status_order"], item["label"].lower(), item["login"]))
+            self._last_account_connections = connections
+            return list(connections)
+
+    def create_account_connection(self, label: str = "") -> dict[str, Any]:
+        with self._lock:
+            if not self.get_session().get("authenticated"):
+                return {"ok": False, "message": "Inicia sesión para crear una conexión MT5."}
+            existing_count = len(self.get_account_connections())
+            resolved_label = _safe_str(label, f"Cuenta MT5 {existing_count + 1}")
+            response = self.backend.link_account(
+                user_id=self.config.auth_user_id,
+                label=resolved_label,
+                connection_key="",
+            )
+            if not response.ok:
+                return {"ok": False, "message": "No se pudo crear la conexión MT5."}
+            return {
+                "ok": True,
+                "message": "Conexión MT5 creada.",
+                "account_connections": self.get_account_connections(),
+            }
+
     def get_installations(self) -> list[dict[str, Any]]:
         return [self.serialize_installation(installation) for installation in self.installations]
 
@@ -439,6 +495,87 @@ class KMFXApi:
             "platform_name": installation.platform_name,
             "connector_installed": connector_installed(installation),
         }
+
+    def serialize_account_connection(self, account: dict[str, Any]) -> dict[str, Any]:
+        connection_key = _safe_str(account.get("connection_key"))
+        broker = _safe_str(account.get("broker"))
+        login = _safe_str(account.get("login") or account.get("mt5_login"))
+        server = _safe_str(account.get("server"))
+        status = _safe_str(account.get("status") or account.get("lifecycle_status"), "pending_link")
+        display_name = _safe_str(
+            account.get("display_name")
+            or account.get("alias")
+            or account.get("nickname")
+            or (f"{broker} {login}".strip() if broker or login else ""),
+            "Cuenta MT5",
+        )
+        status_order = 0 if status == "active" else 1 if status.startswith("pending") or status in {"draft", "waiting_sync"} else 2
+        last_sync_at = _safe_str(account.get("last_sync_at"))
+        last_sync_label = _humanize_last_sync({"timestamp": last_sync_at}) if last_sync_at else "Pendiente de primer sync"
+        base_url = self.service_url("")
+        return {
+            "account_id": _safe_str(account.get("account_id")),
+            "label": display_name,
+            "broker": broker,
+            "login": login,
+            "server": server,
+            "status": status,
+            "status_label": self.connection_status_label(status),
+            "status_kind": self.connection_status_kind(status),
+            "status_order": status_order,
+            "connection_key": connection_key,
+            "connection_key_masked": mask_connection_key(connection_key),
+            "endpoint_base": base_url,
+            "sync_url": self.service_url("/mt5/sync"),
+            "policy_url": self.service_url("/mt5/policy"),
+            "last_sync_label": last_sync_label,
+        }
+
+    def should_show_account_connection(self, account: dict[str, Any]) -> bool:
+        connection_key = _safe_str(account.get("connection_key"))
+        if connection_key == _safe_str(self.config.connection_key):
+            return True
+        status = _safe_str(account.get("status") or account.get("lifecycle_status")).lower()
+        label = _safe_str(account.get("display_name") or account.get("alias") or account.get("nickname"))
+        has_identity = bool(_safe_str(account.get("broker")) or _safe_str(account.get("login") or account.get("mt5_login")) or _safe_str(account.get("server")))
+        if status in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"} and label == "KMFX Connector MT5" and not has_identity:
+            return False
+        return True
+
+    def serialize_local_connection_fallback(self) -> dict[str, Any]:
+        last_sync = self._last_sync if isinstance(self._last_sync, dict) else {}
+        return self.serialize_account_connection(
+            {
+                "account_id": "local-launcher",
+                "display_name": "Launcher local",
+                "platform": "mt5",
+                "connection_key": self.config.connection_key,
+                "status": "linked" if not last_sync else "active",
+                "last_sync_at": last_sync.get("timestamp") or last_sync.get("delivered_at") or "",
+            }
+        )
+
+    def _connection_key_present(self, connections: list[dict[str, Any]], connection_key: str) -> bool:
+        normalized = _safe_str(connection_key)
+        return any(_safe_str(item.get("connection_key")) == normalized for item in connections)
+
+    def connection_status_label(self, status: str) -> str:
+        normalized = _safe_str(status).lower()
+        if normalized == "active":
+            return "Activa"
+        if normalized in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"}:
+            return "Esperando sync"
+        if normalized == "archived":
+            return "Archivada"
+        return normalized.replace("_", " ").capitalize() if normalized else "Pendiente"
+
+    def connection_status_kind(self, status: str) -> str:
+        normalized = _safe_str(status).lower()
+        if normalized == "active":
+            return "success"
+        if normalized in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"}:
+            return "warning"
+        return "neutral"
 
     def ensure_service_started(self) -> None:
         if self.fetch_json("/health"):
