@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .connection_keys import payload_connection_key
-from .config import LauncherConfig
+from .config import LauncherConfig, mask_connection_key
 
 SUPABASE_AUTH_URL = "https://uuhiqreifisppqkawzif.supabase.co/auth/v1"
 SUPABASE_ANON_KEY = (
@@ -40,10 +40,48 @@ class BackendClient:
         if not body:
             return ""
         try:
-            raw = json.dumps(body, ensure_ascii=True, sort_keys=True)
+            raw = json.dumps(self._redact_for_log(body), ensure_ascii=True, sort_keys=True)
         except Exception:
             raw = str(body)
         return raw[:280]
+
+    def _redact_for_log(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            redacted: dict[str, Any] = {}
+            for key, item in value.items():
+                normalized_key = str(key or "").lower()
+                if normalized_key in {"connection_key", "api_key", "kmfxapikey"}:
+                    redacted[key] = mask_connection_key(str(item or "")) or "[masked]"
+                elif any(token in normalized_key for token in ("password", "token", "authorization", "secret")):
+                    redacted[key] = "[masked]"
+                else:
+                    redacted[key] = self._redact_for_log(item)
+            return redacted
+        if isinstance(value, list):
+            return [self._redact_for_log(item) for item in value]
+        return value
+
+    def _safe_url(self, url: str) -> str:
+        try:
+            parsed = urllib.parse.urlsplit(url)
+            pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+            safe_pairs = []
+            for key, value in pairs:
+                normalized_key = key.lower()
+                if normalized_key in {"connection_key", "api_key", "key"} or "token" in normalized_key or "secret" in normalized_key:
+                    value = mask_connection_key(value) or "[masked]"
+                safe_pairs.append((key, value))
+            return urllib.parse.urlunsplit(
+                (
+                    parsed.scheme,
+                    parsed.netloc,
+                    parsed.path,
+                    urllib.parse.urlencode(safe_pairs),
+                    parsed.fragment,
+                )
+            )
+        except Exception:
+            return url
 
     def _request(
         self,
@@ -69,19 +107,20 @@ class BackendClient:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
 
+        safe_url = self._safe_url(url)
         request = urllib.request.Request(url=url, data=data, headers=headers, method=method)
-        self.logger.info("[KMFX][HTTP] %s %s dispatch", method, url)
+        self.logger.info("[KMFX][HTTP] %s %s dispatch", method, safe_url)
         try:
             with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
                 body = response.read().decode("utf-8", errors="ignore")
                 parsed_body = json.loads(body) if body else {}
-                self.logger.info("[KMFX][HTTP] %s %s %s", method, url, response.status)
+                self.logger.info("[KMFX][HTTP] %s %s %s", method, safe_url, response.status)
                 return BackendResponse(
                     ok=200 <= response.status < 300,
                     status_code=response.status,
                     body=parsed_body,
                     method=method,
-                    request_url=url,
+                    request_url=safe_url,
                     request_attempted=True,
                 )
         except urllib.error.HTTPError as exc:
@@ -93,7 +132,7 @@ class BackendClient:
             self.logger.error(
                 "[KMFX][HTTP][ERROR] %s %s status=%s body=%s",
                 method,
-                url,
+                safe_url,
                 exc.code,
                 self._summarize_body(parsed),
             )
@@ -103,18 +142,18 @@ class BackendClient:
                 body=parsed,
                 error=str(exc),
                 method=method,
-                request_url=url,
+                request_url=safe_url,
                 request_attempted=True,
             )
         except Exception as exc:
-            self.logger.error("[KMFX][HTTP][EXCEPTION] %s %s error=%s", method, url, exc)
+            self.logger.error("[KMFX][HTTP][EXCEPTION] %s %s error=%s", method, safe_url, exc)
             return BackendResponse(
                 ok=False,
                 status_code=0,
                 body={},
                 error=str(exc),
                 method=method,
-                request_url=url,
+                request_url=safe_url,
                 request_attempted=True,
             )
 
@@ -231,7 +270,8 @@ class BackendClient:
         return self._request(
             "GET",
             self.config.backend_policy_path,
-            query={"login": login, "connection_key": connection_key},
+            query={"login": login},
+            connection_key=connection_key,
         )
 
     def healthcheck(self) -> BackendResponse:

@@ -375,10 +375,10 @@ def remember_processed_journal(batch_id: str, *, identity_key: str, trade_count:
 
 def resolve_connection_key(payload: dict[str, Any], request: Request | None = None) -> str:
     if request is not None:
-        header_value = safe_str(request.headers.get("x-kmfx-connection-key"))
+        header_value = safe_str(request.headers.get("x-kmfx-connection-key")) or safe_str(request.headers.get("x-kmfx-api-key"))
         if header_value:
             return header_value
-    explicit = safe_str(payload.get("connection_key"))
+    explicit = safe_str(payload.get("connection_key")) or safe_str(payload.get("KMFXApiKey")) or safe_str(payload.get("api_key"))
     if explicit:
         return explicit
     return ""
@@ -448,7 +448,9 @@ def mask_connection_key(connection_key: str) -> str:
     normalized = safe_str(connection_key)
     if not normalized:
         return ""
-    return f"{normalized[:8]}..."
+    if len(normalized) <= 10:
+        return "[masked]"
+    return f"{normalized[:6]}...{normalized[-4:]}"
 
 
 def _decode_base64url_json(segment: str) -> dict[str, Any]:
@@ -537,16 +539,56 @@ def _resolve_verified_bearer_email(request: Request) -> str:
     return email
 
 
+def _is_local_request(request: Request) -> bool:
+    client_host = safe_str(getattr(request.client, "host", "") if request.client else "").lower()
+    return client_host in {"127.0.0.1", "::1", "localhost"}
+
+
+def _allow_no_key_mt5_ingest(request: Request) -> bool:
+    if _is_production_runtime():
+        return False
+    if _is_local_request(request):
+        return True
+    return _env_flag("KMFX_ALLOW_NO_KEY_MT5_INGEST", default=False)
+
+
+def _auth_identity_key(user_id: str, login: str) -> str:
+    normalized_user = safe_str(user_id)
+    normalized_login = safe_str(login)
+    if normalized_user and normalized_login:
+        return f"user:{normalized_user}:login:{normalized_login}"
+    return normalized_user or normalized_login
+
+
+def mt5_missing_connection_key_response(endpoint: str, sync_id: str = "", batch_id: str = "") -> JSONResponse:
+    log.warning("%s rejected | reason=missing_connection_key", endpoint)
+    payload: dict[str, Any] = {
+        "ok": False,
+        "received": False,
+        "disposition": "rejected",
+        "reason": "missing_connection_key",
+        "error": "missing_connection_key",
+        "details": {
+            "field": "connection_key",
+            "problem": "required_for_remote_write",
+        },
+        "timestamp": now_iso(),
+    }
+    if sync_id:
+        payload["sync_id"] = sync_id
+    if batch_id:
+        payload["batch_id"] = batch_id
+    return connector_json_response(payload, status_code=401)
+
+
 def _resolve_trusted_header_email(request: Request) -> str:
-    client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
-    if client_host not in {"127.0.0.1", "::1", "localhost"}:
+    if not _is_local_request(request):
         return ""
     return safe_str(request.headers.get("x-kmfx-user-email")).lower()
 
 
 def _resolve_trusted_header_user_id(request: Request) -> str:
-    client_host = safe_str(getattr(request.client, "host", "") if request.client else "")
-    if client_host not in {"127.0.0.1", "::1", "localhost"}:
+    if not _is_local_request(request):
         return ""
     return safe_str(request.headers.get("x-kmfx-user-id")).lower()
 
@@ -2016,6 +2058,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
         bound_account = None
         unverified_identity = False
+        auth_scope_user_id = ""
         if connection_key:
             bound_account = resolve_account_by_connection_key(connection_key)
             log.info(
@@ -2065,9 +2108,20 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     )
             log_connection_key_validation("/api/mt5/sync", connection_key, True)
         else:
-            unverified_identity = True
-            fallback_login = normalize_login(payload)
-            log.warning("SYNC received without connection_key, login=%s", fallback_login)
+            scoped_user_id, auth_context = resolve_account_scope(request)
+            if scoped_user_id:
+                auth_scope_user_id = scoped_user_id
+                log.info(
+                    "SYNC received without connection_key using authenticated bearer user=%s source=%s",
+                    mask_connection_key(scoped_user_id),
+                    auth_context.get("source", ""),
+                )
+            elif not _allow_no_key_mt5_ingest(request):
+                return mt5_missing_connection_key_response("/api/mt5/sync", sync_id=sync_id)
+            else:
+                unverified_identity = True
+                fallback_login = normalize_login(payload)
+                log.warning("SYNC received without connection_key in local/dev mode, login=%s", fallback_login)
 
         login = normalize_login(payload)
         if not login and bound_account and safe_str(bound_account.login):
@@ -2097,7 +2151,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
         connector_version = safe_str(payload.get("connector_version"), "unknown")
         sync_timestamp = safe_timestamp(payload.get("timestamp"))
-        identity_key = resolve_identity_key(connection_key, login)
+        identity_key = resolve_identity_key(connection_key, _auth_identity_key(auth_scope_user_id, login) if auth_scope_user_id else login)
         persisted_state = load_persisted_account_state(connection_key, identity_key)
         policy = build_connector_policy_response(identity_key, persisted_state)
         existing_receipt = get_processed_sync_receipt(sync_id)
@@ -2142,7 +2196,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "raw": payload,
         }
 
-        sync_user_id = bound_account.user_id if bound_account else "local"
+        sync_user_id = bound_account.user_id if bound_account else (auth_scope_user_id or "local")
         previous_account = bound_account or account_service.get_account_by_identity(
             user_id=sync_user_id,
             platform="mt5",
@@ -2181,7 +2235,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         log.info(
             "SYNC equity peak persisted | connection_key=%s identity=%s stored_peak=%.2f incoming_peak=%.2f equity=%.2f resolved_peak=%.2f daily_start=%.2f",
             mask_connection_key(connection_key),
-            identity_key,
+            mask_connection_key(identity_key) or identity_key,
             safe_float(stored_payload.get("equity_peak")) if isinstance(stored_payload, dict) else 0.0,
             safe_float(payload.get("equity_peak")),
             safe_float(sanitized_account.get("equity")),
@@ -2323,7 +2377,45 @@ async def mt5_journal(request: Request) -> JSONResponse:
     batch_id = safe_str(payload.get("batch_id"))
     connection_key = resolve_connection_key(payload, request)
     login = normalize_login(payload)
-    identity_key = resolve_identity_key(connection_key, login)
+    auth_scope_user_id = ""
+    if connection_key:
+        bound_account = resolve_account_by_connection_key(connection_key)
+        log.info(
+            "JOURNAL connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
+            RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+            mask_connection_key(connection_key),
+            bool(bound_account),
+        )
+        if bound_account is None:
+            log_connection_key_validation("/api/mt5/journal", connection_key, False)
+            return connector_json_response(
+                {
+                    "ok": False,
+                    "received": False,
+                    "batch_id": batch_id,
+                    "disposition": "rejected",
+                    "reason": "unknown_connection_key",
+                    "error": "unknown_connection_key",
+                    "details": {
+                        "field": "connection_key",
+                        "problem": "unknown_connection_key",
+                        "connection_key": mask_connection_key(connection_key),
+                        "lookup": "get_account_by_api_key_any_user",
+                        "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
+                    },
+                    "timestamp": now_iso(),
+                },
+                status_code=401,
+            )
+        log_connection_key_validation("/api/mt5/journal", connection_key, True)
+    else:
+        scoped_user_id, _auth_context = resolve_account_scope(request)
+        if scoped_user_id:
+            auth_scope_user_id = scoped_user_id
+        elif not _allow_no_key_mt5_ingest(request):
+            return mt5_missing_connection_key_response("/api/mt5/journal", batch_id=batch_id)
+
+    identity_key = resolve_identity_key(connection_key, _auth_identity_key(auth_scope_user_id, login) if auth_scope_user_id else login)
     if not batch_id or not identity_key:
         return connector_json_response(
             {
@@ -2359,7 +2451,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
     trades, trade_issues = sanitize_trades(payload.get("trades"))
     remember_journal_trades(identity_key, trades)
     remember_processed_journal(batch_id, identity_key=identity_key, trade_count=len(trades))
-    log.info("JOURNAL accepted | batch_id=%s identity=%s trades=%s issues=%s", batch_id, identity_key, len(trades), trade_issues)
+    log.info("JOURNAL accepted | batch_id=%s identity=%s trades=%s issues=%s", batch_id, mask_connection_key(identity_key) or identity_key, len(trades), trade_issues)
     return connector_json_response(
         {
             "ok": True,
@@ -2384,7 +2476,14 @@ async def mt5_policy(
     connection_key: str = Query("", min_length=0),
 ) -> JSONResponse:
     normalized_login = safe_str(login)
-    normalized_connection_key = safe_str(connection_key) or safe_str(request.headers.get("x-kmfx-connection-key"))
+    header_connection_key = safe_str(request.headers.get("x-kmfx-connection-key"))
+    query_connection_key = safe_str(connection_key)
+    normalized_connection_key = header_connection_key or query_connection_key
+    if query_connection_key and not header_connection_key:
+        log.warning(
+            "POLICY legacy query connection_key accepted temporarily | key=%s",
+            mask_connection_key(query_connection_key),
+        )
     identity_key = resolve_identity_key(normalized_connection_key, normalized_login)
     if not identity_key:
         return connector_json_response({
@@ -2428,7 +2527,7 @@ async def mt5_policy(
     policy = build_connector_policy_response(identity_key, persisted_state)
     log.info(
         "Policy requested | identity=%s hash=%s equity_peak=%.2f daily_start_equity=%.2f",
-        identity_key,
+        mask_connection_key(identity_key) or identity_key,
         policy["policy_hash"],
         safe_float(policy.get("equity_peak")),
         safe_float(policy.get("daily_start_equity")),

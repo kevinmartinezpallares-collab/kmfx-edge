@@ -381,6 +381,17 @@ string KMFXBoolJson(bool value)
    return value ? "true" : "false";
   }
 
+string KMFXMaskConnectionKey(string value)
+  {
+   string normalized=KMFXTrim(value);
+   int length=StringLen(normalized);
+   if(length<=0)
+      return "";
+   if(length<=10)
+      return "[masked]";
+   return StringSubstr(normalized,0,6)+"..."+StringSubstr(normalized,length-4,4);
+  }
+
 string KMFXDoubleJson(double value,int digits=2)
   {
    if(!MathIsValidNumber(value))
@@ -471,7 +482,7 @@ void KMFXInitializeRuntimeConnectionKey()
      {
       g_runtime_connection_key="";
       if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",explicit_key);
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",KMFXMaskConnectionKey(explicit_key));
       return;
      }
 
@@ -479,7 +490,7 @@ void KMFXInitializeRuntimeConnectionKey()
    if(StringLen(g_runtime_connection_key)>0)
      {
       if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",g_runtime_connection_key);
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",KMFXMaskConnectionKey(g_runtime_connection_key));
       return;
      }
 
@@ -487,7 +498,7 @@ void KMFXInitializeRuntimeConnectionKey()
    if(StringLen(legacy_key)>0)
      {
       if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",legacy_key);
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",KMFXMaskConnectionKey(legacy_key));
       return;
      }
 
@@ -513,7 +524,7 @@ void KMFXRefreshRuntimeConnectionKey()
       string previous_key=g_runtime_connection_key;
       g_runtime_connection_key=file_key;
       if(KMFXVerboseLog)
-         PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",previous_key,g_runtime_connection_key);
+         PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",KMFXMaskConnectionKey(previous_key),KMFXMaskConnectionKey(g_runtime_connection_key));
      }
   }
 
@@ -2112,9 +2123,8 @@ bool KMFXPushState()
      {
       PrintFormat("[KMFX][SYNC][COUNTS] positions=%d trades=%d history=%d", positions_count, trades_count, history_count);
       PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
-      PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXConnectionKeyValue());
-      Print("[KMFX][PAYLOAD] "+body);
-      PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
+      PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXMaskConnectionKey(KMFXConnectionKeyValue()));
+      PrintFormat("[KMFX][SYNC][REQUEST][BODY] redacted=true body_chars=%d", StringLen(body));
      }
 
    request_ok=KMFXSendHttpRequest("POST",url,body,response,status_code,transport_error);
@@ -2342,8 +2352,6 @@ bool KMFXFetchPolicy()
    if(KMFXVerboseLog)
       PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
    string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
-   if(KMFXHasConnectionKey())
-      url += "&connection_key=" + KMFXConnectionKeyValue();
 
    if(KMFXVerboseLog)
       PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);

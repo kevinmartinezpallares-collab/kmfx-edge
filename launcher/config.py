@@ -52,7 +52,9 @@ def mask_connection_key(connection_key: str) -> str:
     normalized = str(connection_key or "").strip()
     if not normalized:
         return ""
-    return f"{normalized[:8]}..."
+    if len(normalized) <= 10:
+        return "[masked]"
+    return f"{normalized[:6]}...{normalized[-4:]}"
 
 
 def resolve_backend_base_url(configured_value: str = "") -> str:

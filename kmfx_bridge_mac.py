@@ -18,6 +18,8 @@ import argparse
 import asyncio
 import json
 import logging
+import os
+import pathlib
 import sys
 import http
 import threading
@@ -50,7 +52,9 @@ logging.basicConfig(
 log = logging.getLogger("kmfx_mac")
 
 # ── Config ─────────────────────────────────────────────────────────────────
-WS_HOST      = "0.0.0.0"
+ALLOW_LAN_BIND = str(os.getenv("KMFX_ALLOW_LAN_BIND", "")).strip().lower() in {"1", "true", "yes", "y", "on"}
+WS_HOST      = "0.0.0.0" if ALLOW_LAN_BIND else "127.0.0.1"
+HTTP_HOST    = WS_HOST
 WS_PORT      = args.ws_port
 HTTP_PORT    = args.http_port
 DEMO_INTERVAL = 2.0   # segundos entre ticks demo si no hay EA conectado
@@ -149,7 +153,6 @@ def _check_auto_block(balance: float):
 
 
 # ── Persistencia equity_history en disco ───────────────────────────────────
-import os, pathlib
 
 def _eq_cache_path() -> pathlib.Path:
     """Archivo donde guardamos equity_history entre reinicios."""
@@ -221,8 +224,26 @@ class EAHandler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass  # EA already closed — normal, not an error
 
+    def _local_cors_origin(self) -> str:
+        origin = self.headers.get("Origin", "")
+        if origin.startswith(("http://localhost", "http://127.0.0.1", "http://[::1]")):
+            return origin
+        return "http://localhost"
+
+    def _has_disallowed_origin(self) -> bool:
+        origin = self.headers.get("Origin", "")
+        return bool(origin) and not origin.startswith(("http://localhost", "http://127.0.0.1", "http://[::1]"))
+
+    def _send_local_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", self._local_cors_origin())
+        self.send_header("Vary", "Origin")
+
     def do_POST(self):
         global last_ea_payload, ea_last_seen, _equity_history, _equity_rebuilt, _cached_trades
+        if self._has_disallowed_origin():
+            self.send_response(403)
+            self.end_headers()
+            return
         # ── Guardar config de riesgo desde el dashboard ──
         if self.path in ("/risk_config", "/risk_config/"):
             length = int(self.headers.get("Content-Length", 0))
@@ -241,7 +262,7 @@ class EAHandler(BaseHTTPRequestHandler):
                 resp = json.dumps({"status":"ok","config":_risk_config}).encode()
                 self.send_response(200)
                 self.send_header("Content-Type","application/json")
-                self.send_header("Access-Control-Allow-Origin","*")
+                self._send_local_cors_headers()
                 self.end_headers()
                 self._send(resp)
             except Exception as e:
@@ -346,7 +367,7 @@ class EAHandler(BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self._send_local_cors_headers()
             self.end_headers()
             self._send(b'{"status":"ok"}')
             # ── Log estructurado ──────────────────────────────────────────
@@ -372,12 +393,16 @@ class EAHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """El EA descarga la config de riesgo en cada tick."""
+        if self._has_disallowed_origin():
+            self.send_response(403)
+            self.end_headers()
+            return
         if self.path in ("/risk_config", "/risk_config/"):
             payload = json.dumps(_risk_config).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self._send_local_cors_headers()
             self.end_headers()
             self._send(payload)
         elif self.path in ("/health", "/health/"):
@@ -462,7 +487,7 @@ class EAHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Access-Control-Allow-Origin", "*")
+            self._send_local_cors_headers()
             self.end_headers()
             self._send(payload)
             log.info("🔍 /debug requested — trades=%d balance=%s", len(trades), balance)
@@ -471,8 +496,12 @@ class EAHandler(BaseHTTPRequestHandler):
             self.send_response(404); self.end_headers()
 
     def do_OPTIONS(self):
+        if self._has_disallowed_origin():
+            self.send_response(403)
+            self.end_headers()
+            return
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self._send_local_cors_headers()
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
@@ -483,11 +512,12 @@ class EAHandler(BaseHTTPRequestHandler):
 
 def start_http_server():
     """Arranca el servidor HTTP en un hilo daemon."""
-    server = HTTPServer(("0.0.0.0", HTTP_PORT), EAHandler)
+    server = HTTPServer((HTTP_HOST, HTTP_PORT), EAHandler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
-    log.info(f"📡 HTTP receiver para EA: http://localhost:{HTTP_PORT}/mt5data")
-    log.info(f"   (Si MT5 está en otro equipo, usa la IP de tu Mac: http://TU_IP:{HTTP_PORT}/mt5data)")
+    log.info(f"📡 HTTP receiver para EA: http://{HTTP_HOST}:{HTTP_PORT}/mt5data")
+    if ALLOW_LAN_BIND:
+        log.warning("⚠️  LAN bind enabled by KMFX_ALLOW_LAN_BIND=1; keep this for trusted admin/dev networks only.")
     return server
 
 
@@ -742,13 +772,16 @@ async def main():
         log.error("   Ejecuta: pip3 install websockets")
         sys.exit(1)
 
+    if ALLOW_LAN_BIND:
+        log.warning("⚠️  WebSocket/HTTP bridge listening on all interfaces by explicit opt-in.")
+
     start_http_server()
 
     log.info(f"🚀 WebSocket dashboard: ws://{WS_HOST}:{WS_PORT}")
-    log.info(f"📡 HTTP receptor EA:    http://0.0.0.0:{HTTP_PORT}/mt5data")
+    log.info(f"📡 HTTP receptor EA:    http://{HTTP_HOST}:{HTTP_PORT}/mt5data")
     log.info(f"")
     log.info(f"   → En el dashboard, añade: ws://localhost:{WS_PORT}")
-    log.info(f"   → En el EA de MT5, pon:   http://TU_IP_MAC:{HTTP_PORT}/mt5data")
+    log.info(f"   → En el EA de MT5, pon:   http://127.0.0.1:{HTTP_PORT}/mt5data")
     log.info(f"   → Ctrl+C para detener")
     log.info("=" * 58)
 

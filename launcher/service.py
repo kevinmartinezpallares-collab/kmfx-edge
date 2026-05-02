@@ -551,7 +551,7 @@ class LauncherServiceRuntime:
             "last_policy": snapshot.get("last_policy", {}),
             "last_backend_error": snapshot.get("last_backend_error", ""),
             "last_local_error": snapshot.get("last_local_error", ""),
-            "connection_key": self.config.connection_key,
+            "connection_key": mask_connection_key(self.config.connection_key),
             "timestamp": now_iso(),
         }
 
@@ -670,14 +670,21 @@ async def mt5_policy(
     connection_key: str = Query("", min_length=0),
 ) -> JSONResponse:
     bridge_connection_key = runtime.effective_connection_key()
-    explicit_connection_key = str(request.headers.get("X-KMFX-Connection-Key") or connection_key or "").strip()
+    header_connection_key = str(request.headers.get("X-KMFX-Connection-Key") or "").strip()
+    query_connection_key = str(connection_key or "").strip()
+    explicit_connection_key = header_connection_key or query_connection_key
+    if query_connection_key and not header_connection_key:
+        runtime.logger.warning(
+            "[KMFX][BRIDGE] deprecated policy query connection_key accepted key=%s",
+            mask_connection_key(query_connection_key),
+        )
     effective_connection_key, key_source = resolve_effective_connection_key(
         explicit_key=explicit_connection_key,
         bridge_key=bridge_connection_key,
     )
     if bridge_connection_key and explicit_connection_key and bridge_connection_key != explicit_connection_key:
         runtime.logger.info(
-            "[KMFX][BRIDGE] explicit policy connection_key kept query_key=%s bridge_key=%s",
+            "[KMFX][BRIDGE] explicit policy connection_key kept explicit_key=%s bridge_key=%s",
             mask_connection_key(explicit_connection_key),
             mask_connection_key(bridge_connection_key),
         )
