@@ -120,6 +120,10 @@ function normalizeSymbolStem(value) {
   return normalizeSymbol(value).split(/[._-]/)[0].replace(/[^A-Z0-9]/g, "");
 }
 
+function isGoldSymbol(symbol) {
+  return /^(XAU|GOLD)/.test(normalizeSymbolKey(symbol));
+}
+
 function inferInstrumentId(symbol) {
   return SYMBOL_SPECS[normalizeSymbol(symbol)]?.instrumentId || "custom";
 }
@@ -166,17 +170,25 @@ function normalizeLiveSymbolSpec(rawSpec = {}, fallbackSymbol = "") {
   const digits = firstFiniteValue(rawSpec, ["digits", "symbol_digits", "SYMBOL_DIGITS"]);
   const point = firstFiniteValue(rawSpec, ["point", "symbolPoint", "symbol_point", "SYMBOL_POINT"]);
   const tickSize = firstFiniteValue(rawSpec, ["tickSize", "tick_size", "tradeTickSize", "trade_tick_size", "SYMBOL_TRADE_TICK_SIZE"]) || point || null;
-  const tickValue = firstFiniteValue(rawSpec, [
+  const tickValueLoss = firstFiniteValue(rawSpec, [
+    "tickValueLoss",
+    "tick_value_loss",
+    "trade_tick_value_loss",
+    "SYMBOL_TRADE_TICK_VALUE_LOSS"
+  ]);
+  const tickValueProfit = firstFiniteValue(rawSpec, [
+    "tickValueProfit",
+    "tick_value_profit",
+    "trade_tick_value_profit",
+    "SYMBOL_TRADE_TICK_VALUE_PROFIT"
+  ]);
+  const tickValue = tickValueLoss || firstFiniteValue(rawSpec, [
     "tickValue",
     "tick_value",
     "tradeTickValue",
     "trade_tick_value",
-    "tickValueProfit",
-    "tick_value_profit",
-    "trade_tick_value_profit",
-    "SYMBOL_TRADE_TICK_VALUE",
-    "SYMBOL_TRADE_TICK_VALUE_PROFIT"
-  ]);
+    "SYMBOL_TRADE_TICK_VALUE"
+  ]) || tickValueProfit;
   const contractSize = firstFiniteValue(rawSpec, ["contractSize", "contract_size", "tradeContractSize", "trade_contract_size", "SYMBOL_TRADE_CONTRACT_SIZE"]);
   const volumeMin = firstFiniteValue(rawSpec, ["volumeMin", "volume_min", "minVolume", "min_volume", "SYMBOL_VOLUME_MIN"]);
   const volumeMax = firstFiniteValue(rawSpec, ["volumeMax", "volume_max", "maxVolume", "max_volume", "SYMBOL_VOLUME_MAX"]);
@@ -204,6 +216,8 @@ function normalizeLiveSymbolSpec(rawSpec = {}, fallbackSymbol = "") {
     accuracyCopy: "Cálculo basado en especificaciones MT5 de la cuenta activa.",
     tickSize,
     tickValue,
+    tickValueProfit,
+    tickValueLoss,
     point,
     digits,
     contractSize: contractSize || null,
@@ -275,10 +289,11 @@ function getPossibleLiveSpecContainers(account = {}) {
   ];
 }
 
-function findLiveSymbolSpec(account, symbol) {
+function findLiveSymbolSpec(account, symbol, options = {}) {
   if (!account || account.sourceType !== "mt5") return null;
   const requested = normalizeSymbol(symbol);
   if (!requested) return null;
+  const allowAlias = Boolean(options.allowAlias);
   const candidates = getPossibleLiveSpecContainers(account)
     .flatMap((container) => collectSymbolSpecCandidates(container, []))
     .map((candidate) => normalizeLiveSymbolSpec(candidate))
@@ -289,6 +304,7 @@ function findLiveSymbolSpec(account, symbol) {
   const requestedKey = normalizeSymbolKey(requested);
   const compact = candidates.find((candidate) => normalizeSymbolKey(candidate.symbol) === requestedKey);
   if (compact) return { ...compact, matchQuality: "compact" };
+  if (!allowAlias) return null;
   const requestedStem = normalizeSymbolStem(requested);
   const stem = candidates.find((candidate) => normalizeSymbolStem(candidate.symbol) === requestedStem);
   return stem ? { ...stem, matchQuality: "alias" } : null;
@@ -338,9 +354,11 @@ function resolveInstrumentSpec(calc, account) {
   const liveSpec = findLiveSymbolSpec(account, calc.symbol);
   if (liveSpec) return liveSpec;
   const presetSpec = SYMBOL_SPECS[symbolKey] || SYMBOL_SPECS[symbolStem];
+  const isGold = isGoldSymbol(calc.symbol);
   const manualOverride = hasManualSpecOverride(calc);
   const type = calc.instrumentType || presetSpec?.type || "Personalizado";
   const unitLabel = calc.unitLabel || presetSpec?.unitLabel || unitLabelForType(type);
+  const estimatedGoldCopy = `${normalizeSymbol(calc.symbol) || "XAUUSD"} usa supuestos manuales. Verifica tick value y contract size del broker.`;
   const spec = {
     pipValue: toOptionalNumber(calc.pipValuePerLot, presetSpec?.pipValue ?? 1),
     pipMultiplier: toOptionalNumber(calc.pipMultiplier, presetSpec?.pipMultiplier ?? 1),
@@ -349,9 +367,11 @@ function resolveInstrumentSpec(calc, account) {
     type,
     unitLabel,
     source: manualOverride ? "override" : presetSpec ? "preset" : "manual",
-    sourceLabel: manualOverride ? "Override manual" : presetSpec ? "Preset seguro" : "Supuestos manuales",
-    sourceDetail: manualOverride ? "Valores editados en este workspace" : presetSpec ? "Preset común editable" : "Sin specs MT5 para este símbolo",
-    accuracyCopy: "Cálculo estimado con supuestos manuales. Verifica el valor por pip/punto de tu broker.",
+    sourceLabel: manualOverride ? "Override manual" : presetSpec ? "Preset estimado" : "Supuestos manuales",
+    sourceDetail: manualOverride ? "Valores editados en este workspace" : presetSpec ? "Preset común editable" : "Sin specs MT5 exactas para este símbolo",
+    accuracyCopy: isGold
+      ? estimatedGoldCopy
+      : "Cálculo estimado con supuestos manuales. Verifica el valor por pip/punto de tu broker.",
     volumeMin: null,
     volumeMax: null,
     volumeStep: null
@@ -375,6 +395,38 @@ function instrumentProfileCopy(spec) {
   return "Perfil editable. Verifica las especificaciones del instrumento.";
 }
 
+function resolveStopPriceDistance(stopDistance, spec) {
+  const multiplier = Number(spec.pipMultiplier);
+  if (!Number.isFinite(multiplier) || multiplier <= 0) return Math.abs(stopDistance);
+  return Math.abs(stopDistance) / multiplier;
+}
+
+function resolveRiskPerLot(stopDistance, spec, profile) {
+  const effectivePipValue = Number(spec.pipValue || 0) * (spec.source === "live" ? 1 : Number(profile.pointValue || 1));
+  const stopPriceDistance = resolveStopPriceDistance(stopDistance, spec);
+  const tickSize = Number(spec.tickSize);
+  const tickValue = Number(spec.tickValue);
+
+  if (spec.source === "live" && Number.isFinite(tickSize) && tickSize > 0 && Number.isFinite(tickValue) && tickValue > 0) {
+    const ticksAtRisk = stopPriceDistance / tickSize;
+    return {
+      method: "live_tick",
+      riskPerLot: Math.abs(ticksAtRisk) * tickValue,
+      effectivePipValue,
+      stopPriceDistance,
+      ticksAtRisk,
+    };
+  }
+
+  return {
+    method: spec.source === "preset" ? "preset_point" : "manual_point",
+    riskPerLot: Math.abs(stopDistance) * effectivePipValue,
+    effectivePipValue,
+    stopPriceDistance,
+    ticksAtRisk: null,
+  };
+}
+
 function calculateModel(state) {
   const account = selectCurrentAccount(state);
   const currentModel = selectCurrentModel(state);
@@ -391,12 +443,13 @@ function calculateModel(state) {
   const directStopPips = toNumber(calc.stopPips, priceStopPips || 15);
   const stopPips = Math.max(calc.slMode === "price" ? priceStopPips || directStopPips : directStopPips, 0.1);
   const riskUsd = accountSize * (riskPct / 100);
-  const pipValue = spec.pipValue * (spec.source === "live" ? 1 : profile.pointValue);
-  const rawLots = riskUsd / (stopPips * pipValue || 1);
+  const riskPerLotModel = resolveRiskPerLot(stopPips, spec, profile);
+  const pipValue = riskPerLotModel.effectivePipValue;
+  const rawLots = riskUsd / (riskPerLotModel.riskPerLot || 1);
   const lotSize = Math.max(0, rawLots);
   const volumeResolution = resolveLotSize(spec, lotSize);
   const roundedLots = volumeResolution.lots;
-  const realRiskUsd = roundedLots * stopPips * pipValue;
+  const realRiskUsd = roundedLots * riskPerLotModel.riskPerLot;
   const realRiskPct = accountSize ? (realRiskUsd / accountSize) * 100 : 0;
   const rr = rrPresetValue(calc.rrPreset);
   const tpPips = stopPips * rr;
@@ -418,6 +471,10 @@ function calculateModel(state) {
     stopPips,
     priceStopPips,
     pipValue,
+    riskPerLot: riskPerLotModel.riskPerLot,
+    riskMethod: riskPerLotModel.method,
+    stopPriceDistance: riskPerLotModel.stopPriceDistance,
+    ticksAtRisk: riskPerLotModel.ticksAtRisk,
     riskUsd,
     lotSize,
     roundedLots,
@@ -484,14 +541,28 @@ function specSourceTone(source) {
 }
 
 function specSourceMarkup(model) {
-  const sourceClass = `calculator-spec-source--${model.spec.source || "manual"}`;
+  const isEstimatedGold = isGoldSymbol(model.calc.symbol) && model.spec.source !== "live";
+  const sourceClass = [
+    `calculator-spec-source--${model.spec.source || "manual"}`,
+    isEstimatedGold ? "calculator-spec-source--gold-estimated" : ""
+  ].filter(Boolean).join(" ");
+  const unitSource = model.spec.source === "live"
+    ? "Tick MT5"
+    : model.spec.source === "preset"
+      ? "Preset estimado"
+      : "Punto manual";
+  const badgeLabel = model.spec.source === "live" ? "MT5" : model.spec.source === "preset" ? "Estimado" : "Manual";
+  const badgeTone = isEstimatedGold ? "warn" : specSourceTone(model.spec.source);
+  const riskPerLotCopy = Number.isFinite(Number(model.riskPerLot)) && Number(model.riskPerLot) > 0
+    ? ` Riesgo/lote ${formatCurrency(model.riskPerLot)}.`
+    : "";
   return `
     <div class="calculator-spec-source ${sourceClass}">
       <div>
-        <strong>${escapeHtml(model.spec.sourceLabel || "Supuestos manuales")}</strong>
-        <span>${escapeHtml(model.spec.accuracyCopy || "Cálculo estimado con supuestos manuales.")}</span>
+        <strong>${escapeHtml(model.spec.sourceLabel || "Supuestos manuales")} · ${escapeHtml(unitSource)}</strong>
+        <span>${escapeHtml(model.spec.accuracyCopy || "Cálculo estimado con supuestos manuales.")}${escapeHtml(riskPerLotCopy)}</span>
       </div>
-      ${badgeMarkup({ label: model.spec.source === "live" ? "MT5" : "Manual", tone: specSourceTone(model.spec.source) }, "ui-badge--compact")}
+      ${badgeMarkup({ label: badgeLabel, tone: badgeTone }, "ui-badge--compact")}
     </div>
   `;
 }

@@ -5088,6 +5088,11 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   border-color: color-mix(in srgb, var(--warning) 16%, var(--border-0));
 }
 
+.calculator-spec-source--gold-estimated {
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--border-0));
+  background: color-mix(in srgb, var(--warning) 4%, transparent);
+}
+
 .calculator-lot-warning {
   display: grid;
   align-items: flex-start;
