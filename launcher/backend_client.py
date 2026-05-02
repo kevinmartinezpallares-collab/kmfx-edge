@@ -8,6 +8,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from .connection_keys import payload_connection_key
 from .config import LauncherConfig
 
 SUPABASE_AUTH_URL = "https://uuhiqreifisppqkawzif.supabase.co/auth/v1"
@@ -44,7 +45,14 @@ class BackendClient:
             raw = str(body)
         return raw[:280]
 
-    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None, query: dict[str, Any] | None = None) -> BackendResponse:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+        query: dict[str, Any] | None = None,
+        connection_key: str | None = None,
+    ) -> BackendResponse:
         url = self.config.backend_base_url.rstrip("/") + path
         if query:
             encoded_query = urllib.parse.urlencode({key: value for key, value in query.items() if value is not None and value != ""})
@@ -53,8 +61,9 @@ class BackendClient:
 
         data = None
         headers = {"Content-Type": "application/json", "Connection": "close"}
-        if self.config.connection_key:
-            headers["X-KMFX-Connection-Key"] = self.config.connection_key
+        header_connection_key = self.config.connection_key if connection_key is None else str(connection_key or "").strip()
+        if header_connection_key:
+            headers["X-KMFX-Connection-Key"] = header_connection_key
         if self.config.backend_token:
             headers["Authorization"] = f"Bearer {self.config.backend_token}"
         if payload is not None:
@@ -203,10 +212,20 @@ class BackendClient:
         return self._supabase_auth_request("/logout", payload={}, access_token=access_token)
 
     def post_snapshot(self, payload: dict[str, Any]) -> BackendResponse:
-        return self._request("POST", self.config.backend_sync_path, payload=payload)
+        return self._request(
+            "POST",
+            self.config.backend_sync_path,
+            payload=payload,
+            connection_key=payload_connection_key(payload) or None,
+        )
 
     def post_journal(self, payload: dict[str, Any]) -> BackendResponse:
-        return self._request("POST", self.config.backend_journal_path, payload=payload)
+        return self._request(
+            "POST",
+            self.config.backend_journal_path,
+            payload=payload,
+            connection_key=payload_connection_key(payload) or None,
+        )
 
     def get_policy(self, *, login: str, connection_key: str) -> BackendResponse:
         return self._request(
@@ -221,9 +240,10 @@ class BackendClient:
     def get_pending_accounts(self) -> BackendResponse:
         return self._request("GET", "/accounts/pending")
 
-    def link_account(self, *, user_id: str = "", label: str = "") -> BackendResponse:
+    def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
         return self._request(
             "POST",
             "/api/accounts/link",
             payload={"user_id": user_id, "label": label},
+            connection_key=connection_key,
         )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from launcher.connection_keys import clean_connection_key, resolve_effective_connection_key
+from launcher.connection_keys import clean_connection_key, payload_connection_key, resolve_effective_connection_key
 
 
 class LauncherConnectionKeyTests(unittest.TestCase):
@@ -30,6 +30,12 @@ class LauncherConnectionKeyTests(unittest.TestCase):
     def test_clean_connection_key_normalizes_missing_values(self) -> None:
         self.assertEqual("", clean_connection_key(None))
         self.assertEqual("abc", clean_connection_key(" abc "))
+
+    def test_payload_connection_key_reads_modern_or_legacy_fields(self) -> None:
+        self.assertEqual("modern", payload_connection_key({"connection_key": " modern "}))
+        self.assertEqual("legacy", payload_connection_key({"KMFXApiKey": " legacy "}))
+        self.assertEqual("", payload_connection_key({"connection_key": ""}))
+        self.assertEqual("", payload_connection_key(None))
 
 
 if __name__ == "__main__":

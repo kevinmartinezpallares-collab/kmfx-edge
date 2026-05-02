@@ -13,3 +13,9 @@ def resolve_effective_connection_key(*, explicit_key: object = "", bridge_key: o
     if bridge:
         return bridge, "bridge"
     return "", ""
+
+
+def payload_connection_key(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    return clean_connection_key(payload.get("connection_key") or payload.get("KMFXApiKey"))
