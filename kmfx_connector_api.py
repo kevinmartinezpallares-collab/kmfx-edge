@@ -1044,6 +1044,57 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
     return sanitized, issues
 
 
+def sanitize_symbol_specs(raw_specs: Any, account_currency: str = "") -> dict[str, dict[str, Any]]:
+    """Normalize optional MT5 symbol specs without requiring old connectors to send them."""
+    if not raw_specs:
+        return {}
+
+    items: list[tuple[str, Any]] = []
+    if isinstance(raw_specs, dict):
+        for key, value in raw_specs.items():
+            items.append((safe_str(key), value))
+    elif isinstance(raw_specs, list):
+        for value in raw_specs:
+            items.append(("", value))
+    else:
+        return {}
+
+    specs: dict[str, dict[str, Any]] = {}
+    for fallback_symbol, raw in items[:80]:
+        if not isinstance(raw, dict):
+            continue
+        symbol = safe_str(raw.get("symbol") or raw.get("name") or raw.get("instrument") or fallback_symbol)
+        if not symbol:
+            continue
+
+        point = safe_float(raw.get("point") or raw.get("SYMBOL_POINT"))
+        tick_size = safe_float(raw.get("tickSize") or raw.get("tick_size") or raw.get("tradeTickSize") or raw.get("trade_tick_size") or raw.get("SYMBOL_TRADE_TICK_SIZE"))
+        tick_value = safe_float(raw.get("tickValue") or raw.get("tick_value") or raw.get("tradeTickValue") or raw.get("trade_tick_value") or raw.get("SYMBOL_TRADE_TICK_VALUE"))
+        tick_value_profit = safe_float(raw.get("tickValueProfit") or raw.get("tick_value_profit") or raw.get("SYMBOL_TRADE_TICK_VALUE_PROFIT"))
+        tick_value_loss = safe_float(raw.get("tickValueLoss") or raw.get("tick_value_loss") or raw.get("SYMBOL_TRADE_TICK_VALUE_LOSS"))
+
+        specs[symbol] = {
+            "symbol": symbol,
+            "digits": safe_int_or_none(raw.get("digits") or raw.get("SYMBOL_DIGITS")) or 0,
+            "point": point,
+            "tickSize": tick_size or point,
+            "tickValue": tick_value,
+            "tickValueProfit": tick_value_profit,
+            "tickValueLoss": tick_value_loss,
+            "contractSize": safe_float(raw.get("contractSize") or raw.get("contract_size") or raw.get("tradeContractSize") or raw.get("SYMBOL_TRADE_CONTRACT_SIZE")),
+            "volumeMin": safe_float(raw.get("volumeMin") or raw.get("volume_min") or raw.get("SYMBOL_VOLUME_MIN")),
+            "volumeMax": safe_float(raw.get("volumeMax") or raw.get("volume_max") or raw.get("SYMBOL_VOLUME_MAX")),
+            "volumeStep": safe_float(raw.get("volumeStep") or raw.get("volume_step") or raw.get("SYMBOL_VOLUME_STEP")),
+            "currencyProfit": safe_str(raw.get("currencyProfit") or raw.get("currency_profit") or raw.get("SYMBOL_CURRENCY_PROFIT")),
+            "currencyMargin": safe_str(raw.get("currencyMargin") or raw.get("currency_margin") or raw.get("SYMBOL_CURRENCY_MARGIN")),
+            "tradeCalcMode": safe_str(raw.get("tradeCalcMode") or raw.get("trade_calc_mode") or raw.get("SYMBOL_TRADE_CALC_MODE")),
+            "spread": safe_float(raw.get("spread") or raw.get("SYMBOL_SPREAD")),
+            "accountCurrency": safe_str(raw.get("accountCurrency") or raw.get("account_currency") or account_currency),
+        }
+
+    return specs
+
+
 def build_policy(login: str) -> dict[str, Any]:
     policy = {
         "enforcement_mode": "SAFE_MODE",
@@ -1394,6 +1445,10 @@ def build_dashboard_account_payload(
     )
     win_rate = (winning_trades / len(trades) * 100.0) if trades else 0.0
     history = raw_payload.get("history") if isinstance(raw_payload.get("history"), list) else []
+    symbol_specs = sanitize_symbol_specs(
+        raw_payload.get("symbolSpecs") or raw_payload.get("symbol_specs"),
+        safe_str(account.get("currency") or "USD"),
+    )
     report_metrics = build_report_metrics(account, trades, history)
     raw_policy = build_policy(safe_str(account.get("login")))
     previous_snapshot = extract_previous_risk_snapshot(previous_payload)
@@ -1452,6 +1507,7 @@ def build_dashboard_account_payload(
         "timestamp": safe_timestamp(raw_payload.get("timestamp") or account.get("timestamp")),
         "payloadSource": "mt5_sync_live",
         "positions": positions,
+        "symbolSpecs": symbol_specs,
         "trades": trades,
         "history": history,
         "reportMetrics": report_metrics,

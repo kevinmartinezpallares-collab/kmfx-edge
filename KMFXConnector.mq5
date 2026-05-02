@@ -1183,6 +1183,132 @@ string KMFXBuildPositionsJson()
    return json;
   }
 
+bool KMFXSymbolListContains(string &symbols[],int count,string symbol)
+  {
+   for(int i=0;i<count;i++)
+     {
+      if(symbols[i]==symbol)
+         return true;
+     }
+   return false;
+  }
+
+void KMFXAddSymbolSpecCandidate(string symbol,string &symbols[],int &count,int max_count)
+  {
+   if(StringLen(symbol)==0 || count>=max_count)
+      return;
+   if(KMFXSymbolListContains(symbols,count,symbol))
+      return;
+   if(!SymbolInfoInteger(symbol,SYMBOL_SELECT))
+      return;
+   ArrayResize(symbols,count+1);
+   symbols[count]=symbol;
+   count++;
+  }
+
+string KMFXBuildSingleSymbolSpecJson(string symbol)
+  {
+   if(StringLen(symbol)==0 || !SymbolInfoInteger(symbol,SYMBOL_SELECT))
+      return "";
+
+   double point=SymbolInfoDouble(symbol,SYMBOL_POINT);
+   double tick_size=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_SIZE);
+   double tick_value=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_VALUE);
+   double tick_value_profit=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_VALUE_PROFIT);
+   double tick_value_loss=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_VALUE_LOSS);
+   double contract_size=SymbolInfoDouble(symbol,SYMBOL_TRADE_CONTRACT_SIZE);
+   double volume_min=SymbolInfoDouble(symbol,SYMBOL_VOLUME_MIN);
+   double volume_max=SymbolInfoDouble(symbol,SYMBOL_VOLUME_MAX);
+   double volume_step=SymbolInfoDouble(symbol,SYMBOL_VOLUME_STEP);
+
+   if(!MathIsValidNumber(point) || point<=0)
+      return "";
+   if(!MathIsValidNumber(tick_size) || tick_size<=0)
+      tick_size=point;
+   if(!MathIsValidNumber(tick_value))
+      tick_value=0.0;
+   if(!MathIsValidNumber(tick_value_profit))
+      tick_value_profit=0.0;
+   if(!MathIsValidNumber(tick_value_loss))
+      tick_value_loss=0.0;
+   if(!MathIsValidNumber(contract_size))
+      contract_size=0.0;
+   if(!MathIsValidNumber(volume_min))
+      volume_min=0.0;
+   if(!MathIsValidNumber(volume_max))
+      volume_max=0.0;
+   if(!MathIsValidNumber(volume_step))
+      volume_step=0.0;
+
+   string json="{";
+   json+="\"symbol\":"+KMFXQuote(symbol)+",";
+   json+="\"digits\":"+IntegerToString((int)SymbolInfoInteger(symbol,SYMBOL_DIGITS))+",";
+   json+="\"point\":"+KMFXDoubleJson(point,8)+",";
+   json+="\"tickSize\":"+KMFXDoubleJson(tick_size,8)+",";
+   json+="\"tickValue\":"+KMFXDoubleJson(tick_value,8)+",";
+   json+="\"tickValueProfit\":"+KMFXDoubleJson(tick_value_profit,8)+",";
+   json+="\"tickValueLoss\":"+KMFXDoubleJson(tick_value_loss,8)+",";
+   json+="\"contractSize\":"+KMFXDoubleJson(contract_size,8)+",";
+   json+="\"volumeMin\":"+KMFXDoubleJson(volume_min,8)+",";
+   json+="\"volumeMax\":"+KMFXDoubleJson(volume_max,8)+",";
+   json+="\"volumeStep\":"+KMFXDoubleJson(volume_step,8)+",";
+   json+="\"currencyProfit\":"+KMFXQuote(SymbolInfoString(symbol,SYMBOL_CURRENCY_PROFIT))+",";
+   json+="\"currencyMargin\":"+KMFXQuote(SymbolInfoString(symbol,SYMBOL_CURRENCY_MARGIN))+",";
+   json+="\"tradeCalcMode\":"+IntegerToString((int)SymbolInfoInteger(symbol,SYMBOL_TRADE_CALC_MODE))+",";
+   json+="\"spread\":"+IntegerToString((int)SymbolInfoInteger(symbol,SYMBOL_SPREAD))+",";
+   json+="\"accountCurrency\":"+KMFXQuote(AccountInfoString(ACCOUNT_CURRENCY));
+   json+="}";
+   return json;
+  }
+
+string KMFXBuildSymbolSpecsJson()
+  {
+   const int max_symbols=40;
+   string symbols[];
+   int count=0;
+
+   for(int i=0;i<PositionsTotal();i++)
+     {
+      ulong ticket=PositionGetTicket(i);
+      if(ticket==0 || !PositionSelectByTicket(ticket))
+         continue;
+      KMFXAddSymbolSpecCandidate(PositionGetString(POSITION_SYMBOL),symbols,count,max_symbols);
+     }
+
+   datetime from_time=KMFXHistoryFromTime();
+   datetime to_time=KMFXNow();
+   if(HistorySelect(from_time,to_time))
+     {
+      int total=HistoryDealsTotal();
+      for(int i=total-1;i>=0 && count<max_symbols;i--)
+        {
+         ulong ticket=HistoryDealGetTicket(i);
+         if(ticket==0)
+            continue;
+         KMFXAddSymbolSpecCandidate(HistoryDealGetString(ticket,DEAL_SYMBOL),symbols,count,max_symbols);
+        }
+     }
+
+   string common_symbols[]={"EURUSD","GBPUSD","USDJPY","XAUUSD","NAS100","US100","US30","US500","SPX500"};
+   for(int i=0;i<ArraySize(common_symbols) && count<max_symbols;i++)
+      KMFXAddSymbolSpecCandidate(common_symbols[i],symbols,count,max_symbols);
+
+   string json="{";
+   bool first=true;
+   for(int i=0;i<count;i++)
+     {
+      string spec_json=KMFXBuildSingleSymbolSpecJson(symbols[i]);
+      if(StringLen(spec_json)==0)
+         continue;
+      if(!first)
+         json+=",";
+      first=false;
+      json+=KMFXQuote(symbols[i])+":"+spec_json;
+     }
+   json+="}";
+   return json;
+  }
+
 string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
   {
    trade_ids_csv="";
@@ -1466,6 +1592,7 @@ string KMFXBuildSyncPayload(string sync_id)
    string sync_login=KMFXAccountLoginString();
    string positions_json=KMFXBuildPositionsJson();
    string trades_json=KMFXBuildSyncTradesJson(KMFXClosedDealsLimit);
+   string symbol_specs_json=KMFXBuildSymbolSpecsJson();
    int history_points_limit=0;
    if(KMFXHistoryPointsLimit>0 && KMFXClosedDealsLimit>0)
       history_points_limit=MathMin(KMFXHistoryPointsLimit,KMFXClosedDealsLimit);
@@ -1499,6 +1626,7 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"daily_start_day_key\":"+KMFXQuote(KMFXDayKey(KMFXNow()))+",";
    json+="\"daily_peak_equity\":"+KMFXDoubleJson(Runtime.daily_peak_equity,2)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
+   json+="\"symbolSpecs\":"+symbol_specs_json+",";
    json+="\"positions\":"+positions_json+",";
    json+="\"trades\":"+trades_json+",";
    json+="\"history\":"+history_json+",";

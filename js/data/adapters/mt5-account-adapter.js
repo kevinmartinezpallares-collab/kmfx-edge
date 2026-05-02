@@ -417,6 +417,11 @@ function normalizeMt5Payload(rawPayload = {}) {
   const summarySnapshot = riskSnapshot.summary || {};
   const policySnapshot = riskSnapshot.policy || riskSnapshot.policy_snapshot || rawPayload.policy_snapshot || {};
   const rawAccount = rawPayload.account && typeof rawPayload.account === "object" ? rawPayload.account : {};
+  const symbolSpecs = rawPayload.symbolSpecs && typeof rawPayload.symbolSpecs === "object"
+    ? rawPayload.symbolSpecs
+    : rawPayload.symbol_specs && typeof rawPayload.symbol_specs === "object"
+      ? rawPayload.symbol_specs
+      : {};
   const payloadSource = rawPayload.payloadSource || "mt5_sync_live";
   const hasExplicitFloatingPnl = rawPayload.floatingPnl != null;
   const hasExplicitOpenPnl = rawPayload.openPnl != null || rawAccount.openPnl != null;
@@ -515,6 +520,7 @@ function normalizeMt5Payload(rawPayload = {}) {
     },
     riskRules: normalizeRiskRules(riskSnapshot, rawPayload),
     reportMetrics,
+    symbolSpecs,
     positions,
     trades,
     history

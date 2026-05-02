@@ -41,6 +41,92 @@ string Q(string s)             { return "\"" + s + "\""; }
 string KV(string k, string v)  { return "\"" + k + "\":\"" + v + "\""; }
 string KVn(string k, string v) { return "\"" + k + "\":" + v; }
 
+bool SymbolListContains(string &symbols[], int count, string symbol)
+{
+   for(int i = 0; i < count; i++)
+      if(symbols[i] == symbol) return true;
+   return false;
+}
+
+void AddSymbolCandidate(string symbol, string &symbols[], int &count, int max_count)
+{
+   if(StringLen(symbol) == 0 || count >= max_count) return;
+   if(SymbolListContains(symbols, count, symbol)) return;
+   if(!SymbolInfoInteger(symbol, SYMBOL_SELECT)) return;
+   ArrayResize(symbols, count + 1);
+   symbols[count] = symbol;
+   count++;
+}
+
+string SymbolSpecJSON(string symbol)
+{
+   if(StringLen(symbol) == 0 || !SymbolInfoInteger(symbol, SYMBOL_SELECT))
+      return "";
+
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double tick_size = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE);
+   double tick_value = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE);
+   double tick_value_profit = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE_PROFIT);
+   double tick_value_loss = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE_LOSS);
+   double contract_size = SymbolInfoDouble(symbol, SYMBOL_TRADE_CONTRACT_SIZE);
+   double volume_min = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+   double volume_max = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
+   double volume_step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   if(point <= 0) return "";
+   if(tick_size <= 0) tick_size = point;
+
+   string j = "{";
+   j += KV("symbol", symbol) + ",";
+   j += KVn("digits", IntegerToString((int)SymbolInfoInteger(symbol, SYMBOL_DIGITS))) + ",";
+   j += KVn("point", DoubleToString(point, 8)) + ",";
+   j += KVn("tickSize", DoubleToString(tick_size, 8)) + ",";
+   j += KVn("tickValue", DoubleToString(tick_value, 8)) + ",";
+   j += KVn("tickValueProfit", DoubleToString(tick_value_profit, 8)) + ",";
+   j += KVn("tickValueLoss", DoubleToString(tick_value_loss, 8)) + ",";
+   j += KVn("contractSize", DoubleToString(contract_size, 8)) + ",";
+   j += KVn("volumeMin", DoubleToString(volume_min, 8)) + ",";
+   j += KVn("volumeMax", DoubleToString(volume_max, 8)) + ",";
+   j += KVn("volumeStep", DoubleToString(volume_step, 8)) + ",";
+   j += KV("currencyProfit", SymbolInfoString(symbol, SYMBOL_CURRENCY_PROFIT)) + ",";
+   j += KV("currencyMargin", SymbolInfoString(symbol, SYMBOL_CURRENCY_MARGIN)) + ",";
+   j += KVn("tradeCalcMode", IntegerToString((int)SymbolInfoInteger(symbol, SYMBOL_TRADE_CALC_MODE))) + ",";
+   j += KVn("spread", IntegerToString((int)SymbolInfoInteger(symbol, SYMBOL_SPREAD))) + ",";
+   j += KV("accountCurrency", AccountInfoString(ACCOUNT_CURRENCY));
+   j += "}";
+   return j;
+}
+
+string SymbolSpecsJSON()
+{
+   const int max_symbols = 32;
+   string symbols[];
+   int count = 0;
+
+   for(int i = 0; i < PositionsTotal(); i++)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      AddSymbolCandidate(PositionGetString(POSITION_SYMBOL), symbols, count, max_symbols);
+   }
+
+   string common[] = {"EURUSD","GBPUSD","USDJPY","XAUUSD","NAS100","US100","US30","US500","SPX500"};
+   for(int i = 0; i < ArraySize(common) && count < max_symbols; i++)
+      AddSymbolCandidate(common[i], symbols, count, max_symbols);
+
+   string j = "{";
+   bool first = true;
+   for(int i = 0; i < count; i++)
+   {
+      string spec = SymbolSpecJSON(symbols[i]);
+      if(StringLen(spec) == 0) continue;
+      if(!first) j += ",";
+      first = false;
+      j += Q(symbols[i]) + ":" + spec;
+   }
+   j += "}";
+   return j;
+}
+
 string BuildJSON(bool hist)
 {
    string j = "{";
@@ -76,6 +162,7 @@ string BuildJSON(bool hist)
    }
    j += KVn("initial_deposit", DoubleToString(initialDeposit, 2));
    j += "},";
+   j += "\"symbolSpecs\":" + SymbolSpecsJSON() + ",";
 
    // Posiciones
    j += "\"positions\":[";

@@ -59,6 +59,17 @@ POLL_INTERVAL = 1.0          # segundos entre actualizaciones
 MAX_HISTORY_DEALS = 500      # máximo de deals a cargar del historial
 RISK_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-risk-state.json")
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
+SYMBOL_SPEC_COMMON_CANDIDATES = (
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "XAUUSD",
+    "NAS100",
+    "US100",
+    "US30",
+    "US500",
+    "SPX500",
+)
 risk_orchestrator = RiskOrchestrator(
     state_store=JsonFileRiskStateStore(RISK_STATE_PATH)
 )
@@ -242,6 +253,7 @@ def build_risk_snapshot(account: dict, positions: list) -> dict:
 
 
 def build_account_payload(account: dict, positions: list, deals: list, risk_snapshot: dict) -> dict:
+    symbol_specs = build_symbol_specs(positions, deals, account.get("currency", ""))
     return {
         "accountName": account.get("name") or account.get("broker") or "MT5 Account",
         "name": account.get("name") or account.get("broker") or "MT5 Account",
@@ -253,6 +265,7 @@ def build_account_payload(account: dict, positions: list, deals: list, risk_snap
         "balance": account.get("balance", 0.0),
         "equity": account.get("equity", account.get("balance", 0.0)),
         "openPnl": account.get("profit", 0.0),
+        "symbolSpecs": symbol_specs,
         "positions": positions,
         "trades": deals,
         "riskProfile": {
@@ -402,6 +415,70 @@ def get_symbol_price(symbol: str) -> dict:
         "spread": round((tick.ask - tick.bid) * 100000, 1),
         "time":   datetime.fromtimestamp(tick.time, tz=timezone.utc).isoformat(),
     }
+
+
+def _symbol_info_value(info, name: str, default=None):
+    return getattr(info, name, default)
+
+
+def get_symbol_spec(symbol: str, account_currency: str = "") -> dict:
+    """Lee specs de contrato/volumen del símbolo desde MT5 si están disponibles."""
+    if not HAS_MT5 or not symbol:
+        return None
+    info = mt5.symbol_info(symbol)
+    if info is None or not getattr(info, "visible", False):
+        return None
+    point = _symbol_info_value(info, "point", 0.0) or 0.0
+    tick_size = _symbol_info_value(info, "trade_tick_size", 0.0) or point
+    tick_value = _symbol_info_value(info, "trade_tick_value", 0.0) or 0.0
+    if point <= 0 or tick_size <= 0:
+        return None
+    return {
+        "symbol": symbol,
+        "digits": _symbol_info_value(info, "digits", 0) or 0,
+        "point": point,
+        "tickSize": tick_size,
+        "tickValue": tick_value,
+        "tickValueProfit": _symbol_info_value(info, "trade_tick_value_profit", tick_value) or 0.0,
+        "tickValueLoss": _symbol_info_value(info, "trade_tick_value_loss", tick_value) or 0.0,
+        "contractSize": _symbol_info_value(info, "trade_contract_size", 0.0) or 0.0,
+        "volumeMin": _symbol_info_value(info, "volume_min", 0.0) or 0.0,
+        "volumeMax": _symbol_info_value(info, "volume_max", 0.0) or 0.0,
+        "volumeStep": _symbol_info_value(info, "volume_step", 0.0) or 0.0,
+        "currencyProfit": _symbol_info_value(info, "currency_profit", "") or "",
+        "currencyMargin": _symbol_info_value(info, "currency_margin", "") or "",
+        "tradeCalcMode": _symbol_info_value(info, "trade_calc_mode", ""),
+        "spread": _symbol_info_value(info, "spread", 0) or 0,
+        "accountCurrency": account_currency,
+    }
+
+
+def build_symbol_specs(positions: list, deals: list, account_currency: str = "") -> dict:
+    if not HAS_MT5:
+        return {}
+    symbols: list[str] = []
+    seen: set[str] = set()
+
+    def add(symbol: str):
+        normalized = str(symbol or "").strip()
+        if not normalized or normalized in seen:
+            return
+        seen.add(normalized)
+        symbols.append(normalized)
+
+    for position in positions or []:
+        add(position.get("symbol"))
+    for deal in (deals or [])[:80]:
+        add(deal.get("symbol"))
+    for symbol in SYMBOL_SPEC_COMMON_CANDIDATES:
+        add(symbol)
+
+    specs: dict[str, dict] = {}
+    for symbol in symbols[:80]:
+        spec = get_symbol_spec(symbol, account_currency)
+        if spec:
+            specs[symbol] = spec
+    return specs
 
 
 def compute_stats(trades: list, balance: float) -> dict:
