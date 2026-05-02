@@ -112,8 +112,191 @@ function normalizeSymbol(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+function normalizeSymbolKey(value) {
+  return normalizeSymbol(value).replace(/[^A-Z0-9]/g, "");
+}
+
+function normalizeSymbolStem(value) {
+  return normalizeSymbol(value).split(/[._-]/)[0].replace(/[^A-Z0-9]/g, "");
+}
+
 function inferInstrumentId(symbol) {
   return SYMBOL_SPECS[normalizeSymbol(symbol)]?.instrumentId || "custom";
+}
+
+function firstFiniteValue(source = {}, keys = []) {
+  for (const key of keys) {
+    const value = source?.[key];
+    const parsed = parseNumericInput(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function firstTextValue(source = {}, keys = []) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value !== null && typeof value !== "undefined" && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+  return "";
+}
+
+function inferLiveInstrumentType(symbol, liveSpec = {}) {
+  const mode = String(liveSpec.tradeCalcMode || liveSpec.trade_calc_mode || liveSpec.calcMode || "").toLowerCase();
+  if (mode.includes("forex")) return "Forex";
+  const symbolKey = normalizeSymbol(symbol);
+  if (/XAU|XAG|GOLD|SILVER/.test(symbolKey)) return "Metal";
+  if (/BTC|ETH|CRYPTO/.test(symbolKey)) return "Cripto";
+  if (/NAS|US100|US30|US500|SPX|GER|DAX|INDEX/.test(symbolKey)) return "Índice";
+  return SYMBOL_SPECS[normalizeSymbolStem(symbol)]?.type || "Personalizado";
+}
+
+function liveUnitLabelForSpec(symbol, liveSpec = {}) {
+  const explicit = firstTextValue(liveSpec, ["unitLabel", "unit_label", "slUnit", "sl_unit"]);
+  if (explicit) return explicit;
+  return unitLabelForType(inferLiveInstrumentType(symbol, liveSpec));
+}
+
+function normalizeLiveSymbolSpec(rawSpec = {}, fallbackSymbol = "") {
+  if (!rawSpec || typeof rawSpec !== "object") return null;
+  const symbol = firstTextValue(rawSpec, ["symbol", "name", "instrument"]) || fallbackSymbol;
+  if (!symbol) return null;
+  const digits = firstFiniteValue(rawSpec, ["digits", "symbol_digits", "SYMBOL_DIGITS"]);
+  const point = firstFiniteValue(rawSpec, ["point", "symbolPoint", "symbol_point", "SYMBOL_POINT"]);
+  const tickSize = firstFiniteValue(rawSpec, ["tickSize", "tick_size", "tradeTickSize", "trade_tick_size", "SYMBOL_TRADE_TICK_SIZE"]) || point || null;
+  const tickValue = firstFiniteValue(rawSpec, [
+    "tickValue",
+    "tick_value",
+    "tradeTickValue",
+    "trade_tick_value",
+    "tickValueProfit",
+    "tick_value_profit",
+    "trade_tick_value_profit",
+    "SYMBOL_TRADE_TICK_VALUE",
+    "SYMBOL_TRADE_TICK_VALUE_PROFIT"
+  ]);
+  const contractSize = firstFiniteValue(rawSpec, ["contractSize", "contract_size", "tradeContractSize", "trade_contract_size", "SYMBOL_TRADE_CONTRACT_SIZE"]);
+  const volumeMin = firstFiniteValue(rawSpec, ["volumeMin", "volume_min", "minVolume", "min_volume", "SYMBOL_VOLUME_MIN"]);
+  const volumeMax = firstFiniteValue(rawSpec, ["volumeMax", "volume_max", "maxVolume", "max_volume", "SYMBOL_VOLUME_MAX"]);
+  const volumeStep = firstFiniteValue(rawSpec, ["volumeStep", "volume_step", "lotStep", "lot_step", "SYMBOL_VOLUME_STEP"]);
+  if (!Number.isFinite(tickValue) || tickValue <= 0 || !Number.isFinite(tickSize) || tickSize <= 0) return null;
+
+  const type = inferLiveInstrumentType(symbol, rawSpec);
+  const unitLabel = liveUnitLabelForSpec(symbol, rawSpec);
+  const explicitPipSize = firstFiniteValue(rawSpec, ["pipSize", "pip_size", "pointSize", "point_size"]);
+  const pipSize = explicitPipSize
+    || (unitLabel === "pips" && Number.isFinite(point) && point > 0 ? point * (digits === 3 || digits === 5 ? 10 : 1) : tickSize);
+  const pipValue = tickValue * (pipSize / tickSize);
+  const pipMultiplier = pipSize > 0 ? 1 / pipSize : (point > 0 ? 1 / point : 1);
+  return {
+    symbol,
+    pipValue,
+    pipMultiplier,
+    lotUnit: contractSize || 1,
+    decimals: Number.isFinite(digits) ? digits : (type === "Forex" ? 5 : 2),
+    type,
+    unitLabel,
+    source: "live",
+    sourceLabel: "Specs MT5",
+    sourceDetail: "Sincronizado desde cuenta activa",
+    accuracyCopy: "Cálculo basado en especificaciones MT5 de la cuenta activa.",
+    tickSize,
+    tickValue,
+    point,
+    digits,
+    contractSize: contractSize || null,
+    volumeMin,
+    volumeMax,
+    volumeStep,
+    currencyProfit: firstTextValue(rawSpec, ["currencyProfit", "currency_profit", "profitCurrency", "profit_currency", "SYMBOL_CURRENCY_PROFIT"]),
+    currencyMargin: firstTextValue(rawSpec, ["currencyMargin", "currency_margin", "marginCurrency", "margin_currency", "SYMBOL_CURRENCY_MARGIN"]),
+    tradeCalcMode: firstTextValue(rawSpec, ["tradeCalcMode", "trade_calc_mode", "calcMode", "calc_mode", "SYMBOL_TRADE_CALC_MODE"]),
+    raw: rawSpec,
+  };
+}
+
+function collectSymbolSpecCandidates(value, candidates = [], fallbackSymbol = "") {
+  if (!value) return candidates;
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectSymbolSpecCandidates(item, candidates, fallbackSymbol));
+    return candidates;
+  }
+  if (typeof value !== "object") return candidates;
+
+  const hasSpecShape = [
+    "tickValue", "tick_value", "tradeTickValue", "trade_tick_value", "tickValueProfit", "tick_value_profit",
+    "tickSize", "tick_size", "tradeTickSize", "trade_tick_size", "contractSize", "contract_size",
+    "volumeStep", "volume_step", "digits", "point"
+  ].some((key) => Object.prototype.hasOwnProperty.call(value, key));
+
+  if (hasSpecShape) {
+    candidates.push({ ...value, symbol: firstTextValue(value, ["symbol", "name", "instrument"]) || fallbackSymbol });
+    return candidates;
+  }
+
+  Object.entries(value).forEach(([key, item]) => {
+    if (item && typeof item === "object") {
+      collectSymbolSpecCandidates(item, candidates, key);
+    }
+  });
+  return candidates;
+}
+
+function getPossibleLiveSpecContainers(account = {}) {
+  const payload = account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const model = account?.model && typeof account.model === "object" ? account.model : {};
+  const riskSnapshot = account?.riskSnapshot && typeof account.riskSnapshot === "object"
+    ? account.riskSnapshot
+    : payload.riskSnapshot && typeof payload.riskSnapshot === "object"
+      ? payload.riskSnapshot
+      : {};
+  return [
+    payload.symbolSpecs,
+    payload.symbol_specs,
+    payload.symbols,
+    payload.mt5Symbols,
+    payload.mt5_symbols,
+    payload.specs,
+    payload.specifications,
+    payload.market?.symbols,
+    payload.market?.symbolSpecs,
+    payload.account?.symbolSpecs,
+    payload.account?.symbol_specs,
+    riskSnapshot.symbol_specs,
+    riskSnapshot.symbolSpecs,
+    riskSnapshot.metadata?.symbol_specs,
+    riskSnapshot.metadata?.symbolSpecs,
+    model.symbolSpecs,
+    model.symbol_specs,
+    model.sourceTrace?.symbolSpecs,
+    model.sourceTrace?.symbol_specs,
+  ];
+}
+
+function findLiveSymbolSpec(account, symbol) {
+  if (!account || account.sourceType !== "mt5") return null;
+  const requested = normalizeSymbol(symbol);
+  if (!requested) return null;
+  const candidates = getPossibleLiveSpecContainers(account)
+    .flatMap((container) => collectSymbolSpecCandidates(container, []))
+    .map((candidate) => normalizeLiveSymbolSpec(candidate))
+    .filter(Boolean);
+  if (!candidates.length) return null;
+  const exact = candidates.find((candidate) => normalizeSymbol(candidate.symbol) === requested);
+  if (exact) return { ...exact, matchQuality: "exact" };
+  const requestedKey = normalizeSymbolKey(requested);
+  const compact = candidates.find((candidate) => normalizeSymbolKey(candidate.symbol) === requestedKey);
+  if (compact) return { ...compact, matchQuality: "compact" };
+  const requestedStem = normalizeSymbolStem(requested);
+  const stem = candidates.find((candidate) => normalizeSymbolStem(candidate.symbol) === requestedStem);
+  return stem ? { ...stem, matchQuality: "alias" } : null;
+}
+
+function hasManualSpecOverride(calc = {}) {
+  return ["pipValuePerLot", "pipMultiplier", "lotUnit", "instrumentType", "unitLabel"]
+    .some((key) => calc[key] !== "" && calc[key] !== null && typeof calc[key] !== "undefined");
 }
 
 function ensureCalculatorState(calc = {}, currentModel) {
@@ -149,9 +332,13 @@ function getCalculatorRiskAdvice(currentModel) {
   }
 }
 
-function resolveInstrumentSpec(calc) {
+function resolveInstrumentSpec(calc, account) {
   const symbolKey = normalizeSymbol(calc.symbol);
-  const presetSpec = SYMBOL_SPECS[symbolKey];
+  const symbolStem = normalizeSymbolStem(calc.symbol);
+  const liveSpec = findLiveSymbolSpec(account, calc.symbol);
+  if (liveSpec) return liveSpec;
+  const presetSpec = SYMBOL_SPECS[symbolKey] || SYMBOL_SPECS[symbolStem];
+  const manualOverride = hasManualSpecOverride(calc);
   const type = calc.instrumentType || presetSpec?.type || "Personalizado";
   const unitLabel = calc.unitLabel || presetSpec?.unitLabel || unitLabelForType(type);
   const spec = {
@@ -161,7 +348,13 @@ function resolveInstrumentSpec(calc) {
     decimals: presetSpec?.decimals ?? (type === "Forex" ? 4 : 2),
     type,
     unitLabel,
-    source: presetSpec ? "preset" : "custom"
+    source: manualOverride ? "override" : presetSpec ? "preset" : "manual",
+    sourceLabel: manualOverride ? "Override manual" : presetSpec ? "Preset seguro" : "Supuestos manuales",
+    sourceDetail: manualOverride ? "Valores editados en este workspace" : presetSpec ? "Preset común editable" : "Sin specs MT5 para este símbolo",
+    accuracyCopy: "Cálculo estimado con supuestos manuales. Verifica el valor por pip/punto de tu broker.",
+    volumeMin: null,
+    volumeMax: null,
+    volumeStep: null
   };
   return spec;
 }
@@ -173,7 +366,9 @@ function unitLabelForType(type) {
 }
 
 function instrumentProfileCopy(spec) {
-  if (spec.source === "custom") return "Perfil personalizado. Verifica valor por punto.";
+  if (spec.source === "live") return "Especificaciones MT5 de la cuenta activa.";
+  if (spec.source === "manual") return "Perfil personalizado. Verifica valor por punto.";
+  if (spec.source === "override") return "Supuestos editados manualmente. Verifica valor por punto.";
   if (spec.type === "Forex") return "Perfil estándar Forex.";
   if (spec.type === "Índice") return "Perfil estándar para índices.";
   if (spec.type === "Metal") return "Perfil estándar para metales.";
@@ -181,10 +376,11 @@ function instrumentProfileCopy(spec) {
 }
 
 function calculateModel(state) {
+  const account = selectCurrentAccount(state);
   const currentModel = selectCurrentModel(state);
   const calc = ensureCalculatorState(state.workspace.calculator, currentModel);
   const riskAdvice = getCalculatorRiskAdvice(currentModel);
-  const spec = resolveInstrumentSpec(calc);
+  const spec = resolveInstrumentSpec(calc, account);
   const profile = CALCULATION_PROFILES[calc.broker] || CALCULATION_PROFILES.Manual;
 
   const accountSize = toNumber(calc.accountSize, currentModel?.account.balance || 0);
@@ -195,10 +391,11 @@ function calculateModel(state) {
   const directStopPips = toNumber(calc.stopPips, priceStopPips || 15);
   const stopPips = Math.max(calc.slMode === "price" ? priceStopPips || directStopPips : directStopPips, 0.1);
   const riskUsd = accountSize * (riskPct / 100);
-  const pipValue = spec.pipValue * profile.pointValue;
+  const pipValue = spec.pipValue * (spec.source === "live" ? 1 : profile.pointValue);
   const rawLots = riskUsd / (stopPips * pipValue || 1);
   const lotSize = Math.max(0, rawLots);
-  const roundedLots = roundLotSize(spec.type, lotSize);
+  const volumeResolution = resolveLotSize(spec, lotSize);
+  const roundedLots = volumeResolution.lots;
   const realRiskUsd = roundedLots * stopPips * pipValue;
   const realRiskPct = accountSize ? (realRiskUsd / accountSize) * 100 : 0;
   const rr = rrPresetValue(calc.rrPreset);
@@ -224,6 +421,7 @@ function calculateModel(state) {
     riskUsd,
     lotSize,
     roundedLots,
+    volumeResolution,
     realRiskUsd,
     realRiskPct,
     rr,
@@ -260,6 +458,51 @@ function calculatorMetricMarkup(label, value, meta = "") {
       <span>${label}</span>
       <strong>${value}</strong>
       ${meta ? `<small>${meta}</small>` : ""}
+    </div>
+  `;
+}
+
+function formatSpecNumber(value, digits = 4) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return number.toLocaleString("es-ES", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits
+  });
+}
+
+function formatInputNumber(value, digits = 6) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  return Number(number.toFixed(digits)).toString();
+}
+
+function specSourceTone(source) {
+  if (source === "live") return "ok";
+  if (source === "manual") return "warn";
+  return "neutral";
+}
+
+function specSourceMarkup(model) {
+  const sourceClass = `calculator-spec-source--${model.spec.source || "manual"}`;
+  return `
+    <div class="calculator-spec-source ${sourceClass}">
+      <div>
+        <strong>${escapeHtml(model.spec.sourceLabel || "Supuestos manuales")}</strong>
+        <span>${escapeHtml(model.spec.accuracyCopy || "Cálculo estimado con supuestos manuales.")}</span>
+      </div>
+      ${badgeMarkup({ label: model.spec.source === "live" ? "MT5" : "Manual", tone: specSourceTone(model.spec.source) }, "ui-badge--compact")}
+    </div>
+  `;
+}
+
+function lotWarningMarkup(model) {
+  const warning = model.volumeResolution?.warning;
+  if (!warning) return "";
+  return `
+    <div class="calculator-lot-warning">
+      <strong>${warning.title}</strong>
+      <span>${warning.copy}</span>
     </div>
   `;
 }
@@ -462,6 +705,16 @@ export function renderCalculator(root, state) {
   const unitLabel = model.spec.unitLabel || "pips/puntos";
   const targetCopy = model.target === null ? "Opcional" : String(model.target);
   const stopModeLabel = calc.slMode === "price" ? "SL por precio" : "SL por distancia";
+  const specLocked = model.spec.source === "live";
+  const specControlState = specLocked ? "disabled" : "";
+  const specInputState = specLocked ? "readonly" : "";
+  const volumeMeta = model.spec.source === "live"
+    ? ([
+        model.spec.volumeMin ? `mín ${formatSpecNumber(model.spec.volumeMin, 2)}` : "",
+        model.spec.volumeMax ? `máx ${formatSpecNumber(model.spec.volumeMax, 2)}` : "",
+        model.spec.volumeStep ? `paso ${formatSpecNumber(model.spec.volumeStep, 4)}` : ""
+      ].filter(Boolean).join(" · ") || "Sin límites MT5 de volumen.")
+    : "Sin límites MT5 disponibles";
   const adviceTone = model.riskAdvice?.risk_state === "LOCKED" || model.riskAdvice?.risk_state === "DANGER"
     ? "error"
     : model.riskAdvice?.risk_state === "CAUTION"
@@ -488,7 +741,10 @@ export function renderCalculator(root, state) {
             <div class="tl-section-title">Calculadora de posición</div>
             <div class="tl-section-sub">Datos del trade → lotaje → validación de riesgo.</div>
           </div>
-          ${badgeMarkup({ label: stopModeLabel, tone: "neutral" }, "ui-badge--compact")}
+          <div class="calculator-workspace-badges">
+            ${badgeMarkup({ label: model.spec.sourceLabel || "Supuestos manuales", tone: specSourceTone(model.spec.source) }, "ui-badge--compact")}
+            ${badgeMarkup({ label: stopModeLabel, tone: "neutral" }, "ui-badge--compact")}
+          </div>
         </div>
 
         <div class="calculator-workflow-grid">
@@ -545,6 +801,8 @@ export function renderCalculator(root, state) {
               <strong>${model.roundedLots.toFixed(2)} lotes</strong>
               <small>${escapeHtml(calc.symbol)} · riesgo real ${model.realRiskPct.toFixed(2)}% · ${formatCurrency(model.realRiskUsd)}</small>
             </div>
+            ${lotWarningMarkup(model)}
+            ${specSourceMarkup(model)}
             <div class="calculator-metric-grid">
               ${calculatorMetricMarkup("Riesgo $", formatCurrency(model.realRiskUsd), `${model.riskPct.toFixed(2)}% configurado`)}
               ${calculatorMetricMarkup("R:R", `1:${model.rr}`, `${model.tpPips.toFixed(1)} ${unitLabel} TP`)}
@@ -582,42 +840,42 @@ export function renderCalculator(root, state) {
           <div class="form-grid-clean calc-form-grid calculator-spec-form">
             <label class="form-stack">
               <span>Perfil de cálculo</span>
-              <select data-calc-field="broker">
+              <select data-calc-field="broker" ${specControlState}>
                 ${Object.keys(CALCULATION_PROFILES).map((profile) => `<option value="${profile}" ${calc.broker === profile ? "selected" : ""}>${profile}</option>`).join("")}
               </select>
-              <small>Preset editable, no verdad absoluta del broker.</small>
+              <small>${specLocked ? "Ignorado mientras existan specs MT5 live." : "Preset editable, no verdad absoluta del broker."}</small>
             </label>
             <label class="form-stack">
               <span>Tipo de instrumento</span>
-              <select data-calc-field="instrumentType">
+              <select data-calc-field="instrumentType" ${specControlState}>
                 ${["Forex", "Índice", "Metal", "Cripto", "Personalizado"].map((type) => `<option value="${type}" ${model.spec.type === type ? "selected" : ""}>${type}</option>`).join("")}
               </select>
             </label>
             <label class="form-stack">
               <span>Unidad SL</span>
-              <select data-calc-field="unitLabel">
+              <select data-calc-field="unitLabel" ${specControlState}>
                 ${["pips", "puntos", "pips/puntos"].map((unit) => `<option value="${unit}" ${unitLabel === unit ? "selected" : ""}>${unit}</option>`).join("")}
               </select>
             </label>
             <label class="form-stack">
               <span>Valor por pip/punto por lote</span>
-              <input type="text" inputmode="decimal" data-calc-field="pipValuePerLot" value="${model.spec.pipValue}" autocomplete="off">
+              <input type="text" inputmode="decimal" data-calc-field="pipValuePerLot" value="${formatInputNumber(model.spec.pipValue, 6)}" autocomplete="off" ${specInputState}>
             </label>
             <label class="form-stack">
               <span>Multiplicador pip/punto</span>
-              <input type="text" inputmode="decimal" data-calc-field="pipMultiplier" value="${model.spec.pipMultiplier}" autocomplete="off">
+              <input type="text" inputmode="decimal" data-calc-field="pipMultiplier" value="${formatInputNumber(model.spec.pipMultiplier, 6)}" autocomplete="off" ${specInputState}>
             </label>
             <label class="form-stack">
               <span>Tamaño contrato / lote base</span>
-              <input type="text" inputmode="decimal" data-calc-field="lotUnit" value="${model.spec.lotUnit}" autocomplete="off">
+              <input type="text" inputmode="decimal" data-calc-field="lotUnit" value="${formatInputNumber(model.spec.lotUnit, 2)}" autocomplete="off" ${specInputState}>
             </label>
             <label class="form-stack">
               <span>Precio TP</span>
               <input type="text" value="${targetCopy}" readonly>
             </label>
           </div>
-          <div class="calculator-spec-note">
-            Supuestos editables. Verifica tu broker. ${model.profileCopy} ${model.profile.note}
+          <div class="calculator-spec-note calculator-spec-note--${model.spec.source || "manual"}">
+            ${escapeHtml(model.spec.accuracyCopy)} ${escapeHtml(model.profileCopy)} ${escapeHtml(model.profile.note)} ${escapeHtml(volumeMeta)}
           </div>
         </div>
       </details>
@@ -630,9 +888,47 @@ export function renderCalculator(root, state) {
   restoreFocusedCalculatorField(root, focusedField);
 }
 
-function roundLotSize(instrumentType, value) {
-  const precision = instrumentType === "Forex" || instrumentType === "Metal" ? 0.01 : 0.1;
-  return Math.floor(value / precision) * precision;
+function decimalPlaces(value) {
+  const normalized = String(value || "");
+  if (!normalized.includes(".")) return 0;
+  return normalized.split(".")[1]?.length || 0;
+}
+
+function roundLotToStep(value, step) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const safeStep = Number.isFinite(Number(step)) && Number(step) > 0 ? Number(step) : 0.01;
+  const precision = Math.min(Math.max(decimalPlaces(safeStep), 2), 8);
+  const rounded = Math.floor((value + Number.EPSILON) / safeStep) * safeStep;
+  return Number(rounded.toFixed(precision));
+}
+
+function resolveLotSize(spec, value) {
+  const fallbackStep = spec.type === "Forex" || spec.type === "Metal" ? 0.01 : 0.1;
+  const step = Number.isFinite(Number(spec.volumeStep)) && Number(spec.volumeStep) > 0
+    ? Number(spec.volumeStep)
+    : fallbackStep;
+  const min = Number.isFinite(Number(spec.volumeMin)) && Number(spec.volumeMin) > 0 ? Number(spec.volumeMin) : null;
+  const max = Number.isFinite(Number(spec.volumeMax)) && Number(spec.volumeMax) > 0 ? Number(spec.volumeMax) : null;
+  let lots = roundLotToStep(value, step);
+  let warning = null;
+
+  if (spec.source === "live" && min !== null && value > 0 && lots < min) {
+    lots = min;
+    warning = {
+      title: "Lotaje mínimo MT5 aplicado",
+      copy: `El cálculo queda por debajo del mínimo del broker (${formatSpecNumber(min, 4)} lotes). Revisa el riesgo real antes de operar.`
+    };
+  }
+
+  if (spec.source === "live" && max !== null && lots > max) {
+    lots = roundLotToStep(max, step);
+    warning = {
+      title: "Lotaje máximo MT5 aplicado",
+      copy: `El cálculo supera el máximo del broker (${formatSpecNumber(max, 4)} lotes). Se limita al máximo permitido.`
+    };
+  }
+
+  return { lots, step, min, max, warning };
 }
 
 function rrPresetValue(value) {
