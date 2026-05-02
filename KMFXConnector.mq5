@@ -389,23 +389,65 @@ string KMFXAccountLoginString()
 
 string KMFXLoadConnectionKeyFromFile()
   {
+   return KMFXLoadConnectionConfigValue("connection_key");
+  }
+
+string KMFXLoadConnectionConfigValue(string key_name)
+  {
    int handle=FileOpen(KMFX_CONNECTION_CONFIG_FILE,FILE_READ|FILE_TXT|FILE_ANSI);
    if(handle==INVALID_HANDLE)
       return "";
 
+   string prefix=key_name+"=";
    while(!FileIsEnding(handle))
      {
       string line=KMFXTrim(FileReadString(handle));
-      if(StringFind(line,"connection_key=")==0)
+      if(StringFind(line,prefix)==0)
         {
-         string file_key=KMFXTrim(StringSubstr(line,StringLen("connection_key=")));
+         string file_value=KMFXTrim(StringSubstr(line,StringLen(prefix)));
          FileClose(handle);
-         return file_key;
+         return file_value;
         }
      }
 
    FileClose(handle);
    return "";
+  }
+
+string KMFXNormalizeBaseUrl(string value)
+  {
+   string normalized=KMFXTrim(value);
+   while(StringLen(normalized)>1 && StringSubstr(normalized,StringLen(normalized)-1,1)=="/")
+      normalized=StringSubstr(normalized,0,StringLen(normalized)-1);
+   return normalized;
+  }
+
+string KMFXNormalizePath(string value,string fallback)
+  {
+   string normalized=KMFXTrim(value);
+   if(StringLen(normalized)<=0)
+      return fallback;
+   if(StringSubstr(normalized,0,1)!="/")
+      normalized="/"+normalized;
+   return normalized;
+  }
+
+void KMFXApplyConnectionConfigFromFile()
+  {
+   string backend_url=KMFXNormalizeBaseUrl(KMFXLoadConnectionConfigValue("backend_url"));
+   if(StringLen(backend_url)>0)
+     {
+      KMFXBackendBaseUrl=backend_url;
+      PrintFormat("[KMFX][INIT][CONFIG] backend_url=%s",KMFXBackendBaseUrl);
+     }
+
+   string sync_path=KMFXLoadConnectionConfigValue("sync_path");
+   string journal_path=KMFXLoadConnectionConfigValue("journal_path");
+   string policy_path=KMFXLoadConnectionConfigValue("policy_path");
+   KMFXSyncPath=KMFXNormalizePath(sync_path,KMFXSyncPath);
+   KMFXJournalPath=KMFXNormalizePath(journal_path,KMFXJournalPath);
+   KMFXPolicyPath=KMFXNormalizePath(policy_path,KMFXPolicyPath);
+   PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
   }
 
 void KMFXInitializeRuntimeConnectionKey()
@@ -2613,6 +2655,7 @@ int OnInit()
                Runtime.equity_peak);
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
    PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
+   KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
 
    if(KMFXVerboseLog)

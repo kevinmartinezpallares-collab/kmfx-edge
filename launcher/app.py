@@ -25,7 +25,13 @@ except ImportError as exc:  # pragma: no cover - depends on local runtime setup
 
 from .config import LauncherConfig, load_config, mask_connection_key, save_bridge_config, save_config
 from .backend_client import BackendClient, BackendResponse
-from .connector_installer import connector_installed, install_connector
+from .connector_installer import (
+    MT5_CLOUD_BASE_URL,
+    MT5_CLOUD_POLICY_PATH,
+    MT5_CLOUD_SYNC_PATH,
+    connector_installed,
+    install_connector,
+)
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
 from .platform_mac import open_mt5 as open_mt5_mac
@@ -624,9 +630,10 @@ class KMFXApi:
                 _safe_str(matching_connection.get("server")),
             ]
         ).replace("_", " ")
+        identity_lower = identity.lower()
         if "Orion" in identity or "OGM" in identity:
             return "KMFX MT5 Orion"
-        if "Darwinex" in identity or "Tradeslide" in identity:
+        if "darwinex" in identity_lower or "tradeslide" in identity_lower or "net.metaquotes.wine.metatrader5" in identity_lower:
             return "KMFX MT5 Darwinex"
         login = _safe_str(matching_connection.get("login"))
         if login:
@@ -660,7 +667,7 @@ class KMFXApi:
         status_order = 0 if status == "active" else 1 if status.startswith("pending") or status in {"draft", "waiting_sync"} else 2
         last_sync_at = _safe_str(account.get("last_sync_at"))
         last_sync_label = _humanize_last_sync({"timestamp": last_sync_at}) if last_sync_at else "Pendiente de primer sync"
-        base_url = self.service_url("")
+        base_url = MT5_CLOUD_BASE_URL
         return {
             "account_id": _safe_str(account.get("account_id")),
             "label": display_name,
@@ -674,8 +681,8 @@ class KMFXApi:
             "connection_key": connection_key,
             "connection_key_masked": mask_connection_key(connection_key),
             "endpoint_base": base_url,
-            "sync_url": self.service_url("/mt5/sync"),
-            "policy_url": self.service_url("/mt5/policy"),
+            "sync_url": f"{base_url}{MT5_CLOUD_SYNC_PATH}",
+            "policy_url": f"{base_url}{MT5_CLOUD_POLICY_PATH}",
             "last_sync_label": last_sync_label,
         }
 
@@ -828,6 +835,7 @@ class KMFXApi:
 
 def main() -> None:
     api = KMFXApi()
+    api.ensure_service_started()
     window = webview.create_window(
         "KMFX Launcher",
         UI_PATH.as_uri(),

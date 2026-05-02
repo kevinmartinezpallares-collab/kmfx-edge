@@ -11,6 +11,10 @@ from .resources import resource_path
 
 
 LOGGER = logging.getLogger("kmfx_launcher")
+MT5_CLOUD_BASE_URL = "https://mt5-api.kmfxedge.com"
+MT5_CLOUD_SYNC_PATH = "/api/mt5/sync"
+MT5_CLOUD_JOURNAL_PATH = "/api/mt5/journal"
+MT5_CLOUD_POLICY_PATH = "/api/mt5/policy"
 
 
 def connector_sources() -> list[Path]:
@@ -28,10 +32,10 @@ def preset_contents(config: LauncherConfig) -> str:
             f"KMFXApiKey={config.connection_key}||0||0||0||N",
             f"connection_key={config.connection_key}||0||0||0||N",
             "KMFXMode=0||0||0||1||N",
-            f"KMFXBackendBaseUrl={config.local_host and f'http://{config.local_host}:{config.local_port}'}||0||0||0||N",
-            "KMFXSyncPath=/mt5/sync||0||0||0||N",
-            "KMFXJournalPath=/mt5/journal||0||0||0||N",
-            "KMFXPolicyPath=/mt5/policy||0||0||0||N",
+            f"KMFXBackendBaseUrl={MT5_CLOUD_BASE_URL}||0||0||0||N",
+            f"KMFXSyncPath={MT5_CLOUD_SYNC_PATH}||0||0||0||N",
+            f"KMFXJournalPath={MT5_CLOUD_JOURNAL_PATH}||0||0||0||N",
+            f"KMFXPolicyPath={MT5_CLOUD_POLICY_PATH}||0||0||0||N",
             "KMFXTimerMs=2000||0||0||0||N",
             "KMFXPolicyPollSeconds=12||0||0||0||N",
             "KMFXStatePushSeconds=5||0||0||0||N",
@@ -52,7 +56,11 @@ def connection_config_contents(config: LauncherConfig) -> str:
     return "\n".join(
         [
             f"connection_key={str(config.connection_key or '').strip()}",
-            f"backend_url=http://{config.local_host}:{config.local_port}",
+            f"backend_url={MT5_CLOUD_BASE_URL}",
+            f"sync_path={MT5_CLOUD_SYNC_PATH}",
+            f"journal_path={MT5_CLOUD_JOURNAL_PATH}",
+            f"policy_path={MT5_CLOUD_POLICY_PATH}",
+            f"launcher_url=http://{config.local_host}:{config.local_port}",
             f"written_at={datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')}",
             "",
         ]
