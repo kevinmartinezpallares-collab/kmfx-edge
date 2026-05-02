@@ -74,14 +74,28 @@ const TOOL_CARDS = [
 ];
 
 function toNumber(value, fallback = 0) {
-  const parsed = Number(value);
+  const parsed = parseNumericInput(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function toOptionalNumber(value, fallback = 0) {
   if (value === "" || value === null || typeof value === "undefined") return fallback;
-  const parsed = Number(value);
+  const parsed = parseNumericInput(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseNumericInput(value) {
+  if (typeof value === "number") return value;
+  const raw = String(value ?? "").trim().replace(/\s/g, "");
+  if (!raw) return Number.NaN;
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  const normalized = lastComma > -1 && lastDot > -1
+    ? lastComma > lastDot
+      ? raw.replace(/\./g, "").replace(",", ".")
+      : raw.replace(/,/g, "")
+    : raw.replace(",", ".");
+  return Number(normalized);
 }
 
 function escapeHtml(value = "") {
@@ -284,9 +298,46 @@ function riskAdviceMarkup(model, adviceTone) {
   `;
 }
 
+function captureFocusedCalculatorField(root) {
+  const active = document.activeElement;
+  if (!active || !root.contains(active) || !active.matches("[data-calc-field]")) return null;
+  const snapshot = {
+    key: active.dataset.calcField,
+    value: active.value,
+    selectionStart: null,
+    selectionEnd: null
+  };
+  try {
+    snapshot.selectionStart = active.selectionStart;
+    snapshot.selectionEnd = active.selectionEnd;
+  } catch (error) {
+    // Some controls such as select do not expose caret positions.
+  }
+  return snapshot;
+}
+
+function restoreFocusedCalculatorField(root, snapshot) {
+  if (!snapshot?.key) return;
+  const next = root.querySelector(`[data-calc-field="${snapshot.key}"]`);
+  if (!next) return;
+  if ("value" in next && next.value !== snapshot.value) {
+    next.value = snapshot.value;
+  }
+  next.focus({ preventScroll: true });
+  if (snapshot.selectionStart === null || snapshot.selectionEnd === null || typeof next.setSelectionRange !== "function") return;
+  try {
+    next.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+  } catch (error) {
+    // Non-text inputs can reject selection restoration; focus preservation is enough.
+  }
+}
+
 export function initCalculator(store) {
   const root = document.getElementById("calculatorRoot");
   if (!root) return;
+  if (!root.dataset.calculatorAdvancedOpen) {
+    root.dataset.calculatorAdvancedOpen = "false";
+  }
 
   root.addEventListener("input", (event) => {
     const field = event.target.closest("[data-calc-field]");
@@ -326,6 +377,12 @@ export function initCalculator(store) {
       }
     }));
   });
+
+  root.addEventListener("toggle", (event) => {
+    const details = event.target.closest?.(".calculator-advanced-card");
+    if (!details || !root.contains(details)) return;
+    root.dataset.calculatorAdvancedOpen = details.open ? "true" : "false";
+  }, true);
 
   root.addEventListener("click", (event) => {
     const symbolPreset = event.target.closest("[data-calc-symbol]");
@@ -386,6 +443,8 @@ export function initCalculator(store) {
 }
 
 export function renderCalculator(root, state) {
+  const focusedField = captureFocusedCalculatorField(root);
+  const advancedOpen = root.dataset.calculatorAdvancedOpen === "true";
   const account = selectCurrentAccount(state);
   const currentModel = selectCurrentModel(state);
   const model = calculateModel(state);
@@ -438,13 +497,13 @@ export function renderCalculator(root, state) {
             <div class="calculator-fast-grid">
               <label class="form-stack calculator-fast-field">
                 <span>Capital ($)</span>
-                <input type="number" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}">
+                <input type="text" inputmode="decimal" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}" autocomplete="off">
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Riesgo %</span>
-                <input type="number" step="0.1" data-calc-field="riskPct" value="${calc.riskPct}">
+                <input type="text" inputmode="decimal" data-calc-field="riskPct" value="${calc.riskPct}" autocomplete="off">
                 <div class="calc-inline-presets calculator-mini-presets">
-                  ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${Number(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
+                  ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${toNumber(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
                 </div>
               </label>
               <label class="form-stack calculator-fast-field">
@@ -453,7 +512,7 @@ export function renderCalculator(root, state) {
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Distancia SL (${unitLabel})</span>
-                <input type="number" step="0.1" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" ${calc.slMode === "price" ? "readonly" : ""}>
+                <input type="text" inputmode="decimal" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" autocomplete="off" ${calc.slMode === "price" ? "readonly" : ""}>
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>R:R</span>
@@ -474,8 +533,8 @@ export function renderCalculator(root, state) {
             </div>
 
             <div class="calculator-price-fields ${calc.slMode === "price" ? "is-visible" : ""}">
-              <label class="form-stack"><span>Precio entrada</span><input type="number" step="0.0001" data-calc-field="entry" value="${calc.entry}"></label>
-              <label class="form-stack"><span>Precio SL</span><input type="number" step="0.0001" data-calc-field="stop" value="${calc.stop}"></label>
+              <label class="form-stack"><span>Precio entrada</span><input type="text" inputmode="decimal" data-calc-field="entry" value="${calc.entry}" autocomplete="off"></label>
+              <label class="form-stack"><span>Precio SL</span><input type="text" inputmode="decimal" data-calc-field="stop" value="${calc.stop}" autocomplete="off"></label>
             </div>
           </div>
 
@@ -514,7 +573,7 @@ export function renderCalculator(root, state) {
         </div>
       </section>
 
-      <details class="tl-section-card calculator-advanced-card">
+      <details class="tl-section-card calculator-advanced-card" ${advancedOpen ? "open" : ""}>
         <summary>
           <span>Ajustes avanzados</span>
           <small>Supuestos del instrumento, perfil de cálculo y precio TP.</small>
@@ -542,15 +601,15 @@ export function renderCalculator(root, state) {
             </label>
             <label class="form-stack">
               <span>Valor por pip/punto por lote</span>
-              <input type="number" step="0.01" data-calc-field="pipValuePerLot" value="${model.spec.pipValue}">
+              <input type="text" inputmode="decimal" data-calc-field="pipValuePerLot" value="${model.spec.pipValue}" autocomplete="off">
             </label>
             <label class="form-stack">
               <span>Multiplicador pip/punto</span>
-              <input type="number" step="1" data-calc-field="pipMultiplier" value="${model.spec.pipMultiplier}">
+              <input type="text" inputmode="decimal" data-calc-field="pipMultiplier" value="${model.spec.pipMultiplier}" autocomplete="off">
             </label>
             <label class="form-stack">
               <span>Tamaño contrato / lote base</span>
-              <input type="number" step="1" data-calc-field="lotUnit" value="${model.spec.lotUnit}">
+              <input type="text" inputmode="decimal" data-calc-field="lotUnit" value="${model.spec.lotUnit}" autocomplete="off">
             </label>
             <label class="form-stack">
               <span>Precio TP</span>
@@ -568,6 +627,7 @@ export function renderCalculator(root, state) {
       </div>
     </div>
   `;
+  restoreFocusedCalculatorField(root, focusedField);
 }
 
 function roundLotSize(instrumentType, value) {

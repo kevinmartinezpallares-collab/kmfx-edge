@@ -4783,8 +4783,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .tools-hub-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -4792,9 +4792,10 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
-  min-width: 0;
-  padding: 9px 10px;
+  flex: 0 1 auto;
+  min-height: 38px;
+  min-width: max-content;
+  padding: 7px 9px;
   border: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
   border-radius: 999px;
   background:
@@ -4828,13 +4829,13 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .tools-card strong {
-  overflow: hidden;
+  overflow: visible;
   color: var(--foreground);
   font-size: 13px;
   line-height: 1.15;
   font-weight: 720;
   letter-spacing: -0.018em;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
@@ -4846,9 +4847,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .tools-card .ui-badge {
-  min-height: 22px;
-  padding: 3px 8px;
-  font-size: 10px;
+  min-height: 20px;
+  padding: 3px 7px;
+  font-size: 9.5px;
   letter-spacing: 0.045em;
 }
 
@@ -4888,8 +4889,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-workspace-card {
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
 }
 
 .calculator-workspace-head {
@@ -4903,7 +4904,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-workflow-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
-  gap: 14px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -4911,7 +4912,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-result-panel,
 .calculator-validation-panel {
   display: grid;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -4927,7 +4928,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   grid-column: 1 / -1;
   grid-template-columns: minmax(220px, 0.32fr) minmax(0, 1fr);
   align-items: center;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid color-mix(in srgb, var(--border-0) 36%, transparent);
 }
 
@@ -4950,7 +4951,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-fast-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 9px;
+  gap: 8px;
   align-items: start;
 }
 
@@ -4991,7 +4992,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: grid;
   gap: 6px;
   min-width: 0;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid color-mix(in srgb, var(--equity) 15%, var(--border-0));
   border-radius: var(--radius-card);
   background:
@@ -5237,6 +5238,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-advanced-card {
+  gap: 0;
+  min-height: 0;
   padding: 0;
 }
 
@@ -5245,7 +5248,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  min-height: 46px;
+  padding: 10px 14px;
   cursor: pointer;
   list-style: none;
 }
@@ -5269,10 +5273,29 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   font-weight: 540;
 }
 
+.calculator-advanced-card > summary::after {
+  content: "+";
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  color: var(--muted-foreground);
+  font-size: 16px;
+  line-height: 1;
+  border: 1px solid color-mix(in srgb, var(--border-0) 44%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 1.2%, transparent);
+}
+
+.calculator-advanced-card[open] > summary::after {
+  content: "−";
+}
+
 .calculator-advanced-body {
   display: grid;
   gap: 10px;
-  padding: 0 16px 16px;
+  padding: 0 14px 14px;
 }
 
 .calculator-spec-note {
@@ -5315,10 +5338,6 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 @media (max-width: 1320px) {
-  .tools-hub-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .calculator-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5336,7 +5355,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   }
 
   .tools-hub-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
   }
 
   .calculator-advice-strip .calculator-advice-card {
