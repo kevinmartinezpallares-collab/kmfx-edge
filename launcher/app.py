@@ -404,11 +404,10 @@ class KMFXApi:
             return
         self._last_installed_link_sync_at = now
 
-        primary_key = _safe_str(self.config.connection_key)
         seen_keys: set[str] = set()
         for installation in self.installations:
             connection_key = self.installed_connection_key(installation)
-            if not connection_key or connection_key == primary_key or connection_key in seen_keys:
+            if not connection_key or connection_key in seen_keys:
                 continue
             seen_keys.add(connection_key)
             label = self.installed_connection_label(installation)

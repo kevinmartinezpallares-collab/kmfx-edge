@@ -6,6 +6,7 @@ import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-2026040
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
+const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
@@ -322,6 +323,64 @@ function copyText(value, successLabel = "Copiado") {
   complete();
 }
 
+function renderConnectionGuide() {
+  const steps = [
+    {
+      title: "Descarga KMFX Launcher",
+      body: "Instala el Launcher e inicia sesión con la misma cuenta de KMFX que usas en el dashboard.",
+    },
+    {
+      title: "Instala el conector",
+      body: "Pulsa Instalar conector en la instancia de MetaTrader 5 que quieras vincular.",
+    },
+    {
+      title: "Permite WebRequest en MT5",
+      body: "En MT5 ve a Herramientas > Opciones > Expert Advisors, activa WebRequest y añade la URL de KMFX.",
+    },
+    {
+      title: "Activa el EA",
+      body: "Arrastra KMFXConnector a un gráfico, activa Algo Trading y pega la key solo si MT5 la solicita.",
+    },
+    {
+      title: "Confirma la sincronización",
+      body: "Cuando Experts muestre Conectado a KMFX, la cuenta aparecerá en Cuentas y en el dashboard.",
+    },
+  ];
+
+  return `
+    <section class="tl-section-card connections-guide-card" style="display:grid;gap:18px;">
+      <div class="calendar-panel-head">
+        <div>
+          <div class="dashboard-risk-block__title">Conectar MT5 paso a paso</div>
+          <div class="row-sub">Flujo recomendado para usuarios: Launcher, conector, permiso WebRequest y primera sincronización.</div>
+        </div>
+        <div class="connections-empty-card__actions">
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
+          <button class="btn-primary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
+        </div>
+      </div>
+      <div class="connections-guide-card__endpoint" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-elevated);">
+        <div>
+          <div class="metric-label">URL para WebRequest en MetaTrader 5</div>
+          <code style="display:block;margin-top:6px;font-size:14px;color:var(--text-primary);word-break:break-all;">${escapeHtml(MT5_WEBREQUEST_URL)}</code>
+        </div>
+        <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-value="${escapeHtml(MT5_WEBREQUEST_URL)}" data-copy-label="URL copiada">Copiar URL</button>
+      </div>
+      <div class="connections-guide-card__steps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+        ${steps.map((step, index) => `
+          <article class="connections-guide-step" style="display:flex;gap:12px;min-height:118px;padding:14px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 72%, transparent);">
+            <span class="connections-guide-step__index" style="display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:999px;background:var(--layer-accent);color:var(--accent);font-weight:700;">${index + 1}</span>
+            <div>
+              <strong style="display:block;color:var(--text-primary);font-size:14px;line-height:1.25;">${escapeHtml(step.title)}</strong>
+              <p style="margin:6px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.45;">${escapeHtml(step.body)}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function openAccountEditModal({ account, store, root }) {
   const selectedLabel = resolveAccountSecondaryLabel(account);
   openModal({
@@ -531,6 +590,7 @@ function renderEmptyState(root) {
             <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Ya tengo el Launcher</button>
           </div>
         </article>
+        ${renderConnectionGuide()}
       </section>
     </div>
   `;
@@ -767,6 +827,12 @@ export function initConnections(store) {
     const state = store.getState();
     const { accounts: registryAccounts } = resolveRegistryAccounts(state);
 
+    const copyButton = event.target.closest("[data-copy-value]");
+    if (copyButton) {
+      copyText(copyButton.dataset.copyValue || "", copyButton.dataset.copyLabel || "Copiado");
+      return;
+    }
+
     const menuTrigger = event.target.closest("[data-account-menu-trigger]");
     if (menuTrigger) {
       const accountId = menuTrigger.dataset.accountMenuTrigger || "";
@@ -979,6 +1045,7 @@ export function renderConnections(root, state) {
       ${renderConnectionsHeader({ adminVisible, adminState })}
       ${renderConnectionsKpis(registryAccounts)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
+        ${renderConnectionGuide()}
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>
         </div>
