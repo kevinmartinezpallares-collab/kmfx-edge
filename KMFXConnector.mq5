@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.76                                              |
+//| KMFXConnector v2.77                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.76"
+#property version   "2.77"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.76"
+#define KMFX_CONNECTOR_VERSION "2.77"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -116,6 +116,8 @@ struct KMFXRuntimeState
    double    daily_peak_equity;
    double    equity_peak;
    string    last_log_signature;
+   string    last_error_log_signature;
+   datetime  last_error_log_at;
    string    last_error;
   };
 
@@ -438,7 +440,8 @@ void KMFXApplyConnectionConfigFromFile()
    if(StringLen(backend_url)>0)
      {
       KMFXBackendBaseUrl=backend_url;
-      PrintFormat("[KMFX][INIT][CONFIG] backend_url=%s",KMFXBackendBaseUrl);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][INIT][CONFIG] backend_url=%s",KMFXBackendBaseUrl);
      }
 
    string sync_path=KMFXLoadConnectionConfigValue("sync_path");
@@ -447,7 +450,8 @@ void KMFXApplyConnectionConfigFromFile()
    KMFXSyncPath=KMFXNormalizePath(sync_path,KMFXSyncPath);
    KMFXJournalPath=KMFXNormalizePath(journal_path,KMFXJournalPath);
    KMFXPolicyPath=KMFXNormalizePath(policy_path,KMFXPolicyPath);
-   PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
   }
 
 void KMFXInitializeRuntimeConnectionKey()
@@ -458,25 +462,29 @@ void KMFXInitializeRuntimeConnectionKey()
    if(StringLen(explicit_key)>0)
      {
       g_runtime_connection_key="";
-      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",explicit_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",explicit_key);
       return;
      }
 
    g_runtime_connection_key=KMFXLoadConnectionKeyFromFile();
    if(StringLen(g_runtime_connection_key)>0)
      {
-      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",g_runtime_connection_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",g_runtime_connection_key);
       return;
      }
 
    string legacy_key=KMFXTrim(KMFXApiKey);
    if(StringLen(legacy_key)>0)
      {
-      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",legacy_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",legacy_key);
       return;
      }
 
-   Print("[KMFX][INIT][KEY_SOURCE] source=empty key=");
+   if(KMFXVerboseLog)
+      Print("[KMFX][INIT][KEY_SOURCE] source=empty key=");
   }
 
 void KMFXRefreshRuntimeConnectionKey()
@@ -496,7 +504,8 @@ void KMFXRefreshRuntimeConnectionKey()
      {
       string previous_key=g_runtime_connection_key;
       g_runtime_connection_key=file_key;
-      PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",previous_key,g_runtime_connection_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",previous_key,g_runtime_connection_key);
      }
   }
 
@@ -644,7 +653,8 @@ bool KMFXDropOldestPendingSync()
    KMFXLoadPendingSync(oldest_file,dropped_item);
    if(KMFXDeletePendingSyncFile(oldest_file))
      {
-      PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=queue_limit attempts=%d", dropped_item.sync_id, dropped_item.attempts);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=queue_limit attempts=%d", dropped_item.sync_id, dropped_item.attempts);
       return true;
      }
 
@@ -666,7 +676,8 @@ bool KMFXQueuePendingSync(string sync_id,string payload,int attempts)
    if(!KMFXSavePendingSync(item))
       return false;
 
-   PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
    return true;
   }
 
@@ -802,10 +813,27 @@ void KMFXLog(string scope,string message,bool force=false)
    Print("[KMFX][",scope,"] ",message);
   }
 
+string KMFXPublicErrorMessage(string message)
+  {
+   if(StringFind(message,"WebRequest")>=0 || StringFind(message,"transporte")>=0)
+      return "No se pudo conectar con KMFX. Revisa la URL autorizada en WebRequest y tu conexion.";
+   if(StringFind(message,"rechaz")>=0 || StringFind(message,"HTTP=")>=0)
+      return "KMFX no acepto temporalmente la sincronizacion. Revisa tu conexion o vuelve a intentarlo.";
+   return message;
+  }
+
 void KMFXSetError(string message)
   {
    Runtime.last_error=message;
-   KMFXLog("ERROR",message,true);
+   string public_message=KMFXVerboseLog ? message : KMFXPublicErrorMessage(message);
+   string signature="ERROR|"+public_message;
+   datetime now_time=KMFXNow();
+   if(!KMFXVerboseLog && signature==Runtime.last_error_log_signature && (now_time-Runtime.last_error_log_at)<60)
+      return;
+
+   Runtime.last_error_log_signature=signature;
+   Runtime.last_error_log_at=now_time;
+   KMFXLog("ERROR",public_message,true);
   }
 
 string KMFXSeverityString(KMFXSeverity severity)
@@ -859,7 +887,7 @@ void KMFXResetDailyContextIfNeeded()
       Runtime.freeze_reason="";
       if(!Policy.panic_lock_active)
          Runtime.trading_frozen=false;
-      KMFXLog("STATE","Reset diario aplicado para nueva sesión operativa.",true);
+      KMFXLog("STATE","Reset diario aplicado para nueva sesión operativa.");
       return;
      }
 
@@ -1778,7 +1806,8 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
       PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, request_error);
    if(status_code==1003 || status_code<=0)
      {
-      PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, request_error);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, request_error);
      }
    if(status_code==-1)
      {
@@ -1889,13 +1918,15 @@ bool KMFXHandlePendingSyncFailure(string file_name,KMFXPendingSync &item,int sta
    if(item.attempts>KMFXPendingSyncMaxAttempts())
      {
       KMFXDeletePendingSyncFile(file_name);
-      PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=transport_exhausted attempts=%d status=%d last_error=%d", item.sync_id, item.attempts, status_code, transport_error);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][SYNC][DROPPED] sync_id=%s reason=transport_exhausted attempts=%d status=%d last_error=%d", item.sync_id, item.attempts, status_code, transport_error);
       return false;
      }
 
    item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
    KMFXSavePendingSync(item);
-   PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][SYNC][QUEUED] sync_id=%s attempts=%d next_retry=%s", item.sync_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
    return false;
   }
 
@@ -1923,7 +1954,8 @@ void KMFXProcessPendingSyncQueue()
       bool request_ok=false;
       string disposition="";
 
-      PrintFormat("[KMFX][SYNC][RETRYING] sync_id=%s attempt=%d", item.sync_id, item.attempts+1);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][SYNC][RETRYING] sync_id=%s attempt=%d", item.sync_id, item.attempts+1);
       request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXSyncPath,item.payload,response,status_code,transport_error);
 
       if(!request_ok && !(status_code==1003 || status_code<=0))
@@ -1944,16 +1976,20 @@ void KMFXProcessPendingSyncQueue()
       if(status_code>=300)
         {
          KMFXDeletePendingSyncFile(file_name);
-         PrintFormat("[KMFX][SYNC][BACKEND_REJECT] sync_id=%s status=%d", item.sync_id, status_code);
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][SYNC][BACKEND_REJECT] sync_id=%s status=%d", item.sync_id, status_code);
          processed=true;
          break;
         }
 
       disposition=KMFXExtractSyncDisposition(response);
-      if(disposition=="duplicate")
-         PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", item.sync_id);
-      else
-         PrintFormat("[KMFX][SYNC][RECOVERED] retry=%d recovered=true final_status=%d sync_id=%s", item.attempts, status_code, item.sync_id);
+      if(KMFXVerboseLog)
+        {
+         if(disposition=="duplicate")
+            PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", item.sync_id);
+         else
+            PrintFormat("[KMFX][SYNC][RECOVERED] retry=%d recovered=true final_status=%d sync_id=%s", item.attempts, status_code, item.sync_id);
+        }
 
       KMFXDeletePendingSyncFile(file_name);
       Policy.backend_connected=true;
@@ -2032,9 +2068,9 @@ bool KMFXPushState()
    int trades_count=KMFXCountJsonArrayItems(body,"trades");
    int history_count=KMFXCountJsonArrayItems(body,"history");
 
-   PrintFormat("[KMFX][SYNC][COUNTS] positions=%d trades=%d history=%d", positions_count, trades_count, history_count);
    if(KMFXVerboseLog)
      {
+      PrintFormat("[KMFX][SYNC][COUNTS] positions=%d trades=%d history=%d", positions_count, trades_count, history_count);
       PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
       PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXConnectionKeyValue());
       Print("[KMFX][PAYLOAD] "+body);
@@ -2050,7 +2086,8 @@ bool KMFXPushState()
 
    if(status_code==1003 || status_code<=0)
      {
-      PrintFormat("[KMFX][SYNC][RETRY] retry=1 reason=transport_error status=%d last_error=%d", status_code, transport_error);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][SYNC][RETRY] retry=1 reason=transport_error status=%d last_error=%d", status_code, transport_error);
       Sleep(250);
       response="";
       status_code=0;
@@ -2077,7 +2114,8 @@ bool KMFXPushState()
          recovered_after_retry=true;
          Policy.backend_connected=true;
          Policy.degraded_mode=false;
-         PrintFormat("[KMFX][SYNC][RECOVERED] retry=1 recovered=true final_status=%d", status_code);
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][SYNC][RECOVERED] retry=1 recovered=true final_status=%d", status_code);
         }
     }
 
@@ -2090,7 +2128,7 @@ bool KMFXPushState()
     }
 
    disposition=KMFXExtractSyncDisposition(response);
-   if(disposition=="duplicate")
+   if(KMFXVerboseLog && disposition=="duplicate")
       PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", sync_id);
 
    Policy.backend_connected=true;
@@ -2116,7 +2154,8 @@ bool KMFXSendJournalBatch(string batch_id,string trade_ids_csv,string payload,st
 
    if(status_code==1003 || status_code<=0)
      {
-      PrintFormat("[KMFX][JOURNAL][RETRY] source=%s retry=1 reason=transport_error status=%d last_error=%d batch_id=%s", source_label, status_code, transport_error, batch_id);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][JOURNAL][RETRY] source=%s retry=1 reason=transport_error status=%d last_error=%d batch_id=%s", source_label, status_code, transport_error, batch_id);
       Sleep(250);
       response="";
       status_code=0;
@@ -2135,22 +2174,27 @@ bool KMFXSendJournalBatch(string batch_id,string trade_ids_csv,string payload,st
          item.created_at=KMFXNow();
          item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
          KMFXSavePendingJournalBatch(item);
-         PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d", batch_id, item.attempts);
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d", batch_id, item.attempts);
          return false;
         }
      }
 
    if(status_code>=300)
      {
-      PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", batch_id, status_code);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", batch_id, status_code);
       return false;
      }
 
    disposition=KMFXExtractSyncDisposition(response);
-   if(disposition=="duplicate")
-      PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", batch_id);
-   else
-      PrintFormat("[KMFX][JOURNAL][ACCEPTED] batch_id=%s", batch_id);
+   if(KMFXVerboseLog)
+     {
+      if(disposition=="duplicate")
+         PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", batch_id);
+      else
+         PrintFormat("[KMFX][JOURNAL][ACCEPTED] batch_id=%s", batch_id);
+     }
 
    KMFXMarkTradeCsvAsSent(trade_ids_csv);
    return true;
@@ -2178,7 +2222,8 @@ void KMFXProcessPendingJournalQueue()
       bool request_ok=false;
       string disposition="";
 
-      PrintFormat("[KMFX][JOURNAL][RETRYING] batch_id=%s attempt=%d", item.batch_id, item.attempts+1);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][JOURNAL][RETRYING] batch_id=%s attempt=%d", item.batch_id, item.attempts+1);
       request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,item.payload,response,status_code,transport_error);
       if(!request_ok && !(status_code==1003 || status_code<=0))
          break;
@@ -2189,13 +2234,15 @@ void KMFXProcessPendingJournalQueue()
          if(item.attempts>KMFXPendingSyncMaxAttempts())
            {
             KMFXDeletePendingJournalFile(file_name);
-            PrintFormat("[KMFX][JOURNAL][DROPPED] batch_id=%s reason=transport_exhausted attempts=%d", item.batch_id, item.attempts);
+            if(KMFXVerboseLog)
+               PrintFormat("[KMFX][JOURNAL][DROPPED] batch_id=%s reason=transport_exhausted attempts=%d", item.batch_id, item.attempts);
            }
          else
            {
             item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
             KMFXSavePendingJournalBatch(item);
-            PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d next_retry=%s", item.batch_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
+            if(KMFXVerboseLog)
+               PrintFormat("[KMFX][JOURNAL][QUEUED] batch_id=%s attempts=%d next_retry=%s", item.batch_id, item.attempts, TimeToString(item.next_retry_at,TIME_DATE|TIME_SECONDS));
            }
          break;
         }
@@ -2203,15 +2250,19 @@ void KMFXProcessPendingJournalQueue()
       if(status_code>=300)
         {
          KMFXDeletePendingJournalFile(file_name);
-         PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", item.batch_id, status_code);
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", item.batch_id, status_code);
          break;
         }
 
       disposition=KMFXExtractSyncDisposition(response);
-      if(disposition=="duplicate")
-         PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", item.batch_id);
-      else
-         PrintFormat("[KMFX][JOURNAL][RECOVERED] batch_id=%s final_status=%d", item.batch_id, status_code);
+      if(KMFXVerboseLog)
+        {
+         if(disposition=="duplicate")
+            PrintFormat("[KMFX][JOURNAL][DUPLICATE] batch_id=%s", item.batch_id);
+         else
+            PrintFormat("[KMFX][JOURNAL][RECOVERED] batch_id=%s final_status=%d", item.batch_id, status_code);
+        }
       KMFXMarkTradeCsvAsSent(item.trade_ids_csv);
       KMFXDeletePendingJournalFile(file_name);
       break;
@@ -2256,7 +2307,8 @@ bool KMFXFetchPolicy()
 
    if(status_code==1003 || status_code<=0)
      {
-      PrintFormat("[KMFX][POLICY][TRANSPORT] status=%d last_error=%d url=%s", status_code, transport_error, url);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][POLICY][TRANSPORT] status=%d last_error=%d url=%s", status_code, transport_error, url);
      }
 
    if(status_code<200 || status_code>=300)
@@ -2315,8 +2367,9 @@ bool KMFXFetchPolicy()
       double resolved_peak=MathMax(Runtime.equity_peak,backend_equity_peak);
       if(resolved_peak!=Runtime.equity_peak)
         {
-         PrintFormat("[KMFX][POLICY][PEAK_SYNC] local=%.2f backend=%.2f resolved=%.2f",
-                     Runtime.equity_peak,backend_equity_peak,resolved_peak);
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][POLICY][PEAK_SYNC] local=%.2f backend=%.2f resolved=%.2f",
+                        Runtime.equity_peak,backend_equity_peak,resolved_peak);
          Runtime.equity_peak=resolved_peak;
         }
      }
@@ -2328,13 +2381,15 @@ bool KMFXFetchPolicy()
       && backend_day_key==local_day_key)
      {
       Runtime.daily_start_equity=backend_daily_start;
-      PrintFormat("[KMFX][POLICY][DAILY_START_SYNC] restored=%.2f day=%s",
-                  backend_daily_start,backend_day_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][POLICY][DAILY_START_SYNC] restored=%.2f day=%s",
+                     backend_daily_start,backend_day_key);
      }
    else if(StringLen(backend_day_key)>0 && backend_day_key!=local_day_key)
      {
-      PrintFormat("[KMFX][POLICY][DAILY_START_SKIP] backend_day=%s local_day=%s reason=day_mismatch",
-                  backend_day_key,local_day_key);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][POLICY][DAILY_START_SKIP] backend_day=%s local_day=%s reason=day_mismatch",
+                     backend_day_key,local_day_key);
      }
 
    next_policy.loaded=true;
@@ -2348,7 +2403,7 @@ bool KMFXFetchPolicy()
    Runtime.last_error="";
 
    if(previous_hash!=Policy.policy_hash && StringLen(Policy.policy_hash)>0)
-      KMFXLog("POLICY","Nueva policy_hash aplicada: "+Policy.policy_hash,true);
+      KMFXLog("POLICY","Nueva policy_hash aplicada: "+Policy.policy_hash);
 
    KMFXLog("POLICY","Política de riesgo actualizada desde backend.");
    return true;
@@ -2651,19 +2706,19 @@ int OnInit()
    Runtime.daily_start_equity=AccountInfoDouble(ACCOUNT_EQUITY);
    Runtime.daily_peak_equity=Runtime.daily_start_equity;
    Runtime.equity_peak=Runtime.daily_start_equity;
-   PrintFormat("[KMFX][INIT][PEAK_BOOTSTRAP] initial_peak=%.2f (will sync from backend)",
-               Runtime.equity_peak);
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
-   PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
    KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
 
    if(KMFXVerboseLog)
      {
+      PrintFormat("[KMFX][INIT][PEAK_BOOTSTRAP] initial_peak=%.2f (will sync from backend)",
+                  Runtime.equity_peak);
+      PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
       PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
       PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
      }
-   KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
+   KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl);
    EventSetMillisecondTimer(KMFXTimerMs);
    return(INIT_SUCCEEDED);
   }
@@ -2671,7 +2726,7 @@ int OnInit()
 void OnDeinit(const int reason)
   {
    EventKillTimer();
-   KMFXLog("DEINIT","Connector detenido. reason="+IntegerToString(reason),true);
+   KMFXLog("DEINIT","Connector detenido. reason="+IntegerToString(reason));
   }
 
 void OnTimer()
