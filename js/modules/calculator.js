@@ -672,11 +672,18 @@ function specSourceMarkup(model) {
   const riskPerLotCopy = Number.isFinite(Number(model.riskPerLot)) && Number(model.riskPerLot) > 0
     ? ` Riesgo/lote ${formatCurrency(model.riskPerLot, model.accountCurrency)}.`
     : "";
+  const sourceCopy = isEstimatedGold
+    ? "Verifica tick value y contrato del broker."
+    : model.spec.source === "live"
+      ? "Cálculo basado en especificaciones MT5."
+      : model.spec.source === "standalone_fx"
+        ? (model.spec.rateSource === "live" ? "Tipos de cambio disponibles." : "Tipos estimados; verifica divisa.")
+        : "Supuestos editables; verifica tu broker.";
   return `
     <div class="calculator-spec-source ${sourceClass}">
       <div>
         <strong>${escapeHtml(model.spec.sourceLabel || "Supuestos manuales")} · ${escapeHtml(unitSource)}</strong>
-        <span>${escapeHtml(model.spec.accuracyCopy || "Cálculo estimado con supuestos manuales.")}${escapeHtml(riskPerLotCopy)}</span>
+        <span>${escapeHtml(sourceCopy)}${escapeHtml(riskPerLotCopy)}</span>
       </div>
       ${badgeMarkup({ label: badgeLabel, tone: badgeTone }, "ui-badge--compact")}
     </div>
@@ -698,7 +705,7 @@ function riskAdviceMarkup(model, adviceTone) {
   if (!model.riskAdvice) {
     return `
       <div class="calculator-advice-empty calculator-advice-panel">
-        <div>
+        <div class="calculator-advice-copy">
           <strong>Sin lectura del Risk Engine</strong>
           <span>La calculadora sigue operativa aunque el motor de riesgo no esté disponible.</span>
         </div>
@@ -716,14 +723,14 @@ function riskAdviceMarkup(model, adviceTone) {
   return `
     <div class="calculator-advice-panel">
       <div class="calculator-advice-primary">
-        <span>Riesgo recomendado</span>
+        <span>Riesgo sugerido</span>
         <strong>${model.riskAdvice.recommendedRiskPct.toFixed(2)}%</strong>
       </div>
       <div class="calculator-advice-copy">
-        <span>${model.riskAdvice.explanation || "El motor no detecta presión extraordinaria en este momento."}</span>
+        <span>${escapeHtml(model.riskAdvice.explanation || "El motor no detecta presión extraordinaria en este momento.")}</span>
         <small>${deltaCopy}</small>
-        <button class="btn-secondary btn-inline calculator-advice-action" type="button" data-calc-apply-risk>Aplicar</button>
       </div>
+      <button class="btn-secondary btn-inline calculator-advice-action" type="button" data-calc-apply-risk>Aplicar</button>
     </div>
   `;
 }
@@ -1010,8 +1017,8 @@ export function renderCalculator(root, state) {
           <div class="calculator-validation-panel" aria-label="Validación de riesgo">
             <div class="calculator-validation-head">
               <div>
-                <div class="calculator-panel-label">Validación de riesgo</div>
-                <div class="tl-section-sub">Lectura compacta del Risk Engine.</div>
+                <div class="calculator-panel-label">Validación</div>
+                <div class="tl-section-sub">Risk Engine</div>
               </div>
               ${model.riskAdvice ? badgeMarkup({ label: model.riskAdvice.risk_state, tone: adviceTone }, "ui-badge--compact") : badgeMarkup({ label: "Sin lectura", tone: "neutral" }, "ui-badge--compact")}
             </div>
