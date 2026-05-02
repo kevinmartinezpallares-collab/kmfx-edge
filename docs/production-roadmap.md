@@ -280,6 +280,35 @@ Criterio de salida:
 - Account linking y admin routes están protegidos explícitamente.
 - Copy legal y de riesgo no es engañoso.
 
+## Fase 2.5 - Flujo MT5 para Usuario Final, 1-2 Días
+
+Responsable: frontend/launcher/backend.
+
+Decisión de producto: para usuarios normales solo debe existir un camino principal:
+
+`Cuentas -> Conectar MT5 -> KMFX Launcher -> Instalar conector -> Cuenta sincronizada`
+
+El modo manual, keys, puertos, endpoints locales, logs técnicos y payload raw quedan reservados para admin/dev/soporte.
+
+- [x] Cambiar la pantalla Cuentas para presentar "Conectar MT5" como acción principal.
+- [x] Ocultar `connection_key` y endpoints en modales de usuario normal.
+- [x] Dejar la inspección técnica y regeneración de key solo en admin tools.
+- [x] Cambiar el launcher a lenguaje de producto: "Añadir cuenta MT5", "Instalar conector" y estado de sincronización.
+- [x] Ocultar key y endpoint en la lista normal del launcher.
+- [ ] Soportar multi-cuenta real sin que el usuario gestione puertos.
+- [ ] Crear un account slot por cuenta MT5 desde backend, vinculado a `user_id`.
+- [ ] Detectar primera sincronización y pedir confirmación de nombre/tipo de cuenta.
+- [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
+- [ ] Vincular cuenta marcada como Funding a un journey existente o nuevo.
+- [ ] Añadir estado bloqueado por plan cuando se alcance el límite de cuentas live.
+- [ ] Definir si el endpoint cloud directo será `https://mt5-api.kmfxedge.com`.
+
+Criterio de salida:
+
+- Usuario no técnico puede conectar una cuenta MT5 sin ver claves, puertos ni endpoints.
+- Usuario puede añadir otra cuenta MT5 desde el launcher sin pisar la cuenta anterior.
+- Admin/soporte conserva herramientas para ver key, payload, logs y errores.
+
 ## Fase 3 - Stripe Billing MVP, 2-3 Días
 
 Responsable: backend/billing.

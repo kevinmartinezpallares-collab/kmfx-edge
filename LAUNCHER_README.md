@@ -9,13 +9,27 @@ Ruta principal del MVP:
 ## Qué incluye ya
 
 - servicio local en Python con cola y retry
-- UI local mínima en Tkinter
+- app local macOS/Windows con UI de instalación asistida
 - detección razonable de instalaciones MT5 en Mac y Windows
 - instalación/reparación del connector
 - apertura guiada de MT5
 - preset para apuntar el EA al servicio local
 - logging persistente del launcher
 - compatibilidad con snapshot ligero + journal batches del EA
+
+## Flujo recomendado de usuario
+
+En la app web:
+
+1. Ir a `Cuentas`.
+2. Pulsar `Conectar MT5`.
+3. Descargar o abrir `KMFX Launcher`.
+4. Iniciar sesión con la misma cuenta de KMFX.
+5. Pulsar `Instalar conector`.
+6. Abrir MetaTrader 5 y activar Algo Trading.
+7. Esperar la primera sincronización.
+
+Para usuarios normales no se muestran `connection_key`, puertos, endpoints locales ni logs técnicos. Esa información queda para admin/dev/soporte.
 
 ## Archivos principales
 

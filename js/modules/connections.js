@@ -186,7 +186,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   return pageHeaderMarkup({
     eyebrow: "Cuentas",
     title: "Cuentas",
-    description: "Consulta tus cuentas disponibles y añade nuevas cuando lo necesites.",
+    description: "Conecta y gestiona tus cuentas MT5 desde KMFX Launcher. KMFX no pide tu contraseña ni ejecuta operaciones.",
     className: "calendar-screen__header",
     contentClassName: "calendar-screen__copy",
     eyebrowClassName: "calendar-screen__eyebrow",
@@ -195,8 +195,8 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
     actionsClassName: "connections-shell__actions",
     actionsHtml: `
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
-        <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
-        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Añadir cuenta</button>
+        <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
+        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar MT5</button>
       `,
   });
 }
@@ -399,9 +399,10 @@ function resolveAccountConnectionKey(account, state, activeAccount = null) {
 function openAccountInfoModal(account, state, activeAccount = null) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
+  const canInspectConnectionKey = isAdminUser(state);
   openModal({
-    title: "Info de conexión",
-    subtitle: "Revisa los datos visibles de esta cuenta y su estado actual.",
+    title: "Detalle de cuenta",
+    subtitle: "Estado visible de esta cuenta en KMFX.",
     maxWidth: 640,
     content: `
       <div class="connections-account-modal__info">
@@ -423,7 +424,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
             <div class="connections-account-modal__value connections-account-modal__value--subtle">${escapeHtml(relativeTime(account.last_sync_at || account.lastSyncAt || ""))}</div>
           </div>
         </div>
-        ${connectionKey ? `
+        ${connectionKey && canInspectConnectionKey ? `
           <div class="connections-account-modal__key-block">
             <div>
               <div class="connections-account-modal__label">Connection Key</div>
@@ -521,13 +522,13 @@ function renderEmptyState(root) {
         <article class="tl-section-card connections-empty-card">
           <div class="calendar-panel-head">
             <div>
-              <div class="calendar-panel-title">Aún no tienes cuentas conectadas</div>
-              <div class="calendar-panel-sub">Añade tu primera cuenta para empezar a operar con datos reales.</div>
+              <div class="calendar-panel-title">Conecta tu cuenta MT5</div>
+              <div class="calendar-panel-sub">KMFX no pide tu contraseña ni ejecuta operaciones. Solo recibe datos enviados desde tu terminal MT5.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">
-            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Añadir cuenta</button>
-            <button class="btn-secondary connections-shell__utility-btn connections-shell__download-btn" type="button" data-account-download-launcher="true">Descargar instalador</button>
+            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar MT5</button>
+            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Ya tengo el Launcher</button>
           </div>
         </article>
       </section>
@@ -727,7 +728,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
           ${menuOpen ? `
             <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(account.account_id || "")}">Editar</button>
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(account.account_id || "")}">Info de conexión</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(account.account_id || "")}">Ver detalle</button>
               <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(account.account_id || "")}">Eliminar</button>
             </div>
           ` : ""}

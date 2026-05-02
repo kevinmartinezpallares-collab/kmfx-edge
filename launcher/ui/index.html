@@ -55,7 +55,7 @@
 
         <nav class="nav-list" aria-label="Launcher">
           <button class="nav-item is-active" data-view="home" type="button">Inicio</button>
-          <button class="nav-item" data-view="settings" type="button">Configuración</button>
+          <button class="nav-item" data-view="settings" type="button">Soporte</button>
         </nav>
 
         <div class="sidebar-footer">
@@ -74,16 +74,11 @@
         <section id="view-home" class="view is-active">
           <header class="page-header">
             <div>
-              <h1>Mis herramientas</h1>
-              <p>Gestiona tus instalaciones de KMFX.</p>
+              <h1>Conectar MT5</h1>
+              <p>Instala el conector y revisa la sincronización de tus cuentas.</p>
             </div>
             <button id="refresh-button" class="icon-button" type="button" aria-label="Refrescar">↻</button>
           </header>
-
-          <div class="tabs" role="tablist" aria-label="Filtro de herramientas">
-            <button class="tab is-active" data-filter="all" type="button">Todos</button>
-            <button class="tab" data-filter="mt5" type="button">MT5</button>
-          </div>
 
           <article class="tool-card" data-tool="mt5">
             <div class="tool-header">
@@ -93,10 +88,10 @@
                 </div>
                 <div>
                   <div class="tool-title-row">
-                    <h2>KMFX Connector MT5</h2>
+                    <h2>MetaTrader 5</h2>
                     <span class="tool-type">MT5</span>
                   </div>
-                  <p>Conecta tu cuenta de MetaTrader 5 con KMFX Edge.</p>
+                  <p>KMFX no pide tu contraseña ni ejecuta operaciones.</p>
                 </div>
               </div>
               <span id="install-badge" class="status-badge neutral">Comprobando</span>
@@ -107,16 +102,16 @@
               <button id="open-mt5-button" class="button secondary" type="button">Abrir MT5</button>
             </div>
 
-            <p id="status-message" class="helper-text">Instala el connector y abre MetaTrader 5.</p>
+            <p id="status-message" class="helper-text">Instala el conector y abre MetaTrader 5.</p>
           </article>
 
           <section class="settings-card connections-card" data-tool="mt5">
             <div class="section-title">
               <div>
-                <h2>Conexiones MT5</h2>
-                <p>Claves para pegar en el EA de cada cuenta.</p>
+                <h2>Cuentas MT5</h2>
+                <p>Estado de sincronización de tus cuentas detectadas.</p>
               </div>
-              <button id="create-connection-button" class="button secondary small" type="button">Crear conexión</button>
+              <button id="create-connection-button" class="button secondary small" type="button">Añadir cuenta MT5</button>
             </div>
             <div id="connections-list" class="connections-list"></div>
           </section>
@@ -125,8 +120,8 @@
         <section id="view-settings" class="view">
           <header class="page-header compact">
             <div>
-              <h1>Configuración</h1>
-              <p>Información local de la aplicación.</p>
+              <h1>Soporte</h1>
+              <p>Instalaciones detectadas y versión local.</p>
             </div>
           </header>
 
@@ -145,7 +140,7 @@
             <div class="section-title">
               <div>
                 <h2>Sobre la aplicación</h2>
-                <p>Versiones y conexión local.</p>
+                <p>Versiones instaladas.</p>
               </div>
             </div>
             <div id="app-info" class="info-grid"></div>

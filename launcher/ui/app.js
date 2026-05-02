@@ -141,7 +141,7 @@ function renderHome() {
   const installButton = $("#install-button");
   const openButton = $("#open-mt5-button");
   if (installButton) {
-    installButton.textContent = installed ? (needsRepair ? "Reparar" : "Reinstalar") : "Instalar";
+    installButton.textContent = installed ? (needsRepair ? "Reparar conector" : "Reinstalar conector") : "Instalar conector";
     installButton.className = `button ${installed && !needsRepair ? "secondary" : "primary"}`;
   }
   if (openButton) openButton.disabled = state.busy || !hasMt5;
@@ -151,11 +151,11 @@ function renderHome() {
   if (!hasMt5) {
     message.textContent = "No se ha detectado MetaTrader 5.";
   } else if (!installed) {
-    message.textContent = "MetaTrader detectado. Instala el connector para continuar.";
+    message.textContent = "MetaTrader detectado. Instala el conector para continuar.";
   } else if (recentSync) {
-    message.textContent = "Connector instalado y listo.";
+    message.textContent = "Conector instalado y sincronizando.";
   } else {
-    message.textContent = "Connector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
+    message.textContent = "Conector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
   }
 }
 
@@ -171,7 +171,7 @@ function renderAccountConnections() {
   lastConnectionsSignature = nextSignature;
 
   if (!state.accountConnections.length) {
-    container.innerHTML = `<div class="empty-state">Crea una conexión para obtener la key que pegarás en el EA.</div>`;
+    container.innerHTML = `<div class="empty-state">Pulsa Añadir cuenta MT5 y después instala el conector en MetaTrader 5.</div>`;
     return;
   }
 
@@ -191,21 +191,10 @@ function renderAccountConnections() {
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
           </div>
-          <div class="connection-copy-grid">
-            <div class="copy-readout">
-              <span>Clave de conexión</span>
-              <code>${escapeHtml(connection.connection_key_masked || "")}</code>
-            </div>
-            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.connection_key || "")}" data-copy-label="Clave copiada.">
-              Copiar key
-            </button>
-            <div class="copy-readout">
-              <span>Endpoint EA</span>
-              <code>${escapeHtml(connection.endpoint_base || "")}</code>
-            </div>
-            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.endpoint_base || "")}" data-copy-label="Endpoint copiado.">
-              Copiar endpoint
-            </button>
+          <div class="connection-state-card">
+            <span>Estado</span>
+            <strong>${escapeHtml(connection.status_label || "Pendiente")}</strong>
+            <small>${escapeHtml(connection.last_sync_label || "Esperando sincronización")}</small>
           </div>
         </article>
       `;
@@ -233,7 +222,7 @@ function renderInstallations() {
           <span title="${escapeHtml(path)}">${escapeHtml(path)}</span>
         </div>
         <span class="status-badge ${installation.connector_installed ? "success" : "neutral"}">
-          ${installation.connector_installed ? "Connector instalado" : "Sin connector"}
+          ${installation.connector_installed ? "Conector instalado" : "Sin conector"}
         </span>
       </article>
     `;
@@ -249,7 +238,7 @@ function renderAppInfo() {
   lastAppInfoSignature = nextSignature;
   const rows = [
     ["Launcher", state.appInfo.launcher_version || "1.0.0"],
-    ["Connector", state.appInfo.connector_version || "—"]
+    ["Conector", state.appInfo.connector_version || "—"]
   ];
   container.innerHTML = rows
     .map(([label, value]) => `
@@ -510,7 +499,7 @@ function bindEvents() {
       render();
     }
   });
-  $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Connector instalado."));
+  $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Conector instalado."));
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto."));
   $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));
   document.addEventListener("click", (event) => {
