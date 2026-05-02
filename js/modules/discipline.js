@@ -2550,7 +2550,7 @@ function renderProfileManager(container, context = {}) {
     <article class="rule-profile-manager">
       <div class="rule-profile-manager__head">
         <div>
-          <span>FASE 2 · LOCAL</span>
+          <span>Config local</span>
           <strong>Perfiles de reglas</strong>
           <p>Configuración local para scoring. La lectura principal vive arriba.</p>
         </div>

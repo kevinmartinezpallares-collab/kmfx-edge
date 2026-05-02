@@ -32437,3 +32437,478 @@ body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile
     align-items: start;
   }
 }
+
+/* === EXECUTION VISUAL SYSTEM FINAL POLISH === */
+html[data-theme="dark"] #section-discipline .execution-confidence-pill,
+body[data-theme="dark"] #section-discipline .execution-confidence-pill,
+html[data-theme="dark"] #section-discipline .execution-rule-source,
+body[data-theme="dark"] #section-discipline .execution-rule-source,
+html[data-theme="dark"] #section-discipline .rule-profile-badge,
+body[data-theme="dark"] #section-discipline .rule-profile-badge,
+html[data-theme="dark"] #section-discipline .rule-profile-card span,
+body[data-theme="dark"] #section-discipline .rule-profile-card span,
+html[data-theme="dark"] #section-discipline .execution-data-pill,
+body[data-theme="dark"] #section-discipline .execution-data-pill {
+  min-height: 22px !important;
+  padding: 0 8px !important;
+  border: 1px solid rgba(255,255,255,0.075) !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.032) !important;
+  color: var(--text-2) !important;
+  font-size: 11px !important;
+  font-weight: 560 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-source-warn,
+body[data-theme="dark"] #section-discipline .execution-source-warn,
+html[data-theme="dark"] #section-discipline .execution-source-inferred,
+body[data-theme="dark"] #section-discipline .execution-source-inferred,
+html[data-theme="dark"] #section-discipline .rule-profile-badge--manual,
+body[data-theme="dark"] #section-discipline .rule-profile-badge--manual {
+  border-color: color-mix(in srgb, var(--warning) 14%, rgba(255,255,255,0.075)) !important;
+  background: color-mix(in srgb, var(--warning) 6%, transparent) !important;
+  color: color-mix(in srgb, var(--warning) 54%, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-source-manual,
+body[data-theme="dark"] #section-discipline .execution-source-manual,
+html[data-theme="dark"] #section-discipline .rule-profile-badge--auto,
+body[data-theme="dark"] #section-discipline .rule-profile-badge--auto {
+  border-color: color-mix(in srgb, var(--accent) 14%, rgba(255,255,255,0.075)) !important;
+  background: color-mix(in srgb, var(--accent) 6%, transparent) !important;
+  color: color-mix(in srgb, var(--accent) 48%, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-badge--mixed,
+body[data-theme="dark"] #section-discipline .rule-profile-badge--mixed {
+  border-color: rgba(170,145,255,0.16) !important;
+  background: rgba(170,145,255,0.055) !important;
+  color: color-mix(in srgb, rgb(170,145,255) 46%, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-source-pending,
+body[data-theme="dark"] #section-discipline .execution-source-pending,
+html[data-theme="dark"] #section-discipline .execution-source-neutral,
+body[data-theme="dark"] #section-discipline .execution-source-neutral {
+  border-color: rgba(255,255,255,0.06) !important;
+  background: rgba(255,255,255,0.024) !important;
+  color: var(--text-3) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-source-ok,
+body[data-theme="dark"] #section-discipline .execution-source-ok {
+  border-color: color-mix(in srgb, var(--positive) 14%, rgba(255,255,255,0.075)) !important;
+  background: color-mix(in srgb, var(--positive) 5%, transparent) !important;
+  color: color-mix(in srgb, var(--positive) 50%, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-source-manual,
+body[data-theme="dark"] #section-discipline .execution-source-manual {
+  border-color: color-mix(in srgb, var(--warning) 12%, rgba(255,255,255,0.075)) !important;
+  background: color-mix(in srgb, var(--warning) 5%, transparent) !important;
+  color: color-mix(in srgb, var(--warning) 46%, var(--text-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone,
+body[data-theme="dark"] #section-discipline .execution-config-zone {
+  opacity: 0.86 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone.is-open,
+body[data-theme="dark"] #section-discipline .execution-config-zone.is-open {
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-manager,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-manager {
+  gap: 14px !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+  background: color-mix(in srgb, var(--layer-1) 94%, var(--layer-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head,
+html[data-theme="dark"] #section-discipline .rule-profile-accounts,
+body[data-theme="dark"] #section-discipline .rule-profile-accounts {
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head span,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head span,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head span,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head span,
+html[data-theme="dark"] #section-discipline .rule-profile-accounts span,
+body[data-theme="dark"] #section-discipline .rule-profile-accounts span,
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group > span,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group > span {
+  margin-bottom: 4px !important;
+  font-size: 10px !important;
+  font-weight: 620 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  color: var(--text-3) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head strong,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head strong,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head strong,
+html[data-theme="dark"] #section-discipline .rule-profile-accounts strong,
+body[data-theme="dark"] #section-discipline .rule-profile-accounts strong {
+  font-size: 15px !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.01em;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-manager__head p,
+body[data-theme="dark"] #section-discipline .rule-profile-manager__head p,
+html[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+body[data-theme="dark"] #section-discipline .rule-profile-editor__head p,
+html[data-theme="dark"] #section-discipline .rule-profile-accounts p,
+body[data-theme="dark"] #section-discipline .rule-profile-accounts p {
+  margin-top: 4px !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-action,
+body[data-theme="dark"] #section-discipline .rule-profile-action,
+html[data-theme="dark"] #section-discipline .rule-profile-account-form button,
+body[data-theme="dark"] #section-discipline .rule-profile-account-form button,
+html[data-theme="dark"] #section-discipline .execution-entry-config,
+body[data-theme="dark"] #section-discipline .execution-entry-config {
+  min-height: 30px !important;
+  padding: 0 11px !important;
+  border: 1px solid rgba(255,255,255,0.075) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,0.035) !important;
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+  font-weight: 590 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-action:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-action:hover,
+html[data-theme="dark"] #section-discipline .rule-profile-account-form button:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-account-form button:hover,
+html[data-theme="dark"] #section-discipline .execution-entry-config:hover,
+body[data-theme="dark"] #section-discipline .execution-entry-config:hover {
+  border-color: rgba(255,255,255,0.12) !important;
+  background: rgba(255,255,255,0.055) !important;
+  color: var(--text-0) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-cards,
+body[data-theme="dark"] #section-discipline .rule-profile-cards {
+  gap: 9px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card,
+body[data-theme="dark"] #section-discipline .rule-profile-card {
+  min-height: 92px !important;
+  padding: 12px !important;
+  border-color: rgba(255,255,255,0.065) !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,0.022) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card.is-active,
+body[data-theme="dark"] #section-discipline .rule-profile-card.is-active {
+  border-color: color-mix(in srgb, var(--rule-profile-color) 28%, rgba(255,255,255,0.11)) !important;
+  background: color-mix(in srgb, var(--rule-profile-color) 5%, rgba(255,255,255,0.022)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rule-profile-color) 16%, transparent) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card--new,
+body[data-theme="dark"] #section-discipline .rule-profile-card--new {
+  border-color: rgba(255,255,255,0.09) !important;
+  background: rgba(255,255,255,0.014) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card__select,
+body[data-theme="dark"] #section-discipline .rule-profile-card__select {
+  gap: 5px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card strong,
+body[data-theme="dark"] #section-discipline .rule-profile-card strong {
+  font-size: 14px !important;
+  font-weight: 680 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-card small,
+body[data-theme="dark"] #section-discipline .rule-profile-card small {
+  font-size: 11px !important;
+  line-height: 1.32 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-menu-trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-menu-trigger,
+html[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-custom-menu-trigger,
+html[data-theme="dark"] #section-discipline .rule-profile-remove,
+body[data-theme="dark"] #section-discipline .rule-profile-remove {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  color: var(--text-3) !important;
+  font-weight: 540 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule-list,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-list {
+  gap: 11px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule-group,
+body[data-theme="dark"] #section-discipline .rule-profile-rule-group {
+  gap: 6px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule,
+body[data-theme="dark"] #section-discipline .rule-profile-rule {
+  grid-template-columns: 30px minmax(0, 1fr) max-content 76px 26px 24px !important;
+  gap: 8px !important;
+  padding: 9px 10px !important;
+  border-color: rgba(255,255,255,0.055) !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,0.018) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-badge,
+body[data-theme="dark"] #section-discipline .rule-profile-badge {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule.is-absolute,
+body[data-theme="dark"] #section-discipline .rule-profile-rule.is-absolute,
+html[data-theme="dark"] #section-discipline .rule-profile-rule.is-critical,
+body[data-theme="dark"] #section-discipline .rule-profile-rule.is-critical {
+  border-color: rgba(255,255,255,0.075) !important;
+  background: rgba(255,255,255,0.022) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle {
+  width: 30px !important;
+  height: 18px !important;
+  align-self: center !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle span,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle span {
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(255,255,255,0.08) !important;
+  transition: background 150ms ease, border-color 150ms ease !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle span::after,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle span::after {
+  width: 14px !important;
+  height: 14px !important;
+  top: 2px !important;
+  left: 2px !important;
+  background: color-mix(in srgb, var(--text-1) 88%, var(--layer-2)) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.24) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle input:checked + span,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle input:checked + span {
+  border-color: color-mix(in srgb, var(--positive) 28%, rgba(255,255,255,0.08)) !important;
+  background: color-mix(in srgb, var(--positive) 26%, rgba(255,255,255,0.075)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle input:checked + span::after,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle input:checked + span::after {
+  transform: translateX(12px) !important;
+  background: color-mix(in srgb, var(--positive) 52%, var(--text-0)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-toggle input:focus-visible + span,
+body[data-theme="dark"] #section-discipline .rule-profile-toggle input:focus-visible + span {
+  outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy strong {
+  font-size: 13px !important;
+  font-weight: 620 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-rule__copy p,
+body[data-theme="dark"] #section-discipline .rule-profile-rule__copy p {
+  margin-top: 2px !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger {
+  width: 76px !important;
+  min-height: 28px !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 0 8px !important;
+  border-color: rgba(255,255,255,0.075) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,0.028) !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger b,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger b {
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+  font-weight: 610 !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i,
+body[data-theme="dark"] #section-discipline .rule-profile-weight__trigger i {
+  font-size: 11px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight-menu,
+body[data-theme="dark"] #section-discipline .rule-profile-weight-menu {
+  min-width: 228px !important;
+  border-color: rgba(255,255,255,0.095) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--layer-1) 94%, #0f0f10) !important;
+  box-shadow: 0 18px 42px rgba(0,0,0,0.28) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button,
+body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button {
+  height: 36px !important;
+  min-height: 36px !important;
+  background: transparent !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button:hover,
+body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button:hover,
+html[data-theme="dark"] #section-discipline .rule-profile-weight-menu button.is-selected,
+body[data-theme="dark"] #section-discipline .rule-profile-weight-menu button.is-selected {
+  background: rgba(255,255,255,0.045) !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-account-form,
+body[data-theme="dark"] #section-discipline .rule-profile-account-form {
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+html[data-theme="dark"] #section-discipline .rule-profile-account-form input,
+body[data-theme="dark"] #section-discipline .rule-profile-account-form input {
+  width: min(150px, 100%) !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  border-color: rgba(255,255,255,0.075) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,0.028) !important;
+  color: var(--text-1) !important;
+  font-size: 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline #entry-precision-card,
+body[data-theme="dark"] #section-discipline #entry-precision-card {
+  border-color: rgba(255,255,255,0.065) !important;
+  border-radius: 18px !important;
+  background: color-mix(in srgb, var(--layer-1) 96%, var(--layer-2)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card__header i,
+body[data-theme="dark"] #section-discipline .execution-entry-card__header i {
+  display: none !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card__header > span,
+body[data-theme="dark"] #section-discipline .execution-entry-card__header > span {
+  border: 1px solid rgba(255,255,255,0.065) !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.028) !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-empty-row,
+body[data-theme="dark"] #section-discipline .execution-entry-empty-row,
+html[data-theme="dark"] #section-discipline .execution-entry-preview,
+body[data-theme="dark"] #section-discipline .execution-entry-preview,
+html[data-theme="dark"] #section-discipline .execution-entry-pattern-bar,
+body[data-theme="dark"] #section-discipline .execution-entry-pattern-bar {
+  border-color: rgba(255,255,255,0.06) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,0.02) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+body[data-theme="dark"] #section-discipline .execution-entry-preview__head,
+html[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row,
+body[data-theme="dark"] #section-discipline .execution-entry-preview .execution-entry-row {
+  grid-template-columns: 0.65fr 0.72fr minmax(90px, 1fr) 0.62fr 0.68fr !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn {
+  background: color-mix(in srgb, var(--warning) 18%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--warning) 52%, var(--text-1)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad {
+  background: color-mix(in srgb, var(--negative) 22%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--negative) 58%, var(--text-1)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok {
+  background: color-mix(in srgb, var(--positive) 22%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--positive) 54%, var(--text-1)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span {
+  font-size: 11px !important;
+  color: var(--text-2) !important;
+}
+
+@media (max-width: 1180px) {
+  html[data-theme="dark"] #section-discipline .rule-profile-rule,
+  body[data-theme="dark"] #section-discipline .rule-profile-rule {
+    grid-template-columns: 30px minmax(0, 1fr) auto !important;
+  }
+
+  html[data-theme="dark"] #section-discipline .rule-profile-badge,
+  body[data-theme="dark"] #section-discipline .rule-profile-badge,
+  html[data-theme="dark"] #section-discipline .rule-profile-weight,
+  body[data-theme="dark"] #section-discipline .rule-profile-weight,
+  html[data-theme="dark"] #section-discipline .rule-profile-custom-actions,
+  body[data-theme="dark"] #section-discipline .rule-profile-custom-actions,
+  html[data-theme="dark"] #section-discipline .rule-profile-rule-confirm,
+  body[data-theme="dark"] #section-discipline .rule-profile-rule-confirm {
+    grid-column: 2 / -1 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-theme="dark"] #section-discipline .rule-profile-account-form,
+  body[data-theme="dark"] #section-discipline .rule-profile-account-form {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  html[data-theme="dark"] #section-discipline .rule-profile-account-form input,
+  body[data-theme="dark"] #section-discipline .rule-profile-account-form input {
+    width: min(220px, 100%) !important;
+  }
+}
