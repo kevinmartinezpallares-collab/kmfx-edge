@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.78                                              |
+//| KMFXConnector v2.79                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.78"
+#property version   "2.79"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.78"
+#define KMFX_CONNECTOR_VERSION "2.79"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -123,6 +123,8 @@ struct KMFXRuntimeState
    datetime  last_status_log_at;
    bool      connection_ready_logged;
    datetime  last_connection_ready_log_at;
+   int       transient_sync_failures;
+   datetime  last_transient_sync_error_at;
   };
 
 struct KMFXPendingSync
@@ -838,6 +840,24 @@ void KMFXSetError(string message)
    Runtime.last_error_log_signature=signature;
    Runtime.last_error_log_at=now_time;
    KMFXLog("ERROR",public_message,true);
+  }
+
+bool KMFXShouldSurfaceSyncReject()
+  {
+   Runtime.transient_sync_failures++;
+   Runtime.last_transient_sync_error_at=KMFXNow();
+   if(Runtime.connection_ready_logged && Runtime.transient_sync_failures<3)
+     {
+      KMFXLogStatus("KMFX conectado. Reintentando una sincronizacion temporal.",300);
+      return false;
+     }
+   return true;
+  }
+
+void KMFXMarkSyncHealthy()
+  {
+   Runtime.transient_sync_failures=0;
+   Runtime.last_transient_sync_error_at=0;
   }
 
 void KMFXLogStatus(string message,int cooldown_seconds=0)
@@ -2141,7 +2161,8 @@ bool KMFXPushState()
      {
       Policy.backend_connected=false;
       Policy.degraded_mode=true;
-      KMFXSetError("Sync rechazado por backend. HTTP="+IntegerToString(status_code));
+      if(KMFXShouldSurfaceSyncReject())
+         KMFXSetError("Sync rechazado por backend. HTTP="+IntegerToString(status_code));
      return false;
     }
 
@@ -2152,6 +2173,7 @@ bool KMFXPushState()
    Policy.backend_connected=true;
    if(!recovered_after_retry)
       Policy.degraded_mode=false;
+   KMFXMarkSyncHealthy();
    Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();
    datetime now_time=Runtime.last_state_push_at;

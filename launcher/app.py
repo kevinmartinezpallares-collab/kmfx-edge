@@ -42,7 +42,7 @@ from .resources import app_root, is_packaged, resource_path
 ROOT = app_root()
 UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
-DEFAULT_CONNECTOR_VERSION = "2.78"
+DEFAULT_CONNECTOR_VERSION = "2.79"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-glass-mark-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 INSTALLED_LINK_SYNC_TTL_SECONDS = 45
@@ -436,7 +436,14 @@ class KMFXApi:
         return next((connection for connection in self.get_account_connections() if connection.get("account_id") == normalized), None)
 
     def get_installations(self) -> list[dict[str, Any]]:
-        return [self.serialize_installation(installation) for installation in self.installations]
+        serialized = [self.serialize_installation(installation) for installation in self.installations]
+        return sorted(
+            serialized,
+            key=lambda item: (
+                int(item.get("sort_order", 50)),
+                str(item.get("display_label") or item.get("label") or "").lower(),
+            ),
+        )
 
     def install_connector(self, selected_installation: str | None = None) -> dict[str, Any]:
         with self._lock:
@@ -639,15 +646,68 @@ class KMFXApi:
             return _sanitize_account_label(f"KMFX MT5 {login}", "KMFX MT5")
         return _sanitize_account_label(f"KMFX MT5 {self.installed_connection_label(installation)}", "KMFX MT5")
 
+    def account_connection_for_key(self, connection_key: str) -> dict[str, Any]:
+        normalized = _safe_str(connection_key)
+        if not normalized:
+            return {}
+        connections = self._last_account_connections
+        if not connections:
+            connections = self.get_account_connections()
+        return next(
+            (item for item in connections if _safe_str(item.get("connection_key")) == normalized),
+            {},
+        )
+
+    def installation_display_label(self, installation: MT5Installation, connection: dict[str, Any] | None = None) -> str:
+        connection = connection or {}
+        identity = " ".join(
+            [
+                installation.label,
+                _safe_str(connection.get("label")),
+                _safe_str(connection.get("broker")),
+                _safe_str(connection.get("server")),
+            ]
+        ).replace("_", " ")
+        identity_lower = identity.lower()
+        login = _safe_str(connection.get("login"))
+        if "orion" in identity_lower or "ogm" in identity_lower:
+            return _sanitize_account_label(f"Orion OGM{f' · {login}' if login else ''}", "Orion OGM")
+        if "darwinex" in identity_lower or "tradeslide" in identity_lower or "net.metaquotes.wine.metatrader5" in identity_lower:
+            return _sanitize_account_label(f"Darwinex{f' · {login}' if login else ''}", "Darwinex")
+        if _safe_str(connection.get("broker")) and login:
+            return _sanitize_account_label(f"{connection.get('broker')} · {login}", "MetaTrader 5")
+        parts = [part.strip() for part in installation.label.split("·") if part.strip()]
+        return _sanitize_account_label(parts[-1] if parts else installation.label, "MetaTrader 5")
+
+    def installation_sort_order(self, installation: MT5Installation, connection: dict[str, Any], connector_ready: bool) -> int:
+        identity = " ".join([installation.label, installation.data_path]).lower()
+        if "backup" in identity or "broken" in identity:
+            return 80
+        if connection:
+            return 0 if _safe_str(connection.get("status")).lower() == "active" else 10
+        if self.installed_connection_key(installation):
+            return 20
+        if connector_ready:
+            return 30
+        return 50
+
     def serialize_installation(self, installation: MT5Installation) -> dict[str, Any]:
+        connection_key = self.installed_connection_key(installation)
+        connection = self.account_connection_for_key(connection_key)
+        connector_ready = connector_installed(installation)
         return {
             "label": installation.label,
+            "display_label": self.installation_display_label(installation, connection),
             "terminal_path": installation.terminal_path,
             "data_path": installation.data_path,
             "experts_path": installation.experts_path,
             "presets_path": installation.presets_path,
             "platform_name": installation.platform_name,
-            "connector_installed": connector_installed(installation),
+            "connector_installed": connector_ready,
+            "connection_key": connection_key,
+            "connection_key_masked": mask_connection_key(connection_key),
+            "linked_account_id": _safe_str(connection.get("account_id")),
+            "sort_order": self.installation_sort_order(installation, connection, connector_ready),
         }
 
     def serialize_account_connection(self, account: dict[str, Any]) -> dict[str, Any]:

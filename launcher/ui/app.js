@@ -91,6 +91,20 @@ function ensureSelectedInstallation() {
   }
 }
 
+function installationDisplayLabel(installation = {}) {
+  return installation.display_label || installation.label || "MetaTrader 5";
+}
+
+function installationForConnection(connection = {}) {
+  const key = String(connection.connection_key || "").trim();
+  const accountId = String(connection.account_id || "").trim();
+  if (!key && !accountId) return null;
+  return state.installations.find((installation) => (
+    (key && String(installation.connection_key || "").trim() === key) ||
+    (accountId && String(installation.linked_account_id || "").trim() === accountId)
+  )) || null;
+}
+
 function initials(name = "", email = "") {
   const source = String(name || email || "KMFX").trim();
   return source
@@ -203,7 +217,7 @@ function renderHome() {
       picker.innerHTML = `
         <div class="installation-picker__single">
           <span>MetaTrader detectado</span>
-          <strong>${escapeHtml(installation.label || "MetaTrader 5")}</strong>
+          <strong>${escapeHtml(installationDisplayLabel(installation))}</strong>
         </div>
       `;
     } else {
@@ -213,7 +227,7 @@ function renderHome() {
           <select id="selected-installation">
             ${state.installations.map((installation) => `
               <option value="${escapeHtml(installation.label || "")}" ${installation.label === state.selectedInstallationLabel ? "selected" : ""}>
-                ${escapeHtml(installation.label || "MetaTrader 5")}
+                ${escapeHtml(installationDisplayLabel(installation))}
               </option>
             `).join("")}
           </select>
@@ -240,6 +254,7 @@ function renderAccountConnections() {
   if (!container) return;
   const nextSignature = stableStringify({
     connections: state.accountConnections,
+    installations: state.installations,
     busy: state.busy,
     toolFilter: state.toolFilter
   });
@@ -260,6 +275,12 @@ function renderAccountConnections() {
         .filter(Boolean)
         .join(" · ");
       const primaryMeta = meta || "Sin datos de broker hasta el primer sync";
+      const installation = installationForConnection(connection);
+      const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
+      const actionDisabled = state.busy || !targetInstallationLabel;
+      const actionTitle = installation
+        ? `Instalación vinculada: ${installationDisplayLabel(installation)}`
+        : "Elige una instalación de MetaTrader arriba para continuar.";
       return `
         <article class="connection-row ${statusKind}">
           <div class="connection-symbol" aria-hidden="true">MT5</div>
@@ -277,10 +298,10 @@ function renderAccountConnections() {
             <small>${escapeHtml(connection.last_sync_label || "Esperando sincronización")}</small>
           </div>
           <div class="connection-row-actions">
-            <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
+            <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               ${isActive ? "Reinstalar" : "Instalar conector"}
             </button>
-            <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
+            <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               Abrir MT5
             </button>
           </div>
@@ -306,7 +327,7 @@ function renderInstallations() {
       return `
       <article class="installation-row">
         <div>
-          <strong>${escapeHtml(installation.label || "MetaTrader 5")}</strong>
+          <strong>${escapeHtml(installationDisplayLabel(installation))}</strong>
           <span title="${escapeHtml(path)}">${escapeHtml(path)}</span>
         </div>
         <span class="status-badge ${installation.connector_installed ? "success" : "neutral"}">
@@ -602,12 +623,12 @@ function bindEvents() {
   document.addEventListener("click", (event) => {
     const installAccountButton = event.target.closest("[data-install-account]");
     if (installAccountButton) {
-      performAction("install_connector_for_connection", "Conector instalado.", installAccountButton.dataset.installAccount || "", state.selectedInstallationLabel);
+      performAction("install_connector_for_connection", "Conector instalado.", installAccountButton.dataset.installAccount || "", installAccountButton.dataset.installationLabel || state.selectedInstallationLabel);
       return;
     }
     const openAccountMt5Button = event.target.closest("[data-open-mt5-account]");
     if (openAccountMt5Button) {
-      performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel);
+      performAction("open_mt5", "MetaTrader abierto.", openAccountMt5Button.dataset.installationLabel || state.selectedInstallationLabel);
       return;
     }
     const button = event.target.closest("[data-copy-value]");
