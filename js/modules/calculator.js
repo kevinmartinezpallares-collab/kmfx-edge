@@ -12,6 +12,22 @@ const QUICK_INSTRUMENTS = [
   { symbol: "US500", label: "S&P500" }
 ];
 
+const ACCOUNT_CURRENCIES = ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"];
+const FOREX_CURRENCIES = new Set(ACCOUNT_CURRENCIES);
+
+const STATIC_FX_RATES = {
+  EURUSD: 1.08,
+  GBPUSD: 1.27,
+  AUDUSD: 0.66,
+  USDCAD: 1.37,
+  USDCHF: 0.91,
+  USDJPY: 155,
+  EURGBP: 0.85,
+  EURJPY: 167,
+  GBPJPY: 197,
+  AUDCAD: 0.90,
+};
+
 const CALCULATION_PROFILES = {
   Manual: { pointValue: 1, contractSize: 1, note: "Perfil manual. Verifica valor por pip/punto antes de operar." },
   FTMO: { pointValue: 1, contractSize: 1, note: "Preset operativo editable para cuentas tipo challenge." },
@@ -128,6 +144,20 @@ function inferInstrumentId(symbol) {
   return SYMBOL_SPECS[normalizeSymbol(symbol)]?.instrumentId || "custom";
 }
 
+function normalizeCurrency(value, fallback = "USD") {
+  const code = String(value || "").trim().toUpperCase();
+  return ACCOUNT_CURRENCIES.includes(code) ? code : fallback;
+}
+
+function parseForexPair(symbol) {
+  const stem = normalizeSymbolStem(symbol).slice(0, 6);
+  if (stem.length !== 6) return null;
+  const base = stem.slice(0, 3);
+  const quote = stem.slice(3, 6);
+  if (!FOREX_CURRENCIES.has(base) || !FOREX_CURRENCIES.has(quote) || base === quote) return null;
+  return { symbol: `${base}${quote}`, base, quote };
+}
+
 function firstFiniteValue(source = {}, keys = []) {
   for (const key of keys) {
     const value = source?.[key];
@@ -145,6 +175,134 @@ function firstTextValue(source = {}, keys = []) {
     }
   }
   return "";
+}
+
+function readRateValue(value) {
+  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value : null;
+  if (typeof value === "string") {
+    const parsed = parseNumericInput(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  if (!value || typeof value !== "object") return null;
+  const bid = parseNumericInput(value.bid);
+  const ask = parseNumericInput(value.ask);
+  if (Number.isFinite(bid) && bid > 0 && Number.isFinite(ask) && ask > 0) return (bid + ask) / 2;
+  return firstFiniteValue(value, ["mid", "price", "rate", "last", "close", "value"]);
+}
+
+function collectRatesFromContainer(container, rates = {}) {
+  if (!container) return rates;
+  if (Array.isArray(container)) {
+    container.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const symbol = normalizeSymbolKey(item.symbol || item.pair || item.instrument || item.name);
+      const rate = readRateValue(item);
+      if (symbol.length >= 6 && rate) rates[symbol.slice(0, 6)] = rate;
+    });
+    return rates;
+  }
+  if (typeof container !== "object") return rates;
+
+  Object.entries(container).forEach(([key, value]) => {
+    const symbol = normalizeSymbolKey(key);
+    const rate = readRateValue(value);
+    if (symbol.length >= 6 && rate) {
+      rates[symbol.slice(0, 6)] = rate;
+      return;
+    }
+    if (value && typeof value === "object") collectRatesFromContainer(value, rates);
+  });
+  return rates;
+}
+
+function resolveExchangeRateContext(state = {}, account = {}) {
+  const payload = account?.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
+  const model = account?.model && typeof account.model === "object" ? account.model : {};
+  const liveRates = {};
+  [
+    payload.prices,
+    payload.rates,
+    payload.exchangeRates,
+    payload.exchange_rates,
+    payload.market?.prices,
+    payload.market?.rates,
+    model.prices,
+    model.rates,
+    state?.workspace?.market?.rates,
+    state?.market?.rates,
+  ].forEach((container) => collectRatesFromContainer(container, liveRates));
+
+  return {
+    liveRates,
+    fallbackRates: STATIC_FX_RATES,
+  };
+}
+
+function lookupRate(base, quote, rateContext) {
+  if (base === quote) return { rate: 1, source: "identity", path: `${base}${quote}` };
+  const directKey = `${base}${quote}`;
+  const reverseKey = `${quote}${base}`;
+  const liveDirect = rateContext.liveRates?.[directKey];
+  if (Number.isFinite(liveDirect) && liveDirect > 0) return { rate: liveDirect, source: "live", path: directKey };
+  const liveReverse = rateContext.liveRates?.[reverseKey];
+  if (Number.isFinite(liveReverse) && liveReverse > 0) return { rate: 1 / liveReverse, source: "live", path: reverseKey };
+  const staticDirect = rateContext.fallbackRates?.[directKey];
+  if (Number.isFinite(staticDirect) && staticDirect > 0) return { rate: staticDirect, source: "static", path: directKey };
+  const staticReverse = rateContext.fallbackRates?.[reverseKey];
+  if (Number.isFinite(staticReverse) && staticReverse > 0) return { rate: 1 / staticReverse, source: "static", path: reverseKey };
+  return null;
+}
+
+function resolveCurrencyConversion(fromCurrency, toCurrency, rateContext) {
+  const from = normalizeCurrency(fromCurrency);
+  const to = normalizeCurrency(toCurrency);
+  if (from === to) return { rate: 1, source: "identity", path: `${from}${to}` };
+  const direct = lookupRate(from, to, rateContext);
+  if (direct) return direct;
+  const toUsd = lookupRate(from, "USD", rateContext);
+  const fromUsd = lookupRate("USD", to, rateContext);
+  if (!toUsd || !fromUsd) return null;
+  return {
+    rate: toUsd.rate * fromUsd.rate,
+    source: toUsd.source === "live" && fromUsd.source === "live" ? "live" : "static",
+    path: `${toUsd.path}→${fromUsd.path}`,
+  };
+}
+
+function buildStandaloneForexSpec(calc, rateContext, accountCurrency) {
+  const pair = parseForexPair(calc.symbol);
+  if (!pair) return null;
+  const pipSize = pair.quote === "JPY" ? 0.01 : 0.0001;
+  const quotePipValue = 100000 * pipSize;
+  const conversion = resolveCurrencyConversion(pair.quote, accountCurrency, rateContext);
+  if (!conversion) return null;
+  const pipValue = quotePipValue * conversion.rate;
+  const rateSourceLabel = conversion.source === "live" ? "Tipos de cambio actuales" : "Tipos estimados";
+  return {
+    symbol: pair.symbol,
+    pipValue,
+    pipMultiplier: 1 / pipSize,
+    lotUnit: 100000,
+    decimals: pair.quote === "JPY" ? 3 : 5,
+    type: "Forex",
+    unitLabel: "pips",
+    source: "standalone_fx",
+    sourceLabel: "Cálculo estándar",
+    sourceDetail: `${pair.quote} → ${accountCurrency} · ${conversion.path}`,
+    accuracyCopy: conversion.source === "live"
+      ? "Cálculo estándar con tipos de cambio disponibles en la cuenta o mercado."
+      : "Cálculo estándar con tipos estimados. Verifica el tipo de cambio antes de operar.",
+    rateSource: conversion.source,
+    rateSourceLabel,
+    accountCurrency,
+    baseCurrency: pair.base,
+    quoteCurrency: pair.quote,
+    conversionRate: conversion.rate,
+    conversionPath: conversion.path,
+    volumeMin: null,
+    volumeMax: null,
+    volumeStep: null,
+  };
 }
 
 function inferLiveInstrumentType(symbol, liveSpec = {}) {
@@ -317,6 +475,7 @@ function hasManualSpecOverride(calc = {}) {
 
 function ensureCalculatorState(calc = {}, currentModel) {
   const symbol = calc.symbol || "EURUSD";
+  const accountCurrency = normalizeCurrency(calc.quoteCurrency || currentModel?.account?.currency || "USD");
   return {
     instrument: calc.instrument || inferInstrumentId(symbol),
     broker: calc.broker || "FTMO",
@@ -334,7 +493,7 @@ function ensureCalculatorState(calc = {}, currentModel) {
     pipMultiplier: calc.pipMultiplier ?? "",
     lotUnit: calc.lotUnit ?? "",
     unitLabel: calc.unitLabel || "",
-    quoteCurrency: calc.quoteCurrency || "USD"
+    quoteCurrency: accountCurrency
   };
 }
 
@@ -348,14 +507,18 @@ function getCalculatorRiskAdvice(currentModel) {
   }
 }
 
-function resolveInstrumentSpec(calc, account) {
+function resolveInstrumentSpec(calc, account, rateContext, accountCurrency) {
   const symbolKey = normalizeSymbol(calc.symbol);
   const symbolStem = normalizeSymbolStem(calc.symbol);
   const liveSpec = findLiveSymbolSpec(account, calc.symbol);
   if (liveSpec) return liveSpec;
+  const manualOverride = hasManualSpecOverride(calc);
+  const standaloneForexSpec = !manualOverride
+    ? buildStandaloneForexSpec(calc, rateContext, accountCurrency)
+    : null;
+  if (standaloneForexSpec) return standaloneForexSpec;
   const presetSpec = SYMBOL_SPECS[symbolKey] || SYMBOL_SPECS[symbolStem];
   const isGold = isGoldSymbol(calc.symbol);
-  const manualOverride = hasManualSpecOverride(calc);
   const type = calc.instrumentType || presetSpec?.type || "Personalizado";
   const unitLabel = calc.unitLabel || presetSpec?.unitLabel || unitLabelForType(type);
   const estimatedGoldCopy = `${normalizeSymbol(calc.symbol) || "XAUUSD"} usa supuestos manuales. Verifica tick value y contract size del broker.`;
@@ -387,6 +550,7 @@ function unitLabelForType(type) {
 
 function instrumentProfileCopy(spec) {
   if (spec.source === "live") return "Especificaciones MT5 de la cuenta activa.";
+  if (spec.source === "standalone_fx") return `${spec.rateSourceLabel || "Tipos estimados"} · ${spec.sourceDetail || "modelo Forex estándar"}.`;
   if (spec.source === "manual") return "Perfil personalizado. Verifica valor por punto.";
   if (spec.source === "override") return "Supuestos editados manualmente. Verifica valor por punto.";
   if (spec.type === "Forex") return "Perfil estándar Forex.";
@@ -432,7 +596,9 @@ function calculateModel(state) {
   const currentModel = selectCurrentModel(state);
   const calc = ensureCalculatorState(state.workspace.calculator, currentModel);
   const riskAdvice = getCalculatorRiskAdvice(currentModel);
-  const spec = resolveInstrumentSpec(calc, account);
+  const accountCurrency = normalizeCurrency(calc.quoteCurrency || currentModel?.account?.currency || account?.dashboardPayload?.currency || "USD");
+  const rateContext = resolveExchangeRateContext(state, account);
+  const spec = resolveInstrumentSpec(calc, account, rateContext, accountCurrency);
   const profile = CALCULATION_PROFILES[calc.broker] || CALCULATION_PROFILES.Manual;
 
   const accountSize = toNumber(calc.accountSize, currentModel?.account.balance || 0);
@@ -466,6 +632,8 @@ function calculateModel(state) {
     riskAdvice,
     spec,
     profile,
+    accountCurrency,
+    rateContext,
     accountSize,
     riskPct,
     stopPips,
@@ -536,6 +704,7 @@ function formatInputNumber(value, digits = 6) {
 
 function specSourceTone(source) {
   if (source === "live") return "ok";
+  if (source === "standalone_fx") return "neutral";
   if (source === "manual") return "warn";
   return "neutral";
 }
@@ -548,13 +717,19 @@ function specSourceMarkup(model) {
   ].filter(Boolean).join(" ");
   const unitSource = model.spec.source === "live"
     ? "Tick MT5"
+    : model.spec.source === "standalone_fx"
+      ? model.spec.rateSourceLabel || "Tipos estimados"
     : model.spec.source === "preset"
       ? "Preset estimado"
       : "Punto manual";
-  const badgeLabel = model.spec.source === "live" ? "MT5" : model.spec.source === "preset" ? "Estimado" : "Manual";
+  const badgeLabel = model.spec.source === "live"
+    ? "MT5"
+    : model.spec.source === "standalone_fx"
+      ? "FX"
+      : model.spec.source === "preset" ? "Estimado" : "Manual";
   const badgeTone = isEstimatedGold ? "warn" : specSourceTone(model.spec.source);
   const riskPerLotCopy = Number.isFinite(Number(model.riskPerLot)) && Number(model.riskPerLot) > 0
-    ? ` Riesgo/lote ${formatCurrency(model.riskPerLot)}.`
+    ? ` Riesgo/lote ${formatCurrency(model.riskPerLot, model.accountCurrency)}.`
     : "";
   return `
     <div class="calculator-spec-source ${sourceClass}">
@@ -823,7 +998,13 @@ export function renderCalculator(root, state) {
             <div class="calculator-panel-label">Datos del trade</div>
             <div class="calculator-fast-grid">
               <label class="form-stack calculator-fast-field">
-                <span>Capital ($)</span>
+                <span>Divisa</span>
+                <select data-calc-field="quoteCurrency">
+                  ${ACCOUNT_CURRENCIES.map((currency) => `<option value="${currency}" ${model.accountCurrency === currency ? "selected" : ""}>${currency}</option>`).join("")}
+                </select>
+              </label>
+              <label class="form-stack calculator-fast-field">
+                <span>Capital (${model.accountCurrency})</span>
                 <input type="text" inputmode="decimal" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}" autocomplete="off">
               </label>
               <label class="form-stack calculator-fast-field">
@@ -870,14 +1051,14 @@ export function renderCalculator(root, state) {
             <div class="calculator-primary-result">
               <span>Lotaje calculado</span>
               <strong>${model.roundedLots.toFixed(2)} lotes</strong>
-              <small>${escapeHtml(calc.symbol)} · riesgo real ${model.realRiskPct.toFixed(2)}% · ${formatCurrency(model.realRiskUsd)}</small>
+              <small>${escapeHtml(normalizeSymbol(calc.symbol))} · riesgo real ${model.realRiskPct.toFixed(2)}% · ${formatCurrency(model.realRiskUsd, model.accountCurrency)}</small>
             </div>
             ${lotWarningMarkup(model)}
             ${specSourceMarkup(model)}
             <div class="calculator-metric-grid">
-              ${calculatorMetricMarkup("Riesgo $", formatCurrency(model.realRiskUsd), `${model.riskPct.toFixed(2)}% configurado`)}
+              ${calculatorMetricMarkup("Riesgo", formatCurrency(model.realRiskUsd, model.accountCurrency), `${model.riskPct.toFixed(2)}% configurado`)}
               ${calculatorMetricMarkup("R:R", `1:${model.rr}`, `${model.tpPips.toFixed(1)} ${unitLabel} TP`)}
-              ${calculatorMetricMarkup("Resultado TP", formatCurrency(model.tpUsd), `Precio TP ${targetCopy}`)}
+              ${calculatorMetricMarkup("Resultado TP", formatCurrency(model.tpUsd, model.accountCurrency), `Precio TP ${targetCopy}`)}
               ${calculatorMetricMarkup("Exposición", `${model.realRiskPct.toFixed(2)}%`, `${Math.round(model.units).toLocaleString("es-ES")} unidades`)}
             </div>
             <div class="calculator-exposure-strip">
@@ -914,7 +1095,7 @@ export function renderCalculator(root, state) {
               <select data-calc-field="broker" ${specControlState}>
                 ${Object.keys(CALCULATION_PROFILES).map((profile) => `<option value="${profile}" ${calc.broker === profile ? "selected" : ""}>${profile}</option>`).join("")}
               </select>
-              <small>${specLocked ? "Ignorado mientras existan specs MT5 live." : "Preset editable, no verdad absoluta del broker."}</small>
+              <small>${specLocked ? "Ignorado mientras existan specs MT5 live." : model.spec.source === "standalone_fx" ? "Forex estándar por divisa y tipos de cambio." : "Preset editable, no verdad absoluta del broker."}</small>
             </label>
             <label class="form-stack">
               <span>Tipo de instrumento</span>
@@ -946,7 +1127,7 @@ export function renderCalculator(root, state) {
             </label>
           </div>
           <div class="calculator-spec-note calculator-spec-note--${model.spec.source || "manual"}">
-            ${escapeHtml(model.spec.accuracyCopy)} ${escapeHtml(model.profileCopy)} ${escapeHtml(model.profile.note)} ${escapeHtml(volumeMeta)}
+            ${escapeHtml(model.spec.accuracyCopy)} ${escapeHtml(model.profileCopy)} ${escapeHtml(model.spec.source === "standalone_fx" ? "" : model.profile.note)} ${escapeHtml(volumeMeta)}
           </div>
         </div>
       </details>
