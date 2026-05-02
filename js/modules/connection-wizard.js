@@ -7,6 +7,12 @@ const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
+const WIZARD_STEPS = [
+  { id: "platform", label: "Plataforma" },
+  { id: "method", label: "Método" },
+  { id: "configuration", label: "Configuración" },
+  { id: "confirmation", label: "Confirmación" },
+];
 let activeWizardStore = null;
 
 function launcherDownloadUrl(platform = "auto") {
@@ -96,6 +102,37 @@ function copyText(value, label = "Copiado") {
   complete();
 }
 
+function resolveInitialStep(options = {}) {
+  const method = String(options.method || "").toLowerCase();
+  if (method === "ea" || method === "expert" || method === "manual") return "eaConfig";
+  if (method === "direct" || method === "credentials") return "directConfig";
+  return "platform";
+}
+
+function wizardStage(step) {
+  if (step === "method") return 1;
+  if (step === "eaConfig" || step === "directConfig") return 2;
+  if (step === "confirm") return 3;
+  return 0;
+}
+
+function renderStepper(state) {
+  const active = wizardStage(state.step);
+  return `
+    <div class="connection-wizard__steps" aria-label="Progreso de conexión">
+      ${WIZARD_STEPS.map((step, index) => `
+        <div class="connection-wizard__step-wrap">
+          <div class="connection-wizard__step ${index === active ? "is-current" : ""} ${index < active ? "is-complete" : ""}">
+            <span class="connection-wizard__step-marker">${index < active ? "✓" : index + 1}</span>
+            <span class="connection-wizard__step-label">${escapeHtml(step.label)}</span>
+          </div>
+          ${index < WIZARD_STEPS.length - 1 ? `<span class="connection-wizard__step-separator" aria-hidden="true"></span>` : ""}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderStepFrame(title, subtitle, content) {
   return `
     <section class="connection-wizard__section">
@@ -110,84 +147,219 @@ function renderStepFrame(title, subtitle, content) {
   `;
 }
 
-function renderWizardMarkup(state) {
-  const direct = state.direct || {};
-  const hasDirectKey = Boolean(direct.connectionKey);
+function renderPlatformStep() {
   return `
-    <div class="connection-wizard connection-wizard--launcher">
-      ${renderStepFrame(
-        "Opción 1: Launcher recomendado",
-        "El Launcher inicia sesión con KMFX, genera la key por ti e instala el conector en MT5. No tienes que copiar claves técnicas.",
-        `
-          <div class="connection-wizard__checklist connection-wizard__checklist--numbered">
-            <div class="connection-wizard__checklist-item">1. Descarga o abre KMFX Launcher.</div>
-            <div class="connection-wizard__checklist-item">2. Inicia sesión con la misma cuenta de KMFX.</div>
-            <div class="connection-wizard__checklist-item">3. Pulsa "Instalar conector" en tu MetaTrader 5 detectado.</div>
-            <div class="connection-wizard__checklist-item">4. Abre MT5, activa Algo Trading y permite WebRequest si MT5 lo solicita.</div>
-            <div class="connection-wizard__checklist-item">5. Cuando llegue el primer sync, la cuenta aparecerá en Cuentas y Dashboard.</div>
-          </div>
-          <div class="connection-wizard__inline-actions">
-            <button class="btn-primary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
-            <button class="btn-secondary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
-            <button class="btn-secondary" type="button" data-wizard-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
-          </div>
-        `
-      )}
-      ${renderStepFrame(
-        "Opción 2: Manual con EA",
-        "Usa este camino si prefieres instalar el EA tú mismo. Aquí se crea la key que luego pegas en el campo KMFXKey del EA.",
-        `
-          <div class="connection-wizard__utility-row">
-            <div>
-              <div class="connection-wizard__utility-label">Key para el EA</div>
-              <code class="connection-wizard__utility-value">${hasDirectKey ? escapeHtml(direct.connectionKey) : "Pulsa \"Crear key para EA\" para generarla."}</code>
-            </div>
-            <div class="connection-wizard__utility-actions">
-              ${hasDirectKey ? `<button class="btn-primary" type="button" data-wizard-copy-direct-key="true">Copiar key</button>` : ""}
-              <button class="btn-secondary" type="button" data-wizard-create-direct="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Creando..." : hasDirectKey ? "Regenerar key" : "Crear key para EA"}</button>
-            </div>
-          </div>
-          <div class="connection-wizard__form-grid">
-            <label class="form-stack">
-              <span>Nombre de la cuenta o conexión</span>
-              <input type="text" name="directLabel" value="${escapeHtml(direct.label || "Cuenta MT5 directa")}" placeholder="Orion Challenge 5k">
-            </label>
-            <div class="connection-wizard__utility-row">
-              <div>
-                <div class="connection-wizard__utility-label">URL permitida en WebRequest</div>
-                <code class="connection-wizard__utility-value">${escapeHtml(MT5_WEBREQUEST_URL)}</code>
-              </div>
-              <div class="connection-wizard__utility-actions">
-                <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar URL</button>
-              </div>
-            </div>
-          </div>
-          <div class="connection-wizard__checklist connection-wizard__checklist--numbered">
-            <div class="connection-wizard__checklist-item">1. Descarga KMFXConnector.ex5 y cópialo en MQL5/Experts.</div>
-            <div class="connection-wizard__checklist-item">2. En MT5 permite WebRequest para ${escapeHtml(MT5_WEBREQUEST_URL)}.</div>
-            <div class="connection-wizard__checklist-item">3. Arrastra KMFXConnector a un gráfico y pega la key en KMFXKey.</div>
-            <div class="connection-wizard__checklist-item">4. Puedes iniciar sesión con master password o investor password.</div>
-            <div class="connection-wizard__checklist-item">5. Al primer sync la cuenta aparecerá en Cuentas y Dashboard.</div>
-          </div>
-          <div class="connection-wizard__inline-actions">
-            <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
-          </div>
-        `
-      )}
-      ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
-      <div class="connection-wizard__actions">
-        <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
-      </div>
+    ${renderStepFrame(
+      "Selecciona una plataforma",
+      "Conecta tu plataforma de trading para sincronizar tus operaciones.",
+      `
+        <div class="connection-wizard__option-grid connection-wizard__option-grid--stacked">
+          <button class="connection-wizard__option is-selected" type="button" data-wizard-select-platform="mt5">
+            <span class="connection-wizard__option-check">✓</span>
+            <span class="connection-wizard__option-copy">
+              <span class="connection-wizard__option-title">MetaTrader 5</span>
+              <span class="connection-wizard__option-subtitle">Disponible ahora.</span>
+            </span>
+          </button>
+          <button class="connection-wizard__option connection-wizard__option--muted" type="button" disabled>
+            <span class="connection-wizard__option-copy">
+              <span class="connection-wizard__option-title">MetaTrader 4</span>
+              <span class="connection-wizard__option-subtitle">Próximamente.</span>
+            </span>
+          </button>
+        </div>
+      `
+    )}
+    <div class="connection-wizard__actions">
+      <button class="btn-secondary" type="button" data-modal-dismiss="true">Cancelar</button>
+      <button class="btn-primary" type="button" data-wizard-step="method">Continuar</button>
     </div>
   `;
 }
 
-async function createDirectConnection(card, state, options = {}, store = activeWizardStore) {
+function renderMethodStep() {
+  return `
+    ${renderStepFrame(
+      "Conectar MetaTrader 5",
+      "Selecciona tu método de conexión preferido.",
+      `
+        <div class="connection-wizard__option-grid connection-wizard__option-grid--methods">
+          <button class="connection-wizard__option" type="button" data-wizard-select-method="direct">
+            <span class="connection-wizard__option-copy">
+              <span class="connection-wizard__option-title">Conexión directa</span>
+              <span class="connection-wizard__option-subtitle">Introduce login, servidor e investor password. Mejor para capital propio.</span>
+              <span class="connection-wizard__option-note">Requiere backend seguro antes de producción.</span>
+            </span>
+          </button>
+          <button class="connection-wizard__option is-selected" type="button" data-wizard-select-method="ea">
+            <span class="connection-wizard__option-check">✓</span>
+            <span class="connection-wizard__option-copy">
+              <span class="connection-wizard__option-title">Expert Advisor (EA)</span>
+              <span class="connection-wizard__option-subtitle">Recomendado. No compartes credenciales de MT5 y funciona con investor password.</span>
+              <span class="connection-wizard__option-note">Usa KMFX Connector en tu terminal local.</span>
+            </span>
+          </button>
+        </div>
+      `
+    )}
+    <div class="connection-wizard__actions">
+      <button class="btn-secondary" type="button" data-wizard-step="platform">Atrás</button>
+      <button class="btn-primary" type="button" data-wizard-select-method="ea">Continuar</button>
+    </div>
+  `;
+}
+
+function renderEaConfigStep(state) {
+  const ea = state.ea || {};
+  return `
+    ${renderStepFrame(
+      "Conecta MetaTrader 5 (Expert Advisor)",
+      "Sigue los pasos para conectar tu cuenta con KMFX Connector.",
+      `
+        <label class="form-stack">
+          <span>Nombre de la conexión</span>
+          <input type="text" name="eaLabel" value="${escapeHtml(ea.label || "Cuenta MT5 EA")}" placeholder="Orion Challenge 5k">
+        </label>
+        <div class="connection-wizard__utility-row" style="border-color:color-mix(in srgb, var(--accent) 34%, var(--border-subtle));background:color-mix(in srgb, var(--accent) 8%, transparent);">
+          <div class="connection-wizard__checklist connection-wizard__checklist--numbered">
+            <div class="connection-wizard__checklist-item">1. Descarga o abre KMFX Launcher. Detecta tus instalaciones de MetaTrader y puede instalar el EA por ti.</div>
+            <div class="connection-wizard__checklist-item">2. Si lo haces manualmente, descarga KMFXConnector.ex5 y cópialo en MQL5/Experts.</div>
+            <div class="connection-wizard__checklist-item">3. Cierra y vuelve a abrir MetaTrader 5 después de instalar el conector.</div>
+            <div class="connection-wizard__checklist-item">4. Activa Algo Trading en MT5.</div>
+            <div class="connection-wizard__checklist-item">5. Arrastra KMFXConnector a cualquier gráfico activo.</div>
+            <div class="connection-wizard__checklist-item">6. En el siguiente paso recibirás la clave de conexión para pegarla en el campo KMFXKey del EA.</div>
+          </div>
+          <div class="connection-wizard__inline-actions">
+            <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
+            <button class="btn-secondary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
+            <button class="btn-secondary" type="button" data-wizard-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
+            <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
+          </div>
+        </div>
+        <div class="connection-wizard__utility-row" style="border-color:color-mix(in srgb, var(--warning) 48%, var(--border-subtle));background:color-mix(in srgb, var(--warning) 10%, transparent);">
+          <div>
+            <div class="connection-wizard__utility-label">Permitir WebRequest en el terminal</div>
+            <div class="connection-wizard__checklist connection-wizard__checklist--numbered" style="margin-top:10px;">
+              <div class="connection-wizard__checklist-item">1. En MetaTrader 5 ve a Tools > Options.</div>
+              <div class="connection-wizard__checklist-item">2. Entra en la pestaña Expert Advisors.</div>
+              <div class="connection-wizard__checklist-item">3. Activa Allow WebRequest for listed URL.</div>
+              <div class="connection-wizard__checklist-item">4. Añade esta URL:</div>
+            </div>
+            <code class="connection-wizard__utility-value" style="display:block;margin-top:8px;word-break:break-all;">${escapeHtml(MT5_WEBREQUEST_URL)}</code>
+          </div>
+          <div class="connection-wizard__utility-actions">
+            <button class="btn-secondary" type="button" data-wizard-copy-webrequest="true">Copiar URL</button>
+          </div>
+        </div>
+      `
+    )}
+    <div class="connection-wizard__actions">
+      <button class="btn-secondary" type="button" data-wizard-step="method">Atrás</button>
+      <button class="btn-primary" type="button" data-wizard-create-ea-key="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Generando..." : "Generar clave de conexión"}</button>
+    </div>
+  `;
+}
+
+function renderDirectConfigStep() {
+  return `
+    ${renderStepFrame(
+      "Conexión directa",
+      "Introduce tus datos de MetaTrader 5 para una conexión directa.",
+      `
+        <div class="connection-wizard__utility-row" style="border-color:color-mix(in srgb, var(--negative) 42%, var(--border-subtle));background:color-mix(in srgb, var(--negative) 10%, transparent);">
+          <div>
+            <div class="connection-wizard__success-title">Aviso de seguridad</div>
+            <p class="connection-wizard__warning" style="margin-top:8px !important;">Este método registra una conexión desde infraestructura externa hacia tu broker. Algunas prop firms pueden detectarlo como conexión de terceros. Para cuentas fondeadas, KMFX recomienda el método Expert Advisor.</p>
+          </div>
+        </div>
+        <div class="connection-wizard__form-grid">
+          <label class="form-stack">
+            <span>Account Number</span>
+            <input type="text" inputmode="numeric" autocomplete="off" placeholder="80571774" disabled>
+          </label>
+          <label class="form-stack">
+            <span>Password</span>
+            <input type="password" autocomplete="off" placeholder="Investor o master password" disabled>
+          </label>
+          <label class="form-stack">
+            <span>Server</span>
+            <input type="text" autocomplete="off" placeholder="Selecciona o escribe el servidor del broker" disabled>
+          </label>
+        </div>
+        <p class="connection-wizard__warning">La pantalla queda recuperada para el flujo de producto, pero el envío de credenciales queda bloqueado hasta activar vault seguro, revocación, rate limit y permisos por plan.</p>
+      `
+    )}
+    <div class="connection-wizard__actions">
+      <button class="btn-secondary" type="button" data-wizard-step="method">Atrás</button>
+      <button class="btn-secondary" type="button" data-wizard-select-method="ea">Usar EA recomendado</button>
+      <button class="btn-primary" type="button" disabled>Conectar cuenta</button>
+    </div>
+  `;
+}
+
+function renderConfirmationStep(state) {
+  const ea = state.ea || {};
+  const key = ea.connectionKey || "";
+  const visibleKey = state.showKey ? key : "••••••••••••••••••••";
+  return `
+    ${renderStepFrame(
+      "Clave de conexión generada",
+      "Usa esta clave en el EA de KMFX para vincular automaticamente tu cuenta.",
+      `
+        <div class="connection-wizard__success">
+          <span class="connection-wizard__success-icon">✓</span>
+          <div class="connection-wizard__success-copy">
+            <div class="connection-wizard__success-title">Tu clave está lista</div>
+            <div class="connection-wizard__success-subtitle">Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave.</div>
+          </div>
+        </div>
+        <div class="connection-wizard__secret-row">
+          <div class="connection-wizard__secret-copy">
+            <div class="connection-wizard__utility-label">Tu clave de conexión</div>
+            <code class="connection-wizard__secret-value" style="word-break:break-all;">${escapeHtml(visibleKey)}</code>
+          </div>
+          <div class="connection-wizard__secret-actions">
+            <button class="btn-secondary" type="button" data-wizard-toggle-key="true">${state.showKey ? "Ocultar" : "Mostrar"}</button>
+            <button class="btn-primary" type="button" data-wizard-copy-ea-key="true">Copiar clave</button>
+          </div>
+        </div>
+        <div class="connection-wizard__checklist">
+          <div class="connection-wizard__checklist-item">Después de pegarla, abre MT5 con la cuenta correcta y espera el primer sync.</div>
+          <div class="connection-wizard__checklist-item">Cuando Experts muestre conectado a KMFX, la cuenta aparecerá en Cuentas y Dashboard.</div>
+        </div>
+      `
+    )}
+    <div class="connection-wizard__actions">
+      <button class="btn-secondary" type="button" data-wizard-step="eaConfig">Volver</button>
+      <button class="btn-primary" type="button" data-modal-dismiss="true">Cerrar</button>
+    </div>
+  `;
+}
+
+function renderCurrentStep(state) {
+  if (state.step === "method") return renderMethodStep(state);
+  if (state.step === "eaConfig") return renderEaConfigStep(state);
+  if (state.step === "directConfig") return renderDirectConfigStep(state);
+  if (state.step === "confirm") return renderConfirmationStep(state);
+  return renderPlatformStep(state);
+}
+
+function renderWizardMarkup(state) {
+  return `
+    <div class="connection-wizard connection-wizard--mt5-flow">
+      ${renderStepper(state)}
+      ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
+      ${renderCurrentStep(state)}
+    </div>
+  `;
+}
+
+async function createEaConnection(card, state, options = {}, store = activeWizardStore) {
   const body = card?.querySelector(".modal-body");
-  const label = String(body?.querySelector("[name='directLabel']")?.value || "Cuenta MT5 directa").trim() || "Cuenta MT5 directa";
+  const label = String(body?.querySelector("[name='eaLabel']")?.value || "Cuenta MT5 EA").trim() || "Cuenta MT5 EA";
   state.loading = true;
   state.error = "";
-  state.direct = { ...(state.direct || {}), label };
+  state.ea = { ...(state.ea || {}), label };
   mountWizard(card, state, options, store);
   try {
     const response = await fetch(buildApiUrl("/api/accounts/link"), {
@@ -197,26 +369,34 @@ async function createDirectConnection(card, state, options = {}, store = activeW
         label,
         alias: label,
         platform: "mt5",
-        connection_mode: "direct",
+        connection_mode: "ea_direct",
       }),
     });
     const payload = await response.json();
     if (!response.ok || payload?.ok === false || !payload?.connection_key) {
-      throw new Error(payload?.reason || "No se pudo crear la key directa.");
+      throw new Error(payload?.reason || "No se pudo generar la clave de conexión.");
     }
-    state.direct = {
+    state.ea = {
       label,
       accountId: payload.account_id || "",
       connectionKey: payload.connection_key,
     };
-    showToast("Key directa creada", "success");
+    state.step = "confirm";
+    state.showKey = false;
+    showToast("Clave de conexión generada", "success");
     window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
   } catch (error) {
-    state.error = error?.message || "No se pudo crear la conexión directa.";
+    state.error = error?.message || "No se pudo generar la clave de conexión.";
   } finally {
     state.loading = false;
     mountWizard(card, state, options, store);
   }
+}
+
+function setWizardStep(card, state, step, options, store) {
+  state.step = step;
+  state.error = "";
+  mountWizard(card, state, options, store);
 }
 
 function mountWizard(card, state, options = {}, store = activeWizardStore) {
@@ -225,14 +405,29 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
 
   body.innerHTML = renderWizardMarkup(state);
 
+  body.querySelectorAll("[data-wizard-step]").forEach((button) => {
+    button.addEventListener("click", () => setWizardStep(card, state, button.dataset.wizardStep || "platform", options, store));
+  });
+  body.querySelector("[data-wizard-select-platform='mt5']")?.addEventListener("click", () => setWizardStep(card, state, "method", options, store));
+  body.querySelectorAll("[data-wizard-select-method]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const method = button.dataset.wizardSelectMethod;
+      state.method = method;
+      setWizardStep(card, state, method === "direct" ? "directConfig" : "eaConfig", options, store);
+    });
+  });
   body.querySelector("[data-wizard-open-launcher='true']")?.addEventListener("click", openLauncher);
   body.querySelectorAll("[data-wizard-download-launcher]").forEach((button) => {
     button.addEventListener("click", () => downloadLauncher(button.dataset.wizardDownloadLauncher || "auto"));
   });
   body.querySelector("[data-wizard-download-ea='true']")?.addEventListener("click", downloadEa);
   body.querySelector("[data-wizard-copy-webrequest='true']")?.addEventListener("click", () => copyText(MT5_WEBREQUEST_URL, "URL copiada"));
-  body.querySelector("[data-wizard-copy-direct-key='true']")?.addEventListener("click", () => copyText(state.direct?.connectionKey || "", "Key copiada"));
-  body.querySelector("[data-wizard-create-direct='true']")?.addEventListener("click", () => createDirectConnection(card, state, options, store));
+  body.querySelector("[data-wizard-create-ea-key='true']")?.addEventListener("click", () => createEaConnection(card, state, options, store));
+  body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => copyText(state.ea?.connectionKey || "", "Clave copiada"));
+  body.querySelector("[data-wizard-toggle-key='true']")?.addEventListener("click", () => {
+    state.showKey = !state.showKey;
+    mountWizard(card, state, options, store);
+  });
 
   body.querySelectorAll("[data-modal-dismiss='true']").forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -244,9 +439,13 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
 
 export function openConnectionWizard(options = {}) {
   const state = {
+    step: resolveInitialStep(options),
+    platform: options.platform || "mt5",
+    method: options.method || "",
     error: "",
     loading: false,
-    direct: {
+    showKey: false,
+    ea: {
       label: "",
       accountId: "",
       connectionKey: "",
@@ -254,12 +453,13 @@ export function openConnectionWizard(options = {}) {
   };
 
   openModal({
-    title: "Conectar MT5",
-    subtitle: "Instala el conector desde KMFX Launcher.",
-    maxWidth: 760,
+    title: "Añadir cuenta",
+    subtitle: "Configura la conexión de esta cuenta.",
+    maxWidth: 980,
     content: `<div class="connection-wizard-shell"></div>`,
     onMount(card) {
       card?.classList.add("connection-wizard-modal");
+      card?.style.setProperty("max-width", "980px", "important");
       card?.querySelector(".modal-body")?.classList.add("connection-wizard-modal__body");
       mountWizard(card, state, options, options.store || activeWizardStore);
     },

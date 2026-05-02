@@ -410,7 +410,7 @@ function renderConnectionGuide() {
         </div>
         <div class="connections-empty-card__actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-ea="true">Descargar EA</button>
-          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="direct" data-connection-source="connections-guide">Crear key para EA</button>
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="ea" data-connection-source="connections-guide">Crear key para EA</button>
         </div>
       </div>
     </section>

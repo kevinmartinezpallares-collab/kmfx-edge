@@ -18,24 +18,30 @@ python -m pip install -r requirements.txt -r requirements-build.txt
 
 ## Build the launcher
 
-### Opción recomendada: GitHub Actions
+### Opcion macOS sin Windows local
 
-No hace falta tener Windows local. El workflow `Build Windows Launcher` compila el launcher en `windows-latest`, genera:
+Si estas en macOS y no tienes Windows, puedes generar el paquete Windows con el runtime de Wine que trae MetaTrader 5:
+
+```bash
+scripts/build_windows_launcher_wine.sh
+```
+
+El script descarga una Python embeddable de Windows en `build/windows-toolchain`, instala las dependencias dentro de un `WINEPREFIX` local y genera:
 
 ```text
 downloads/KMFX-Launcher-Windows.zip
 downloads/KMFX-Launcher-Windows.zip.sha256
 ```
 
-y puede commitear esos archivos en `main` para que Vercel los sirva desde:
+Vercel sirve el ZIP desde:
 
 ```text
 https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
 ```
 
-El workflow se ejecuta automáticamente cuando cambian los archivos del launcher en `main`, y también puede lanzarse manualmente desde GitHub Actions.
+Cuando el token de GitHub tenga permiso `workflow`, se puede anadir un workflow de CI en `windows-latest` para generar el mismo artefacto automaticamente.
 
-### Opción local
+### Opcion local en Windows
 
 From the repository root:
 
