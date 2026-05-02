@@ -24,13 +24,14 @@ def connector_sources() -> list[Path]:
 def preset_contents(config: LauncherConfig) -> str:
     return "\n".join(
         [
+            f"KMFXKey={config.connection_key}||0||0||0||N",
+            f"KMFXApiKey={config.connection_key}||0||0||0||N",
+            f"connection_key={config.connection_key}||0||0||0||N",
             "KMFXMode=0||0||0||1||N",
             f"KMFXBackendBaseUrl={config.local_host and f'http://{config.local_host}:{config.local_port}'}||0||0||0||N",
             "KMFXSyncPath=/mt5/sync||0||0||0||N",
             "KMFXJournalPath=/mt5/journal||0||0||0||N",
             "KMFXPolicyPath=/mt5/policy||0||0||0||N",
-            f"KMFXApiKey={config.connection_key}||0||0||0||N",
-            f"connection_key={config.connection_key}||0||0||0||N",
             "KMFXTimerMs=2000||0||0||0||N",
             "KMFXPolicyPollSeconds=12||0||0||0||N",
             "KMFXStatePushSeconds=5||0||0||0||N",

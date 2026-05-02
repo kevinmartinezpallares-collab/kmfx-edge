@@ -36,27 +36,32 @@ enum KMFXSeverity
   };
 
 // -------------------------------------------------------------------
-// Inputs principales
+// Configuracion de usuario
 // -------------------------------------------------------------------
-input KMFXConnectorMode KMFXMode              = SAFE_MODE;
-input string            KMFXBackendBaseUrl    = "http://127.0.0.1:8766";
-input string            KMFXSyncPath          = "/mt5/sync";
-input string            KMFXJournalPath       = "/mt5/journal";
-input string            KMFXPolicyPath        = "/mt5/policy";
-input string            KMFXApiKey            = "";
-input string            connection_key        = "";
-input int               KMFXTimerMs           = 2000;
-input int               KMFXPolicyPollSeconds = 12;
-input int               KMFXStatePushSeconds  = 5;
-input int               KMFXWebTimeoutMs      = 1500;
-input int               KMFXClosedDealsLimit  = 100;
-input int               KMFXHistoryPointsLimit= 120;
-input int               KMFXHistoryLookbackDays = 365;
-input int               KMFXJournalBatchSize  = 20;
-input bool              KMFXVerboseLog        = false;
-input bool              KMFXEnableEnforce     = true;
-input bool              KMFXSendClosedDeals   = true;
-input bool              KMFXUseBrokerTime     = true;
+input string            KMFXKey               = "";
+
+// -------------------------------------------------------------------
+// Configuracion interna gestionada por KMFX Launcher
+// -------------------------------------------------------------------
+KMFXConnectorMode KMFXMode                    = SAFE_MODE;
+string            KMFXBackendBaseUrl          = "http://127.0.0.1:8766";
+string            KMFXSyncPath                = "/mt5/sync";
+string            KMFXJournalPath             = "/mt5/journal";
+string            KMFXPolicyPath              = "/mt5/policy";
+string            KMFXApiKey                  = "";
+string            connection_key              = "";
+int               KMFXTimerMs                 = 2000;
+int               KMFXPolicyPollSeconds       = 12;
+int               KMFXStatePushSeconds        = 5;
+int               KMFXWebTimeoutMs            = 1500;
+int               KMFXClosedDealsLimit        = 100;
+int               KMFXHistoryPointsLimit      = 120;
+int               KMFXHistoryLookbackDays     = 365;
+int               KMFXJournalBatchSize        = 20;
+bool              KMFXVerboseLog              = false;
+bool              KMFXEnableEnforce           = true;
+bool              KMFXSendClosedDeals         = true;
+bool              KMFXUseBrokerTime           = true;
 
 string g_runtime_connection_key="";
 datetime g_last_connection_key_file_check_at=0;
@@ -405,7 +410,9 @@ string KMFXLoadConnectionKeyFromFile()
 
 void KMFXInitializeRuntimeConnectionKey()
   {
-   string explicit_key=KMFXTrim(connection_key);
+   string explicit_key=KMFXTrim(KMFXKey);
+   if(StringLen(explicit_key)<=0)
+      explicit_key=KMFXTrim(connection_key);
    if(StringLen(explicit_key)>0)
      {
       g_runtime_connection_key="";
@@ -432,6 +439,8 @@ void KMFXInitializeRuntimeConnectionKey()
 
 void KMFXRefreshRuntimeConnectionKey()
   {
+   if(StringLen(KMFXTrim(KMFXKey))>0)
+      return;
    if(StringLen(KMFXTrim(connection_key))>0)
       return;
 
@@ -458,7 +467,11 @@ string KMFXBuildSyncId()
 
 string KMFXConnectionKeyValue()
   {
-   string explicit_key=KMFXTrim(connection_key);
+   string explicit_key=KMFXTrim(KMFXKey);
+   if(StringLen(explicit_key)>0)
+      return explicit_key;
+
+   explicit_key=KMFXTrim(connection_key);
    if(StringLen(explicit_key)>0)
       return explicit_key;
 
@@ -1702,10 +1715,12 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
    string result_headers="";
    int request_bytes=0;
 
-   if(StringLen(KMFXApiKey)>0)
-      headers+="X-KMFX-API-Key: "+KMFXApiKey+"\r\n";
-   if(KMFXHasConnectionKey())
-      headers+="X-KMFX-Connection-Key: "+KMFXConnectionKeyValue()+"\r\n";
+   string current_key=KMFXConnectionKeyValue();
+   if(StringLen(current_key)>0)
+     {
+      headers+="X-KMFX-API-Key: "+current_key+"\r\n";
+      headers+="X-KMFX-Connection-Key: "+current_key+"\r\n";
+     }
 
    if(method=="POST")
      {
