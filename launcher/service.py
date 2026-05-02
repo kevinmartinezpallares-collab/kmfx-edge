@@ -15,6 +15,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 from .backend_client import BackendClient
+from .connection_keys import resolve_effective_connection_key
 from .config import LauncherConfig, load_bridge_config, mask_connection_key, load_config, save_bridge_config, save_config
 from .log_utils import configure_logging, read_recent_logs
 from .state_store import LauncherStateStore
@@ -284,16 +285,20 @@ class LauncherServiceRuntime:
         safe_payload = payload if isinstance(payload, dict) else {}
         explicit_key = str(header_connection_key or safe_payload.get("connection_key") or "").strip()
         bridge_key = self.effective_connection_key()
-        effective_key = bridge_key or explicit_key
-        if effective_key and explicit_key and explicit_key != effective_key:
+        effective_key, key_source = resolve_effective_connection_key(explicit_key=explicit_key, bridge_key=bridge_key)
+        if effective_key and explicit_key and bridge_key and explicit_key != bridge_key:
             self.logger.info(
-                "[KMFX][BRIDGE] stale connection_key replaced payload_key=%s bridge_key=%s",
+                "[KMFX][BRIDGE] explicit connection_key kept payload_key=%s bridge_key=%s",
                 mask_connection_key(explicit_key),
-                mask_connection_key(effective_key),
+                mask_connection_key(bridge_key),
             )
         if effective_key and safe_payload.get("connection_key") != effective_key:
             safe_payload["connection_key"] = effective_key
-            self.logger.info("[KMFX][BRIDGE] connection_key injected into payload key=%s", mask_connection_key(effective_key))
+            self.logger.info(
+                "[KMFX][BRIDGE] connection_key injected into payload key=%s source=%s",
+                mask_connection_key(effective_key),
+                key_source,
+            )
         return safe_payload
 
     def build_queue_item(self, kind: str, item_id: str, identity_key: str, payload: dict[str, Any], attempts: int = 0) -> dict[str, Any]:
@@ -653,13 +658,21 @@ async def auth_callback(
 
 
 @app.get("/mt5/policy")
-async def mt5_policy(login: str = Query("", min_length=0), connection_key: str = Query("", min_length=0)) -> JSONResponse:
+async def mt5_policy(
+    request: Request,
+    login: str = Query("", min_length=0),
+    connection_key: str = Query("", min_length=0),
+) -> JSONResponse:
     bridge_connection_key = runtime.effective_connection_key()
-    effective_connection_key = bridge_connection_key or connection_key
-    if bridge_connection_key and connection_key and bridge_connection_key != connection_key:
+    explicit_connection_key = str(request.headers.get("X-KMFX-Connection-Key") or connection_key or "").strip()
+    effective_connection_key, key_source = resolve_effective_connection_key(
+        explicit_key=explicit_connection_key,
+        bridge_key=bridge_connection_key,
+    )
+    if bridge_connection_key and explicit_connection_key and bridge_connection_key != explicit_connection_key:
         runtime.logger.info(
-            "[KMFX][BRIDGE] stale policy connection_key replaced query_key=%s bridge_key=%s",
-            mask_connection_key(connection_key),
+            "[KMFX][BRIDGE] explicit policy connection_key kept query_key=%s bridge_key=%s",
+            mask_connection_key(explicit_connection_key),
             mask_connection_key(bridge_connection_key),
         )
     identity_key = runtime.identity_key(None, login=login, connection_key=effective_connection_key)
@@ -667,7 +680,11 @@ async def mt5_policy(login: str = Query("", min_length=0), connection_key: str =
     if backend_response.ok:
         runtime.store.set_cached_policy(identity_key, backend_response.body)
         runtime.store.set_last_policy({"identity_key": identity_key, "status": "fresh", "timestamp": now_iso()})
-        runtime.logger.info("[KMFX][BACKEND] policy fresh identity=%s", mask_connection_key(identity_key) or identity_key)
+        runtime.logger.info(
+            "[KMFX][BACKEND] policy fresh identity=%s key_source=%s",
+            mask_connection_key(identity_key) or identity_key,
+            key_source,
+        )
         return json_response(backend_response.body)
 
     cached_policy = runtime.store.get_cached_policy(identity_key)
