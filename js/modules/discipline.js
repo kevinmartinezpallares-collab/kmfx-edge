@@ -930,11 +930,11 @@ function scoreColor(score) {
 }
 
 function scoreLabel(score) {
-  if (!Number.isFinite(Number(score))) return "PENDIENTE";
-  if (score >= 80) return "SÓLIDO";
-  if (score >= 65) return "ACEPTABLE";
-  if (score >= 45) return "DÉBIL";
-  return "BAJO";
+  if (!Number.isFinite(Number(score))) return "Pendiente";
+  if (score >= 80) return "Sólido";
+  if (score >= 65) return "Aceptable";
+  if (score >= 45) return "Débil";
+  return "Bajo";
 }
 
 function precisionColor(value) {
@@ -1277,30 +1277,30 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
     {
       label: "Cumplimiento de reglas",
       value: Number.isFinite(adherence) ? formatPct(adherence) : "Pendiente",
-      subcopy: Number.isFinite(adherence) ? "últimos 30 días" : "estimación basada en histórico",
-      badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? `+${Math.round(adherence - previousAdherence)}% vs mes anterior` : "datos parciales",
+      subcopy: Number.isFinite(adherence) ? "lectura parcial" : "estimación basada en histórico",
+      badge: Number.isFinite(adherence) && Number.isFinite(previousAdherence) ? "parcial" : "datos parciales",
       tone: "neutral"
     },
     {
       label: "Precisión de entrada",
       value: Number.isFinite(entryAverage) ? formatPips(entryAverage) : "Pendiente",
       subcopy: Number.isFinite(entryAverage) ? "desviación media" : "pendiente de tracking EA",
-      badge: Number.isFinite(entryAverage) ? "objetivo <2.0" : "sin datos suficientes",
+      badge: Number.isFinite(entryAverage) ? "objetivo <2.0" : "tracking EA",
       tone: Number.isFinite(entryAverage) && entryAverage > 2 ? precisionColor(entryAverage) : "neutral"
     },
     {
-      label: "Violaciones de SL",
+      label: "SL a revisar",
       value: Number.isFinite(slViolations) ? String(slViolations) : "Pendiente",
-      subcopy: Number.isFinite(slViolations) ? "trades este mes" : "pendiente de tracking EA",
-      badge: Number.isFinite(slViolations) && slViolations > 0 ? "violación confirmada" : "sin datos suficientes",
-      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "bad") : "neutral"
+      subcopy: Number.isFinite(slViolations) ? "inferido / revisar" : "pendiente de tracking EA",
+      badge: Number.isFinite(slViolations) && slViolations > 0 ? "señal inferida" : "sin señales",
+      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "warn") : "neutral"
     },
     {
-      label: "Trades fuera de horario",
+      label: "Horario a revisar",
       value: String(Number.isFinite(outsideSchedule) ? outsideSchedule : fallback.kpis.offHoursTrades.value),
-      subcopy: "violaciones",
-      badge: outsideSchedule === 0 ? "100% en horario" : "violación confirmada",
-      tone: outsideSchedule === 0 ? "ok" : "bad"
+      subcopy: "inferido por hora",
+      badge: outsideSchedule === 0 ? "sin señales" : "señal inferida",
+      tone: outsideSchedule === 0 ? "ok" : "warn"
     }
   ];
 }
@@ -1362,7 +1362,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData, pro
           const negative = bucket.pnl < 0;
           state = outside || (overtraded && negative) ? "miss" : overtraded || negative ? "warn" : "clean";
         }
-        label = state === "clean" ? "Limpio" : state === "warn" ? "Advertencia" : "Violación";
+        label = state === "clean" ? "Limpio" : state === "warn" ? "A revisar" : "Señal crítica";
       }
       days.push({ key, date, state, label, trades: bucket?.trades?.length || 0, pnl: bucket?.pnl || 0 });
     }
@@ -2059,11 +2059,12 @@ function renderRuleRows(rows) {
     "Pendiente": "Pendiente"
   };
   return rows.map((row) => {
-    const tone = ruleTone(row);
     const isIncomplete = isIncompleteNote(row.note);
     const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente/i.test(String(row.note || ""));
     const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     const source = ruleDataSource(row);
+    const baseTone = ruleTone(row);
+    const tone = !isPending && source.tone === "inferred" && baseTone === "bad" ? "warn" : baseTone;
     return `
       <div class="execution-rule-row rule-row execution-tone-${tone}${isPending ? " pending" : ""}">
         <div class="execution-rule-row__head">
@@ -2979,8 +2980,8 @@ function renderHeatmap(weeks) {
       `).join("")}
       <div class="execution-heatmap__legend">
         <span><i class="execution-tone-ok"></i>Limpio</span>
-        <span><i class="execution-tone-warn"></i>Advertencia</span>
-        <span><i class="execution-tone-bad"></i>Violación</span>
+        <span><i class="execution-tone-warn"></i>A revisar</span>
+        <span><i class="execution-tone-bad"></i>Señal crítica</span>
         <span><i class="execution-tone-empty"></i>Sin trade</span>
       </div>
     </div>
@@ -3136,7 +3137,7 @@ function renderScoreGauge(score, { isPartial = false } = {}) {
   const center = 60;
   const circumference = 2 * Math.PI * radius;
   const dash = (clamp(score, 0, 100) / 100) * circumference;
-  const label = scoreLabel(score);
+  const label = isPartial ? `${scoreLabel(score)} · parcial` : scoreLabel(score);
   return `
     <div class="execution-score-gauge execution-tone-${scoreDisplayTone(score, isPartial)}">
       <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -3282,31 +3283,31 @@ function buildExecutionReviewItems({
   if (pendingTagTrades.length) {
     items.push({
       title: "Trades sin etiquetar",
-      copy: `${pendingTagTrades.length} operaciones pendientes de post-trade tag.`,
+      copy: `${pendingTagTrades.length} operaciones pendientes de post-trade tag. Completa tags para validar.`,
       tone: "warn"
     });
   }
   const slRule = visibleRules.find((rule) => /fixed sl|sl fijo|sl/i.test(String(rule.name || "")));
   if (isReliableRule(slRule) && Number(slRule.pct) < 90) {
     items.push({
-      title: "Revisar gestión de SL",
-      copy: `Cumplimiento ${formatPct(slRule.pct)}. Comprueba si hubo movimiento o ausencia de stop.`,
-      tone: Number(slRule.pct) < 70 ? "bad" : "warn"
+      title: "SL a revisar",
+      copy: `Señal inferida (${formatPct(slRule.pct)}). Confirma con tags o tracking antes de asumir incumplimiento.`,
+      tone: "warn"
     });
   }
   const frequencyRule = visibleRules.find((rule) => /max 1 trade|trade\/day|frecuencia/i.test(String(rule.name || "")));
   if (isReliableRule(frequencyRule) && Number(frequencyRule.pct) < 90) {
     items.push({
       title: "Frecuencia operativa",
-      copy: "Hay sesiones con más operaciones de las previstas.",
+      copy: "Señal de frecuencia; valida con tags antes de convertirla en fallo.",
       tone: "warn"
     });
   }
   const scheduleRule = visibleRules.find((rule) => /17:00|hours|horario/i.test(String(rule.name || "")));
   if (isReliableRule(scheduleRule) && Number(scheduleRule.pct) < 100) {
     items.push({
-      title: "Trades fuera de horario",
-      copy: "Revisa entradas fuera de ventana operativa.",
+      title: "Horario a revisar",
+      copy: "Señal inferida por horario registrado. Confirma sesión y tags.",
       tone: "warn"
     });
   }
@@ -3374,11 +3375,11 @@ function pendingTagKpi(pendingTagTrades = [], canOpenPostTradeTag = false) {
 }
 
 function ruleDisplayName(name = "") {
-  if (/fixed sl|sl fijo|sl/i.test(name)) return "Disciplina de SL";
+  if (/fixed sl|sl fijo|sl/i.test(name)) return "Gestión de SL";
   if (/max 1 trade|trade\/day|frecuencia/i.test(name)) return "Frecuencia operativa";
   if (/entry/i.test(name)) return "Precisión de entrada";
   if (/be activated|be activado/i.test(name)) return "Gestión a break even";
-  if (/17:00|hours|horario/i.test(name)) return "Disciplina horaria";
+  if (/17:00|hours|horario/i.test(name)) return "Horario a revisar";
   if (/setup/i.test(name)) return "Validación de setup";
   return name || "Disciplina de ejecución";
 }
@@ -3960,7 +3961,7 @@ function executionKpiId(label = "") {
   if (normalized.includes("cumplimiento")) return "kpi-rule-adherence";
   if (normalized.includes("precisión")) return "kpi-entry-precision";
   if (normalized.includes("sl")) return "kpi-sl-violations";
-  if (normalized.includes("fuera de horario")) return "kpi-off-hours";
+  if (normalized.includes("horario")) return "kpi-off-hours";
   return "";
 }
 
@@ -3999,30 +4000,30 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       {
         label: "Cumplimiento de reglas",
         value: formatPct(data.kpis?.ruleAdherence?.value),
-        subcopy: "últimos 30 días",
-        badge: `+${data.kpis?.ruleAdherence?.delta ?? 0}% vs mes anterior`,
+        subcopy: "lectura parcial",
+        badge: "parcial",
         tone: "neutral"
       },
       {
         label: "Precisión de entrada",
         value: formatPips(data.kpis?.entryPrecision?.value),
         subcopy: "estimación basada en histórico",
-        badge: `objetivo <${data.kpis?.entryPrecision?.target ?? 2.0}`,
+        badge: "tracking EA",
         tone: "neutral"
       },
       {
-        label: "Violaciones de SL",
+        label: "SL a revisar",
         value: String(data.kpis?.slViolations?.value ?? "Pendiente"),
-        subcopy: "trades este mes",
-        badge: "SL movido o ignorado",
-        tone: Number(data.kpis?.slViolations?.value || 0) === 0 ? "ok" : "bad"
+        subcopy: "inferido / revisar",
+        badge: Number(data.kpis?.slViolations?.value || 0) === 0 ? "sin señales" : "señal inferida",
+        tone: Number(data.kpis?.slViolations?.value || 0) === 0 ? "ok" : "warn"
       },
       {
-        label: "Trades fuera de horario",
+        label: "Horario a revisar",
         value: String(data.kpis?.offHoursTrades?.value ?? 0),
-        subcopy: "violaciones",
-        badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "100% en horario" : "violación confirmada",
-        tone: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "ok" : "bad"
+        subcopy: "inferido por hora",
+        badge: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "sin señales" : "señal inferida",
+        tone: Number(data.kpis?.offHoursTrades?.value || 0) === 0 ? "ok" : "warn"
       }
     ];
 
@@ -4124,7 +4125,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
 
     <section class="execution-kpi-grid">
       ${displayKpis.map((kpi) => `
-        <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
+        <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.tone === "bad" ? "critical" : "support"} execution-tone-${kpi.tone}">
           <div class="tl-kpi-label kpi-label">${kpi.label}</div>
           <div class="tl-kpi-val kpi-value" data-value-type="${/pendiente/i.test(String(kpi.value)) ? "text" : "number"}">${kpi.value}</div>
           <p class="kpi-sub">${kpi.subcopy}</p>
