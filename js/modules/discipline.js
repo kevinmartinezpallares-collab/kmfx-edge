@@ -2064,6 +2064,7 @@ function renderRuleRows(rows) {
     const isIncomplete = isIncompleteNote(row.note);
     const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente/i.test(String(row.note || ""));
     const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
+    const source = ruleDataSource(row);
     return `
       <div class="execution-rule-row rule-row execution-tone-${tone}${isPending ? " pending" : ""}">
         <div class="execution-rule-row__head">
@@ -2073,7 +2074,10 @@ function renderRuleRows(rows) {
         <div class="execution-rule-row__track rule-bar-track" aria-hidden="true">
           <span class="rule-bar-fill" style="width:${width}%"></span>
         </div>
-        <small>${noteMap[row.note] || row.note}</small>
+        <small>
+          <span class="execution-rule-source execution-source-${source.tone}">${escapeHtml(source.label)}</span>
+          ${noteMap[row.note] || row.note}
+        </small>
       </div>
     `;
   }).join("");
@@ -2497,7 +2501,7 @@ function renderProfileManager(container, context = {}) {
         <div>
           <span>FASE 2 · LOCAL</span>
           <strong>Perfiles de reglas</strong>
-          <p>Configura reglas por cuenta antes de conectar tracking real del EA.</p>
+          <p>Configuración local para scoring. La lectura principal vive arriba.</p>
         </div>
         <button type="button" class="rule-profile-action" data-rule-action="new-profile">+ Nuevo</button>
       </div>
@@ -2976,7 +2980,7 @@ function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPa
   const headerStatus = hasTracking && Number.isFinite(avgDeviation) ? `Media: ${avgDeviation.toFixed(1)}p` : "Pendiente tracking EA";
   const patternText = hasTracking
     ? entryPattern
-    : `Necesita mínimo 10 trades con <code>ob_price</code> para detectar patrón`;
+    : "Pendiente de tracking EA. Con datos reales se medirá desviación frente a la entrada ideal.";
   const previewRows = [
     { date: "23 abr", pair: "EURUSD", width: 8, dev: "+0.8p", status: "ideal", tone: "ok" },
     { date: "22 abr", pair: "GBPUSD", width: 31, dev: "+3.1p", status: "tardío", tone: "warn" },
@@ -2999,7 +3003,7 @@ function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPa
           </div>
           <div class="execution-entry-empty-row__copy">
             <strong>Sin historial de precisión todavía</strong>
-            <p>Cuando el EA envíe <code>ob_price</code>, KMFX calculará desviación frente a la entrada ideal y detectará chasing o entradas tardías.</p>
+            <p>Con tracking EA, KMFX medirá desviación frente a la entrada ideal y separará chasing de entradas tardías.</p>
           </div>
           <button type="button" class="execution-entry-config">Configurar EA →</button>
         </div>
@@ -3076,6 +3080,219 @@ function hasPartialExecutionData(rules = [], entryRows = [], kpis = []) {
   return hasIncompleteRules || !hasEntryTracking || hasPendingKpis;
 }
 
+function ruleDataSource(row = {}) {
+  const note = String(row.note || "");
+  if (/post-trade tag/i.test(note)) return { label: "Tag manual", tone: "manual" };
+  if (/tracking/i.test(note)) return { label: "EA pendiente", tone: "pending" };
+  if (/requiere configuración|pendiente|sin datos|sin historial|sin operaciones|tag pendiente/i.test(note)) {
+    return { label: "Pendiente", tone: "pending" };
+  }
+  if (/histórico|frecuencia|horario|setup|entrada|break even/i.test(note)) {
+    return { label: "Inferida", tone: "inferred" };
+  }
+  return { label: "Inferida", tone: "inferred" };
+}
+
+function executionReadinessTag(label, tone = "neutral") {
+  return { label, tone };
+}
+
+function buildExecutionReadiness({
+  recentTrades = [],
+  visibleRules = [],
+  entryRows = [],
+  pendingTagTrades = [],
+  hasManualScore = false,
+  hasEntryTracking = false,
+  isPartialData = false
+} = {}) {
+  const reliableRuleCount = visibleRules.filter(isReliableRule).length;
+  const tags = [];
+  if (!recentTrades.length || recentTrades.length < 10) tags.push(executionReadinessTag("Muestra limitada", "warn"));
+  if (isPartialData) tags.push(executionReadinessTag("Score parcial", "warn"));
+  if (!hasEntryTracking) tags.push(executionReadinessTag("Tracking EA pendiente", "pending"));
+  if (pendingTagTrades.length) tags.push(executionReadinessTag("Pendiente de tags", "warn"));
+  if (hasManualScore) tags.push(executionReadinessTag("Tags manuales", "manual"));
+  if (reliableRuleCount && !hasManualScore) tags.push(executionReadinessTag("Datos inferidos", "inferred"));
+
+  const level = !recentTrades.length
+    ? "Sin muestra suficiente"
+    : isPartialData || pendingTagTrades.length || !hasEntryTracking
+      ? "Lectura parcial"
+      : "Lectura operativa";
+  const tone = !recentTrades.length || pendingTagTrades.length ? "warn" : isPartialData ? "neutral" : "ok";
+  const source = hasManualScore
+    ? "histórico real y tags manuales"
+    : recentTrades.length
+      ? "histórico real con reglas inferidas"
+      : "datos de ejemplo del workspace";
+  const summary = recentTrades.length
+    ? `Basado en ${recentTrades.length} trades cerrados; ${source}.`
+    : "Aún no hay trades cerrados suficientes para una lectura fiable.";
+
+  return {
+    level,
+    tone,
+    tags: tags.slice(0, 5),
+    source,
+    summary,
+    reliableRuleCount,
+    trackedEntryCount: entryRows.filter((row) => row.tracked === true).length
+  };
+}
+
+function executionStatusFromRules(rules = [], readiness = {}) {
+  const principalRule = resolvePrincipalDeviation(rules);
+  const principalPct = Number(principalRule?.pct);
+  const hasReliableIssue = isReliableRule(principalRule) && Number.isFinite(principalPct);
+  const issueName = ruleDisplayName(principalRule?.name || RULE_DEFINITIONS[0]);
+  const issueText = issueDescription(principalRule?.name || RULE_DEFINITIONS[0]);
+  if (!readiness?.reliableRuleCount) {
+    return {
+      title: "Lectura de ejecución pendiente",
+      subtitle: "Aún faltan datos fiables para concluir calidad de entrada, gestión o cumplimiento.",
+      issueName: "Muestra limitada",
+      issueText: "Completa tags y tracking antes de convertir esta lectura en diagnóstico.",
+      tone: "neutral"
+    };
+  }
+  if (hasReliableIssue && principalPct < 70) {
+    return {
+      title: "Ejecución a revisar",
+      subtitle: "Hay una desviación relevante, pero la lectura se mantiene como parcial si faltan tags o tracking EA.",
+      issueName,
+      issueText,
+      tone: "warn"
+    };
+  }
+  if (hasReliableIssue && principalPct < 90) {
+    return {
+      title: "Ejecución en vigilancia",
+      subtitle: "La ejecución muestra señales a revisar sin marcar fallo operativo definitivo.",
+      issueName,
+      issueText,
+      tone: "neutral"
+    };
+  }
+  return {
+    title: "Ejecución estable",
+    subtitle: "La muestra disponible no muestra alertas críticas de ejecución.",
+    issueName: issueName || "Sin desviación principal",
+    issueText: readiness?.summary || issueText,
+    tone: "ok"
+  };
+}
+
+function renderExecutionReadinessPills(readiness = {}) {
+  const tags = readiness.tags?.length ? readiness.tags : [executionReadinessTag(readiness.level || "Score parcial", readiness.tone || "neutral")];
+  return `
+    <div class="execution-confidence-list">
+      ${tags.map((tag) => `<span class="execution-confidence-pill execution-source-${tag.tone}">${escapeHtml(tag.label)}</span>`).join("")}
+    </div>
+  `;
+}
+
+function buildExecutionReviewItems({
+  pendingTagTrades = [],
+  visibleRules = [],
+  recentTrades = [],
+  hasEntryTracking = false
+} = {}) {
+  const items = [];
+  if (pendingTagTrades.length) {
+    items.push({
+      title: "Trades sin etiquetar",
+      copy: `${pendingTagTrades.length} operaciones pendientes de post-trade tag.`,
+      tone: "warn"
+    });
+  }
+  const slRule = visibleRules.find((rule) => /fixed sl|sl fijo|sl/i.test(String(rule.name || "")));
+  if (isReliableRule(slRule) && Number(slRule.pct) < 90) {
+    items.push({
+      title: "Revisar gestión de SL",
+      copy: `Cumplimiento ${formatPct(slRule.pct)}. Comprueba si hubo movimiento o ausencia de stop.`,
+      tone: Number(slRule.pct) < 70 ? "bad" : "warn"
+    });
+  }
+  const frequencyRule = visibleRules.find((rule) => /max 1 trade|trade\/day|frecuencia/i.test(String(rule.name || "")));
+  if (isReliableRule(frequencyRule) && Number(frequencyRule.pct) < 90) {
+    items.push({
+      title: "Frecuencia operativa",
+      copy: "Hay sesiones con más operaciones de las previstas.",
+      tone: "warn"
+    });
+  }
+  const scheduleRule = visibleRules.find((rule) => /17:00|hours|horario/i.test(String(rule.name || "")));
+  if (isReliableRule(scheduleRule) && Number(scheduleRule.pct) < 100) {
+    items.push({
+      title: "Trades fuera de horario",
+      copy: "Revisa entradas fuera de ventana operativa.",
+      tone: "warn"
+    });
+  }
+  if (recentTrades.length && !hasEntryTracking) {
+    items.push({
+      title: "Precisión pendiente",
+      copy: "El tracking EA aún no mide desviación frente a entrada ideal.",
+      tone: "neutral"
+    });
+  }
+  if (!items.length) {
+    items.push({
+      title: "Sin alertas críticas",
+      copy: "La lectura disponible no muestra acciones urgentes.",
+      tone: "ok"
+    });
+  }
+  return items.slice(0, 4);
+}
+
+function renderExecutionReviewQueue({
+  pendingTagTrades = [],
+  canOpenPostTradeTag = false,
+  items = []
+} = {}) {
+  const count = pendingTagTrades.length;
+  return `
+    <section class="execution-review-queue${count ? " has-pending" : ""}">
+      <div class="execution-review-queue__head">
+        <div>
+          <span>Revisión</span>
+          <strong>${count ? `${count} trades pendientes` : "Cola al día"}</strong>
+        </div>
+        ${canOpenPostTradeTag ? `
+          <div class="posttrade-tag-alert__actions execution-review-queue__actions">
+            ${count ? `<button type="button" data-posttrade-complete>Completar tags</button>` : ""}
+            <button type="button" data-posttrade-simulate>Simular cierre</button>
+          </div>
+        ` : ""}
+      </div>
+      <div class="execution-review-queue__list">
+        ${items.map((item) => `
+          <div class="execution-review-item execution-tone-${escapeHtml(item.tone || "neutral")}">
+            <i aria-hidden="true"></i>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.copy)}</p>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function pendingTagKpi(pendingTagTrades = [], canOpenPostTradeTag = false) {
+  const count = pendingTagTrades.length;
+  return {
+    label: "Pendientes de revisar",
+    value: canOpenPostTradeTag ? String(count) : "Pendiente",
+    subcopy: canOpenPostTradeTag ? (count ? "trades sin etiquetar" : "cola al día") : "sin perfil manual activo",
+    badge: count ? "requiere tags" : "sin alertas críticas",
+    tone: count ? "warn" : "ok"
+  };
+}
+
 function ruleDisplayName(name = "") {
   if (/fixed sl|sl fijo|sl/i.test(name)) return "Disciplina de SL";
   if (/max 1 trade|trade\/day|frecuencia/i.test(name)) return "Frecuencia operativa";
@@ -3130,22 +3347,21 @@ function resolvePrincipalDeviation(rules = []) {
   return { name: RULE_DEFINITIONS[0], pct: null, note: "sin historial suficiente" };
 }
 
-function renderExecutionHero(rules = []) {
-  const principalRule = resolvePrincipalDeviation(rules);
-  const issueName = ruleDisplayName(principalRule?.name || RULE_DEFINITIONS[0]);
-  const issueText = issueDescription(principalRule?.name || RULE_DEFINITIONS[0]);
+function renderExecutionHero(rules = [], readiness = {}) {
+  const status = executionStatusFromRules(rules, readiness);
 
   return `
-    <section class="execution-hero discipline-hero-card">
+    <section class="execution-hero discipline-hero-card execution-tone-${status.tone}">
       <div class="execution-hero__copy">
-        <p class="execution-hero__eyebrow">CALIDAD DE EJECUCIÓN</p>
-        <h3>Calidad de ejecución baja</h3>
-        <p>Tu ejecución se degrada en momentos de presión.</p>
+        <p class="execution-hero__eyebrow">${escapeHtml(readiness.level || "Lectura parcial")}</p>
+        <h3>${escapeHtml(status.title)}</h3>
+        <p>${escapeHtml(status.subtitle)}</p>
         <span class="execution-hero__deviation">
           <strong>Principal desviación:</strong>
-          ${issueName}
+          ${escapeHtml(status.issueName)}
         </span>
-        <small>${issueText}</small>
+        <small>${escapeHtml(status.issueText)}</small>
+        ${renderExecutionReadinessPills(readiness)}
       </div>
     </section>
   `;
@@ -3634,19 +3850,21 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   });
 }
 
-function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false } = {}) {
+function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false, readiness = null } = {}) {
+  const scoreLabelText = readiness?.level || "Score parcial";
+  const readingText = readiness?.summary || "La lectura actual es parcial hasta activar tracking completo desde el EA.";
   return `
     <article id="discipline-score-card" class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
       <div class="tl-section-header execution-section-header">
         <div class="tl-section-title">Score de ejecución</div>
-        ${isPartial ? `<span class="execution-data-pill">Score parcial</span>` : ""}
+        ${isPartial ? `<span class="execution-data-pill">${escapeHtml(scoreLabelText)}</span>` : ""}
       </div>
       <div class="execution-score-body">
         ${renderScoreGauge(scoreValue, { isPartial })}
         <div class="execution-subscore-list">${renderSubscores(breakdown)}</div>
         <div class="execution-score-reading">
           <span>Lectura</span>
-          <p>La lectura actual es parcial hasta activar tracking completo desde el EA.</p>
+          <p>${escapeHtml(readingText)}</p>
         </div>
       </div>
       <div class="execution-system-insight">
@@ -3786,14 +4004,30 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     : scoreSource?.insight || data.insight || disciplineData.score.insight;
   const hasEntryTracking = hasEntryPrecisionTracking(entryRows);
   const isPartialData = hasPartialExecutionData(visibleRules, entryRows, kpis);
+  const readiness = buildExecutionReadiness({
+    recentTrades,
+    visibleRules,
+    entryRows,
+    pendingTagTrades,
+    hasManualScore,
+    hasEntryTracking,
+    isPartialData
+  });
+  const reviewItems = buildExecutionReviewItems({
+    pendingTagTrades,
+    visibleRules,
+    recentTrades,
+    hasEntryTracking
+  });
+  const displayKpis = [...kpis, pendingTagKpi(pendingTagTrades, canOpenPostTradeTag)];
   const entryPattern = hasEntryTracking ? buildEntryPattern(entryRows) : "No hay suficiente historial para detectar un patrón claro.";
 
   target.innerHTML = `
     ${pageHeaderMarkup({
-      eyebrow: "EJECUCIÓN",
+      eyebrow: "",
       title: "Ejecución",
       titleTag: "h2",
-      description: "Cumplimiento del plan, precisión de entrada y calidad operativa.",
+      description: "Calidad de entrada, gestión de la operación y cumplimiento del plan.",
       className: "kmfx-page__header",
       contentClassName: "kmfx-page__copy",
       eyebrowClassName: "kmfx-page__eyebrow",
@@ -3801,15 +4035,15 @@ export function renderDisciplineSection(target, data = disciplineData, context =
       descriptionClassName: "kmfx-page__subtitle",
     })}
 
-    ${renderPostTradeIndicator(pendingTagTrades, canOpenPostTradeTag)}
-
     <section class="execution-hero-score-row">
-      ${renderExecutionHero(visibleRules)}
-      ${renderScorePanel(weightedScoreValue, breakdown, insight, { isPartial: isPartialData })}
+      ${renderExecutionHero(visibleRules, readiness)}
+      ${renderScorePanel(weightedScoreValue, breakdown, insight, { isPartial: isPartialData, readiness })}
     </section>
 
+    ${renderExecutionReviewQueue({ pendingTagTrades, canOpenPostTradeTag, items: reviewItems })}
+
     <section class="execution-kpi-grid">
-      ${kpis.map((kpi) => `
+      ${displayKpis.map((kpi) => `
         <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.label === "Violaciones de SL" || kpi.label === "Trades fuera de horario" ? "critical" : "support"} execution-tone-${kpi.tone}">
           <div class="tl-kpi-label kpi-label">${kpi.label}</div>
           <div class="tl-kpi-val kpi-value" data-value-type="${/pendiente/i.test(String(kpi.value)) ? "text" : "number"}">${kpi.value}</div>
@@ -3822,14 +4056,20 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     <section class="execution-main-grid">
       <article class="tl-section-card execution-panel execution-rules-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Cumplimiento de reglas</div>
+          <div>
+            <div class="tl-section-title">Cumplimiento de reglas</div>
+            <p class="execution-panel-note">Tags manuales, reglas inferidas y señales pendientes separados.</p>
+          </div>
         </div>
         <div id="rule-compliance-bars" class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
       </article>
 
       <article class="tl-section-card execution-panel execution-calendar-panel">
         <div class="tl-section-header execution-section-header">
-          <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
+          <div>
+            <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
+            <p class="execution-panel-note">Mapa compacto inferido desde tags y comportamiento diario.</p>
+          </div>
         </div>
         ${renderHeatmap(calendar)}
       </article>
@@ -3839,7 +4079,16 @@ export function renderDisciplineSection(target, data = disciplineData, context =
 
     ${renderEntryPrecisionCard({ hasTracking: hasEntryTracking, entryRows, entryPattern })}
 
-    <div id="discipline-profile-manager"></div>
+    <section class="execution-config-zone">
+      <div class="execution-config-zone__head">
+        <div>
+          <span>Configuración local</span>
+          <strong>Scoring y perfiles de reglas</strong>
+        </div>
+        <p>Secundario: define cómo se puntúan las reglas sin cambiar cálculos ni enforcement del Risk Engine.</p>
+      </div>
+      <div id="discipline-profile-manager"></div>
+    </section>
     ${renderPostTradeModal(activeProfile, postTradeTags)}
   `;
   renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);

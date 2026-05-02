@@ -27,7 +27,7 @@ const pageTitle = {
 const pageContext = {
   dashboard: "Visión general de rendimiento, cuentas y métricas clave",
   analytics: "Análisis de rendimiento, timing y riesgo",
-  discipline: "Proceso, adherencia y desviaciones de ejecución",
+  discipline: "Calidad de entrada, gestión y cumplimiento",
   risk: "Gobernanza de riesgo y control operativo",
   trades: "Histórico de ejecución y revisión de operaciones",
   calendar: "Calendario mensual y desempeño diario",
