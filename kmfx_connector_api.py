@@ -149,6 +149,14 @@ CORS_ALLOW_HEADERS = [
 ADMIN_USER_IDS = resolve_admin_user_ids()
 ADMIN_EMAILS = resolve_admin_emails()
 ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID = resolve_admin_launcher_connection_keys_by_user_id()
+MT5_CLOUD_BASE_URL = "https://mt5-api.kmfxedge.com"
+MT5_CLOUD_SYNC_PATH = "/api/mt5/sync"
+MT5_CLOUD_JOURNAL_PATH = "/api/mt5/journal"
+MT5_CLOUD_POLICY_PATH = "/api/mt5/policy"
+MT5_LOCAL_BASE_URL = "http://127.0.0.1:8766"
+MT5_LOCAL_SYNC_PATH = "/mt5/sync"
+MT5_LOCAL_JOURNAL_PATH = "/mt5/journal"
+MT5_LOCAL_POLICY_PATH = "/mt5/policy"
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
@@ -1646,6 +1654,8 @@ async def link_account(request: Request) -> JSONResponse:
     user_id = scope_user_id
     label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname") or "Nueva cuenta MT5")
     platform = safe_str(payload.get("platform"), "mt5") or "mt5"
+    requested_connection_mode = safe_str(payload.get("connection_mode") or payload.get("connectionMode") or payload.get("mode"), "launcher").lower()
+    connection_mode = "direct" if requested_connection_mode in {"direct", "manual", "cloud", "ea_direct"} else "launcher"
     requested_account_id = safe_str(payload.get("account_id"))
     launcher_connection_key = resolve_connection_key(payload, request)
 
@@ -1664,6 +1674,7 @@ async def link_account(request: Request) -> JSONResponse:
                     alias=label,
                     connection_key=launcher_connection_key,
                     platform=platform,
+                    connection_mode=connection_mode,
                 )
             if claimed_account is None:
                 return connector_json_response(
@@ -1733,6 +1744,7 @@ async def link_account(request: Request) -> JSONResponse:
                     user_id=user_id,
                     alias=label,
                     platform=platform,
+                    connection_mode=connection_mode,
                 )
             except ValueError as exc:
                 return connector_json_response(
@@ -1747,11 +1759,19 @@ async def link_account(request: Request) -> JSONResponse:
             connection_key = created.api_key
             account_id = created.account_id
 
+    direct_config = {
+        "KMFXBackendBaseUrl": MT5_CLOUD_BASE_URL,
+        "KMFXSyncPath": MT5_CLOUD_SYNC_PATH,
+        "KMFXJournalPath": MT5_CLOUD_JOURNAL_PATH,
+        "KMFXPolicyPath": MT5_CLOUD_POLICY_PATH,
+        "connection_key": connection_key,
+        "KMFXApiKey": connection_key,
+    }
     launcher_config = {
-        "KMFXBackendBaseUrl": "http://127.0.0.1:8766",
-        "KMFXSyncPath": "/mt5/sync",
-        "KMFXJournalPath": "/mt5/journal",
-        "KMFXPolicyPath": "/mt5/policy",
+        "KMFXBackendBaseUrl": MT5_LOCAL_BASE_URL,
+        "KMFXSyncPath": MT5_LOCAL_SYNC_PATH,
+        "KMFXJournalPath": MT5_LOCAL_JOURNAL_PATH,
+        "KMFXPolicyPath": MT5_LOCAL_POLICY_PATH,
         "connection_key": connection_key,
         "KMFXApiKey": connection_key,
     }
@@ -1767,6 +1787,8 @@ async def link_account(request: Request) -> JSONResponse:
             "account_id": account_id,
             "connection_key": connection_key,
             "launcher_config": launcher_config,
+            "direct_config": direct_config,
+            "connection_mode": connection_mode,
             "linked_existing_launcher_key": bool(claimed_account is not None),
             "is_admin": auth_context["is_admin"],
             "timestamp": now_iso(),

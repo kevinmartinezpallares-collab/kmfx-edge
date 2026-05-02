@@ -298,11 +298,16 @@ El modo manual, keys, puertos, endpoints locales, logs técnicos y payload raw q
 - [x] Soportar multi-cuenta real sin que el usuario gestione puertos.
 - [x] Crear un account slot por cuenta MT5 desde backend, vinculado a `user_id`.
 - [x] Permitir instalar el conector para una cuenta concreta usando su key interna sin mostrarla al usuario.
+- [x] Añadir conexión directa avanzada con `https://mt5-api.kmfxedge.com` y key generada desde Cuentas.
+- [x] Cambiar la descarga del launcher para que apunte a un artefacto propio de KMFX, no a GitHub visible.
+- [x] Hacer que el EA soporte cuentas con investor password en modo lectura, sincronizando sin intentar enforcement.
+- [ ] Crear y publicar launcher Windows desde entorno Windows 10/11 o CI Windows.
 - [ ] Detectar primera sincronización y pedir confirmación de nombre/tipo de cuenta.
 - [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
 - [ ] Vincular cuenta marcada como Funding a un journey existente o nuevo.
 - [ ] Añadir estado bloqueado por plan cuando se alcance el límite de cuentas live.
 - [x] Definir y activar `https://mt5-api.kmfxedge.com` como proxy Cloudflare hacia el backend actual.
+- [ ] Mover la descarga final del launcher a `downloads.kmfxedge.com` con checksum, firma y versión publicados.
 
 Criterio de salida:
 
@@ -369,6 +374,9 @@ Responsable: backend/frontend/launcher.
 
 - [ ] Añadir helper backend de entitlements.
 - [ ] Exigir `launcherConnection` antes de emitir connection keys.
+- [ ] Exigir auth y plan activo antes de emitir keys directas para EA.
+- [ ] Rotar/revocar connection keys desde Cuentas.
+- [ ] Aplicar rate limiting por `connection_key`, usuario e IP en `/api/mt5/*`.
 - [ ] Exigir `liveMt5Accounts` antes de añadir/linkear una cuenta MT5 live.
 - [ ] Proteger editor Risk con `riskPolicyEditor`.
 - [ ] Proteger auto-block local con `localAutoBlock`.
@@ -483,9 +491,12 @@ Referencia: `docs/nextjs-migration-blueprint.md`.
 - [ ] Validar app macOS en máquina limpia.
 - [ ] Añadir Developer ID signing.
 - [ ] Notarizar build macOS.
+- [ ] Publicar checksum SHA-256 del DMG en el dashboard.
+- [ ] Servir descargas desde dominio propio `downloads.kmfxedge.com` o bucket privado con URL firmada.
 - [ ] Build Windows en Windows 10/11 limpio.
 - [ ] Envolver build Windows onedir con Inno Setup o WiX.
 - [ ] Añadir Windows code signing.
+- [ ] Añadir enlace Windows al dashboard cuando exista `KMFX-Launcher-Windows.exe` o `.msi`.
 - [ ] Publicar guía de instalación del launcher.
 - [ ] Definir estrategia de updates.
 

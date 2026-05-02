@@ -4,9 +4,24 @@ import { showToast } from "./toast.js?v=build-20260406-213500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213500";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
-const LAUNCHER_DOWNLOAD_URL = "https://github.com/kevinmartinezpallares-collab/kmfx-edge/releases/latest";
+const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
+const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
+const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
+
+function launcherDownloadUrl(platform = "auto") {
+  const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
+  const windowsUrl = window.__KMFX_WINDOWS_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL;
+  if (platform === "windows") return windowsUrl;
+  if (platform === "mac") return macUrl;
+  const userAgent = navigator.userAgent || "";
+  return /Windows/i.test(userAgent) && windowsUrl ? windowsUrl : macUrl;
+}
+
+function windowsLauncherAvailable() {
+  return Boolean(launcherDownloadUrl("windows"));
+}
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
@@ -28,18 +43,28 @@ function registrySignature(accounts = []) {
 }
 
 function openLauncher() {
+  const fallbackUrl = launcherDownloadUrl();
   try {
     window.location.href = LAUNCHER_OPEN_URL;
     window.setTimeout(() => {
-      window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+      window.open(fallbackUrl, "_blank", "noopener");
     }, 900);
   } catch {
-    window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+    window.open(fallbackUrl, "_blank", "noopener");
   }
 }
 
-function downloadLauncher() {
-  window.open(LAUNCHER_DOWNLOAD_URL, "_blank", "noopener");
+function downloadLauncher(platform = "auto") {
+  const url = launcherDownloadUrl(platform);
+  if (!url) {
+    showToast("Launcher Windows pendiente de publicar", "warning");
+    return;
+  }
+  window.open(url, "_blank", "noopener");
+}
+
+function downloadEa() {
+  window.open(EA_DOWNLOAD_URL, "_blank", "noopener");
 }
 
 function relativeTime(value) {
@@ -327,7 +352,7 @@ function renderConnectionGuide() {
   const steps = [
     {
       title: "Descarga KMFX Launcher",
-      body: "Instala el Launcher e inicia sesión con la misma cuenta de KMFX que usas en el dashboard.",
+      body: "Instala el Launcher para macOS. El instalador Windows se publicará como artefacto propio de KMFX.",
     },
     {
       title: "Instala el conector",
@@ -339,7 +364,7 @@ function renderConnectionGuide() {
     },
     {
       title: "Activa el EA",
-      body: "Arrastra KMFXConnector a un gráfico, activa Algo Trading y pega la key solo si MT5 la solicita.",
+      body: "Arrastra KMFXConnector a un gráfico. Si usas investor password, KMFX sincroniza en modo lectura.",
     },
     {
       title: "Confirma la sincronización",
@@ -356,7 +381,8 @@ function renderConnectionGuide() {
         </div>
         <div class="connections-empty-card__actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
-          <button class="btn-primary" type="button" data-account-download-launcher="true">Descargar Launcher</button>
+          <button class="btn-primary" type="button" data-account-download-launcher="mac">Descargar macOS</button>
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
         </div>
       </div>
       <div class="connections-guide-card__endpoint" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-elevated);">
@@ -376,6 +402,16 @@ function renderConnectionGuide() {
             </div>
           </article>
         `).join("")}
+      </div>
+      <div class="connections-guide-card__direct" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 64%, transparent);">
+        <div>
+          <div class="dashboard-risk-block__title" style="font-size:15px;">Conexión directa</div>
+          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key y conecta MT5 directamente con la API cloud. Compatible con investor password en modo lectura.</div>
+        </div>
+        <div class="connections-empty-card__actions">
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-ea="true">Descargar EA</button>
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="direct" data-connection-source="connections-guide">Crear key</button>
+        </div>
       </div>
     </section>
   `;
@@ -821,6 +857,10 @@ export function initConnections(store) {
     mode: isLocalRuntime() ? "local" : "production",
   });
   window.setInterval(() => fetchAccountsRegistry(store), pollMs);
+  window.addEventListener("kmfx:accounts-refresh", async () => {
+    await fetchAccountsRegistry(store);
+    renderConnections(root, store.getState());
+  });
 
   root.addEventListener("click", async (event) => {
     const uiState = getConnectionsUiState(root);
@@ -996,7 +1036,13 @@ export function initConnections(store) {
     }
 
     if (event.target.closest("[data-account-download-launcher]")) {
-      downloadLauncher();
+      const button = event.target.closest("[data-account-download-launcher]");
+      downloadLauncher(button?.dataset.accountDownloadLauncher || "auto");
+      return;
+    }
+
+    if (event.target.closest("[data-account-download-ea]")) {
+      downloadEa();
       return;
     }
 

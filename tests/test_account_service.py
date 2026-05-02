@@ -119,6 +119,31 @@ class AccountServiceTests(unittest.TestCase):
         registry = self.service.build_accounts_registry("user-123")
         self.assertEqual("orion-launcher-key", registry[0]["connection_key"])
 
+    def test_create_pending_account_can_store_direct_connection_mode(self) -> None:
+        created = self.service.create_pending_account(
+            user_id="user-123",
+            alias="Cuenta directa",
+            connection_mode="direct",
+        )
+
+        registry = self.service.build_accounts_registry("user-123")
+        self.assertEqual(created.account_id, registry[0]["account_id"])
+        self.assertEqual("direct", registry[0]["connection_mode"])
+        self.assertEqual(created.api_key, registry[0]["connection_key"])
+
+    def test_create_pending_account_with_key_can_store_direct_connection_mode(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Cuenta directa",
+            connection_key="direct-key",
+            connection_mode="direct",
+        )
+
+        registry = self.service.build_accounts_registry("user-123")
+        self.assertIsNotNone(created)
+        self.assertEqual("direct", registry[0]["connection_mode"])
+        self.assertEqual("direct-key", registry[0]["connection_key"])
+
     def test_create_pending_account_with_key_archives_stale_pending_alias(self) -> None:
         stale = self.service.create_pending_account(
             user_id="user-123",

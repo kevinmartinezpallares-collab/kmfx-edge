@@ -42,7 +42,7 @@ from .resources import app_root, is_packaged, resource_path
 ROOT = app_root()
 UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
-DEFAULT_CONNECTOR_VERSION = "2.79"
+DEFAULT_CONNECTOR_VERSION = "2.80"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-glass-mark-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 INSTALLED_LINK_SYNC_TTL_SECONDS = 45

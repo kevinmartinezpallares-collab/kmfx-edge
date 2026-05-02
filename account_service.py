@@ -268,6 +268,7 @@ class AccountService:
         user_id: str,
         alias: str,
         platform: str = "mt5",
+        connection_mode: str = "launcher",
     ) -> Account:
         created = self.create_account(
             user_id=user_id,
@@ -276,7 +277,7 @@ class AccountService:
             platform=platform,
             login="",
             server="",
-            connection_mode="launcher",
+            connection_mode=connection_mode or "launcher",
             status="pending_link",
             api_key=self._generate_connection_key(),
             nickname=alias,
@@ -298,6 +299,7 @@ class AccountService:
         alias: str,
         connection_key: str,
         platform: str = "mt5",
+        connection_mode: str = "launcher",
     ) -> Account | None:
         normalized_key = str(connection_key or "").strip()
         if not normalized_key:
@@ -333,7 +335,7 @@ class AccountService:
             platform=platform,
             login="",
             server="",
-            connection_mode="launcher",
+            connection_mode=connection_mode or "launcher",
             status="pending_link",
             api_key=normalized_key,
             nickname=alias,
@@ -847,6 +849,7 @@ class AccountService:
                 "user_id": account.user_id,
                 "alias": account.alias or account.nickname or "",
                 "platform": account.platform,
+                "connection_mode": account.connection_mode,
                 "connection_key": account.api_key,
                 "status": account.status,
                 "lifecycle_status": account.status,

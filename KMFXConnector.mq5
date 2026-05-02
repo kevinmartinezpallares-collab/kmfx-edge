@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.79                                              |
+//| KMFXConnector v2.80                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.79"
+#property version   "2.80"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.79"
+#define KMFX_CONNECTOR_VERSION "2.80"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -123,6 +123,8 @@ struct KMFXRuntimeState
    datetime  last_status_log_at;
    bool      connection_ready_logged;
    datetime  last_connection_ready_log_at;
+   bool      read_only_mode_logged;
+   datetime  last_read_only_mode_log_at;
    int       transient_sync_failures;
    datetime  last_transient_sync_error_at;
   };
@@ -2568,10 +2570,41 @@ void KMFXFreezeTrading(string reason)
    KMFXLog("FREEZE",reason,true);
   }
 
+bool KMFXAccountTradeAllowed()
+  {
+   return AccountInfoInteger(ACCOUNT_TRADE_ALLOWED)!=0;
+  }
+
+bool KMFXTradeRequestsAllowed()
+  {
+   return AccountInfoInteger(ACCOUNT_TRADE_ALLOWED)!=0 &&
+          TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)!=0 &&
+          MQLInfoInteger(MQL_TRADE_ALLOWED)!=0;
+  }
+
+void KMFXLogReadOnlyMode(int cooldown_seconds=3600)
+  {
+   datetime now_time=KMFXNow();
+   if(cooldown_seconds>0 &&
+      Runtime.read_only_mode_logged &&
+      (now_time-Runtime.last_read_only_mode_log_at)<cooldown_seconds)
+      return;
+
+   Runtime.read_only_mode_logged=true;
+   Runtime.last_read_only_mode_log_at=now_time;
+   KMFXLogStatus("Cuenta en modo lectura/investor. KMFX sincroniza sin ejecutar acciones.",cooldown_seconds);
+  }
+
 bool KMFXClosePositionByTicket(ulong position_ticket)
   {
    if(!PositionSelectByTicket(position_ticket))
       return false;
+
+   if(!KMFXTradeRequestsAllowed())
+     {
+      KMFXLogReadOnlyMode();
+      return false;
+     }
 
    bool ok=Trade.PositionClose(position_ticket);
    if(!ok)
@@ -2581,6 +2614,12 @@ bool KMFXClosePositionByTicket(ulong position_ticket)
 
 bool KMFXDeleteOrderByTicket(ulong order_ticket)
   {
+   if(!KMFXTradeRequestsAllowed())
+     {
+      KMFXLogReadOnlyMode();
+      return false;
+     }
+
    bool ok=Trade.OrderDelete(order_ticket);
    if(!ok)
       KMFXSetError("No se pudo cancelar orden "+(string)order_ticket+" retcode="+IntegerToString((int)Trade.ResultRetcode()));
@@ -2669,7 +2708,14 @@ void KMFXCheckHardStops()
       should_close=true;
 
    if(should_close)
+     {
+      if(!KMFXTradeRequestsAllowed())
+        {
+         KMFXLogReadOnlyMode();
+         return;
+        }
       KMFXCloseAllPositions();
+     }
   }
 
 void KMFXEnforceTradeTransaction(const MqlTradeTransaction &trans)
@@ -2679,6 +2725,12 @@ void KMFXEnforceTradeTransaction(const MqlTradeTransaction &trans)
 
    if(trans.type!=TRADE_TRANSACTION_DEAL_ADD && trans.type!=TRADE_TRANSACTION_ORDER_ADD)
       return;
+
+   if(!KMFXTradeRequestsAllowed())
+     {
+      KMFXLogReadOnlyMode();
+      return;
+     }
 
    string symbol=trans.symbol;
    if(StringLen(symbol)==0)
@@ -2757,6 +2809,8 @@ int OnInit()
    KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
    KMFXLogStatus("Connector activo. Esperando sincronizacion con KMFX.",300);
+   if(!KMFXAccountTradeAllowed())
+      KMFXLogReadOnlyMode(0);
 
    if(KMFXVerboseLog)
      {
