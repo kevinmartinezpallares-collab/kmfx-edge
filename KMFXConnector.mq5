@@ -1748,7 +1748,6 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
-   json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(TimeToString(now_time,TIME_DATE|TIME_SECONDS))+",";
    json+="\"timestamp_unix\":"+IntegerToString((long)now_time)+",";
@@ -1777,7 +1776,6 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
    json+="\"batch_id\":"+KMFXQuote(batch_id)+",";
-   json+="\"connection_key\":"+KMFXQuote(KMFXConnectionKeyValue())+",";
    json+="\"login\":"+login_value+",";
    json+="\"timestamp\":"+KMFXQuote(KMFXNowIso())+",";
    json+="\"trades\":"+trades_json;

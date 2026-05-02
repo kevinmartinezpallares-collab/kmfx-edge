@@ -15,7 +15,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 from .backend_client import BackendClient
-from .connection_keys import resolve_effective_connection_key
+from .connection_keys import payload_connection_key, resolve_effective_connection_key
 from .config import LauncherConfig, load_bridge_config, mask_connection_key, load_config, save_bridge_config, save_config
 from .log_utils import configure_logging, read_recent_logs
 from .state_store import LauncherStateStore
@@ -43,6 +43,13 @@ def json_response(content: Any, status_code: int = 200) -> JSONResponse:
 def pkce_challenge(verifier: str) -> str:
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def hashed_connection_identity(connection_key: str) -> str:
+    normalized = str(connection_key or "").strip()
+    if not normalized:
+        return ""
+    return "key:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
 
 def fallback_policy(identity_key: str) -> dict[str, Any]:
@@ -272,11 +279,11 @@ class LauncherServiceRuntime:
 
     def identity_key(self, payload: dict[str, Any] | None, login: str = "", connection_key: str = "") -> str:
         if connection_key:
-            return connection_key
+            return hashed_connection_identity(connection_key)
         if payload:
             payload_key = str(payload.get("connection_key") or "").strip()
             if payload_key:
-                return payload_key
+                return hashed_connection_identity(payload_key)
             account = payload.get("account")
             if isinstance(account, dict):
                 account_login = str(account.get("login") or "").strip()
@@ -287,32 +294,34 @@ class LauncherServiceRuntime:
                 return payload_login
         return login or self.effective_connection_key()
 
-    def inject_connection_key(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> dict[str, Any]:
-        safe_payload = payload if isinstance(payload, dict) else {}
-        explicit_key = str(header_connection_key or safe_payload.get("connection_key") or "").strip()
+    def prepare_payload_for_backend(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> tuple[dict[str, Any], str]:
+        safe_payload = dict(payload) if isinstance(payload, dict) else {}
+        explicit_key = str(header_connection_key or payload_connection_key(safe_payload) or "").strip()
         bridge_key = self.effective_connection_key()
         effective_key, key_source = resolve_effective_connection_key(explicit_key=explicit_key, bridge_key=bridge_key)
         if effective_key and explicit_key and bridge_key and explicit_key != bridge_key:
             self.logger.info(
-                "[KMFX][BRIDGE] explicit connection_key kept payload_key=%s bridge_key=%s",
+                "[KMFX][BRIDGE] explicit connection_key kept input_key=%s bridge_key=%s",
                 mask_connection_key(explicit_key),
                 mask_connection_key(bridge_key),
             )
-        if effective_key and safe_payload.get("connection_key") != effective_key:
-            safe_payload["connection_key"] = effective_key
+        for key in ("connection_key", "KMFXApiKey", "api_key"):
+            safe_payload.pop(key, None)
+        if effective_key:
             self.logger.info(
-                "[KMFX][BRIDGE] connection_key injected into payload key=%s source=%s",
+                "[KMFX][BRIDGE] connection_key resolved key=%s source=%s payload_redacted=true",
                 mask_connection_key(effective_key),
                 key_source,
             )
-        return safe_payload
+        return safe_payload, effective_key
 
-    def build_queue_item(self, kind: str, item_id: str, identity_key: str, payload: dict[str, Any], attempts: int = 0) -> dict[str, Any]:
+    def build_queue_item(self, kind: str, item_id: str, identity_key: str, payload: dict[str, Any], connection_key: str = "", attempts: int = 0) -> dict[str, Any]:
         return {
             "item_id": item_id,
             "kind": kind,
             "identity_key": identity_key,
             "payload": payload,
+            "connection_key": connection_key,
             "attempts": attempts,
             "next_retry_at": now_iso(),
             "created_at": now_iso(),
@@ -337,6 +346,7 @@ class LauncherServiceRuntime:
     def dispatch(self, kind: str, item: dict[str, Any]) -> dict[str, Any]:
         item_id = item["item_id"]
         payload = item["payload"]
+        connection_key = str(item.get("connection_key") or self.effective_connection_key()).strip()
         self.logger.info("[KMFX][SERVICE] dispatch kind=%s id=%s attempts=%s", kind, item_id, item.get("attempts", 0))
         if kind == "snapshot":
             target_path = self.config.backend_sync_path
@@ -352,9 +362,9 @@ class LauncherServiceRuntime:
             self.config.backend_base_url.rstrip("/") + target_path,
         )
         if kind == "snapshot":
-            backend_response = self.backend.post_snapshot(payload)
+            backend_response = self.backend.post_snapshot(payload, connection_key=connection_key)
         else:
-            backend_response = self.backend.post_journal(payload)
+            backend_response = self.backend.post_journal(payload, connection_key=connection_key)
 
         self.logger.info(
             "[KMFX][BACKEND][RESPONSE] kind=%s id=%s attempted=%s method=%s url=%s status=%s",
@@ -672,12 +682,17 @@ async def mt5_policy(
     bridge_connection_key = runtime.effective_connection_key()
     header_connection_key = str(request.headers.get("X-KMFX-Connection-Key") or "").strip()
     query_connection_key = str(connection_key or "").strip()
-    explicit_connection_key = header_connection_key or query_connection_key
     if query_connection_key and not header_connection_key:
-        runtime.logger.warning(
-            "[KMFX][BRIDGE] deprecated policy query connection_key accepted key=%s",
-            mask_connection_key(query_connection_key),
+        return json_response(
+            {
+                "ok": False,
+                "reason": "connection_key_query_not_allowed",
+                "details": {"field": "connection_key", "transport": "header_required"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
         )
+    explicit_connection_key = header_connection_key
     effective_connection_key, key_source = resolve_effective_connection_key(
         explicit_key=explicit_connection_key,
         bridge_key=bridge_connection_key,
@@ -729,9 +744,9 @@ def resolve_batch_id(payload: dict[str, Any]) -> str:
 @app.post("/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
     payload = await request.json()
-    payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
+    payload, connection_key = runtime.prepare_payload_for_backend(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     sync_id = resolve_sync_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=str(payload.get("connection_key") or runtime.effective_connection_key()).strip())
+    identity_key = runtime.identity_key(payload, connection_key=connection_key)
     receipt = runtime.store.find_receipt("snapshot", sync_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate snapshot sync_id=%s", sync_id)
@@ -741,7 +756,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         return json_response(body)
 
     if not runtime.store.find_queue_item("snapshot", sync_id):
-        item = runtime.build_queue_item("snapshot", sync_id, identity_key, payload)
+        item = runtime.build_queue_item("snapshot", sync_id, identity_key, payload, connection_key)
         runtime.store.enqueue("snapshot", item, runtime.config.max_queue_size)
         runtime.logger.info("[KMFX][SERVICE] snapshot queued sync_id=%s identity=%s", sync_id, mask_connection_key(identity_key) or identity_key)
 
@@ -777,9 +792,9 @@ async def mt5_sync(request: Request) -> JSONResponse:
 @app.post("/mt5/journal")
 async def mt5_journal(request: Request) -> JSONResponse:
     payload = await request.json()
-    payload = runtime.inject_connection_key(payload, request.headers.get("X-KMFX-Connection-Key", ""))
+    payload, connection_key = runtime.prepare_payload_for_backend(payload, request.headers.get("X-KMFX-Connection-Key", ""))
     batch_id = resolve_batch_id(payload)
-    identity_key = runtime.identity_key(payload, connection_key=str(payload.get("connection_key") or runtime.effective_connection_key()).strip())
+    identity_key = runtime.identity_key(payload, connection_key=connection_key)
     receipt = runtime.store.find_receipt("journal", batch_id)
     if receipt:
         runtime.logger.info("[KMFX][SERVICE] duplicate journal batch_id=%s", batch_id)
@@ -789,7 +804,7 @@ async def mt5_journal(request: Request) -> JSONResponse:
         return json_response(body)
 
     if not runtime.store.find_queue_item("journal", batch_id):
-        item = runtime.build_queue_item("journal", batch_id, identity_key, payload)
+        item = runtime.build_queue_item("journal", batch_id, identity_key, payload, connection_key)
         runtime.store.enqueue("journal", item, runtime.config.max_queue_size)
         runtime.logger.info("[KMFX][SERVICE] journal queued batch_id=%s identity=%s", batch_id, mask_connection_key(identity_key) or identity_key)
 

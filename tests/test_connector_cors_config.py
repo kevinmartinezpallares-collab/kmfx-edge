@@ -62,6 +62,17 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         legacy_request = self._request(headers={"x-kmfx-api-key": " legacy-key "})
         self.assertEqual("legacy-key", connector_api.resolve_connection_key({}, legacy_request))
 
+    def test_payload_without_connection_key_removes_legacy_secret_fields(self) -> None:
+        cleaned = connector_api.payload_without_connection_key(
+            {
+                "connection_key": "modern",
+                "KMFXApiKey": "legacy",
+                "api_key": "api",
+                "login": "123456",
+            }
+        )
+        self.assertEqual({"login": "123456"}, cleaned)
+
     def test_no_key_mt5_ingest_is_rejected_for_remote_production(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "production"}, clear=True):
             self.assertFalse(connector_api._allow_no_key_mt5_ingest(self._request()))

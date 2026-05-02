@@ -384,6 +384,15 @@ def resolve_connection_key(payload: dict[str, Any], request: Request | None = No
     return ""
 
 
+def payload_without_connection_key(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    cleaned = dict(payload)
+    for key in ("connection_key", "KMFXApiKey", "api_key"):
+        cleaned.pop(key, None)
+    return cleaned
+
+
 def resolve_identity_key(connection_key: str, login: str) -> str:
     return connection_key or login
 
@@ -2193,7 +2202,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
             "positions": sanitized_positions,
             "trades": sanitized_trades,
             "issues": issues,
-            "raw": payload,
+            "raw": payload_without_connection_key(payload),
         }
 
         sync_user_id = bound_account.user_id if bound_account else (auth_scope_user_id or "local")
@@ -2478,13 +2487,26 @@ async def mt5_policy(
     normalized_login = safe_str(login)
     header_connection_key = safe_str(request.headers.get("x-kmfx-connection-key"))
     query_connection_key = safe_str(connection_key)
-    normalized_connection_key = header_connection_key or query_connection_key
     if query_connection_key and not header_connection_key:
-        log.warning(
-            "POLICY legacy query connection_key accepted temporarily | key=%s",
-            mask_connection_key(query_connection_key),
+        log.warning("POLICY rejected | reason=connection_key_query_not_allowed")
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "connection_key_query_not_allowed",
+                "error": "connection_key_query_not_allowed",
+                "details": {"field": "connection_key", "transport": "header_required"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
         )
+    normalized_connection_key = header_connection_key
     identity_key = resolve_identity_key(normalized_connection_key, normalized_login)
+    if not normalized_connection_key:
+        scoped_user_id, _auth_context = resolve_account_scope(request)
+        if scoped_user_id:
+            identity_key = resolve_identity_key("", _auth_identity_key(scoped_user_id, normalized_login))
+        elif not _allow_no_key_mt5_ingest(request):
+            return mt5_missing_connection_key_response("/api/mt5/policy")
     if not identity_key:
         return connector_json_response({
             "ok": False,

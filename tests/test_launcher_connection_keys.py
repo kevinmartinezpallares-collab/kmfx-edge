@@ -72,6 +72,13 @@ class LauncherConnectionKeyTests(unittest.TestCase):
             client.calls[0],
         )
 
+    def test_snapshot_request_strips_connection_key_from_body(self) -> None:
+        client = RecordingBackendClient()
+        client.post_snapshot({"connection_key": "abcdef1234567890", "login": "123456"})
+
+        self.assertEqual({"login": "123456"}, client.calls[0]["payload"])
+        self.assertEqual("abcdef1234567890", client.calls[0]["connection_key"])
+
     def test_safe_url_masks_legacy_connection_key_query(self) -> None:
         client = BackendClient(LauncherConfig())
         safe_url = client._safe_url("https://api.example.test/api/mt5/policy?login=123&connection_key=abcdef1234567890")

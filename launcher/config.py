@@ -22,7 +22,28 @@ def ensure_launcher_home() -> Path:
     root = launcher_home()
     root.mkdir(parents=True, exist_ok=True)
     (root / "logs").mkdir(parents=True, exist_ok=True)
+    _chmod_private_dir(root)
+    _chmod_private_dir(root / "logs")
     return root
+
+
+def _chmod_private_dir(path: Path) -> None:
+    if os.name == "nt":
+        return
+    try:
+        path.chmod(0o700)
+    except OSError:
+        pass
+
+
+def _write_private_json(path: Path, payload: dict) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    if os.name == "nt":
+        return
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
 
 
 def config_path() -> Path:
@@ -118,7 +139,7 @@ def load_config() -> LauncherConfig:
 
 def save_config(config: LauncherConfig) -> None:
     path = config_path()
-    path.write_text(json.dumps(asdict(config), ensure_ascii=True, indent=2), encoding="utf-8")
+    _write_private_json(path, asdict(config))
 
 
 def save_bridge_config(config: LauncherConfig, *, user_id: str = "", linked_at: str = "") -> Path:
@@ -129,7 +150,7 @@ def save_bridge_config(config: LauncherConfig, *, user_id: str = "", linked_at: 
         "linked_at": linked_at or datetime.now(timezone.utc).isoformat(),
     }
     path = bridge_config_path()
-    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+    _write_private_json(path, payload)
     return path
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from copy import deepcopy
 from dataclasses import dataclass
@@ -65,6 +66,11 @@ class LauncherStateStore:
     def _save(self, state: dict[str, Any]) -> None:
         state["updated_at"] = _now_iso()
         self.path.write_text(json.dumps(state, ensure_ascii=True, indent=2), encoding="utf-8")
+        if os.name != "nt":
+            try:
+                self.path.chmod(0o600)
+            except OSError:
+                pass
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:

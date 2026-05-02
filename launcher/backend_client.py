@@ -61,6 +61,14 @@ class BackendClient:
             return [self._redact_for_log(item) for item in value]
         return value
 
+    def _payload_without_connection_key(self, payload: dict[str, Any] | None) -> dict[str, Any] | None:
+        if payload is None:
+            return None
+        cleaned = dict(payload)
+        for key in ("connection_key", "KMFXApiKey", "api_key"):
+            cleaned.pop(key, None)
+        return cleaned
+
     def _safe_url(self, url: str) -> str:
         try:
             parsed = urllib.parse.urlsplit(url)
@@ -250,20 +258,20 @@ class BackendClient:
             return BackendResponse(ok=True, status_code=204, body={})
         return self._supabase_auth_request("/logout", payload={}, access_token=access_token)
 
-    def post_snapshot(self, payload: dict[str, Any]) -> BackendResponse:
+    def post_snapshot(self, payload: dict[str, Any], *, connection_key: str | None = None) -> BackendResponse:
         return self._request(
             "POST",
             self.config.backend_sync_path,
-            payload=payload,
-            connection_key=payload_connection_key(payload) or None,
+            payload=self._payload_without_connection_key(payload),
+            connection_key=connection_key or payload_connection_key(payload) or None,
         )
 
-    def post_journal(self, payload: dict[str, Any]) -> BackendResponse:
+    def post_journal(self, payload: dict[str, Any], *, connection_key: str | None = None) -> BackendResponse:
         return self._request(
             "POST",
             self.config.backend_journal_path,
-            payload=payload,
-            connection_key=payload_connection_key(payload) or None,
+            payload=self._payload_without_connection_key(payload),
+            connection_key=connection_key or payload_connection_key(payload) or None,
         )
 
     def get_policy(self, *, login: str, connection_key: str) -> BackendResponse:
