@@ -260,7 +260,8 @@ function renderEaConfigStep(state) {
   `;
 }
 
-function renderDirectConfigStep() {
+function renderDirectConfigStep(state) {
+  const direct = state.direct || {};
   return `
     ${renderStepFrame(
       "Conexión directa",
@@ -275,15 +276,15 @@ function renderDirectConfigStep() {
         <div class="connection-wizard__form-grid">
           <label class="form-stack">
             <span>Account Number</span>
-            <input type="text" inputmode="numeric" autocomplete="off" placeholder="80571774" disabled>
+            <input type="text" name="directLogin" inputmode="numeric" autocomplete="off" value="${escapeHtml(direct.login || "")}" placeholder="80571774">
           </label>
           <label class="form-stack">
             <span>Password</span>
-            <input type="password" autocomplete="off" placeholder="Investor o master password" disabled>
+            <input type="password" name="directPassword" autocomplete="off" value="${escapeHtml(direct.password || "")}" placeholder="Investor o master password">
           </label>
           <label class="form-stack">
             <span>Server</span>
-            <input type="text" autocomplete="off" placeholder="Selecciona o escribe el servidor del broker" disabled>
+            <input type="text" name="directServer" autocomplete="off" value="${escapeHtml(direct.server || "")}" placeholder="Selecciona o escribe el servidor del broker">
           </label>
         </div>
         <p class="connection-wizard__warning">La pantalla queda recuperada para el flujo de producto, pero el envío de credenciales queda bloqueado hasta activar vault seguro, revocación, rate limit y permisos por plan.</p>
@@ -292,7 +293,7 @@ function renderDirectConfigStep() {
     <div class="connection-wizard__actions">
       <button class="btn-secondary" type="button" data-wizard-step="method">Atrás</button>
       <button class="btn-secondary" type="button" data-wizard-select-method="ea">Usar EA recomendado</button>
-      <button class="btn-primary" type="button" disabled>Conectar cuenta</button>
+      <button class="btn-primary" type="button" data-wizard-direct-submit="true">Conectar cuenta</button>
     </div>
   `;
 }
@@ -399,6 +400,14 @@ function setWizardStep(card, state, step, options, store) {
   mountWizard(card, state, options, store);
 }
 
+function captureDirectFields(body, state) {
+  state.direct = {
+    login: String(body?.querySelector("[name='directLogin']")?.value || ""),
+    password: String(body?.querySelector("[name='directPassword']")?.value || ""),
+    server: String(body?.querySelector("[name='directServer']")?.value || ""),
+  };
+}
+
 function mountWizard(card, state, options = {}, store = activeWizardStore) {
   const body = card?.querySelector(".modal-body");
   if (!body) return;
@@ -424,6 +433,10 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
   body.querySelector("[data-wizard-copy-webrequest='true']")?.addEventListener("click", () => copyText(MT5_WEBREQUEST_URL, "URL copiada"));
   body.querySelector("[data-wizard-create-ea-key='true']")?.addEventListener("click", () => createEaConnection(card, state, options, store));
   body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => copyText(state.ea?.connectionKey || "", "Clave copiada"));
+  body.querySelector("[data-wizard-direct-submit='true']")?.addEventListener("click", () => {
+    captureDirectFields(body, state);
+    showToast("La conexión directa queda pendiente del backend seguro. Usa EA para conectar ahora.", "warning");
+  });
   body.querySelector("[data-wizard-toggle-key='true']")?.addEventListener("click", () => {
     state.showKey = !state.showKey;
     mountWizard(card, state, options, store);
@@ -460,7 +473,17 @@ export function openConnectionWizard(options = {}) {
     onMount(card) {
       card?.classList.add("connection-wizard-modal");
       card?.style.setProperty("max-width", "980px", "important");
-      card?.querySelector(".modal-body")?.classList.add("connection-wizard-modal__body");
+      card?.style.setProperty("max-height", "min(92vh, 960px)", "important");
+      card?.style.setProperty("display", "flex", "important");
+      card?.style.setProperty("flex-direction", "column", "important");
+      card?.style.setProperty("overflow", "hidden", "important");
+      const body = card?.querySelector(".modal-body");
+      body?.classList.add("connection-wizard-modal__body");
+      body?.style.setProperty("overflow-y", "auto", "important");
+      body?.style.setProperty("overflow-x", "hidden", "important");
+      body?.style.setProperty("min-height", "0", "important");
+      body?.style.setProperty("flex", "1 1 auto", "important");
+      body?.style.setProperty("-webkit-overflow-scrolling", "touch", "important");
       mountWizard(card, state, options, options.store || activeWizardStore);
     },
   });
