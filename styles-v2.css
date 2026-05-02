@@ -4785,27 +4785,27 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .tools-hub-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 9px;
+  gap: 8px;
 }
 
 .tools-card {
-  display: grid;
-  align-content: space-between;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  min-height: 108px;
+  min-height: 48px;
   min-width: 0;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--border-0) 54%, transparent);
-  border-radius: var(--radius-card);
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.7%, transparent), transparent 64%),
-    color-mix(in srgb, var(--foreground) 0.65%, transparent);
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.2%, transparent), transparent 68%),
+    color-mix(in srgb, var(--foreground) 0.42%, transparent);
 }
 
 .tools-card.is-active {
-  border-color: color-mix(in srgb, var(--equity) 24%, var(--border-0));
+  border-color: color-mix(in srgb, var(--equity) 22%, var(--border-0));
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--equity) 4.8%, transparent), transparent 68%),
+    linear-gradient(180deg, color-mix(in srgb, var(--equity) 4%, transparent), transparent 70%),
     color-mix(in srgb, var(--foreground) 1%, transparent);
 }
 
@@ -4815,12 +4815,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .tools-card.is-disabled {
-  opacity: 0.42;
+  opacity: 0.38;
 }
 
 .tools-card__top {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  width: 100%;
   min-width: 0;
 }
 
@@ -4849,10 +4852,11 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   letter-spacing: 0.045em;
 }
 
-.calculator-active-shell {
+.calculator-active-shell,
+.calculator-fast-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.24fr) minmax(320px, 0.76fr);
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -4866,7 +4870,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-result-card,
 .calculator-advice-card,
 .calculator-config-card,
-.calculator-spec-card {
+.calculator-spec-card,
+.calculator-quick-card,
+.calculator-advanced-card {
   display: grid;
   gap: 12px;
   border-color: color-mix(in srgb, var(--border-0) 66%, transparent);
@@ -4874,6 +4880,37 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--foreground) 1.8%, transparent), transparent 58%),
     color-mix(in srgb, var(--card) 90%, transparent);
+}
+
+.calculator-quick-card {
+  gap: 10px;
+}
+
+.calculator-fast-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+  align-items: start;
+}
+
+.calculator-fast-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.calculator-symbol-strip {
+  margin-bottom: 0;
+}
+
+.calculator-mode-switch {
+  flex: 0 0 auto;
+}
+
+.calculator-fast-field {
+  min-width: 0;
 }
 
 .calculator-result-head {
@@ -4888,7 +4925,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   display: grid;
   gap: 6px;
   min-width: 0;
-  padding: 16px;
+  padding: 18px;
   border: 1px solid color-mix(in srgb, var(--equity) 15%, var(--border-0));
   border-radius: var(--radius-card);
   background:
@@ -4908,7 +4945,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .calculator-primary-result strong {
   color: var(--foreground);
-  font-size: clamp(34px, 4vw, 52px);
+  font-size: clamp(38px, 4.3vw, 58px);
   line-height: 0.92;
   font-weight: 780;
   letter-spacing: -0.06em;
@@ -4974,9 +5011,19 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .calculator-advice-panel {
   display: grid;
-  grid-template-columns: minmax(110px, 0.32fr) minmax(0, 1fr);
+  grid-template-columns: minmax(104px, 0.22fr) minmax(0, 1fr);
   gap: 12px;
   align-items: center;
+}
+
+.calculator-advice-strip .calculator-advice-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.32fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.calculator-advice-strip .calculator-result-head {
+  margin: 0;
 }
 
 .calculator-advice-primary,
@@ -5045,6 +5092,8 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .calculator-config-card .form-stack small,
 .calculator-spec-card .form-stack small,
+.calculator-quick-card .form-stack small,
+.calculator-advanced-card .form-stack small,
 .calculator-spec-note {
   color: var(--muted-foreground);
   font-size: 11px;
@@ -5053,12 +5102,16 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-config-card .form-stack,
-.calculator-spec-card .form-stack {
+.calculator-spec-card .form-stack,
+.calculator-quick-card .form-stack,
+.calculator-advanced-card .form-stack {
   gap: 7px;
 }
 
 .calculator-config-card .form-stack > span,
-.calculator-spec-card .form-stack > span {
+.calculator-spec-card .form-stack > span,
+.calculator-quick-card .form-stack > span,
+.calculator-advanced-card .form-stack > span {
   color: var(--muted-foreground);
   font-size: 11px;
   line-height: 1.2;
@@ -5067,7 +5120,9 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-config-card :where(input, select),
-.calculator-spec-card :where(input, select) {
+.calculator-spec-card :where(input, select),
+.calculator-quick-card :where(input, select),
+.calculator-advanced-card :where(input, select) {
   min-height: 42px;
   border-color: color-mix(in srgb, var(--border-0) 48%, transparent);
   border-radius: 12px;
@@ -5075,15 +5130,22 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   box-shadow: none;
 }
 
-.calculator-config-card .calc-chip-group {
+.calculator-config-card .calc-chip-group,
+.calculator-quick-card .calc-chip-group {
   margin-bottom: 2px;
 }
 
 .calculator-config-card .calc-pill,
-.calculator-config-card .calc-chip {
+.calculator-config-card .calc-chip,
+.calculator-quick-card .calc-pill,
+.calculator-quick-card .calc-chip {
   min-height: 28px;
   padding: 5px 10px;
   letter-spacing: 0.035em;
+}
+
+.calculator-mini-presets {
+  gap: 6px;
 }
 
 .calculator-mode-field {
@@ -5099,6 +5161,45 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 
 .calculator-price-fields.is-visible {
   display: grid;
+}
+
+.calculator-advanced-card {
+  padding: 0;
+}
+
+.calculator-advanced-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.calculator-advanced-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.calculator-advanced-card > summary span {
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.calculator-advanced-card > summary small {
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  line-height: 1.35;
+  font-weight: 540;
+}
+
+.calculator-advanced-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 16px 16px;
 }
 
 .calculator-spec-note {
@@ -5129,6 +5230,17 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   opacity: 0.72;
 }
 
+.calculator-authority-footnote {
+  opacity: 0.64;
+}
+
+.calculator-authority-footnote .calendar-inline-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+}
+
 @media (max-width: 1320px) {
   .tools-hub-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -5137,10 +5249,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   .calculator-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .calculator-fast-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
   .calculator-active-shell,
+  .calculator-fast-shell,
   .calculator-workbench-grid {
     grid-template-columns: 1fr;
   }
@@ -5148,10 +5265,15 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   .tools-hub-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .calculator-advice-strip .calculator-advice-card {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
   .tools-hub-grid,
+  .calculator-fast-grid,
   .calculator-metric-grid,
   .calculator-spec-list,
   .calculator-advice-panel,
@@ -5162,9 +5284,11 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   }
 
   .calculator-result-head,
-  .calculator-exposure-strip {
+  .calculator-exposure-strip,
+  .calculator-fast-controls {
     align-items: flex-start;
     grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 
@@ -29373,6 +29497,336 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
   width: 40px !important;
   min-height: 40px !important;
   padding: 0 !important;
+}
+
+/* Sidebar 07 structure-only pass: shadcn rhythm without replacing KMFX colors */
+.app-shell.sidebar-vnext.sidebar-provider {
+  --sidebar-vnext-expanded-width: 16rem;
+  --sidebar-vnext-collapsed-width: 4rem;
+  --sidebar-vnext-current-width: var(--sidebar-vnext-expanded-width);
+  display: grid;
+  grid-template-columns: var(--sidebar-vnext-current-width) minmax(0, 1fr);
+  transition: grid-template-columns 210ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed {
+  --sidebar-vnext-current-width: var(--sidebar-vnext-collapsed-width);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
+  width: var(--sidebar-vnext-current-width) !important;
+  max-width: var(--sidebar-vnext-current-width) !important;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0 !important;
+  padding: 16px 12px 12px 16px !important;
+  overflow: hidden !important;
+  transition:
+    width 210ms cubic-bezier(0.2, 0, 0, 1),
+    max-width 210ms cubic-bezier(0.2, 0, 0, 1),
+    padding 210ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header {
+  gap: 12px !important;
+  padding: 0 0 16px !important;
+  min-width: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-content.sidebar-section--content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-nav {
+  min-height: 0;
+  width: 100%;
+  padding: 0 4px 14px 0 !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-list {
+  display: grid !important;
+  gap: 24px !important;
+  align-content: start;
+  padding-bottom: 2px;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-group {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  border-bottom: 0 !important;
+  min-width: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-group-trigger {
+  min-height: 20px !important;
+  padding: 0 8px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-group-label {
+  padding: 0 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-group-items {
+  display: grid !important;
+  gap: 2px !important;
+  padding-top: 0 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-item {
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  min-height: 32px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  font-weight: 450 !important;
+  transform: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    opacity 160ms cubic-bezier(0.2, 0, 0, 1),
+    transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-icon,
+.app-shell.sidebar-vnext.sidebar-provider .nav-item svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  padding: 10px 0 0 !important;
+  overflow: visible;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-trigger {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 24px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 56px !important;
+  padding: 8px !important;
+  width: 100% !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-main {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar-wrap {
+  position: relative;
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--layer-0);
+  box-shadow: 0 0 0 2px var(--layer-1);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-avatar-badge svg {
+  width: 9px;
+  height: 9px;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-copy {
+  min-width: 0;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-name {
+  font-size: 14px !important;
+  line-height: 18px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-sub {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-profile-menu-btn {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher {
+  grid-template-columns: 40px minmax(0, 1fr) 20px !important;
+  min-height: 56px !important;
+  gap: 10px !important;
+  padding: 8px 8px 8px 0 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher::after {
+  content: none !important;
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__chevrons {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__chevrons svg {
+  width: 16px;
+  height: 16px;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__title {
+  font-size: 14px !important;
+  line-height: 18px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__meta,
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher__balance {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+  left: calc(var(--sidebar-vnext-current-width) - 1px) !important;
+  transition: left 210ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel {
+  padding: 16px 12px 12px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-header.sidebar-section--header {
+  justify-items: center;
+  padding-bottom: 14px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-admin-badge,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-trigger,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item-label,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__copy,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__chevrons,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-copy,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-menu-btn {
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-nav {
+  padding: 0 0 12px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-list {
+  gap: 12px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-group-items {
+  gap: 8px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .nav-item {
+  grid-template-columns: 40px !important;
+  width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  margin-inline: auto !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-slot,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-bottom.sidebar-footer.sidebar-section--footer {
+  display: grid;
+  justify-items: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher,
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher--empty {
+  grid-template-columns: 40px !important;
+  width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-trigger {
+  grid-template-columns: 40px !important;
+  width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-main {
+  grid-template-columns: 40px !important;
+  gap: 0 !important;
+  justify-items: center;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar-wrap {
+  width: 32px;
+  height: 32px;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-profile-avatar {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.sidebar-vnext.sidebar-provider,
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* === BOTTOM SECTIONS === */
