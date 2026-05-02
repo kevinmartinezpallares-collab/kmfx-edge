@@ -4872,6 +4872,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card,
 .calculator-spec-card,
 .calculator-quick-card,
+.calculator-workspace-card,
 .calculator-advanced-card {
   display: grid;
   gap: 12px;
@@ -4886,11 +4887,76 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   gap: 10px;
 }
 
+.calculator-workspace-card {
+  gap: 14px;
+  padding: 18px;
+}
+
+.calculator-workspace-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.calculator-workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.calculator-input-panel,
+.calculator-result-panel,
+.calculator-validation-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.calculator-input-panel {
+  align-self: start;
+}
+
+.calculator-result-panel {
+  align-self: stretch;
+}
+
+.calculator-validation-panel {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(220px, 0.32fr) minmax(0, 1fr);
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-0) 36%, transparent);
+}
+
+.calculator-validation-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.calculator-panel-label {
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 730;
+  letter-spacing: -0.02em;
+}
+
 .calculator-fast-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 9px;
   align-items: start;
+}
+
+.calculator-input-panel .calculator-fast-grid,
+.calculator-result-panel .calculator-metric-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .calculator-fast-controls {
@@ -5093,6 +5159,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card .form-stack small,
 .calculator-spec-card .form-stack small,
 .calculator-quick-card .form-stack small,
+.calculator-workspace-card .form-stack small,
 .calculator-advanced-card .form-stack small,
 .calculator-spec-note {
   color: var(--muted-foreground);
@@ -5104,6 +5171,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card .form-stack,
 .calculator-spec-card .form-stack,
 .calculator-quick-card .form-stack,
+.calculator-workspace-card .form-stack,
 .calculator-advanced-card .form-stack {
   gap: 7px;
 }
@@ -5111,6 +5179,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card .form-stack > span,
 .calculator-spec-card .form-stack > span,
 .calculator-quick-card .form-stack > span,
+.calculator-workspace-card .form-stack > span,
 .calculator-advanced-card .form-stack > span {
   color: var(--muted-foreground);
   font-size: 11px;
@@ -5122,6 +5191,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 .calculator-config-card :where(input, select),
 .calculator-spec-card :where(input, select),
 .calculator-quick-card :where(input, select),
+.calculator-workspace-card :where(input, select),
 .calculator-advanced-card :where(input, select) {
   min-height: 42px;
   border-color: color-mix(in srgb, var(--border-0) 48%, transparent);
@@ -5131,14 +5201,17 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
 }
 
 .calculator-config-card .calc-chip-group,
-.calculator-quick-card .calc-chip-group {
+.calculator-quick-card .calc-chip-group,
+.calculator-workspace-card .calc-chip-group {
   margin-bottom: 2px;
 }
 
 .calculator-config-card .calc-pill,
 .calculator-config-card .calc-chip,
 .calculator-quick-card .calc-pill,
-.calculator-quick-card .calc-chip {
+.calculator-quick-card .calc-chip,
+.calculator-workspace-card .calc-pill,
+.calculator-workspace-card .calc-chip {
   min-height: 28px;
   padding: 5px 10px;
   letter-spacing: 0.035em;
@@ -5251,7 +5324,7 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   }
 
   .calculator-fast-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -5267,6 +5340,11 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   }
 
   .calculator-advice-strip .calculator-advice-card {
+    grid-template-columns: 1fr;
+  }
+
+  .calculator-workflow-grid,
+  .calculator-validation-panel {
     grid-template-columns: 1fr;
   }
 }
