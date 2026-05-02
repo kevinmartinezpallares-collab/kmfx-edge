@@ -364,7 +364,7 @@ function initSettings(authSession = null) {
     }
     const selectedAccount = store.getState().accounts[profile.defaultAccount];
     if (displayAccount) {
-      displayAccount.textContent = selectedAccount?.name || "Cuenta por defecto";
+      displayAccount.textContent = selectedAccount?.name || "Sin cuenta por defecto";
     }
   };
 
