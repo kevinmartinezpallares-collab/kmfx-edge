@@ -4,14 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>KMFX Launcher</title>
-    <link rel="icon" href="../../assets/logos/kmfx-edge-icon-512.svg" />
+    <link rel="icon" href="../../assets/logos/kmfx-edge-glass-mark-512.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main id="auth-screen" class="auth-shell" aria-live="polite">
       <section class="auth-card">
         <div class="auth-brand">
-          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="KMFX" />
+          <img src="../../assets/logos/kmfx-edge-glass-mark-512.png" alt="KMFX" />
+          <div>
+            <strong>KMFX Edge</strong>
+            <span>Launcher</span>
+          </div>
         </div>
         <div class="auth-copy">
           <h1>KMFX Launcher</h1>
@@ -46,7 +50,7 @@
     <main id="app-shell" class="app-shell is-hidden">
       <aside class="sidebar">
         <div class="sidebar-brand">
-          <img src="../../assets/logos/kmfx-edge-icon-512.svg" alt="" />
+          <img src="../../assets/logos/kmfx-edge-glass-mark-512.png" alt="" />
           <div>
             <strong>KMFX</strong>
             <span>Launcher</span>
@@ -75,10 +79,53 @@
           <header class="page-header">
             <div>
               <h1>Conectar MT5</h1>
-              <p>Instala el conector y revisa la sincronización de tus cuentas.</p>
+              <p>Instala el conector, abre MetaTrader y confirma que tus cuentas sincronizan con KMFX.</p>
             </div>
             <button id="refresh-button" class="icon-button" type="button" aria-label="Refrescar">↻</button>
           </header>
+
+          <section class="launcher-hero" aria-label="Estado del launcher">
+            <div class="launcher-hero__brand">
+              <img src="../../assets/logos/kmfx-edge-glass-mark-512.png" alt="" />
+            </div>
+            <div class="launcher-hero__copy">
+              <span class="eyebrow">Asistente local</span>
+              <h2>MT5 conectado sin configuraciones técnicas.</h2>
+              <p>KMFX no pide tu contraseña ni ejecuta operaciones. Solo recibe datos del conector y muestra la cuenta en tu dashboard.</p>
+            </div>
+            <div class="launcher-hero__status">
+              <div class="hero-stat">
+                <span>Launcher</span>
+                <strong id="hero-service-status">Comprobando</strong>
+              </div>
+              <div class="hero-stat">
+                <span>Cuentas activas</span>
+                <strong id="hero-active-accounts">0</strong>
+              </div>
+              <div class="hero-stat">
+                <span>Último sync</span>
+                <strong id="hero-last-sync">Pendiente</strong>
+              </div>
+            </div>
+          </section>
+
+          <ol class="setup-steps" aria-label="Pasos para conectar MT5">
+            <li id="step-installation" class="setup-step">
+              <span>1</span>
+              <strong>Detectar MT5</strong>
+              <small>Elige la instalación correcta.</small>
+            </li>
+            <li id="step-connector" class="setup-step">
+              <span>2</span>
+              <strong>Instalar conector</strong>
+              <small>KMFX copia el EA y la configuración.</small>
+            </li>
+            <li id="step-sync" class="setup-step">
+              <span>3</span>
+              <strong>Sincronizar cuenta</strong>
+              <small>Abre MT5 y espera el primer sync.</small>
+            </li>
+          </ol>
 
           <article class="tool-card" data-tool="mt5">
             <div class="tool-header">
@@ -91,7 +138,7 @@
                     <h2>MetaTrader 5</h2>
                     <span class="tool-type">MT5</span>
                   </div>
-                  <p>KMFX no pide tu contraseña ni ejecuta operaciones.</p>
+                  <p>Selecciona la instalación donde quieres dejar preparado el conector.</p>
                 </div>
               </div>
               <span id="install-badge" class="status-badge neutral">Comprobando</span>

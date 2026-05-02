@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.77                                              |
+//| KMFXConnector v2.78                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.77"
+#property version   "2.78"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.77"
+#define KMFX_CONNECTOR_VERSION "2.78"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -119,6 +119,10 @@ struct KMFXRuntimeState
    string    last_error_log_signature;
    datetime  last_error_log_at;
    string    last_error;
+   string    last_status_log_signature;
+   datetime  last_status_log_at;
+   bool      connection_ready_logged;
+   datetime  last_connection_ready_log_at;
   };
 
 struct KMFXPendingSync
@@ -834,6 +838,20 @@ void KMFXSetError(string message)
    Runtime.last_error_log_signature=signature;
    Runtime.last_error_log_at=now_time;
    KMFXLog("ERROR",public_message,true);
+  }
+
+void KMFXLogStatus(string message,int cooldown_seconds=0)
+  {
+   string signature="STATUS|"+message;
+   datetime now_time=KMFXNow();
+   if(cooldown_seconds>0 &&
+      signature==Runtime.last_status_log_signature &&
+      (now_time-Runtime.last_status_log_at)<cooldown_seconds)
+      return;
+
+   Runtime.last_status_log_signature=signature;
+   Runtime.last_status_log_at=now_time;
+   KMFXLog("STATUS",message,true);
   }
 
 string KMFXSeverityString(KMFXSeverity severity)
@@ -2136,6 +2154,13 @@ bool KMFXPushState()
       Policy.degraded_mode=false;
    Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();
+   datetime now_time=Runtime.last_state_push_at;
+   if(!Runtime.connection_ready_logged || (now_time-Runtime.last_connection_ready_log_at)>=3600)
+     {
+      Runtime.connection_ready_logged=true;
+      Runtime.last_connection_ready_log_at=now_time;
+      KMFXLogStatus("Conectado a KMFX. Cuenta sincronizada correctamente.",3600);
+     }
    KMFXLog("SYNC","Estado enviado al backend.");
    return true;
   }
@@ -2709,6 +2734,7 @@ int OnInit()
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
    KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
+   KMFXLogStatus("Connector activo. Esperando sincronizacion con KMFX.",300);
 
    if(KMFXVerboseLog)
      {

@@ -126,6 +126,27 @@ function statusClass(ok, warning = false) {
   return "neutral";
 }
 
+function activeAccountCount() {
+  return state.accountConnections.filter((connection) => String(connection.status || "").toLowerCase() === "active").length;
+}
+
+function latestSyncLabel() {
+  const active = state.accountConnections.find((connection) => String(connection.status || "").toLowerCase() === "active");
+  return active?.last_sync_label || state.status?.last_sync_ago || "Pendiente";
+}
+
+function setText(selector, text) {
+  const element = $(selector);
+  if (element) element.textContent = text;
+}
+
+function setStepState(selector, stateName) {
+  const element = $(selector);
+  if (!element) return;
+  element.classList.remove("is-current", "is-complete", "is-muted");
+  element.classList.add(stateName);
+}
+
 function setPill(selector, text, kind) {
   const element = $(selector);
   if (!element) return;
@@ -141,6 +162,7 @@ function renderHome() {
     busy: state.busy,
     toolFilter: state.toolFilter,
     installations: state.installations,
+    accountConnections: state.accountConnections,
     selectedInstallationLabel: state.selectedInstallationLabel
   });
   if (nextSignature === lastHomeSignature) return;
@@ -149,6 +171,7 @@ function renderHome() {
   const hasMt5 = Number(status.mt5_count || 0) > 0;
   const recentSync = Boolean(status.has_recent_sync);
   const needsRepair = Boolean(status.repair_recommended);
+  const activeCount = activeAccountCount();
   $$('[data-tool="mt5"]').forEach((element) => {
     element.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
   });
@@ -156,6 +179,12 @@ function renderHome() {
   const badgeText = installed ? (needsRepair ? "Reparación recomendada" : "Instalado") : "No instalado";
   const badgeKind = installed ? (needsRepair ? "warning" : "success") : "neutral";
   setPill("#install-badge", badgeText, badgeKind);
+  setText("#hero-service-status", status.service_on ? "Activo" : "Pendiente");
+  setText("#hero-active-accounts", String(activeCount));
+  setText("#hero-last-sync", latestSyncLabel());
+  setStepState("#step-installation", hasMt5 ? "is-complete" : "is-current");
+  setStepState("#step-connector", installed ? "is-complete" : (hasMt5 ? "is-current" : "is-muted"));
+  setStepState("#step-sync", activeCount > 0 ? "is-complete" : (installed ? "is-current" : "is-muted"));
 
   const installButton = $("#install-button");
   const openButton = $("#open-mt5-button");
@@ -200,7 +229,7 @@ function renderHome() {
   } else if (!installed) {
     message.textContent = "MetaTrader detectado. Instala el conector para continuar.";
   } else if (recentSync) {
-    message.textContent = "Conector instalado y sincronizando.";
+    message.textContent = "Conector instalado. Tus cuentas se están sincronizando.";
   } else {
     message.textContent = "Conector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
   }
@@ -224,16 +253,20 @@ function renderAccountConnections() {
 
   container.innerHTML = state.accountConnections
     .map((connection) => {
+      const status = String(connection.status || "").toLowerCase();
+      const isActive = status === "active";
+      const statusKind = escapeHtml(connection.status_kind || (isActive ? "success" : "neutral"));
       const meta = [connection.broker, connection.login ? `Login ${connection.login}` : "", connection.server]
         .filter(Boolean)
         .join(" · ");
       const primaryMeta = meta || "Sin datos de broker hasta el primer sync";
       return `
-        <article class="connection-row">
+        <article class="connection-row ${statusKind}">
+          <div class="connection-symbol" aria-hidden="true">MT5</div>
           <div class="connection-main">
             <div class="connection-title-row">
               <strong>${escapeHtml(connection.label || "Cuenta MT5")}</strong>
-              <span class="status-badge ${escapeHtml(connection.status_kind || "neutral")}">${escapeHtml(connection.status_label || "Pendiente")}</span>
+              <span class="status-badge ${statusKind}">${escapeHtml(connection.status_label || "Pendiente")}</span>
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
@@ -244,8 +277,8 @@ function renderAccountConnections() {
             <small>${escapeHtml(connection.last_sync_label || "Esperando sincronización")}</small>
           </div>
           <div class="connection-row-actions">
-            <button class="button primary small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
-              Instalar conector
+            <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
+              ${isActive ? "Reinstalar" : "Instalar conector"}
             </button>
             <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
               Abrir MT5

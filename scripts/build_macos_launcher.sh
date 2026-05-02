@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SPEC_FILE="$ROOT_DIR/launcher/packaging/macos/KMFXLauncher.spec"
-ICON_SOURCE="$ROOT_DIR/assets/logos/kmfx-edge-icon-1024.png"
+ICON_SOURCE="$ROOT_DIR/assets/logos/kmfx-edge-glass-mark-1024.png"
 ICONSET_DIR="$ROOT_DIR/build/macos/KMFXLauncher.iconset"
 ICON_FILE="$ROOT_DIR/launcher/packaging/macos/KMFXLauncher.icns"
 APP_PATH="$ROOT_DIR/dist/KMFX Launcher.app"

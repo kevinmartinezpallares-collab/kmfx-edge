@@ -42,6 +42,9 @@ dist/KMFX Launcher.dmg
 ## Included resources
 
 - `launcher/ui/*`
+- `assets/logos/kmfx-edge-glass-mark-1024.png`
+- `assets/logos/kmfx-edge-glass-mark-512.png`
+- `assets/logos/kmfx-edge-glass-mark-192.png`
 - `assets/logos/kmfx-edge-icon-1024.png`
 - `assets/logos/kmfx-edge-icon-512.svg`
 - `assets/logos/mt5-logo.png`

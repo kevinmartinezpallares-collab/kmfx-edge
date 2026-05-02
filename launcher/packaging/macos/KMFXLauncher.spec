@@ -10,6 +10,9 @@ ICON_PATH = ROOT / "launcher" / "packaging" / "macos" / "KMFXLauncher.icns"
 
 datas = [
     (str(ROOT / "launcher" / "ui"), "launcher/ui"),
+    (str(ROOT / "assets" / "logos" / "kmfx-edge-glass-mark-1024.png"), "assets/logos"),
+    (str(ROOT / "assets" / "logos" / "kmfx-edge-glass-mark-512.png"), "assets/logos"),
+    (str(ROOT / "assets" / "logos" / "kmfx-edge-glass-mark-192.png"), "assets/logos"),
     (str(ROOT / "assets" / "logos" / "kmfx-edge-icon-1024.png"), "assets/logos"),
     (str(ROOT / "assets" / "logos" / "kmfx-edge-icon-512.svg"), "assets/logos"),
     (str(ROOT / "assets" / "logos" / "mt5-logo.png"), "assets/logos"),

@@ -113,13 +113,13 @@ h1 {
   margin-bottom: 12px;
   font-size: 29px;
   line-height: 1.1;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 h2 {
   margin-bottom: 6px;
   font-size: 18px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 p {
@@ -764,7 +764,7 @@ body {
 .auth-brand strong,
 .sidebar-brand strong {
   color: var(--text-0);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .auth-brand span {
@@ -804,7 +804,7 @@ body {
 .auth-copy h1 {
   margin-bottom: 10px;
   font-size: clamp(29px, 4vw, 38px);
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
 }
 
 .auth-copy p:not(.eyebrow) {
@@ -1133,7 +1133,7 @@ body,
 .auth-copy h1 {
   margin-bottom: 8px;
   font-size: 24px;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 .auth-copy p {
@@ -1791,5 +1791,414 @@ body,
 
   .connection-row-actions .button {
     flex: 1 1 160px;
+  }
+}
+
+/* KMFX Edge 2026 launcher refresh: Apple-like, shadcn-style states. */
+:root {
+  --surface: #101012;
+  --surface-raised: #18181a;
+  --surface-elevated: #202024;
+  --surface-field: #0d0d0f;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --copy: rgba(255, 255, 255, 0.94);
+  --copy-muted: rgba(255, 255, 255, 0.66);
+  --copy-dim: rgba(255, 255, 255, 0.42);
+  --accent: #5f86ff;
+  --accent-strong: #4e7bff;
+  --ok: #67d99a;
+  --ok-soft: rgba(103, 217, 154, 0.12);
+  --warn: #f3c76a;
+  --warn-soft: rgba(243, 199, 106, 0.12);
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+}
+
+body,
+.app-shell,
+.content,
+.auth-shell {
+  background: var(--surface) !important;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    var(--surface-raised) !important;
+}
+
+.auth-brand {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.auth-brand img {
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.auth-copy {
+  text-align: left;
+}
+
+.auth-copy h1,
+.page-header h1,
+.launcher-hero h2 {
+  letter-spacing: 0;
+}
+
+.sidebar {
+  background: #151517 !important;
+}
+
+.sidebar-brand img {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  object-fit: cover;
+}
+
+.content {
+  padding: 34px 40px;
+}
+
+.view {
+  max-width: 980px;
+}
+
+.page-header {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  font-size: 34px;
+}
+
+.launcher-hero {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) minmax(270px, auto);
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 48%),
+    #18181a;
+}
+
+.launcher-hero__brand {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #0b0b0d;
+}
+
+.launcher-hero__brand img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+}
+
+.launcher-hero__copy {
+  min-width: 0;
+}
+
+.launcher-hero__copy .eyebrow {
+  margin-bottom: 5px;
+  color: var(--copy-dim);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.launcher-hero h2 {
+  margin-bottom: 6px;
+  color: var(--copy);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.launcher-hero p {
+  max-width: 520px;
+  margin-bottom: 0;
+  color: var(--copy-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.launcher-hero__status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hero-stat {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.hero-stat span,
+.setup-step small {
+  display: block;
+  color: var(--copy-dim);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.hero-stat strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--copy);
+  font-size: 13px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-step {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    "index title"
+    "index text";
+  align-items: center;
+  gap: 2px 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+.setup-step > span {
+  display: grid;
+  grid-area: index;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--copy-dim);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.setup-step strong {
+  grid-area: title;
+  overflow: hidden;
+  color: var(--copy);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-step small {
+  grid-area: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-step.is-complete {
+  border-color: rgba(103, 217, 154, 0.24);
+}
+
+.setup-step.is-complete > span {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.setup-step.is-current {
+  border-color: rgba(95, 134, 255, 0.35);
+}
+
+.setup-step.is-current > span {
+  background: rgba(95, 134, 255, 0.16);
+  color: #b9c8ff;
+}
+
+.setup-step.is-muted {
+  opacity: 0.58;
+}
+
+.tool-card {
+  max-width: 100%;
+  margin-bottom: 14px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised) !important;
+}
+
+.tool-header {
+  align-items: center;
+}
+
+.tool-icon {
+  background: var(--surface-elevated);
+}
+
+.tool-actions {
+  margin-top: 14px;
+}
+
+.installation-picker__empty,
+.installation-picker__single,
+.installation-picker__select,
+.connection-row,
+.installation-row,
+.info-row {
+  background: var(--surface-field);
+}
+
+.connections-card,
+.settings-card {
+  max-width: 100%;
+  border-radius: var(--radius-xl);
+}
+
+.connection-row {
+  grid-template-columns: 44px minmax(0, 1fr) minmax(150px, auto) auto;
+  gap: 14px;
+  padding: 13px;
+}
+
+.connection-row.success {
+  border-color: rgba(103, 217, 154, 0.2);
+}
+
+.connection-row.warning {
+  border-color: rgba(243, 199, 106, 0.22);
+}
+
+.connection-symbol {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  color: var(--copy-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.connection-title-row {
+  margin-bottom: 5px;
+}
+
+.connection-title-row strong {
+  font-size: 15px;
+}
+
+.connection-state-card {
+  min-width: 150px;
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.button.primary {
+  background: var(--accent-strong);
+}
+
+.button.primary:hover {
+  background: var(--accent);
+}
+
+.button.secondary,
+.button.ghost,
+.icon-button {
+  border-color: var(--line);
+  background: var(--surface-elevated);
+}
+
+.status-badge.success::before {
+  background: var(--ok);
+}
+
+.status-badge.warning::before {
+  background: var(--warn);
+}
+
+@media (max-width: 1060px) {
+  .launcher-hero {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .launcher-hero__status {
+    grid-column: 1 / -1;
+  }
+
+  .connection-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .connection-state-card,
+  .connection-row-actions {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 720px) {
+  .content {
+    padding: 24px;
+  }
+
+  .launcher-hero,
+  .setup-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .launcher-hero__brand {
+    width: 64px;
+    height: 64px;
+  }
+
+  .launcher-hero__brand img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .launcher-hero__status {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .connection-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .connection-symbol,
+  .connection-state-card,
+  .connection-row-actions {
+    grid-column: auto;
   }
 }

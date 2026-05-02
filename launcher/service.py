@@ -642,7 +642,7 @@ async def auth_callback(
       <body style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:#141413;color:rgba(255,255,255,.96);display:grid;place-items:center;min-height:100vh;margin:0;">
         <main style="width:min(360px,calc(100vw - 40px));text-align:center;padding:30px 26px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:#18181A;">
           <div style="display:grid;width:48px;height:48px;place-items:center;border-radius:14px;background:rgba(85,211,138,.14);color:{accent};font-size:26px;font-weight:900;margin:0 auto 18px;">{mark}</div>
-          <h1 style="font-size:24px;line-height:1.15;letter-spacing:-.03em;margin:0 0 10px;">{html.escape(title)}</h1>
+          <h1 style="font-size:24px;line-height:1.15;letter-spacing:0;margin:0 0 10px;">{html.escape(title)}</h1>
           <p style="color:rgba(255,255,255,.72);font-size:14px;line-height:1.5;margin:0;">Ya puedes volver al launcher.</p>
           <p style="color:rgba(255,255,255,.48);font-size:12px;line-height:1.5;margin:8px 0 0;">{html.escape(str(message))}</p>
           <button id="close-tab-button" onclick="closeKmfxTab()" style="margin-top:22px;height:40px;padding:0 16px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#26262B;color:rgba(255,255,255,.96);font:inherit;font-weight:700;cursor:pointer;">Cerrar esta pestaña</button>

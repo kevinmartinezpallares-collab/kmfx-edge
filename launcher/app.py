@@ -42,8 +42,8 @@ from .resources import app_root, is_packaged, resource_path
 ROOT = app_root()
 UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
-DEFAULT_CONNECTOR_VERSION = "2.76"
-APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-icon-1024.png")
+DEFAULT_CONNECTOR_VERSION = "2.78"
+APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-glass-mark-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 INSTALLED_LINK_SYNC_TTL_SECONDS = 45
 DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://kmfxedge.com?auth=recovery")
