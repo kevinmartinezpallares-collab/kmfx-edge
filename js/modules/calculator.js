@@ -48,47 +48,6 @@ const SYMBOL_SPECS = {
   US500: { pipValue: 1, pipMultiplier: 1, lotUnit: 1, decimals: 1, type: "Índice", instrumentId: "indices", unitLabel: "puntos" }
 };
 
-const TOOL_CARDS = [
-  {
-    id: "position",
-    title: "Calculadora",
-    copy: "Calcula lotaje, riesgo real y objetivo antes de abrir una operación.",
-    status: "Activa",
-    active: true,
-  },
-  {
-    id: "risk",
-    title: "Riesgo",
-    copy: "Contrasta el riesgo con la lectura actual del Risk Engine.",
-    status: "Incluido",
-    active: true,
-  },
-  {
-    id: "rr",
-    title: "RR / SL / TP",
-    copy: "Planifica entrada, stop y objetivo con presets de R:R.",
-    status: "Preparado",
-  },
-  {
-    id: "drawdown",
-    title: "Simulador DD",
-    copy: "Evalúa el impacto de una pérdida antes de abrir operación.",
-    status: "Próximamente",
-  },
-  {
-    id: "checklist",
-    title: "Checklist",
-    copy: "Preparará una revisión rápida antes de operar.",
-    status: "Próximamente",
-  },
-  {
-    id: "prop-guard",
-    title: "Prop guard",
-    copy: "Validará trades contra reglas de Funding.",
-    status: "Próximamente",
-  },
-];
-
 function toNumber(value, fallback = 0) {
   const parsed = parseNumericInput(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -659,24 +618,6 @@ function calculateModel(state) {
   };
 }
 
-function toolCardMarkup(tool) {
-  const className = [
-    "tools-card",
-    tool.id === "position" ? "is-active" : "",
-    tool.active && tool.id !== "position" ? "is-included" : "",
-    !tool.active ? "is-disabled" : ""
-  ].filter(Boolean).join(" ");
-  const tone = tool.id === "position" ? "ok" : tool.active ? "neutral" : "neutral";
-  return `
-    <article class="${className}" aria-current="${tool.id === "position" ? "true" : "false"}" aria-label="${escapeHtml(`${tool.title}: ${tool.copy}`)}">
-      <div class="tools-card__top">
-        <strong>${tool.title}</strong>
-        ${badgeMarkup({ label: tool.status, tone }, "ui-badge--compact")}
-      </div>
-    </article>
-  `;
-}
-
 function calculatorMetricMarkup(label, value, meta = "") {
   return `
     <div class="calculator-metric">
@@ -977,15 +918,11 @@ export function renderCalculator(root, state) {
         descriptionClassName: "tl-page-sub",
       })}
 
-      <section class="tools-hub-grid" aria-label="Herramientas disponibles">
-        ${TOOL_CARDS.map(toolCardMarkup).join("")}
-      </section>
-
       <section class="tl-section-card calculator-workspace-card" aria-label="Calculadora de posición">
         <div class="calculator-workspace-head">
           <div>
             <div class="tl-section-title">Calculadora de posición</div>
-            <div class="tl-section-sub">Datos del trade → lotaje → validación de riesgo.</div>
+            <div class="tl-section-sub">Calcula el lotaje desde capital, riesgo, instrumento y stop.</div>
           </div>
           <div class="calculator-workspace-badges">
             ${badgeMarkup({ label: model.spec.sourceLabel || "Supuestos manuales", tone: specSourceTone(model.spec.source) }, "ui-badge--compact")}
@@ -1086,7 +1023,7 @@ export function renderCalculator(root, state) {
       <details class="tl-section-card calculator-advanced-card" ${advancedOpen ? "open" : ""}>
         <summary>
           <span>Ajustes avanzados</span>
-          <small>Supuestos del instrumento, perfil de cálculo y precio TP.</small>
+          <small>Supuestos del instrumento, perfil y precio TP.</small>
         </summary>
         <div class="calculator-advanced-body">
           <div class="form-grid-clean calc-form-grid calculator-spec-form">
