@@ -67,6 +67,7 @@ let currentComplianceHistoryView = "heatmap";
 let selectedComplianceCell = null;
 let complianceLineChartInstance = null;
 let complianceBarChartInstance = null;
+let profileConfigExpanded = false;
 
 const WEIGHT_OPTIONS = [
   {
@@ -1292,7 +1293,7 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
       value: Number.isFinite(slViolations) ? String(slViolations) : "Pendiente",
       subcopy: Number.isFinite(slViolations) ? "trades este mes" : "pendiente de tracking EA",
       badge: Number.isFinite(slViolations) && slViolations > 0 ? "violación confirmada" : "sin datos suficientes",
-      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "bad") : "warn"
+      tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "bad") : "neutral"
     },
     {
       label: "Trades fuera de horario",
@@ -1734,14 +1735,12 @@ function renderRuleHistory(history = {}, profile = {}) {
   const view = ["heatmap", "line", "bar"].includes(currentComplianceHistoryView) ? currentComplianceHistoryView : "heatmap";
   if (weeks.length < 2) {
     return `
-      <section id="compliance-history-card" class="tl-section-card execution-panel rule-history">
-        <div class="rule-history__header">
-          <div>
-            <strong>Historial de cumplimiento</strong>
-            <p>Evolución semanal de reglas etiquetadas.</p>
-          </div>
+      <section id="compliance-history-card" class="execution-history-compact rule-history">
+        <div>
+          <span>Historial de cumplimiento</span>
+          <strong>Historial insuficiente</strong>
         </div>
-        <div class="rule-history__empty">Historial insuficiente — necesitas más trades etiquetados</div>
+        <p>Necesitas más trades etiquetados para leer evolución semanal.</p>
       </section>
     `;
   }
@@ -2491,6 +2490,57 @@ function renderAccountAssignments(profileState, activeProfile, accountLogin = ""
   `;
 }
 
+function profileAssignmentCount(profileState = {}, profile = {}) {
+  return Object.values(profileState.accountMap || {}).filter((profileId) => profileId === profile?.id).length;
+}
+
+function renderProfileConfigZone(profileState = {}, activeProfile = {}, accountLogin = "") {
+  const activeRules = (activeProfile?.rules || []).filter((rule) => rule.enabled !== false).length;
+  const assignmentCount = profileAssignmentCount(profileState, activeProfile);
+  const mappedToCurrent = accountLogin && profileState.accountMap?.[String(accountLogin)] === activeProfile?.id;
+  const assignedLabel = mappedToCurrent
+    ? "Cuenta actual asignada"
+    : assignmentCount
+      ? `${assignmentCount} cuentas asignadas`
+      : "Sin asignación fija";
+  return `
+    <section class="execution-config-zone${profileConfigExpanded ? " is-open" : " is-collapsed"}">
+      <div class="execution-config-zone__head">
+        <div>
+          <span>Configuración local</span>
+          <strong>Scoring y perfiles de reglas</strong>
+        </div>
+        <p>Define cómo se puntúan las reglas sin cambiar cálculos ni Risk Engine.</p>
+      </div>
+      <div class="execution-config-summary">
+        <div>
+          <span>Perfil activo</span>
+          <strong>${escapeHtml(activeProfile?.name || "Real · Conservative")}</strong>
+        </div>
+        <div>
+          <span>Reglas activas</span>
+          <strong>${activeRules}</strong>
+        </div>
+        <div>
+          <span>Asignación</span>
+          <strong>${escapeHtml(assignedLabel)}</strong>
+        </div>
+        <button type="button" data-profile-config-toggle>
+          ${profileConfigExpanded ? "Ocultar perfiles" : "Configurar perfiles"}
+        </button>
+      </div>
+      ${profileConfigExpanded ? `<div id="discipline-profile-manager"></div>` : ""}
+    </section>
+  `;
+}
+
+function bindProfileConfigControls(target, context) {
+  target.querySelector("[data-profile-config-toggle]")?.addEventListener("click", () => {
+    profileConfigExpanded = !profileConfigExpanded;
+    renderDisciplineSection(context.target, context.data, context);
+  });
+}
+
 function renderProfileManager(container, context = {}) {
   if (!container) return;
   const profileState = loadProfiles();
@@ -2981,6 +3031,35 @@ function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPa
   const patternText = hasTracking
     ? entryPattern
     : "Pendiente de tracking EA. Con datos reales se medirá desviación frente a la entrada ideal.";
+  if (!hasTracking) {
+    return `
+      <article id="entry-precision-card" class="execution-entry-card execution-entry-card--compact is-empty">
+        <div class="execution-entry-card__header">
+          <div><i aria-hidden="true"></i><strong>Precisión de entrada</strong></div>
+          <span>${escapeHtml(headerStatus)}</span>
+        </div>
+        <div class="execution-entry-empty-row">
+          <div class="execution-entry-empty-row__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"></circle>
+              <path d="M12 10.5v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              <path d="M12 7.5h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path>
+            </svg>
+          </div>
+          <div class="execution-entry-empty-row__copy">
+            <strong>Sin historial de precisión todavía</strong>
+            <p>Cuando el EA envíe ob_price, KMFX medirá desviación frente a entrada ideal.</p>
+          </div>
+          <button type="button" class="execution-entry-config">Configurar EA →</button>
+        </div>
+        <div class="execution-entry-pattern-bar">
+          <span>Lectura</span>
+          <p>${escapeHtml(patternText)}</p>
+          <strong>— pips media</strong>
+        </div>
+      </article>
+    `;
+  }
   const previewRows = [
     { date: "23 abr", pair: "EURUSD", width: 8, dev: "+0.8p", status: "ideal", tone: "ok" },
     { date: "22 abr", pair: "GBPUSD", width: 31, dev: "+3.1p", status: "tardío", tone: "warn" },
@@ -3084,6 +3163,7 @@ function ruleDataSource(row = {}) {
   const note = String(row.note || "");
   if (/post-trade tag/i.test(note)) return { label: "Tag manual", tone: "manual" };
   if (/tracking/i.test(note)) return { label: "EA pendiente", tone: "pending" };
+  if (/sin historial|sin operaciones/i.test(note)) return { label: "Sin historial", tone: "pending" };
   if (/requiere configuración|pendiente|sin datos|sin historial|sin operaciones|tag pendiente/i.test(note)) {
     return { label: "Pendiente", tone: "pending" };
   }
@@ -4079,19 +4159,11 @@ export function renderDisciplineSection(target, data = disciplineData, context =
 
     ${renderEntryPrecisionCard({ hasTracking: hasEntryTracking, entryRows, entryPattern })}
 
-    <section class="execution-config-zone">
-      <div class="execution-config-zone__head">
-        <div>
-          <span>Configuración local</span>
-          <strong>Scoring y perfiles de reglas</strong>
-        </div>
-        <p>Secundario: define cómo se puntúan las reglas sin cambiar cálculos ni enforcement del Risk Engine.</p>
-      </div>
-      <div id="discipline-profile-manager"></div>
-    </section>
+    ${renderProfileConfigZone(profileState, activeProfile, accountLogin)}
     ${renderPostTradeModal(activeProfile, postTradeTags)}
   `;
-  renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
+  if (profileConfigExpanded) renderProfileManager(target.querySelector("#discipline-profile-manager"), renderContext);
+  bindProfileConfigControls(target, renderContext);
   renderComplianceHistoryCharts(target);
   bindPostTradeControls(target, { ...renderContext, data: { ...data, recentTrades } }, activeProfile, pendingTagTrades);
 }

@@ -32129,3 +32129,304 @@ body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile
     flex-wrap: wrap;
   }
 }
+
+/* === EXECUTION HIERARCHY POLISH === */
+html[data-theme="dark"] #section-discipline #discipline-score-card,
+body[data-theme="dark"] #section-discipline #discipline-score-card {
+  opacity: 0.92;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title::before,
+body[data-theme="dark"] #section-discipline #discipline-score-card .tl-section-title::before,
+html[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-rules-panel .tl-section-title::before,
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .tl-section-title::before {
+  display: none !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-data-pill,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-data-pill {
+  background: rgba(255,255,255,0.028) !important;
+  border-color: var(--border-0) !important;
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge {
+  flex-basis: 98px !important;
+  width: 98px !important;
+  height: 98px !important;
+}
+
+html[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong,
+body[data-theme="dark"] #section-discipline #discipline-score-card .execution-score-gauge strong {
+  font-size: 28px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-card {
+  min-height: 92px !important;
+  padding: 13px 15px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-label {
+  margin-bottom: 6px !important;
+  letter-spacing: 0.08em !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value {
+  font-size: 23px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value[data-value-type="text"],
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-value[data-value-type="text"] {
+  font-size: 17px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub,
+body[data-theme="dark"] #section-discipline .execution-kpi-grid .kpi-sub {
+  margin-top: 5px !important;
+  font-size: 11px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-kpi.execution-tone-neutral span,
+body[data-theme="dark"] #section-discipline .execution-kpi.execution-tone-neutral span,
+html[data-theme="dark"] #section-discipline .execution-kpi.execution-tone-pending span,
+body[data-theme="dark"] #section-discipline .execution-kpi.execution-tone-pending span {
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row {
+  grid-template-columns: minmax(150px, 210px) minmax(120px, 1fr) 44px minmax(132px, 0.72fr) !important;
+  padding: 10px 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending {
+  opacity: 0.76 !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-name {
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row.pending .rule-status {
+  color: var(--text-3) !important;
+}
+
+html[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row small,
+body[data-theme="dark"] #section-discipline #rule-compliance-bars .rule-row small {
+  color: var(--text-2) !important;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="dark"] #section-discipline .execution-rule-source,
+body[data-theme="dark"] #section-discipline .execution-rule-source {
+  min-height: 20px;
+  padding: 0 7px;
+  font-size: 9px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-warn {
+  background: color-mix(in srgb, var(--warning) 28%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--warning) 68%, var(--text-0)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-bad {
+  background: color-mix(in srgb, var(--negative) 34%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--negative) 72%, var(--text-0)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-ok {
+  background: color-mix(in srgb, var(--positive) 38%, var(--layer-2)) !important;
+  color: color-mix(in srgb, var(--positive) 68%, var(--text-0)) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__cell.execution-tone-empty {
+  background: rgba(255,255,255,0.035) !important;
+  border: 1px solid rgba(255,255,255,0.035) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span,
+body[data-theme="dark"] #section-discipline .execution-calendar-panel .execution-heatmap__legend span {
+  color: var(--text-2) !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-history-compact,
+body[data-theme="dark"] #section-discipline .execution-history-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 15px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--layer-1) 90%, var(--layer-2));
+}
+
+html[data-theme="dark"] #section-discipline .execution-history-compact div,
+body[data-theme="dark"] #section-discipline .execution-history-compact div {
+  display: grid;
+  gap: 3px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-history-compact span,
+body[data-theme="dark"] #section-discipline .execution-history-compact span {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+html[data-theme="dark"] #section-discipline .execution-history-compact strong,
+body[data-theme="dark"] #section-discipline .execution-history-compact strong {
+  font-size: 14px;
+  color: var(--text-0);
+}
+
+html[data-theme="dark"] #section-discipline .execution-history-compact p,
+body[data-theme="dark"] #section-discipline .execution-history-compact p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card--compact,
+body[data-theme="dark"] #section-discipline .execution-entry-card--compact {
+  gap: 12px !important;
+  padding: 16px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card--compact .execution-entry-empty-row,
+body[data-theme="dark"] #section-discipline .execution-entry-card--compact .execution-entry-empty-row {
+  padding: 11px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-entry-card--compact .execution-entry-pattern-bar,
+body[data-theme="dark"] #section-discipline .execution-entry-card--compact .execution-entry-pattern-bar {
+  padding: 10px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone.is-collapsed,
+body[data-theme="dark"] #section-discipline .execution-config-zone.is-collapsed {
+  opacity: 0.78;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-summary,
+body[data-theme="dark"] #section-discipline .execution-config-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.42fr) minmax(160px, 0.55fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-0);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--layer-1) 90%, var(--layer-2));
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-summary div,
+body[data-theme="dark"] #section-discipline .execution-config-summary div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-summary span,
+body[data-theme="dark"] #section-discipline .execution-config-summary span {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-summary strong,
+body[data-theme="dark"] #section-discipline .execution-config-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-summary button,
+body[data-theme="dark"] #section-discipline .execution-config-summary button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-0);
+  border-radius: 999px;
+  background: var(--layer-2);
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone.is-open .rule-profile-manager,
+body[data-theme="dark"] #section-discipline .execution-config-zone.is-open .rule-profile-manager {
+  margin-top: 2px;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-card,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-card,
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule {
+  padding: 10px 12px !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule {
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule__copy p,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-rule__copy p {
+  margin-top: 2px !important;
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+}
+
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-badge,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-badge,
+html[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-weight__trigger,
+body[data-theme="dark"] #section-discipline .execution-config-zone .rule-profile-weight__trigger {
+  min-height: 28px !important;
+  padding: 0 9px !important;
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] #section-discipline .execution-config-summary,
+  body[data-theme="dark"] #section-discipline .execution-config-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  html[data-theme="dark"] #section-discipline .execution-config-summary button,
+  body[data-theme="dark"] #section-discipline .execution-config-summary button {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+
+@media (max-width: 680px) {
+  html[data-theme="dark"] #section-discipline .execution-history-compact,
+  body[data-theme="dark"] #section-discipline .execution-history-compact,
+  html[data-theme="dark"] #section-discipline .execution-config-summary,
+  body[data-theme="dark"] #section-discipline .execution-config-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
