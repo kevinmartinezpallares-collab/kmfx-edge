@@ -40,7 +40,7 @@ const pageContext = {
   portfolio: "Gestión económica de capital y evolución por cuenta",
   glossary: "Glosario de métricas y definiciones",
   debug: "Diagnóstico local y contexto de restauración",
-  settings: "Preferencias locales del frontend"
+  settings: "Perfil, workspace e integraciones"
 };
 
 export function initNavigation(store) {

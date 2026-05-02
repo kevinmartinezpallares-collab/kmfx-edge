@@ -259,7 +259,7 @@ function startClock() {
   setInterval(tick, 1000);
 }
 
-function initSettings() {
+function initSettings(authSession = null) {
   const defaultProfile = {
     name: DEFAULT_AUTH_USER.name,
     email: DEFAULT_AUTH_USER.email,
@@ -301,6 +301,9 @@ function initSettings() {
   const connectionSource = document.querySelector("[data-settings-connection-source]");
   const connectionLastSync = document.querySelector("[data-settings-last-sync]");
   const connectionLastAccount = document.querySelector("[data-settings-last-account]");
+  const sessionState = document.querySelector("[data-settings-session-state]");
+  const sessionEmail = document.querySelector("[data-settings-session-email]");
+  const signOutButton = document.querySelector("[data-settings-signout]");
   const adminOnlyNodes = [...document.querySelectorAll("[data-admin-only]")];
   const themeSelect = document.querySelector('[data-settings-field="theme"]');
   const densitySelect = document.querySelector('[data-settings-field="density"]');
@@ -453,6 +456,23 @@ function initSettings() {
     if (connectionLastAccount) connectionLastAccount.textContent = account.name || "Sin cuenta seleccionada";
   };
 
+  const syncSessionReadout = (state = store.getState()) => {
+    const auth = state.auth || {};
+    const isAuthenticated = auth.status === "authenticated";
+    if (sessionState) {
+      sessionState.textContent = isAuthenticated ? "Sesión activa" : "Sesión local";
+    }
+    if (sessionEmail) {
+      sessionEmail.textContent = isAuthenticated
+        ? (auth.user?.email || "Usuario autenticado")
+        : "Sin usuario autenticado";
+    }
+    if (signOutButton) {
+      signOutButton.disabled = !isAuthenticated;
+      signOutButton.setAttribute("aria-disabled", isAuthenticated ? "false" : "true");
+    }
+  };
+
   const syncAccountSelectors = (selectedId) => {
     accountSelects.forEach((select) => {
       if (select) select.value = selectedId;
@@ -470,6 +490,7 @@ function initSettings() {
     applyPreferences({ ...preferences, dashboardAccount: profile.defaultAccount, theme: store.getState().ui.theme });
     syncAccountSelectors(profile.defaultAccount);
     syncConnectionReadout(store.getState());
+    syncSessionReadout(store.getState());
     syncAdminUI(store.getState());
   };
 
@@ -668,6 +689,19 @@ function initSettings() {
 
   document.querySelector("[data-settings-save]")?.addEventListener("click", saveSettings);
   document.querySelector("[data-settings-reset]")?.addEventListener("click", resetSettings);
+  signOutButton?.addEventListener("click", async () => {
+    if (!authSession?.signOut || store.getState().auth?.status !== "authenticated") return;
+    signOutButton.disabled = true;
+    if (settingsStatus) settingsStatus.textContent = "Cerrando sesión...";
+    const result = await authSession.signOut();
+    if (!result.ok) {
+      signOutButton.disabled = false;
+      if (settingsStatus) settingsStatus.textContent = result.reason || "No se pudo cerrar sesión.";
+      return;
+    }
+    syncSessionReadout(store.getState());
+    if (settingsStatus) settingsStatus.textContent = "Sesión cerrada.";
+  });
 
   const handleSettingsFieldEdit = (field) => {
     if (!field) return;
@@ -697,6 +731,7 @@ function initSettings() {
   store.subscribe((state) => {
     applyTheme(state.ui.theme);
     syncConnectionReadout(state);
+    syncSessionReadout(state);
     syncAdminUI(state);
     const nextAuthSignature = JSON.stringify(state.auth || {});
     if (nextAuthSignature !== lastAuthSignature) {
@@ -728,7 +763,7 @@ async function bootstrapApp() {
   });
   logBootState("startup-before-init");
 
-  initAuthSession(store);
+  const authSession = initAuthSession(store);
   const snapshotBootstrap = await initAccountsLiveSnapshot(store);
   if (snapshotBootstrap?.ok && snapshotBootstrap.count > 0) {
     const state = store.getState();
@@ -768,7 +803,7 @@ async function bootstrapApp() {
   initSidebarVNext();
   initConnectionWizard(store);
   initPostTradeTagBridge();
-  initSettings();
+  initSettings(authSession);
   startClock();
   store.subscribe(() => renderActivePage());
   store.subscribe((state) => {
