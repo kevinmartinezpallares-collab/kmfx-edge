@@ -27,9 +27,20 @@ def _glob_installations(root: Path, platform_name: str) -> list[MT5Installation]
     for experts_dir in experts_dirs:
         data_path = experts_dir.parent.parent
         presets_path = str(data_path / "Profiles" / "Presets")
-        terminal_candidates = list(data_path.parent.glob("terminal64.exe")) + list(data_path.parent.glob("terminal.exe"))
+        terminal_candidates = [
+            data_path / "terminal64.exe",
+            data_path / "terminal.exe",
+            data_path.parent / "terminal64.exe",
+            data_path.parent / "terminal.exe",
+        ]
+        terminal_candidates = [path for path in terminal_candidates if path.exists()]
         terminal_path = str(terminal_candidates[0]) if terminal_candidates else ""
-        label = f"{platform_name} · {data_path.name}"
+        label_parts = [platform_name]
+        prefix_name = _wine_prefix_name(data_path)
+        if prefix_name:
+            label_parts.append(prefix_name)
+        label_parts.append(data_path.name)
+        label = " · ".join(label_parts)
         installations.append(
             MT5Installation(
                 label=label,
@@ -41,6 +52,16 @@ def _glob_installations(root: Path, platform_name: str) -> list[MT5Installation]
             )
         )
     return installations
+
+
+def _wine_prefix_name(path: Path) -> str:
+    parts = path.parts
+    if "drive_c" not in parts:
+        return ""
+    index = parts.index("drive_c")
+    if index <= 0:
+        return ""
+    return parts[index - 1]
 
 
 def detect_mt5_installations() -> list[MT5Installation]:

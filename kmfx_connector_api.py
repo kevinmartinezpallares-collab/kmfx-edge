@@ -1658,6 +1658,26 @@ async def link_account(request: Request) -> JSONResponse:
                 api_key=launcher_connection_key,
                 alias=label,
             )
+            if claimed_account is None:
+                claimed_account = account_service.create_pending_account_with_key(
+                    user_id=user_id,
+                    alias=label,
+                    connection_key=launcher_connection_key,
+                    platform=platform,
+                )
+            if claimed_account is None:
+                return connector_json_response(
+                    {
+                        "ok": False,
+                        "reason": "connection_key_not_available",
+                        "details": {
+                            "field": "connection_key",
+                            "connection_key": mask_connection_key(launcher_connection_key),
+                        },
+                        "timestamp": now_iso(),
+                    },
+                    status_code=409,
+                )
         except ValueError as exc:
             reason = str(exc)
             status_code = 409 if reason == "connection_key_already_linked" else 400

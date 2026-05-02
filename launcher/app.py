@@ -39,12 +39,19 @@ LAUNCHER_VERSION = "1.0.0"
 DEFAULT_CONNECTOR_VERSION = "2.76"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-icon-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
+INSTALLED_LINK_SYNC_TTL_SECONDS = 45
 DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://kmfxedge.com?auth=recovery")
 
 
 def _safe_str(value: Any, fallback: str = "") -> str:
     text = str(value or "").strip()
     return text or fallback
+
+
+def _sanitize_account_label(value: str, fallback: str = "Cuenta MT5") -> str:
+    cleaned = re.sub(r"[^\w\s.\-·]", " ", str(value or ""), flags=re.UNICODE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return (cleaned or fallback)[:80]
 
 
 def _read_connector_version() -> str:
@@ -122,6 +129,7 @@ class KMFXApi:
         self._stable_service_on = False
         self._last_sync: dict[str, Any] = {}
         self._last_account_connections: list[dict[str, Any]] = []
+        self._last_installed_link_sync_at = 0.0
         self.refresh_installations()
         self.ensure_session()
 
@@ -308,18 +316,23 @@ class KMFXApi:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        if has_local_link:
-            save_bridge_config(self.config, user_id=self.config.auth_user_id)
-            self.fetch_json("/bridge/reload-config")
-            return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
-
-        response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
+        response = self.backend.link_account(
+            user_id=self.config.auth_user_id,
+            label="KMFX Connector MT5",
+            connection_key=self.config.connection_key if has_local_link else "",
+        )
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
+            if has_local_link:
+                save_bridge_config(self.config, user_id=self.config.auth_user_id)
+                self.fetch_json("/bridge/reload-config")
+                return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
             return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
 
         body = response.body or {}
         connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
+        if not connection_key and has_local_link:
+            connection_key = self.config.connection_key
         if not connection_key:
             return {"ok": False, "message": "El backend no devolvió connection key."}
         self.config.connection_key = connection_key
@@ -334,6 +347,7 @@ class KMFXApi:
         with self._lock:
             if not self.get_session().get("authenticated"):
                 return []
+            self.ensure_installed_account_links()
             response = self.backend.get_accounts_registry()
             if not response.ok:
                 connections = list(self._last_account_connections)
@@ -362,7 +376,7 @@ class KMFXApi:
             if not self.get_session().get("authenticated"):
                 return {"ok": False, "message": "Inicia sesión para crear una conexión MT5."}
             existing_count = len(self.get_account_connections())
-            resolved_label = _safe_str(label, f"Cuenta MT5 {existing_count + 1}")
+            resolved_label = _sanitize_account_label(label, f"Cuenta MT5 {existing_count + 1}")
             response = self.backend.link_account(
                 user_id=self.config.auth_user_id,
                 label=resolved_label,
@@ -375,6 +389,40 @@ class KMFXApi:
                 "message": "Conexión MT5 creada.",
                 "account_connections": self.get_account_connections(),
             }
+
+    def ensure_installed_account_links(self, force: bool = False) -> None:
+        if not self.config.auth_user_id:
+            return
+        now = time.time()
+        if not force and now - self._last_installed_link_sync_at < INSTALLED_LINK_SYNC_TTL_SECONDS:
+            return
+        self._last_installed_link_sync_at = now
+
+        primary_key = _safe_str(self.config.connection_key)
+        seen_keys: set[str] = set()
+        for installation in self.installations:
+            connection_key = self.installed_connection_key(installation)
+            if not connection_key or connection_key == primary_key or connection_key in seen_keys:
+                continue
+            seen_keys.add(connection_key)
+            label = self.installed_connection_label(installation)
+            response = self.backend.link_account(
+                user_id=self.config.auth_user_id,
+                label=label,
+                connection_key=connection_key,
+            )
+            if response.ok:
+                self.logger.info(
+                    "[KMFX][LAUNCHER][LINK] installed MT5 connection synced target=%s key=%s",
+                    installation.label,
+                    mask_connection_key(connection_key),
+                )
+            else:
+                self.logger.warning(
+                    "[KMFX][LAUNCHER][LINK] installed MT5 connection sync failed target=%s status=%s",
+                    installation.label,
+                    response.status_code,
+                )
 
     def account_connection_by_id(self, account_id: str) -> dict[str, Any] | None:
         normalized = _safe_str(account_id)
@@ -443,6 +491,7 @@ class KMFXApi:
                 mask_connection_key(connection_key),
             )
             self.refresh_installations()
+            self.ensure_installed_account_links(force=True)
             return {
                 "ok": True,
                 "message": f"Conector instalado para {connection.get('label') or 'Cuenta MT5'}.",
@@ -531,6 +580,30 @@ class KMFXApi:
             None,
         )
         return preferred or self.installations[0]
+
+    def installed_connection_key(self, installation: MT5Installation) -> str:
+        config_path = Path(installation.data_path) / "MQL5" / "Files" / "kmfx_connection.conf"
+        if not config_path.exists():
+            return ""
+        try:
+            lines = config_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            return ""
+        for line in lines:
+            if line.startswith("connection_key="):
+                return _safe_str(line.split("=", 1)[1])
+        return ""
+
+    def installed_connection_label(self, installation: MT5Installation) -> str:
+        raw_label = installation.label
+        normalized = raw_label.replace("_", " ")
+        if "Orion" in normalized or "OGM" in normalized:
+            return "Orion OGM MT5"
+        if "Darwinex" in normalized:
+            return "Darwinex MT5"
+        parts = [part.strip() for part in raw_label.split("·") if part.strip()]
+        without_platform = " ".join(parts[1:] if len(parts) > 1 else parts)
+        return _sanitize_account_label(without_platform, "Cuenta MT5")
 
     def serialize_installation(self, installation: MT5Installation) -> dict[str, Any]:
         return {

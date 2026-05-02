@@ -133,7 +133,11 @@ class LauncherServiceRuntime:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
+        response = self.backend.link_account(
+            user_id=self.config.auth_user_id,
+            label="KMFX Connector MT5",
+            connection_key=self.config.connection_key if has_local_link else "",
+        )
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
             if has_local_link:
@@ -144,6 +148,8 @@ class LauncherServiceRuntime:
 
         body = response.body or {}
         connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
+        if not connection_key and has_local_link:
+            connection_key = self.config.connection_key
         if not connection_key:
             return {"ok": False, "message": "El backend no devolvió connection key."}
         self.config.connection_key = connection_key

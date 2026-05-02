@@ -106,6 +106,39 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual(100500, snapshot["accounts"][0]["dashboard_payload"]["equity"])
         self.assertEqual([], self.service.list_accounts("local"))
 
+    def test_create_pending_account_with_key_uses_requested_connection_key(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Orion OGM MT5",
+            connection_key="orion-launcher-key",
+        )
+
+        self.assertIsNotNone(created)
+        self.assertEqual("orion-launcher-key", created.api_key)
+        self.assertEqual("pending_link", created.status)
+        registry = self.service.build_accounts_registry("user-123")
+        self.assertEqual("orion-launcher-key", registry[0]["connection_key"])
+
+    def test_create_pending_account_with_key_archives_stale_pending_alias(self) -> None:
+        stale = self.service.create_pending_account(
+            user_id="user-123",
+            alias="Orion OGM MT5",
+        )
+
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Orion OGM MT5",
+            connection_key="orion-installed-key",
+        )
+
+        registry = self.service.build_accounts_registry("user-123")
+        self.assertEqual(1, len(registry))
+        self.assertEqual(created.account_id, registry[0]["account_id"])
+        self.assertEqual("orion-installed-key", registry[0]["connection_key"])
+        archived = self.service.store.list_accounts()[0]
+        self.assertEqual(stale.account_id, archived.account_id)
+        self.assertEqual("archived", archived.status)
+
     def test_claim_account_by_api_key_rejects_account_owned_by_another_user(self) -> None:
         self.service.create_pending_account_with_key(
             user_id="other-user",

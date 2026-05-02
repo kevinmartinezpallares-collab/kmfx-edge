@@ -321,6 +321,11 @@ class AccountService:
                 normalized_key[:8],
             )
             return None
+        self.archive_stale_pending_alias_accounts(
+            user_id=user_id,
+            alias=alias,
+            keep_connection_key=normalized_key,
+        )
         created = self.create_account(
             user_id=user_id,
             alias=alias,
@@ -342,6 +347,42 @@ class AccountService:
             normalized_key[:8],
         )
         return created
+
+    def archive_stale_pending_alias_accounts(self, *, user_id: str, alias: str, keep_connection_key: str) -> None:
+        cleaned_alias = _clean_alias(alias or "")
+        if not cleaned_alias:
+            return
+        accounts = self.store.list_accounts()
+        now = _now_utc()
+        changed = False
+        for account in accounts:
+            has_identity = bool(
+                str(account.broker or "").strip()
+                or str(account.login or account.mt5_login or "").strip()
+                or str(account.server or "").strip()
+            )
+            if (
+                account.user_id == user_id
+                and not _is_deleted(account)
+                and not _is_archived(account)
+                and _normalize_status(account.status) in PENDING_STATUSES
+                and (account.alias or account.nickname or "") == cleaned_alias
+                and account.api_key != keep_connection_key
+                and not has_identity
+            ):
+                account.status = "archived"
+                account.archived_at = account.archived_at or now
+                account.updated_at = now
+                changed = True
+                log.info(
+                    "[KMFX][ACCOUNT_DEDUPE] user_id=%s archived_stale_pending=%s alias=%s kept_key=%s",
+                    user_id,
+                    account.account_id,
+                    cleaned_alias,
+                    keep_connection_key[:8],
+                )
+        if changed:
+            self.store.save_accounts(accounts)
 
     def set_default_account(self, user_id: str, account_id: str) -> Account | None:
         accounts = self.store.list_accounts()
@@ -799,7 +840,7 @@ class AccountService:
         }
 
     def build_accounts_registry(self, user_id: str = "local") -> list[dict[str, Any]]:
-        accounts = [account for account in self.list_accounts(user_id) if not _is_deleted(account)]
+        accounts = [account for account in self.list_accounts(user_id) if not _is_deleted(account) and not _is_archived(account)]
         return [
             {
                 "account_id": account.account_id,
