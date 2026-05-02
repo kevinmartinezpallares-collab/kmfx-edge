@@ -3,7 +3,7 @@ import { buildApiUrl } from "./api-config.js?v=build-20260406-213500";
 import { showToast } from "./toast.js?v=build-20260406-213500";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
-const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "";
+const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
@@ -116,8 +116,8 @@ function renderWizardMarkup(state) {
   return `
     <div class="connection-wizard connection-wizard--launcher">
       ${renderStepFrame(
-        "Conecta tu cuenta MT5",
-        "KMFX no pide tu contraseña de MT5 ni ejecuta operaciones. También funciona si entras en MetaTrader con investor password porque el conector solo lee datos.",
+        "Opción 1: Launcher recomendado",
+        "El Launcher inicia sesión con KMFX, genera la key por ti e instala el conector en MT5. No tienes que copiar claves técnicas.",
         `
           <div class="connection-wizard__checklist connection-wizard__checklist--numbered">
             <div class="connection-wizard__checklist-item">1. Descarga o abre KMFX Launcher.</div>
@@ -134,12 +134,22 @@ function renderWizardMarkup(state) {
         `
       )}
       ${renderStepFrame(
-        "Conexión directa",
-        "Alternativa sin launcher: descarga el EA, crea una key y apunta WebRequest a la API de KMFX.",
+        "Opción 2: Manual con EA",
+        "Usa este camino si prefieres instalar el EA tú mismo. Aquí se crea la key que luego pegas en el campo KMFXKey del EA.",
         `
+          <div class="connection-wizard__utility-row">
+            <div>
+              <div class="connection-wizard__utility-label">Key para el EA</div>
+              <code class="connection-wizard__utility-value">${hasDirectKey ? escapeHtml(direct.connectionKey) : "Pulsa \"Crear key para EA\" para generarla."}</code>
+            </div>
+            <div class="connection-wizard__utility-actions">
+              ${hasDirectKey ? `<button class="btn-primary" type="button" data-wizard-copy-direct-key="true">Copiar key</button>` : ""}
+              <button class="btn-secondary" type="button" data-wizard-create-direct="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Creando..." : hasDirectKey ? "Regenerar key" : "Crear key para EA"}</button>
+            </div>
+          </div>
           <div class="connection-wizard__form-grid">
             <label class="form-stack">
-              <span>Nombre de la conexión</span>
+              <span>Nombre de la cuenta o conexión</span>
               <input type="text" name="directLabel" value="${escapeHtml(direct.label || "Cuenta MT5 directa")}" placeholder="Orion Challenge 5k">
             </label>
             <div class="connection-wizard__utility-row">
@@ -159,20 +169,8 @@ function renderWizardMarkup(state) {
             <div class="connection-wizard__checklist-item">4. Puedes iniciar sesión con master password o investor password.</div>
             <div class="connection-wizard__checklist-item">5. Al primer sync la cuenta aparecerá en Cuentas y Dashboard.</div>
           </div>
-          ${hasDirectKey ? `
-            <div class="connection-wizard__secret-row">
-              <div>
-                <div class="connection-wizard__utility-label">Key para pegar en el EA</div>
-                <code class="connection-wizard__secret-value">${escapeHtml(direct.connectionKey)}</code>
-              </div>
-              <div class="connection-wizard__secret-actions">
-                <button class="btn-primary" type="button" data-wizard-copy-direct-key="true">Copiar key</button>
-              </div>
-            </div>
-          ` : ""}
           <div class="connection-wizard__inline-actions">
             <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
-            <button class="btn-primary" type="button" data-wizard-create-direct="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Creando..." : hasDirectKey ? "Regenerar key directa" : "Crear key directa"}</button>
           </div>
         `
       )}

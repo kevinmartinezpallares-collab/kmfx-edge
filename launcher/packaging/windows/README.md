@@ -18,6 +18,25 @@ python -m pip install -r requirements.txt -r requirements-build.txt
 
 ## Build the launcher
 
+### Opción recomendada: GitHub Actions
+
+No hace falta tener Windows local. El workflow `Build Windows Launcher` compila el launcher en `windows-latest`, genera:
+
+```text
+downloads/KMFX-Launcher-Windows.zip
+downloads/KMFX-Launcher-Windows.zip.sha256
+```
+
+y puede commitear esos archivos en `main` para que Vercel los sirva desde:
+
+```text
+https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
+```
+
+El workflow se ejecuta automáticamente cuando cambian los archivos del launcher en `main`, y también puede lanzarse manualmente desde GitHub Actions.
+
+### Opción local
+
 From the repository root:
 
 ```powershell

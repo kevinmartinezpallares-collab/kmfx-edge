@@ -5,7 +5,7 @@ import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260406-213
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
-const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "";
+const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
@@ -352,7 +352,7 @@ function renderConnectionGuide() {
   const steps = [
     {
       title: "Descarga KMFX Launcher",
-      body: "Instala el Launcher para macOS. El instalador Windows se publicará como artefacto propio de KMFX.",
+      body: "Instala el Launcher para macOS o Windows. El Launcher crea la key y deja el EA configurado.",
     },
     {
       title: "Instala el conector",
@@ -377,7 +377,7 @@ function renderConnectionGuide() {
       <div class="calendar-panel-head">
         <div>
           <div class="dashboard-risk-block__title">Conectar MT5 paso a paso</div>
-          <div class="row-sub">Flujo recomendado para usuarios: Launcher, conector, permiso WebRequest y primera sincronización.</div>
+          <div class="row-sub">Flujo recomendado: Launcher, conector, permiso WebRequest y primera sincronización. Sin copiar keys manualmente.</div>
         </div>
         <div class="connections-empty-card__actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
@@ -405,12 +405,12 @@ function renderConnectionGuide() {
       </div>
       <div class="connections-guide-card__direct" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 64%, transparent);">
         <div>
-          <div class="dashboard-risk-block__title" style="font-size:15px;">Conexión directa</div>
-          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key y conecta MT5 directamente con la API cloud. Compatible con investor password en modo lectura.</div>
+          <div class="dashboard-risk-block__title" style="font-size:15px;">Manual con EA</div>
+          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key en este modal y pégala en KMFXKey. Compatible con investor password en modo lectura.</div>
         </div>
         <div class="connections-empty-card__actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-ea="true">Descargar EA</button>
-          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="direct" data-connection-source="connections-guide">Crear key</button>
+          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="direct" data-connection-source="connections-guide">Crear key para EA</button>
         </div>
       </div>
     </section>
