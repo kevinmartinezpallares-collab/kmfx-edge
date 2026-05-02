@@ -14,8 +14,8 @@ COMMON_MT5_PATHS = [
 
 
 WINE_ROOT_CANDIDATES = [
-    Path("/private/tmp/kmfx_mt5_payload_2025/MetaTrader 5.app/Contents/SharedSupport/wine"),
     Path("/Applications/MetaTrader 5.app/Contents/SharedSupport/wine"),
+    Path("/private/tmp/kmfx_mt5_payload_2025/MetaTrader 5.app/Contents/SharedSupport/wine"),
 ]
 
 
@@ -31,8 +31,16 @@ def _wine_prefix_for_terminal(path: Path) -> Path | None:
 
 def _wine_root() -> Path | None:
     for root in WINE_ROOT_CANDIDATES:
-        if (root / "bin" / "wine64").exists():
+        if _wine_binary(root):
             return root
+    return None
+
+
+def _wine_binary(wine_root: Path) -> Path | None:
+    for binary_name in ("wine64", "wine"):
+        binary_path = wine_root / "bin" / binary_name
+        if binary_path.exists():
+            return binary_path
     return None
 
 
@@ -40,6 +48,9 @@ def _open_wine_terminal(path: Path, display_name: str = "") -> bool:
     wine_prefix = _wine_prefix_for_terminal(path)
     wine_root = _wine_root()
     if not wine_prefix or not wine_root:
+        return False
+    wine_binary = _wine_binary(wine_root)
+    if not wine_binary:
         return False
 
     env = os.environ.copy()
@@ -53,9 +64,8 @@ def _open_wine_terminal(path: Path, display_name: str = "") -> bool:
         fallback_library_path = f"{fallback_library_path}:{env['DYLD_FALLBACK_LIBRARY_PATH']}"
     env["DYLD_FALLBACK_LIBRARY_PATH"] = fallback_library_path
 
-    wine64_path = wine_root / "bin" / "wine64"
     subprocess.Popen(
-        [str(wine64_path), str(path), "/portable"],
+        [str(wine_binary), str(path), "/portable"],
         cwd=str(path.parent),
         env=env,
         stdout=subprocess.DEVNULL,
