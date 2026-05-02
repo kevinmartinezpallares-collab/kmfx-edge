@@ -967,34 +967,31 @@ export function renderCalculator(root, state) {
               <label class="form-stack calculator-fast-field">
                 <span>Riesgo %</span>
                 <input type="text" inputmode="decimal" data-calc-field="riskPct" value="${calc.riskPct}" autocomplete="off">
-                <div class="calc-inline-presets calculator-mini-presets">
+                <div class="calc-inline-presets calculator-mini-presets calculator-attached-presets calculator-risk-presets" aria-label="Presets rápidos de riesgo">
                   ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${toNumber(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
                 </div>
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Instrumento</span>
                 <input type="text" data-calc-field="symbol" value="${escapeHtml(calc.symbol)}" placeholder="EURJPY, GER40, BTCUSD">
+                <div class="calc-chip-group calculator-symbol-strip calculator-attached-presets" aria-label="Presets rápidos de instrumento">
+                  ${QUICK_INSTRUMENTS.map((item) => `<button class="calc-chip ${symbolKey === item.symbol ? "active" : ""}" type="button" data-calc-symbol="${item.symbol}">${item.label}</button>`).join("")}
+                </div>
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Distancia SL (${unitLabel})</span>
                 <input type="text" inputmode="decimal" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" autocomplete="off" ${calc.slMode === "price" ? "readonly" : ""}>
+                <div class="calculator-segmented-control calculator-sl-segmented" role="group" aria-label="Modo Stop Loss">
+                  <button class="calc-pill ${calc.slMode === "distance" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="distance">Por distancia</button>
+                  <button class="calc-pill ${calc.slMode === "price" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="price">Por precio</button>
+                </div>
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>R:R</span>
-                <div class="calc-inline-presets calculator-mini-presets">
+                <div class="calc-inline-presets calculator-mini-presets calculator-segmented-control calculator-rr-control" role="group" aria-label="Selector R:R">
                   ${["1:1", "1:2", "1:3", "1:4"].map((preset) => `<button class="calc-pill ${calc.rrPreset === preset ? "active" : ""}" type="button" data-calc-preset="rrPreset" data-calc-value="${preset}">${preset}</button>`).join("")}
                 </div>
               </label>
-            </div>
-
-            <div class="calculator-fast-controls">
-              <div class="calc-chip-group calculator-symbol-strip" aria-label="Presets rápidos de instrumento">
-                ${QUICK_INSTRUMENTS.map((item) => `<button class="calc-chip ${symbolKey === item.symbol ? "active" : ""}" type="button" data-calc-symbol="${item.symbol}">${item.label}</button>`).join("")}
-              </div>
-              <div class="calc-inline-presets calculator-mode-switch">
-                <button class="calc-pill ${calc.slMode === "distance" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="distance">SL distancia</button>
-                <button class="calc-pill ${calc.slMode === "price" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="price">SL precio</button>
-              </div>
             </div>
 
             <div class="calculator-price-fields ${calc.slMode === "price" ? "is-visible" : ""}">
