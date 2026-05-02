@@ -511,7 +511,7 @@ class KMFXApi:
             if not terminal_path:
                 return {"ok": False, "message": "No hay terminal MT5 detectada para abrir."}
             opener = open_mt5_mac if platform.system().lower() == "darwin" else open_mt5_windows
-            opened = opener(terminal_path)
+            opened = opener(terminal_path, self.mt5_display_name(installation))
             return {
                 "ok": opened,
                 "message": "MetaTrader abierto." if opened else "No se pudo abrir MetaTrader automáticamente.",
@@ -604,6 +604,34 @@ class KMFXApi:
         parts = [part.strip() for part in raw_label.split("·") if part.strip()]
         without_platform = " ".join(parts[1:] if len(parts) > 1 else parts)
         return _sanitize_account_label(without_platform, "Cuenta MT5")
+
+    def mt5_display_name(self, installation: MT5Installation | None) -> str:
+        if installation is None:
+            return "KMFX MT5"
+        key = self.installed_connection_key(installation)
+        connections = self._last_account_connections
+        if key and not connections:
+            connections = self.get_account_connections()
+        matching_connection = next(
+            (item for item in connections if key and _safe_str(item.get("connection_key")) == key),
+            {},
+        )
+        identity = " ".join(
+            [
+                installation.label,
+                _safe_str(matching_connection.get("label")),
+                _safe_str(matching_connection.get("broker")),
+                _safe_str(matching_connection.get("server")),
+            ]
+        ).replace("_", " ")
+        if "Orion" in identity or "OGM" in identity:
+            return "KMFX MT5 Orion"
+        if "Darwinex" in identity or "Tradeslide" in identity:
+            return "KMFX MT5 Darwinex"
+        login = _safe_str(matching_connection.get("login"))
+        if login:
+            return _sanitize_account_label(f"KMFX MT5 {login}", "KMFX MT5")
+        return _sanitize_account_label(f"KMFX MT5 {self.installed_connection_label(installation)}", "KMFX MT5")
 
     def serialize_installation(self, installation: MT5Installation) -> dict[str, Any]:
         return {

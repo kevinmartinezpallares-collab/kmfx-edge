@@ -13,7 +13,7 @@ COMMON_MT5_PATHS = [
 ]
 
 
-def open_mt5(terminal_path: str) -> bool:
+def open_mt5(terminal_path: str, display_name: str = "") -> bool:
     try:
         subprocess.Popen([terminal_path], shell=False)
         return True
