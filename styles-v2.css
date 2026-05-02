@@ -4910,6 +4910,42 @@ body[data-theme="dark"] #kmfx-posttrade-modal .ptt-body::-webkit-scrollbar-thumb
   min-width: 0;
 }
 
+.calculator-workspace-card .calculator-soft-badge,
+.calculator-spec-source .calculator-soft-badge {
+  min-height: 22px !important;
+  padding: 3px 7px !important;
+  gap: 5px !important;
+  border-color: color-mix(in srgb, var(--border-0) 34%, transparent) !important;
+  background: color-mix(in srgb, var(--foreground) 1.2%, transparent) !important;
+  color: color-mix(in srgb, var(--muted-foreground) 88%, var(--foreground)) !important;
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.005em !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+.calculator-workspace-card .calculator-soft-badge .ui-badge__dot,
+.calculator-spec-source .calculator-soft-badge .ui-badge__dot {
+  width: 5px;
+  height: 5px;
+  opacity: 0.72;
+}
+
+.calculator-workspace-card .calculator-soft-badge.ui-badge--ok,
+.calculator-spec-source .calculator-soft-badge.ui-badge--ok {
+  border-color: color-mix(in srgb, var(--profit) 16%, var(--border-0)) !important;
+  background: color-mix(in srgb, var(--profit) 4%, transparent) !important;
+  color: color-mix(in srgb, var(--profit) 58%, var(--foreground)) !important;
+}
+
+.calculator-workspace-card .calculator-soft-badge.ui-badge--warn,
+.calculator-spec-source .calculator-soft-badge.ui-badge--warn {
+  border-color: color-mix(in srgb, var(--warning) 14%, var(--border-0)) !important;
+  background: color-mix(in srgb, var(--warning) 3%, transparent) !important;
+  color: color-mix(in srgb, var(--warning) 52%, var(--muted-foreground)) !important;
+}
+
 .calculator-workflow-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);

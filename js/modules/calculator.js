@@ -650,6 +650,18 @@ function specSourceTone(source) {
   return "neutral";
 }
 
+function compactSourceLabel(spec = {}) {
+  if (spec.source === "live") return "Specs MT5";
+  if (spec.source === "standalone_fx") return "Estándar";
+  if (spec.source === "preset") return "Estimado";
+  if (spec.source === "manual" || spec.source === "override") return "Manual";
+  const label = spec.sourceLabel || "Manual";
+  return label
+    .replace(/^Cálculo estándar$/i, "Estándar")
+    .replace(/^Preset estimado$/i, "Estimado")
+    .replace(/^Supuestos manuales$/i, "Manual");
+}
+
 function specSourceMarkup(model) {
   const isEstimatedGold = isGoldSymbol(model.calc.symbol) && model.spec.source !== "live";
   const sourceClass = [
@@ -663,11 +675,12 @@ function specSourceMarkup(model) {
     : model.spec.source === "preset"
       ? "Preset estimado"
       : "Punto manual";
-  const badgeLabel = model.spec.source === "live"
-    ? "MT5"
-    : model.spec.source === "standalone_fx"
-      ? "FX"
-      : model.spec.source === "preset" ? "Estimado" : "Manual";
+  const sourceLabel = model.spec.sourceLabel || "Supuestos manuales";
+  const sourceTitle = [sourceLabel, unitSource]
+    .filter(Boolean)
+    .filter((item, index, list) => list.findIndex((entry) => entry.toLowerCase() === item.toLowerCase()) === index)
+    .join(" · ");
+  const badgeLabel = compactSourceLabel(model.spec);
   const badgeTone = isEstimatedGold ? "warn" : specSourceTone(model.spec.source);
   const riskPerLotCopy = Number.isFinite(Number(model.riskPerLot)) && Number(model.riskPerLot) > 0
     ? ` Riesgo/lote ${formatCurrency(model.riskPerLot, model.accountCurrency)}.`
@@ -682,10 +695,10 @@ function specSourceMarkup(model) {
   return `
     <div class="calculator-spec-source ${sourceClass}">
       <div>
-        <strong>${escapeHtml(model.spec.sourceLabel || "Supuestos manuales")} · ${escapeHtml(unitSource)}</strong>
+        <strong>${escapeHtml(sourceTitle)}</strong>
         <span>${escapeHtml(sourceCopy)}${escapeHtml(riskPerLotCopy)}</span>
       </div>
-      ${badgeMarkup({ label: badgeLabel, tone: badgeTone }, "ui-badge--compact")}
+      ${badgeMarkup({ label: badgeLabel, tone: badgeTone }, "ui-badge--compact calculator-soft-badge")}
     </div>
   `;
 }
@@ -898,7 +911,7 @@ export function renderCalculator(root, state) {
   const symbolKey = normalizeSymbol(calc.symbol);
   const unitLabel = model.spec.unitLabel || "pips/puntos";
   const targetCopy = model.target === null ? "Opcional" : String(model.target);
-  const stopModeLabel = calc.slMode === "price" ? "SL por precio" : "SL por distancia";
+  const stopModeLabel = calc.slMode === "price" ? "SL precio" : "SL distancia";
   const specLocked = model.spec.source === "live";
   const specControlState = specLocked ? "disabled" : "";
   const specInputState = specLocked ? "readonly" : "";
@@ -932,8 +945,8 @@ export function renderCalculator(root, state) {
             <div class="tl-section-sub">Calcula el lotaje desde capital, riesgo, instrumento y stop.</div>
           </div>
           <div class="calculator-workspace-badges">
-            ${badgeMarkup({ label: model.spec.sourceLabel || "Supuestos manuales", tone: specSourceTone(model.spec.source) }, "ui-badge--compact")}
-            ${badgeMarkup({ label: stopModeLabel, tone: "neutral" }, "ui-badge--compact")}
+            ${badgeMarkup({ label: compactSourceLabel(model.spec), tone: specSourceTone(model.spec.source) }, "ui-badge--compact calculator-soft-badge")}
+            ${badgeMarkup({ label: stopModeLabel, tone: "neutral" }, "ui-badge--compact calculator-soft-badge")}
           </div>
         </div>
 
