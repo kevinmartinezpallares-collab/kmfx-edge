@@ -1,4 +1,4 @@
-import { formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
+import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260406-213500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260406-213500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260406-213500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260406-213500";
@@ -202,7 +202,7 @@ function riskStatusMeta(snapshot) {
     return {
       tone: "danger",
       eyebrow: "Mando central",
-      headline: "PANIC LOCK ACTIVO — OPERATIVA CONGELADA",
+      headline: "Panic lock activo",
       context: "El bloqueo manual sigue activo. No se permiten nuevas órdenes hasta su expiración o liberación explícita."
     };
   }
@@ -210,7 +210,7 @@ function riskStatusMeta(snapshot) {
     return {
       tone: "danger",
       eyebrow: "Mando central",
-      headline: "RIESGO ACTIVO — MODO PROTECCIÓN",
+      headline: "Riesgo en modo protección",
       context: "La política de riesgo ya está limitando la operativa. La prioridad es preservar capital y disciplina."
     };
   }
@@ -218,7 +218,7 @@ function riskStatusMeta(snapshot) {
     return {
       tone: "warn",
       eyebrow: "Mando central",
-      headline: "RIESGO BAJO PRESIÓN — VIGILANCIA ACTIVA",
+      headline: "Presión de riesgo en vigilancia",
       context: "La cuenta sigue operable, pero la presión actual exige recortar exposición y evitar ampliar riesgo sin confirmación."
     };
   }
@@ -226,51 +226,340 @@ function riskStatusMeta(snapshot) {
     return {
       tone: "ok",
       eyebrow: "Mando central",
-      headline: "DENTRO DE LÍMITES — CONTROL OPERATIVO",
+      headline: "Dentro de límites operativos",
       context: "La cuenta sigue dentro de política. Mantén ejecución limpia y evita añadir fricción innecesaria."
     };
   }
   return {
     tone: "warn",
     eyebrow: "Mando central",
-    headline: "RISK SNAPSHOT NO DISPONIBLE",
-    context: "Aún no hay datos confirmados del motor de riesgo para esta cuenta."
+    headline: "Datos de riesgo pendientes",
+    context: "Aún no hay datos suficientes para confirmar el estado de protección de esta cuenta."
   };
 }
 
 function mt5FieldStateMeta(rawValue = "") {
   const value = String(rawValue || "");
-  if (value === "activo_mt5") return { label: "Activo en MT5", tone: "ok" };
+  if (value === "activo_mt5") return { label: "MT5 recibido", tone: "ok" };
   if (value === "pendiente") return { label: "Pendiente", tone: "warn" };
   if (value === "error") return { label: "Error", tone: "danger" };
   if (value === "desactivado") return { label: "Desactivado", tone: "neutral" };
-  return { label: "Pendiente MT5", tone: "warn" };
+  return { label: "MT5 pendiente", tone: "warn" };
 }
 
 function riskSyncStateMeta(liveState, snapshot) {
   if (!snapshot) {
-    return { label: "Sin snapshot", tone: "warn", detail: "Esperando dashboard_payload de la cuenta activa." };
+    return { label: "MT5 pendiente", tone: "warn", detail: "Sin confirmación de recepción MT5." };
   }
   if (liveState.status === "error") {
     return { label: "Error", tone: "danger", detail: liveState.lastError || "No se pudo resolver la cuenta activa." };
   }
   if (liveState.status === "stale") {
-    return { label: "Snapshot antiguo", tone: "warn", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
+    return { label: "Sin confirmación reciente", tone: "warn", detail: `Última sincronización ${formatDateTime(liveState.lastSyncAt)}` };
   }
   if (!liveState.connected) {
-    return { label: "Conector inactivo", tone: "warn", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
+    return { label: "MT5 pendiente", tone: "warn", detail: `Última sincronización ${formatDateTime(liveState.lastSyncAt)}` };
   }
-  return { label: "Aplicado en MT5", tone: "ok", detail: `Último sync ${formatDateTime(liveState.lastSyncAt)}` };
+  return { label: "MT5 recibido", tone: "ok", detail: `Última sincronización ${formatDateTime(liveState.lastSyncAt)}` };
+}
+
+function safeNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function formatRiskPct(value, digits = 2) {
+  return `${safeNumber(value).toFixed(digits)}%`;
+}
+
+function formatRiskMultiple(value) {
+  const numeric = safeNumber(value, NaN);
+  return Number.isFinite(numeric) ? numeric.toFixed(2) : "—";
+}
+
+function clampRiskValue(value, min = 0, max = 100) {
+  return Math.min(max, Math.max(min, safeNumber(value, min)));
+}
+
+function formatSignedRiskPct(value, digits = 2) {
+  const numeric = safeNumber(value, 0);
+  if (numeric > 0) return `+${numeric.toFixed(digits)}%`;
+  if (numeric < 0) return `${numeric.toFixed(digits)}%`;
+  return `${numeric.toFixed(digits)}%`;
+}
+
+function resolveProfessionalMetrics(snapshot) {
+  const metrics = safeObject(snapshot?.professional_metrics);
+  const tailRisk = safeObject(metrics.tail_risk);
+  const drawdownPath = safeObject(metrics.drawdown_path);
+  const monteCarlo = safeObject(metrics.monte_carlo);
+  const inputs = safeObject(metrics.inputs);
+  const warnings = Array.isArray(metrics.warnings) ? metrics.warnings.filter(Boolean) : [];
+  const sampleSize = safeNumber(monteCarlo.sample_size || inputs.closed_trades_count, 0);
+  const hasMetrics = Boolean(snapshot && Object.keys(metrics).length);
+  return {
+    hasMetrics,
+    tailRisk,
+    drawdownPath,
+    monteCarlo,
+    inputs,
+    warnings,
+    sampleSize
+  };
+}
+
+function professionalSampleMeta(sampleSize) {
+  if (sampleSize >= 100) return { label: "Muestra robusta", tone: "ok", detail: `${sampleSize} trades cerrados` };
+  if (sampleSize >= 30) return { label: "Muestra operativa", tone: "ok", detail: `${sampleSize} trades cerrados` };
+  if (sampleSize > 0) return { label: "Muestra temprana", tone: "warn", detail: `${sampleSize} trades cerrados` };
+  return { label: "Sin muestra", tone: "neutral", detail: "Esperando trades cerrados" };
+}
+
+function professionalRiskTone(value, warningAt, dangerAt) {
+  const numeric = safeNumber(value, 0);
+  if (numeric >= dangerAt) return "danger";
+  if (numeric >= warningAt) return "warn";
+  return "ok";
+}
+
+function professionalReadout(professional) {
+  if (!professional.hasMetrics) {
+    return {
+      title: "Esperando motor profesional",
+      body: "Este bloque se activará cuando haya datos suficientes para estimar VaR, CVaR, drawdown y Monte Carlo.",
+      tone: "neutral"
+    };
+  }
+  if (professional.sampleSize <= 0) {
+    return {
+      title: "Aún no hay muestra cerrada",
+      body: "Risk Engine puede vigilar límites live, pero VaR y ruina necesitan historial cerrado para tener lectura útil.",
+      tone: "warn"
+    };
+  }
+  const ruinProbability = safeNumber(professional.monteCarlo.ruin_probability_pct, 0);
+  const cvar95 = safeNumber(professional.tailRisk.var_95?.cvar_amount, 0);
+  if (ruinProbability >= 10) {
+    return {
+      title: "Supervivencia bajo presión",
+      body: `Monte Carlo marca ${formatRiskPct(ruinProbability)} de probabilidad de tocar el límite. Revisa sizing antes de escalar exposición.`,
+      tone: "danger"
+    };
+  }
+  if (ruinProbability >= 3 || cvar95 > 0) {
+    return {
+      title: "Riesgo medible, no invisible",
+      body: `La cola histórica ya deja una pérdida media esperada de ${formatCurrency(cvar95)} cuando el peor 5% aparece.`,
+      tone: "warn"
+    };
+  }
+  return {
+    title: "Perfil estable",
+    body: "La simulación no detecta amenaza material de ruina con la muestra actual. Mantén la lectura como estimación, no como certeza.",
+    tone: "ok"
+  };
+}
+
+function resolveSimulationScale(values = []) {
+  const finiteValues = values
+    .map((value) => safeNumber(value, NaN))
+    .filter((value) => Number.isFinite(value));
+  const baseValues = finiteValues.length ? finiteValues : [0];
+  let min = Math.min(...baseValues, 0);
+  let max = Math.max(...baseValues, 0);
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  const padding = Math.max((max - min) * 0.12, 0.5);
+  min -= padding;
+  max += padding;
+  return {
+    min,
+    max,
+    position(value) {
+      return clampRiskValue(((safeNumber(value, 0) - min) / (max - min)) * 100);
+    }
+  };
+}
+
+function professionalSimulationModel(professional) {
+  if (!professional.hasMetrics || professional.sampleSize <= 0) {
+    return { available: false };
+  }
+  const monteCarlo = professional.monteCarlo;
+  const p05 = safeNumber(monteCarlo.p05_return_pct, 0);
+  const median = safeNumber(monteCarlo.median_return_pct, 0);
+  const p95 = safeNumber(monteCarlo.p95_return_pct, 0);
+  const returnScale = resolveSimulationScale([p05, median, p95]);
+  const ruinThreshold = Math.max(safeNumber(monteCarlo.ruin_threshold_pct, 20), 0.1);
+  const medianDrawdown = safeNumber(monteCarlo.median_max_drawdown_pct, 0);
+  const stressDrawdown = safeNumber(monteCarlo.p95_max_drawdown_pct, 0);
+  const drawdownScale = Math.max(ruinThreshold, stressDrawdown, medianDrawdown, 1);
+  return {
+    available: true,
+    horizonTrades: safeNumber(monteCarlo.horizon_trades, 0),
+    simulations: safeNumber(monteCarlo.simulations, 0),
+    zeroPosition: returnScale.position(0),
+    returnMarkers: [
+      { label: "P05", value: p05, tone: "danger", position: returnScale.position(p05) },
+      { label: "Mediana", value: median, tone: median >= 0 ? "ok" : "warn", position: returnScale.position(median) },
+      { label: "P95", value: p95, tone: "ok", position: returnScale.position(p95) }
+    ],
+    stats: [
+      { label: "Retorno P05", value: formatSignedRiskPct(p05), tone: p05 < 0 ? "danger" : "ok" },
+      { label: "Retorno mediano", value: formatSignedRiskPct(median), tone: median < 0 ? "warn" : "ok" },
+      { label: "Retorno P95", value: formatSignedRiskPct(p95), tone: p95 < 0 ? "warn" : "ok" }
+    ],
+    drawdownRows: [
+      {
+        label: "DD mediano simulado",
+        value: formatRiskPct(medianDrawdown),
+        width: clampRiskValue((medianDrawdown / drawdownScale) * 100),
+        tone: medianDrawdown >= ruinThreshold * 0.7 ? "warn" : "ok"
+      },
+      {
+        label: "DD estrés P95",
+        value: formatRiskPct(stressDrawdown),
+        width: clampRiskValue((stressDrawdown / drawdownScale) * 100),
+        tone: stressDrawdown >= ruinThreshold ? "danger" : stressDrawdown >= ruinThreshold * 0.7 ? "warn" : "ok"
+      },
+      {
+        label: "Límite de ruina",
+        value: `-${formatRiskPct(ruinThreshold, 1)}`,
+        width: clampRiskValue((ruinThreshold / drawdownScale) * 100),
+        tone: "limit"
+      }
+    ]
+  };
+}
+
+function professionalActionAlerts(professional, snapshot) {
+  if (!professional.hasMetrics) {
+    return [{
+      tone: "warn",
+      title: "Esperar datos profesionales",
+      detail: "Aún faltan métricas avanzadas para esta cuenta."
+    }];
+  }
+  if (professional.sampleSize <= 0) {
+    return [{
+      tone: "warn",
+      title: "Cerrar muestra antes de estimar",
+      detail: "VaR, CVaR y Monte Carlo necesitan historial de operaciones cerradas."
+    }];
+  }
+
+  const alerts = [];
+  const monteCarlo = professional.monteCarlo;
+  const drawdownPath = professional.drawdownPath;
+  const var95 = safeObject(professional.tailRisk.var_95);
+  const var99 = safeObject(professional.tailRisk.var_99);
+  const ruinProbability = safeNumber(monteCarlo.ruin_probability_pct, 0);
+  const ruinThreshold = Math.max(safeNumber(monteCarlo.ruin_threshold_pct, 20), 0.1);
+  const stressDrawdown = safeNumber(monteCarlo.p95_max_drawdown_pct, 0);
+  const recoveryFactor = safeNumber(drawdownPath.recovery_factor, NaN);
+  const openRiskPct = safeNumber(snapshot?.summary?.total_open_risk_pct, 0);
+  const maxRiskPerTradePct = safeNumber(snapshot?.summary?.max_risk_per_trade_pct, 0);
+
+  if (professional.sampleSize < 30) {
+    alerts.push({
+      tone: "warn",
+      title: "Validar por estrategia",
+      detail: "Muestra menor a 30 trades: evita subir sizing hasta separar setups y sesiones."
+    });
+  }
+  if (ruinProbability >= 10) {
+    alerts.push({
+      tone: "danger",
+      title: "Reducir sizing",
+      detail: `Monte Carlo marca ${formatRiskPct(ruinProbability)} de probabilidad de tocar ruina.`
+    });
+  } else if (ruinProbability >= 3) {
+    alerts.push({
+      tone: "warn",
+      title: "No escalar riesgo",
+      detail: `La probabilidad de ruina ya es visible: ${formatRiskPct(ruinProbability)}.`
+    });
+  }
+  if (stressDrawdown >= ruinThreshold) {
+    alerts.push({
+      tone: "danger",
+      title: "Estrés toca límite",
+      detail: `El DD P95 simulado (${formatRiskPct(stressDrawdown)}) alcanza el límite -${formatRiskPct(ruinThreshold, 1)}.`
+    });
+  } else if (stressDrawdown >= ruinThreshold * 0.7) {
+    alerts.push({
+      tone: "warn",
+      title: "DD cerca de límite",
+      detail: `El DD P95 simulado consume más del 70% del límite de ruina.`
+    });
+  }
+  if (safeNumber(var99.var_amount, 0) > safeNumber(var95.var_amount, 0) * 1.6 && safeNumber(var95.var_amount, 0) > 0) {
+    alerts.push({
+      tone: "warn",
+      title: "Cola asimétrica",
+      detail: `VaR 99 supera con claridad a VaR 95. Revisa outliers y stops reales.`
+    });
+  }
+  if (Number.isFinite(recoveryFactor) && recoveryFactor < 1 && safeNumber(drawdownPath.max_drawdown_pct, 0) > 0) {
+    alerts.push({
+      tone: "warn",
+      title: "Recovery débil",
+      detail: "El beneficio neto aún no compensa el drawdown máximo observado."
+    });
+  }
+  if (openRiskPct > 0 && maxRiskPerTradePct > 0 && openRiskPct >= maxRiskPerTradePct * 1.5) {
+    alerts.push({
+      tone: "warn",
+      title: "Heat por encima del trade base",
+      detail: `Riesgo abierto ${formatRiskPct(openRiskPct)} frente a ${formatRiskPct(maxRiskPerTradePct)} por trade.`
+    });
+  }
+
+  if (!alerts.length) {
+    alerts.push({
+      tone: "ok",
+      title: "Mantener sizing base",
+      detail: "La simulación no pide recorte inmediato; sigue validando por muestra y disciplina."
+    });
+  }
+  return alerts.slice(0, 4);
 }
 
 function renderRiskStateCard(kind, title, body, detail = "") {
   return `
     <article class="tl-section-card risk-data-state risk-data-state--${kind}">
-      <div class="risk-data-state__eyebrow">Riesgo</div>
+      <div class="risk-data-state__eyebrow">Risk Engine</div>
       <strong>${title}</strong>
       <p>${body}</p>
       ${detail ? `<small>${detail}</small>` : ""}
     </article>
+  `;
+}
+
+function renderRiskEmptyState({ account = {}, lastSyncAt = null } = {}) {
+  const source = account?.login
+    ? `Cuenta activa ${account.login} · MT5 pendiente`
+    : "Cuenta activa · MT5 pendiente";
+  return `
+    <section class="risk-empty-state">
+      <article class="tl-section-card risk-empty-state__primary">
+        <span>Estado de protección</span>
+        <strong>Esperando sincronización</strong>
+        <p>Aún no hay datos suficientes para calcular límites, exposición y margen de riesgo.</p>
+        <div class="risk-empty-state__meta">
+          <span>${source}</span>
+          ${lastSyncAt ? `<span>Última sincronización ${formatDateTime(lastSyncAt)}</span>` : `<span>La protección se actualizará cuando MT5 envíe el próximo estado.</span>`}
+        </div>
+        <a class="risk-empty-state__action" href="/cuentas">Ir a Cuentas</a>
+      </article>
+    </section>
   `;
 }
 
@@ -302,7 +591,8 @@ export function renderRisk(root, state) {
 
   const dashboardPayload = account.dashboardPayload && typeof account.dashboardPayload === "object" ? account.dashboardPayload : {};
   const authority = resolveAccountDataAuthority(account);
-  const liveSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object" ? dashboardPayload.riskSnapshot : null;
+  const accountRiskSnapshot = account.riskSnapshot && typeof account.riskSnapshot === "object" ? account.riskSnapshot : null;
+  const liveSnapshot = dashboardPayload.riskSnapshot && typeof dashboardPayload.riskSnapshot === "object" ? dashboardPayload.riskSnapshot : accountRiskSnapshot;
   const lastSyncAt = account.connection?.lastSync || account.dashboardPayload?.timestamp || null;
   const lastSyncMs = lastSyncAt ? new Date(lastSyncAt).getTime() : 0;
   const isStale = Number.isFinite(lastSyncMs) ? Date.now() - lastSyncMs > 30000 : false;
@@ -449,6 +739,15 @@ export function renderRisk(root, state) {
   const defaultRiskMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.risk_per_trade);
   const dailyDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.daily_dd_limit);
   const maxDdMt5State = mt5FieldStateMeta(account.dashboardPayload?.mt5_limit_states?.max_dd_limit);
+  const professionalMetrics = resolveProfessionalMetrics(liveSnapshot);
+  const professionalSample = professionalSampleMeta(professionalMetrics.sampleSize);
+  const professionalDecision = professionalReadout(professionalMetrics);
+  const var95 = safeObject(professionalMetrics.tailRisk.var_95);
+  const var99 = safeObject(professionalMetrics.tailRisk.var_99);
+  const drawdownPath = professionalMetrics.drawdownPath;
+  const monteCarlo = professionalMetrics.monteCarlo;
+  const riskSimulation = professionalSimulationModel(professionalMetrics);
+  const professionalActions = professionalActionAlerts(professionalMetrics, liveSnapshot);
   const ladder = [];
   const ladderLevel = liveSnapshot?.policy?.current_level || "";
   const commandMeta = riskStatusMeta(liveSnapshot);
@@ -459,6 +758,11 @@ export function renderRisk(root, state) {
     pressureLabel: liveSnapshot?.status?.risk_status || "",
     pressureTone: liveSnapshot?.status?.severity === "critical" ? "danger" : liveSnapshot?.status?.severity === "warning" ? "warn" : "ok"
   };
+  const hasExposureData = Boolean(liveSnapshot && (
+    exposureSnapshot.openPositions > 0 ||
+    exposureSnapshot.totalOpenRiskPct > 0 ||
+    exposureSnapshot.effectiveCorrelatedRisk > 0
+  ));
   const remainingDailyLabel = liveSnapshot
     ? (Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0) <= 0 ? "Sin margen diario" : `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}% de margen diario`)
     : "—";
@@ -489,6 +793,10 @@ export function renderRisk(root, state) {
       detail: "Acción inmediata derivada del motor de riesgo."
     }
   ] : [];
+  const protectionLabel = liveSnapshot ? commandMeta.headline : "Esperando sincronización";
+  const protectionCopy = liveSnapshot ? commandMeta.context : "La protección se activará cuando la cuenta envíe el próximo estado.";
+  const policySourceLabel = liveSnapshot ? mt5SyncState.label : "MT5 pendiente";
+  const policySourceCopy = liveSnapshot ? mt5SyncState.detail : "Sin confirmación de recepción MT5.";
   const activeRules = Array.isArray(account.dashboardPayload?.riskRules) ? account.dashboardPayload.riskRules : [];
   const rulesMarkup = activeRules.length
     ? activeRules.map((rule) => `
@@ -513,7 +821,7 @@ export function renderRisk(root, state) {
         </div>
       </article>
     `).join("")
-    : `<article class="risk-rule-card risk-rule-card--neutral"><strong>Sin reglas activas</strong><div class="risk-rule-card__meta"><div class="risk-rule-card__meta-row"><span>Estado</span><strong>Esperando snapshot del backend</strong></div></div></article>`;
+    : `<article class="risk-rule-card risk-rule-card--neutral"><strong>Sin reglas activas</strong><div class="risk-rule-card__meta"><div class="risk-rule-card__meta-row"><span>Estado</span><strong>Esperando sincronización de la cuenta</strong></div></div></article>`;
   const coreMetrics = liveSnapshot ? [
     {
       label: "DD actual",
@@ -544,63 +852,196 @@ export function renderRisk(root, state) {
       noteTone: "neutral"
     }
   ] : [];
+  const professionalCards = [
+    {
+      label: "Risk of Ruin",
+      value: professionalMetrics.hasMetrics ? formatRiskPct(monteCarlo.ruin_probability_pct) : "—",
+      detail: professionalMetrics.hasMetrics
+        ? `${safeNumber(monteCarlo.simulations, 0).toLocaleString("es-ES")} sims · límite -${formatRiskPct(monteCarlo.ruin_threshold_pct, 1)}`
+        : "Monte Carlo pendiente",
+      tone: professionalMetrics.hasMetrics ? professionalRiskTone(monteCarlo.ruin_probability_pct, 3, 10) : "neutral"
+    },
+    {
+      label: "VaR 95",
+      value: professionalMetrics.hasMetrics ? formatCurrency(var95.var_amount || 0) : "—",
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var95.cvar_amount || 0)}` : "Histórico pendiente",
+      tone: safeNumber(var95.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral"
+    },
+    {
+      label: "VaR 99",
+      value: professionalMetrics.hasMetrics ? formatCurrency(var99.var_amount || 0) : "—",
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var99.cvar_amount || 0)}` : "Tail risk pendiente",
+      tone: safeNumber(var99.var_amount, 0) > safeNumber(var95.var_amount, 0) ? "danger" : safeNumber(var99.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral"
+    },
+    {
+      label: "Recovery Factor",
+      value: professionalMetrics.hasMetrics ? formatRiskMultiple(drawdownPath.recovery_factor) : "—",
+      detail: professionalMetrics.hasMetrics
+        ? `Max DD ${formatRiskPct(drawdownPath.max_drawdown_pct)} · ${safeNumber(drawdownPath.max_drawdown_duration_periods, 0)} periodos`
+        : "Drawdown path pendiente",
+      tone: safeNumber(drawdownPath.recovery_factor, 0) >= 1 ? "ok" : safeNumber(drawdownPath.max_drawdown_pct, 0) > 0 ? "warn" : "neutral"
+    }
+  ];
   const adminTracePanel = renderAdminTracePanel(state, {
-    title: "Riesgo live snapshot trace",
-    subtitle: "Lectura de política, frescura y payload operativo.",
+    title: "Diagnóstico de riesgo",
+    subtitle: "Lectura técnica de política, frescura y datos operativos.",
     items: [
       { label: "account_id", value: account?.id || activeAccountId || "" },
       { label: "payloadSource", value: authority.payloadSource || "" },
       { label: "sourceUsed", value: authority.sourceUsed || "" },
-      { label: "riskSnapshot", value: Boolean(liveSnapshot) },
+      { label: "datosRiesgo", value: Boolean(liveSnapshot) },
       { label: "freshness", value: liveState.status },
       { label: "connected", value: liveState.connected },
       { label: "lastSyncAt", value: lastSyncAt || "" },
       { label: "policyStatus", value: liveSnapshot?.policy?.status || liveSnapshot?.status?.risk_status || "" },
     ],
   });
+  if (!liveSnapshot) {
+    root.innerHTML = `
+      <div class="risk-page-stack risk-engine-page">
+        ${pageHeaderMarkup({
+          title: "Risk Engine",
+          description: "Protección de cuenta, límites activos y política de riesgo.",
+          className: "tl-page-header risk-engine-page-header",
+          titleClassName: "tl-page-title risk-engine-page-title",
+          descriptionClassName: "tl-page-sub risk-engine-page-sub",
+        })}
+        ${adminTracePanel}
+        ${renderRiskEmptyState({ account, lastSyncAt })}
+      </div>
+    `;
+    return;
+  }
   root.innerHTML = `
-    <div class="risk-page-stack">
+    <div class="risk-page-stack risk-engine-page">
     ${pageHeaderMarkup({
-      title: "Gestor de Riesgo",
-      description: "Controles operativos, configuración de límites y lectura clara del estado de seguridad.",
-      className: "tl-page-header",
-      titleClassName: "tl-page-title",
-      descriptionClassName: "tl-page-sub",
+      title: "Risk Engine",
+      description: "Protección de cuenta, límites activos y política de riesgo.",
+      className: "tl-page-header risk-engine-page-header",
+      titleClassName: "tl-page-title risk-engine-page-title",
+      descriptionClassName: "tl-page-sub risk-engine-page-sub",
     })}
     ${adminTracePanel}
-    ${liveState.status === "empty" ? renderRiskStateCard("loading", "Risk snapshot no disponible", "La cuenta activa todavía no trae `dashboard_payload.riskSnapshot`.") : ""}
     ${liveState.status === "error" && !liveSnapshot ? renderRiskStateCard("error", "Cuenta activa no disponible", "No se pudo resolver una cuenta activa válida.", liveState.lastError || "") : ""}
-    ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último snapshot conocido", "La cuenta no ha refrescado el dashboard_payload dentro del umbral esperado.", `Último sync ${formatDateTime(lastSyncAt)}`) : ""}
-    ${liveSnapshot && !account.connection?.connected ? renderRiskStateCard("warning", "MT5 sin sincronización", "La cuenta existe, pero la conexión del connector no está marcada como conectada.", "La UI conserva el último contrato conocido.") : ""}
+    ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último estado conocido", "La cuenta no ha enviado una actualización reciente.", `Última sincronización ${formatDateTime(lastSyncAt)}`) : ""}
+    ${liveSnapshot && !account.connection?.connected ? renderRiskStateCard("warning", "MT5 sin sincronización reciente", "La cuenta existe, pero la conexión no está marcada como activa.", "Se conserva la última lectura conocida.") : ""}
 
-    <article class="tl-section-card risk-command-center risk-command-center--${commandMeta.tone}">
-      <div class="risk-command-center__copy">
-        <div class="eyebrow">${commandMeta.eyebrow}</div>
-        <h3>${commandMeta.headline}</h3>
-        <p>${commandMeta.context}</p>
-        <div class="risk-command-center__ops">
-          ${commandRows.length ? commandRows.map((row, index) => `
-            <div class="risk-command-center__op-row ${index === 2 ? "risk-command-center__op-row--action" : ""}">
-              <span>${row.label}</span>
-              <strong>${row.value}</strong>
-              <small>${row.detail}</small>
-            </div>
-          `).join("") : `
-            <div class="risk-command-center__op-row risk-command-center__op-row--action">
-              <span>Estado</span>
-              <strong>Esperando snapshot</strong>
-              <small>La sección se actualizará cuando el bridge confirme el contrato de riesgo.</small>
-            </div>
-          `}
+    <section class="risk-overview-grid">
+      <article class="risk-overview-card risk-overview-card--${commandMeta.tone}">
+        <span>Estado de protección</span>
+        <strong>${protectionLabel}</strong>
+        <p>${protectionCopy}</p>
+      </article>
+      <article class="risk-overview-card">
+        <span>Margen disponible</span>
+        <strong class="${Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 0 || liveSnapshot?.status?.risk_status === "blocked" ? "metric-negative" : Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 1 ? "metric-warning" : ""}">${marginHeadline}</strong>
+        <p>${remainingTotalLabel} · ${remainingDailyLabel}</p>
+      </article>
+      <article class="risk-overview-card risk-overview-card--${mt5SyncState.tone}">
+        <span>Estado de política</span>
+        <strong>${policySourceLabel}</strong>
+        <p>${policySourceCopy}</p>
+      </article>
+    </section>
+
+    <article class="tl-section-card risk-professional-surface risk-professional-surface--${professionalDecision.tone}">
+      <div class="risk-professional-header">
+        <div>
+          <div class="tl-section-title">Ruin / VaR</div>
+          <div class="row-sub">Lectura profesional de cola, supervivencia y recuperación. Estimación basada en trades cerrados.</div>
+        </div>
+        <div class="risk-professional-sample risk-professional-sample--${professionalSample.tone}">
+          <span>${professionalSample.label}</span>
+          <strong>${professionalSample.detail}</strong>
         </div>
       </div>
-      <div class="risk-command-center__meta">
-        <div class="risk-command-center__metric">
-          <span>Margen restante</span>
-          <strong class="${Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 0 || liveSnapshot?.status?.risk_status === "blocked" ? "metric-negative" : Number(liveSnapshot?.summary?.distance_to_max_dd_limit_pct || 0) <= 1 ? "metric-warning" : ""}">${marginHeadline}</strong>
-          <small>${remainingTotalLabel} · ${remainingDailyLabel}</small>
+      <div class="risk-professional-grid">
+        ${professionalCards.map((item) => `
+          <article class="risk-professional-card risk-professional-card--${item.tone}">
+            <span>${item.label}</span>
+            <strong>${item.value}</strong>
+            <small>${item.detail}</small>
+          </article>
+        `).join("")}
+      </div>
+      <div class="risk-professional-readout">
+        <div>
+          <span>Lectura</span>
+          <strong>${professionalDecision.title}</strong>
+        </div>
+        <p>${professionalDecision.body}</p>
+      </div>
+      <div class="risk-simulation-panel">
+        <div class="risk-simulation-panel__head">
+          <div>
+            <span>Simulación visual</span>
+            <strong>${riskSimulation.available ? `${riskSimulation.simulations.toLocaleString("es-ES")} caminos · ${riskSimulation.horizonTrades} trades` : "Monte Carlo pendiente"}</strong>
+          </div>
+          <small>Distribución estimada, drawdown esperado y probabilidad de tocar límite.</small>
+        </div>
+        ${riskSimulation.available ? `
+          <div class="risk-simulation-return">
+            <div class="risk-simulation-return__axis">
+              <span>Peor 5%</span>
+              <span>Mediana</span>
+              <span>Mejor 5%</span>
+            </div>
+            <div class="risk-simulation-return__track">
+              <i class="risk-simulation-return__zero" style="left:${riskSimulation.zeroPosition.toFixed(2)}%"></i>
+              ${riskSimulation.returnMarkers.map((marker) => `
+                <div class="risk-simulation-marker risk-simulation-marker--${marker.tone}" style="left:${marker.position.toFixed(2)}%" title="${marker.label} ${formatSignedRiskPct(marker.value)}">
+                  <i></i>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="risk-simulation-stat-grid">
+            ${riskSimulation.stats.map((stat) => `
+              <div class="risk-simulation-stat risk-simulation-stat--${stat.tone}">
+                <span>${stat.label}</span>
+                <strong>${stat.value}</strong>
+              </div>
+            `).join("")}
+          </div>
+          <div class="risk-simulation-dd">
+            ${riskSimulation.drawdownRows.map((row) => `
+              <div class="risk-simulation-dd-row risk-simulation-dd-row--${row.tone}">
+                <div>
+                  <span>${row.label}</span>
+                  <strong>${row.value}</strong>
+                </div>
+                <em><i style="width:${row.width.toFixed(2)}%"></i></em>
+              </div>
+            `).join("")}
+          </div>
+        ` : `
+          <div class="risk-simulation-empty">La visualización se activa con retornos cerrados suficientes.</div>
+        `}
+      </div>
+      <div class="risk-professional-actions">
+        <div class="risk-professional-actions__head">
+          <span>Alertas accionables</span>
+          <strong>${professionalActions.length} señales</strong>
+        </div>
+        <div class="risk-professional-actions__list">
+          ${professionalActions.map((alert) => `
+            <div class="risk-professional-action risk-professional-action--${alert.tone}">
+              <span></span>
+              <div>
+                <strong>${alert.title}</strong>
+                <small>${alert.detail}</small>
+              </div>
+            </div>
+          `).join("")}
         </div>
       </div>
+      ${(professionalMetrics.warnings.length || !professionalMetrics.hasMetrics) ? `
+        <div class="risk-professional-warnings">
+          ${(professionalMetrics.warnings.length ? professionalMetrics.warnings : ["Aún faltan métricas avanzadas para esta cuenta."]).slice(0, 2).map((warning) => `
+            <span>${warning}</span>
+          `).join("")}
+        </div>
+      ` : ""}
     </article>
 
     ${liveSnapshot?.status?.risk_status === "blocked" ? `
@@ -609,18 +1050,18 @@ export function renderRisk(root, state) {
           <strong>Panic lock activo</strong>
           <span>La operativa está congelada mientras el enforcement mantenga bloqueo sobre nuevas entradas.</span>
         </div>
-        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Último snapshot: ${formatDateTime(lastSyncAt)}</div>` : ""}
+        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
       </article>
     ` : ""}
 
     <article class="tl-section-card risk-active-rules">
       <div class="tl-section-header">
         <div>
-          <div class="tl-section-title">Reglas en ejecución</div>
-          <div class="row-sub">Estas reglas provienen de la política activa de riesgo del backend. La dominante manda ahora mismo sobre la operativa.</div>
+          <div class="tl-section-title">Reglas activas</div>
+          <div class="row-sub">Controles de protección recibidos para la cuenta activa.</div>
         </div>
       </div>
-      <div class="risk-active-rules__context">${liveSnapshot ? (liveSnapshot.status?.blocking_rule || "Política activa aplicada sobre la operativa actual.") : "Esperando reglas del snapshot real."}</div>
+      <div class="risk-active-rules__context">${liveSnapshot ? (liveSnapshot.status?.blocking_rule || "Sin bloqueo operativo activo.") : "Esperando sincronización de la cuenta."}</div>
       <div class="risk-active-rules__grid">
         ${rulesMarkup}
       </div>
@@ -630,13 +1071,13 @@ export function renderRisk(root, state) {
       <article class="tl-section-card risk-core-metrics">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">Límites y presión</div>
+            <div class="tl-section-title">Márgenes actuales</div>
             <div class="row-sub">Consumo de límites, presión flotante y margen real disponible.</div>
           </div>
         </div>
         <div class="risk-core-metrics__grid">
           ${(coreMetrics.length ? coreMetrics : [
-            { label: "Snapshot", value: "—", noteLead: "Sin datos", noteTail: "esperando backend", noteTone: "neutral" }
+            { label: "Riesgo", value: "—", noteLead: "Sin datos", noteTail: "esperando sincronización", noteTone: "neutral" }
           ]).map((item) => `
             <article class="tl-kpi-card risk-core-kpi">
               <div class="tl-kpi-label">${item.label}</div>
@@ -657,7 +1098,7 @@ export function renderRisk(root, state) {
             <div class="row-sub">Riesgo abierto y presión inmediata del flujo activo.</div>
           </div>
         </div>
-        <div class="risk-exposure-list">
+        ${hasExposureData ? `<div class="risk-exposure-list">
           <div class="risk-exposure-row">
             <span>Riesgo abierto</span>
             <strong class="${exposureSnapshot.totalOpenRiskPct > 0 ? "metric-warning" : ""}">${liveSnapshot ? `${exposureSnapshot.totalOpenRiskPct.toFixed(2)}%` : "—"}</strong>
@@ -668,17 +1109,22 @@ export function renderRisk(root, state) {
           </div>
           <div class="risk-exposure-row">
             <span>Presión</span>
-            <strong class="${exposureSnapshot.pressureTone === "danger" ? "metric-negative" : exposureSnapshot.pressureTone === "warn" ? "metric-warning" : "green"}">${liveSnapshot ? String(exposureSnapshot.pressureLabel || "sin snapshot").replaceAll("_", " ") : "Sin snapshot"}</strong>
+            <strong class="${exposureSnapshot.pressureTone === "danger" ? "metric-negative" : exposureSnapshot.pressureTone === "warn" ? "metric-warning" : "green"}">${String(exposureSnapshot.pressureLabel || "sin exposición").replaceAll("_", " ")}</strong>
           </div>
-        </div>
+        </div>` : `
+          <div class="risk-exposure-empty">
+            <strong>Sin exposición calculada</strong>
+            <p>Se mostrará cuando haya posiciones abiertas o una lectura de riesgo con exposición.</p>
+          </div>
+        `}
       </article>
     </div>
 
     <article class="tl-section-card risk-policy-surface">
       <div class="risk-policy-header">
         <div>
-          <div class="tl-section-title">Política activa de riesgo</div>
-          <div class="row-sub">Única fuente de verdad editable para la cuenta. Fuente actual: backend · aplicada ${formatDateTime(lastSyncAt)}</div>
+          <div class="tl-section-title">Política editable</div>
+          <div class="row-sub">Configuración guardada para la cuenta. La aplicación en MT5 depende de backend, launcher y EA.</div>
         </div>
         <div class="risk-policy-sync risk-policy-sync--${mt5SyncState.tone}">
           <span>${mt5SyncState.label}</span>
@@ -690,7 +1136,7 @@ export function renderRisk(root, state) {
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
             <span>Riesgo por trade</span>
-            <em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${defaultRiskMt5State.label}</em>
+            ${defaultRiskMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${defaultRiskMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
               <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
@@ -700,7 +1146,7 @@ export function renderRisk(root, state) {
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
             <span>Límite daily DD</span>
-            <em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${dailyDdMt5State.label}</em>
+            ${dailyDdMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${dailyDdMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
@@ -710,7 +1156,7 @@ export function renderRisk(root, state) {
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
             <span>Límite max DD</span>
-            <em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${maxDdMt5State.label}</em>
+            ${maxDdMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${maxDdMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
             <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
@@ -806,7 +1252,7 @@ export function renderRisk(root, state) {
           <div class="risk-policy-card__head">
             <div>
               <div class="risk-config-title">Símbolos permitidos</div>
-              <div class="risk-config-meta">Whitelist operativa que define el universo autorizado para MT5.</div>
+              <div class="risk-config-meta">Lista operativa que define los símbolos autorizados para MT5.</div>
             </div>
             <label class="risk-config-toggle" aria-label="Símbolos permitidos">
               <input type="checkbox" data-risk-pref-bool="allowedSymbolsEnabled" ${prefsDraft.allowedSymbolsEnabled ? "checked" : ""}>
@@ -869,9 +1315,22 @@ export function renderRisk(root, state) {
     </article>
 
     <article class="tl-section-card risk-ladder-surface">
-      <div class="tl-section-header"><div class="tl-section-title">Escalera de Riesgo Dinámica</div></div>
-      ${ladder.length ? renderLadderProgress(ladder, ladderLevel) : `<div class="risk-ladder-empty">Esperando ladder_snapshot del backend.</div>`}
-      <div class="table-wrap risk-ladder-table">
+      <div class="tl-section-header">
+        <div>
+          <div class="tl-section-title">Escalera dinámica</div>
+          <div class="row-sub">Avanzado · Ajuste de riesgo por niveles cuando haya datos suficientes.</div>
+        </div>
+      </div>
+      ${ladder.length ? renderLadderProgress(ladder, ladderLevel) : `
+        <div class="risk-advanced-empty">
+          <div>
+            <strong>Escalera dinámica</strong>
+            <p>Pendiente de datos avanzados para construir niveles de riesgo.</p>
+          </div>
+          <span>Configurar más adelante</span>
+        </div>
+      `}
+      ${ladder.length ? `<div class="table-wrap risk-ladder-table">
         <table>
           <thead><tr><th>Nivel</th><th>Riesgo/Trade</th><th>Condición Entrada</th><th>Condición Subida</th><th>Condición Bajada</th><th>Trades a $100k</th><th>Estado</th></tr></thead>
           <tbody>
@@ -885,10 +1344,10 @@ export function renderRisk(root, state) {
                 <td>${row.tradesTo100k}</td>
                 <td>${badgeMarkup({ label: row.level === ladderLevel ? "ACTUAL" : row.isRecommended ? "RECOMENDADO" : row.state, tone: row.level === ladderLevel ? "warn" : row.isRecommended ? "info" : row.level === "PROTECT" ? "warn" : "neutral" }, "ui-badge--compact")}</td>
               </tr>
-            `).join("") || `<tr><td colspan="7">Sin datos de escalera desde backend.</td></tr>`}
+            `).join("") || `<tr><td colspan="7">Sin datos de escalera todavía.</td></tr>`}
           </tbody>
         </table>
-      </div>
+      </div>` : ""}
     </article>
 
     </div>
