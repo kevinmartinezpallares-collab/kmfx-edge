@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.75                                              |
+//| KMFXConnector v2.76                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.75"
+#property version   "2.76"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.75"
+#define KMFX_CONNECTOR_VERSION "2.76"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -48,12 +48,12 @@ input string            connection_key        = "";
 input int               KMFXTimerMs           = 2000;
 input int               KMFXPolicyPollSeconds = 12;
 input int               KMFXStatePushSeconds  = 5;
-input int               KMFXWebTimeoutMs      = 5000;
-input int               KMFXClosedDealsLimit  = 0;
-input int               KMFXHistoryPointsLimit= 0;
-input int               KMFXHistoryLookbackDays = 0;
+input int               KMFXWebTimeoutMs      = 1500;
+input int               KMFXClosedDealsLimit  = 100;
+input int               KMFXHistoryPointsLimit= 120;
+input int               KMFXHistoryLookbackDays = 365;
 input int               KMFXJournalBatchSize  = 20;
-input bool              KMFXVerboseLog        = true;
+input bool              KMFXVerboseLog        = false;
 input bool              KMFXEnableEnforce     = true;
 input bool              KMFXSendClosedDeals   = true;
 input bool              KMFXUseBrokerTime     = true;
@@ -377,7 +377,8 @@ string KMFXAccountLoginString()
   {
    long login = (long)AccountInfoInteger(ACCOUNT_LOGIN);
    string helper_login = IntegerToString(login);
-   PrintFormat("[KMFX][DEBUG] ACCOUNT_LOGIN raw=%I64d helper=%s", login, helper_login);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][DEBUG] ACCOUNT_LOGIN raw=%I64d helper=%s", login, helper_login);
    return helper_login;
   }
 
@@ -1479,7 +1480,8 @@ string KMFXBuildSyncPayload(string sync_id)
    string report_metrics_json=KMFXBuildReportMetrics(rm_from,rm_to);
    double daily_dd_pct=KMFXDailyDrawdownPct();
    double total_dd_pct=KMFXTotalDrawdownPct();
-   PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][DEBUG] login usado en sync payload=%s", sync_login);
    string json="{";
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
@@ -1587,11 +1589,10 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
    status_code=WebRequest(method,url,headers,KMFXWebTimeoutMs,req,res,result_headers);
    int request_error=GetLastError();
    transport_error=request_error;
-   // DEBUG
-   PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, request_error);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][HTTP][RAW] method=%s url=%s timeout_ms=%d request_bytes=%d status=%d last_error=%d", method, url, KMFXWebTimeoutMs, request_bytes, status_code, request_error);
    if(status_code==1003 || status_code<=0)
      {
-      // DEBUG
       PrintFormat("[KMFX][HTTP][TRANSPORT] method=%s url=%s request_bytes=%d last_error=%d", method, url, request_bytes, request_error);
      }
    if(status_code==-1)
@@ -1604,10 +1605,11 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
      }
 
    response=CharArrayToString(res,0,-1,CP_UTF8);
-   // DEBUG
-   PrintFormat("[KMFX][HTTP] method=%s url=%s status=%d body=%s", method, url, status_code, response);
-   // DEBUG
-   PrintFormat("[KMFX][HTTP][META] method=%s url=%s response_bytes=%d response_chars=%d headers=%s", method, url, ArraySize(res), StringLen(response), result_headers);
+   if(KMFXVerboseLog)
+     {
+      PrintFormat("[KMFX][HTTP] method=%s url=%s status=%d body=%s", method, url, status_code, response);
+      PrintFormat("[KMFX][HTTP][META] method=%s url=%s response_bytes=%d response_chars=%d headers=%s", method, url, ArraySize(res), StringLen(response), result_headers);
+     }
    return true;
   }
 
@@ -1845,23 +1847,21 @@ bool KMFXPushState()
    int trades_count=KMFXCountJsonArrayItems(body,"trades");
    int history_count=KMFXCountJsonArrayItems(body,"history");
 
-   // DEBUG
-   PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
-   // DEBUG
-   PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXConnectionKeyValue());
-   // DEBUG
    PrintFormat("[KMFX][SYNC][COUNTS] positions=%d trades=%d history=%d", positions_count, trades_count, history_count);
-   // DEBUG
-   Print("[KMFX][PAYLOAD] "+body);
-   // DEBUG
-   PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
+   if(KMFXVerboseLog)
+     {
+      PrintFormat("[KMFX][SYNC][REQUEST] url=%s body_chars=%d", url, StringLen(body));
+      PrintFormat("[KMFX][SYNC][KEY] connection_key=%s", KMFXConnectionKeyValue());
+      Print("[KMFX][PAYLOAD] "+body);
+      PrintFormat("[KMFX][SYNC][REQUEST][BODY]=%s", body);
+     }
 
    request_ok=KMFXSendHttpRequest("POST",url,body,response,status_code,transport_error);
    if(!request_ok && !(status_code==1003 || status_code<=0))
       return false;
 
-   // DEBUG
-   PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
 
    if(status_code==1003 || status_code<=0)
      {
@@ -1875,8 +1875,8 @@ bool KMFXPushState()
       if(!request_ok && !(status_code==1003 || status_code<=0))
          return false;
 
-      // DEBUG
-      PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][SYNC][DEBUG] status_code=%d response=%s", status_code, response);
 
       if(status_code==1003 || status_code<=0)
         {
@@ -2054,19 +2054,20 @@ bool KMFXFetchPolicy()
    int status_code=0;
    int transport_error=0;
    string policy_login=KMFXAccountLoginString();
-   PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][DEBUG] login usado en policy=%s", policy_login);
    string url = KMFXBackendBaseUrl + KMFXPolicyPath + "?login=" + policy_login;
    if(KMFXHasConnectionKey())
       url += "&connection_key=" + KMFXConnectionKeyValue();
 
-   // DEBUG
-   PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][POLICY][REQUEST] url=%s", url);
 
    if(!KMFXSendHttpRequest("GET",url,"",response,status_code,transport_error))
       return false;
 
-   // DEBUG
-   PrintFormat("[KMFX][POLICY][DEBUG] status_code=%d response=%s", status_code, response);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][POLICY][DEBUG] status_code=%d response=%s", status_code, response);
 
    if(status_code==1003 || status_code<=0)
      {
@@ -2471,12 +2472,13 @@ int OnInit()
    PrintFormat("[KMFX][VERSION] connector=%s", KMFX_CONNECTOR_VERSION);
    KMFXInitializeRuntimeConnectionKey();
 
-   // DEBUG
-   PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
-   PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
+   if(KMFXVerboseLog)
+     {
+      PrintFormat("[KMFX][BUILD] DEBUG_HTTP_V2 timeout_ms=%d backend=%s sync=%s policy=%s", KMFXWebTimeoutMs, KMFXBackendBaseUrl, KMFXSyncPath, KMFXPolicyPath);
+      PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
+     }
    KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl,true);
    EventSetMillisecondTimer(KMFXTimerMs);
-   KMFXRunCycle();
    return(INIT_SUCCEEDED);
   }
 

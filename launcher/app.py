@@ -35,7 +35,7 @@ from .resources import app_root, is_packaged, resource_path
 ROOT = app_root()
 UI_PATH = resource_path("launcher", "ui", "index.html")
 LAUNCHER_VERSION = "1.0.0"
-DEFAULT_CONNECTOR_VERSION = "2.75"
+DEFAULT_CONNECTOR_VERSION = "2.76"
 APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-icon-1024.png")
 STATUS_CACHE_TTL_SECONDS = 18
 DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://kmfxedge.com?auth=recovery")
@@ -307,13 +307,14 @@ class KMFXApi:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
+        if has_local_link:
+            save_bridge_config(self.config, user_id=self.config.auth_user_id)
+            self.fetch_json("/bridge/reload-config")
+            return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
+
         response = self.backend.link_account(user_id=self.config.auth_user_id, label="KMFX Connector MT5")
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
-            if has_local_link:
-                save_bridge_config(self.config, user_id=self.config.auth_user_id)
-                self.fetch_json("/bridge/reload-config")
-                return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
             return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
 
         body = response.body or {}
