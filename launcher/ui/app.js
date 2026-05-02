@@ -6,6 +6,7 @@ const state = {
   accountConnections: [],
   appInfo: {},
   toolFilter: "all",
+  selectedInstallationLabel: "",
   busy: false,
   oauthPending: false,
   message: ""
@@ -79,6 +80,17 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 2800);
 }
 
+function ensureSelectedInstallation() {
+  const labels = state.installations.map((installation) => installation.label).filter(Boolean);
+  if (!labels.length) {
+    state.selectedInstallationLabel = "";
+    return;
+  }
+  if (!labels.includes(state.selectedInstallationLabel)) {
+    state.selectedInstallationLabel = labels[0];
+  }
+}
+
 function initials(name = "", email = "") {
   const source = String(name || email || "KMFX").trim();
   return source
@@ -122,8 +134,15 @@ function setPill(selector, text, kind) {
 }
 
 function renderHome() {
+  ensureSelectedInstallation();
   const status = state.status || {};
-  const nextSignature = stableStringify({ status, busy: state.busy, toolFilter: state.toolFilter });
+  const nextSignature = stableStringify({
+    status,
+    busy: state.busy,
+    toolFilter: state.toolFilter,
+    installations: state.installations,
+    selectedInstallationLabel: state.selectedInstallationLabel
+  });
   if (nextSignature === lastHomeSignature) return;
   lastHomeSignature = nextSignature;
   const installed = Boolean(status.connector_installed);
@@ -145,6 +164,34 @@ function renderHome() {
     installButton.className = `button ${installed && !needsRepair ? "secondary" : "primary"}`;
   }
   if (openButton) openButton.disabled = state.busy || !hasMt5;
+
+  const picker = $("#installation-picker");
+  if (picker) {
+    if (!state.installations.length) {
+      picker.innerHTML = `<div class="installation-picker__empty">No se ha detectado MetaTrader 5.</div>`;
+    } else if (state.installations.length === 1) {
+      const installation = state.installations[0];
+      picker.innerHTML = `
+        <div class="installation-picker__single">
+          <span>MetaTrader detectado</span>
+          <strong>${escapeHtml(installation.label || "MetaTrader 5")}</strong>
+        </div>
+      `;
+    } else {
+      picker.innerHTML = `
+        <label class="installation-picker__select">
+          <span>MetaTrader detectado</span>
+          <select id="selected-installation">
+            ${state.installations.map((installation) => `
+              <option value="${escapeHtml(installation.label || "")}" ${installation.label === state.selectedInstallationLabel ? "selected" : ""}>
+                ${escapeHtml(installation.label || "MetaTrader 5")}
+              </option>
+            `).join("")}
+          </select>
+        </label>
+      `;
+    }
+  }
 
   const message = $("#status-message");
   if (!message) return;
@@ -195,6 +242,14 @@ function renderAccountConnections() {
             <span>Estado</span>
             <strong>${escapeHtml(connection.status_label || "Pendiente")}</strong>
             <small>${escapeHtml(connection.last_sync_label || "Esperando sincronización")}</small>
+          </div>
+          <div class="connection-row-actions">
+            <button class="button primary small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
+              Instalar conector
+            </button>
+            <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" ${state.installations.length ? "" : "disabled"}>
+              Abrir MT5
+            </button>
           </div>
         </article>
       `;
@@ -275,6 +330,7 @@ async function loadAll() {
   state.accountConnections = payload.account_connections || [];
   state.appInfo = payload.app_info || {};
   state.session = payload.session || state.session;
+  ensureSelectedInstallation();
   render();
 }
 
@@ -396,10 +452,10 @@ async function handlePasswordReset() {
   }
 }
 
-async function performAction(method, successMessage) {
+async function performAction(method, successMessage, ...args) {
   setBusy(true);
   try {
-    const result = await callApi(method);
+    const result = await callApi(method, ...args);
     showToast(result.message || successMessage);
     if (result.status) state.status = result.status;
     if (result.installations) state.installations = result.installations;
@@ -420,6 +476,7 @@ async function refreshEverything() {
   state.accountConnections = payload.account_connections || state.accountConnections;
   state.appInfo = payload.app_info || state.appInfo;
   state.session = payload.session || state.session;
+  ensureSelectedInstallation();
 }
 
 async function copyToClipboard(value, successMessage) {
@@ -493,16 +550,33 @@ function bindEvents() {
     try {
       state.installations = await callApi("refresh_installations");
       state.status = await callApi("get_status");
+      ensureSelectedInstallation();
       showToast("Instalaciones actualizadas.");
     } finally {
       setBusy(false);
       render();
     }
   });
-  $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Conector instalado."));
-  $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto."));
+  document.addEventListener("change", (event) => {
+    const select = event.target.closest("#selected-installation");
+    if (!select) return;
+    state.selectedInstallationLabel = select.value || "";
+    renderHome();
+  });
+  $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Conector instalado.", state.selectedInstallationLabel));
+  $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel));
   $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));
   document.addEventListener("click", (event) => {
+    const installAccountButton = event.target.closest("[data-install-account]");
+    if (installAccountButton) {
+      performAction("install_connector_for_connection", "Conector instalado.", installAccountButton.dataset.installAccount || "", state.selectedInstallationLabel);
+      return;
+    }
+    const openAccountMt5Button = event.target.closest("[data-open-mt5-account]");
+    if (openAccountMt5Button) {
+      performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel);
+      return;
+    }
     const button = event.target.closest("[data-copy-value]");
     if (!button) return;
     copyToClipboard(button.dataset.copyValue || "", button.dataset.copyLabel || "Copiado.");

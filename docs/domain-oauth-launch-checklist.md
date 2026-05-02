@@ -7,6 +7,7 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 - `dashboard.kmfxedge.com` funciona en Vercel.
 - `kmfxedge.com` y `www.kmfxedge.com` funcionan en Vercel con SSL.
 - `api.kmfxedge.com` queda pendiente para el backend.
+- `mt5-api.kmfxedge.com` apunta a un Cloudflare Worker proxy hacia Render para el flujo EA/MT5.
 - El código web ya no hardcodea el redirect OAuth a `dashboard.kmfxedge.com`; usa el origen actual.
 - El launcher usa `https://kmfxedge.com?auth=recovery` por defecto y permite sobrescribirlo con `KMFX_DASHBOARD_RECOVERY_URL`.
 - Supabase Auth ya acepta `https://kmfxedge.com` como redirect y devuelve el flujo OAuth hacia Google.
@@ -50,11 +51,13 @@ Objetivo: mover la experiencia principal a `https://kmfxedge.com` sin romper la 
 ## Backend/API
 
 - [ ] Crear `api.kmfxedge.com` apuntando al backend Render.
+- [x] Crear `mt5-api.kmfxedge.com` como proxy Cloudflare Worker hacia Render para el flujo EA/MT5.
 - [ ] Cambiar `js/modules/api-config.js`, `launcher/config.py` y `launcher_config.example.json` a `https://api.kmfxedge.com` cuando el DNS responda.
 - [x] Restringir CORS a `https://kmfxedge.com` y aliases temporales.
 - [ ] Ejecutar smoke test:
   - `https://kmfxedge.com`
   - `https://api.kmfxedge.com/health`
+  - `https://mt5-api.kmfxedge.com/health`
   - login Google
   - password recovery
   - account snapshot autenticado

@@ -295,13 +295,14 @@ El modo manual, keys, puertos, endpoints locales, logs técnicos y payload raw q
 - [x] Dejar la inspección técnica y regeneración de key solo en admin tools.
 - [x] Cambiar el launcher a lenguaje de producto: "Añadir cuenta MT5", "Instalar conector" y estado de sincronización.
 - [x] Ocultar key y endpoint en la lista normal del launcher.
-- [ ] Soportar multi-cuenta real sin que el usuario gestione puertos.
-- [ ] Crear un account slot por cuenta MT5 desde backend, vinculado a `user_id`.
+- [x] Soportar multi-cuenta real sin que el usuario gestione puertos.
+- [x] Crear un account slot por cuenta MT5 desde backend, vinculado a `user_id`.
+- [x] Permitir instalar el conector para una cuenta concreta usando su key interna sin mostrarla al usuario.
 - [ ] Detectar primera sincronización y pedir confirmación de nombre/tipo de cuenta.
 - [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
 - [ ] Vincular cuenta marcada como Funding a un journey existente o nuevo.
 - [ ] Añadir estado bloqueado por plan cuando se alcance el límite de cuentas live.
-- [ ] Definir si el endpoint cloud directo será `https://mt5-api.kmfxedge.com`.
+- [x] Definir y activar `https://mt5-api.kmfxedge.com` como proxy Cloudflare hacia el backend actual.
 
 Criterio de salida:
 

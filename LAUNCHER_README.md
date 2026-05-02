@@ -31,6 +31,19 @@ En la app web:
 
 Para usuarios normales no se muestran `connection_key`, puertos, endpoints locales ni logs técnicos. Esa información queda para admin/dev/soporte.
 
+## Multi-cuenta
+
+El launcher mantiene un único servicio local, pero puede instalar el conector para varias cuentas MT5. Cada cuenta creada en KMFX tiene su propia key interna y el launcher la escribe en el preset de la instalación MT5 seleccionada.
+
+Flujo esperado:
+
+1. Pulsar `Añadir cuenta MT5`.
+2. Seleccionar la instalación MT5 detectada.
+3. Pulsar `Instalar conector` en esa cuenta.
+4. Abrir ese MT5 y esperar la primera sincronización.
+
+El usuario no necesita cambiar puertos. El EA envía su key específica y el launcher reenvía cada snapshot al backend con la identidad correcta.
+
 ## Archivos principales
 
 - `/Users/conlopuestoyaloloco/Desktop/KMFX Edge/launcher/app.py`

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import threading
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -375,6 +376,12 @@ class KMFXApi:
                 "account_connections": self.get_account_connections(),
             }
 
+    def account_connection_by_id(self, account_id: str) -> dict[str, Any] | None:
+        normalized = _safe_str(account_id)
+        if not normalized:
+            return None
+        return next((connection for connection in self.get_account_connections() if connection.get("account_id") == normalized), None)
+
     def get_installations(self) -> list[dict[str, Any]]:
         return [self.serialize_installation(installation) for installation in self.installations]
 
@@ -404,6 +411,45 @@ class KMFXApi:
                 "result": result,
                 "status": self.get_status(),
                 "installations": self.get_installations(),
+                "account_connections": self.get_account_connections(),
+            }
+
+    def install_connector_for_connection(self, account_id: str, selected_installation: str | None = None) -> dict[str, Any]:
+        with self._lock:
+            if not self.get_session().get("authenticated"):
+                return {"ok": False, "message": "Inicia sesión para instalar el conector."}
+            connection = self.account_connection_by_id(account_id)
+            if not connection:
+                return {"ok": False, "message": "No encuentro esa cuenta MT5 en el launcher."}
+            connection_key = _safe_str(connection.get("connection_key"))
+            if not connection_key:
+                return {"ok": False, "message": "Esta cuenta aún no tiene conexión preparada."}
+            installation = self.selected_installation(selected_installation)
+            if installation is None:
+                return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
+
+            self.config.selected_mt5_terminal_path = installation.terminal_path
+            self.config.selected_mt5_data_path = installation.data_path
+            self.config.selected_mt5_experts_path = installation.experts_path
+            save_config(self.config)
+
+            install_config = replace(self.config)
+            install_config.connection_key = connection_key
+            result = install_connector(installation, install_config)
+            self.logger.info(
+                "[KMFX][LAUNCHER][INSTALL] connector installed target=%s account_id=%s key=%s",
+                installation.label,
+                connection.get("account_id", ""),
+                mask_connection_key(connection_key),
+            )
+            self.refresh_installations()
+            return {
+                "ok": True,
+                "message": f"Conector instalado para {connection.get('label') or 'Cuenta MT5'}.",
+                "result": result,
+                "status": self.get_status(),
+                "installations": self.get_installations(),
+                "account_connections": self.get_account_connections(),
             }
 
     def repair_connector(self, selected_installation: str | None = None) -> dict[str, Any]:
