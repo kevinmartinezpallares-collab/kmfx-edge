@@ -86,7 +86,7 @@ jobs:
           retention-days: 14
 
   publish:
-    name: Open launcher artifact PR
+    name: Publish launcher artifact
     runs-on: ubuntu-latest
     needs: build
     if: >
@@ -95,7 +95,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - name: Checkout
@@ -123,34 +122,19 @@ jobs:
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Push package branch
-        id: branch
+      - name: Publish package
+        id: publish
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           branch="automation/windows-launcher-artifact-${{ github.run_id }}-${{ github.run_attempt }}"
           git checkout -b "$branch"
           git commit -m "Publish Windows launcher artifact"
-          git push -u origin "$branch"
-          echo "branch=$branch" >> "$GITHUB_OUTPUT"
-
-      - name: Open pull request
-        id: open_pr
-        if: steps.changes.outputs.has_changes == 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ steps.branch.outputs.branch }}
-        run: |
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "Publish Windows launcher artifact" \
-            --body "Actualiza automaticamente el paquete Windows generado por CI y su checksum SHA256. Revisar y fusionar este PR publica la descarga en https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip."
-
-      - name: Report pull request fallback
-        if: steps.changes.outputs.has_changes == 'true' && steps.open_pr.outcome == 'failure'
-        env:
-          BRANCH: ${{ steps.branch.outputs.branch }}
-        run: |
-          echo "::warning title=Launcher artifact branch ready::GitHub Actions generated and pushed $BRANCH, but repository settings do not allow Actions to create pull requests."
-          echo "Artifact branch: $BRANCH"
+          if git push origin HEAD:main; then
+            echo "published_to_main=true" >> "$GITHUB_OUTPUT"
+            echo "Published Windows launcher artifact to main."
+          else
+            git push -u origin "$branch"
+            echo "published_to_main=false" >> "$GITHUB_OUTPUT"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Launcher artifact branch ready::GitHub Actions generated and pushed $branch, but direct publishing to main was blocked."
+          fi
