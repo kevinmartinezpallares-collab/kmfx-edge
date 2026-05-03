@@ -124,12 +124,16 @@ export function initNavigation(store) {
     const activeNavPage = navigationParentForPage(activePage);
     navButtons.forEach((item) => {
       const targetPage = item.dataset.page;
-      const targetTab = item.dataset.tab;
       const isSubitem = item.classList.contains("nav-subitem");
-      const isActive = targetTab && isSubitem
-        ? parentPageForPage(activePage) === "analytics" && analyticsTab === targetTab
-        : targetPage === activePage || (!isSubitem && targetPage === activeNavPage);
+      const isActive = isSubitem
+        ? targetPage === activePage
+        : targetPage === activePage || targetPage === activeNavPage;
       item.classList.toggle("active", isActive);
+      if (isActive) {
+        item.setAttribute("aria-current", "page");
+      } else {
+        item.removeAttribute("aria-current");
+      }
     });
     navGroups.forEach((group) => {
       const hasActiveChild = Boolean(group.querySelector(".nav-item.active"));

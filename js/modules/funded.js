@@ -1519,17 +1519,28 @@ export function renderFunded(root, state) {
     : challengeStatus.dataTone === "risk"
       ? "Señales críticas calculadas; confirma reglas antes de decidir."
       : "Señales compactas de seguimiento.";
+  const activePage = state.ui.activePage || "funded";
+  const showChallenges = activePage === "funded";
+  const showRules = activePage === "funded-rules";
+  const showPayouts = activePage === "funded-payouts";
+  const fundedTitle = showRules ? "Reglas de Funding" : showPayouts ? "Payouts" : "Funding";
+  const fundedDescription = showRules
+    ? "Buffers, límites y lectura de reglas para la cuenta fondeada seleccionada."
+    : showPayouts
+      ? "Economía del fondeo: costes, payouts, retiros y resultado neto."
+      : "Seguimiento de cuentas fondeadas, progreso de fase y preservación de capital.";
 
   root.innerHTML = `
     <div class="funded-page-stack">
       ${pageHeaderMarkup({
-        title: "Funding",
-        description: "Seguimiento de cuentas fondeadas, progreso de fase y preservación de capital.",
+        title: fundedTitle,
+        description: fundedDescription,
         className: "tl-page-header",
         titleClassName: "tl-page-title",
         descriptionClassName: "tl-page-sub",
       })}
 
+      ${showChallenges || showPayouts ? `
       <section class="funding-overview" aria-label="Resumen de funding">
         <article class="funding-kpi" data-tone="info">
           <span class="funding-kpi__label">Cuentas funded</span>
@@ -1548,7 +1559,9 @@ export function renderFunded(root, state) {
         </article>
         ${fundingEconomicsKpiMarkup(visibleFundingEconomics)}
       </section>
+      ` : ""}
 
+      ${showChallenges ? `
       <section class="tl-section-card funding-accounts-panel" aria-label="Cuentas de fondeo">
         <div class="funding-section-head">
           <div>
@@ -1584,7 +1597,9 @@ export function renderFunded(root, state) {
           }).join("")}
         </div>
       </section>
+      ` : ""}
 
+      ${showChallenges ? `
       <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
         <div class="funding-detail-header">
           <div>
@@ -1623,7 +1638,49 @@ export function renderFunded(root, state) {
           ${fundingEconomicsMarkup(selectedFundingEconomics)}
         </div>
       </article>
+      ` : ""}
 
+      ${showRules ? `
+      <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
+        <div class="funding-detail-header">
+          <div>
+            <div class="tl-section-title">Reglas y buffers</div>
+            <div class="funding-detail-title">${escapeHtml(fundingInsightSummary(selected, selectedFundingEconomics))}</div>
+            <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
+            ${fundingJourneyMetaLine(selected) ? `<div class="funding-detail-sub">${escapeHtml(fundingJourneyMetaLine(selected))}</div>` : ""}
+          </div>
+          <div class="funding-detail-actions">
+            ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
+            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
+          </div>
+        </div>
+        <div class="funding-reading-grid">
+          ${fundingRulesVisualMarkup(selected)}
+          ${fundingCurrentStateMarkup(selected, selectedFundingEconomics, daysStatus)}
+        </div>
+      </article>
+      ` : ""}
+
+      ${showPayouts ? `
+      <article class="tl-section-card funding-detail-panel" data-tone="${safeNumber(selectedFundingEconomics.netFundingResult || 0) < 0 ? "warning" : "profit"}">
+        <div class="funding-detail-header">
+          <div>
+            <div class="tl-section-title">Economía del fondeo</div>
+            <div class="funding-detail-title">${escapeHtml(fundingInsightSummary(selected, selectedFundingEconomics))}</div>
+            <div class="funding-detail-sub">Ledger manual separado del P&L de trading.</div>
+          </div>
+          <div class="funding-detail-actions">
+            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
+          </div>
+        </div>
+        <div class="funding-economics-panel" aria-label="Economía del fondeo">
+          ${fundingEconomicsMarkup(selectedFundingEconomics)}
+        </div>
+      </article>
+      ` : ""}
+
+      ${showChallenges || showRules ? `
       <article class="tl-section-card funding-review-panel">
         <div class="funding-section-head">
           <div>
@@ -1644,6 +1701,7 @@ export function renderFunded(root, state) {
           ${hiddenReviewAlertCount ? `<div class="funding-review-more">+${hiddenReviewAlertCount} más en seguimiento</div>` : ""}
         </div>
       </article>
+      ` : ""}
     </div>
   `;
 }

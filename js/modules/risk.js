@@ -1031,6 +1031,19 @@ export function renderRisk(root, state) {
       tone: safeNumber(drawdownPath.recovery_factor, 0) >= 1 ? "ok" : safeNumber(drawdownPath.max_drawdown_pct, 0) > 0 ? "warn" : "neutral"
     }
   ];
+  const activePage = state.ui.activePage || "risk";
+  const showRiskCockpit = activePage === "risk";
+  const showRuinVar = activePage === "risk-ruin-var";
+  const showMonteCarlo = activePage === "risk-monte-carlo";
+  const showExposure = activePage === "risk-exposure";
+  const riskTitle = showRuinVar ? "Ruin / VaR" : showMonteCarlo ? "Monte Carlo" : showExposure ? "Exposición" : "Risk Engine";
+  const riskDescription = showRuinVar
+    ? "Probabilidad de ruina, VaR, CVaR, supuestos y lectura de cola."
+    : showMonteCarlo
+      ? "Simulación de trayectorias, drawdown esperado y supervivencia."
+      : showExposure
+        ? "Riesgo abierto, heat y presión inmediata de la cuenta activa."
+        : "Protección de cuenta, límites activos y política de riesgo.";
   const adminTracePanel = renderAdminTracePanel(state, {
     title: "Diagnóstico de riesgo",
     subtitle: "Lectura técnica de política, frescura y datos operativos.",
@@ -1064,8 +1077,8 @@ export function renderRisk(root, state) {
   root.innerHTML = `
     <div class="risk-page-stack risk-engine-page">
     ${pageHeaderMarkup({
-      title: "Risk Engine",
-      description: "Protección de cuenta, límites activos y política de riesgo.",
+      title: riskTitle,
+      description: riskDescription,
       className: "tl-page-header risk-engine-page-header",
       titleClassName: "tl-page-title risk-engine-page-title",
       descriptionClassName: "tl-page-sub risk-engine-page-sub",
@@ -1075,6 +1088,7 @@ export function renderRisk(root, state) {
     ${liveState.status === "stale" && liveSnapshot ? renderRiskStateCard("warning", "Mostrando último estado conocido", "La cuenta no ha enviado una actualización reciente.", `Última sincronización ${formatDateTime(lastSyncAt)}`) : ""}
     ${liveSnapshot && !account.connection?.connected ? renderRiskStateCard("warning", "MT5 sin sincronización reciente", "La cuenta existe, pero la conexión no está marcada como activa.", "Se conserva la última lectura conocida.") : ""}
 
+    ${showRiskCockpit ? `
     <section class="risk-overview-grid">
       <article class="risk-overview-card risk-overview-card--${commandMeta.tone}">
         <span>Estado de protección</span>
@@ -1092,12 +1106,14 @@ export function renderRisk(root, state) {
         <p>${policySourceCopy}</p>
       </article>
     </section>
+    ` : ""}
 
+    ${showRuinVar || showMonteCarlo ? `
     <article class="tl-section-card risk-professional-surface risk-professional-surface--${professionalDecision.tone}">
       <div class="risk-professional-header">
         <div>
-          <div class="tl-section-title">Ruin / VaR</div>
-          <div class="row-sub">Lectura profesional de cola, supervivencia y recuperación. Estimación basada en trades cerrados.</div>
+          <div class="tl-section-title">${showMonteCarlo ? "Monte Carlo" : "Ruin / VaR"}</div>
+          <div class="row-sub">${showMonteCarlo ? "Distribución estimada de caminos, drawdown y probabilidad de tocar el límite." : "Lectura profesional de cola, supervivencia y recuperación. Estimación basada en trades cerrados."}</div>
         </div>
         <div class="risk-professional-sample risk-professional-sample--${professionalSample.tone}">
           <span>${professionalSample.label}</span>
@@ -1113,6 +1129,7 @@ export function renderRisk(root, state) {
           </article>
         `).join("")}
       </div>
+      ${showRuinVar ? `
       <div class="risk-professional-readout">
         <div>
           <span>Lectura</span>
@@ -1153,6 +1170,8 @@ export function renderRisk(root, state) {
           <p class="risk-portfolio-var-foot">${portfolioVar.hasPortfolio ? "Suma conservadora por cuenta; la correlación multi-cuenta queda marcada como fase posterior." : "El VaR de portfolio se consolidará cuando haya más de una cuenta con muestra real."}</p>
         </section>
       </div>
+      ` : ""}
+      ${showMonteCarlo ? `
       <div class="risk-simulation-panel">
         <div class="risk-simulation-panel__head">
           <div>
@@ -1200,6 +1219,7 @@ export function renderRisk(root, state) {
           <div class="risk-simulation-empty">La visualización se activa con retornos cerrados suficientes.</div>
         `}
       </div>
+      ` : ""}
       <div class="risk-professional-actions">
         <div class="risk-professional-actions__head">
           <span>Alertas accionables</span>
@@ -1225,7 +1245,9 @@ export function renderRisk(root, state) {
         </div>
       ` : ""}
     </article>
+    ` : ""}
 
+    ${showRiskCockpit ? `
     ${liveSnapshot?.status?.risk_status === "blocked" ? `
       <article class="risk-lock-banner">
         <div class="risk-lock-copy">
@@ -1235,7 +1257,9 @@ export function renderRisk(root, state) {
         ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
       </article>
     ` : ""}
+    ` : ""}
 
+    ${showRiskCockpit ? `
     <article class="tl-section-card risk-active-rules">
       <div class="tl-section-header">
         <div>
@@ -1248,7 +1272,9 @@ export function renderRisk(root, state) {
         ${rulesMarkup}
       </div>
     </article>
+    ` : ""}
 
+      ${showRiskCockpit || showExposure ? `
       <div class="risk-core-grid">
       <article class="tl-section-card risk-core-metrics">
         <div class="tl-section-header">
@@ -1301,7 +1327,9 @@ export function renderRisk(root, state) {
         `}
       </article>
     </div>
+    ` : ""}
 
+    ${showRiskCockpit ? `
     <article class="tl-section-card risk-policy-surface">
       <div class="risk-policy-header">
         <div>
@@ -1495,7 +1523,9 @@ export function renderRisk(root, state) {
         </div>
       </div>
     </article>
+    ` : ""}
 
+    ${showRiskCockpit ? `
     <article class="tl-section-card risk-ladder-surface">
       <div class="tl-section-header">
         <div>
@@ -1531,6 +1561,7 @@ export function renderRisk(root, state) {
         </table>
       </div>` : ""}
     </article>
+    ` : ""}
 
     </div>
   `;

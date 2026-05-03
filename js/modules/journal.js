@@ -891,11 +891,31 @@ export function renderJournal(root, state) {
   const cockpit = buildJournalCockpit(account, accountEntries, authorityMeta);
   const currency = cockpit.model.account?.currency;
   const latestEntry = accountEntries[0];
+  const activePage = state.ui.activePage || "journal";
+  const pageTitle = activePage === "journal-review"
+    ? "Review Queue"
+    : activePage === "journal-entries"
+      ? "Entradas"
+      : activePage === "journal-ai-review"
+        ? "AI Review"
+        : "Journal Cockpit";
+  const pageDescription = activePage === "journal-review"
+    ? "Cola de revisión, leaks y prioridades antes de volver a operar."
+    : activePage === "journal-entries"
+      ? "Registro manual de entradas, lecciones y evidencia post-trade."
+      : activePage === "journal-ai-review"
+        ? "Reporte Markdown para enviar fuera del dashboard a una IA externa."
+        : "Centro diario de revisión, leaks y lectura profesional de la cuenta activa.";
+  const showCockpit = activePage === "journal";
+  const showReview = activePage === "journal" || activePage === "journal-review";
+  const showEntries = activePage === "journal" || activePage === "journal-entries";
+  const showAiExport = activePage === "journal-ai-review";
+  const showLeaks = activePage === "journal" || activePage === "journal-review";
 
   root.innerHTML = `
     ${pageHeaderMarkup({
-      title: "Journal Cockpit",
-      description: "Centro diario de revisión, leaks y lectura profesional de la cuenta activa.",
+      title: pageTitle,
+      description: pageDescription,
       className: "tl-page-header",
       titleClassName: "tl-page-title",
       descriptionClassName: "tl-page-sub",
@@ -913,6 +933,7 @@ export function renderJournal(root, state) {
     ${renderAuthorityNotice(authorityMeta)}
 
     <div class="journal-cockpit">
+      ${showCockpit ? `
       <section class="tl-section-card journal-cockpit-hero journal-cockpit-hero--${cockpit.dailyRead.tone}">
         <div class="journal-cockpit-hero__copy">
           <span>Daily read</span>
@@ -947,7 +968,9 @@ export function renderJournal(root, state) {
           </div>
         </div>
       </section>
+      ` : ""}
 
+      ${showCockpit ? `
       <section class="journal-professional-strip">
         ${[
           { label: "P&L", value: formatSignedCurrency(cockpit.totalPnl, currency), tone: cockpit.totalPnl >= 0 ? "profit" : "loss", meta: "Neto sample" },
@@ -965,8 +988,11 @@ export function renderJournal(root, state) {
           className: "journal-kpi-card"
         })).join("")}
       </section>
+      ` : ""}
 
+      ${showReview || showEntries ? `
       <div class="journal-cockpit-grid">
+        ${showReview ? `
         <article class="tl-section-card journal-review-queue">
           <div class="tl-section-header">
             <div>
@@ -982,7 +1008,9 @@ export function renderJournal(root, state) {
             ${reviewQueueItem("Fuera de horario", String(cockpit.outOfSessionTrades.length), cockpit.outOfSessionTrades.length ? "Trades fuera de sesiones permitidas" : "Dentro de sesiones configuradas", cockpit.outOfSessionTrades.length ? "warn" : "ok")}
           </div>
         </article>
+        ` : ""}
 
+        ${showEntries ? `
         <article class="tl-section-card journal-daily-panel">
           <div class="tl-section-header">
             <div>
@@ -1004,8 +1032,11 @@ export function renderJournal(root, state) {
             <small>${cockpit.sizing.weekly_risk_budget_remaining_pct != null ? `${formatPlainPct(cockpit.sizing.weekly_risk_budget_remaining_pct)} margen hasta ruina` : "Esperando política de riesgo"}</small>
           </div>
         </article>
+        ` : ""}
       </div>
+      ` : ""}
 
+      ${showAiExport ? `
       <article class="tl-section-card journal-ai-export-panel">
         <div class="tl-section-header">
           <div>
@@ -1036,7 +1067,9 @@ export function renderJournal(root, state) {
           </div>
         </div>
       </article>
+      ` : ""}
 
+      ${showLeaks ? `
       <article class="tl-section-card journal-leaks-panel">
         <div class="tl-section-header">
           <div>
@@ -1051,7 +1084,9 @@ export function renderJournal(root, state) {
           ${leakItem("Dirección", cockpit.leaks.directionLeak, currency)}
         </div>
       </article>
+      ` : ""}
 
+      ${showEntries ? `
       <article class="tl-section-card journal-recent-panel">
         <div class="tl-section-header">
           <div>
@@ -1089,6 +1124,7 @@ export function renderJournal(root, state) {
           </table>
         </div>
       </article>
+      ` : ""}
     </div>
   `;
 }

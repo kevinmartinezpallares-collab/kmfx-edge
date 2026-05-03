@@ -110,7 +110,7 @@ const PAGE_PARENT = Object.freeze({
   "journal-entries": "journal",
   "journal-ai-review": "journal",
   "strategies-backtest": "strategies",
-  "strategies-portfolio": "portfolio",
+  "strategies-portfolio": "strategies",
   "funded-rules": "funded",
   "funded-payouts": "funded"
 });

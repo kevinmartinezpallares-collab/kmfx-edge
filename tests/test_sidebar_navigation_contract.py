@@ -1,0 +1,90 @@
+import re
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+DESKTOP_SUBSECTION_PAGES = [
+    "risk-ruin-var",
+    "risk-monte-carlo",
+    "risk-exposure",
+    "journal-review",
+    "journal-entries",
+    "journal-ai-review",
+    "strategies-backtest",
+    "strategies-portfolio",
+    "funded-rules",
+    "funded-payouts",
+]
+
+INTERNAL_TAB_PAGES = ["analytics-daily", "analytics-hourly", "analytics-risk"]
+
+DEFAULT_PARENT_PAGES = ["strategies", "analytics", "funded", "risk", "journal"]
+
+ROUTE_TARGETS = {
+    "/risk-engine/ruin-var": "risk-ruin-var",
+    "/risk-engine/monte-carlo": "risk-monte-carlo",
+    "/risk-engine/exposicion": "risk-exposure",
+    "/journal/review-queue": "journal-review",
+    "/journal/entradas": "journal-entries",
+    "/journal/ai-review": "journal-ai-review",
+    "/estrategias/backtest-vs-real": "strategies-backtest",
+    "/estrategias/portafolios": "strategies-portfolio",
+    "/funding/reglas": "funded-rules",
+    "/funding/payouts": "funded-payouts",
+}
+
+
+def read_text(relative_path):
+    return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def extract_object_body(source, object_name):
+    pattern = rf"{re.escape(object_name)}\s*=\s*Object\.freeze\(\{{(?P<body>.*?)\}}\);"
+    match = re.search(pattern, source, re.S)
+    if not match:
+        raise AssertionError(f"Could not find {object_name} object")
+    return match.group("body")
+
+
+class SidebarNavigationContractTests(unittest.TestCase):
+    def test_desktop_sidebar_exposes_only_real_subsections(self):
+        html = read_text("index.html")
+        self.assertIn("nav-subitems", html)
+        for page in DESKTOP_SUBSECTION_PAGES:
+            self.assertIn(f'data-page="{page}"', html)
+        for page in INTERNAL_TAB_PAGES:
+            self.assertNotIn(f'data-page="{page}"', html)
+        for page in DEFAULT_PARENT_PAGES:
+            self.assertNotRegex(
+                html,
+                rf'class="[^"]*\bnav-subitem\b[^"]*"[^>]*data-page="{re.escape(page)}"',
+            )
+
+    def test_route_map_exposes_subsections_as_real_pages(self):
+        route_map = read_text("js/modules/route-map.js")
+        page_routes = extract_object_body(route_map, "PAGE_ROUTES")
+
+        for page in DESKTOP_SUBSECTION_PAGES + INTERNAL_TAB_PAGES:
+            self.assertIn(f'"{page}"', page_routes)
+
+        for path, target in ROUTE_TARGETS.items():
+            quoted_path = f'"{path}"'
+            quoted_target = f'"{target}"'
+            self.assertRegex(
+                route_map,
+                rf"{re.escape(quoted_path)}\s*:\s*{re.escape(quoted_target)}",
+            )
+
+    def test_persisted_subsection_pages_remain_valid(self):
+        store = read_text("js/modules/store.js")
+        valid_pages = re.search(r"const validPages = new Set\(\[(?P<body>.*?)\]\);", store, re.S)
+        self.assertIsNotNone(valid_pages)
+
+        for page in DESKTOP_SUBSECTION_PAGES:
+            self.assertIn(f'"{page}"', valid_pages.group("body"))
+
+
+if __name__ == "__main__":
+    unittest.main()

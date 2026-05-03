@@ -459,6 +459,7 @@ export function initStrategies(store) {
 }
 
 export function renderStrategies(root, state) {
+  const activePage = state.ui.activePage || "strategies";
   const items = state.workspace.strategies.items.map(normalizeStrategy);
   const journalEntries = state.workspace.journal.entries || [];
   const backtests = Array.isArray(state.workspace.strategies.backtests) ? state.workspace.strategies.backtests : [];
@@ -471,22 +472,22 @@ export function renderStrategies(root, state) {
   });
   const setupStats = buildSetupStats(items, journalEntries);
   const setupSummary = buildStrategiesSetupSummary(items, setupStats);
+  const strongestSetup = setupStats[0] || null;
+  const weakestSetup = [...setupStats].sort((a, b) => a.pnl - b.pnl || b.trades - a.trades)[0] || null;
+  const activeStrategies = items.filter((item) => (item.status || "testing") === "active");
+  const testingStrategies = items.filter((item) => (item.status || "testing") === "testing");
+  const strategiesTitle = activePage === "strategies-backtest"
+    ? "Backtest vs Real"
+    : activePage === "strategies-portfolio"
+      ? "Portafolios"
+      : "Strategy Lab";
+  const strategiesDescription = activePage === "strategies-backtest"
+    ? "Comparativa entre muestra importada, ejecución real y degradación del edge."
+    : activePage === "strategies-portfolio"
+      ? "Distribución de setups, concentración de riesgo y prioridades de capital operativo."
+      : "Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.";
 
-  root.innerHTML = `
-    <section class="strategies-screen strategies-page-stack">
-    ${pageHeaderMarkup({
-      eyebrow: "Estrategias",
-      title: "Estrategias",
-      description: "Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.",
-      className: "calendar-screen__header strategies-screen__header",
-      contentClassName: "calendar-screen__copy",
-      eyebrowClassName: "calendar-screen__eyebrow",
-      titleClassName: "calendar-screen__title",
-      descriptionClassName: "calendar-screen__subtitle",
-      actionsClassName: "strategies-screen__actions",
-      actionsHtml: `<button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>`,
-    })}
-
+  const setupStatsMarkup = `
     <article class="tl-section-card strategies-setup-card">
       <div class="tl-section-header">
         <div class="strategies-section-heading">
@@ -516,9 +517,9 @@ export function renderStrategies(root, state) {
         `}
       </div>
     </article>
+  `;
 
-    ${renderBacktestVsRealSection(backtestVsRealReport)}
-
+  const strategiesTableMarkup = `
     <article class="tl-section-card strategies-table-card">
       <div class="tl-section-header">
         <div class="strategies-section-heading">
@@ -597,6 +598,103 @@ export function renderStrategies(root, state) {
       </div>
       `}
     </article>
+  `;
+
+  const strategyPortfolioMarkup = `
+    <article class="tl-section-card strategies-setup-card">
+      <div class="tl-section-header">
+        <div class="strategies-section-heading">
+          <div class="tl-section-title">Asignación por setup</div>
+          <div class="row-sub">Lectura de concentración: qué merece capital, qué sigue en testing y qué conviene pausar.</div>
+        </div>
+      </div>
+      <div class="strategies-setup-grid">
+        <div class="strategies-setup-item">
+          <div class="strategies-setup-item__head">
+            <div class="strategies-setup-item__name">Setup dominante</div>
+            <div class="strategies-setup-item__sample">${strongestSetup ? sampleLabel(strongestSetup.trades) : "Sin muestra"}</div>
+          </div>
+          <div class="strategies-setup-item__stats">
+            <span class="strategies-setup-item__metric">${strongestSetup?.name || "—"}</span>
+            <span class="strategies-setup-item__metric">${strongestSetup ? percent(strongestSetup.winRate) : "—"} WR</span>
+            <span class="strategies-setup-item__metric ${safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${strongestSetup ? formatCurrency(strongestSetup.pnl) : "—"}</span>
+          </div>
+        </div>
+        <div class="strategies-setup-item">
+          <div class="strategies-setup-item__head">
+            <div class="strategies-setup-item__name">Setup a reducir</div>
+            <div class="strategies-setup-item__sample">${weakestSetup ? sampleLabel(weakestSetup.trades) : "Sin muestra"}</div>
+          </div>
+          <div class="strategies-setup-item__stats">
+            <span class="strategies-setup-item__metric">${weakestSetup?.name || "—"}</span>
+            <span class="strategies-setup-item__metric">${weakestSetup ? percent(weakestSetup.winRate) : "—"} WR</span>
+            <span class="strategies-setup-item__metric ${safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${weakestSetup ? formatCurrency(weakestSetup.pnl) : "—"}</span>
+          </div>
+        </div>
+        <div class="strategies-setup-item">
+          <div class="strategies-setup-item__head">
+            <div class="strategies-setup-item__name">Estado portfolio</div>
+            <div class="strategies-setup-item__sample">${items.length} setups</div>
+          </div>
+          <div class="strategies-setup-item__stats">
+            <span class="strategies-setup-item__metric">${activeStrategies.length} activas</span>
+            <span class="strategies-setup-item__metric">${testingStrategies.length} testing</span>
+            <span class="strategies-setup-item__metric">${backtests.length} backtests</span>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article class="tl-section-card strategies-table-card">
+      <div class="tl-section-header">
+        <div class="strategies-section-heading">
+          <div class="tl-section-title">Matriz de asignación</div>
+          <div class="row-sub">Score operativo por setup para decidir foco, pausa o acumulación de muestra.</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Setup</th><th>Estado</th><th>Trades</th><th>P&L</th><th>WR</th><th>Lectura</th></tr></thead>
+          <tbody>
+            ${items.length ? items.map((item) => {
+              const stats = deriveStrategyStats(item, journalEntries);
+              const decision = stats.trades < 12 ? "Acumular muestra" : stats.pnl < 0 ? "Reducir o pausar" : stats.score >= 7 ? "Candidato a más capital" : "Mantener controlado";
+              return `
+                <tr>
+                  <td><strong>${item.name}</strong></td>
+                  <td>${strategyStatusLabel(item.status)}</td>
+                  <td class="num">${stats.trades}</td>
+                  <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(stats.pnl)}</td>
+                  <td class="num">${percent(stats.winRate)}</td>
+                  <td>${decision}</td>
+                </tr>
+              `;
+            }).join("") : `<tr><td colspan="6">Sin estrategias registradas todavía.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+  const bodyMarkup = activePage === "strategies-backtest"
+    ? renderBacktestVsRealSection(backtestVsRealReport)
+    : activePage === "strategies-portfolio"
+      ? strategyPortfolioMarkup
+      : `${setupStatsMarkup}${strategiesTableMarkup}`;
+
+  root.innerHTML = `
+    <section class="strategies-screen strategies-page-stack">
+    ${pageHeaderMarkup({
+      eyebrow: "Estrategias",
+      title: strategiesTitle,
+      description: strategiesDescription,
+      className: "calendar-screen__header strategies-screen__header",
+      contentClassName: "calendar-screen__copy",
+      eyebrowClassName: "calendar-screen__eyebrow",
+      titleClassName: "calendar-screen__title",
+      descriptionClassName: "calendar-screen__subtitle",
+      actionsClassName: "strategies-screen__actions",
+      actionsHtml: `<button class="btn-primary btn-inline" data-strategy-action="new">Nueva estrategia</button>`,
+    })}
+    ${bodyMarkup}
     </section>
   `;
 }
