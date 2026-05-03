@@ -2,6 +2,18 @@ export function initAuthUI(store) {
   const root = document.getElementById("authRoot");
   if (!root) return;
 
+  const BOT_PROTECTION_PROVIDER = "turnstile";
+  const BOT_PROTECTION_ACTIONS = {
+    signup: "signup",
+    forgot: "forgot_password",
+    reset: "reset_password"
+  };
+  const BOT_PROTECTION_MESSAGES = {
+    required: "Completa la verificación para continuar.",
+    failed: "No hemos podido validar la protección anti-bots. Inténtalo de nuevo.",
+    expired: "La verificación ha caducado. Vuelve a intentarlo."
+  };
+
   root.__turnstile = root.__turnstile || {
     widgets: {},
     tokens: {},
@@ -21,10 +33,23 @@ export function initAuthUI(store) {
     providerLoading: ""
   };
 
+  const getRuntimeTurnstileConfig = () => window.__KMFX_CONFIG__?.turnstile || {};
+
   const getTurnstileSiteKey = () => {
     const metaSiteKey = document.querySelector('meta[name="kmfx-turnstile-site-key"]')?.getAttribute("content")?.trim();
-    const runtimeSiteKey = window.__KMFX_CONFIG__?.turnstile?.siteKey?.trim?.();
+    const runtimeSiteKey = getRuntimeTurnstileConfig()?.siteKey?.trim?.();
     return runtimeSiteKey || metaSiteKey || "";
+  };
+
+  const getBotProtectionConfig = () => {
+    const runtimeConfig = getRuntimeTurnstileConfig();
+    const siteKey = getTurnstileSiteKey();
+    return {
+      provider: BOT_PROTECTION_PROVIDER,
+      enabled: runtimeConfig.enabled === true || runtimeConfig.required === true || Boolean(siteKey),
+      siteKey,
+      actions: { ...BOT_PROTECTION_ACTIONS }
+    };
   };
 
   const getTurnstileTheme = () => document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
@@ -38,28 +63,44 @@ export function initAuthUI(store) {
 
   const isProtectedTurnstileMode = (mode) => ["signup", "forgot", "reset"].includes(mode);
 
+  const getTurnstileAction = (mode) => BOT_PROTECTION_ACTIONS[mode] || mode || "auth";
+
+  const logBotProtectionIssue = (mode, reason) => {
+    console.warn("[KMFX][AUTH][BOT_PROTECTION]", {
+      provider: BOT_PROTECTION_PROVIDER,
+      action: getTurnstileAction(mode),
+      reason
+    });
+  };
+
   const resetTurnstileWidget = (mode) => {
     const widgetId = root.__turnstile?.widgets?.[mode];
-    if (!widgetId || !window.turnstile?.reset) return;
+    if ((widgetId === undefined || widgetId === null) || !window.turnstile?.reset) return;
     root.__turnstile.tokens[mode] = "";
     window.turnstile.reset(widgetId);
   };
 
   const ensureTurnstileCompleted = (mode) => {
     if (!isProtectedTurnstileMode(mode)) return true;
-    const siteKey = getTurnstileSiteKey();
-    if (!siteKey) {
-      console.warn("[KMFX][AUTH][CAPTCHA_CONFIG] Turnstile site key missing. Continuing without captchaToken; Supabase may reject protected auth actions.", {
-        mode
-      });
+    const botProtection = getBotProtectionConfig();
+    if (!botProtection.enabled) {
       return true;
+    }
+    if (!botProtection.siteKey) {
+      setUiState({
+        error: BOT_PROTECTION_MESSAGES.failed,
+        notice: ""
+      });
+      logBotProtectionIssue(mode, "site_key_missing");
+      return false;
     }
     const token = String(root.__turnstile?.tokens?.[mode] || "").trim();
     if (!token) {
       setUiState({
-        error: "Completa la verificación para continuar.",
+        error: BOT_PROTECTION_MESSAGES.required,
         notice: ""
       });
+      logBotProtectionIssue(mode, "token_missing");
       return false;
     }
     return true;
@@ -83,18 +124,27 @@ export function initAuthUI(store) {
       theme: getTurnstileTheme(),
       language: "es",
       appearance: "always",
+      action: getTurnstileAction(mode),
       callback: (token) => {
         root.__turnstile.tokens[mode] = token || "";
-        if (root.__authUiState.error === "Completa la verificación para continuar." || root.__authUiState.error === "No se pudo validar la verificación. Inténtalo de nuevo.") {
+        if (Object.values(BOT_PROTECTION_MESSAGES).includes(root.__authUiState.error)) {
           setUiState({ error: "" });
         }
       },
       "error-callback": () => {
         root.__turnstile.tokens[mode] = "";
-        setUiState({ error: "No se pudo validar la verificación. Inténtalo de nuevo.", notice: "" });
+        logBotProtectionIssue(mode, "widget_error");
+        setUiState({ error: BOT_PROTECTION_MESSAGES.failed, notice: "" });
       },
       "expired-callback": () => {
         root.__turnstile.tokens[mode] = "";
+        logBotProtectionIssue(mode, "token_expired");
+        setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
+      },
+      "timeout-callback": () => {
+        root.__turnstile.tokens[mode] = "";
+        logBotProtectionIssue(mode, "token_timeout");
+        setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
       }
     });
   };
@@ -252,7 +302,8 @@ export function initAuthUI(store) {
     if (!ensureTurnstileCompleted("forgot")) return;
     const email = String(root.__authUiState.email || "").trim();
     setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-request" });
-    const result = await window.kmfxAuth?.requestPasswordReset?.({ email });
+    const captchaToken = getTurnstileToken("forgot");
+    const result = await window.kmfxAuth?.requestPasswordReset?.({ email, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("forgot");
       setUiState({
@@ -263,6 +314,7 @@ export function initAuthUI(store) {
       });
       return;
     }
+    resetTurnstileWidget("forgot");
     setUiState({
       loading: false,
       providerLoading: "",
@@ -281,7 +333,8 @@ export function initAuthUI(store) {
       return;
     }
     setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-password" });
-    const result = await window.kmfxAuth?.updatePassword?.({ password });
+    const captchaToken = getTurnstileToken("reset");
+    const result = await window.kmfxAuth?.updatePassword?.({ password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("reset");
       setUiState({
@@ -292,6 +345,7 @@ export function initAuthUI(store) {
       });
       return;
     }
+    resetTurnstileWidget("reset");
     setUiState({
       loading: false,
       providerLoading: "",

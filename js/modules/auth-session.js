@@ -151,7 +151,7 @@ function normalizeAuthError(error, fallback = "No se pudo completar la autentica
     return "Email o contraseña incorrectos.";
   }
   if (normalized.includes("captcha") || normalized.includes("turnstile") || normalized.includes("hcaptcha") || normalized.includes("recaptcha") || normalized.includes("verification")) {
-    return "No se pudo validar la verificación. Revisa la configuración de captcha e inténtalo de nuevo.";
+    return "No hemos podido validar la protección anti-bots. Inténtalo de nuevo.";
   }
   if (normalized.includes("already registered") || normalized.includes("already exists") || normalized.includes("user already") || normalized.includes("email already")) {
     return "Este email ya está registrado. Inicia sesión o recupera la contraseña.";
@@ -164,6 +164,19 @@ function normalizeAuthError(error, fallback = "No se pudo completar la autentica
   }
 
   return message || fallback;
+}
+
+function normalizeCaptchaToken(captchaToken = "") {
+  return String(captchaToken || "").trim();
+}
+
+function withCaptchaToken(options = {}, captchaToken = "") {
+  const normalizedCaptchaToken = normalizeCaptchaToken(captchaToken);
+  if (!normalizedCaptchaToken) return options;
+  return {
+    ...options,
+    captchaToken: normalizedCaptchaToken
+  };
 }
 
 export function getInitialsFromAuthName(name = "") {
@@ -594,7 +607,7 @@ export function initAuthSession(store) {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       const normalizedPassword = String(password || "");
       const normalizedName = String(name || "").trim();
-      const normalizedCaptchaToken = String(captchaToken || "").trim();
+      const normalizedCaptchaToken = normalizeCaptchaToken(captchaToken);
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         return { ok: false, reason: "Introduce un email válido." };
       }
@@ -665,15 +678,16 @@ export function initAuthSession(store) {
       }
       return { ok: true, redirected: true, data };
     },
-    requestPasswordReset: async ({ email } = {}) => {
+    requestPasswordReset: async ({ email, captchaToken } = {}) => {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         return { ok: false, reason: "Introduce un email válido." };
       }
       const redirectUrl = `${window.location.origin}${window.location.pathname}?auth=recovery`;
-      const { data, error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: redirectUrl
-      });
+      const { data, error } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        withCaptchaToken({ redirectTo: redirectUrl }, captchaToken)
+      );
       if (error) {
         return { ok: false, reason: normalizeAuthError(error, "No se pudo enviar el email de recuperación.") };
       }
@@ -684,14 +698,15 @@ export function initAuthSession(store) {
         message: "Te hemos enviado un enlace para restablecer tu contraseña."
       };
     },
-    updatePassword: async ({ password } = {}) => {
+    updatePassword: async ({ password, captchaToken } = {}) => {
       const normalizedPassword = String(password || "");
       if (normalizedPassword.length < 6) {
         return { ok: false, reason: "La contraseña debe tener al menos 6 caracteres." };
       }
-      const { data, error } = await supabase.auth.updateUser({
-        password: normalizedPassword
-      });
+      const { data, error } = await supabase.auth.updateUser(
+        { password: normalizedPassword },
+        withCaptchaToken({}, captchaToken)
+      );
       if (error) {
         return { ok: false, reason: normalizeAuthError(error, "No se pudo actualizar la contraseña.") };
       }
