@@ -147,6 +147,44 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertEqual(403, response.status_code)
 
+    def test_user_metadata_plan_does_not_raise_connection_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {},
+                        "user_metadata": {"plan": "business", "kmfx_connection_limit": 99},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        self.assertEqual(409, response.status_code)
+
+    def test_user_metadata_mt5_disabled_does_not_block_key_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {},
+                        "user_metadata": {"mt5_enabled": "false"},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNone(response)
+
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
         with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):

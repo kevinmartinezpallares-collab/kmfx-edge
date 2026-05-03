@@ -53,6 +53,16 @@ header and CORS changes.
   expose environment, account, or registry details.
 - Review service access/team members and remove stale collaborators.
 
+## Supabase manual checks
+
+- Store plan, MT5 permission, and connection-limit decisions in
+  `app_metadata` only. Do not read `user_metadata` for authorization decisions.
+- Keep `user_metadata` for profile/display data only because users can update
+  it through normal Auth flows.
+- Review admin/service-role access after billing or plan automation changes.
+- Confirm triggers and security-definer functions have explicit `search_path`
+  and restricted execute grants.
+
 ## Cloudflare manual checks
 
 - Deploy the updated `kmfx-mt5-api-proxy` Worker.

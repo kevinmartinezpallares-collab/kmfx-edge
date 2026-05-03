@@ -744,14 +744,13 @@ def parse_connection_plan_limits(value: str) -> dict[str, int]:
 
 
 def connection_plan_for_context(context: dict[str, Any]) -> str:
+    # Authorization decisions must only trust app_metadata, which is set by
+    # privileged server/admin flows. user_metadata is user-editable in Supabase.
     app_metadata = ensure_dict(context.get("app_metadata"))
-    user_metadata = ensure_dict(context.get("user_metadata"))
     plan = safe_str(
         app_metadata.get("kmfx_plan")
         or app_metadata.get("plan")
         or app_metadata.get("subscription_plan")
-        or user_metadata.get("kmfx_plan")
-        or user_metadata.get("plan")
         or _env_value("KMFX_DEFAULT_CONNECTION_PLAN"),
         "free",
     ).lower()
@@ -771,13 +770,9 @@ def metadata_bool(value: Any) -> bool | None:
 
 def context_disables_connection_keys(context: dict[str, Any]) -> bool:
     app_metadata = ensure_dict(context.get("app_metadata"))
-    user_metadata = ensure_dict(context.get("user_metadata"))
     for key in ("kmfx_connection_keys_enabled", "connection_keys_enabled", "mt5_enabled"):
         if key in app_metadata:
             flag = metadata_bool(app_metadata.get(key))
-            return flag is False
-        if key in user_metadata:
-            flag = metadata_bool(user_metadata.get(key))
             return flag is False
     return False
 
@@ -788,9 +783,8 @@ def connection_key_limit_for_context(context: dict[str, Any]) -> int:
     if context_disables_connection_keys(context):
         return 0
     app_metadata = ensure_dict(context.get("app_metadata"))
-    user_metadata = ensure_dict(context.get("user_metadata"))
     for key in ("kmfx_connection_limit", "connection_key_limit", "mt5_connection_limit"):
-        raw_limit = app_metadata.get(key) if key in app_metadata else user_metadata.get(key)
+        raw_limit = app_metadata.get(key)
         if raw_limit is not None:
             try:
                 return max(0, int(raw_limit))
