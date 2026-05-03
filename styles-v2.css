@@ -34806,6 +34806,13 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
     height: 32px !important;
   }
 
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed {
+    display: none !important;
+    object-fit: contain !important;
+  }
+
   .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark,
   html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark,
   body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark {
@@ -34983,10 +34990,19 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
     transition: transform 160ms ease, opacity 160ms ease !important;
   }
 
-  .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems .nav-parent-chevron,
-  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems .nav-parent-chevron,
-  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems .nav-parent-chevron {
+  .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="open"] .nav-parent-chevron,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="open"] .nav-parent-chevron,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="open"] .nav-parent-chevron,
+  .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems.is-submenu-open .nav-parent-chevron,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems.is-submenu-open .nav-parent-chevron,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems.is-submenu-open .nav-parent-chevron {
     transform: rotate(90deg) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="closed"] .nav-parent-chevron,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="closed"] .nav-parent-chevron,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-item--with-subitems[data-state="closed"] .nav-parent-chevron {
+    transform: rotate(0deg) !important;
   }
 
   .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub,
@@ -34997,6 +35013,12 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
     margin: 0 0 3px 18px !important;
     padding: 0 0 0 11px !important;
     border-left: 1px solid var(--sidebar-border) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub[hidden],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub[hidden],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub[hidden] {
+    display: none !important;
   }
 
   .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub-button,
@@ -35112,6 +35134,56 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
     min-height: 32px !important;
     height: 32px !important;
     padding: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-wordmark,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-wordmark,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-wordmark,
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded {
+    display: none !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed {
+    display: block !important;
+    width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    object-fit: contain !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button {
+    grid-template-columns: 32px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    margin-inline: auto !important;
+    border-radius: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button .nav-icon,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button .nav-icon,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu-button .nav-icon {
+    width: 16px !important;
+    height: 16px !important;
+    grid-column: 1 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-account-switcher__icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
   }
 }
 

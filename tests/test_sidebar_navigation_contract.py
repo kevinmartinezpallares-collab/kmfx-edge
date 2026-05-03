@@ -56,9 +56,13 @@ class SidebarNavigationContractTests(unittest.TestCase):
         self.assertIn("sidebar-menu-button", html)
         self.assertIn("sidebar-menu-sub", html)
         self.assertIn('data-sidebar="rail"', html)
+        self.assertIn("kmfx-edge-icon-contained.svg", html)
         self.assertNotIn("nav-subitem-marker", html)
         for page in DESKTOP_SUBSECTION_PAGES:
             self.assertIn(f'data-page="{page}"', html)
+        for submenu in ["strategies", "risk", "journal", "funded"]:
+            self.assertIn(f'data-nav-submenu-trigger="{submenu}"', html)
+            self.assertIn(f'id="nav-submenu-{submenu}"', html)
         for page in INTERNAL_TAB_PAGES:
             self.assertNotIn(f'data-page="{page}"', html)
         for page in DEFAULT_PARENT_PAGES:
@@ -84,11 +88,14 @@ class SidebarNavigationContractTests(unittest.TestCase):
 
     def test_persisted_subsection_pages_remain_valid(self):
         store = read_text("js/modules/store.js")
+        navigation = read_text("js/modules/navigation.js")
         valid_pages = re.search(r"const validPages = new Set\(\[(?P<body>.*?)\]\);", store, re.S)
         self.assertIsNotNone(valid_pages)
 
         for page in DESKTOP_SUBSECTION_PAGES:
             self.assertIn(f'"{page}"', valid_pages.group("body"))
+        self.assertIn("kmfx_sidebar_submenus_v1", navigation)
+        self.assertIn("setSubmenuOpen", navigation)
 
 
 if __name__ == "__main__":

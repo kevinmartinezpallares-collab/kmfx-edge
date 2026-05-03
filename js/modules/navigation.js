@@ -73,17 +73,83 @@ const pageContext = {
   settings: "Perfil, workspace e integraciones"
 };
 
+const SUBMENU_STORAGE_KEY = "kmfx_sidebar_submenus_v1";
+const DEFAULT_SUBMENU_STATE = Object.freeze({
+  strategies: true,
+  risk: true,
+  journal: true,
+  funded: true
+});
+
+function readStoredSubmenuState() {
+  try {
+    const raw = window.localStorage?.getItem(SUBMENU_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistSubmenuState(submenuState) {
+  try {
+    window.localStorage?.setItem(SUBMENU_STORAGE_KEY, JSON.stringify(submenuState));
+  } catch {
+    // Sidebar submenu state is cosmetic; navigation keeps working without storage.
+  }
+}
+
 export function initNavigation(store) {
   const navButtons = document.querySelectorAll(".nav-item");
   const pages = document.querySelectorAll(".page");
   const navGroups = document.querySelectorAll(".nav-group");
   const navGroupTriggers = document.querySelectorAll("[data-nav-group-trigger]");
+  const submenuTriggers = document.querySelectorAll("[data-nav-submenu-trigger]");
+  const submenuPanels = document.querySelectorAll("[data-nav-submenu]");
   const topbarTitle = document.getElementById("topbarTitle");
   const topbarContext = document.getElementById("topbarContext");
   const analyticsTabs = document.getElementById("analyticsTabs");
+  const submenuState = {
+    ...DEFAULT_SUBMENU_STATE,
+    ...readStoredSubmenuState()
+  };
   let previousActivePage = store.getState().ui.activePage;
   let pageTransitionTimeout = null;
   let isApplyingBrowserRoute = false;
+
+  const isSidebarIconCollapsed = () => document.querySelector(".app-shell.sidebar-vnext.sidebar-vnext-collapsed");
+
+  const setSubmenuOpen = (submenuKey, isOpen, { persist = true } = {}) => {
+    if (!submenuKey) return;
+    submenuState[submenuKey] = Boolean(isOpen);
+    const trigger = document.querySelector(`[data-nav-submenu-trigger="${submenuKey}"]`);
+    const panel = document.querySelector(`[data-nav-submenu="${submenuKey}"]`);
+    trigger?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    trigger?.classList.toggle("is-submenu-open", Boolean(isOpen));
+    trigger?.setAttribute("data-state", isOpen ? "open" : "closed");
+    if (panel) {
+      panel.hidden = !isOpen;
+      panel.classList.toggle("is-open", Boolean(isOpen));
+      panel.setAttribute("data-state", isOpen ? "open" : "closed");
+    }
+    if (persist) persistSubmenuState(submenuState);
+  };
+
+  const toggleSubmenu = (submenuKey) => {
+    const current = submenuState[submenuKey] !== false;
+    setSubmenuOpen(submenuKey, !current);
+  };
+
+  submenuTriggers.forEach((trigger) => {
+    const submenuKey = trigger.getAttribute("data-nav-submenu-trigger");
+    setSubmenuOpen(submenuKey, submenuState[submenuKey] !== false, { persist: false });
+  });
+
+  submenuPanels.forEach((panel) => {
+    const submenuKey = panel.getAttribute("data-nav-submenu");
+    setSubmenuOpen(submenuKey, submenuState[submenuKey] !== false, { persist: false });
+  });
 
   const syncBrowserRoute = (activePage, { replace = false } = {}) => {
     if (typeof window === "undefined") return;
@@ -191,8 +257,20 @@ export function initNavigation(store) {
   };
 
   navButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
       const page = button.dataset.page;
+      const submenuKey = button.getAttribute("data-nav-submenu-trigger");
+      if (submenuKey && !isSidebarIconCollapsed()) {
+        const activePage = store.getState().ui.activePage;
+        const parentPage = navigationParentForPage(activePage);
+        const isActiveParent = page === activePage || page === parentPage;
+        const clickedChevron = Boolean(event.target.closest(".sidebar-menu-action"));
+        if (clickedChevron || isActiveParent) {
+          toggleSubmenu(submenuKey);
+          if (clickedChevron || isActiveParent) return;
+        }
+        setSubmenuOpen(submenuKey, true);
+      }
       const analyticsTab = button.dataset.tab || analyticsTabForPage(page);
       store.setState((state) => ({
         ...state,
