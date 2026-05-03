@@ -127,7 +127,15 @@
       "destination": "/index.html"
     },
     {
+      "source": "/estrategias/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/insights",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/insights/:path*",
       "destination": "/index.html"
     },
     {
@@ -143,11 +151,27 @@
       "destination": "/index.html"
     },
     {
+      "source": "/funding/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/ejecucion",
       "destination": "/index.html"
     },
     {
       "source": "/risk-engine",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/risk-engine/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/journal",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/journal/:path*",
       "destination": "/index.html"
     },
     {
