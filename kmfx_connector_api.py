@@ -167,6 +167,21 @@ DEFAULT_CONNECTION_PLAN_LIMITS = {
 }
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
+QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
+SENSITIVE_LOG_FIELD_NAMES = {
+    "connection_key",
+    "kmfxapikey",
+    "api_key",
+    "token",
+    "access_token",
+    "refresh_token",
+    "authorization",
+    "password",
+    "secret",
+    "jwt",
+    "bearer",
+}
+SENSITIVE_LOG_FIELD_HINTS = ("token", "authorization", "password", "secret", "jwt", "bearer")
 ADMIN_USER_IDS = resolve_admin_user_ids()
 ADMIN_EMAILS = resolve_admin_emails()
 ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID = resolve_admin_launcher_connection_keys_by_user_id()
@@ -402,6 +417,14 @@ def resolve_connection_key(payload: dict[str, Any], request: Request | None = No
     explicit = safe_str(payload.get("connection_key")) or safe_str(payload.get("KMFXApiKey")) or safe_str(payload.get("api_key"))
     if explicit:
         return explicit
+    if request is not None and allow_query_connection_key_compat():
+        query_key = request_query_connection_key(request)
+        if query_key:
+            log.warning(
+                "MT5 legacy query connection key accepted in explicit non-production compatibility mode | key=%s",
+                mask_connection_key(query_key),
+            )
+            return query_key
     return ""
 
 
@@ -411,7 +434,7 @@ def payload_without_connection_key(payload: dict[str, Any]) -> dict[str, Any]:
     cleaned = dict(payload)
     for key in ("connection_key", "KMFXApiKey", "api_key"):
         cleaned.pop(key, None)
-    return cleaned
+    return redact_sensitive_data(cleaned)
 
 
 def resolve_identity_key(connection_key: str, login: str) -> str:
@@ -493,6 +516,87 @@ def mask_connection_key(connection_key: str) -> str:
     if len(normalized) <= 10:
         return "[masked]"
     return f"{normalized[:6]}...{normalized[-4:]}"
+
+
+def is_sensitive_log_field(key: str) -> bool:
+    normalized = safe_str(key).lower()
+    return normalized in SENSITIVE_LOG_FIELD_NAMES or any(hint in normalized for hint in SENSITIVE_LOG_FIELD_HINTS)
+
+
+def redact_sensitive_data(value: Any) -> Any:
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            if is_sensitive_log_field(str(key)):
+                if safe_str(item) and str(key).lower() in QUERY_CONNECTION_KEY_FIELD_NAMES | {"api_key"}:
+                    redacted[key] = mask_connection_key(safe_str(item)) or "[masked]"
+                else:
+                    redacted[key] = "[masked]"
+            else:
+                redacted[key] = redact_sensitive_data(item)
+        return redacted
+    if isinstance(value, list):
+        return [redact_sensitive_data(item) for item in value]
+    return value
+
+
+def allow_query_connection_key_compat() -> bool:
+    return _env_flag("KMFX_ALLOW_QUERY_CONNECTION_KEY", default=False) and not _is_production_runtime()
+
+
+def request_query_connection_key_fields(request: Request) -> dict[str, str]:
+    found: dict[str, str] = {}
+    try:
+        items = list(request.query_params.multi_items())
+    except AttributeError:
+        query_params = getattr(request, "query_params", {}) or {}
+        items = list(query_params.items()) if hasattr(query_params, "items") else []
+    for key, value in items:
+        normalized_key = safe_str(key).lower()
+        if normalized_key in QUERY_CONNECTION_KEY_FIELD_NAMES:
+            found[safe_str(key)] = safe_str(value)
+    return found
+
+
+def request_query_connection_key(request: Request) -> str:
+    for value in request_query_connection_key_fields(request).values():
+        normalized = safe_str(value)
+        if normalized:
+            return normalized
+    return ""
+
+
+def query_connection_key_rejection_response(endpoint: str, request: Request) -> JSONResponse | None:
+    query_fields = request_query_connection_key_fields(request)
+    if not query_fields:
+        return None
+    if allow_query_connection_key_compat():
+        log.warning(
+            "%s legacy query connection key allowed only because KMFX_ALLOW_QUERY_CONNECTION_KEY=1 and runtime is non-production | fields=%s",
+            endpoint,
+            sorted(query_fields.keys()),
+        )
+        return None
+    log.warning(
+        "%s rejected | reason=query_connection_key_not_allowed fields=%s",
+        endpoint,
+        sorted(query_fields.keys()),
+    )
+    return connector_json_response(
+        {
+            "ok": False,
+            "received": False,
+            "disposition": "rejected",
+            "reason": "query_connection_key_not_allowed",
+            "error": "query_connection_key_not_allowed",
+            "details": {
+                "fields": sorted(query_fields.keys()),
+                "transport": "header_or_body_required",
+            },
+            "timestamp": now_iso(),
+        },
+        status_code=400,
+    )
 
 
 def _decode_base64url_json(segment: str) -> dict[str, Any]:
@@ -1832,7 +1936,7 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
             "reason": reason,
             "rejection_reason": reason,
             "error_code": SYNC_ERROR_INVALID_PAYLOAD,
-            "details": details,
+            "details": redact_sensitive_data(details),
             "timestamp": now_iso(),
         },
         status_code=http_status,
@@ -2374,6 +2478,10 @@ async def admin_delete_account(account_id: str, request: Request) -> JSONRespons
 @app.post("/api/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
     sync_id = ""
+    query_rejection = query_connection_key_rejection_response("/api/mt5/sync", request)
+    if query_rejection is not None:
+        return query_rejection
+
     try:
         payload = await request.json()
     except Exception as exc:
@@ -2703,6 +2811,10 @@ async def mt5_sync(request: Request) -> JSONResponse:
 @app.post("/api/mt5/journal")
 async def mt5_journal(request: Request) -> JSONResponse:
     batch_id = ""
+    query_rejection = query_connection_key_rejection_response("/api/mt5/journal", request)
+    if query_rejection is not None:
+        return query_rejection
+
     try:
         payload = await request.json()
     except Exception as exc:
@@ -2838,24 +2950,12 @@ async def mt5_journal(request: Request) -> JSONResponse:
 async def mt5_policy(
     request: Request,
     login: str = Query("", min_length=0),
-    connection_key: str = Query("", min_length=0),
 ) -> JSONResponse:
     normalized_login = safe_str(login)
-    header_connection_key = safe_str(request.headers.get("x-kmfx-connection-key"))
-    query_connection_key = safe_str(connection_key)
-    if query_connection_key and not header_connection_key:
-        log.warning("POLICY rejected | reason=connection_key_query_not_allowed")
-        return connector_json_response(
-            {
-                "ok": False,
-                "reason": "connection_key_query_not_allowed",
-                "error": "connection_key_query_not_allowed",
-                "details": {"field": "connection_key", "transport": "header_required"},
-                "timestamp": now_iso(),
-            },
-            status_code=400,
-        )
-    normalized_connection_key = header_connection_key
+    query_rejection = query_connection_key_rejection_response("/api/mt5/policy", request)
+    if query_rejection is not None:
+        return query_rejection
+    normalized_connection_key = resolve_connection_key({}, request)
     identity_key = resolve_identity_key(normalized_connection_key, normalized_login)
     if not normalized_connection_key:
         scoped_user_id, _auth_context = resolve_account_scope(request)

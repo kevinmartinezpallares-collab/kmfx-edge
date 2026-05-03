@@ -4,6 +4,7 @@ import hashlib
 import base64
 import html
 import json
+import os
 import secrets
 import threading
 import time
@@ -26,6 +27,7 @@ LOCAL_OAUTH_ALLOWED_REDIRECT_URLS = (
     LOCAL_OAUTH_REDIRECT_URL,
     "http://127.0.0.1:8766/auth/callback",
 )
+QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
 
 
 def now_iso() -> str:
@@ -38,6 +40,56 @@ def parse_iso(value: str) -> datetime:
 
 def json_response(content: Any, status_code: int = 200) -> JSONResponse:
     return JSONResponse(status_code=status_code, content=content, headers={"Connection": "close"})
+
+
+def env_flag(name: str) -> bool:
+    return str(os.getenv(name) or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def is_production_runtime() -> bool:
+    runtime = str(os.getenv("KMFX_ENV") or os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or "").strip().lower()
+    if runtime in {"production", "prod"}:
+        return True
+    if runtime in {"development", "dev", "local", "test", "testing"}:
+        return False
+    return env_flag("KMFX_PRODUCTION") or env_flag("RENDER")
+
+
+def allow_query_connection_key_compat() -> bool:
+    return env_flag("KMFX_ALLOW_QUERY_CONNECTION_KEY") and not is_production_runtime()
+
+
+def request_query_connection_key_fields(request: Request) -> dict[str, str]:
+    found: dict[str, str] = {}
+    for key, value in request.query_params.multi_items():
+        if str(key or "").strip().lower() in QUERY_CONNECTION_KEY_FIELD_NAMES:
+            found[str(key or "").strip()] = str(value or "").strip()
+    return found
+
+
+def request_query_connection_key(request: Request) -> str:
+    for value in request_query_connection_key_fields(request).values():
+        if value:
+            return value
+    return ""
+
+
+def query_connection_key_rejection_response(endpoint: str, request: Request) -> JSONResponse | None:
+    query_fields = request_query_connection_key_fields(request)
+    if not query_fields:
+        return None
+    if allow_query_connection_key_compat():
+        return None
+    return json_response(
+        {
+            "ok": False,
+            "reason": "query_connection_key_not_allowed",
+            "error": "query_connection_key_not_allowed",
+            "details": {"fields": sorted(query_fields.keys()), "transport": "header_or_body_required"},
+            "timestamp": now_iso(),
+        },
+        status_code=400,
+    )
 
 
 def pkce_challenge(verifier: str) -> str:
@@ -677,22 +729,13 @@ async def auth_callback(
 async def mt5_policy(
     request: Request,
     login: str = Query("", min_length=0),
-    connection_key: str = Query("", min_length=0),
 ) -> JSONResponse:
+    query_rejection = query_connection_key_rejection_response("/mt5/policy", request)
+    if query_rejection is not None:
+        return query_rejection
     bridge_connection_key = runtime.effective_connection_key()
     header_connection_key = str(request.headers.get("X-KMFX-Connection-Key") or "").strip()
-    query_connection_key = str(connection_key or "").strip()
-    if query_connection_key and not header_connection_key:
-        return json_response(
-            {
-                "ok": False,
-                "reason": "connection_key_query_not_allowed",
-                "details": {"field": "connection_key", "transport": "header_required"},
-                "timestamp": now_iso(),
-            },
-            status_code=400,
-        )
-    explicit_connection_key = header_connection_key
+    explicit_connection_key = header_connection_key or (request_query_connection_key(request) if allow_query_connection_key_compat() else "")
     effective_connection_key, key_source = resolve_effective_connection_key(
         explicit_key=explicit_connection_key,
         bridge_key=bridge_connection_key,
@@ -743,8 +786,12 @@ def resolve_batch_id(payload: dict[str, Any]) -> str:
 
 @app.post("/mt5/sync")
 async def mt5_sync(request: Request) -> JSONResponse:
+    query_rejection = query_connection_key_rejection_response("/mt5/sync", request)
+    if query_rejection is not None:
+        return query_rejection
     payload = await request.json()
-    payload, connection_key = runtime.prepare_payload_for_backend(payload, request.headers.get("X-KMFX-Connection-Key", ""))
+    explicit_connection_key = request.headers.get("X-KMFX-Connection-Key", "") or (request_query_connection_key(request) if allow_query_connection_key_compat() else "")
+    payload, connection_key = runtime.prepare_payload_for_backend(payload, explicit_connection_key)
     sync_id = resolve_sync_id(payload)
     identity_key = runtime.identity_key(payload, connection_key=connection_key)
     receipt = runtime.store.find_receipt("snapshot", sync_id)
@@ -791,8 +838,12 @@ async def mt5_sync(request: Request) -> JSONResponse:
 
 @app.post("/mt5/journal")
 async def mt5_journal(request: Request) -> JSONResponse:
+    query_rejection = query_connection_key_rejection_response("/mt5/journal", request)
+    if query_rejection is not None:
+        return query_rejection
     payload = await request.json()
-    payload, connection_key = runtime.prepare_payload_for_backend(payload, request.headers.get("X-KMFX-Connection-Key", ""))
+    explicit_connection_key = request.headers.get("X-KMFX-Connection-Key", "") or (request_query_connection_key(request) if allow_query_connection_key_compat() else "")
+    payload, connection_key = runtime.prepare_payload_for_backend(payload, explicit_connection_key)
     batch_id = resolve_batch_id(payload)
     identity_key = runtime.identity_key(payload, connection_key=connection_key)
     receipt = runtime.store.find_receipt("journal", batch_id)
