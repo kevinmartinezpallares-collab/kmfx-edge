@@ -168,6 +168,10 @@
           "value": "public, max-age=3600"
         },
         {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://kmfxedge.com"
+        },
+        {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
         },
@@ -187,6 +191,10 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://kmfxedge.com"
         },
         {
           "key": "Content-Security-Policy",
@@ -216,6 +224,10 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://kmfxedge.com"
         },
         {
           "key": "Content-Security-Policy",
