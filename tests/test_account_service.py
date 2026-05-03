@@ -181,6 +181,53 @@ class AccountServiceTests(unittest.TestCase):
         owner_account = self.service.get_account_by_api_key(user_id="other-user", api_key="owned-key")
         self.assertIsNotNone(owner_account)
 
+    def test_revoke_connection_key_blocks_key_lookup_and_reuse(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Cuenta MT5",
+            connection_key="revoked-key",
+        )
+
+        revoked = self.service.revoke_connection_key(created.account_id, reason="security_rotation")
+
+        self.assertIsNotNone(revoked)
+        self.assertTrue(revoked.connection_key_revoked_at)
+        self.assertEqual("security_rotation", revoked.connection_key_revocation_reason)
+        self.assertIn("revoked-key", revoked.revoked_connection_keys)
+        self.assertIsNone(self.service.get_account_by_api_key_any_user("revoked-key"))
+        self.assertTrue(self.service.is_connection_key_revoked_any_user("revoked-key"))
+        self.assertIsNone(
+            self.service.create_pending_account_with_key(
+                user_id="user-456",
+                alias="Intento de reuso",
+                connection_key="revoked-key",
+            )
+        )
+
+    def test_regenerate_connection_key_tombstones_old_key(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Cuenta MT5",
+            connection_key="old-key",
+        )
+
+        regenerated = self.service.regenerate_connection_key(created.account_id)
+
+        self.assertIsNotNone(regenerated)
+        self.assertNotEqual("old-key", regenerated.api_key)
+        self.assertIn("old-key", regenerated.revoked_connection_keys)
+        self.assertTrue(self.service.is_connection_key_revoked_any_user("old-key"))
+        self.assertIsNone(self.service.get_account_by_api_key_any_user("old-key"))
+        self.assertIsNotNone(self.service.get_account_by_api_key_any_user(regenerated.api_key))
+
+    def test_connection_slot_count_ignores_archived_accounts(self) -> None:
+        first = self.service.create_pending_account(user_id="user-123", alias="Primera")
+        self.service.create_pending_account(user_id="user-123", alias="Segunda")
+
+        self.assertEqual(2, self.service.connection_slot_count("user-123"))
+        self.service.archive_account(first.account_id)
+        self.assertEqual(1, self.service.connection_slot_count("user-123"))
+
 
 if __name__ == "__main__":
     unittest.main()

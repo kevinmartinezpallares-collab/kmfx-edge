@@ -59,6 +59,9 @@ def account_to_record(account: Account) -> dict:
         "last_error_message": account.last_error_message,
         "latest_report_metrics": dict(account.latest_report_metrics or {}),
         "connector_version": account.connector_version,
+        "connection_key_revoked_at": _serialize_datetime(account.connection_key_revoked_at),
+        "connection_key_revocation_reason": account.connection_key_revocation_reason,
+        "revoked_connection_keys": list(account.revoked_connection_keys or []),
         "archived_at": _serialize_datetime(account.archived_at),
         "deleted_at": _serialize_datetime(account.deleted_at),
         "is_default": bool(account.is_default),
@@ -92,6 +95,13 @@ def record_to_account(record: dict) -> Account:
         last_error_message=str(record.get("last_error_message") or ""),
         latest_report_metrics=dict(record.get("latest_report_metrics") or {}),
         connector_version=str(record.get("connector_version") or ""),
+        connection_key_revoked_at=_parse_datetime(record.get("connection_key_revoked_at")),
+        connection_key_revocation_reason=str(record.get("connection_key_revocation_reason") or ""),
+        revoked_connection_keys=[
+            str(item).strip()
+            for item in (record.get("revoked_connection_keys") or [])
+            if str(item or "").strip()
+        ],
         archived_at=_parse_datetime(record.get("archived_at")),
         deleted_at=_parse_datetime(record.get("deleted_at")),
         is_default=bool(record.get("is_default")),

@@ -27,6 +27,9 @@ class Account:
     last_error_message: str = ""
     latest_report_metrics: dict[str, Any] = field(default_factory=dict)
     connector_version: str = ""
+    connection_key_revoked_at: Optional[datetime] = None
+    connection_key_revocation_reason: str = ""
+    revoked_connection_keys: list[str] = field(default_factory=list)
     archived_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
     is_default: bool = False

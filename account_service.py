@@ -161,9 +161,23 @@ def _is_archived(account: Account) -> bool:
     return bool(account.archived_at or _normalize_status(account.status) in ARCHIVED_STATUSES or account.deleted_at)
 
 
+def _is_connection_key_revoked(account: Account) -> bool:
+    return bool(account.connection_key_revoked_at)
+
+
+def _has_revoked_connection_key(account: Account, connection_key: str) -> bool:
+    normalized = str(connection_key or "").strip()
+    if not normalized:
+        return False
+    if account.api_key == normalized and _is_connection_key_revoked(account):
+        return True
+    return normalized in set(account.revoked_connection_keys or [])
+
+
 def _is_operational(account: Account) -> bool:
     return (
         not _is_archived(account)
+        and not _is_connection_key_revoked(account)
         and _normalize_status(account.status) in OPERATIONAL_STATUSES
         and bool(account.first_sync_at or account.last_sync_at)
         and bool(account.latest_payload)
@@ -255,12 +269,30 @@ class AccountService:
         return deepcopy(existing)
 
     def _generate_connection_key(self) -> str:
-        existing_keys = {account.api_key for account in self.store.list_accounts() if account.api_key}
+        existing_keys = {
+            key
+            for account in self.store.list_accounts()
+            for key in [account.api_key, *(account.revoked_connection_keys or [])]
+            if key
+        }
         while True:
             candidate = str(uuid4())
             if candidate not in existing_keys:
                 log.info("[KMFX][CONNECTION_KEY_VALIDATION] event=key_generated key=%s", candidate[:8])
                 return candidate
+
+    def connection_slot_count(self, user_id: str) -> int:
+        normalized_user_id = str(user_id or "").strip()
+        if not normalized_user_id:
+            return 0
+        return sum(
+            1
+            for account in self.store.list_accounts()
+            if account.user_id == normalized_user_id
+            and not _is_deleted(account)
+            and not _is_archived(account)
+            and bool(account.api_key)
+        )
 
     def create_pending_account(
         self,
@@ -304,6 +336,12 @@ class AccountService:
         normalized_key = str(connection_key or "").strip()
         if not normalized_key:
             raise ValueError("missing_connection_key")
+        if self.is_connection_key_revoked_any_user(normalized_key):
+            log.warning(
+                "[KMFX][CONNECTION_KEY_VALIDATION] event=key_bootstrap_blocked reason=revoked_key key=%s",
+                normalized_key[:8],
+            )
+            return None
         existing = self.get_account_by_api_key_any_user(normalized_key)
         if existing is not None:
             return existing
@@ -434,7 +472,10 @@ class AccountService:
             (
                 account
                 for account in self.store.list_accounts()
-                if account.user_id == user_id and account.api_key == normalized and not _is_archived(account)
+                if account.user_id == user_id
+                and account.api_key == normalized
+                and not _is_archived(account)
+                and not _is_connection_key_revoked(account)
             ),
             None,
         )
@@ -448,7 +489,29 @@ class AccountService:
             (
                 account
                 for account in self.store.list_accounts()
-                if account.api_key == normalized and not _is_archived(account)
+                if account.api_key == normalized
+                and not _is_archived(account)
+                and not _is_connection_key_revoked(account)
+            ),
+            None,
+        )
+        return deepcopy(account) if account else None
+
+    def is_connection_key_revoked_any_user(self, api_key: str) -> bool:
+        normalized = str(api_key or "").strip()
+        if not normalized:
+            return False
+        return any(_has_revoked_connection_key(account, normalized) for account in self.store.list_accounts())
+
+    def get_revoked_account_by_api_key_any_user(self, api_key: str) -> Account | None:
+        normalized = str(api_key or "").strip()
+        if not normalized:
+            return None
+        account = next(
+            (
+                account
+                for account in self.store.list_accounts()
+                if _has_revoked_connection_key(account, normalized)
             ),
             None,
         )
@@ -467,7 +530,9 @@ class AccountService:
             (
                 account
                 for account in accounts
-                if account.api_key == normalized and not _is_archived(account)
+                if account.api_key == normalized
+                and not _is_archived(account)
+                and not _is_connection_key_revoked(account)
             ),
             None,
         )
@@ -723,6 +788,33 @@ class AccountService:
         self.store.save_accounts(accounts)
         return deepcopy(target) if target else None
 
+    def revoke_connection_key(self, account_id: str, reason: str = "manual_revocation") -> Account | None:
+        accounts = self.store.list_accounts()
+        target: Account | None = None
+        now = _now_utc()
+        cleaned_reason = str(reason or "manual_revocation").strip()[:120] or "manual_revocation"
+        for account in accounts:
+            if account.account_id == account_id and not _is_deleted(account):
+                if account.api_key and account.api_key not in account.revoked_connection_keys:
+                    account.revoked_connection_keys.append(account.api_key)
+                account.connection_key_revoked_at = account.connection_key_revoked_at or now
+                account.connection_key_revocation_reason = cleaned_reason
+                account.status = "pending_link"
+                account.is_default = False
+                account.is_primary = False
+                account.updated_at = now
+                target = account
+                log.warning(
+                    "[KMFX][CONNECTION_KEY_VALIDATION] event=key_revoked account_id=%s user_id=%s key=%s reason=%s",
+                    account.account_id,
+                    account.user_id,
+                    account.api_key[:8],
+                    cleaned_reason,
+                )
+                break
+        self.store.save_accounts(accounts)
+        return deepcopy(target) if target else None
+
     def delete_account(self, account_id: str) -> Account | None:
         accounts = self.store.list_accounts()
         target = next((account for account in accounts if account.account_id == account_id), None)
@@ -744,9 +836,14 @@ class AccountService:
         new_key = self._generate_connection_key()
         for account in accounts:
             if account.account_id == account_id and not _is_deleted(account):
+                previous_key = account.api_key
+                if previous_key and previous_key not in account.revoked_connection_keys:
+                    account.revoked_connection_keys.append(previous_key)
                 account.api_key = new_key
                 account.status = "pending_link"
                 account.archived_at = None
+                account.connection_key_revoked_at = None
+                account.connection_key_revocation_reason = ""
                 account.is_default = False
                 account.is_primary = False
                 account.last_error_code = ""
@@ -774,7 +871,7 @@ class AccountService:
         target: Account | None = None
         now = _now_utc()
         for account in accounts:
-            if account.account_id == account_id and not _is_deleted(account):
+            if account.account_id == account_id and not _is_deleted(account) and not _is_connection_key_revoked(account):
                 if _normalize_status(account.status) in {"pending_link", "waiting_sync"}:
                     account.status = "linked"
                 account.last_policy_at = now
@@ -792,7 +889,7 @@ class AccountService:
         target: Account | None = None
         now = _now_utc()
         for account in accounts:
-            if account.api_key != normalized or _is_archived(account):
+            if account.api_key != normalized or _is_archived(account) or _is_connection_key_revoked(account):
                 continue
             account.status = "error"
             account.last_error_code = error_code
@@ -828,6 +925,9 @@ class AccountService:
                     "last_error_code": account.last_error_code,
                     "last_error_message": account.last_error_message,
                     "connector_version": account.connector_version,
+                    "connection_key_revoked": _is_connection_key_revoked(account),
+                    "connection_key_revoked_at": account.connection_key_revoked_at.isoformat() if account.connection_key_revoked_at else "",
+                    "connection_key_revocation_reason": account.connection_key_revocation_reason,
                     "is_default": bool(account.is_default or account.is_primary),
                     "is_primary": bool(account.is_default or account.is_primary),
                     "nickname": account.nickname or "",
@@ -863,6 +963,9 @@ class AccountService:
                 "last_error_code": account.last_error_code,
                 "last_error_message": account.last_error_message,
                 "connector_version": account.connector_version,
+                "connection_key_revoked": _is_connection_key_revoked(account),
+                "connection_key_revoked_at": account.connection_key_revoked_at.isoformat() if account.connection_key_revoked_at else "",
+                "connection_key_revocation_reason": account.connection_key_revocation_reason,
                 "archived_at": account.archived_at.isoformat() if account.archived_at else "",
                 "is_default": bool(account.is_default or account.is_primary),
                 "is_primary": bool(account.is_default or account.is_primary),

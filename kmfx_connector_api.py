@@ -58,6 +58,17 @@ def _env_flag(name: str, *, default: bool = False) -> bool:
     return value in {"1", "true", "yes", "y", "on"}
 
 
+def _env_int(name: str, *, default: int) -> int:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 0 else default
+
+
 def _is_production_runtime() -> bool:
     runtime = _env_value("KMFX_ENV", "APP_ENV", "ENVIRONMENT", "PYTHON_ENV").lower()
     if runtime in {"production", "prod"}:
@@ -146,6 +157,16 @@ CORS_ALLOW_HEADERS = [
     "X-KMFX-User-ID",
     "X-Requested-With",
 ]
+DEFAULT_CONNECTION_PLAN_LIMITS = {
+    "disabled": 0,
+    "free": 1,
+    "starter": 2,
+    "pro": 5,
+    "business": 25,
+    "admin": 1000,
+}
+CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
+CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 ADMIN_USER_IDS = resolve_admin_user_ids()
 ADMIN_EMAILS = resolve_admin_emails()
 ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID = resolve_admin_launcher_connection_keys_by_user_id()
@@ -419,6 +440,18 @@ def bootstrap_account_for_sync(connection_key: str, account: dict[str, Any]):
     login = safe_str(account.get("login"))
     if not normalized or not login or not is_bootstrap_connection_key(normalized):
         return None
+    if not allow_public_connection_key_bootstrap():
+        log.warning(
+            "[KMFX][CONNECTION_KEY_VALIDATION] event=key_bootstrap_blocked reason=production_requires_preissued_key key=%s",
+            mask_connection_key(normalized),
+        )
+        return None
+    if account_service.is_connection_key_revoked_any_user(normalized):
+        log.warning(
+            "[KMFX][CONNECTION_KEY_VALIDATION] event=key_bootstrap_blocked reason=revoked_key key=%s",
+            mask_connection_key(normalized),
+        )
+        return None
     broker = safe_str(account.get("broker"))
     server = safe_str(account.get("server"))
     alias_parts = [part for part in (broker, login) if part]
@@ -615,6 +648,8 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
             "email": email,
             "user_id": user_id or email,
             "source": "verified_bearer",
+            "app_metadata": ensure_dict(claims.get("app_metadata")),
+            "user_metadata": ensure_dict(claims.get("user_metadata")),
         }
 
     trusted_email = _resolve_trusted_header_email(request)
@@ -624,19 +659,25 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
             "email": trusted_email,
             "user_id": trusted_user_id or trusted_email,
             "source": "trusted_header",
+            "app_metadata": {},
+            "user_metadata": {},
         }
 
-    return {"email": "", "user_id": "", "source": ""}
+    return {"email": "", "user_id": "", "source": "", "app_metadata": {}, "user_metadata": {}}
 
 
 def build_admin_context(request: Request) -> dict[str, Any]:
     identity = resolve_authenticated_identity(request)
     email = identity["email"]
     user_id = safe_str(identity["user_id"]).lower()
+    app_metadata = ensure_dict(identity.get("app_metadata"))
+    user_metadata = ensure_dict(identity.get("user_metadata"))
     return {
         "email": email,
         "user_id": user_id,
         "source": identity["source"],
+        "app_metadata": app_metadata,
+        "user_metadata": user_metadata,
         "is_admin": bool((user_id and user_id in ADMIN_USER_IDS) or (email and email in ADMIN_EMAILS)),
     }
 
@@ -683,6 +724,208 @@ def require_admin(request: Request) -> tuple[dict[str, Any], JSONResponse | None
         },
         status_code=403,
     )
+
+
+def parse_connection_plan_limits(value: str) -> dict[str, int]:
+    limits = dict(DEFAULT_CONNECTION_PLAN_LIMITS)
+    for item in str(value or "").replace(";", ",").split(","):
+        if "=" not in item:
+            continue
+        raw_plan, raw_limit = item.split("=", 1)
+        plan = safe_str(raw_plan).lower()
+        if not plan:
+            continue
+        try:
+            limit = int(raw_limit.strip())
+        except ValueError:
+            continue
+        limits[plan] = max(0, limit)
+    return limits
+
+
+def connection_plan_for_context(context: dict[str, Any]) -> str:
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    user_metadata = ensure_dict(context.get("user_metadata"))
+    plan = safe_str(
+        app_metadata.get("kmfx_plan")
+        or app_metadata.get("plan")
+        or app_metadata.get("subscription_plan")
+        or user_metadata.get("kmfx_plan")
+        or user_metadata.get("plan")
+        or _env_value("KMFX_DEFAULT_CONNECTION_PLAN"),
+        "free",
+    ).lower()
+    return plan or "free"
+
+
+def metadata_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    normalized = safe_str(value).lower()
+    if normalized in {"1", "true", "yes", "y", "on", "enabled"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off", "disabled"}:
+        return False
+    return None
+
+
+def context_disables_connection_keys(context: dict[str, Any]) -> bool:
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    user_metadata = ensure_dict(context.get("user_metadata"))
+    for key in ("kmfx_connection_keys_enabled", "connection_keys_enabled", "mt5_enabled"):
+        if key in app_metadata:
+            flag = metadata_bool(app_metadata.get(key))
+            return flag is False
+        if key in user_metadata:
+            flag = metadata_bool(user_metadata.get(key))
+            return flag is False
+    return False
+
+
+def connection_key_limit_for_context(context: dict[str, Any]) -> int:
+    if context.get("is_admin"):
+        return DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
+    if context_disables_connection_keys(context):
+        return 0
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    user_metadata = ensure_dict(context.get("user_metadata"))
+    for key in ("kmfx_connection_limit", "connection_key_limit", "mt5_connection_limit"):
+        raw_limit = app_metadata.get(key) if key in app_metadata else user_metadata.get(key)
+        if raw_limit is not None:
+            try:
+                return max(0, int(raw_limit))
+            except (TypeError, ValueError):
+                continue
+    limits = parse_connection_plan_limits(_env_value("KMFX_CONNECTION_PLAN_LIMITS"))
+    return limits.get(connection_plan_for_context(context), limits["free"])
+
+
+def connection_key_creation_denial(
+    *,
+    user_id: str,
+    context: dict[str, Any],
+    requested_slots: int = 1,
+) -> JSONResponse | None:
+    if context.get("is_admin"):
+        return None
+    normalized_user_id = safe_str(user_id)
+    limit = connection_key_limit_for_context(context)
+    current_count = account_service.connection_slot_count(normalized_user_id)
+    plan = connection_plan_for_context(context)
+    if limit <= 0:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "connection_keys_not_allowed",
+                "details": {
+                    "plan": plan,
+                    "connection_limit": limit,
+                    "current_connections": current_count,
+                },
+                "timestamp": now_iso(),
+            },
+            status_code=403,
+        )
+    if current_count + max(1, requested_slots) > limit:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "connection_limit_exceeded",
+                "details": {
+                    "plan": plan,
+                    "connection_limit": limit,
+                    "current_connections": current_count,
+                },
+                "timestamp": now_iso(),
+            },
+            status_code=409,
+        )
+    return None
+
+
+def allow_public_connection_key_bootstrap() -> bool:
+    if _env_flag("KMFX_ALLOW_PUBLIC_KEY_BOOTSTRAP", default=False):
+        return True
+    return not _is_production_runtime()
+
+
+def connection_key_rate_limit_for_endpoint(endpoint: str) -> int:
+    normalized_endpoint = endpoint.lower()
+    if "journal" in normalized_endpoint:
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE", default=60)
+    if "policy" in normalized_endpoint:
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE", default=120)
+    return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=120)
+
+
+def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JSONResponse | None:
+    normalized_key = safe_str(connection_key)
+    if not normalized_key:
+        return None
+    limit = connection_key_rate_limit_for_endpoint(endpoint)
+    if limit <= 0:
+        return None
+    now = time.time()
+    bucket_key = f"{endpoint}:{hashlib.sha256(normalized_key.encode('utf-8')).hexdigest()}"
+    window_start, count = CONNECTION_RATE_LIMIT_BUCKETS.get(bucket_key, (now, 0))
+    if now - window_start >= CONNECTION_RATE_LIMIT_WINDOW_SECONDS:
+        window_start, count = now, 0
+    count += 1
+    CONNECTION_RATE_LIMIT_BUCKETS[bucket_key] = (window_start, count)
+    if count <= limit:
+        return None
+    retry_after_seconds = max(1, int(CONNECTION_RATE_LIMIT_WINDOW_SECONDS - (now - window_start)))
+    log.warning(
+        "%s rejected | reason=connection_key_rate_limited key=%s limit=%s retry_after=%s",
+        endpoint,
+        mask_connection_key(normalized_key),
+        limit,
+        retry_after_seconds,
+    )
+    return connector_json_response(
+        {
+            "ok": False,
+            "received": False,
+            "disposition": "rejected",
+            "reason": "connection_key_rate_limited",
+            "error": "connection_key_rate_limited",
+            "details": {
+                "limit_per_minute": limit,
+                "retry_after_seconds": retry_after_seconds,
+            },
+            "timestamp": now_iso(),
+        },
+        status_code=429,
+    )
+
+
+def mt5_revoked_connection_key_response(endpoint: str, connection_key: str, *, sync_id: str = "", batch_id: str = "") -> JSONResponse:
+    revoked_account = account_service.get_revoked_account_by_api_key_any_user(connection_key)
+    payload: dict[str, Any] = {
+        "ok": False,
+        "received": False,
+        "disposition": "rejected",
+        "reason": "revoked_connection_key",
+        "error": "revoked_connection_key",
+        "details": {
+            "field": "connection_key",
+            "problem": "revoked",
+            "connection_key": mask_connection_key(connection_key),
+            "account_id": revoked_account.account_id if revoked_account else "",
+        },
+        "timestamp": now_iso(),
+    }
+    if sync_id:
+        payload["sync_id"] = sync_id
+    if batch_id:
+        payload["batch_id"] = batch_id
+    log.warning(
+        "%s rejected | reason=revoked_connection_key account_id=%s key=%s",
+        endpoint,
+        payload["details"]["account_id"],
+        mask_connection_key(connection_key),
+    )
+    return connector_json_response(payload, status_code=401)
 
 
 def find_account_by_id_any_user(account_id: str):
@@ -1653,6 +1896,10 @@ async def create_account(request: Request) -> JSONResponse:
             status_code=400,
         )
 
+    denial = connection_key_creation_denial(user_id=scope_user_id, context=auth_context)
+    if denial is not None:
+        return denial
+
     try:
         created = account_service.create_pending_account(
             user_id=scope_user_id,
@@ -1709,6 +1956,43 @@ async def link_account(request: Request) -> JSONResponse:
     connection_mode = "direct" if requested_connection_mode in {"direct", "manual", "cloud", "ea_direct"} else "launcher"
     requested_account_id = safe_str(payload.get("account_id"))
     launcher_connection_key = resolve_connection_key(payload, request)
+    registry = account_service.build_accounts_registry(user_id)
+
+    existing_for_limit: dict[str, Any] | None = None
+    if launcher_connection_key:
+        user_key_account = account_service.get_account_by_api_key(user_id=user_id, api_key=launcher_connection_key)
+        if user_key_account is not None:
+            existing_for_limit = {"account_id": user_key_account.account_id}
+    else:
+        if requested_account_id:
+            existing_for_limit = next((account for account in registry if account.get("account_id") == requested_account_id), None)
+        if existing_for_limit is None:
+            existing_for_limit = next(
+                (
+                    account
+                    for account in registry
+                    if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+                    and safe_str(account.get("alias")) == label
+                    and safe_str(account.get("connection_key"))
+                ),
+                None,
+            )
+        if existing_for_limit is None:
+            existing_for_limit = next(
+                (
+                    account
+                    for account in registry
+                    if account.get("platform") == platform
+                    and safe_str(account.get("alias")) == label
+                    and safe_str(account.get("connection_key"))
+                ),
+                None,
+            )
+
+    if existing_for_limit is None:
+        denial = connection_key_creation_denial(user_id=user_id, context=auth_context)
+        if denial is not None:
+            return denial
 
     existing: dict[str, Any] | None = None
     claimed_account = None
@@ -1760,7 +2044,6 @@ async def link_account(request: Request) -> JSONResponse:
         connection_key = claimed_account.api_key
         account_id = claimed_account.account_id
     else:
-        registry = account_service.build_accounts_registry(user_id)
         if requested_account_id:
             existing = next((account for account in registry if account.get("account_id") == requested_account_id), None)
         if existing is None:
@@ -1902,6 +2185,51 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
     )
 
 
+@app.post("/api/accounts/{account_id}/revoke-key")
+async def revoke_own_account_key(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == safe_str(account_id)
+        ),
+        None,
+    )
+    if account is None and not auth_context.get("is_admin"):
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    revoked = account_service.revoke_connection_key(safe_str(account_id), reason="user_revocation")
+    if revoked is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    forget_live_account_snapshot(revoked.account_id)
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": revoked.account_id,
+            "status": revoked.status,
+            "connection_key_revoked": True,
+            "connection_key_revoked_at": revoked.connection_key_revoked_at.isoformat() if revoked.connection_key_revoked_at else "",
+            "is_admin": auth_context["is_admin"],
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.get("/api/admin/accounts/{account_id}/payload")
 async def admin_account_payload(account_id: str, request: Request) -> JSONResponse:
     _, forbidden = require_admin(request)
@@ -1975,6 +2303,30 @@ async def admin_regenerate_key(account_id: str, request: Request) -> JSONRespons
             "account_id": account.account_id,
             "connection_key": account.api_key,
             "status": account.status,
+            "timestamp": now_iso(),
+        },
+    )
+
+
+@app.post("/api/admin/accounts/{account_id}/revoke-key")
+async def admin_revoke_key(account_id: str, request: Request) -> JSONResponse:
+    _, forbidden = require_admin(request)
+    if forbidden is not None:
+        return forbidden
+    account = account_service.revoke_connection_key(account_id, reason="admin_revocation")
+    if account is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    forget_live_account_snapshot(account.account_id)
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "status": account.status,
+            "connection_key_revoked": True,
+            "connection_key_revoked_at": account.connection_key_revoked_at.isoformat() if account.connection_key_revoked_at else "",
             "timestamp": now_iso(),
         },
     )
@@ -2069,6 +2421,9 @@ async def mt5_sync(request: Request) -> JSONResponse:
         unverified_identity = False
         auth_scope_user_id = ""
         if connection_key:
+            rate_limited = connection_key_rate_limit_response("/api/mt5/sync", connection_key)
+            if rate_limited is not None:
+                return rate_limited
             bound_account = resolve_account_by_connection_key(connection_key)
             log.info(
                 "SYNC connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s account_id=%s user_id=%s status=%s",
@@ -2080,6 +2435,8 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 bound_account.status if bound_account else "",
             )
             if bound_account is None:
+                if account_service.is_connection_key_revoked_any_user(connection_key):
+                    return mt5_revoked_connection_key_response("/api/mt5/sync", connection_key, sync_id=sync_id)
                 bound_account = bootstrap_account_for_sync(connection_key, sanitized_account)
                 log.info(
                     "SYNC connection_key bootstrap | key=%s allowed=%s found=%s account_id=%s user_id=%s status=%s",
@@ -2388,6 +2745,9 @@ async def mt5_journal(request: Request) -> JSONResponse:
     login = normalize_login(payload)
     auth_scope_user_id = ""
     if connection_key:
+        rate_limited = connection_key_rate_limit_response("/api/mt5/journal", connection_key)
+        if rate_limited is not None:
+            return rate_limited
         bound_account = resolve_account_by_connection_key(connection_key)
         log.info(
             "JOURNAL connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
@@ -2396,6 +2756,8 @@ async def mt5_journal(request: Request) -> JSONResponse:
             bool(bound_account),
         )
         if bound_account is None:
+            if account_service.is_connection_key_revoked_any_user(connection_key):
+                return mt5_revoked_connection_key_response("/api/mt5/journal", connection_key, batch_id=batch_id)
             log_connection_key_validation("/api/mt5/journal", connection_key, False)
             return connector_json_response(
                 {
@@ -2517,6 +2879,9 @@ async def mt5_policy(
         })
 
     if normalized_connection_key:
+        rate_limited = connection_key_rate_limit_response("/api/mt5/policy", normalized_connection_key)
+        if rate_limited is not None:
+            return rate_limited
         bound_account = resolve_account_by_connection_key(normalized_connection_key)
         log.info(
             "POLICY connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
@@ -2525,6 +2890,8 @@ async def mt5_policy(
             bool(bound_account),
         )
         if bound_account is None:
+            if account_service.is_connection_key_revoked_any_user(normalized_connection_key):
+                return mt5_revoked_connection_key_response("/api/mt5/policy", normalized_connection_key)
             log_connection_key_validation("/api/mt5/policy", normalized_connection_key, False)
             return connector_json_response(
                 {

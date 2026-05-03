@@ -1,7 +1,11 @@
 import unittest
+import os
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from account_service import AccountService
+from account_store import JsonFileAccountStore
 import kmfx_connector_api as connector_api
 
 
@@ -85,6 +89,74 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         with patch.dict("os.environ", {"KMFX_ENV": "development", "KMFX_ALLOW_NO_KEY_MT5_INGEST": "1"}, clear=True):
             self.assertTrue(connector_api._allow_no_key_mt5_ingest(self._request()))
+
+    def test_public_connection_key_bootstrap_is_disabled_in_production(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                with patch.dict("os.environ", {"KMFX_ENV": "production"}, clear=True):
+                    created = connector_api.bootstrap_account_for_sync(
+                        "11111111-1111-4111-8111-111111111111",
+                        {"login": "123456", "broker": "Broker"},
+                    )
+                self.assertIsNone(created)
+                self.assertEqual([], connector_api.account_service.store.list_accounts())
+            finally:
+                connector_api.account_service = previous_service
+
+    def test_connection_plan_limit_blocks_extra_free_connection(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={"is_admin": False, "app_metadata": {"plan": "free"}, "user_metadata": {}},
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        self.assertEqual(409, response.status_code)
+
+    def test_connection_plan_limit_allows_admin(self) -> None:
+        response = connector_api.connection_key_creation_denial(
+            user_id="admin-user",
+            context={"is_admin": True, "app_metadata": {"plan": "disabled"}, "user_metadata": {}},
+        )
+        self.assertIsNone(response)
+
+    def test_connection_metadata_string_false_blocks_key_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {"plan": "pro", "mt5_enabled": "false"},
+                        "user_metadata": {},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        self.assertEqual(403, response.status_code)
+
+    def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+        with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):
+            self.assertIsNone(connector_api.connection_key_rate_limit_response("/api/mt5/sync", "rate-key"))
+            self.assertIsNone(connector_api.connection_key_rate_limit_response("/api/mt5/sync", "rate-key"))
+            response = connector_api.connection_key_rate_limit_response("/api/mt5/sync", "rate-key")
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+
+        self.assertIsNotNone(response)
+        self.assertEqual(429, response.status_code)
 
 
 if __name__ == "__main__":
