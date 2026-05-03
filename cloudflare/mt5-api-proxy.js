@@ -18,6 +18,18 @@ const ALLOWED_HEADERS = [
   "Authorization",
   "Content-Type",
   "X-KMFX-Connection-Key",
+];
+
+const ALLOWED_METHODS = new Set(["GET", "POST", "HEAD", "OPTIONS"]);
+
+const SENSITIVE_QUERY_PARAMS = new Set([
+  "api_key",
+  "connection_key",
+  "kmfxapikey",
+  "kmfx_api_key",
+]);
+
+const SPOOFABLE_IDENTITY_HEADERS = [
   "X-KMFX-User-Email",
   "X-KMFX-User-Id",
 ];
@@ -81,7 +93,30 @@ function stripUpstreamCorsHeaders(headers) {
   UPSTREAM_CORS_HEADERS.forEach((header) => headers.delete(header));
 }
 
+function stripSensitiveQueryParams(url) {
+  [...url.searchParams.keys()].forEach((key) => {
+    if (SENSITIVE_QUERY_PARAMS.has(key.toLowerCase())) {
+      url.searchParams.delete(key);
+    }
+  });
+}
+
+function stripSpoofableIdentityHeaders(headers) {
+  SPOOFABLE_IDENTITY_HEADERS.forEach((header) => headers.delete(header));
+}
+
 async function handleRequest(request) {
+  if (!ALLOWED_METHODS.has(request.method)) {
+    return new Response(JSON.stringify({ ok: false, reason: "method_not_allowed" }), {
+      status: 405,
+      headers: {
+        "Content-Type": "application/json",
+        "Allow": "GET, POST, HEAD, OPTIONS",
+        ...Object.fromEntries(corsHeaders(request)),
+      },
+    });
+  }
+
   if (request.method === "OPTIONS") {
     const headers = corsHeaders(request);
     if (request.headers.get("Origin") && !headers.has("Access-Control-Allow-Origin")) {
@@ -92,8 +127,10 @@ async function handleRequest(request) {
 
   const incomingUrl = new URL(request.url);
   const targetUrl = new URL(incomingUrl.pathname + incomingUrl.search, ORIGIN);
+  stripSensitiveQueryParams(targetUrl);
   const headers = new Headers(request.headers);
   headers.delete("host");
+  stripSpoofableIdentityHeaders(headers);
   headers.set("X-Forwarded-Host", incomingUrl.host);
   headers.set("X-KMFX-Proxy", PROXY_NAME);
 
