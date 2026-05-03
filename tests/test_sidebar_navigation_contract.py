@@ -52,6 +52,11 @@ class SidebarNavigationContractTests(unittest.TestCase):
     def test_desktop_sidebar_exposes_only_real_subsections(self):
         html = read_text("index.html")
         self.assertIn("nav-subitems", html)
+        self.assertIn("sidebar-group-label", html)
+        self.assertIn("sidebar-menu-button", html)
+        self.assertIn("sidebar-menu-sub", html)
+        self.assertIn('data-sidebar="rail"', html)
+        self.assertNotIn("nav-subitem-marker", html)
         for page in DESKTOP_SUBSECTION_PAGES:
             self.assertIn(f'data-page="{page}"', html)
         for page in INTERNAL_TAB_PAGES:

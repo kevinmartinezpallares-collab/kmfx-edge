@@ -341,7 +341,7 @@ export function initSidebarUI(store) {
       : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof activeAccountIcon === "object" ? activeAccountIcon.value : activeAccountIcon)}</span>`;
     const accountBlock = !accounts.length
       ? `
-        <button class="sidebar-account-switcher sidebar-account-switcher--empty" type="button" data-open-connection-wizard="true" data-connection-source="sidebar">
+        <button class="sidebar-account-switcher sidebar-account-switcher--empty sidebar-menu-button sidebar-menu-button--lg" type="button" data-open-connection-wizard="true" data-connection-source="sidebar" data-sidebar="menu-button">
           <span class="sidebar-account-switcher__icon" aria-hidden="true">
             <span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">+</span>
           </span>
@@ -351,7 +351,7 @@ export function initSidebarUI(store) {
         </button>
       `
       : `
-          <button class="sidebar-account-switcher sidebar-account-switcher--button" type="button" data-sidebar-account-picker="true" aria-label="Abrir selector de cuentas">
+          <button class="sidebar-account-switcher sidebar-account-switcher--button sidebar-menu-button sidebar-menu-button--lg" type="button" data-sidebar-account-picker="true" aria-label="Abrir selector de cuentas" data-sidebar="menu-button">
             <div class="sidebar-account-switcher__icon" aria-hidden="true">${accountIconMarkup}</div>
             <div class="sidebar-account-switcher__copy">
               <div class="sidebar-account-switcher__title" title="${escapeHtml(activeAccountName)}">${escapeHtml(activeAccountName)}</div>
@@ -367,7 +367,7 @@ export function initSidebarUI(store) {
     }
 
     profileRoot.innerHTML = `
-      <button class="sidebar-profile-trigger" type="button" aria-label="Abrir acciones de usuario" aria-expanded="${isMenuOpen ? "true" : "false"}" data-sidebar-menu-toggle>
+      <button class="sidebar-profile-trigger sidebar-menu-button sidebar-menu-button--lg" type="button" aria-label="Abrir acciones de usuario" aria-expanded="${isMenuOpen ? "true" : "false"}" data-sidebar="menu-button" data-sidebar-menu-toggle>
         <div class="sidebar-profile-main">
           <span class="sidebar-profile-avatar-wrap">
             <span class="sidebar-profile-avatar" data-user-avatar></span>
@@ -378,9 +378,7 @@ export function initSidebarUI(store) {
             <div class="sidebar-profile-sub" title="${email}">${email}</div>
           </div>
         </div>
-        <span class="sidebar-profile-menu-btn" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="12" cy="19" r="1.8"></circle></svg>
-        </span>
+        <span class="sidebar-profile-menu-btn" aria-hidden="true">${buildSidebarChromeIcon("chevrons")}</span>
       </button>
       <div class="sidebar-profile-menu ${isMenuOpen ? "is-open" : ""}" ${isMenuOpen ? "" : "hidden"}>
         <div class="sidebar-profile-menu__identity">
