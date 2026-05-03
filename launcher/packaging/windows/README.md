@@ -48,7 +48,7 @@ downloads/KMFX-Launcher-Windows.zip
 downloads/KMFX-Launcher-Windows.zip.sha256
 ```
 
-El workflow valida el build en pull requests y tambien se ejecuta cuando cambian el launcher, el conector o sus dependencias en `main`. Tambien se puede lanzar manualmente desde GitHub Actions. Si se activa `publish_to_repo`, el workflow abre un pull request con el ZIP y el SHA para que se revise antes de publicar la descarga en:
+El workflow valida el build en pull requests. Cuando cambian el launcher, el conector o sus dependencias en `main`, tambien genera el paquete y abre automaticamente un pull request con el ZIP y el SHA para publicar la descarga en:
 
 ```text
 https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
