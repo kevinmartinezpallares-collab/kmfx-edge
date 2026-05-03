@@ -2,11 +2,11 @@
 
 Fecha: 2026-05-03
 Rama actual al revisar: `main`
-Estado: roadmap integrado, desplegado en produccion y validado con smoke test HTTP.
+Estado: roadmap integrado, desplegado en produccion, validado con smoke test HTTP y con fase móvil inicial aplicada.
 
 ## Resultado
 
-El bloque Journal Pro/Risk/Backtest/Funding/AI Export quedo integrado en `main` y desplegado en produccion con Vercel. El frontend y el API live reportan el commit `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`.
+El bloque Journal Pro/Risk/Backtest/Funding/AI Export quedo integrado en `main` y desplegado en produccion con Vercel. El merge funcional del roadmap fue `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`; los checkpoints documentales o responsive posteriores pueden avanzar el commit live sin cambiar ese alcance funcional base.
 
 ## Checks Ejecutados
 
@@ -29,7 +29,7 @@ Resultado actual: 104 tests OK.
 
 Cambios que pertenecen al bloque de roadmap:
 
-- Navegacion y subrutas: `index.html`, `app.js`, `js/modules/route-map.js`, `js/modules/navigation.js`, `js/modules/store.js`, `vercel.json`.
+- Navegacion y subrutas: `index.html`, `app.js`, `js/modules/route-map.js`, `js/modules/navigation.js`, `js/modules/mobile-nav.js`, `js/modules/store.js`, `vercel.json`.
 - Journal Pro y AI Export: `js/modules/journal.js`, `ai_evidence_report.py`, `kmfx_connector_api.py`, `tests/test_ai_evidence_report.py`.
 - Backtest vs Real: `js/modules/strategies.js`, `js/modules/backtest-real.js`, `backtest_real_engine.py`, `mt5_strategy_tester_importer.py`, `tests/test_backtest_real_engine.py`, `tests/test_mt5_strategy_tester_importer.py`.
 - Risk profesional: `js/modules/risk.js`, `risk_math.py`, `risk_metrics_engine.py`, `risk_models.py`, `risk_policy_engine.py`, `kmfx_connector_api.py`, `tests/test_professional_risk_metrics.py`.
@@ -48,9 +48,9 @@ Nota: `kmfx_connector_api.py` es un archivo compartido, pero el diff actual de e
 - Dominio publico: `https://kmfxedge.com`
 - Deployment Vercel: `dpl_AaxZ8pTaCWY9pndptDpzqm5L9y7A`
 - Inspector: `https://vercel.com/kevinmartinezpallares-1079s-projects/kmfx-edge/AaxZ8pTaCWY9pndptDpzqm5L9y7A`
-- Commit: `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`
+- Commit funcional base: `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`
 - API health: OK con `runtime_marker=sync-key-any-user-6d8a6ab-20260411`.
 
 ## Siguiente Paso
 
-Segun el roadmap actual, el siguiente bloque pendiente ya no es metricas profesionales: es la fase responsive movil dedicada. No tocar visual desktop ya cerrado salvo bugs detectados en smoke real.
+Segun el roadmap actual, las metricas profesionales y la primera fase responsive movil ya no son el bloqueo. El siguiente paso recomendado es smoke visual en dispositivo/emulacion movil y corregir solo bugs de stacking, overflow o navegacion sin tocar el visual desktop ya cerrado.

@@ -34732,3 +34732,231 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
   max-width: 32px !important;
   height: 32px !important;
 }
+
+/* Roadmap mobile shell lock: mobile gets its own navigation layer without changing desktop surfaces. */
+@media (max-width: 920px) {
+  html,
+  body,
+  html[data-theme="dark"],
+  body[data-theme="dark"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  body,
+  body[data-theme="dark"] {
+    overflow-y: auto !important;
+    overscroll-behavior-y: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed {
+    display: block !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 100dvh !important;
+    overflow-x: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar.sidebar-panel,
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-vnext-divider.sidebar-rail {
+    display: none !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .main-panel.sidebar-inset,
+  .main-panel,
+  html[data-theme="dark"] .main-panel,
+  body[data-theme="dark"] .main-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .content,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
+  .content,
+  html[data-theme="dark"] .content,
+  body[data-theme="dark"] .content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 8px 12px calc(168px + env(safe-area-inset-bottom)) !important;
+    overflow: visible !important;
+    overflow-x: clip !important;
+    scrollbar-gutter: auto !important;
+  }
+
+  .content-sticky-header,
+  html[data-theme="dark"] .content-sticky-header,
+  body[data-theme="dark"] .content-sticky-header {
+    width: fit-content !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 8px 0 6px auto !important;
+    padding: 6px 10px !important;
+    overflow: hidden !important;
+  }
+
+  .content-sticky-header::before,
+  html[data-theme="dark"] .content-sticky-header::before,
+  body[data-theme="dark"] .content-sticky-header::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .page,
+  .page.active,
+  .dashboard-page-flow,
+  .risk-engine-page,
+  .journal-cockpit,
+  .strategies-page-stack,
+  .funded-page-stack {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #mobileNavRoot {
+    display: block !important;
+  }
+
+  .bottom-nav {
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    z-index: 140 !important;
+    min-height: 68px !important;
+    padding: 7px 7px calc(8px + env(safe-area-inset-bottom)) !important;
+    gap: 5px !important;
+    border-radius: 16px !important;
+    transform: translateZ(0);
+  }
+
+  .bnav-item {
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 7px 3px 6px !important;
+    border-radius: 12px !important;
+    touch-action: manipulation;
+  }
+
+  .bnav-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9.5px;
+    line-height: 1.1;
+  }
+
+  .bnav-more-overlay {
+    z-index: 130 !important;
+  }
+
+  .bnav-more-menu,
+  .bnav-more-menu.open {
+    top: auto !important;
+    left: max(10px, env(safe-area-inset-left)) !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: min(72dvh, 620px) !important;
+    z-index: 150 !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    transform: translateY(18px) !important;
+  }
+
+  .bnav-more-menu.open {
+    transform: translateY(0) !important;
+  }
+
+  .bnav-more-title {
+    margin-bottom: 10px !important;
+    text-align: left !important;
+  }
+
+  .bnav-more-top-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .bnav-more-top-item {
+    min-height: 58px !important;
+    padding: 8px 6px !important;
+    border-radius: 13px !important;
+  }
+
+  .bnav-more-sections {
+    gap: 10px !important;
+  }
+
+  .bnav-more-list {
+    gap: 3px !important;
+  }
+
+  .bnav-more-item {
+    min-height: 46px !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 0 10px !important;
+    border-radius: 12px !important;
+    touch-action: manipulation;
+  }
+
+  .bnav-more-item-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 520px) {
+  .bottom-nav {
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    gap: 3px !important;
+    padding-inline: 5px !important;
+  }
+
+  .bnav-item svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .bnav-item span {
+    font-size: 9px;
+  }
+
+  .bnav-more-menu,
+  .bnav-more-menu.open {
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+  }
+}

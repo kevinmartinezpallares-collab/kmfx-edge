@@ -1,3 +1,5 @@
+import { analyticsTabForPage, navigationParentForPage } from "./route-map.js?v=build-20260406-213500";
+
 const primaryItems = [
   { page: "dashboard", label: "Dashboard", icon: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>' },
   { page: "calendar", label: "Calend.", icon: '<rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>' },
@@ -5,11 +7,28 @@ const primaryItems = [
   { page: "analytics", label: "Insights", icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>' }
 ];
 
-const secondarySections = [
+const morePrimaryActions = [
+  { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
+  { page: "journal", label: "Journal", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
+  { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
+];
+
+const moreListSections = [
   {
-    label: "Core",
+    label: "Insights",
     items: [
-      { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' }
+      { page: "analytics", label: "Resumen", icon: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>' },
+      { page: "analytics-daily", label: "Diario", icon: '<rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>' },
+      { page: "analytics-hourly", label: "Horario", icon: '<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>' },
+      { page: "analytics-risk", label: "Riesgo", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path>' }
+    ]
+  },
+  {
+    label: "Estrategias",
+    items: [
+      { page: "strategies", label: "Strategy Lab", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
+      { page: "strategies-backtest", label: "Backtest vs Real", icon: '<path d="M4 17V7"></path><path d="M4 17h16"></path><path d="m8 13 3-3 3 2 4-5"></path>' },
+      { page: "strategies-portfolio", label: "Portafolios", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' }
     ]
   },
   {
@@ -17,53 +36,28 @@ const secondarySections = [
     items: [
       { page: "connections", label: "Cuentas", icon: '<path d="M9 12a3 3 0 0 1 3-3h3"></path><path d="M15 12a3 3 0 0 1-3 3H9"></path><path d="M7 9H5a3 3 0 0 0 0 6h2"></path><path d="M17 9h2a3 3 0 1 1 0 6h-2"></path>' },
       { page: "portfolio", label: "Capital", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' },
-      { page: "funded", label: "Funding", icon: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M9 11.5c0-1.2 1.3-2.2 3-2.2s3 1 3 2.2-1.3 2.2-3 2.2-3 1-3 2.3 1.3 2.2 3 2.2 3-1 3-2.2"></path>' }
+      { page: "funded", label: "Funding", icon: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M9 11.5c0-1.2 1.3-2.2 3-2.2s3 1 3 2.2-1.3 2.2-3 2.2-3 1-3 2.3 1.3 2.2 3 2.2 3-1 3-2.2"></path>' },
+      { page: "funded-rules", label: "Reglas", icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>' },
+      { page: "funded-payouts", label: "Payouts", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M16 12h.01"></path><path d="M7 9h6"></path><path d="M7 15h4"></path>' }
     ]
   },
   {
     label: "Control",
     items: [
       { page: "discipline", label: "Ejecución", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
-      { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
+      { page: "risk", label: "Risk Cockpit", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' },
+      { page: "risk-ruin-var", label: "Ruin / VaR", icon: '<path d="M3 3v18h18"></path><path d="m7 15 3-4 3 2 5-7"></path>' },
+      { page: "risk-monte-carlo", label: "Monte Carlo", icon: '<path d="M4 19c5-9 11-9 16 0"></path><path d="M4 14c5-7 11-7 16 0"></path><path d="M4 9c5-5 11-5 16 0"></path>' },
+      { page: "risk-exposure", label: "Exposición", icon: '<path d="M4 12h16"></path><path d="M12 4v16"></path><circle cx="12" cy="12" r="3"></circle>' }
     ]
   },
   {
-    label: "Sistema",
+    label: "Journal",
     items: [
-      { page: "calculator", label: "Herramientas", icon: '<rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="8" y1="11" x2="8" y2="11"></line><line x1="12" y1="11" x2="12" y2="11"></line><line x1="16" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="8" y2="15"></line><line x1="12" y1="15" x2="12" y2="15"></line><line x1="16" y1="15" x2="16" y2="15"></line>' },
-      { page: "settings", label: "Ajustes", icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"></path>' },
-    ]
-  },
-  {
-    label: "Soporte / Admin",
-    items: [
-      { page: "debug", label: "Debug", adminOnly: true, icon: '<path d="M9 3h6"></path><path d="M10 6h4"></path><rect x="7" y="8" width="10" height="10" rx="2"></rect><path d="M4 11h3"></path><path d="M17 11h3"></path><path d="M10 12h4"></path><path d="M10 15h4"></path>' },
-      { page: "connections", label: "Cuentas Admin", adminOnly: true, icon: '<path d="M9 12a3 3 0 0 1 3-3h3"></path><path d="M15 12a3 3 0 0 1-3 3H9"></path><path d="M7 9H5a3 3 0 0 0 0 6h2"></path><path d="M17 9h2a3 3 0 1 1 0 6h-2"></path>' },
-      { page: "settings", label: "Sistema Admin", adminOnly: true, icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"></path>' }
-    ]
-  }
-];
-
-const secondaryPages = new Set(secondarySections.flatMap((section) => section.items.map((item) => item.page)));
-const morePrimaryActions = [
-  { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
-  { page: "connections", label: "Cuentas", icon: '<path d="M9 12a3 3 0 0 1 3-3h3"></path><path d="M15 12a3 3 0 0 1-3 3H9"></path><path d="M7 9H5a3 3 0 0 0 0 6h2"></path><path d="M17 9h2a3 3 0 1 1 0 6h-2"></path>' },
-  { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
-];
-
-const moreListSections = [
-  {
-    label: "Gestión",
-    items: [
-      { page: "portfolio", label: "Capital", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' },
-      { page: "funded", label: "Funding", icon: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M9 11.5c0-1.2 1.3-2.2 3-2.2s3 1 3 2.2-1.3 2.2-3 2.2-3 1-3 2.3 1.3 2.2 3 2.2 3-1 3-2.2"></path>' }
-    ]
-  },
-  {
-    label: "Control",
-    items: [
-      { page: "discipline", label: "Ejecución", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
-      { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
+      { page: "journal", label: "Cockpit", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
+      { page: "journal-review", label: "Review Queue", icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>' },
+      { page: "journal-entries", label: "Entradas", icon: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>' },
+      { page: "journal-ai-review", label: "AI Review", icon: '<path d="M12 3v4"></path><path d="M12 17v4"></path><path d="M3 12h4"></path><path d="M17 12h4"></path><circle cx="12" cy="12" r="4"></circle>' }
     ]
   },
   {
@@ -82,6 +76,17 @@ const moreListSections = [
     ]
   }
 ];
+
+function visibleSectionsFor(sections, isAdmin) {
+  return sections.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => isAdmin || !item.adminOnly)
+  })).filter((section) => section.items.length);
+}
+
+function isPageActive(activePage, page) {
+  return activePage === page || navigationParentForPage(activePage) === page;
+}
 
 export function initMobileNav(store) {
   const root = document.getElementById("mobileNavRoot");
@@ -119,17 +124,10 @@ export function initMobileNav(store) {
   const render = (state) => {
     const activePage = state.ui.activePage;
     const isAdmin = state.auth?.user?.is_admin === true || state.auth?.user?.role === "admin";
-    const visibleSecondarySections = secondarySections.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => isAdmin || !item.adminOnly)
-    })).filter((section) => section.items.length);
-    const visibleMoreListSections = moreListSections.map((section) => ({
-      ...section,
-      items: section.items.filter((item) => isAdmin || !item.adminOnly)
-    })).filter((section) => section.items.length);
-    const moreActivePages = new Set(visibleSecondarySections.flatMap((section) => section.items.map((item) => item.page)));
-    const moreActive = moreActivePages.has(activePage);
+    const visibleMoreListSections = visibleSectionsFor(moreListSections, isAdmin);
+    const hasPrimaryMatch = primaryItems.some((item) => isPageActive(activePage, item.page));
     const moreOpen = Boolean(root.__mobileNavState.moreOpen);
+    const moreActive = !hasPrimaryMatch || moreOpen;
     const isAuthenticated = state.auth?.status === "authenticated";
 
     root.innerHTML = `
@@ -138,7 +136,7 @@ export function initMobileNav(store) {
         <div class="bnav-more-title">Más secciones</div>
         <div class="bnav-more-top-actions">
           ${morePrimaryActions.map((item) => `
-            <button class="bnav-more-top-item ${activePage === item.page ? "active" : ""}" type="button" data-bnav-page="${item.page}">
+            <button class="bnav-more-top-item ${isPageActive(activePage, item.page) ? "active" : ""}" type="button" data-bnav-page="${item.page}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">${item.icon}</svg>
               <span>${item.label}</span>
             </button>
@@ -172,7 +170,7 @@ export function initMobileNav(store) {
 
       <nav class="bottom-nav" aria-label="Navegación móvil principal">
         ${primaryItems.map((item) => `
-          <button class="bnav-item ${activePage === item.page ? "active" : ""}" type="button" data-bnav-page="${item.page}">
+          <button class="bnav-item ${isPageActive(activePage, item.page) ? "active" : ""}" type="button" data-bnav-page="${item.page}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${item.icon}</svg>
             <span>${item.label}</span>
           </button>
@@ -204,13 +202,16 @@ export function initMobileNav(store) {
     }
 
     if (pageButton) {
+      const page = pageButton.dataset.bnavPage;
+      const analyticsTab = analyticsTabForPage(page);
       haptic();
       setMobileNavState({ moreOpen: false });
       store.setState((state) => ({
         ...state,
         ui: {
           ...state.ui,
-          activePage: pageButton.dataset.bnavPage
+          activePage: page,
+          ...(analyticsTab ? { analyticsTab } : {})
         }
       }));
       return;

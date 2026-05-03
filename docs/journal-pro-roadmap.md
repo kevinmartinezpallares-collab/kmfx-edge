@@ -196,7 +196,7 @@ Aplicar:
 - [x] Bloque portfolio multi-cuenta: VaR/CVaR agregado por cuenta con lectura conservadora.
 - [x] Simulacion visual: distribucion de resultados, DD esperado, probabilidad de tocar limite.
 - [x] Alertas accionables: reducir sizing, pausar estrategia, revisar muestra, revisar correlacion.
-- [ ] Responsive móvil dedicado: rehacer jerarquía y stacking para pantallas estrechas.
+- [x] Responsive móvil dedicado: shell móvil con sidebar desktop oculto, bottom nav activo y subrutas del roadmap disponibles en `Más`.
 
 Archivos probables:
 
@@ -210,6 +210,7 @@ Criterio de salida:
 
 - Las métricas son entendibles sin leer documentación.
 - La UI distingue medicion real, estimacion y muestra insuficiente.
+- En móvil se navega por Risk Engine, Journal, Estrategias y Funding sin depender del sidebar desktop.
 
 ## Fase 4 - Backtest vs Real
 
@@ -400,7 +401,7 @@ Cambios que deben tratarse como otro frente salvo decisión explícita:
 
 Criterio de salida:
 
-- Existe un preview real verificable y produccion queda en `8f14016`.
+- Existe un preview real verificable y el MVP funcional quedo en produccion con `8f14016`; fases posteriores pueden avanzar `main` con commits acotados.
 - No hay mezcla accidental de cambios entre chats.
 - El usuario puede decidir producción con una lista corta de pruebas pasadas/fallidas.
 
