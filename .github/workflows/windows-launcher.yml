@@ -4,10 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_repo:
-        description: "Commit downloads/KMFX-Launcher-Windows.zip back to main"
+        description: "Open a PR with downloads/KMFX-Launcher-Windows.zip"
         required: true
         default: false
         type: boolean
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -23,7 +26,7 @@ on:
       - "scripts/build_windows_launcher.bat"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: windows-launcher-${{ github.ref }}
@@ -34,6 +37,8 @@ jobs:
     name: Build Windows launcher
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -80,17 +85,60 @@ jobs:
             downloads/KMFX-Launcher-Windows.zip.sha256
           retention-days: 14
 
-      - name: Publish package to repository
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_repo == true)
-        shell: pwsh
+  publish:
+    name: Open launcher artifact PR
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_to_repo == true
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download launcher artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: KMFX-Launcher-Windows
+          path: downloads
+
+      - name: Stage package changes
+        id: changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f downloads/KMFX-Launcher-Windows.zip downloads/KMFX-Launcher-Windows.zip.sha256
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "No launcher artifact changes to publish."
-            exit 0
-          }
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No launcher artifact changes to publish."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push package branch
+        id: branch
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          branch="automation/windows-launcher-artifact-${{ github.run_id }}-${{ github.run_attempt }}"
+          git checkout -b "$branch"
           git commit -m "Publish Windows launcher artifact"
-          git push origin HEAD:main
+          git push -u origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Publish Windows launcher artifact" \
+            --body "Actualiza el paquete Windows generado por CI y su checksum SHA256. Revisar y fusionar este PR publica la descarga en https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip."
