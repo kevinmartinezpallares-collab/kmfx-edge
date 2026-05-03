@@ -39,7 +39,20 @@ Vercel sirve el ZIP desde:
 https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
 ```
 
-Cuando el token de GitHub tenga permiso `workflow`, se puede anadir un workflow de CI en `windows-latest` para generar el mismo artefacto automaticamente.
+### Opcion CI en Windows real
+
+El workflow de GitHub Actions `Build Windows Launcher` compila el launcher en `windows-latest`, genera el mismo paquete y lo sube como artifact:
+
+```text
+downloads/KMFX-Launcher-Windows.zip
+downloads/KMFX-Launcher-Windows.zip.sha256
+```
+
+El workflow se ejecuta automaticamente cuando cambian el launcher, el conector o sus dependencias. Tambien se puede lanzar manualmente desde GitHub Actions. Si se activa `publish_to_repo`, el workflow commitea el ZIP y el SHA de vuelta en `main` para que Vercel los sirva desde:
+
+```text
+https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
+```
 
 ### Opcion local en Windows
 
