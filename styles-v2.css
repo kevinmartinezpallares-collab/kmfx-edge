@@ -13620,6 +13620,39 @@ html[data-theme="dark"] .connections-shell__download-btn:focus-visible,
 body[data-theme="dark"] .connections-shell__download-btn:focus-visible {
   color: var(--text-primary);
 }
+
+html[data-theme="dark"] .connections-guide-card__launcher-actions,
+body[data-theme="dark"] .connections-guide-card__launcher-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+html[data-theme="dark"] .connections-guide-card__launcher-actions > *,
+body[data-theme="dark"] .connections-guide-card__launcher-actions > * {
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  html[data-theme="dark"] .connections-guide-card .calendar-panel-head,
+  body[data-theme="dark"] .connections-guide-card .calendar-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-theme="dark"] .connections-guide-card__launcher-actions,
+  body[data-theme="dark"] .connections-guide-card__launcher-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  html[data-theme="dark"] .connections-guide-card__launcher-actions > *,
+  body[data-theme="dark"] .connections-guide-card__launcher-actions > * {
+    flex: 1 1 180px;
+  }
+}
 /* FIN BLOQUE: connections-runtime */
 
 html[data-theme="dark"] .dashboard-header-card,

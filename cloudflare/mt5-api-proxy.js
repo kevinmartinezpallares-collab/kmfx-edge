@@ -1,6 +1,19 @@
 const ORIGIN = "https://kmfx-edge-api.onrender.com";
 const PROXY_NAME = "kmfx-mt5-api-proxy";
 
+const PRODUCTION_ALLOWED_ORIGINS = new Set([
+  "https://kmfxedge.com",
+  "https://www.kmfxedge.com",
+  "https://dashboard.kmfxedge.com",
+]);
+
+const DEVELOPMENT_ALLOWED_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+]);
+
 const ALLOWED_HEADERS = [
   "Authorization",
   "Content-Type",
@@ -9,18 +22,72 @@ const ALLOWED_HEADERS = [
   "X-KMFX-User-Id",
 ];
 
+const UPSTREAM_CORS_HEADERS = [
+  "Access-Control-Allow-Origin",
+  "Access-Control-Allow-Methods",
+  "Access-Control-Allow-Headers",
+  "Access-Control-Allow-Credentials",
+  "Access-Control-Max-Age",
+];
+
+function normalizeOrigin(origin) {
+  if (!origin) return "";
+  try {
+    return new URL(origin).origin;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function isDevelopmentProxyHost(request) {
+  const hostname = new URL(request.url).hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".workers.dev");
+}
+
+function resolveAllowedOrigin(request) {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  if (PRODUCTION_ALLOWED_ORIGINS.has(origin)) return origin;
+  if (isDevelopmentProxyHost(request) && DEVELOPMENT_ALLOWED_ORIGINS.has(origin)) return origin;
+  return "";
+}
+
+function appendVaryOrigin(headers) {
+  const current = headers.get("Vary");
+  if (!current) {
+    headers.set("Vary", "Origin");
+    return;
+  }
+  const parts = current.split(",").map((part) => part.trim().toLowerCase());
+  if (!parts.includes("origin")) {
+    headers.set("Vary", `${current}, Origin`);
+  }
+}
+
 function corsHeaders(request) {
-  return {
-    "Access-Control-Allow-Origin": request.headers.get("Origin") || "*",
+  const headers = new Headers({
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": ALLOWED_HEADERS.join(", "),
     "Access-Control-Max-Age": "86400",
-  };
+  });
+  const allowedOrigin = resolveAllowedOrigin(request);
+  if (allowedOrigin) {
+    headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  }
+  appendVaryOrigin(headers);
+  return headers;
+}
+
+function stripUpstreamCorsHeaders(headers) {
+  UPSTREAM_CORS_HEADERS.forEach((header) => headers.delete(header));
 }
 
 async function handleRequest(request) {
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders(request) });
+    const headers = corsHeaders(request);
+    if (request.headers.get("Origin") && !headers.has("Access-Control-Allow-Origin")) {
+      return new Response(null, { status: 403, headers });
+    }
+    return new Response(null, { status: 204, headers });
   }
 
   const incomingUrl = new URL(request.url);
@@ -38,8 +105,9 @@ async function handleRequest(request) {
   });
 
   const responseHeaders = new Headers(response.headers);
+  stripUpstreamCorsHeaders(responseHeaders);
   responseHeaders.set("X-KMFX-Proxy", PROXY_NAME);
-  Object.entries(corsHeaders(request)).forEach(([key, value]) => responseHeaders.set(key, value));
+  corsHeaders(request).forEach((value, key) => responseHeaders.set(key, value));
 
   return new Response(response.body, {
     status: response.status,

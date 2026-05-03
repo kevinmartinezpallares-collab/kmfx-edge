@@ -379,10 +379,10 @@ function renderConnectionGuide() {
           <div class="dashboard-risk-block__title">Conectar MT5 paso a paso</div>
           <div class="row-sub">Flujo recomendado: Launcher, conector, permiso WebRequest y primera sincronización. Sin copiar keys manualmente.</div>
         </div>
-        <div class="connections-empty-card__actions">
+        <div class="connections-guide-card__launcher-actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
           <button class="btn-primary" type="button" data-account-download-launcher="mac">Descargar macOS</button>
-          <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
+          <button class="btn-primary" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
         </div>
       </div>
       <div class="connections-guide-card__endpoint" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-elevated);">

@@ -231,8 +231,8 @@ function renderEaConfigStep(state) {
           </div>
           <div class="connection-wizard__inline-actions">
             <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
-            <button class="btn-secondary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
-            <button class="btn-secondary" type="button" data-wizard-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
+            <button class="btn-primary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
+            <button class="btn-primary" type="button" data-wizard-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
             <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
           </div>
         </div>
