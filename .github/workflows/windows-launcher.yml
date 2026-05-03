@@ -134,7 +134,9 @@ jobs:
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
 
       - name: Open pull request
+        id: open_pr
         if: steps.changes.outputs.has_changes == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
@@ -144,3 +146,11 @@ jobs:
             --head "$BRANCH" \
             --title "Publish Windows launcher artifact" \
             --body "Actualiza automaticamente el paquete Windows generado por CI y su checksum SHA256. Revisar y fusionar este PR publica la descarga en https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip."
+
+      - name: Report pull request fallback
+        if: steps.changes.outputs.has_changes == 'true' && steps.open_pr.outcome == 'failure'
+        env:
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          echo "::warning title=Launcher artifact branch ready::GitHub Actions generated and pushed $BRANCH, but repository settings do not allow Actions to create pull requests."
+          echo "Artifact branch: $BRANCH"
