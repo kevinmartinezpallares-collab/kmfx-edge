@@ -1,12 +1,12 @@
 # KMFX Edge Journal Pro Release Checkpoint
 
 Fecha: 2026-05-03
-Rama actual al revisar: `codex/journal-pro-roadmap`
-Estado: no desplegar preview todavia desde este worktree sin decidir alcance.
+Rama actual al revisar: `main`
+Estado: roadmap integrado, desplegado en produccion y validado con smoke test HTTP.
 
 ## Resultado
 
-El bloque Journal Pro/Risk/Backtest/Funding/AI Export esta funcionalmente preparado para pasar a preview real y ya vive en una rama dedicada. Para respetar la regla anti-solape, el siguiente paso no debe ser meter mas producto, sino confirmar el alcance del paquete antes de commit/deploy.
+El bloque Journal Pro/Risk/Backtest/Funding/AI Export quedo integrado en `main` y desplegado en produccion con Vercel. El frontend y el API live reportan el commit `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`.
 
 ## Checks Ejecutados
 
@@ -17,6 +17,11 @@ El bloque Journal Pro/Risk/Backtest/Funding/AI Export esta funcionalmente prepar
 - `python3 -m py_compile risk_metrics_engine.py kmfx_connector_api.py`
 - `python3 -m unittest discover -s tests`
 - Serve estatico local en `http://127.0.0.1:4177/` con respuesta `200 OK`, cerrado despues del check.
+- Preview Vercel protegido generado y validado con `vercel curl`.
+- Produccion Vercel `READY` para `8f14016`.
+- Smoke HTTP publico: `/`, `/risk-engine/ruin-var`, `/journal/ai-review`, `/estrategias/backtest-vs-real`, `/funding/reglas`.
+- Assets publicos: `app.js` y `styles-v2.css`.
+- API health: `https://mt5-api.kmfxedge.com/health` y `https://kmfx-edge-api.onrender.com/health`.
 
 Resultado actual: 104 tests OK.
 
@@ -38,27 +43,14 @@ Cambios que parecen pertenecer a otro frente y no deberian mezclarse sin confirm
 
 Nota: `kmfx_connector_api.py` es un archivo compartido, pero el diff actual de esta rama corresponde a endpoints/contratos del roadmap: AI Evidence, Backtest vs Real, `professional_metrics` y `portfolio_risk`.
 
-## Go / No-Go
+## Estado Produccion
 
-Go para continuar con preview real solo si ocurre una de estas dos cosas:
+- Dominio publico: `https://kmfxedge.com`
+- Deployment Vercel: `dpl_AaxZ8pTaCWY9pndptDpzqm5L9y7A`
+- Inspector: `https://vercel.com/kevinmartinezpallares-1079s-projects/kmfx-edge/AaxZ8pTaCWY9pndptDpzqm5L9y7A`
+- Commit: `8f14016f6d8bf2d196b8136c036a2be2b9af09f6`
+- API health: OK con `runtime_marker=sync-key-any-user-6d8a6ab-20260411`.
 
-- Opcion A: se crea commit/branch solo con archivos del roadmap.
-- Opcion B: el usuario confirma que el archivo externo `downloads/KMFX-Launcher-Windows.zip 2.sha256` tambien entra en el mismo checkpoint.
+## Siguiente Paso
 
-No-Go para seguir metiendo features nuevas antes de resolver esto. El siguiente producto recomendado despues del checkpoint es `Inputs visibles de riesgo + VaR multi-cuenta`; mobile queda como fase dedicada posterior.
-
-## Smoke Test Preview
-
-Cuando exista preview real, validar:
-
-- Login/auth.
-- Refresh directo en `/risk-engine/ruin-var`.
-- Refresh directo en `/journal/ai-review`.
-- Refresh directo en `/estrategias/backtest-vs-real`.
-- Refresh directo en `/funding/reglas`.
-- Sidebar activo correcto en subrutas.
-- Risk Engine renderiza sin pantalla blanca.
-- Journal AI Export copia/descarga reporte y guarda respuesta pegada.
-- Backtest vs Real renderiza comparison.
-- Funding muestra reglas y payouts.
-- API health responde OK.
+Segun el roadmap actual, el siguiente bloque pendiente ya no es metricas profesionales: es la fase responsive movil dedicada. No tocar visual desktop ya cerrado salvo bugs detectados en smoke real.

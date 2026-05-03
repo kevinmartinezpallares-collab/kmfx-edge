@@ -364,10 +364,10 @@ Aplicar:
 - [x] Ejecutar tests backend/unitarios actuales.
 - [x] Confirmar que las subrutas tienen rewrite para preview/producción.
 - [x] Separar cambios del roadmap frente a cambios de otros chats antes de hacer commit.
-- [ ] Crear commit limpio del roadmap excluyendo `downloads/KMFX-Launcher-Windows.zip 2.sha256`, o confirmar explicitamente que entra.
-- [ ] Deploy preview real desde un árbol limpio o intencionadamente agrupado.
-- [ ] Smoke test en preview: auth, sidebar, rutas profundas, Risk Engine, Journal AI Export, Backtest vs Real, Funding y API health.
-- [ ] Promover a producción solo si el preview pasa.
+- [x] Crear commit limpio del roadmap excluyendo `downloads/KMFX-Launcher-Windows.zip 2.sha256`, o confirmar explicitamente que entra.
+- [x] Deploy preview real desde un árbol limpio o intencionadamente agrupado.
+- [x] Smoke test en preview/produccion: rutas profundas, Risk Engine, Journal AI Export, Backtest vs Real, Funding y API health.
+- [x] Promover a producción solo si el preview pasa.
 
 Archivos del roadmap en este checkpoint:
 
@@ -400,7 +400,7 @@ Cambios que deben tratarse como otro frente salvo decisión explícita:
 
 Criterio de salida:
 
-- Existe un preview real verificable.
+- Existe un preview real verificable y produccion queda en `8f14016`.
 - No hay mezcla accidental de cambios entre chats.
 - El usuario puede decidir producción con una lista corta de pruebas pasadas/fallidas.
 
