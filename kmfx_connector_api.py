@@ -22,8 +22,11 @@ from fastapi.responses import JSONResponse
 
 from account_service import AccountService, account_summary_fields_from_payload
 from account_store import JsonFileAccountStore
+from ai_evidence_report import build_ai_evidence_report
+from backtest_real_engine import build_backtest_vs_real_report
+from mt5_strategy_tester_importer import parse_mt5_strategy_tester_reports
 from risk_enforcement_engine import build_risk_status
-from risk_metrics_engine import build_risk_metrics, extract_previous_risk_snapshot
+from risk_metrics_engine import aggregate_portfolio_risk, build_risk_metrics, extract_previous_risk_snapshot
 from risk_policy_engine import build_policy_snapshot, evaluate_risk_policy
 
 
@@ -1211,7 +1214,97 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
     return {
         "accounts": accounts,
         "active_account_id": active_account_id,
+        "portfolio_risk": aggregate_portfolio_risk(accounts),
         "updated_at": now_iso(),
+    }
+
+
+def find_scoped_account_entry(
+    snapshot: dict[str, Any],
+    account_id: str,
+) -> dict[str, Any] | None:
+    normalized = safe_str(account_id)
+    if not normalized:
+        return None
+    for entry in snapshot.get("accounts") or []:
+        if isinstance(entry, dict) and safe_str(entry.get("account_id")) == normalized:
+            return entry
+    return None
+
+
+def build_ai_evidence_report_for_account_entry(
+    account_entry: dict[str, Any],
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    dashboard_payload = account_entry.get("dashboard_payload") if isinstance(account_entry.get("dashboard_payload"), dict) else {}
+    account = {
+        "name": (
+            dashboard_payload.get("name")
+            or dashboard_payload.get("accountName")
+            or account_entry.get("display_name")
+            or account_entry.get("alias")
+        ),
+        "broker": dashboard_payload.get("broker") or account_entry.get("broker"),
+        "server": dashboard_payload.get("server") or account_entry.get("server"),
+        "login": dashboard_payload.get("login") or account_entry.get("login") or account_entry.get("mt5_login"),
+        "currency": (
+            dashboard_payload.get("currency")
+            or ensure_dict(dashboard_payload.get("account")).get("currency")
+            or "USD"
+        ),
+        "balance": dashboard_payload.get("balance"),
+        "equity": dashboard_payload.get("equity"),
+    }
+    trades = dashboard_payload.get("trades") if isinstance(dashboard_payload.get("trades"), list) else []
+    risk_snapshot = dashboard_payload.get("riskSnapshot") if isinstance(dashboard_payload.get("riskSnapshot"), dict) else {}
+    journal_entries = dashboard_payload.get("journalEntries") if isinstance(dashboard_payload.get("journalEntries"), list) else []
+    report = build_ai_evidence_report(
+        account=account,
+        trades=trades,
+        risk_snapshot=risk_snapshot,
+        journal_entries=journal_entries,
+        generated_at=generated_at or now_iso(),
+    )
+    return {
+        "ok": True,
+        "account_id": safe_str(account_entry.get("account_id")),
+        "generated_at": report["pack"]["generated_at"],
+        "report_type": report["report_type"],
+        "schema_version": report["schema_version"],
+        "pack": report["pack"],
+        "markdown": report["markdown"],
+        "json": report["json"],
+    }
+
+
+def build_backtest_vs_real_for_account_entry(
+    account_entry: dict[str, Any],
+    backtests: list[dict[str, Any]],
+    *,
+    starting_equity: float = 100_000.0,
+    min_real_trades: int = 30,
+    min_backtest_trades: int = 100,
+) -> dict[str, Any]:
+    dashboard_payload = account_entry.get("dashboard_payload") if isinstance(account_entry.get("dashboard_payload"), dict) else {}
+    trades = dashboard_payload.get("trades") if isinstance(dashboard_payload.get("trades"), list) else []
+    account_balance = safe_float(
+        dashboard_payload.get("balance")
+        or ensure_dict(dashboard_payload.get("account")).get("balance")
+    )
+    resolved_starting_equity = account_balance if account_balance > 0 else starting_equity
+    report = build_backtest_vs_real_report(
+        backtests=backtests,
+        real_trades=trades,
+        starting_equity=resolved_starting_equity,
+        min_real_trades=min_real_trades,
+        min_backtest_trades=min_backtest_trades,
+    )
+    return {
+        "ok": True,
+        "account_id": safe_str(account_entry.get("account_id")),
+        "generated_at": now_iso(),
+        "report": report,
     }
 
 
@@ -1851,15 +1944,16 @@ def build_dashboard_account_payload(
     )
     report_metrics = build_report_metrics(account, trades, history)
     raw_policy = build_policy(safe_str(account.get("login")))
+    policy_snapshot, policy_warnings = build_policy_snapshot(raw_policy)
     previous_snapshot = extract_previous_risk_snapshot(previous_payload)
     metrics_snapshot = build_risk_metrics(
         account=account,
         positions=positions,
         trades=trades,
+        policy_snapshot=policy_snapshot,
         previous_snapshot=previous_snapshot,
         trading_timezone=safe_str(raw_policy.get("trading_timezone"), "UTC"),
     )
-    policy_snapshot, policy_warnings = build_policy_snapshot(raw_policy)
     policy_evaluation = evaluate_risk_policy(metrics_snapshot, policy_snapshot)
     status_snapshot = build_risk_status(policy_evaluation, policy_snapshot)
     summary = {
@@ -1879,6 +1973,7 @@ def build_dashboard_account_payload(
         "status": status_snapshot,
         "symbol_exposure": metrics_snapshot["symbol_exposure"],
         "open_trade_risks": metrics_snapshot["open_trade_risks"],
+        "professional_metrics": metrics_snapshot.get("professional_metrics", {}),
         "metadata": {
             **metrics_snapshot["metadata"],
             "snapshot_version": "3.0.0",
@@ -3038,6 +3133,163 @@ async def accounts_snapshot(request: Request) -> JSONResponse:
         snapshot.get("active_account_id") or "",
     )
     return connector_json_response(snapshot)
+
+
+@app.post("/api/backtests/mt5/import")
+async def import_mt5_strategy_tester_reports(request: Request) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    starting_equity = safe_float(payload.get("starting_equity") or payload.get("startingEquity"), 100_000.0)
+    min_real_trades = int(safe_float(payload.get("min_real_trades") or payload.get("minRealTrades"), 30))
+    min_backtest_trades = int(safe_float(payload.get("min_backtest_trades") or payload.get("minBacktestTrades"), 100))
+    raw_reports = payload.get("reports")
+    if isinstance(raw_reports, list):
+        report_inputs = [item for item in raw_reports if isinstance(item, dict)]
+    else:
+        report_inputs = [
+            {
+                "content": payload.get("content") or payload.get("report") or payload.get("text"),
+                "filename": payload.get("filename") or payload.get("name"),
+                "strategy": payload.get("strategy") or payload.get("strategy_name"),
+            }
+        ]
+
+    backtests = parse_mt5_strategy_tester_reports(
+        report_inputs,
+        starting_equity=starting_equity,
+        imported_at=now_iso(),
+    )
+    response: dict[str, Any] = {
+        "ok": True,
+        "imported_count": len(backtests),
+        "backtests": backtests,
+        "timestamp": now_iso(),
+    }
+
+    account_id = safe_str(payload.get("account_id") or payload.get("accountId"))
+    compare_requested = bool(payload.get("compare")) or bool(account_id)
+    if not compare_requested:
+        return connector_json_response(response)
+
+    real_trades = payload.get("real_trades") if isinstance(payload.get("real_trades"), list) else []
+    if real_trades:
+        response["comparison"] = build_backtest_vs_real_report(
+            backtests=backtests,
+            real_trades=real_trades,
+            starting_equity=starting_equity,
+            min_real_trades=min_real_trades,
+            min_backtest_trades=min_backtest_trades,
+        )
+        return connector_json_response(response)
+
+    if not account_id:
+        response["comparison"] = build_backtest_vs_real_report(
+            backtests=backtests,
+            real_trades=[],
+            starting_equity=starting_equity,
+            min_real_trades=min_real_trades,
+            min_backtest_trades=min_backtest_trades,
+        )
+        return connector_json_response(response)
+
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "auth_required": True,
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+
+    allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
+    snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
+    account_entry = find_scoped_account_entry(snapshot, account_id)
+    if account_entry is None:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "account_not_found",
+                "account_id": account_id,
+                "timestamp": now_iso(),
+            },
+            status_code=404,
+        )
+
+    comparison = build_backtest_vs_real_for_account_entry(
+        account_entry,
+        backtests,
+        starting_equity=starting_equity,
+        min_real_trades=min_real_trades,
+        min_backtest_trades=min_backtest_trades,
+    )
+    response["comparison"] = comparison["report"]
+    response["account_id"] = comparison["account_id"]
+    return connector_json_response(response)
+
+
+@app.get("/api/accounts/{account_id}/ai-evidence-report")
+async def account_ai_evidence_report(
+    account_id: str,
+    request: Request,
+    format: str = Query("bundle", pattern="^(bundle|markdown|json)$"),
+) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "auth_required": True,
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+
+    allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
+    snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
+    account_entry = find_scoped_account_entry(snapshot, account_id)
+    if account_entry is None:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "account_not_found",
+                "account_id": safe_str(account_id),
+                "timestamp": now_iso(),
+            },
+            status_code=404,
+        )
+
+    report = build_ai_evidence_report_for_account_entry(account_entry)
+    if format == "markdown":
+        return connector_json_response(
+            {
+                "ok": True,
+                "account_id": report["account_id"],
+                "generated_at": report["generated_at"],
+                "report_type": report["report_type"],
+                "schema_version": report["schema_version"],
+                "markdown": report["markdown"],
+            }
+        )
+    if format == "json":
+        return connector_json_response(
+            {
+                "ok": True,
+                "account_id": report["account_id"],
+                "generated_at": report["generated_at"],
+                "report_type": report["report_type"],
+                "schema_version": report["schema_version"],
+                "pack": report["pack"],
+                "json": report["json"],
+            }
+        )
+    return connector_json_response(report)
 
 
 if __name__ == "__main__":

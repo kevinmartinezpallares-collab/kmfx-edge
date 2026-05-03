@@ -51,6 +51,8 @@ def build_policy_snapshot(raw_policy: dict[str, Any]) -> tuple[dict[str, Any], l
         "max_dd_limit_pct": safe_float(raw_policy.get("total_dd_hard_stop"), 0.0),
         "portfolio_heat_limit_pct": round(portfolio_heat_limit_pct, 4),
         "portfolio_heat_limit_source": heat_limit_source,
+        "profit_target_pct": safe_float(raw_policy.get("profit_target_pct"), 0.0),
+        "profit_target_remaining_pct": safe_float(raw_policy.get("profit_target_remaining_pct"), 0.0),
         "max_volume": safe_float(raw_policy.get("max_volume"), 0.0),
         "allowed_sessions": list(raw_policy.get("allowed_sessions") or []),
         "allowed_symbols": list(raw_policy.get("allowed_symbols") or []),

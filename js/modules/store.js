@@ -3,7 +3,36 @@ import { evaluateCompliance } from "./account-runtime.js?v=build-20260406-213500
 import { readPersistedAuthState } from "./auth-session.js?v=build-20260406-213500";
 
 const STORAGE_KEY = "kmfx_frontend_state";
-const validPages = new Set(["dashboard", "analytics", "risk", "trades", "calendar", "connections", "calculator", "journal", "strategies", "funded", "market", "portfolio", "glossary", "debug", "settings"]);
+const validPages = new Set([
+  "dashboard",
+  "analytics",
+  "analytics-daily",
+  "analytics-hourly",
+  "analytics-risk",
+  "risk",
+  "risk-ruin-var",
+  "risk-monte-carlo",
+  "risk-exposure",
+  "trades",
+  "calendar",
+  "connections",
+  "calculator",
+  "journal",
+  "journal-review",
+  "journal-entries",
+  "journal-ai-review",
+  "strategies",
+  "strategies-backtest",
+  "strategies-portfolio",
+  "funded",
+  "funded-rules",
+  "funded-payouts",
+  "market",
+  "portfolio",
+  "glossary",
+  "debug",
+  "settings"
+]);
 const validAnalyticsTabs = new Set(["summary", "daily", "hourly", "risk"]);
 
 function safeStorageGet(key) {
@@ -103,6 +132,7 @@ function sanitizeWorkspace(workspace = {}) {
     },
     strategies: {
       items: Array.isArray(workspace.strategies?.items) ? workspace.strategies.items : base.strategies.items,
+      backtests: Array.isArray(workspace.strategies?.backtests) ? workspace.strategies.backtests : base.strategies.backtests,
       form: {
         ...base.strategies.form,
         ...(workspace.strategies?.form || {})
