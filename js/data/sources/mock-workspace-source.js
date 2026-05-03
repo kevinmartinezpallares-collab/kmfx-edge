@@ -58,6 +58,10 @@ const workspaceTemplate = {
         setup: "Asia range break",
         pnl: 260,
         grade: "A",
+        compliance: "Cumplida",
+        mistake: "",
+        emotion: "Calma",
+        screenshotUrl: "",
         notes: "Entrada alineada con estructura y buen manejo del riesgo.",
         lesson: "Escalar parcialmente mejora el hold psicológico."
       },
@@ -69,6 +73,10 @@ const workspaceTemplate = {
         setup: "Funded continuation",
         pnl: 188,
         grade: "B",
+        compliance: "Parcial",
+        mistake: "Salida temprana",
+        emotion: "Duda",
+        screenshotUrl: "",
         notes: "Buen timing pero salida demasiado temprana.",
         lesson: "Revisar reglas de gestión en cuentas de challenge."
       }
@@ -79,6 +87,10 @@ const workspaceTemplate = {
       setup: "",
       pnl: "",
       grade: "B",
+      compliance: "Cumplida",
+      mistake: "",
+      emotion: "Neutral",
+      screenshotUrl: "",
       notes: "",
       lesson: ""
     },
@@ -109,6 +121,70 @@ const workspaceTemplate = {
         rr: 2.3,
         score: 7.1,
         notes: "Interesante en volatilidad alta, aún requiere filtro macro."
+      }
+    ],
+    backtests: [
+      {
+        strategy: "Asia range break",
+        source: {
+          platform: "mt5",
+          kind: "strategy_tester",
+          format: "html",
+          filename: "Asia_range_break.htm"
+        },
+        metrics: {
+          trade_count: 186,
+          profit_factor: 1.82,
+          expectancy_amount: 84,
+          win_rate_pct: 57.5,
+          max_drawdown_pct: 5.4,
+          sharpe_ratio: 1.16,
+          average_slippage: 0.2,
+          average_spread: 0.8,
+          commission_per_trade: -5.2
+        },
+        breakdowns: {
+          symbol: {
+            EURUSD: { trade_count: 94, profit_factor: 1.94, expectancy_amount: 92, win_rate_pct: 59.1, max_drawdown_pct: 4.6 }
+          },
+          session: {
+            Asia: { trade_count: 142, profit_factor: 1.88, expectancy_amount: 88, win_rate_pct: 58.4, max_drawdown_pct: 5.0 }
+          },
+          direction: {
+            BUY: { trade_count: 101, profit_factor: 1.76, expectancy_amount: 79, win_rate_pct: 56.4, max_drawdown_pct: 5.7 }
+          }
+        }
+      },
+      {
+        strategy: "Funded continuation",
+        source: {
+          platform: "mt5",
+          kind: "strategy_tester",
+          format: "csv",
+          filename: "Funded_continuation.csv"
+        },
+        metrics: {
+          trade_count: 214,
+          profit_factor: 1.67,
+          expectancy_amount: 61,
+          win_rate_pct: 54.2,
+          max_drawdown_pct: 6.1,
+          sharpe_ratio: 0.98,
+          average_slippage: 0.3,
+          average_spread: 1.1,
+          commission_per_trade: -6.8
+        },
+        breakdowns: {
+          symbol: {
+            NAS100: { trade_count: 126, profit_factor: 1.52, expectancy_amount: 55, win_rate_pct: 52.3, max_drawdown_pct: 7.2 }
+          },
+          session: {
+            "New York": { trade_count: 152, profit_factor: 1.71, expectancy_amount: 65, win_rate_pct: 55.4, max_drawdown_pct: 5.9 }
+          },
+          direction: {
+            SELL: { trade_count: 88, profit_factor: 1.44, expectancy_amount: 48, win_rate_pct: 51.1, max_drawdown_pct: 7.6 }
+          }
+        }
       }
     ],
     form: {

@@ -298,6 +298,8 @@ function resolveProfessionalMetrics(snapshot) {
   const tailRisk = safeObject(metrics.tail_risk);
   const drawdownPath = safeObject(metrics.drawdown_path);
   const monteCarlo = safeObject(metrics.monte_carlo);
+  const performance = safeObject(metrics.performance);
+  const riskOfRuin = safeObject(metrics.risk_of_ruin);
   const inputs = safeObject(metrics.inputs);
   const warnings = Array.isArray(metrics.warnings) ? metrics.warnings.filter(Boolean) : [];
   const sampleSize = safeNumber(monteCarlo.sample_size || inputs.closed_trades_count, 0);
@@ -307,9 +309,154 @@ function resolveProfessionalMetrics(snapshot) {
     tailRisk,
     drawdownPath,
     monteCarlo,
+    performance,
+    riskOfRuin,
     inputs,
     warnings,
     sampleSize
+  };
+}
+
+function firstFiniteRiskValue(...values) {
+  for (const value of values) {
+    const numeric = safeNumber(value, NaN);
+    if (Number.isFinite(numeric)) return numeric;
+  }
+  return NaN;
+}
+
+function formatProfessionalAssumption(row) {
+  const numeric = firstFiniteRiskValue(row.value);
+  if (!Number.isFinite(numeric)) return "—";
+  if (row.format === "currency") return formatCurrency(numeric);
+  if (row.format === "multiple") return numeric > 0 ? numeric.toFixed(2) : "—";
+  if (row.format === "integer") return Math.round(numeric).toLocaleString("es-ES");
+  return formatRiskPct(numeric, row.digits ?? 2);
+}
+
+function riskBasisLabel(value) {
+  const basis = String(value || "");
+  if (basis === "policy_max_risk_per_trade_pct") return "Límite política";
+  if (basis === "average_loss_to_equity_pct") return "Pérdida media / equity";
+  return "Sizing";
+}
+
+function professionalAssumptionsModel(professional, snapshot, account) {
+  const inputs = professional.inputs;
+  const payload = safeObject(account?.dashboardPayload);
+  const payloadAccount = safeObject(payload.account);
+  const performance = professional.performance;
+  const riskOfRuin = professional.riskOfRuin;
+  const winRate = firstFiniteRiskValue(inputs.win_rate_pct, performance.win_rate_pct);
+  const payoff = firstFiniteRiskValue(inputs.payoff_ratio, performance.payoff_ratio);
+  const riskPerTrade = firstFiniteRiskValue(
+    inputs.risk_per_trade_pct,
+    inputs.analytical_ruin_risk_per_trade_pct,
+    riskOfRuin.risk_per_trade_pct,
+    snapshot?.policy?.risk_per_trade_pct,
+    snapshot?.summary?.max_risk_per_trade_pct
+  );
+  const equity = firstFiniteRiskValue(inputs.capital_amount, inputs.equity, payload.equity, payloadAccount.equity, payload.balance, payloadAccount.balance);
+  const ruinLimit = firstFiniteRiskValue(inputs.ruin_limit_pct, inputs.analytical_ruin_threshold_pct, riskOfRuin.ruin_threshold_pct, snapshot?.policy?.max_dd_limit_pct);
+  return [
+    {
+      label: "Win rate",
+      value: winRate,
+      detail: "Base estadística",
+      format: "percent"
+    },
+    {
+      label: "Payoff",
+      value: payoff,
+      detail: "Average win / loss",
+      format: "multiple"
+    },
+    {
+      label: "Riesgo/trade",
+      value: riskPerTrade,
+      detail: riskBasisLabel(inputs.risk_per_trade_basis || inputs.analytical_ruin_risk_per_trade_basis),
+      format: "percent"
+    },
+    {
+      label: "Capital",
+      value: equity,
+      detail: "Equity usada",
+      format: "currency"
+    },
+    {
+      label: "Límite ruina",
+      value: ruinLimit,
+      detail: "DD tolerado",
+      format: "percent",
+      digits: 1
+    },
+    {
+      label: "Muestra",
+      value: professional.sampleSize,
+      detail: "Trades cerrados",
+      format: "integer"
+    }
+  ];
+}
+
+function resolveAccountRiskSnapshot(account) {
+  const payload = safeObject(account?.dashboardPayload);
+  const payloadSnapshot = safeObject(payload.riskSnapshot);
+  if (Object.keys(payloadSnapshot).length) return payloadSnapshot;
+  return safeObject(account?.riskSnapshot);
+}
+
+function resolvePortfolioVarModel(state) {
+  const accounts = Object.values(safeObject(state?.accounts)).filter((account) => {
+    if (!account) return false;
+    const snapshot = resolveAccountRiskSnapshot(account);
+    return account.sourceType === "mt5" || Object.keys(snapshot).length > 0;
+  });
+  let totalEquity = 0;
+  let totalVar95 = 0;
+  let totalCvar95 = 0;
+  let totalVar99 = 0;
+  let totalCvar99 = 0;
+  let closedTrades = 0;
+  let accountsWithVar = 0;
+  let highestRuin = 0;
+
+  accounts.forEach((account) => {
+    const snapshot = resolveAccountRiskSnapshot(account);
+    const professional = resolveProfessionalMetrics(snapshot);
+    const payload = safeObject(account?.dashboardPayload);
+    const payloadAccount = safeObject(payload.account);
+    const equity = firstFiniteRiskValue(professional.inputs.equity, professional.inputs.capital_amount, payload.equity, payloadAccount.equity, payload.balance, payloadAccount.balance);
+    if (Number.isFinite(equity) && equity > 0) totalEquity += equity;
+    const var95 = safeObject(professional.tailRisk.var_95);
+    const var99 = safeObject(professional.tailRisk.var_99);
+    const var95Amount = safeNumber(var95.var_amount, 0);
+    const var99Amount = safeNumber(var99.var_amount, 0);
+    const sampleSize = safeNumber(var95.sample_size || professional.sampleSize, 0);
+    if (sampleSize > 0 || var95Amount > 0 || var99Amount > 0) accountsWithVar += 1;
+    totalVar95 += var95Amount;
+    totalCvar95 += safeNumber(var95.cvar_amount, 0);
+    totalVar99 += var99Amount;
+    totalCvar99 += safeNumber(var99.cvar_amount, 0);
+    closedTrades += safeNumber(professional.inputs.closed_trades_count, 0);
+    highestRuin = Math.max(highestRuin, safeNumber(professional.monteCarlo.ruin_probability_pct, 0), safeNumber(professional.riskOfRuin.analytic_ruin_probability_pct, 0));
+  });
+
+  const equityPct = (amount) => totalEquity > 0 ? (amount / totalEquity) * 100 : 0;
+  return {
+    accountsCount: accounts.length,
+    accountsWithVar,
+    closedTrades,
+    totalEquity,
+    highestRuin,
+    hasPortfolio: accounts.length > 1,
+    hasVar: accountsWithVar > 0,
+    cards: [
+      { label: "VaR 95", value: formatCurrency(totalVar95), detail: `${formatRiskPct(equityPct(totalVar95))} equity`, tone: totalVar95 > 0 ? "warn" : "neutral" },
+      { label: "CVaR 95", value: formatCurrency(totalCvar95), detail: `${formatRiskPct(equityPct(totalCvar95))} equity`, tone: totalCvar95 > totalVar95 ? "warn" : "neutral" },
+      { label: "VaR 99", value: formatCurrency(totalVar99), detail: `${formatRiskPct(equityPct(totalVar99))} equity`, tone: totalVar99 > totalVar95 && totalVar95 > 0 ? "danger" : totalVar99 > 0 ? "warn" : "neutral" },
+      { label: "RoR máximo", value: formatRiskPct(highestRuin), detail: `${accountsWithVar}/${accounts.length || 0} cuentas con muestra`, tone: highestRuin >= 10 ? "danger" : highestRuin >= 3 ? "warn" : "neutral" }
+    ]
   };
 }
 
@@ -748,6 +895,8 @@ export function renderRisk(root, state) {
   const monteCarlo = professionalMetrics.monteCarlo;
   const riskSimulation = professionalSimulationModel(professionalMetrics);
   const professionalActions = professionalActionAlerts(professionalMetrics, liveSnapshot);
+  const professionalAssumptions = professionalAssumptionsModel(professionalMetrics, liveSnapshot, account);
+  const portfolioVar = resolvePortfolioVarModel(state);
   const ladder = [];
   const ladderLevel = liveSnapshot?.policy?.current_level || "";
   const commandMeta = riskStatusMeta(liveSnapshot);
@@ -970,6 +1119,39 @@ export function renderRisk(root, state) {
           <strong>${professionalDecision.title}</strong>
         </div>
         <p>${professionalDecision.body}</p>
+      </div>
+      <div class="risk-professional-detail-grid">
+        <section class="risk-professional-detail-panel">
+          <div class="risk-professional-detail-head">
+            <span>Inputs medidos</span>
+            <strong>Supuestos Ruin / VaR</strong>
+          </div>
+          <div class="risk-assumption-grid">
+            ${professionalAssumptions.map((row) => `
+              <div class="risk-assumption-item">
+                <span>${row.label}</span>
+                <strong>${formatProfessionalAssumption(row)}</strong>
+                <small>${row.detail}</small>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+        <section class="risk-professional-detail-panel">
+          <div class="risk-professional-detail-head">
+            <span>Portfolio multi-cuenta</span>
+            <strong>${portfolioVar.hasPortfolio ? `${portfolioVar.accountsCount} cuentas · VaR conservador` : "Una cuenta activa"}</strong>
+          </div>
+          <div class="risk-portfolio-var-grid">
+            ${portfolioVar.cards.map((item) => `
+              <div class="risk-portfolio-var-card risk-portfolio-var-card--${item.tone}">
+                <span>${item.label}</span>
+                <strong>${portfolioVar.hasVar ? item.value : "—"}</strong>
+                <small>${portfolioVar.hasVar ? item.detail : "Muestra pendiente"}</small>
+              </div>
+            `).join("")}
+          </div>
+          <p class="risk-portfolio-var-foot">${portfolioVar.hasPortfolio ? "Suma conservadora por cuenta; la correlación multi-cuenta queda marcada como fase posterior." : "El VaR de portfolio se consolidará cuando haya más de una cuenta con muestra real."}</p>
+        </section>
       </div>
       <div class="risk-simulation-panel">
         <div class="risk-simulation-panel__head">

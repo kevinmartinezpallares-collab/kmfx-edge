@@ -1,6 +1,9 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260406-213500";
-import { formatCurrency } from "./utils.js?v=build-20260406-213500";
+import { buildApiUrl } from "./api-config.js?v=build-20260406-213500";
+import { showToast } from "./toast.js?v=build-20260406-213500";
+import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260406-213500";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260406-213500";
 
 function emptyForm() {
   return {
@@ -45,6 +48,73 @@ function sampleLabel(trades) {
   if (count >= 12) return "Datos insuficientes";
   if (count > 0) return "Pocas operaciones";
   return "Sin histórico suficiente";
+}
+
+function normalizeEvidenceText(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function complianceScore(value) {
+  const text = normalizeEvidenceText(value);
+  if (!text) return null;
+  if (["cumplida", "cumplido", "ok", "si", "yes", "passed", "full"].some((token) => text.includes(token))) return 100;
+  if (["parcial", "partial", "mixed", "warning"].some((token) => text.includes(token))) return 65;
+  if (["rota", "roto", "incumplida", "incumplido", "no", "failed", "broken"].some((token) => text.includes(token))) return 20;
+  return null;
+}
+
+function emotionScore(value) {
+  const text = normalizeEvidenceText(value);
+  if (!text) return null;
+  if (["calma", "calm", "tranquilo", "foco"].some((token) => text.includes(token))) return 100;
+  if (["confianza", "confidence"].some((token) => text.includes(token))) return 90;
+  if (text.includes("neutral")) return 80;
+  if (["duda", "hesitation"].some((token) => text.includes(token))) return 65;
+  if (["ansiedad", "fomo", "impulso", "frustracion", "tilt", "revenge"].some((token) => text.includes(token))) return 35;
+  return null;
+}
+
+function hasMistake(value) {
+  const text = normalizeEvidenceText(value);
+  return Boolean(text && !["no", "none", "n/a", "na", "sin error", "sin errores", "ninguno", "-"].includes(text));
+}
+
+function calculateStrategyDiscipline(entries) {
+  const sampleSize = entries.length;
+  const tradeScores = [];
+  let mistakeCount = 0;
+  entries.forEach((entry) => {
+    const scores = [];
+    const compliance = complianceScore(entry.compliance || entry.execution_compliance || entry.rule_compliance);
+    if (compliance !== null) scores.push(compliance);
+    const emotion = emotionScore(entry.emotion || entry.emotionalState || entry.emotional_state);
+    if (emotion !== null) scores.push(emotion);
+    const mistake = hasMistake(entry.mistake || entry.error || entry.execution_error);
+    if (mistake) {
+      mistakeCount += 1;
+      if (!scores.length) scores.push(45);
+    }
+    if (!scores.length) return;
+    const base = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+    tradeScores.push(Math.max(0, Math.min(100, base - (mistake ? 12 : 0))));
+  });
+  const taggedSampleSize = tradeScores.length;
+  const disciplineScore = taggedSampleSize
+    ? tradeScores.reduce((sum, value) => sum + value, 0) / taggedSampleSize
+    : null;
+  const coveragePct = sampleSize ? (taggedSampleSize / sampleSize) * 100 : 0;
+  return {
+    sampleSize,
+    taggedSampleSize,
+    coveragePct,
+    disciplineScore,
+    mistakeRatePct: taggedSampleSize ? (mistakeCount / taggedSampleSize) * 100 : 0,
+    label: disciplineScore === null ? "Disc —" : `Disc ${disciplineScore.toFixed(0)}`
+  };
 }
 
 function pluralLabel(count, singular, plural) {
@@ -107,14 +177,87 @@ function deriveStrategyStats(strategy, journalEntries) {
   const pnl = relatedEntries.reduce((sum, entry) => sum + safeNumber(entry.pnl), 0);
   const wins = relatedEntries.filter((entry) => safeNumber(entry.pnl) > 0).length;
   const winRate = trades ? (wins / trades) * 100 : safeNumber(strategy.winRate);
+  const discipline = calculateStrategyDiscipline(relatedEntries);
+  const baseScore = safeNumber(strategy.score);
+  const disciplineScore = discipline.disciplineScore === null ? null : discipline.disciplineScore / 10;
+  const combinedScore = disciplineScore === null
+    ? baseScore
+    : baseScore
+      ? ((baseScore * 0.75) + (disciplineScore * 0.25))
+      : disciplineScore;
 
   return {
     trades,
     pnl,
     winRate,
     rr: safeNumber(strategy.rr),
-    score: safeNumber(strategy.score)
+    score: combinedScore,
+    baseScore,
+    discipline
   };
+}
+
+function journalEntryToTrade(entry = {}) {
+  return {
+    time: entry.date || entry.time || "",
+    symbol: entry.symbol || "",
+    setup: entry.setup || "",
+    strategy_tag: entry.strategy_tag || entry.strategyTag || entry.setup || "",
+    type: entry.direction || entry.type || "",
+    session: entry.session || "",
+    profit: safeNumber(entry.pnl),
+    commission: safeNumber(entry.commission),
+    swap: safeNumber(entry.swap)
+  };
+}
+
+function resolveRealTradesForBacktest(state, journalEntries) {
+  const payload = selectActiveDashboardPayload(state);
+  const liveTrades = Array.isArray(payload.trades) ? payload.trades : [];
+  if (liveTrades.length) return liveTrades;
+  return journalEntries.map(journalEntryToTrade);
+}
+
+async function importBacktestFiles(store, files) {
+  const selectedFiles = Array.from(files || []);
+  if (!selectedFiles.length) return;
+  try {
+    const reports = await Promise.all(selectedFiles.map(async (file) => ({
+      filename: file.name,
+      content: await file.text()
+    })));
+    const response = await fetch(buildApiUrl("/api/backtests/mt5/import"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reports })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false) {
+      throw new Error(payload.reason || "import_failed");
+    }
+    const imported = Array.isArray(payload.backtests) ? payload.backtests : [];
+    if (!imported.length) {
+      showToast("No se detectaron backtests válidos en los reports MT5.", "warning");
+      return;
+    }
+    store.setState((prev) => ({
+      ...prev,
+      workspace: {
+        ...prev.workspace,
+        strategies: {
+          ...prev.workspace.strategies,
+          backtests: [
+            ...imported,
+            ...(Array.isArray(prev.workspace.strategies.backtests) ? prev.workspace.strategies.backtests : [])
+          ]
+        }
+      }
+    }));
+    showToast(`${imported.length} backtest${imported.length === 1 ? "" : "s"} importado${imported.length === 1 ? "" : "s"}.`, "success");
+  } catch (error) {
+    console.warn("[KMFX][BACKTEST_IMPORT] import failed", error);
+    showToast("No se pudo importar el report MT5.", "error");
+  }
 }
 
 function buildStrategiesSetupSummary(items, setupStats) {
@@ -288,6 +431,10 @@ export function initStrategies(store) {
 
     if (action === "edit") openStrategyEditor(strategyId);
 
+    if (action === "import-backtest") {
+      root.querySelector("[data-backtest-import-input]")?.click();
+    }
+
     if (action === "delete") {
       store.setState((state) => ({
         ...state,
@@ -302,11 +449,26 @@ export function initStrategies(store) {
       }));
     }
   });
+
+  root.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-backtest-import-input]");
+    if (!input) return;
+    importBacktestFiles(store, input.files);
+    input.value = "";
+  });
 }
 
 export function renderStrategies(root, state) {
   const items = state.workspace.strategies.items.map(normalizeStrategy);
   const journalEntries = state.workspace.journal.entries || [];
+  const backtests = Array.isArray(state.workspace.strategies.backtests) ? state.workspace.strategies.backtests : [];
+  const backtestVsRealReport = buildBacktestVsRealReport({
+    backtests,
+    realTrades: resolveRealTradesForBacktest(state, journalEntries),
+    startingEquity: safeNumber(selectActiveDashboardPayload(state).balance, 100000),
+    minRealTrades: 2,
+    minBacktestTrades: 30
+  });
   const setupStats = buildSetupStats(items, journalEntries);
   const setupSummary = buildStrategiesSetupSummary(items, setupStats);
 
@@ -354,6 +516,8 @@ export function renderStrategies(root, state) {
         `}
       </div>
     </article>
+
+    ${renderBacktestVsRealSection(backtestVsRealReport)}
 
     <article class="tl-section-card strategies-table-card">
       <div class="tl-section-header">
@@ -407,6 +571,7 @@ export function renderStrategies(root, state) {
                       <div class="strategies-score-read__meta">
                         <span class="strategies-score-read__grade">${scoreLabel(stats.score)}</span>
                         <span class="strategies-score-read__sample">${sampleLabel(stats.trades)}</span>
+                        <span class="strategies-score-read__sample">${stats.discipline.label} · ${stats.discipline.coveragePct.toFixed(0)}%</span>
                       </div>
                     </div>
                   </td>
