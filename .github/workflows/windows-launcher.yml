@@ -81,7 +81,7 @@ jobs:
           retention-days: 14
 
       - name: Publish package to repository
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_to_repo == true
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_to_repo == true)
         shell: pwsh
         run: |
           git config user.name "github-actions[bot]"
