@@ -1,0 +1,69 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Public production checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Frontend security headers
+        run: |
+          headers="$(mktemp)"
+          curl -fsSI -L https://kmfxedge.com/ -o "$headers"
+          grep -qi '^content-security-policy:' "$headers"
+          grep -qi '^strict-transport-security:' "$headers"
+          grep -qi '^x-frame-options: DENY' "$headers"
+          grep -qi '^x-content-type-options: nosniff' "$headers"
+          grep -qi '^access-control-allow-origin: https://kmfxedge.com' "$headers"
+          ! grep -qi '^access-control-allow-origin: \*$' "$headers"
+
+      - name: Launcher downloads are public
+        run: |
+          curl -fsSI https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip | grep -qi '^HTTP/.* 200'
+          curl -fsS https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip.sha256 | grep -qi 'KMFX-Launcher-Windows.zip'
+
+      - name: MT5 API health through Cloudflare Worker
+        run: |
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          curl -fsS -D "$headers" https://mt5-api.kmfxedge.com/health -o "$body"
+          grep -qi '^x-kmfx-proxy: kmfx-mt5-api-proxy' "$headers"
+          grep -q '"ok":true' "$body"
+
+      - name: MT5 API CORS policy
+        run: |
+          allowed_headers="$(mktemp)"
+          curl -fsS -D "$allowed_headers" -o /dev/null -X OPTIONS https://mt5-api.kmfxedge.com/api/mt5/sync \
+            -H 'Origin: https://kmfxedge.com' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,x-kmfx-connection-key'
+          grep -qi '^access-control-allow-origin: https://kmfxedge.com' "$allowed_headers"
+          grep -qi '^access-control-allow-headers: Authorization, Content-Type, X-KMFX-Connection-Key' "$allowed_headers"
+          ! grep -qi 'X-KMFX-User-Email' "$allowed_headers"
+
+          denied_status="$(curl -sS -o /dev/null -w '%{http_code}' -X OPTIONS https://mt5-api.kmfxedge.com/api/mt5/sync \
+            -H 'Origin: https://evil.example' \
+            -H 'Access-Control-Request-Method: POST')"
+          test "$denied_status" = "403"
+
+      - name: MT5 API rejects unauthenticated writes
+        run: |
+          body="$(mktemp)"
+          status="$(curl -sS -o "$body" -w '%{http_code}' -X POST https://mt5-api.kmfxedge.com/api/mt5/sync \
+            -H 'Content-Type: application/json' \
+            --data '{"login":"000000","broker":"Smoke Test"}')"
+          test "$status" = "401"
+          grep -q '"reason":"missing_connection_key"' "$body"

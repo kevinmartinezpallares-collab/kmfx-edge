@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend and connector tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Python compile check
+        run: |
+          python -m py_compile \
+            kmfx_connector_api.py \
+            launcher/backend_client.py \
+            launcher/service.py \
+            launcher/config.py \
+            kmfx_bridge_mac.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+
+  static:
+    name: Static app checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate Vercel config
+        run: node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'));"
+
+      - name: JavaScript syntax check
+        run: |
+          node --check app.js
+          find js -name '*.js' -print0 | xargs -0 -n 1 node --check
+          node --check cloudflare/mt5-api-proxy.js
+
+      - name: Whitespace check
+        run: git diff --check
