@@ -33352,3 +33352,85 @@ body[data-theme="dark"] .risk-advanced-empty p {
     display: grid;
   }
 }
+
+/* Align the app brand with the connected-account switcher rhythm. */
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-topbar,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-topbar,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-topbar {
+  min-height: 56px !important;
+  padding: 0 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  justify-items: stretch !important;
+  gap: 10px !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 56px !important;
+  height: auto !important;
+  padding: 8px 8px 8px 0 !important;
+  overflow: hidden !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded {
+  width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  object-fit: contain !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  font-size: 14px !important;
+  line-height: 18px !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__kmfx,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__kmfx,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__kmfx {
+  color: var(--text-0) !important;
+  font-weight: 760 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__edge,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__edge,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-wordmark__edge {
+  color: var(--text-2) !important;
+  font-weight: 650 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive {
+  grid-template-columns: 32px !important;
+  width: 32px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  justify-items: center !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed {
+  width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+}
