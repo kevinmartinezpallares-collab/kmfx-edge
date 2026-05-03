@@ -62,6 +62,9 @@ header and CORS changes.
 - Review admin/service-role access after billing or plan automation changes.
 - Confirm triggers and security-definer functions have explicit `search_path`
   and restricted execute grants.
+- Review Supabase-managed default privileges for `supabase_admin`; if they
+  cannot be altered by migration role, avoid creating public RPC functions as
+  that owner and revoke direct client grants immediately after creation.
 
 ## Cloudflare manual checks
 
