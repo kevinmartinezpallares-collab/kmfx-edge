@@ -1,3 +1,5 @@
+import asyncio
+import json
 import unittest
 import os
 import tempfile
@@ -10,8 +12,13 @@ import kmfx_connector_api as connector_api
 
 
 class ConnectorCorsConfigTests(unittest.TestCase):
-    def _request(self, host: str = "203.0.113.10", headers: dict[str, str] | None = None):
-        return SimpleNamespace(headers=headers or {}, client=SimpleNamespace(host=host))
+    def _request(
+        self,
+        host: str = "203.0.113.10",
+        headers: dict[str, str] | None = None,
+        query_params: dict[str, str] | None = None,
+    ):
+        return SimpleNamespace(headers=headers or {}, query_params=query_params or {}, client=SimpleNamespace(host=host))
 
     def test_default_cors_origins_are_real_kmfx_domains(self) -> None:
         self.assertIn("https://kmfxedge.com", connector_api.CORS_ALLOW_ORIGINS)
@@ -65,6 +72,55 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         legacy_request = self._request(headers={"x-kmfx-api-key": " legacy-key "})
         self.assertEqual("legacy-key", connector_api.resolve_connection_key({}, legacy_request))
+
+    def test_query_connection_key_rejected_by_default_without_echoing_raw_key(self) -> None:
+        request = self._request(query_params={"connection_key": "abcdef1234567890"})
+        response = connector_api.query_connection_key_rejection_response("/api/mt5/policy", request)
+
+        self.assertIsNotNone(response)
+        self.assertEqual(400, response.status_code)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual("query_connection_key_not_allowed", body["reason"])
+        self.assertNotIn("abcdef1234567890", response.body.decode("utf-8"))
+
+    def test_mt5_query_connection_key_routes_reject_before_processing(self) -> None:
+        request = self._request(query_params={"api_key": "abcdef1234567890"})
+
+        responses = [
+            asyncio.run(connector_api.mt5_policy(request, login="123456")),
+            asyncio.run(connector_api.mt5_sync(request)),
+            asyncio.run(connector_api.mt5_journal(request)),
+        ]
+
+        for response in responses:
+            body_text = response.body.decode("utf-8")
+            body = json.loads(body_text)
+            self.assertEqual(400, response.status_code)
+            self.assertEqual("query_connection_key_not_allowed", body["reason"])
+            self.assertNotIn("abcdef1234567890", body_text)
+
+    def test_query_connection_key_compat_requires_explicit_non_production_flag(self) -> None:
+        request = self._request(query_params={"KMFXApiKey": "abcdef1234567890"})
+        with patch.dict("os.environ", {"KMFX_ENV": "development", "KMFX_ALLOW_QUERY_CONNECTION_KEY": "1"}, clear=True):
+            self.assertIsNone(connector_api.query_connection_key_rejection_response("/api/mt5/policy", request))
+            self.assertEqual("abcdef1234567890", connector_api.resolve_connection_key({}, request))
+
+        with patch.dict("os.environ", {"KMFX_ENV": "production", "KMFX_ALLOW_QUERY_CONNECTION_KEY": "1"}, clear=True):
+            response = connector_api.query_connection_key_rejection_response("/api/mt5/policy", request)
+            self.assertIsNotNone(response)
+            self.assertEqual(400, response.status_code)
+
+    def test_redact_sensitive_data_masks_connection_keys_and_tokens(self) -> None:
+        redacted = connector_api.redact_sensitive_data(
+            {
+                "connection_key": "abcdef1234567890",
+                "nested": {"authorization": "Bearer secret-token", "login": "123456"},
+            }
+        )
+
+        self.assertEqual("abcdef...7890", redacted["connection_key"])
+        self.assertEqual("[masked]", redacted["nested"]["authorization"])
+        self.assertEqual("123456", redacted["nested"]["login"])
 
     def test_payload_without_connection_key_removes_legacy_secret_fields(self) -> None:
         cleaned = connector_api.payload_without_connection_key(
