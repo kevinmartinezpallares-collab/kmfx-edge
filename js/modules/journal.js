@@ -275,7 +275,7 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
     degradedSetups,
     leaks: { setupLeak, symbolLeak, sessionLeak, directionLeak },
     periodLabel: trades.length ? `${formatShortDate(firstTrade?.when || firstTrade?.date)} - ${formatShortDate(lastTrade?.when || lastTrade?.date)}` : "Sin periodo",
-    sourceLabel: authorityMeta.authority.payloadSource || account.sourceType || "workspace",
+    sourceLabel: authorityMeta.label || (account.sourceType === "mt5" ? "MT5 live" : "Cuenta activa"),
     totalPnl,
     expectancy,
     profitFactor,
@@ -708,7 +708,7 @@ function buildExternalAiEvidenceMarkdown(state) {
         ["Estrategia", "Estado", "BT PF", "Real PF", "BT Exp", "Real Exp", "BT DD", "Real DD", "Accion"],
         buildBacktestExportRows(backtestReport, currency)
       )
-      : "Sin backtests importados en el workspace.",
+      : "Sin backtests importados todavía.",
     "",
     "## Peores patrones",
     markdownTable(["Dimension", "Patron", "P&L", "Trades"], buildPatternExportRows(cockpit, currency)),
@@ -816,7 +816,7 @@ export function initJournal(store) {
 
     openModal({
       title: item ? "Editar entrada de diario" : "Nueva entrada de diario",
-      subtitle: `${account?.name || "Cuenta"} · flujo local estable`,
+      subtitle: `${account?.name || "Cuenta"} · revisión manual`,
       content: `
         <form class="modal-form-shell" data-modal-form>
         <div class="form-grid-clean">
@@ -1013,7 +1013,7 @@ export function renderJournal(root, state) {
     broker: account?.broker || "",
     payloadSource: authorityMeta.authority.payloadSource,
     tradeCount: authorityMeta.authority.tradeCount,
-    sourceUsed: "workspace_journal",
+    sourceUsed: "manual_journal",
   });
 
   const { entries } = state.workspace.journal;

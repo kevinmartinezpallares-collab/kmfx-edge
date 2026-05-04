@@ -405,6 +405,32 @@ Criterio de salida:
 - No hay mezcla accidental de cambios entre chats.
 - El usuario puede decidir producción con una lista corta de pruebas pasadas/fallidas.
 
+## Fase 9 - Certificación Desktop de Subpáginas
+
+Objetivo: cerrar el bloque Journal Pro en desktop verificando que las subsecciones nuevas no son duplicados, no exponen lenguaje técnico interno al usuario final y mantienen una superficie propia sin tocar mobile ni reabrir el sistema visual ya cerrado.
+
+Aplicar:
+
+- [x] Auditar las subsecciones desktop añadidas: Risk Engine, Journal, Estrategias y Funding.
+- [x] Verificar que Journal Review, Entradas y AI Review usan superficies distintas.
+- [x] Verificar que Funding Reglas y Payouts no comparten la misma página funcional.
+- [x] Verificar que Risk Ruin / VaR, Monte Carlo y Exposición mantienen contenido específico.
+- [x] Retirar copy visible de usuario con términos internos como workspace/local/backend cuando no es modo admin.
+- [x] Añadir contrato automatizado para bloquear regresiones de contenido duplicado o copy técnico visible.
+
+Restricciones:
+
+- No tocar mobile.
+- No tocar el roadmap de producción.
+- No rediseñar secciones ya aprobadas.
+- No mover sidebar ni arquitectura de rutas salvo bug crítico.
+
+Criterio de salida:
+
+- Cada subsección nueva tiene una responsabilidad propia.
+- El usuario final no ve lenguaje interno innecesario.
+- El contrato queda cubierto por tests.
+
 ## Primer Slice Técnico Propuesto
 
 Scope pequeño para empezar sin tocar sidebar:
