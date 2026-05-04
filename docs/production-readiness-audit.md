@@ -68,7 +68,7 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 2. Metricas live: base buena, pero falta certificacion automatizada.
    - El backend ya construye `dashboard_payload`, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
    - El frontend adapta MT5 con `mt5-account-adapter` y tiene `kmfx-integrity-check`.
-   - Falta una prueba de contrato con fixture realista que demuestre que cada KPI visible sale de la fuente esperada.
+- Prueba inicial creada en `tests.test_dashboard_live_contract` con fixture de dos cuentas MT5. Falta ampliarla a render smoke por pagina.
 
 3. Descargas Launcher.
    - macOS y Windows estan publicados.
@@ -111,8 +111,8 @@ Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y 
 
 | Modulo | Contrato live | Pendiente antes de produccion |
 | --- | --- | --- |
-| Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture de dos cuentas live y comparacion de KPIs con backend. |
-| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Confirmar estados `active`, `pending`, `stale`, `revoked`, `plan_limited`. |
+| Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture inicial cubierto; falta render smoke por pagina. |
+| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Fixture inicial cubre `active`; faltan `pending`, `stale`, `revoked`, `plan_limited`. |
 | Operaciones | Usa trades normalizados desde payload MT5. | Garantizar que el EA/backend envia deals cerrados con costes completos. |
 | Calendario | Deriva calendario desde trades cerrados. | Verificar fechas, timezone y sesiones con datos reales. |
 | Insights | Deriva analitica desde el modelo de trades. | Validar que no usa mock cuando hay cuenta live activa. |
@@ -167,9 +167,10 @@ Resultado:
 
 ### Paso 1 - Certificar contrato de datos live
 
-- Crear fixture de `/api/accounts/snapshot` con dos cuentas MT5, posiciones, trades, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
-- Añadir test frontend/backend que valide KPIs de Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas contra ese fixture.
-- Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
+- [x] Crear fixture de `/api/accounts/snapshot` con dos cuentas MT5, posiciones, trades, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
+- [x] Añadir test backend/contrato que valida KPIs agregados, cuenta activa, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
+- [ ] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
+- [ ] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion
 

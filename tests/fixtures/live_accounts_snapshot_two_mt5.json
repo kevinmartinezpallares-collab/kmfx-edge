@@ -1,0 +1,401 @@
+{
+  "accounts": [
+    {
+      "account_id": "mt5-orion-80571774",
+      "user_id": "user-live-contract",
+      "display_name": "Orion Challenge 5k",
+      "broker": "OGM International Ltd.",
+      "platform": "mt5",
+      "login": "80571774",
+      "server": "OGMInternational-Server",
+      "connection_mode": "launcher",
+      "status": "active",
+      "last_sync_at": "2026-05-04T09:30:00Z",
+      "is_default": true,
+      "dashboard_payload": {
+        "payloadSource": "mt5_sync_live",
+        "accountName": "Orion Challenge 5k",
+        "name": "Orion Challenge 5k",
+        "broker": "OGM International Ltd.",
+        "server": "OGMInternational-Server",
+        "platform": "mt5",
+        "mode": "MT5 Live",
+        "balance": 5036.25,
+        "equity": 5061.4,
+        "floatingPnl": 25.15,
+        "openPnl": 25.15,
+        "closedPnl": 36.25,
+        "totalPnl": 61.4,
+        "openPositionsCount": 1,
+        "totalTrades": 2,
+        "timestamp": "2026-05-04T09:30:00Z",
+        "positions": [
+          {
+            "position_id": "orion-pos-1",
+            "symbol": "AUDUSD",
+            "type": "BUY",
+            "volume": 0.5,
+            "open_price": 0.6625,
+            "current_price": 0.663,
+            "profit": 25.15,
+            "sl": 0.6605,
+            "tp": 0.6665
+          }
+        ],
+        "trades": [
+          {
+            "ticket": "orion-trade-1",
+            "position_id": "orion-position-closed-1",
+            "symbol": "EURUSD",
+            "type": "BUY",
+            "volume": 0.3,
+            "open_time": "2026-05-03T08:15:00Z",
+            "close_time": "2026-05-03T09:20:00Z",
+            "entry_price": 1.142,
+            "exit_price": 1.1434,
+            "profit": 42.0,
+            "commission": -2.1,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "London breakout"
+          },
+          {
+            "ticket": "orion-trade-2",
+            "position_id": "orion-position-closed-2",
+            "symbol": "GBPUSD",
+            "type": "SELL",
+            "volume": 0.2,
+            "open_time": "2026-05-03T13:10:00Z",
+            "close_time": "2026-05-03T14:05:00Z",
+            "entry_price": 1.355,
+            "exit_price": 1.3556,
+            "profit": -3.0,
+            "commission": -0.65,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "NY rejection"
+          }
+        ],
+        "history": [
+          { "timestamp": "2026-05-03T00:00:00Z", "value": 5000.0 },
+          { "timestamp": "2026-05-03T23:00:00Z", "value": 5036.25 },
+          { "timestamp": "2026-05-04T09:30:00Z", "value": 5061.4 }
+        ],
+        "reportMetrics": {
+          "source": "backend_mt5_report_metrics",
+          "balance": 5036.25,
+          "equity": 5061.4,
+          "netProfit": 36.25,
+          "grossProfit": 42.0,
+          "grossLoss": -3.65,
+          "winRate": 50.0,
+          "totalTrades": 2,
+          "profitFactor": 11.5068493151,
+          "drawdownPct": 0.72,
+          "commissions": -2.75,
+          "swaps": 0.0,
+          "dividends": 0.0,
+          "winTrades": 1,
+          "lossTrades": 1,
+          "bestTrade": 39.9,
+          "worstTrade": -3.65,
+          "maxConsecutiveWins": 1,
+          "maxConsecutiveLosses": 1
+        },
+        "riskSnapshot": {
+          "summary": {
+            "floating_drawdown_pct": 0.0,
+            "peak_to_equity_drawdown_pct": 0.72,
+            "rolling_max_drawdown_pct": 0.72,
+            "persisted_max_drawdown_pct": 0.72,
+            "max_drawdown_limit_pct": 8.0,
+            "distance_to_max_dd_limit_pct": 7.28,
+            "daily_drawdown_pct": 0.0,
+            "daily_peak_equity": 5061.4,
+            "distance_to_daily_dd_limit_pct": 4.0,
+            "total_open_risk_amount": 100.0,
+            "total_open_risk_pct": 2.0,
+            "max_risk_per_trade_pct": 1.0,
+            "max_open_trade_risk_pct": 2.0,
+            "open_positions_count": 1,
+            "portfolio_heat_limit_pct": 5.0,
+            "distance_to_heat_limit_pct": 3.0,
+            "heat_usage_ratio_pct": 40.0
+          },
+          "status": {
+            "risk_status": "ok",
+            "severity": "info",
+            "reason_code": "OK",
+            "blocking_rule": "",
+            "action_required": "Sin accion requerida.",
+            "enforcement": {
+              "allow_new_trades": true,
+              "block_new_trades": false,
+              "reduce_size": false,
+              "close_positions_required": false
+            }
+          },
+          "policy": {
+            "risk_per_trade_pct": 1.0,
+            "daily_dd_limit_pct": 4.0,
+            "max_dd_limit_pct": 8.0,
+            "portfolio_heat_limit_pct": 5.0,
+            "max_volume": 5.0,
+            "allowed_sessions": ["London", "New York"],
+            "allowed_symbols": ["EURUSD", "GBPUSD", "AUDUSD"],
+            "auto_block_enabled": true
+          },
+          "policy_evaluation": {
+            "ok": true,
+            "breaches": [],
+            "warnings": [],
+            "limits_status": {
+              "max_drawdown": { "state": "ok", "current_pct": 0.72, "limit_pct": 8.0, "distance_to_limit_pct": 7.28 },
+              "daily_drawdown": { "state": "ok", "current_pct": 0.0, "limit_pct": 4.0, "distance_to_limit_pct": 4.0 },
+              "portfolio_heat": { "state": "ok", "current_pct": 2.0, "limit_pct": 5.0, "distance_to_limit_pct": 3.0, "usage_ratio_pct": 40.0 }
+            }
+          },
+          "symbol_exposure": [
+            { "symbol": "AUDUSD", "pnl": 25.15, "risk_amount": 100.0, "risk_pct": 2.0 }
+          ],
+          "open_trade_risks": [
+            { "symbol": "AUDUSD", "ticket": "orion-pos-1", "risk_amount": 100.0, "risk_pct": 2.0 }
+          ],
+          "metadata": {
+            "snapshot_version": "3.0.0",
+            "calculation_mode": "sync -> metrics -> policy -> enforcement -> snapshot"
+          }
+        },
+        "symbolSpecs": {
+          "AUDUSD": {
+            "symbol": "AUDUSD",
+            "digits": 5,
+            "point": 0.00001,
+            "tickSize": 0.00001,
+            "tickValue": 1.0,
+            "contractSize": 100000,
+            "volumeMin": 0.01,
+            "volumeMax": 100.0,
+            "volumeStep": 0.01,
+            "tradeCalcMode": "FOREX"
+          }
+        }
+      }
+    },
+    {
+      "account_id": "mt5-darwinex-4000082126",
+      "user_id": "user-live-contract",
+      "display_name": "Darwinex Live",
+      "broker": "Tradeslide Trading Tech Limited",
+      "platform": "mt5",
+      "login": "4000082126",
+      "server": "Darwinex-Live",
+      "connection_mode": "launcher",
+      "status": "active",
+      "last_sync_at": "2026-05-04T09:30:02Z",
+      "is_default": false,
+      "dashboard_payload": {
+        "payloadSource": "mt5_sync_live",
+        "accountName": "Darwinex Live",
+        "name": "Darwinex Live",
+        "broker": "Tradeslide Trading Tech Limited",
+        "server": "Darwinex-Live",
+        "platform": "mt5",
+        "mode": "MT5 Live",
+        "balance": 105575.0,
+        "equity": 105650.0,
+        "floatingPnl": 75.0,
+        "openPnl": 75.0,
+        "closedPnl": 575.0,
+        "totalPnl": 650.0,
+        "openPositionsCount": 1,
+        "totalTrades": 3,
+        "timestamp": "2026-05-04T09:30:02Z",
+        "positions": [
+          {
+            "position_id": "darwinex-pos-1",
+            "symbol": "EURUSD",
+            "type": "SELL",
+            "volume": 1.0,
+            "open_price": 1.151,
+            "current_price": 1.15025,
+            "profit": 75.0,
+            "sl": 1.153,
+            "tp": 1.147
+          }
+        ],
+        "trades": [
+          {
+            "ticket": "darwinex-trade-1",
+            "position_id": "darwinex-position-closed-1",
+            "symbol": "EURUSD",
+            "type": "BUY",
+            "volume": 1.0,
+            "open_time": "2026-05-02T09:00:00Z",
+            "close_time": "2026-05-02T10:00:00Z",
+            "entry_price": 1.14,
+            "exit_price": 1.145,
+            "profit": 500.0,
+            "commission": -5.0,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "Trend continuation"
+          },
+          {
+            "ticket": "darwinex-trade-2",
+            "position_id": "darwinex-position-closed-2",
+            "symbol": "USDJPY",
+            "type": "SELL",
+            "volume": 0.5,
+            "open_time": "2026-05-02T12:00:00Z",
+            "close_time": "2026-05-02T12:45:00Z",
+            "entry_price": 155.2,
+            "exit_price": 154.7,
+            "profit": 160.0,
+            "commission": -3.0,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "JPY fade"
+          },
+          {
+            "ticket": "darwinex-trade-3",
+            "position_id": "darwinex-position-closed-3",
+            "symbol": "GBPUSD",
+            "type": "BUY",
+            "volume": 0.4,
+            "open_time": "2026-05-03T15:00:00Z",
+            "close_time": "2026-05-03T15:40:00Z",
+            "entry_price": 1.35,
+            "exit_price": 1.348,
+            "profit": -72.0,
+            "commission": -5.0,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "Invalidation"
+          }
+        ],
+        "history": [
+          { "timestamp": "2026-05-02T00:00:00Z", "value": 105000.0 },
+          { "timestamp": "2026-05-02T23:00:00Z", "value": 105495.0 },
+          { "timestamp": "2026-05-03T23:00:00Z", "value": 105575.0 },
+          { "timestamp": "2026-05-04T09:30:02Z", "value": 105650.0 }
+        ],
+        "reportMetrics": {
+          "source": "backend_mt5_report_metrics",
+          "balance": 105575.0,
+          "equity": 105650.0,
+          "netProfit": 575.0,
+          "grossProfit": 657.0,
+          "grossLoss": -82.0,
+          "winRate": 66.6666666667,
+          "totalTrades": 3,
+          "profitFactor": 8.012195122,
+          "drawdownPct": 0.35,
+          "commissions": -13.0,
+          "swaps": 0.0,
+          "dividends": 0.0,
+          "winTrades": 2,
+          "lossTrades": 1,
+          "bestTrade": 495.0,
+          "worstTrade": -77.0,
+          "maxConsecutiveWins": 2,
+          "maxConsecutiveLosses": 1
+        },
+        "riskSnapshot": {
+          "summary": {
+            "floating_drawdown_pct": 0.0,
+            "peak_to_equity_drawdown_pct": 0.35,
+            "rolling_max_drawdown_pct": 0.35,
+            "persisted_max_drawdown_pct": 0.35,
+            "max_drawdown_limit_pct": 10.0,
+            "distance_to_max_dd_limit_pct": 9.65,
+            "daily_drawdown_pct": 0.0,
+            "daily_peak_equity": 105650.0,
+            "distance_to_daily_dd_limit_pct": 5.0,
+            "total_open_risk_amount": 200.0,
+            "total_open_risk_pct": 0.19,
+            "max_risk_per_trade_pct": 0.5,
+            "max_open_trade_risk_pct": 0.19,
+            "open_positions_count": 1,
+            "portfolio_heat_limit_pct": 3.0,
+            "distance_to_heat_limit_pct": 2.81,
+            "heat_usage_ratio_pct": 6.3333333333
+          },
+          "status": {
+            "risk_status": "ok",
+            "severity": "info",
+            "reason_code": "OK",
+            "blocking_rule": "",
+            "action_required": "Sin accion requerida.",
+            "enforcement": {
+              "allow_new_trades": true,
+              "block_new_trades": false,
+              "reduce_size": false,
+              "close_positions_required": false
+            }
+          },
+          "policy": {
+            "risk_per_trade_pct": 0.5,
+            "daily_dd_limit_pct": 5.0,
+            "max_dd_limit_pct": 10.0,
+            "portfolio_heat_limit_pct": 3.0,
+            "max_volume": 10.0,
+            "allowed_sessions": ["London", "New York"],
+            "allowed_symbols": ["EURUSD", "USDJPY", "GBPUSD"],
+            "auto_block_enabled": true
+          },
+          "policy_evaluation": {
+            "ok": true,
+            "breaches": [],
+            "warnings": [],
+            "limits_status": {
+              "max_drawdown": { "state": "ok", "current_pct": 0.35, "limit_pct": 10.0, "distance_to_limit_pct": 9.65 },
+              "daily_drawdown": { "state": "ok", "current_pct": 0.0, "limit_pct": 5.0, "distance_to_limit_pct": 5.0 },
+              "portfolio_heat": { "state": "ok", "current_pct": 0.19, "limit_pct": 3.0, "distance_to_limit_pct": 2.81, "usage_ratio_pct": 6.3333333333 }
+            }
+          },
+          "symbol_exposure": [
+            { "symbol": "EURUSD", "pnl": 75.0, "risk_amount": 200.0, "risk_pct": 0.19 }
+          ],
+          "open_trade_risks": [
+            { "symbol": "EURUSD", "ticket": "darwinex-pos-1", "risk_amount": 200.0, "risk_pct": 0.19 }
+          ],
+          "metadata": {
+            "snapshot_version": "3.0.0",
+            "calculation_mode": "sync -> metrics -> policy -> enforcement -> snapshot"
+          }
+        },
+        "symbolSpecs": {
+          "EURUSD": {
+            "symbol": "EURUSD",
+            "digits": 5,
+            "point": 0.00001,
+            "tickSize": 0.00001,
+            "tickValue": 1.0,
+            "contractSize": 100000,
+            "volumeMin": 0.01,
+            "volumeMax": 100.0,
+            "volumeStep": 0.01,
+            "tradeCalcMode": "FOREX"
+          },
+          "USDJPY": {
+            "symbol": "USDJPY",
+            "digits": 3,
+            "point": 0.001,
+            "tickSize": 0.001,
+            "tickValue": 0.91,
+            "contractSize": 100000,
+            "volumeMin": 0.01,
+            "volumeMax": 100.0,
+            "volumeStep": 0.01,
+            "tradeCalcMode": "FOREX"
+          }
+        }
+      }
+    }
+  ],
+  "active_account_id": "mt5-orion-80571774",
+  "scope_user_id": "user-live-contract",
+  "is_admin": false,
+  "updated_at": "2026-05-04T09:30:05Z"
+}
