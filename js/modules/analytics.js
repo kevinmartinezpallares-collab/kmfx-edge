@@ -244,7 +244,7 @@ function resolveRiskProtectionMeta({
       tone: "warning",
       rulesState: "Configuradas",
       actionLabel: "Abrir Risk Engine",
-      note: "Hay una política conocida, pero no puedo confirmar si el motor local sigue aplicándola."
+      note: "Hay una política conocida, pero falta confirmar si la protección sigue activa."
     };
   }
 
@@ -253,14 +253,14 @@ function resolveRiskProtectionMeta({
       state: "No conectado",
       tone: "warning",
       rulesState: hasSuggestedRules ? "Sugeridas" : "Pendientes",
-      actionLabel: "Activar protección automática local",
-      note: "Primero hay que enlazar el motor local para enviar y aplicar reglas de protección."
+      actionLabel: "Activar protección automática",
+      note: "Primero conecta tu cuenta para enviar y aplicar reglas de protección."
     };
   }
 
   if (connectionConnected && snapshotAutoBlock) {
     return {
-      state: "Protección activa en local",
+      state: "Protección activa",
       tone: "positive",
       rulesState: "Activas",
       actionLabel: "Gestionar protección automática",
@@ -274,7 +274,7 @@ function resolveRiskProtectionMeta({
       tone: "info",
       rulesState: "Configuradas",
       actionLabel: "Enviar reglas al motor",
-      note: "La política ya existe, pero falta confirmación de aplicación en el entorno local."
+      note: "La política ya existe, pero falta confirmación de aplicación."
     };
   }
 
@@ -282,7 +282,7 @@ function resolveRiskProtectionMeta({
     state: "OFF",
     tone: "neutral",
     rulesState: hasSuggestedRules ? "Sugeridas" : "Pendientes",
-    actionLabel: "Activar protección automática local",
+    actionLabel: "Activar protección automática",
     note: "Todavía no hay una protección automática activa: el control depende de supervisión manual."
   };
 }
