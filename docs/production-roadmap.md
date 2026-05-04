@@ -2,7 +2,7 @@
 
 Última revisión: 2026-05-04
 Rama revisada: `main`
-Commit base: `0e8a673 Fix Forex pip sizing in calculator`
+Commit base: `6f4f05f Harden frontend cache recovery`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
@@ -11,8 +11,8 @@ Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquea
 KMFX Edge ya tiene una base real de producción:
 
 - `https://kmfxedge.com` está desplegado en Vercel y responde `200`.
-- Vercel despliega desde `main`; el deployment del commit `6be516a` está `READY`.
-- Render responde en `https://kmfx-edge-api.onrender.com/health` y reporta el commit `6be516a`.
+- Vercel despliega desde `main`; el frontend actual incluye recuperacion de cache legacy en `6f4f05f`.
+- Render responde en `https://kmfx-edge-api.onrender.com/health`.
 - `https://mt5-api.kmfxedge.com` existe como proxy Cloudflare para el flujo EA/MT5.
 - El dashboard ya usa rutas limpias como `/dashboard`, `/cuentas`, `/funding`, `/risk-engine`, `/ejecucion`, etc.
 - `dashboard.kmfxedge.com` y `www.kmfxedge.com` ya redirigen a `kmfxedge.com`.
@@ -30,7 +30,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] `kmfxedge.com` funciona como dominio principal.
 - [x] `www.kmfxedge.com` redirige a `kmfxedge.com`.
 - [x] `dashboard.kmfxedge.com` redirige a `kmfxedge.com`.
-- [x] Rutas limpias configuradas en `vercel.json`.
+- [x] Rutas limpias configuradas en `vercel.json` y cache legacy retirada para evitar pantallas sin CSS.
 - [x] Headers básicos de seguridad activos: CSP, HSTS, `X-Frame-Options`, `nosniff`, Referrer Policy y Permissions Policy.
 - [x] Vercel sirve la app vanilla actual; no hay migración Next.js todavía.
 - [ ] `api.kmfxedge.com` sigue pendiente; el frontend aún permite `kmfx-edge-api.onrender.com`.
@@ -104,14 +104,24 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Ejecutar smoke manual antes de cada release.
 - [ ] Crear tag de release cuando el MVP esté cerrado.
 
+### Dashboard y contrato de datos
+
+- [x] El frontend consume `/api/accounts/snapshot` con guard de propiedad.
+- [x] El adaptador MT5 normaliza `dashboard_payload`, `reportMetrics`, `riskSnapshot`, `symbolSpecs`, trades, posiciones e historial.
+- [x] Dashboard, Cuentas, Operaciones, Calendario, Insights, Risk Engine, Capital y Herramientas ya tienen ruta live cuando `payloadSource=mt5_sync_live`.
+- [ ] Falta fixture de contrato con dos cuentas MT5 live y validacion automatica de KPIs.
+- [ ] Falta certificar que ninguna vista cae a mock cuando hay cuenta live activa.
+- [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con workspace del usuario.
+- [ ] Falta quitar mensajes internos visibles como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
+
 ## Prioridad Inmediata
 
 ### Siguiente paso recomendado tras auditoria
 
-Antes de billing, cerrar una pasada corta de **QA de producto y contrato del dashboard**:
+Antes de billing, cerrar una pasada corta de **contrato de datos live y QA de producto**:
 
-- resolver la regresion actual de navegacion/sidebar detectada por `tests.test_sidebar_navigation_contract`;
 - retirar textos internos visibles para usuario final como `workspace`, `sesion local`, `bridge local` o mensajes tecnicos fuera de modo admin;
+- crear fixture de `/api/accounts/snapshot` con dos cuentas MT5 live y validar KPIs por seccion;
 - certificar seccion por seccion que metricas vienen de MT5 live, backend/riskSnapshot, workspace local o entrada manual;
 - probar launcher macOS y Windows en maquina limpia.
 
@@ -127,9 +137,9 @@ Objetivo: poder vender Core/Pro sin improvisar permisos.
 
 Bloque previo obligatorio:
 
-- [ ] Resolver contrato de sidebar y rutas reales.
+- [ ] Certificar contrato live de `/api/accounts/snapshot`.
 - [ ] Pasada final de textos visibles para usuario final.
-- [ ] Matriz de metricas live por seccion.
+- [ ] Test de metricas live por seccion con fixture.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 

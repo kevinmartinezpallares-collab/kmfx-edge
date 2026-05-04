@@ -2,28 +2,28 @@
 
 Ultima revision: 2026-05-04
 Rama revisada: `main`
-Commit base local: `0e8a673 Fix Forex pip sizing in calculator`
+Commit base local: `6f4f05f Harden frontend cache recovery`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
 
 KMFX Edge esta cerca de una beta de produccion controlada, pero todavia no esta listo para abrir a usuarios de pago sin restricciones.
 
-El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, rechazo de escrituras sin key, snapshot autenticado, multi-cuenta y calculos principales conectados. Los bloqueos reales para produccion son billing/entitlements, QA en maquinas limpias, contrato de navegacion actual roto por cambios recientes y limpieza de mensajes/documentacion legacy.
+El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, rechazo de escrituras sin key, snapshot autenticado, multi-cuenta y calculos principales conectados. Los bloqueos reales para produccion son billing/entitlements, QA en maquinas limpias, certificacion del contrato de datos por seccion y limpieza final de mensajes/documentacion legacy.
 
 ## Estado probado
 
 | Area | Estado | Evidencia |
 | --- | --- | --- |
 | Web publica | OK | `https://kmfxedge.com` responde `200` con CSP, HSTS, `X-Frame-Options`, `nosniff` y Permissions Policy. |
-| Backend Render | OK | `/health` responde `ok:true` y reporta commit `0e8a673`. |
+| Backend Render | OK | `/health` responde `ok:true`; el frontend actual esta en `6f4f05f`. |
 | Proxy MT5 Cloudflare | OK | `https://mt5-api.kmfxedge.com/health` responde `ok:true` y header `x-kmfx-proxy`. |
 | CORS MT5 | OK | Origin malicioso en preflight devuelve `403`. |
 | Writes MT5 sin key | OK | `POST /api/mt5/sync` sin `X-KMFX-Connection-Key` devuelve `401 missing_connection_key`. |
 | Snapshot sin auth | Cerrado por datos | `/api/accounts/snapshot` devuelve `accounts: []` y `auth_required: true`. No filtra cuentas. |
 | JS dashboard | OK sintaxis | 62 archivos JS revisados con `node --check`. |
 | Backend/launcher | OK compilacion | `py_compile` pasa en API, launcher, bridge y account service. |
-| Tests criticos | Parcial | 63/64 tests del subconjunto pasan; falla contrato de sidebar por cambios no commiteados. |
+| Tests criticos | OK en ultimo commit propio | Pasaron `tests.test_sidebar_navigation_contract`, checks JS principales y validacion de routing/cache. Hay cambios ajenos posteriores sin certificar. |
 
 ## Hallazgos principales
 
@@ -33,10 +33,10 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
    - Sin Checkout, webhooks, `/api/billing/status` y guards por plan, no hay forma segura de limitar cuentas MT5, debug, exports, Risk editor o features premium.
    - La produccion puede funcionar tecnicamente, pero no como SaaS de pago.
 
-2. El contrato de navegacion esta roto en el workspace actual.
-   - `tests.test_sidebar_navigation_contract` falla porque `index.html` ya no expone `strategies-backtest`.
-   - La ruta existe en `js/modules/route-map.js`, pero el sidebar actual no la muestra.
-   - Hay que decidir si esas subsecciones vuelven al sidebar o si se actualiza el contrato y se accede desde dentro de Estrategias.
+2. El contrato de datos del dashboard aun no esta certificado pantalla por pantalla.
+   - La app ya consume snapshots live, pero varias secciones combinan MT5 live con workspace local o entrada manual.
+   - Antes de abrir usuarios hay que fijar el contrato esperado de `/api/accounts/snapshot` y validarlo con fixtures de cuentas MT5.
+   - Las vistas no deben mostrar textos internos como "workspace" o "local" a usuarios finales.
 
 3. Falta QA real en maquina limpia.
    - Multi-cuenta funciona en tu Mac, pero falta verificar usuario nuevo en macOS limpio y Windows 10/11 limpio.
@@ -65,10 +65,10 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 1. Confirmacion de primera sincronizacion pendiente.
    - Falta modal para nombrar cuenta, elegir Demo/Real/Funding/Challenge y vincular a journey.
 
-2. Métricas live: base buena, pero falta certificacion de pantalla por pantalla.
-   - El EA envia `balance`, `equity`, `floating_pnl`, posiciones, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
+2. Metricas live: base buena, pero falta certificacion automatizada.
+   - El backend ya construye `dashboard_payload`, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
    - El frontend adapta MT5 con `mt5-account-adapter` y tiene `kmfx-integrity-check`.
-   - Falta una matriz final por seccion: que KPI sale de MT5 live, cual sale de workspace local y cual queda manual.
+   - Falta una prueba de contrato con fixture realista que demuestre que cada KPI visible sale de la fuente esperada.
 
 3. Descargas Launcher.
    - macOS y Windows estan publicados.
@@ -90,6 +90,38 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 | Estrategias | Parcial | Setups/backtests son workspace/importaciones; no todo viene de EA live. |
 | Funding | Parcial | Compliance usa cuenta y workspace funded; falta vincular cuenta MT5 a journey. |
 | Capital | Parcial | Usa cuentas y allocations; necesita validar multi-cuenta live. |
+
+## Contrato de datos live del dashboard
+
+El dashboard entra por `GET /api/accounts/snapshot`. El frontend solo deberia considerar una cuenta como live completa cuando la entrada del snapshot incluye:
+
+- Identidad: `account_id`, `user_id`, `broker`, `platform`, `login`, `server`, `connection_mode`, `status`, `last_sync_at`.
+- Payload: `dashboard_payload.payloadSource = mt5_sync_live`.
+- Cuenta: `balance`, `equity`, `floatingPnl`/`openPnl`, `closedPnl`, `totalPnl`, `openPositionsCount`.
+- Posiciones: `positions[]` con `symbol`, `type`/`side`, `volume`, `open_price`/`entry_price`, `current_price`, `profit`.
+- Operaciones: `trades[]` con identificador, `symbol`, `type`/`side`, volumen, precios de entrada/salida, tiempos, `profit`, `commission`, `swap` y costes.
+- Curva: `history[]` o `equityCurve[]` para no depender de una linea sintetica balance-equity.
+- Metricas exactas: `reportMetrics` con `balance`, `equity`, `netProfit`, `grossProfit`, `grossLoss`, `winRate`, `totalTrades`, `profitFactor`, `drawdownPct`, `commissions`, `swaps`, `bestTrade`, `worstTrade` y rachas.
+- Riesgo: `riskSnapshot.summary`, `riskSnapshot.status`, `riskSnapshot.policy`, `riskSnapshot.policy_evaluation`, `symbol_exposure`, `open_trade_risks`.
+- Mercado: `symbolSpecs` para calculadora y sizing.
+
+Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y muestra logs de integridad. Eso sirve como fallback, pero no debe ser el modo principal de produccion.
+
+### Estado por modulo
+
+| Modulo | Contrato live | Pendiente antes de produccion |
+| --- | --- | --- |
+| Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture de dos cuentas live y comparacion de KPIs con backend. |
+| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Confirmar estados `active`, `pending`, `stale`, `revoked`, `plan_limited`. |
+| Operaciones | Usa trades normalizados desde payload MT5. | Garantizar que el EA/backend envia deals cerrados con costes completos. |
+| Calendario | Deriva calendario desde trades cerrados. | Verificar fechas, timezone y sesiones con datos reales. |
+| Insights | Deriva analitica desde el modelo de trades. | Validar que no usa mock cuando hay cuenta live activa. |
+| Capital | Agrega varias cuentas y posiciones abiertas. | Fixture multi-cuenta Darwinex/Orion y comprobacion de totales. |
+| Risk Engine | Usa `riskSnapshot`. | Tests de resumen, enforcement, exposicion y limites por policy. |
+| Herramientas | Usa `symbolSpecs` y fallback manual. | Fixture Forex/JPY/XAUUSD con specs MT5 reales. |
+| Funding | Mezcla cuenta live con journeys workspace. | Vincular cuenta MT5 a journey Funding persistente. |
+| Estrategias | Setups/backtests son workspace; puede comparar con trades live. | Persistencia backend o etiqueta clara de datos propios del usuario. |
+| Journal | Entradas/reviews son workspace/manual; usa trades live como contexto. | Persistir journal y tags por usuario antes de uso comercial serio. |
 
 ## Seguridad
 
@@ -128,15 +160,16 @@ Riesgos pendientes:
 
 Resultado:
 
-- Todo OK salvo `tests.test_sidebar_navigation_contract`, que falla por el estado actual del sidebar en `index.html`.
+- Ultimo bloque propio OK.
+- El workspace actual contiene cambios ajenos no commiteados y no se consideran certificados en esta auditoria.
 
 ## Roadmap actualizado por prioridad
 
-### Paso 1 - Cerrar regresion de navegacion y copia final
+### Paso 1 - Certificar contrato de datos live
 
-- Resolver contrato de sidebar: mostrar `strategies-backtest` y `strategies-portfolio`, o cambiar test/UX si la nueva decision es que vivan dentro de Estrategias.
-- Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas de superficies no-admin.
-- Actualizar README/guia publica al flujo real EA/Launcher/cloud.
+- Crear fixture de `/api/accounts/snapshot` con dos cuentas MT5, posiciones, trades, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
+- Añadir test frontend/backend que valide KPIs de Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas contra ese fixture.
+- Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion
 
@@ -182,9 +215,9 @@ No pasaria todavia a produccion comercial abierta.
 
 Si pasaria a una beta privada controlada cuando se resuelvan:
 
-1. Regresion de sidebar/tests.
-2. Textos no-productivos visibles.
+1. Contrato de datos live certificado con fixture.
+2. Textos no-productivos visibles eliminados.
 3. QA macOS/Windows limpio.
-4. Matriz de datos live por seccion.
+4. Billing y entitlements definidos para limitar uso real.
 
 Para produccion de pago, el siguiente bloque obligatorio sigue siendo billing + entitlements.
