@@ -219,6 +219,201 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.fail(f"node render smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
         return json.loads(proc.stdout.splitlines()[-1])
 
+    def run_degraded_connections_smoke(self) -> dict:
+        script = r"""
+          import { renderConnections } from "./js/modules/connections.js";
+
+          const storage = new Map();
+          globalThis.window = {
+            innerWidth: 1440,
+            localStorage: {
+              getItem: (key) => storage.get(key) ?? null,
+              setItem: (key, value) => storage.set(key, String(value)),
+              removeItem: (key) => storage.delete(key),
+            },
+            addEventListener() {},
+            removeEventListener() {},
+          };
+          globalThis.localStorage = window.localStorage;
+          globalThis.document = {
+            documentElement: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            body: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            createElement() {
+              return {
+                dataset: {},
+                style: {},
+                classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+                addEventListener() {},
+                removeEventListener() {},
+                querySelector() { return null; },
+                querySelectorAll() { return []; },
+              };
+            },
+            addEventListener() {},
+            removeEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+          };
+
+          class SmokeRoot {
+            constructor() {
+              this.dataset = {};
+              this.style = {};
+              this.innerHTML = "";
+              this.isConnected = true;
+              this.classList = { add() {}, remove() {}, toggle() {}, contains: () => false };
+            }
+            querySelector() { return null; }
+            querySelectorAll() { return []; }
+            addEventListener() {}
+            removeEventListener() {}
+          }
+
+          const managedAccounts = [
+            {
+              account_id: "mt5-pending-contract",
+              user_id: "user-live-contract",
+              display_name: "Cuenta pendiente",
+              alias: "Cuenta pendiente",
+              platform: "mt5",
+              broker: "Pendiente Broker",
+              login: "pendiente",
+              server: "Pendiente-Live",
+              status: "pending_link",
+              connection_mode: "launcher",
+              last_sync_at: "",
+              currency: "USD",
+              balance: null,
+              equity: null,
+            },
+            {
+              account_id: "mt5-stale-contract",
+              user_id: "user-live-contract",
+              display_name: "Cuenta sin actualizar",
+              alias: "Cuenta sin actualizar",
+              platform: "mt5",
+              broker: "Stale Broker",
+              login: "stale-400",
+              server: "Stale-Live",
+              status: "stale",
+              connection_mode: "launcher",
+              last_sync_at: "2026-05-01T09:00:00Z",
+              currency: "USD",
+              balance: 10000,
+              equity: 9995,
+              open_pnl: -5,
+            },
+            {
+              account_id: "mt5-revoked-contract",
+              user_id: "user-live-contract",
+              display_name: "Cuenta revocada",
+              alias: "Cuenta revocada",
+              platform: "mt5",
+              broker: "Revoked Broker",
+              login: "revoked-401",
+              server: "Revoked-Live",
+              status: "revoked",
+              connection_mode: "launcher",
+              last_sync_at: "2026-05-02T09:00:00Z",
+              currency: "USD",
+              balance: 10000,
+              equity: 10000,
+            },
+            {
+              account_id: "mt5-plan-limited-contract",
+              user_id: "user-live-contract",
+              display_name: "Cuenta limitada por plan",
+              alias: "Cuenta limitada por plan",
+              platform: "mt5",
+              broker: "Plan Broker",
+              login: "plan-402",
+              server: "Plan-Live",
+              status: "plan_limited",
+              connection_mode: "launcher",
+              last_sync_at: "",
+              currency: "USD",
+              balance: null,
+              equity: null,
+            },
+            {
+              account_id: "mt5-error-contract",
+              user_id: "user-live-contract",
+              display_name: "Cuenta con error",
+              alias: "Cuenta con error",
+              platform: "mt5",
+              broker: "Error Broker",
+              login: "error-500",
+              server: "Error-Live",
+              status: "error",
+              connection_mode: "launcher",
+              last_sync_at: "2026-05-02T09:00:00Z",
+              currency: "USD",
+              balance: 10000,
+              equity: 10000,
+            },
+          ];
+          const state = {
+            managedAccounts,
+            accountDirectory: {},
+            accounts: {},
+            liveAccountIds: [],
+            activeAccountId: "",
+            activeLiveAccountId: "",
+            auth: {
+              status: "authenticated",
+              user: {
+                id: "user-live-contract",
+                email: "contract@kmfxedge.test",
+                role: "user",
+                is_admin: false,
+              },
+            },
+            ui: { activePage: "accounts" },
+            workspace: {},
+          };
+          const root = new SmokeRoot();
+          renderConnections(root, state);
+          const html = String(root.innerHTML || "");
+          const required = [
+            "Pendiente",
+            "Instala el EA y espera primer sync",
+            "Sin actualizar",
+            "Última actividad",
+            "Key revocada",
+            "Crea una nueva conexión",
+            "Bloqueada por plan",
+            "Actualiza el plan o libera una conexión",
+            "Error de conexión",
+            "Revisa la conexión en Launcher",
+          ];
+          const forbidden = [
+            "payloadSource=mock",
+            "workspace local",
+            "snapshot MT5 del backend",
+          ];
+          console.log(JSON.stringify({
+            htmlLength: html.length,
+            requiredHits: required.filter((needle) => html.includes(needle)),
+            forbiddenHits: forbidden.filter((needle) => html.toLowerCase().includes(needle.toLowerCase())),
+          }));
+        """
+        proc = subprocess.run(
+            [
+                "node",
+                "--experimental-loader",
+                "./tests/node-esm-loader.mjs",
+                "--input-type=module",
+                "-e",
+                textwrap.dedent(script),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            self.fail(f"node degraded connections smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        return json.loads(proc.stdout.splitlines()[-1])
+
     def test_live_fixture_renders_primary_dashboard_pages_without_mock_fallback(self) -> None:
         results = self.run_node_smoke()
         by_page = {row["page"]: row for row in results}
@@ -231,6 +426,27 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.assertGreater(row["htmlLength"], 500, page)
             self.assertEqual([], row["forbiddenHits"], page)
             self.assertGreater(len(row["requiredHits"]), 0, page)
+
+    def test_connections_render_pending_stale_revoked_and_plan_limited_states(self) -> None:
+        result = self.run_degraded_connections_smoke()
+
+        self.assertGreater(result["htmlLength"], 500)
+        self.assertEqual([], result["forbiddenHits"])
+        self.assertEqual(
+            {
+                "Pendiente",
+                "Instala el EA y espera primer sync",
+                "Sin actualizar",
+                "Última actividad",
+                "Key revocada",
+                "Crea una nueva conexión",
+                "Bloqueada por plan",
+                "Actualiza el plan o libera una conexión",
+                "Error de conexión",
+                "Revisa la conexión en Launcher",
+            },
+            set(result["requiredHits"]),
+        )
 
 
 if __name__ == "__main__":

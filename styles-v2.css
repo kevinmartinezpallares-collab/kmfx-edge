@@ -1376,6 +1376,51 @@ body::after {
   min-height: 28px;
 }
 
+.dashboard-kpi-card__help-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.dashboard-kpi-card__help {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  appearance: none;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: help;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.dashboard-kpi-card__help:hover,
+.dashboard-kpi-card__help:focus-visible {
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  outline: none;
+}
+
+.dashboard-kpi-card__tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(260px, 68vw);
+}
+
+.dashboard-kpi-card__help-wrap:hover .dashboard-kpi-card__tooltip,
+.dashboard-kpi-card__help:focus-visible + .dashboard-kpi-card__tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 .dashboard-kpi-card[data-tone="warning"],
 .dashboard-kpi-card[data-tone="risk"] {
   border-color: color-mix(in srgb, var(--risk) 18%, var(--border));

@@ -35,7 +35,8 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 
 2. El contrato de datos del dashboard ya tiene una primera certificacion, pero falta ampliar estados de cuenta.
    - Hay fixture automatizado de dos cuentas MT5 live y smoke render para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
-   - Aun faltan fixtures de cuenta `pending`, `stale`, `revoked`, `plan_limited` y errores controlados.
+   - El smoke inicial ya cubre cuentas `active`, `pending`, `stale`, `revoked`, `plan_limited` y `error` en la pantalla de Cuentas.
+   - Aun faltan fixtures equivalentes de estados degradados en Risk/Funding cuando dependan de policy o billing.
    - Las vistas no deben mostrar textos internos como "workspace" o "local" a usuarios finales; el smoke inicial ya bloquea esos textos en las pantallas principales cubiertas.
 
 3. Falta QA real en maquina limpia.
@@ -113,7 +114,7 @@ Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y 
 | Modulo | Contrato live | Pendiente antes de produccion |
 | --- | --- | --- |
 | Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture inicial y render smoke cubiertos; faltan estados degradados. |
-| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Fixture inicial y render smoke cubren `active`; faltan `pending`, `stale`, `revoked`, `plan_limited`. |
+| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Fixture inicial y render smoke cubren `active`, `pending`, `stale`, `revoked`, `plan_limited` y `error`. |
 | Operaciones | Usa trades normalizados desde payload MT5. | Render smoke cubierto; garantizar que el EA/backend envia deals cerrados con costes completos. |
 | Calendario | Deriva calendario desde trades cerrados. | Render smoke cubierto; verificar fechas, timezone y sesiones con datos reales. |
 | Insights | Deriva analitica desde el modelo de trades. | Render smoke cubierto; ampliar con muestras mas grandes. |
@@ -172,6 +173,7 @@ Resultado:
 - [x] Crear fixture de `/api/accounts/snapshot` con dos cuentas MT5, posiciones, trades, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
 - [x] Añadir test backend/contrato que valida KPIs agregados, cuenta activa, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
 - [x] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
+- [x] Añadir render smoke de Cuentas para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
 - [ ] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion

@@ -68,6 +68,12 @@ Hacer el rediseño real:
 
 ## Roadmap de ideas
 
+### Progreso aplicado
+
+- [x] Instalar skill oficial `shadcn/ui` en el proyecto para guiar componentes y patrones.
+- [x] Detectar contexto shadcn actual: proyecto `Manual`, sin `components.json`; no instalar componentes React sobre la app legacy.
+- [x] Añadir `?` explicativo en KPIs principales del Dashboard con patrón tipo Tooltip: trigger enfocable + contenido asociado.
+
 ### Fase 0: Limpieza tactica actual
 
 Objetivo: que el dashboard actual sea mas claro sin rehacerlo entero.
