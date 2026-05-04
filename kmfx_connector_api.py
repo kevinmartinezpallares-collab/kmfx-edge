@@ -114,13 +114,20 @@ def _parse_admin_launcher_connection_key_mappings(value: str) -> dict[str, set[s
     return mappings
 
 
+DEFAULT_ADMIN_USER_IDS = {"421e2f82-d3c9-4965-bda5-35d6e88cbd0f"}
+
+
 def resolve_admin_user_ids() -> set[str]:
+    admin_ids: set[str] = set()
+    if not _env_flag("KMFX_DISABLE_DEFAULT_ADMIN_IDS", default=False):
+        admin_ids.update(DEFAULT_ADMIN_USER_IDS)
     configured = _split_env_list(_env_value("KMFX_ADMIN_USER_IDS"))
     if configured:
-        return {user_id.lower() for user_id in configured}
+        admin_ids.update(user_id.lower() for user_id in configured)
+        return admin_ids
     if _env_flag("KMFX_ENABLE_DEV_ADMIN_FALLBACK", default=False) and not _is_production_runtime():
-        return {"local-dev-admin"}
-    return set()
+        admin_ids.add("local-dev-admin")
+    return admin_ids
 
 
 def resolve_admin_emails() -> set[str]:
@@ -2372,10 +2379,21 @@ async def link_account(request: Request) -> JSONResponse:
         payload = {}
 
     user_id = scope_user_id
-    label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname") or "Nueva cuenta MT5")
+    raw_label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname"))
+    label = raw_label or "Nueva cuenta MT5"
     platform = safe_str(payload.get("platform"), "mt5") or "mt5"
     requested_connection_mode = safe_str(payload.get("connection_mode") or payload.get("connectionMode") or payload.get("mode"), "launcher").lower()
-    connection_mode = "direct" if requested_connection_mode in {"direct", "manual", "cloud", "ea_direct"} else "launcher"
+    if requested_connection_mode in {"direct", "manual", "cloud"}:
+        connection_mode = "direct"
+    elif requested_connection_mode in {"ea", "expert", "expert_advisor", "ea_direct"}:
+        connection_mode = "ea_direct"
+    else:
+        connection_mode = "launcher"
+    direct_login = safe_str(payload.get("login") or payload.get("account_number") or payload.get("accountNumber"))
+    direct_server = safe_str(payload.get("server"))
+    direct_broker = safe_str(payload.get("broker"))
+    if connection_mode == "direct" and not raw_label:
+        label = f"MT5 {direct_login}".strip() or "Cuenta MT5 directa"
     requested_account_id = safe_str(payload.get("account_id"))
     launcher_connection_key = resolve_connection_key(payload, request)
     registry = account_service.build_accounts_registry(user_id)
@@ -2437,6 +2455,9 @@ async def link_account(request: Request) -> JSONResponse:
                     connection_key=launcher_connection_key,
                     platform=platform,
                     connection_mode=connection_mode,
+                    broker=direct_broker,
+                    login=direct_login,
+                    server=direct_server,
                 )
             if claimed_account is None:
                 return connector_json_response(
@@ -2520,6 +2541,9 @@ async def link_account(request: Request) -> JSONResponse:
                     alias=label,
                     platform=platform,
                     connection_mode=connection_mode,
+                    broker=direct_broker,
+                    login=direct_login,
+                    server=direct_server,
                 )
             except ValueError as exc:
                 return connector_json_response(

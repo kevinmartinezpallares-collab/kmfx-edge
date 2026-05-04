@@ -9,6 +9,7 @@ const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
+const LOCAL_CONNECTION_KEYS_STORAGE_KEY = "kmfx.connectionKeys.v1";
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -167,6 +168,7 @@ function getConnectionsUiState(root) {
   if (!root.__connectionsUiState) {
     root.__connectionsUiState = {
       openMenuAccountId: "",
+      revealedKeyAccountId: "",
     };
   }
   return root.__connectionsUiState;
@@ -348,6 +350,52 @@ function copyText(value, successLabel = "Copiado") {
   complete();
 }
 
+function readLocalConnectionKeys() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistLocalConnectionKey({ accountId = "", connectionKey = "", label = "", state = {} } = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  const normalizedKey = String(connectionKey || "").trim();
+  if (!normalizedAccountId || !normalizedKey) return;
+  try {
+    const cache = readLocalConnectionKeys();
+    cache[normalizedAccountId] = {
+      accountId: normalizedAccountId,
+      connectionKey: normalizedKey,
+      label: String(label || "").trim(),
+      userId: state?.auth?.user?.id || "",
+      updatedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    // The account still works if browser storage is unavailable.
+  }
+}
+
+function resolveLocalConnectionKey(accountId = "", state = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  if (!normalizedAccountId) return "";
+  const cached = readLocalConnectionKeys()[normalizedAccountId];
+  if (!cached || typeof cached !== "object") return "";
+  const currentUserId = String(state?.auth?.user?.id || "").trim();
+  const cachedUserId = String(cached.userId || "").trim();
+  if (cachedUserId && currentUserId && cachedUserId !== currentUserId) return "";
+  return String(cached.connectionKey || "").trim();
+}
+
+function maskConnectionKeyForDisplay(value = "") {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (normalized.length <= 12) return "••••••••";
+  return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+}
+
 function renderConnectionGuide() {
   const steps = [
     {
@@ -487,8 +535,14 @@ function resolveAccountConnectionKey(account, state, activeAccount = null) {
     activeAccount?.apiKey ||
     activeAccount?.model?.account?.apiKey ||
     activeAccount?.dashboardPayload?.apiKey ||
+    resolveLocalConnectionKey(account.account_id, state) ||
     ""
   );
+}
+
+function resolveAccountConnectionPreview(account, connectionKey = "") {
+  if (connectionKey) return maskConnectionKeyForDisplay(connectionKey);
+  return String(account.connection_key_preview || account.connectionKeyPreview || "").trim();
 }
 
 function openAccountInfoModal(account, state, activeAccount = null) {
@@ -632,13 +686,15 @@ function renderEmptyState(root) {
   `;
 }
 
-function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, openMenuAccountId = "") {
+function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState, state) {
   return `
     <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
       ${registryAccounts.map((account) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           activeAccount,
-          menuOpen: openMenuAccountId === account.account_id,
+          menuOpen: uiState.openMenuAccountId === account.account_id,
+          keyRevealed: uiState.revealedKeyAccountId === account.account_id,
+          state,
           adminOpen: adminVisible && adminState.open,
           adminState,
         })).join("")}
@@ -768,7 +824,7 @@ function resolveAccountMetaLine(account, activeAccount = null) {
   return "Cuenta disponible";
 }
 
-function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, adminOpen = false, adminState = null }) {
+function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, keyRevealed = false, state = {}, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
@@ -778,6 +834,15 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const accountTag = secondaryLabel === "Funded" || secondaryLabel === "Challenge" ? secondaryLabel : "Real";
   const metaLine = resolveAccountMetaLine(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
+  const accountId = account.account_id || "";
+  const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
+  const connectionPreview = resolveAccountConnectionPreview(account, connectionKey);
+  const hasConnectionKey = Boolean(connectionKey || account.has_connection_key || connectionPreview);
+  const canShowConnectionKey = isAdminUser(state) && hasConnectionKey;
+  const connectionKeyValue = connectionKey && keyRevealed ? connectionKey : connectionPreview || "Key protegida";
+  const connectionKeyNote = connectionKey
+    ? "Disponible para copiar en este navegador."
+    : "Key protegida en servidor. Regenera si necesitas copiarla otra vez.";
 
   return `
     <article class="widget-card connections-account-card">
@@ -819,17 +884,31 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
             type="button"
             aria-label="Acciones de cuenta"
             aria-expanded="${menuOpen ? "true" : "false"}"
-            data-account-menu-trigger="${escapeHtml(account.account_id || "")}"
+            data-account-menu-trigger="${escapeHtml(accountId)}"
           >•••</button>
           ${menuOpen ? `
             <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(account.account_id || "")}">Editar</button>
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(account.account_id || "")}">Ver detalle</button>
-              <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(account.account_id || "")}">Eliminar</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(accountId)}">Editar</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(accountId)}">Ver detalle</button>
+              <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(accountId)}">Eliminar</button>
             </div>
           ` : ""}
         </div>
       </div>
+      ${canShowConnectionKey ? `
+        <div class="connections-account-card__key-strip">
+          <div class="connections-account-card__key-copy">
+            <div class="metric-label">KMFXKey</div>
+            <code>${escapeHtml(connectionKeyValue)}</code>
+            <span>${escapeHtml(connectionKeyNote)}</span>
+          </div>
+          <div class="connections-account-card__key-actions">
+            ${connectionKey ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-toggle-key="${escapeHtml(accountId)}">${keyRevealed ? "Ocultar" : "Mostrar"}</button>` : ""}
+            ${connectionKey ? `<button class="btn-primary connections-shell__utility-btn" type="button" data-account-copy-connection-key="${escapeHtml(accountId)}">Copiar</button>` : ""}
+            ${!connectionKey ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-admin-account-regenerate="${escapeHtml(accountId)}">Regenerar key</button>` : ""}
+          </div>
+        </div>
+      ` : ""}
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>
   `;
@@ -870,6 +949,27 @@ export function initConnections(store) {
     const copyButton = event.target.closest("[data-copy-value]");
     if (copyButton) {
       copyText(copyButton.dataset.copyValue || "", copyButton.dataset.copyLabel || "Copiado");
+      return;
+    }
+
+    const keyToggleButton = event.target.closest("[data-account-toggle-key]");
+    if (keyToggleButton) {
+      const accountId = keyToggleButton.dataset.accountToggleKey || "";
+      uiState.revealedKeyAccountId = uiState.revealedKeyAccountId === accountId ? "" : accountId;
+      renderConnections(root, store.getState());
+      return;
+    }
+
+    const keyCopyButton = event.target.closest("[data-account-copy-connection-key]");
+    if (keyCopyButton) {
+      const accountId = keyCopyButton.dataset.accountCopyConnectionKey || "";
+      const account = registryAccounts.find((item) => item.account_id === accountId);
+      const connectionKey = account ? resolveAccountConnectionKey(account, state, selectActiveAccount(state)) : "";
+      if (!connectionKey) {
+        showToast("Esta key está protegida. Regenera una nueva para copiarla.", "warning");
+        return;
+      }
+      copyText(connectionKey, "KMFXKey copiada");
       return;
     }
 
@@ -991,8 +1091,17 @@ export function initConnections(store) {
           showToast(payload?.reason || "No pude regenerar la key.", "error");
           return;
         }
+        if (payload?.connection_key) {
+          persistLocalConnectionKey({
+            accountId,
+            connectionKey: payload.connection_key,
+            label: registryAccounts.find((item) => item.account_id === accountId)?.alias || "",
+            state: store.getState(),
+          });
+          uiState.revealedKeyAccountId = accountId;
+        }
         await fetchAccountsRegistry(store);
-        showToast("Key regenerada. Vuelve a vincular el Launcher.", "success");
+        showToast(payload?.connection_key ? "Key regenerada y lista para copiar" : "Key regenerada. Vuelve a vincular el Launcher.", "success");
         renderConnections(root, store.getState());
       } catch {
         showToast("No pude conectar con el endpoint admin.", "error");
@@ -1095,7 +1204,7 @@ export function renderConnections(root, state) {
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>
         </div>
-        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState.openMenuAccountId)}
+        ${renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState, state)}
       </section>
     </div>
   `;

@@ -128,11 +128,15 @@ class AccountServiceTests(unittest.TestCase):
             user_id="user-123",
             alias="Cuenta directa",
             connection_mode="direct",
+            login="4000082126",
+            server="Darwinex-Live",
         )
 
         registry = self.service.build_accounts_registry("user-123")
         self.assertEqual(created.account_id, registry[0]["account_id"])
         self.assertEqual("direct", registry[0]["connection_mode"])
+        self.assertEqual("4000082126", registry[0]["login"])
+        self.assertEqual("Darwinex-Live", registry[0]["server"])
         self.assertEqual("", registry[0]["connection_key"])
         self.assertTrue(registry[0]["has_connection_key"])
 

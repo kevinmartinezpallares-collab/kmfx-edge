@@ -350,14 +350,17 @@ class AccountService:
         alias: str,
         platform: str = "mt5",
         connection_mode: str = "launcher",
+        broker: str = "",
+        login: str = "",
+        server: str = "",
     ) -> Account:
         created = self.create_account(
             user_id=user_id,
             alias=alias,
-            broker="",
+            broker=broker,
             platform=platform,
-            login="",
-            server="",
+            login=login,
+            server=server,
             connection_mode=connection_mode or "launcher",
             status="pending_link",
             api_key=self._generate_connection_key(),
@@ -381,6 +384,9 @@ class AccountService:
         connection_key: str,
         platform: str = "mt5",
         connection_mode: str = "launcher",
+        broker: str = "",
+        login: str = "",
+        server: str = "",
     ) -> Account | None:
         normalized_key = normalize_connection_key(connection_key)
         if not normalized_key:
@@ -418,10 +424,10 @@ class AccountService:
         created = self.create_account(
             user_id=user_id,
             alias=alias,
-            broker="",
+            broker=broker,
             platform=platform,
-            login="",
-            server="",
+            login=login,
+            server=server,
             connection_mode=connection_mode or "launcher",
             status="pending_link",
             api_key=normalized_key,

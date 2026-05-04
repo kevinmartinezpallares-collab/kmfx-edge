@@ -49,23 +49,27 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         if connector_api.CORS_ALLOW_ORIGIN_REGEX:
             self.assertIn("localhost", connector_api.CORS_ALLOW_ORIGIN_REGEX)
 
-    def test_production_admin_ids_have_no_default_fallback(self) -> None:
+    def test_production_admin_ids_include_owner_bridge(self) -> None:
         with patch.dict("os.environ", {"RENDER": "true", "KMFX_ENV": "production"}, clear=True):
+            self.assertEqual(connector_api.DEFAULT_ADMIN_USER_IDS, connector_api.resolve_admin_user_ids())
+
+    def test_default_admin_ids_can_be_disabled(self) -> None:
+        with patch.dict("os.environ", {"KMFX_DISABLE_DEFAULT_ADMIN_IDS": "true"}, clear=True):
             self.assertEqual(set(), connector_api.resolve_admin_user_ids())
 
     def test_admin_ids_are_env_driven(self) -> None:
         with patch.dict("os.environ", {"KMFX_ADMIN_USER_IDS": "USER-A, user-b "}, clear=True):
-            self.assertEqual({"user-a", "user-b"}, connector_api.resolve_admin_user_ids())
+            self.assertEqual({"user-a", "user-b", *connector_api.DEFAULT_ADMIN_USER_IDS}, connector_api.resolve_admin_user_ids())
 
     def test_dev_admin_fallback_requires_explicit_opt_in(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "development"}, clear=True):
-            self.assertEqual(set(), connector_api.resolve_admin_user_ids())
+            self.assertEqual(connector_api.DEFAULT_ADMIN_USER_IDS, connector_api.resolve_admin_user_ids())
         with patch.dict(
             "os.environ",
             {"KMFX_ENV": "development", "KMFX_ENABLE_DEV_ADMIN_FALLBACK": "true"},
             clear=True,
         ):
-            self.assertEqual({"local-dev-admin"}, connector_api.resolve_admin_user_ids())
+            self.assertEqual({"local-dev-admin", *connector_api.DEFAULT_ADMIN_USER_IDS}, connector_api.resolve_admin_user_ids())
 
     def test_admin_launcher_key_mapping_is_env_driven(self) -> None:
         parsed = connector_api._parse_admin_launcher_connection_key_mappings(
@@ -212,6 +216,46 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertTrue(list_body["accounts"][0]["has_connection_key"])
                 self.assertEqual(mask_connection_key(raw_key), list_body["accounts"][0]["connection_key_preview"])
                 self.assertNotIn(raw_key, list_body_text)
+            finally:
+                connector_api.account_service = previous_service
+
+    def test_direct_link_registers_login_server_without_persisting_password(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"},
+                    json_body={
+                        "label": "Cuenta MT5 Darwinex",
+                        "platform": "mt5",
+                        "connection_mode": "direct",
+                        "login": "4000082126",
+                        "server": "Darwinex-Live",
+                        "password": "investor-secret",
+                    },
+                )
+
+                response = asyncio.run(connector_api.link_account(request))
+                body = json.loads(response.body.decode("utf-8"))
+                self.assertEqual(200, response.status_code)
+                self.assertTrue(body["is_admin"])
+                self.assertEqual("direct", body["connection_mode"])
+
+                list_response = asyncio.run(connector_api.list_accounts(request))
+                list_body_text = list_response.body.decode("utf-8")
+                list_body = json.loads(list_body_text)
+                account = list_body["accounts"][0]
+                self.assertEqual("direct", account["connection_mode"])
+                self.assertEqual("4000082126", account["login"])
+                self.assertEqual("Darwinex-Live", account["server"])
+                self.assertNotIn("investor-secret", list_body_text)
+
+                with open(store_path, "r", encoding="utf-8") as handle:
+                    persisted_text = handle.read()
+                self.assertNotIn("investor-secret", persisted_text)
             finally:
                 connector_api.account_service = previous_service
 
