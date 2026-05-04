@@ -1,4 +1,4 @@
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-070424";
 
 export function renderGlossary(root, state) {
   const groups = state.workspace.glossary.terms.reduce((map, term) => {

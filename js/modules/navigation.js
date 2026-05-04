@@ -7,7 +7,7 @@ import {
   pageFromLocation,
   parentPageForPage,
   routeForPage
-} from "./route-map.js?v=build-20260406-213500";
+} from "./route-map.js?v=build-20260504-070424";
 
 const pageTitle = {
   dashboard: "Panel",
@@ -261,13 +261,10 @@ export function initNavigation(store) {
       const page = button.dataset.page;
       const submenuKey = button.getAttribute("data-nav-submenu-trigger");
       if (submenuKey && !isSidebarIconCollapsed()) {
-        const activePage = store.getState().ui.activePage;
-        const parentPage = navigationParentForPage(activePage);
-        const isActiveParent = page === activePage || page === parentPage;
         const clickedChevron = Boolean(event.target.closest(".sidebar-menu-action"));
-        if (clickedChevron || isActiveParent) {
+        if (clickedChevron) {
           toggleSubmenu(submenuKey);
-          if (clickedChevron || isActiveParent) return;
+          return;
         }
         setSubmenuOpen(submenuKey, true);
       }

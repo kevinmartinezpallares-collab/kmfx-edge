@@ -96,13 +96,26 @@ class SidebarNavigationContractTests(unittest.TestCase):
             self.assertIn(f'"{page}"', valid_pages.group("body"))
         self.assertIn("kmfx_sidebar_submenus_v1", navigation)
         self.assertIn("setSubmenuOpen", navigation)
+        self.assertIn("if (clickedChevron)", navigation)
+        self.assertNotIn("clickedChevron || isActiveParent", navigation)
 
     def test_new_subsection_pages_use_kmfx_visual_shell(self):
         css = read_text("styles-v2.css")
-        self.assertIn("KMFX Edge desktop subpage rhythm", css)
+        self.assertIn("KMFX Edge desktop subpage shell", css)
         self.assertIn("@media (min-width: 921px)", css)
         self.assertIn(".kmfx-subpage-shell", css)
         self.assertNotIn("KMFX Edge desktop page rhythm: shared product surface for every section.", css)
+        shell_css = css.split("/* KMFX Edge desktop subpage shell", 1)[1].split("/* shadcn-style card composition", 1)[0]
+        for existing_page_selector in [
+            "#dashboardRoot",
+            "#analyticsRoot",
+            "#connectionsRoot",
+            "#calendarRoot",
+            ".dashboard-page-flow",
+            ".settings-page-shell",
+            ".capital-page",
+        ]:
+            self.assertNotIn(existing_page_selector, shell_css)
 
         module_contracts = {
             "js/modules/risk.js": ["risk-ruin-var", "risk-monte-carlo", "risk-exposure"],

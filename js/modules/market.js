@@ -1,5 +1,5 @@
-import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260406-213500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260406-213500";
+import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-070424";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-070424";
 
 export function renderMarket(root, state) {
   const account = selectCurrentAccount(state);

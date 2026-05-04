@@ -6,7 +6,7 @@
   "orientation": "portrait-primary",
   "background_color": "#050608",
   "theme_color": "#2F6BFF",
-  "start_url": "./?app=build-20260406-213500",
+  "start_url": "./?app=build-20260504-070424",
   "scope": "./",
   "icons": [
     {
