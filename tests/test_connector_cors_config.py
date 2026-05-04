@@ -6,6 +6,7 @@ import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from account_keys import hash_connection_key, mask_connection_key
 from account_service import AccountService
 from account_store import JsonFileAccountStore
 import kmfx_connector_api as connector_api
@@ -137,6 +138,49 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             }
         )
         self.assertEqual({"login": "123456"}, cleaned)
+
+    def test_link_account_returns_key_once_and_persists_only_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "alias": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "ea_direct",
+                    },
+                )
+
+                response = asyncio.run(connector_api.link_account(request))
+                body = json.loads(response.body.decode("utf-8"))
+                raw_key = body["connection_key"]
+
+                self.assertEqual(200, response.status_code)
+                self.assertTrue(raw_key)
+                self.assertEqual(raw_key, body["direct_config"]["connection_key"])
+
+                with open(store_path, "r", encoding="utf-8") as handle:
+                    persisted = json.load(handle)
+                record = persisted["accounts"][0]
+                self.assertEqual("", record["api_key"])
+                self.assertEqual(hash_connection_key(raw_key), record["connection_key_hash"])
+                self.assertEqual(mask_connection_key(raw_key), record["connection_key_preview"])
+                self.assertNotIn(raw_key, json.dumps(persisted))
+
+                list_response = asyncio.run(connector_api.list_accounts(request))
+                list_body_text = list_response.body.decode("utf-8")
+                list_body = json.loads(list_body_text)
+                self.assertEqual("", list_body["accounts"][0]["connection_key"])
+                self.assertTrue(list_body["accounts"][0]["has_connection_key"])
+                self.assertEqual(mask_connection_key(raw_key), list_body["accounts"][0]["connection_key_preview"])
+                self.assertNotIn(raw_key, list_body_text)
+            finally:
+                connector_api.account_service = previous_service
 
     def test_no_key_mt5_ingest_is_rejected_for_remote_production(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "production"}, clear=True):

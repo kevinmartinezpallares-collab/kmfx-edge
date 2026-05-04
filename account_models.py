@@ -17,6 +17,8 @@ class Account:
     connection_mode: str
     status: str
     api_key: str
+    connection_key_hash: str = ""
+    connection_key_preview: str = ""
     last_sync_at: Optional[datetime] = None
     mt5_login: str = ""
     is_primary: bool = False
@@ -30,6 +32,7 @@ class Account:
     connection_key_revoked_at: Optional[datetime] = None
     connection_key_revocation_reason: str = ""
     revoked_connection_keys: list[str] = field(default_factory=list)
+    revoked_connection_key_hashes: list[str] = field(default_factory=list)
     archived_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
     is_default: bool = False

@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Iterable
 
+from account_keys import hash_connection_key, mask_connection_key, normalize_connection_key
 from account_models import Account
 
 
@@ -37,7 +38,31 @@ def _parse_datetime(value: object) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def _unique_text(values: Iterable[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        result.append(text)
+        seen.add(text)
+    return result
+
+
 def account_to_record(account: Account) -> dict:
+    connection_key_hash = account.connection_key_hash or hash_connection_key(account.api_key)
+    connection_key_preview = account.connection_key_preview or mask_connection_key(account.api_key)
+    revoked_connection_key_hashes = _unique_text(
+        [
+            *(account.revoked_connection_key_hashes or []),
+            *[
+                hash_connection_key(connection_key)
+                for connection_key in (account.revoked_connection_keys or [])
+                if normalize_connection_key(connection_key)
+            ],
+        ]
+    )
     return {
         "account_id": account.account_id,
         "user_id": account.user_id,
@@ -48,7 +73,9 @@ def account_to_record(account: Account) -> dict:
         "server": account.server,
         "connection_mode": account.connection_mode,
         "status": account.status,
-        "api_key": account.api_key,
+        "api_key": "",
+        "connection_key_hash": connection_key_hash,
+        "connection_key_preview": connection_key_preview,
         "last_sync_at": _serialize_datetime(account.last_sync_at),
         "mt5_login": account.mt5_login,
         "is_primary": bool(account.is_primary or account.is_default),
@@ -61,7 +88,8 @@ def account_to_record(account: Account) -> dict:
         "connector_version": account.connector_version,
         "connection_key_revoked_at": _serialize_datetime(account.connection_key_revoked_at),
         "connection_key_revocation_reason": account.connection_key_revocation_reason,
-        "revoked_connection_keys": list(account.revoked_connection_keys or []),
+        "revoked_connection_keys": [],
+        "revoked_connection_key_hashes": revoked_connection_key_hashes,
         "archived_at": _serialize_datetime(account.archived_at),
         "deleted_at": _serialize_datetime(account.deleted_at),
         "is_default": bool(account.is_default),
@@ -74,6 +102,20 @@ def account_to_record(account: Account) -> dict:
 
 def record_to_account(record: dict) -> Account:
     now = _now_utc()
+    raw_api_key = normalize_connection_key(record.get("api_key"))
+    raw_revoked_keys = [
+        normalize_connection_key(item)
+        for item in (record.get("revoked_connection_keys") or [])
+        if normalize_connection_key(item)
+    ]
+    connection_key_hash = str(record.get("connection_key_hash") or "").strip() or hash_connection_key(raw_api_key)
+    connection_key_preview = str(record.get("connection_key_preview") or "").strip() or mask_connection_key(raw_api_key)
+    revoked_connection_key_hashes = _unique_text(
+        [
+            *(record.get("revoked_connection_key_hashes") or []),
+            *[hash_connection_key(item) for item in raw_revoked_keys],
+        ]
+    )
     return Account(
         account_id=str(record.get("account_id") or ""),
         user_id=str(record.get("user_id") or "local"),
@@ -84,7 +126,9 @@ def record_to_account(record: dict) -> Account:
         server=str(record.get("server") or ""),
         connection_mode=str(record.get("connection_mode") or "bridge"),
         status=str(record.get("status") or "pending"),
-        api_key=str(record.get("api_key") or ""),
+        api_key=raw_api_key,
+        connection_key_hash=connection_key_hash,
+        connection_key_preview=connection_key_preview,
         last_sync_at=_parse_datetime(record.get("last_sync_at")),
         mt5_login=str(record.get("mt5_login") or record.get("login") or ""),
         is_primary=bool(record.get("is_primary") if "is_primary" in record else record.get("is_default")),
@@ -97,11 +141,8 @@ def record_to_account(record: dict) -> Account:
         connector_version=str(record.get("connector_version") or ""),
         connection_key_revoked_at=_parse_datetime(record.get("connection_key_revoked_at")),
         connection_key_revocation_reason=str(record.get("connection_key_revocation_reason") or ""),
-        revoked_connection_keys=[
-            str(item).strip()
-            for item in (record.get("revoked_connection_keys") or [])
-            if str(item or "").strip()
-        ],
+        revoked_connection_keys=raw_revoked_keys,
+        revoked_connection_key_hashes=revoked_connection_key_hashes,
         archived_at=_parse_datetime(record.get("archived_at")),
         deleted_at=_parse_datetime(record.get("deleted_at")),
         is_default=bool(record.get("is_default")),

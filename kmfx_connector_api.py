@@ -20,6 +20,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from account_keys import hash_connection_key as storage_connection_key_hash
 from account_service import AccountService, account_summary_fields_from_payload
 from account_store import JsonFileAccountStore
 from ai_evidence_report import build_ai_evidence_report
@@ -1095,6 +1096,8 @@ def remember_journal_trades(identity_key: str, trades: list[dict[str, Any]]) -> 
 
 def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
     latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
+    connection_key_preview = getattr(account, "connection_key_preview", "") or mask_connection_key(getattr(account, "api_key", ""))
+    connection_key_hash = getattr(account, "connection_key_hash", "")
     return {
         "account_id": getattr(account, "account_id", ""),
         "user_id": getattr(account, "user_id", "local"),
@@ -1105,8 +1108,11 @@ def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
         "server": getattr(account, "server", ""),
         "connection_mode": getattr(account, "connection_mode", "connector"),
         "status": getattr(account, "status", "connected"),
-        "api_key": getattr(account, "api_key", ""),
-        "connection_key": getattr(account, "api_key", ""),
+        "api_key": "",
+        "connection_key": "",
+        "connection_key_preview": connection_key_preview,
+        "connection_key_hash": connection_key_hash,
+        "has_connection_key": bool(connection_key_hash or getattr(account, "api_key", "")),
         "last_sync_at": getattr(account, "last_sync_at", None).isoformat() if getattr(account, "last_sync_at", None) else "",
         "is_default": bool(getattr(account, "is_default", False) or getattr(account, "is_primary", False)),
         "is_primary": bool(getattr(account, "is_primary", False) or getattr(account, "is_default", False)),
@@ -1145,12 +1151,15 @@ def forget_live_account_snapshot(account_id: str) -> None:
 
 def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
     latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
+    connection_key_preview = getattr(account, "connection_key_preview", "") or mask_connection_key(getattr(account, "api_key", ""))
     return {
         "account_id": getattr(account, "account_id", ""),
         "user_id": getattr(account, "user_id", "local"),
         "alias": getattr(account, "alias", "") or getattr(account, "nickname", "") or "",
         "platform": getattr(account, "platform", "mt5"),
-        "connection_key": getattr(account, "api_key", ""),
+        "connection_key": "",
+        "connection_key_preview": connection_key_preview,
+        "has_connection_key": bool(getattr(account, "connection_key_hash", "") or getattr(account, "api_key", "")),
         "status": getattr(account, "status", ""),
         "lifecycle_status": getattr(account, "status", ""),
         "broker": getattr(account, "broker", ""),
@@ -1187,10 +1196,18 @@ def merge_admin_launcher_registry_accounts(accounts: list[dict[str, Any]], allow
 
 
 def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys: set[str] | None = None) -> dict[str, Any]:
-    allowed_connection_keys = {
-        safe_str(connection_key).lower()
+    raw_allowed_connection_keys = {
+        safe_str(connection_key)
         for connection_key in (allowed_connection_keys or set())
         if safe_str(connection_key)
+    }
+    allowed_connection_keys = {
+        safe_str(connection_key).lower()
+        for connection_key in raw_allowed_connection_keys
+    }
+    allowed_connection_key_hashes = {
+        storage_connection_key_hash(connection_key)
+        for connection_key in raw_allowed_connection_keys
     }
     persisted_snapshot = account_service.build_accounts_snapshot(user_id)
     merged_accounts: dict[str, dict[str, Any]] = {}
@@ -1215,8 +1232,8 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
             merged_accounts[account_id] = entry
 
     for account_id, entry in RECENT_LIVE_ACCOUNTS.items():
-        entry_connection_key = safe_str(entry.get("connection_key") or entry.get("api_key")).lower()
-        if safe_str(entry.get("user_id"), "local") != user_id and entry_connection_key not in allowed_connection_keys:
+        entry_connection_key_hash = safe_str(entry.get("connection_key_hash"))
+        if safe_str(entry.get("user_id"), "local") != user_id and entry_connection_key_hash not in allowed_connection_key_hashes:
             continue
         cached_last_sync = _parse_datetime(entry.get("last_sync_at"))
         persisted_last_sync = _parse_datetime((merged_accounts.get(account_id) or {}).get("last_sync_at"))
@@ -1225,6 +1242,9 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
 
     accounts = list(merged_accounts.values())
     accounts.sort(key=lambda item: ((not bool(item.get("is_default"))), item.get("display_name", ""), item.get("login", "")))
+    for item in accounts:
+        if isinstance(item, dict):
+            item.pop("connection_key_hash", None)
     active_account_id = next((item.get("account_id", "") for item in accounts if item.get("is_default")), "") or persisted_snapshot.get("active_account_id", "")
     log.info(
         "LIVE snapshot rebuilt | source=merged accounts=%s active_account_id=%s entries=%s",
@@ -2178,6 +2198,10 @@ async def link_account(request: Request) -> JSONResponse:
     requested_account_id = safe_str(payload.get("account_id"))
     launcher_connection_key = resolve_connection_key(payload, request)
     registry = account_service.build_accounts_registry(user_id)
+    pending_statuses = {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+
+    def registry_entry_has_connection_key(account: dict[str, Any]) -> bool:
+        return bool(safe_str(account.get("connection_key")) or account.get("has_connection_key"))
 
     existing_for_limit: dict[str, Any] | None = None
     if launcher_connection_key:
@@ -2192,9 +2216,9 @@ async def link_account(request: Request) -> JSONResponse:
                 (
                     account
                     for account in registry
-                    if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+                    if account.get("status") in pending_statuses
                     and safe_str(account.get("alias")) == label
-                    and safe_str(account.get("connection_key"))
+                    and registry_entry_has_connection_key(account)
                 ),
                 None,
             )
@@ -2204,8 +2228,9 @@ async def link_account(request: Request) -> JSONResponse:
                     account
                     for account in registry
                     if account.get("platform") == platform
+                    and account.get("status") in pending_statuses
                     and safe_str(account.get("alias")) == label
-                    and safe_str(account.get("connection_key"))
+                    and registry_entry_has_connection_key(account)
                 ),
                 None,
             )
@@ -2272,9 +2297,9 @@ async def link_account(request: Request) -> JSONResponse:
                 (
                     account
                     for account in registry
-                    if account.get("status") in {"draft", "pending", "pending_setup", "pending_link", "waiting_sync", "linked"}
+                    if account.get("status") in pending_statuses
                     and safe_str(account.get("alias")) == label
-                    and safe_str(account.get("connection_key"))
+                    and registry_entry_has_connection_key(account)
                 ),
                 None,
             )
@@ -2284,15 +2309,29 @@ async def link_account(request: Request) -> JSONResponse:
                     account
                     for account in registry
                     if account.get("platform") == platform
+                    and account.get("status") in pending_statuses
                     and safe_str(account.get("alias")) == label
-                    and safe_str(account.get("connection_key"))
+                    and registry_entry_has_connection_key(account)
                 ),
                 None,
             )
 
-        if existing is not None and safe_str(existing.get("connection_key")):
-            connection_key = safe_str(existing.get("connection_key"))
+        if existing is not None:
             account_id = safe_str(existing.get("account_id"))
+            connection_key = safe_str(existing.get("connection_key"))
+            if not connection_key:
+                regenerated = account_service.regenerate_connection_key(account_id)
+                if regenerated is None or not regenerated.api_key:
+                    return connector_json_response(
+                        {
+                            "ok": False,
+                            "reason": "connection_key_not_recoverable",
+                            "details": {"account_id": account_id},
+                            "timestamp": now_iso(),
+                        },
+                        status_code=409,
+                    )
+                connection_key = regenerated.api_key
         else:
             try:
                 created = account_service.create_pending_account(
@@ -2469,7 +2508,7 @@ async def admin_account_payload(account_id: str, request: Request) -> JSONRespon
             "account_id": account.account_id,
             "user_id": account.user_id,
             "status": account.status,
-            "connection_key_masked": mask_connection_key(account.api_key),
+            "connection_key_masked": account.connection_key_preview or mask_connection_key(account.api_key),
             "last_sync_at": account.last_sync_at.isoformat() if account.last_sync_at else "",
             "sync_error": payload.get("last_sync_error") or payload.get("sync_error") or "",
             "payload": payload,

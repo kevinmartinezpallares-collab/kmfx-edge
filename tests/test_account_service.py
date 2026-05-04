@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import unittest
 
+from account_keys import hash_connection_key, mask_connection_key
 from account_service import AccountService
 from account_store import JsonFileAccountStore
 
@@ -117,7 +119,9 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual("orion-launcher-key", created.api_key)
         self.assertEqual("pending_link", created.status)
         registry = self.service.build_accounts_registry("user-123")
-        self.assertEqual("orion-launcher-key", registry[0]["connection_key"])
+        self.assertEqual("", registry[0]["connection_key"])
+        self.assertTrue(registry[0]["has_connection_key"])
+        self.assertEqual(mask_connection_key("orion-launcher-key"), registry[0]["connection_key_preview"])
 
     def test_create_pending_account_can_store_direct_connection_mode(self) -> None:
         created = self.service.create_pending_account(
@@ -129,7 +133,8 @@ class AccountServiceTests(unittest.TestCase):
         registry = self.service.build_accounts_registry("user-123")
         self.assertEqual(created.account_id, registry[0]["account_id"])
         self.assertEqual("direct", registry[0]["connection_mode"])
-        self.assertEqual(created.api_key, registry[0]["connection_key"])
+        self.assertEqual("", registry[0]["connection_key"])
+        self.assertTrue(registry[0]["has_connection_key"])
 
     def test_create_pending_account_with_key_can_store_direct_connection_mode(self) -> None:
         created = self.service.create_pending_account_with_key(
@@ -142,7 +147,8 @@ class AccountServiceTests(unittest.TestCase):
         registry = self.service.build_accounts_registry("user-123")
         self.assertIsNotNone(created)
         self.assertEqual("direct", registry[0]["connection_mode"])
-        self.assertEqual("direct-key", registry[0]["connection_key"])
+        self.assertEqual("", registry[0]["connection_key"])
+        self.assertTrue(registry[0]["has_connection_key"])
 
     def test_create_pending_account_with_key_archives_stale_pending_alias(self) -> None:
         stale = self.service.create_pending_account(
@@ -159,7 +165,8 @@ class AccountServiceTests(unittest.TestCase):
         registry = self.service.build_accounts_registry("user-123")
         self.assertEqual(1, len(registry))
         self.assertEqual(created.account_id, registry[0]["account_id"])
-        self.assertEqual("orion-installed-key", registry[0]["connection_key"])
+        self.assertEqual("", registry[0]["connection_key"])
+        self.assertEqual(mask_connection_key("orion-installed-key"), registry[0]["connection_key_preview"])
         archived = self.service.store.list_accounts()[0]
         self.assertEqual(stale.account_id, archived.account_id)
         self.assertEqual("archived", archived.status)
@@ -193,7 +200,7 @@ class AccountServiceTests(unittest.TestCase):
         self.assertIsNotNone(revoked)
         self.assertTrue(revoked.connection_key_revoked_at)
         self.assertEqual("security_rotation", revoked.connection_key_revocation_reason)
-        self.assertIn("revoked-key", revoked.revoked_connection_keys)
+        self.assertIn(hash_connection_key("revoked-key"), revoked.revoked_connection_key_hashes)
         self.assertIsNone(self.service.get_account_by_api_key_any_user("revoked-key"))
         self.assertTrue(self.service.is_connection_key_revoked_any_user("revoked-key"))
         self.assertIsNone(
@@ -215,10 +222,29 @@ class AccountServiceTests(unittest.TestCase):
 
         self.assertIsNotNone(regenerated)
         self.assertNotEqual("old-key", regenerated.api_key)
-        self.assertIn("old-key", regenerated.revoked_connection_keys)
+        self.assertIn(hash_connection_key("old-key"), regenerated.revoked_connection_key_hashes)
         self.assertTrue(self.service.is_connection_key_revoked_any_user("old-key"))
         self.assertIsNone(self.service.get_account_by_api_key_any_user("old-key"))
         self.assertIsNotNone(self.service.get_account_by_api_key_any_user(regenerated.api_key))
+
+    def test_connection_keys_are_hashed_at_rest(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Cuenta MT5",
+            connection_key="persisted-secret-key",
+        )
+
+        with open(self.store_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        record = payload["accounts"][0]
+
+        self.assertEqual("", record["api_key"])
+        self.assertEqual([], record["revoked_connection_keys"])
+        self.assertEqual(hash_connection_key("persisted-secret-key"), record["connection_key_hash"])
+        self.assertEqual(mask_connection_key("persisted-secret-key"), record["connection_key_preview"])
+        self.assertNotIn("persisted-secret-key", json.dumps(payload))
+        self.assertIsNotNone(self.service.get_account_by_api_key_any_user("persisted-secret-key"))
+        self.assertEqual("persisted-secret-key", created.api_key)
 
     def test_connection_slot_count_ignores_archived_accounts(self) -> None:
         first = self.service.create_pending_account(user_id="user-123", alias="Primera")
