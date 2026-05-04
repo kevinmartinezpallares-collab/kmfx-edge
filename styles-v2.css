@@ -36072,3 +36072,34 @@ body[data-theme="dark"] .journal-page-stack.kmfx-subpage-shell .tl-section-title
     right: max(8px, env(safe-area-inset-right)) !important;
   }
 }
+
+/* KMFX Edge header system: page and section titles do not use legacy dividers or dot markers. */
+.app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-header, .calendar-screen__header, .connections-shell__header, .kmfx-mt5-header, .settings-page-header, .risk-engine-page-header),
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-header, .calendar-screen__header, .connections-shell__header, .kmfx-mt5-header, .settings-page-header, .risk-engine-page-header),
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-header, .calendar-screen__header, .connections-shell__header, .kmfx-mt5-header, .settings-page-header, .risk-engine-page-header) {
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider :is(.tl-section-header, .calendar-panel-head, .widget-card-head, .insights-evidence__header, .execution-section-header, .strategies-section-heading),
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-section-header, .calendar-panel-head, .widget-card-head, .insights-evidence__header, .execution-section-header, .strategies-section-heading),
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-section-header, .calendar-panel-head, .widget-card-head, .insights-evidence__header, .execution-section-header, .strategies-section-heading) {
+  padding-bottom: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title)::before,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title)::before,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title)::before {
+  content: none !important;
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title),
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title),
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title) {
+  gap: 0 !important;
+}
