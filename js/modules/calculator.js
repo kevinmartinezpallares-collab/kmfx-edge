@@ -1,4 +1,4 @@
-import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { describeAccountAuthority, formatCurrency, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260504-080918";
 import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
@@ -115,6 +115,16 @@ function parseForexPair(symbol) {
   const quote = stem.slice(3, 6);
   if (!FOREX_CURRENCIES.has(base) || !FOREX_CURRENCIES.has(quote) || base === quote) return null;
   return { symbol: `${base}${quote}`, base, quote };
+}
+
+function detectForexPair(symbol) {
+  return parseForexPair(symbol);
+}
+
+function getForexPipSize(symbol) {
+  const pair = detectForexPair(symbol);
+  if (!pair) return null;
+  return pair.quote === "JPY" ? 0.01 : 0.0001;
 }
 
 function firstFiniteValue(source = {}, keys = []) {
@@ -267,6 +277,7 @@ function buildStandaloneForexSpec(calc, rateContext, accountCurrency) {
 function inferLiveInstrumentType(symbol, liveSpec = {}) {
   const mode = String(liveSpec.tradeCalcMode || liveSpec.trade_calc_mode || liveSpec.calcMode || "").toLowerCase();
   if (mode.includes("forex")) return "Forex";
+  if (detectForexPair(symbol)) return "Forex";
   const symbolKey = normalizeSymbol(symbol);
   if (/XAU|XAG|GOLD|SILVER/.test(symbolKey)) return "Metal";
   if (/BTC|ETH|CRYPTO/.test(symbolKey)) return "Cripto";
@@ -313,10 +324,19 @@ function normalizeLiveSymbolSpec(rawSpec = {}, fallbackSymbol = "") {
   if (!Number.isFinite(tickValue) || tickValue <= 0 || !Number.isFinite(tickSize) || tickSize <= 0) return null;
 
   const type = inferLiveInstrumentType(symbol, rawSpec);
-  const unitLabel = liveUnitLabelForSpec(symbol, rawSpec);
-  const explicitPipSize = firstFiniteValue(rawSpec, ["pipSize", "pip_size", "pointSize", "point_size"]);
-  const pipSize = explicitPipSize
-    || (unitLabel === "pips" && Number.isFinite(point) && point > 0 ? point * (digits === 3 || digits === 5 ? 10 : 1) : tickSize);
+  const unitLabel = type === "Forex" ? "pips" : liveUnitLabelForSpec(symbol, rawSpec);
+  const forexPipSize = type === "Forex" ? getForexPipSize(symbol) : null;
+  const explicitPipSize = firstFiniteValue(rawSpec, ["pipSize", "pip_size"]);
+  const explicitPointSize = firstFiniteValue(rawSpec, ["pointSize", "point_size"]);
+  const pipSize = forexPipSize
+    || explicitPipSize
+    || (unitLabel === "pips" && Number.isFinite(point) && point > 0 ? point * (digits === 3 || digits === 5 ? 10 : 1) : (explicitPointSize || tickSize));
+  const unitNormalizationWarning = forexPipSize
+    && Number.isFinite(explicitPointSize)
+    && explicitPointSize > 0
+    && explicitPointSize <= forexPipSize / 2
+      ? "Revisa unidad SL: el cálculo MT5 parece estar usando puntos en lugar de pips. KMFX lo ha normalizado a pips Forex."
+      : "";
   const pipValue = tickValue * (pipSize / tickSize);
   const pipMultiplier = pipSize > 0 ? 1 / pipSize : (point > 0 ? 1 / point : 1);
   return {
@@ -331,6 +351,9 @@ function normalizeLiveSymbolSpec(rawSpec = {}, fallbackSymbol = "") {
     sourceLabel: "Specs MT5",
     sourceDetail: "Sincronizado desde cuenta activa",
     accuracyCopy: "Cálculo basado en especificaciones MT5 de la cuenta activa.",
+    pipSize,
+    forexPipSize,
+    unitNormalizationWarning,
     tickSize,
     tickValue,
     tickValueProfit,
@@ -505,6 +528,12 @@ function unitLabelForType(type) {
   if (type === "Forex") return "pips";
   if (type === "Índice" || type === "Metal") return "puntos";
   return "pips/puntos";
+}
+
+function slDistanceLabelForSpec(spec = {}) {
+  if (spec.type === "Forex") return "Distancia SL (pips)";
+  if (spec.type === "Índice" || spec.type === "Metal") return "Distancia SL (puntos)";
+  return "Distancia SL (pips/puntos)";
 }
 
 function instrumentProfileCopy(spec) {
@@ -704,14 +733,22 @@ function specSourceMarkup(model) {
 }
 
 function lotWarningMarkup(model) {
-  const warning = model.volumeResolution?.warning;
-  if (!warning) return "";
-  return `
+  const warnings = [
+    model.spec.unitNormalizationWarning
+      ? {
+          title: "Unidad SL normalizada",
+          copy: model.spec.unitNormalizationWarning
+        }
+      : null,
+    model.volumeResolution?.warning || null
+  ].filter(Boolean);
+  if (!warnings.length) return "";
+  return warnings.map((warning) => `
     <div class="calculator-lot-warning">
-      <strong>${warning.title}</strong>
-      <span>${warning.copy}</span>
+      <strong>${escapeHtml(warning.title)}</strong>
+      <span>${escapeHtml(warning.copy)}</span>
     </div>
-  `;
+  `).join("");
 }
 
 function riskAdviceMarkup(model, adviceTone) {
@@ -910,6 +947,7 @@ export function renderCalculator(root, state) {
   const calc = model.calc;
   const symbolKey = normalizeSymbol(calc.symbol);
   const unitLabel = model.spec.unitLabel || "pips/puntos";
+  const slDistanceLabel = slDistanceLabelForSpec(model.spec);
   const targetCopy = model.target === null ? "Opcional" : String(model.target);
   const stopModeLabel = calc.slMode === "price" ? "SL precio" : "SL distancia";
   const specLocked = model.spec.source === "live";
@@ -979,7 +1017,7 @@ export function renderCalculator(root, state) {
                 </div>
               </label>
               <label class="form-stack calculator-fast-field">
-                <span>Distancia SL (${unitLabel})</span>
+                <span>${slDistanceLabel}</span>
                 <input type="text" inputmode="decimal" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" autocomplete="off" ${calc.slMode === "price" ? "readonly" : ""}>
                 <div class="calculator-segmented-control calculator-sl-segmented" role="group" aria-label="Modo Stop Loss">
                   <button class="calc-pill ${calc.slMode === "distance" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="distance">Por distancia</button>
@@ -1085,10 +1123,6 @@ export function renderCalculator(root, state) {
           </div>
         </div>
       </details>
-
-      <div class="calculator-authority-footnote">
-        ${renderAuthorityNotice(authorityMeta)}
-      </div>
     </div>
   `;
   restoreFocusedCalculatorField(root, focusedField);
@@ -1145,3 +1179,13 @@ function rrPresetValue(value) {
 function roundPrice(value, decimals = 2) {
   return Number(value.toFixed(decimals));
 }
+
+export const __calculatorTestHooks = {
+  parseForexPair,
+  detectForexPair,
+  getForexPipSize,
+  normalizeLiveSymbolSpec,
+  resolveRiskPerLot,
+  resolveStopPriceDistance,
+  slDistanceLabelForSpec,
+};
