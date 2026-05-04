@@ -972,6 +972,209 @@ function fundingLedgerRowsMarkup(transactions = []) {
   `;
 }
 
+function fundingRuleCommandCardMarkup({ label = "", value = "", meta = "", tone = "neutral" } = {}) {
+  return `
+    <article class="funding-rule-command-card" data-tone="${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${value}</strong>
+      <small>${escapeHtml(meta)}</small>
+    </article>
+  `;
+}
+
+function fundingRulesCommandDeckMarkup(account = {}, daysStatus = tradingDaysStatus(account), challengeStatus = fundedChallengeStatus(account)) {
+  const preset = account.preset || {};
+  const dailyMargin = drawdownMarginPct(account.dailyLimitPct, account.dailyDdPct);
+  const maxMargin = drawdownMarginPct(account.maxLimitPct, account.maxDdPct);
+  const rewardPct = Number(preset.rewardPct ?? preset.payoutSplitPct ?? 0);
+  return `
+    <section class="funding-rules-command-deck" aria-label="Matriz operativa de reglas">
+      ${fundingRuleCommandCardMarkup({
+        label: "Objetivo fase",
+        value: escapeHtml(account.targetPct ? formatRuleValue(account.targetPct) : "Sin objetivo"),
+        meta: account.targetUsd ? `${formatCurrency(account.targetUsd)} objetivo` : "Preservación primero",
+        tone: targetProgressTone(account),
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "DD diario",
+        value: escapeHtml(formatRuleLimitValue(account.dailyLimitPct)),
+        meta: dailyMargin == null ? "Sin margen configurado" : `${formatRuleValue(dailyMargin)} margen · ${dailyResetLabel(preset.dailyReset)}`,
+        tone: drawdownTone(account.dailyUsagePct, account.dailyLimitPct),
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "DD máximo",
+        value: escapeHtml(formatRuleLimitValue(account.maxLimitPct)),
+        meta: maxMargin == null ? "Sin margen configurado" : `${formatRuleValue(maxMargin)} margen · ${maxLossBasisShortLabel(preset.maxLossBasis, preset.drawdownType)}`,
+        tone: drawdownTone(account.maxUsagePct, account.maxLimitPct),
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "Modelo DD",
+        value: escapeHtml(drawdownTypeLabel(preset.drawdownType)),
+        meta: maxLossBasisLabel(preset.maxLossBasis, preset.drawdownType),
+        tone: requiresRuleVerification(account) ? "warning" : "info",
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "Días mínimos",
+        value: escapeHtml(minimumDaysRuleLabel(account)),
+        meta: daysStatus.remaining,
+        tone: daysStatus.tone,
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "Payout split",
+        value: escapeHtml(rewardPct ? formatRuleValue(rewardPct) : "No modelado"),
+        meta: rewardPct ? "Recompensa estimada del preset" : "Pendiente de completar",
+        tone: rewardPct ? "profit" : "neutral",
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "Fuente",
+        value: escapeHtml(fundingRuleDisplayLabel(account)),
+        meta: fundingRuleDisplayMeta(account),
+        tone: fundingRuleTone(account),
+      })}
+      ${fundingRuleCommandCardMarkup({
+        label: "Estado",
+        value: escapeHtml(challengeStatus.label),
+        meta: challengeStatus.detail,
+        tone: challengeStatus.dataTone || "neutral",
+      })}
+    </section>
+  `;
+}
+
+function fundingRulesProtocolMarkup(account = {}, reviewAlerts = []) {
+  const preset = account.preset || {};
+  const primaryAlerts = reviewAlerts.slice(0, 3);
+  const dailyPressure = account.dailyLimitPct ? account.dailyUsagePct : 0;
+  const maxPressure = account.maxLimitPct ? account.maxUsagePct : 0;
+  const pressureTone = dailyPressure >= 80 || maxPressure >= 80 ? "warning" : "profit";
+  return `
+    <section class="funding-rules-protocol" aria-label="Protocolo de reglas">
+      <div class="funding-rules-protocol__main">
+        <div>
+          <span>Protocolo antes de operar</span>
+          <strong>${requiresRuleVerification(account) ? "Validar reglas antes de subir riesgo" : "Reglas listas para ejecución controlada"}</strong>
+          <p>${escapeHtml(ruleNote(account) || fundingRuleDisplayMeta(account))}</p>
+        </div>
+        <div class="funding-rules-protocol__chips">
+          <span data-tone="${escapeHtml(fundingRuleTone(account))}">${escapeHtml(fundingRuleDisplayLabel(account))}</span>
+          <span data-tone="${escapeHtml(pressureTone)}">Presión DD ${Math.max(Math.round(dailyPressure), Math.round(maxPressure))}%</span>
+          <span data-tone="info">${escapeHtml(preset.programName || account.programModel || "Preset")}</span>
+        </div>
+      </div>
+      <div class="funding-rules-alert-list">
+        ${primaryAlerts.map((alert) => `
+          <div class="funding-rules-alert-item" data-tone="${escapeHtml(alert.tone)}">
+            <span class="funding-review-row__dot" aria-hidden="true"></span>
+            <div>
+              <strong>${escapeHtml(alert.title)}</strong>
+              <small>${escapeHtml(alert.detail)}</small>
+            </div>
+          </div>
+        `).join("")}
+        ${primaryAlerts.length ? "" : `
+          <div class="funding-rules-alert-item" data-tone="profit">
+            <span class="funding-review-row__dot" aria-hidden="true"></span>
+            <div>
+              <strong>Sin bloqueos críticos</strong>
+              <small>La matriz no detecta presión severa sobre reglas.</small>
+            </div>
+          </div>
+        `}
+      </div>
+    </section>
+  `;
+}
+
+function fundingPayoutCashflowCardMarkup({ label = "", value = "", meta = "", tone = "neutral" } = {}) {
+  return `
+    <article class="funding-payout-cashflow-card" data-tone="${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${value}</strong>
+      <small>${escapeHtml(meta)}</small>
+    </article>
+  `;
+}
+
+function fundingPayoutCashflowMarkup(economics = {}) {
+  const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
+  return `
+    <section class="funding-payout-cashflow-grid" aria-label="Cashflow de fondeo">
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Costes",
+        value: escapeHtml(formatCurrency(economics.totalSpent || 0)),
+        meta: "Challenge, reset y rebuy",
+        tone: economics.totalSpent > 0 ? "warning" : "neutral",
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Refunds",
+        value: escapeHtml(formatCurrency(economics.totalRefunds || 0)),
+        meta: "Devoluciones recuperadas",
+        tone: economics.totalRefunds > 0 ? "profit" : "neutral",
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Payouts",
+        value: escapeHtml(formatCurrency(economics.totalPayouts || 0)),
+        meta: "Pagos recibidos",
+        tone: economics.totalPayouts > 0 ? "profit" : "neutral",
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Retiros",
+        value: escapeHtml(formatCurrency(economics.totalWithdrawals || 0)),
+        meta: "Capital retirado",
+        tone: economics.totalWithdrawals > 0 ? "profit" : "neutral",
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Neto",
+        value: economicsAmountMarkup(economics.netFundingResult || 0),
+        meta: "Resultado funding puro",
+        tone: fundingPayoutTone(economics.netFundingResult || 0),
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "ROI costes",
+        value: economicsRoiMarkup(economics.roiOnCosts),
+        meta: "Retorno sobre fees",
+        tone: economics.roiOnCosts == null ? "neutral" : fundingPayoutTone(economics.roiOnCosts),
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Cash in",
+        value: escapeHtml(formatCurrency(payoutAndWithdrawals + Number(economics.totalRefunds || 0))),
+        meta: "Payouts, retiros y refunds",
+        tone: payoutAndWithdrawals || economics.totalRefunds ? "profit" : "neutral",
+      })}
+      ${fundingPayoutCashflowCardMarkup({
+        label: "Ajustes",
+        value: escapeHtml(formatCurrency(economics.totalAdjustments || 0)),
+        meta: "Descuentos y ajustes manuales",
+        tone: fundingPayoutTone(economics.totalAdjustments || 0),
+      })}
+    </section>
+  `;
+}
+
+function fundingPayoutReadinessMarkup(account = {}, economics = {}, transactions = []) {
+  const preset = account.preset || {};
+  const splitPct = Number(preset.rewardPct ?? preset.payoutSplitPct ?? 0);
+  const eligibleProfit = Math.max(Number(account.currentProfitUsd || 0), 0);
+  const estimatedPayout = splitPct ? (eligibleProfit * splitPct) / 100 : 0;
+  const latestTransaction = transactions[0] || null;
+  const readinessTone = estimatedPayout > 0 ? "profit" : economics.hasTransactions ? "info" : "warning";
+  return `
+    <section class="funding-payout-readiness" data-tone="${escapeHtml(readinessTone)}" aria-label="Estado de cobro">
+      <div class="funding-payout-readiness__copy">
+        <span>Estado de cobro</span>
+        <strong>${estimatedPayout > 0 ? `${formatCurrency(estimatedPayout)} estimado` : "Sin payout estimado"}</strong>
+        <p>${estimatedPayout > 0 ? "Estimación basada en beneficio positivo y split modelado; registrar sólo pagos reales cuando se reciban." : "Esta página separa cashflow de fondeo del P&L operativo hasta que exista payout real."}</p>
+      </div>
+      <div class="funding-payout-readiness__grid">
+        <span><small>Split</small><strong>${splitPct ? formatRuleValue(splitPct) : "No modelado"}</strong></span>
+        <span><small>Beneficio elegible</small><strong>${formatCurrency(eligibleProfit)}</strong></span>
+        <span><small>Último movimiento</small><strong>${latestTransaction ? escapeHtml(latestTransaction.date || "—") : "Sin ledger"}</strong></span>
+        <span><small>Movimientos</small><strong>${transactions.length}</strong></span>
+      </div>
+    </section>
+  `;
+}
+
 function fundingCardEconomicsValue(economics = {}) {
   if (!economics.hasTransactions) return "Pendiente";
   return economicsAmountMarkup(economics.netFundingResult || 0);
@@ -1782,8 +1985,8 @@ export function renderFunded(root, state) {
       <article class="tl-section-card funding-rules-command-panel" data-tone="${challengeStatus.dataTone}">
         <div class="funding-detail-header">
           <div>
-            <div class="tl-section-title">Matriz de reglas</div>
-            <div class="funding-detail-title">${escapeHtml(fundingRuleDisplayMeta(selected))}</div>
+            <div class="tl-section-title">Command center de reglas</div>
+            <div class="funding-detail-title">Límites, fuente oficial y protocolo operativo.</div>
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
             ${fundingJourneyMetaLine(selected) ? `<div class="funding-detail-sub">${escapeHtml(fundingJourneyMetaLine(selected))}</div>` : ""}
           </div>
@@ -1792,9 +1995,9 @@ export function renderFunded(root, state) {
             <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
           </div>
         </div>
-        <div class="funding-reading-grid funding-rules-command-grid">
-          ${fundingRulesVisualMarkup(selected)}
-          ${fundingCurrentStateMarkup(selected, selectedFundingEconomics, daysStatus)}
+        <div class="funding-rules-command-layout">
+          ${fundingRulesCommandDeckMarkup(selected, daysStatus, challengeStatus)}
+          ${fundingRulesProtocolMarkup(selected, reviewAlerts)}
         </div>
       </article>
       ` : ""}
@@ -1813,15 +2016,14 @@ export function renderFunded(root, state) {
           </div>
         </div>
         <div class="funding-payout-ledger-grid">
-          <div class="funding-economics-panel" aria-label="Economía del fondeo">
-            ${fundingEconomicsMarkup(selectedFundingEconomics)}
-          </div>
+          ${fundingPayoutCashflowMarkup(selectedFundingEconomics)}
+          ${fundingPayoutReadinessMarkup(selected, selectedFundingEconomics, selectedFundingTransactions)}
           ${fundingLedgerRowsMarkup(selectedFundingTransactions)}
         </div>
       </article>
       ` : ""}
 
-      ${showChallenges || showRules ? `
+      ${showChallenges ? `
       <article class="tl-section-card funding-review-panel">
         <div class="funding-section-head">
           <div>
