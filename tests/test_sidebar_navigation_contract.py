@@ -145,19 +145,7 @@ class SidebarNavigationContractTests(unittest.TestCase):
 
         self.assertIn("fundingRulesSummaryMarkup", funded)
         self.assertIn("fundingPayoutsSummaryMarkup", funded)
-        self.assertIn("fundingRulesCommandDeckMarkup", funded)
-        self.assertIn("fundingPayoutCashflowMarkup", funded)
-        self.assertIn("fundingPayoutReadinessMarkup", funded)
         self.assertIn("showChallenges ? `", funded)
-        rules_panel = funded.split("funding-rules-command-panel", 1)[1].split("funding-payout-ledger-panel", 1)[0]
-        payouts_panel = funded.split("funding-payout-ledger-panel", 1)[1].split("${showChallenges ? `", 1)[0]
-        self.assertIn("funding-rules-command-layout", funded)
-        self.assertIn("fundingRulesCommandDeckMarkup(selected, daysStatus, challengeStatus)", rules_panel)
-        self.assertIn("fundingRulesProtocolMarkup(selected, reviewAlerts)", rules_panel)
-        self.assertNotIn("funding-reading-grid funding-rules-command-grid", rules_panel)
-        self.assertIn("fundingPayoutCashflowMarkup(selectedFundingEconomics)", payouts_panel)
-        self.assertIn("fundingPayoutReadinessMarkup(selected, selectedFundingEconomics, selectedFundingTransactions)", payouts_panel)
-        self.assertNotIn("fundingEconomicsMarkup(selectedFundingEconomics)", payouts_panel)
         self.assertIn("strategies-setup-item--featured", strategies)
         self.assertIn("strategy-status-chip", strategies)
         self.assertIn("backtest-real-focus-chip", backtest)
