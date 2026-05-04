@@ -351,6 +351,32 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(context["is_admin"])
         self.assertIsNone(response)
 
+    def test_signed_bearer_uses_fresh_supabase_app_metadata_for_admin(self) -> None:
+        request = self._request(headers={"authorization": "Bearer signed-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_signed_bearer_claims",
+            return_value={
+                "sub": "admin-user",
+                "email": "admin@kmfxedge.com",
+                "app_metadata": {"provider": "google"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "_resolve_supabase_user_claims",
+            return_value={
+                "sub": "admin-user",
+                "email": "admin@kmfxedge.com",
+                "app_metadata": {"provider": "google", "role": "admin", "kmfx_admin": True},
+                "user_metadata": {},
+            },
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertTrue(context["is_admin"])
+        self.assertEqual("admin", context["app_metadata"]["role"])
+
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
         with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):

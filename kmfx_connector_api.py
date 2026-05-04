@@ -698,9 +698,29 @@ def _resolve_supabase_user_claims(request: Request) -> dict[str, Any]:
 
 
 def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
-    # Prefer local JWT validation when SUPABASE_JWT_SECRET is configured; otherwise
-    # verify the bearer with Supabase Auth. Public X-KMFX-* headers are never enough.
-    return _resolve_signed_bearer_claims(request) or _resolve_supabase_user_claims(request)
+    # Prefer local JWT validation when SUPABASE_JWT_SECRET is configured, but
+    # refresh metadata from Supabase Auth when possible. JWT app_metadata can be
+    # stale until the user's session refreshes; the Auth user endpoint gives the
+    # current server-side app_metadata for the same verified bearer token.
+    signed_claims = _resolve_signed_bearer_claims(request)
+    auth_user_claims = _resolve_supabase_user_claims(request)
+    if not signed_claims:
+        return auth_user_claims
+    if not auth_user_claims:
+        return signed_claims
+
+    merged_claims = deepcopy(signed_claims)
+    for key in ("sub", "email"):
+        fresh_value = safe_str(auth_user_claims.get(key))
+        if fresh_value:
+            merged_claims[key] = fresh_value
+    for key in ("app_metadata", "user_metadata"):
+        merged_claims[key] = {
+            **ensure_dict(merged_claims.get(key)),
+            **ensure_dict(auth_user_claims.get(key)),
+        }
+    merged_claims["source"] = "signed_bearer+supabase_auth_user"
+    return merged_claims
 
 
 def _resolve_verified_bearer_email(request: Request) -> str:
