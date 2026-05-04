@@ -2050,7 +2050,7 @@ body,
 }
 
 .tool-card {
-  max-width: 100%;
+  max-width: 760px;
   margin-bottom: 14px;
   border-radius: var(--radius-xl);
   background: var(--surface-raised) !important;

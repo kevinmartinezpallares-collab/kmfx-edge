@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import os
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from launcher.backend_client import BackendClient, BackendResponse
 from launcher.connection_keys import clean_connection_key, payload_connection_key, resolve_effective_connection_key
 from launcher.config import LauncherConfig
+from launcher.state_store import LauncherStateStore
 
 
 class RecordingBackendClient(BackendClient):
@@ -84,6 +88,31 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         safe_url = client._safe_url("https://api.example.test/api/mt5/policy?login=123&connection_key=abcdef1234567890")
         self.assertNotIn("abcdef1234567890", safe_url)
         self.assertIn("connection_key=abcdef...7890", safe_url)
+
+    def test_launcher_state_store_keeps_local_account_connection_keys_by_account(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                store = LauncherStateStore()
+                store.save_account_connection(
+                    {
+                        "account_id": "account-1",
+                        "label": "Orion MT5",
+                        "connection_key": "first-local-key",
+                    }
+                )
+                store.save_account_connection(
+                    {
+                        "account_id": "account-1",
+                        "label": "Orion MT5",
+                        "connection_key": "rotated-local-key",
+                    }
+                )
+
+                connections = store.list_account_connections()
+
+        self.assertEqual(1, len(connections))
+        self.assertEqual("account-1", connections[0]["account_id"])
+        self.assertEqual("rotated-local-key", connections[0]["connection_key"])
 
 
 if __name__ == "__main__":

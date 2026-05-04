@@ -37,6 +37,7 @@ from .mt5_detector import MT5Installation, detect_mt5_installations
 from .platform_mac import open_mt5 as open_mt5_mac
 from .platform_windows import open_mt5 as open_mt5_windows
 from .resources import app_root, is_packaged, resource_path
+from .state_store import LauncherStateStore
 
 
 ROOT = app_root()
@@ -125,6 +126,7 @@ class KMFXApi:
         self.config: LauncherConfig = load_config().ensure_runtime_values()
         self.logger = configure_logging(self.config.debug)
         self.backend = BackendClient(self.config)
+        self.store = LauncherStateStore()
         self.installations: list[MT5Installation] = []
         self.service_process: subprocess.Popen[str] | None = None
         self.service_thread: threading.Thread | None = None
@@ -343,20 +345,73 @@ class KMFXApi:
             return {"ok": False, "message": "El backend no devolvió connection key."}
         self.config.connection_key = connection_key
         self.config.connection_key_user_id = self.config.auth_user_id
+        self.cache_linked_account_connection(body, label="KMFX Connector MT5")
         save_config(self.config)
         save_bridge_config(self.config, user_id=self.config.auth_user_id)
         self.fetch_json("/bridge/reload-config")
         self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
         return {"ok": True, "connection_key": mask_connection_key(connection_key)}
 
+    def cache_linked_account_connection(self, body: dict[str, Any] | None, *, label: str = "") -> None:
+        if not isinstance(body, dict):
+            return
+        launcher_config = body.get("launcher_config") if isinstance(body.get("launcher_config"), dict) else {}
+        connection_key = _safe_str(body.get("connection_key") or launcher_config.get("connection_key"))
+        account_id = _safe_str(body.get("account_id"))
+        if not account_id or not connection_key:
+            return
+        self.store.save_account_connection(
+            {
+                "account_id": account_id,
+                "label": _sanitize_account_label(label or body.get("alias") or body.get("display_name") or "Cuenta MT5"),
+                "platform": "mt5",
+                "connection_key": connection_key,
+                "connection_key_masked": mask_connection_key(connection_key),
+                "status": "pending_link",
+                "last_sync_at": "",
+            }
+        )
+
+    def link_account_error_message(self, response: BackendResponse) -> str:
+        body = response.body if isinstance(response.body, dict) else {}
+        reason = _safe_str(body.get("reason") or body.get("error"))
+        details = body.get("details") if isinstance(body.get("details"), dict) else {}
+        if reason == "connection_limit_exceeded":
+            limit = details.get("connection_limit")
+            current = details.get("current_connections")
+            if limit is not None and current is not None:
+                return f"Límite de conexiones alcanzado: tu plan permite {limit} cuenta MT5 y ya tienes {current}."
+            return "Límite de conexiones alcanzado. Libera una cuenta o amplía el límite en KMFX Edge."
+        if reason == "connection_keys_not_allowed":
+            return "Tu plan no tiene conexiones MT5 activas. Revisa el acceso de tu cuenta en KMFX Edge."
+        if reason == "auth_required":
+            return "Inicia sesión de nuevo para crear una conexión MT5."
+        if reason == "connection_key_already_linked":
+            return "Esta clave ya está vinculada a otra cuenta."
+        if response.status_code == 0:
+            return "No se pudo conectar con el servidor de KMFX."
+        return "No se pudo crear la conexión MT5."
+
     def get_account_connections(self) -> list[dict[str, Any]]:
         with self._lock:
             if not self.get_session().get("authenticated"):
                 return []
             self.ensure_installed_account_links()
+            cached_connections = self.store.list_account_connections()
+            cached_by_id = {
+                _safe_str(account.get("account_id")): account
+                for account in cached_connections
+                if _safe_str(account.get("account_id")) and _safe_str(account.get("connection_key"))
+            }
             response = self.backend.get_accounts_registry()
             if not response.ok:
                 connections = list(self._last_account_connections)
+                if not connections:
+                    connections = [
+                        self.serialize_account_connection(account)
+                        for account in cached_connections
+                        if _safe_str(account.get("connection_key"))
+                    ]
                 if not connections and self.config.connection_key:
                     connections = [self.serialize_local_connection_fallback()]
                 return connections
@@ -364,13 +419,28 @@ class KMFXApi:
             accounts = response.body.get("accounts") if isinstance(response.body, dict) else []
             if not isinstance(accounts, list):
                 accounts = []
+            hydrated_accounts: list[dict[str, Any]] = []
+            for account in accounts:
+                if not isinstance(account, dict):
+                    continue
+                hydrated = dict(account)
+                cached = cached_by_id.get(_safe_str(hydrated.get("account_id")))
+                if cached and not _safe_str(hydrated.get("connection_key")):
+                    hydrated["connection_key"] = _safe_str(cached.get("connection_key"))
+                    hydrated["connection_key_masked"] = mask_connection_key(hydrated["connection_key"])
+                hydrated_accounts.append(hydrated)
             connections = [
                 self.serialize_account_connection(account)
-                for account in accounts
-                if isinstance(account, dict)
-                and _safe_str(account.get("connection_key"))
+                for account in hydrated_accounts
+                if _safe_str(account.get("connection_key"))
                 and self.should_show_account_connection(account)
             ]
+            present_ids = {_safe_str(connection.get("account_id")) for connection in connections}
+            for cached in cached_connections:
+                account_id = _safe_str(cached.get("account_id"))
+                if account_id and account_id not in present_ids and _safe_str(cached.get("connection_key")):
+                    connections.append(self.serialize_account_connection(cached))
+                    present_ids.add(account_id)
             if self.config.connection_key and not self._connection_key_present(connections, self.config.connection_key):
                 connections.append(self.serialize_local_connection_fallback())
             connections.sort(key=lambda item: (item["status_order"], item["label"].lower(), item["login"]))
@@ -389,7 +459,8 @@ class KMFXApi:
                 connection_key="",
             )
             if not response.ok:
-                return {"ok": False, "message": "No se pudo crear la conexión MT5."}
+                return {"ok": False, "message": self.link_account_error_message(response)}
+            self.cache_linked_account_connection(response.body, label=resolved_label)
             return {
                 "ok": True,
                 "message": "Conexión MT5 creada.",
@@ -417,6 +488,7 @@ class KMFXApi:
                 connection_key=connection_key,
             )
             if response.ok:
+                self.cache_linked_account_connection(response.body, label=label)
                 self.logger.info(
                     "[KMFX][LAUNCHER][LINK] installed MT5 connection synced target=%s key=%s",
                     installation.label,

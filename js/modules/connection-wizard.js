@@ -1,6 +1,6 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-071418";
-import { buildApiUrl } from "./api-config.js?v=build-20260504-071418";
-import { showToast } from "./toast.js?v=build-20260504-071418";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
+import { buildApiUrl } from "./api-config.js?v=build-20260504-074512";
+import { showToast } from "./toast.js?v=build-20260504-074512";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
@@ -38,14 +38,11 @@ function escapeHtml(value = "") {
 }
 
 function openLauncher() {
-  const fallbackUrl = launcherDownloadUrl();
   try {
+    showToast("Abriendo KMFX Launcher. Si no se abre, usa el botón de descarga.", "info");
     window.location.href = LAUNCHER_OPEN_URL;
-    window.setTimeout(() => {
-      window.open(fallbackUrl, "_blank", "noopener");
-    }, 900);
   } catch {
-    window.open(fallbackUrl, "_blank", "noopener");
+    showToast("No se pudo abrir el Launcher. Descárgalo desde esta pantalla.", "warning");
   }
 }
 
@@ -227,7 +224,8 @@ function renderEaConfigStep(state) {
             <div class="connection-wizard__checklist-item">3. Cierra y vuelve a abrir MetaTrader 5 después de instalar el conector.</div>
             <div class="connection-wizard__checklist-item">4. Activa Algo Trading en MT5.</div>
             <div class="connection-wizard__checklist-item">5. Arrastra KMFXConnector a cualquier gráfico activo.</div>
-            <div class="connection-wizard__checklist-item">6. En el siguiente paso recibirás la clave de conexión para pegarla en el campo KMFXKey del EA.</div>
+            <div class="connection-wizard__checklist-item">6. Cada cuenta MT5 usa su propia clave. Para otra instancia de la misma cuenta puedes reutilizar la misma clave.</div>
+            <div class="connection-wizard__checklist-item">7. En el siguiente paso recibirás la clave para pegarla en el campo KMFXKey del EA.</div>
           </div>
           <div class="connection-wizard__inline-actions">
             <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
@@ -325,6 +323,7 @@ function renderConfirmationStep(state) {
           </div>
         </div>
         <div class="connection-wizard__checklist">
+          <div class="connection-wizard__checklist-item">Guarda esta clave si vas a preparar la misma cuenta en otra instancia de MT5.</div>
           <div class="connection-wizard__checklist-item">Después de pegarla, abre MT5 con la cuenta correcta y espera el primer sync.</div>
           <div class="connection-wizard__checklist-item">Cuando Experts muestre conectado a KMFX, la cuenta aparecerá en Cuentas y Dashboard.</div>
         </div>
@@ -355,6 +354,29 @@ function renderWizardMarkup(state) {
   `;
 }
 
+function formatConnectionError(payload, fallback = "No se pudo generar la clave de conexión.") {
+  const reason = String(payload?.reason || payload?.error || "").trim();
+  const details = payload?.details && typeof payload.details === "object" ? payload.details : {};
+  if (reason === "connection_limit_exceeded") {
+    const limit = Number(details.connection_limit);
+    const current = Number(details.current_connections);
+    if (Number.isFinite(limit) && Number.isFinite(current)) {
+      return `Límite de conexiones alcanzado. Tu plan permite ${limit} cuenta MT5 y ya tienes ${current}.`;
+    }
+    return "Límite de conexiones alcanzado. Libera una cuenta o amplía el límite antes de crear otra key.";
+  }
+  if (reason === "connection_keys_not_allowed") {
+    return "Tu cuenta no tiene conexiones MT5 activas. Revisa el acceso del plan antes de crear una key.";
+  }
+  if (reason === "auth_required") {
+    return "Tu sesión ha expirado. Inicia sesión de nuevo para crear la key.";
+  }
+  if (reason === "connection_key_already_linked") {
+    return "Esta clave ya está vinculada a otra cuenta.";
+  }
+  return reason ? reason.replaceAll("_", " ") : fallback;
+}
+
 async function createEaConnection(card, state, options = {}, store = activeWizardStore) {
   const body = card?.querySelector(".modal-body");
   const label = String(body?.querySelector("[name='eaLabel']")?.value || "Cuenta MT5 EA").trim() || "Cuenta MT5 EA";
@@ -375,7 +397,7 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
     });
     const payload = await response.json();
     if (!response.ok || payload?.ok === false || !payload?.connection_key) {
-      throw new Error(payload?.reason || "No se pudo generar la clave de conexión.");
+      throw new Error(formatConnectionError(payload));
     }
     state.ea = {
       label,

@@ -275,6 +275,7 @@ function renderAccountConnections() {
         .filter(Boolean)
         .join(" · ");
       const primaryMeta = meta || "Sin datos de broker hasta el primer sync";
+      const keyLabel = connection.connection_key_masked ? `Key ${connection.connection_key_masked}` : "";
       const installation = installationForConnection(connection);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
       const actionDisabled = state.busy || !targetInstallationLabel;
@@ -290,6 +291,7 @@ function renderAccountConnections() {
               <span class="status-badge ${statusKind}">${escapeHtml(connection.status_label || "Pendiente")}</span>
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
+            ${keyLabel ? `<span class="connection-meta">${escapeHtml(keyLabel)}</span>` : ""}
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
           </div>
           <div class="connection-state-card">
@@ -300,6 +302,9 @@ function renderAccountConnections() {
           <div class="connection-row-actions">
             <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               ${isActive ? "Reinstalar" : "Instalar conector"}
+            </button>
+            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.connection_key || "")}" data-copy-label="Key copiada" ${connection.connection_key ? "" : "disabled"}>
+              Copiar key
             </button>
             <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               Abrir MT5
@@ -511,6 +516,7 @@ async function performAction(method, successMessage, ...args) {
   try {
     const result = await callApi(method, ...args);
     showToast(result.message || successMessage);
+    if (result.ok === false) return;
     if (result.status) state.status = result.status;
     if (result.installations) state.installations = result.installations;
     if (result.account_connections) state.accountConnections = result.account_connections;

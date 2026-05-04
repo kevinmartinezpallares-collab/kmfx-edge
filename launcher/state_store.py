@@ -44,6 +44,7 @@ class LauncherStateStore:
             "receipts": {"snapshot": {}, "journal": {}},
             "cached_policy": {},
             "bindings": [],
+            "account_connections": [],
             "last_sync": {},
             "last_policy": {},
             "last_backend_error": "",
@@ -164,3 +165,22 @@ class LauncherStateStore:
             bindings[:] = [item for item in bindings if str(item.get("account_id") or "") != account_id]
             bindings.append(deepcopy(binding))
             self._save(self._state)
+
+    def save_account_connection(self, account: dict[str, Any]) -> None:
+        account_id = str(account.get("account_id") or "").strip()
+        connection_key = str(account.get("connection_key") or "").strip()
+        if not account_id or not connection_key:
+            return
+        with self._lock:
+            connections = self._state.setdefault("account_connections", [])
+            connections[:] = [item for item in connections if str(item.get("account_id") or "").strip() != account_id]
+            stored = deepcopy(account)
+            stored["account_id"] = account_id
+            stored["connection_key"] = connection_key
+            stored["updated_at"] = _now_iso()
+            connections.append(stored)
+            self._save(self._state)
+
+    def list_account_connections(self) -> list[dict[str, Any]]:
+        with self._lock:
+            return deepcopy(self._state.setdefault("account_connections", []))
