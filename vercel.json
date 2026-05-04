@@ -107,6 +107,16 @@
       "source": "/funded",
       "destination": "/funding",
       "permanent": true
+    },
+    {
+      "source": "/study",
+      "destination": "/estudio",
+      "permanent": true
+    },
+    {
+      "source": "/glossary",
+      "destination": "/estudio",
+      "permanent": true
     }
   ],
   "rewrites": [
@@ -152,6 +162,18 @@
     },
     {
       "source": "/funding/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/market",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/estudio",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/debug",
       "destination": "/index.html"
     },
     {

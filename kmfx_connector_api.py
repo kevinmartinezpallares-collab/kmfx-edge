@@ -25,6 +25,14 @@ from account_service import AccountService, account_summary_fields_from_payload
 from account_store import JsonFileAccountStore
 from ai_evidence_report import build_ai_evidence_report
 from backtest_real_engine import build_backtest_vs_real_report
+from direct_mt5_provider import (
+    DirectMt5ProviderError,
+    DirectMt5ProviderUnavailable,
+    direct_provider_status_dict,
+    get_direct_mt5_provider,
+    infer_broker_from_server,
+    list_direct_mt5_servers,
+)
 from mt5_strategy_tester_importer import parse_mt5_strategy_tester_reports
 from risk_enforcement_engine import build_risk_status
 from risk_metrics_engine import aggregate_portfolio_risk, build_risk_metrics, extract_previous_risk_snapshot
@@ -1274,6 +1282,44 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         merged_entry["source"] = merged_entry.get("source") or "store"
         merged_accounts[account_id] = merged_entry
 
+    for entry in account_service.build_accounts_registry(user_id):
+        if not isinstance(entry, dict):
+            continue
+        account_id = safe_str(entry.get("account_id"))
+        if not account_id or account_id in merged_accounts:
+            continue
+        if safe_str(entry.get("connection_mode")).lower() != "direct":
+            continue
+        pending_entry = deepcopy(entry)
+        display_name = safe_str(
+            pending_entry.get("display_name")
+            or pending_entry.get("alias")
+            or pending_entry.get("login")
+            or "Cuenta MT5 directa"
+        )
+        pending_entry["source"] = "direct_registered_pending"
+        pending_entry["is_default"] = bool(pending_entry.get("is_default") or pending_entry.get("is_primary"))
+        pending_entry["dashboard_payload"] = {
+            "payloadSource": "mt5_direct_pending",
+            "data_status": "pending_direct_backend",
+            "name": display_name,
+            "accountName": display_name,
+            "broker": pending_entry.get("broker") or "MT5",
+            "server": pending_entry.get("server") or "",
+            "login": pending_entry.get("login") or pending_entry.get("mt5_login") or "",
+            "mode": "MT5 Directa",
+            "tagline": "Cuenta directa registrada. Pendiente de motor backend para sincronizar datos live.",
+            "trades": [],
+            "positions": [],
+            "history": [],
+            "account": {
+                "broker": pending_entry.get("broker") or "MT5",
+                "server": pending_entry.get("server") or "",
+                "login": pending_entry.get("login") or pending_entry.get("mt5_login") or "",
+            },
+        }
+        merged_accounts[account_id] = pending_entry
+
     for connection_key in allowed_connection_keys:
         account = resolve_account_by_connection_key(connection_key)
         if account is None:
@@ -2121,6 +2167,165 @@ def build_dashboard_account_payload(
     }
 
 
+def build_direct_mt5_dashboard_payload(
+    provider_result: dict[str, Any],
+    *,
+    label: str,
+    previous_payload: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    raw_account = ensure_dict(provider_result.get("account"))
+    account, account_issues = sanitize_account(raw_account)
+    if not account.get("broker"):
+        account["broker"] = infer_broker_from_server(account.get("server", "")) or "MT5"
+    if not account.get("name"):
+        account["name"] = label or account.get("broker") or "MT5 Direct"
+
+    positions, position_issues = sanitize_positions(provider_result.get("positions"))
+    trades, trade_issues = sanitize_trades(provider_result.get("trades"))
+    history, history_issues = sanitize_trades(provider_result.get("history") or provider_result.get("trades"))
+    raw_dashboard_payload = provider_result.get("dashboard_payload") if isinstance(provider_result.get("dashboard_payload"), dict) else {}
+
+    if raw_dashboard_payload:
+        dashboard_payload = deepcopy(raw_dashboard_payload)
+        dashboard_payload.setdefault("accountName", label or dashboard_payload.get("accountName") or account.get("broker") or "MT5 Direct")
+        dashboard_payload.setdefault("name", dashboard_payload.get("accountName"))
+        dashboard_payload.setdefault("broker", account.get("broker") or "MT5")
+        dashboard_payload.setdefault("server", account.get("server") or "")
+        dashboard_payload.setdefault("login", account.get("login") or "")
+        dashboard_payload.setdefault("platform", "mt5")
+        dashboard_payload.setdefault("environment", "live")
+        dashboard_payload.setdefault("positions", positions)
+        dashboard_payload.setdefault("trades", trades)
+        dashboard_payload.setdefault("history", history)
+    else:
+        raw_payload = {
+            "mode": "DIRECT_MT5",
+            "timestamp": now_iso(),
+            "history": history,
+            "symbolSpecs": provider_result.get("symbolSpecs") or provider_result.get("symbol_specs") or {},
+        }
+        dashboard_payload = build_dashboard_account_payload(
+            account=account,
+            positions=positions,
+            trades=trades,
+            raw_payload=raw_payload,
+            previous_payload=previous_payload,
+        )
+
+    dashboard_payload["payloadSource"] = "mt5_direct_live"
+    dashboard_payload["data_status"] = "live"
+    dashboard_payload["mode"] = dashboard_payload.get("mode") or "MT5 Directa"
+    dashboard_payload["directSync"] = {
+        "provider": provider_result.get("provider", ""),
+        "provider_connection_id": provider_result.get("provider_connection_id", ""),
+        "message": provider_result.get("message", "MT5 account linked and synced"),
+        **ensure_dict(provider_result.get("metrics")),
+    }
+    dashboard_payload["syncIssues"] = [
+        *account_issues,
+        *position_issues,
+        *trade_issues,
+        *history_issues,
+    ]
+    return account, dashboard_payload
+
+
+def sync_direct_mt5_provider_account(
+    *,
+    user_id: str,
+    account_id: str,
+    connection_key: str,
+    label: str,
+    login: str,
+    server: str,
+    password: str,
+    broker: str = "",
+) -> dict[str, Any]:
+    provider = get_direct_mt5_provider()
+    provider_status = provider.status()
+    if not provider_status.configured:
+        return {
+            "ok": False,
+            "available": False,
+            "fatal": False,
+            "reason": "direct_mt5_provider_unavailable",
+            "message": "Direct MT5 provider is not configured.",
+            "provider": direct_provider_status_dict(),
+        }
+
+    try:
+        provider_result = provider.link_account(
+            {
+                "login": login,
+                "server": server,
+                "password": password,
+                "broker": broker,
+            }
+        )
+    except DirectMt5ProviderUnavailable as exc:
+        return {
+            "ok": False,
+            "available": False,
+            "fatal": False,
+            "reason": exc.reason,
+            "message": exc.message,
+            "provider": direct_provider_status_dict(),
+        }
+    except DirectMt5ProviderError as exc:
+        return {
+            "ok": False,
+            "available": True,
+            "fatal": True,
+            "reason": exc.reason,
+            "message": exc.message,
+            "status_code": exc.status_code,
+            "retryable": exc.retryable,
+            "details": exc.details,
+            "provider": direct_provider_status_dict(),
+        }
+
+    if provider_result.get("ok") is False:
+        return {
+            "ok": False,
+            "available": True,
+            "fatal": True,
+            "reason": safe_str(provider_result.get("reason"), "direct_mt5_provider_rejected"),
+            "message": safe_str(provider_result.get("message"), "Direct MT5 provider rejected the connection."),
+            "status_code": 400,
+            "provider": direct_provider_status_dict(),
+        }
+
+    snapshot = account_service.build_accounts_snapshot(user_id)
+    previous_payload = None
+    previous_entry = find_scoped_account_entry(snapshot, account_id)
+    if previous_entry and isinstance(previous_entry.get("dashboard_payload"), dict):
+        previous_payload = previous_entry["dashboard_payload"]
+    account_info, dashboard_payload = build_direct_mt5_dashboard_payload(
+        provider_result,
+        label=label,
+        previous_payload=previous_payload,
+    )
+    synced = account_service.ingest_account_snapshot(
+        user_id=user_id,
+        account_info=account_info,
+        connection_mode="direct",
+        payload=dashboard_payload,
+        account_id=account_id,
+        api_key=connection_key,
+        nickname=label,
+    )
+    return {
+        "ok": True,
+        "available": True,
+        "fatal": False,
+        "provider": direct_provider_status_dict(),
+        "provider_connection_id": provider_result.get("provider_connection_id", ""),
+        "message": provider_result.get("message", "MT5 account linked and synced"),
+        "metrics": ensure_dict(provider_result.get("metrics")),
+        "account_id": synced.account_id,
+    }
+
+
 def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_id: str = "") -> JSONResponse:
     return connector_json_response(
         {
@@ -2361,8 +2566,12 @@ async def create_account(request: Request) -> JSONResponse:
     )
 
 
-@app.post("/api/accounts/link")
-async def link_account(request: Request) -> JSONResponse:
+@app.get("/api/direct-mt5/brokers")
+async def direct_mt5_brokers(
+    request: Request,
+    q: str = Query("", max_length=80),
+    limit: int = Query(160, ge=1, le=500),
+) -> JSONResponse:
     scope_user_id, auth_context = resolve_account_scope(request)
     if not scope_user_id:
         return connector_json_response(
@@ -2373,11 +2582,48 @@ async def link_account(request: Request) -> JSONResponse:
             },
             status_code=401,
         )
+    return connector_json_response(
+        {
+            "ok": True,
+            "servers": list_direct_mt5_servers(q, limit),
+            "provider": direct_provider_status_dict(),
+            "is_admin": auth_context["is_admin"],
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/direct-mt5/link")
+async def direct_mt5_link(request: Request) -> JSONResponse:
     try:
         payload = await request.json()
     except Exception:
         payload = {}
+    payload = dict(payload) if isinstance(payload, dict) else {}
+    payload["connection_mode"] = "direct"
+    return await link_account_from_payload(request, payload)
 
+
+@app.post("/api/accounts/link")
+async def link_account(request: Request) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    return await link_account_from_payload(request, payload if isinstance(payload, dict) else {})
+
+
+async def link_account_from_payload(request: Request, payload: dict[str, Any]) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
     user_id = scope_user_id
     raw_label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname"))
     label = raw_label or "Nueva cuenta MT5"
@@ -2558,6 +2804,37 @@ async def link_account(request: Request) -> JSONResponse:
             connection_key = created.api_key
             account_id = created.account_id
 
+    direct_sync_result: dict[str, Any] | None = None
+    direct_password = safe_str(payload.get("password") or payload.get("investor_password") or payload.get("investorPassword"))
+    if connection_mode == "direct" and direct_login and direct_server and direct_password:
+        direct_sync_result = sync_direct_mt5_provider_account(
+            user_id=user_id,
+            account_id=account_id,
+            connection_key=connection_key,
+            label=label,
+            login=direct_login,
+            server=direct_server,
+            password=direct_password,
+            broker=direct_broker,
+        )
+        if direct_sync_result.get("fatal"):
+            return connector_json_response(
+                {
+                    "ok": False,
+                    "reason": direct_sync_result.get("reason") or "direct_mt5_sync_failed",
+                    "message": direct_sync_result.get("message") or "No se pudo sincronizar la cuenta directa.",
+                    "details": {
+                        "account_id": account_id,
+                        "provider": direct_sync_result.get("provider", {}),
+                        "retryable": bool(direct_sync_result.get("retryable")),
+                    },
+                    "account_id": account_id,
+                    "direct_sync_available": False,
+                    "timestamp": now_iso(),
+                },
+                status_code=int(direct_sync_result.get("status_code") or 400),
+            )
+
     direct_config = {
         "KMFXBackendBaseUrl": MT5_CLOUD_BASE_URL,
         "KMFXSyncPath": MT5_CLOUD_SYNC_PATH,
@@ -2580,14 +2857,27 @@ async def link_account(request: Request) -> JSONResponse:
         user_id,
         mask_connection_key(connection_key),
     )
+    registry_after_link = account_service.build_accounts_registry(user_id)
+    linked_account = next(
+        (
+            account
+            for account in registry_after_link
+            if safe_str(account.get("account_id")) == account_id
+        ),
+        {},
+    )
     return connector_json_response(
         {
             "ok": True,
             "account_id": account_id,
+            "account": linked_account,
             "connection_key": connection_key,
             "launcher_config": launcher_config,
             "direct_config": direct_config,
             "connection_mode": connection_mode,
+            "direct_sync_available": bool(direct_sync_result and direct_sync_result.get("ok")),
+            "direct_sync_status": direct_sync_result or {"provider": direct_provider_status_dict()} if connection_mode == "direct" else {},
+            "sync_required": "ea" if connection_mode == "direct" and not (direct_sync_result and direct_sync_result.get("ok")) else "",
             "linked_existing_launcher_key": bool(claimed_account is not None),
             "is_admin": auth_context["is_admin"],
             "timestamp": now_iso(),

@@ -241,11 +241,11 @@ function renderHome() {
   if (!hasMt5) {
     message.textContent = "No se ha detectado MetaTrader 5.";
   } else if (!installed) {
-    message.textContent = "MetaTrader detectado. Instala el conector para continuar.";
+    message.textContent = "MetaTrader detectado. Instala el conector para preparar la cuenta.";
   } else if (recentSync) {
-    message.textContent = "Conector instalado. Tus cuentas se están sincronizando.";
+    message.textContent = "Conector instalado. MT5 sincroniza con KMFX; puedes cerrar el Launcher.";
   } else {
-    message.textContent = "Conector instalado. Abre MetaTrader 5 para iniciar la sincronización.";
+    message.textContent = "Conector instalado. Abre MT5 y espera el primer sync; después puedes cerrar el Launcher.";
   }
 }
 
@@ -262,7 +262,7 @@ function renderAccountConnections() {
   lastConnectionsSignature = nextSignature;
 
   if (!state.accountConnections.length) {
-    container.innerHTML = `<div class="empty-state">Pulsa Añadir cuenta MT5 y después instala el conector en MetaTrader 5.</div>`;
+    container.innerHTML = `<div class="empty-state">Pulsa Añadir cuenta MT5, instala el conector y abre MT5 para recibir el primer sync.</div>`;
     return;
   }
 
@@ -274,7 +274,7 @@ function renderAccountConnections() {
       const meta = [connection.broker, connection.login ? `Login ${connection.login}` : "", connection.server]
         .filter(Boolean)
         .join(" · ");
-      const primaryMeta = meta || "Sin datos de broker hasta el primer sync";
+      const primaryMeta = meta || "Sin datos de broker hasta que MT5 sincronice";
       const keyLabel = connection.connection_key_masked ? `Key ${connection.connection_key_masked}` : "";
       const installation = installationForConnection(connection);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";

@@ -200,6 +200,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertEqual(200, response.status_code)
                 self.assertTrue(raw_key)
                 self.assertEqual(raw_key, body["direct_config"]["connection_key"])
+                self.assertEqual(body["account_id"], body["account"]["account_id"])
+                self.assertEqual("ea_direct", body["account"]["connection_mode"])
 
                 with open(store_path, "r", encoding="utf-8") as handle:
                     persisted = json.load(handle)
@@ -243,6 +245,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertEqual(200, response.status_code)
                 self.assertTrue(body["is_admin"])
                 self.assertEqual("direct", body["connection_mode"])
+                self.assertEqual("direct", body["account"]["connection_mode"])
+                self.assertEqual("4000082126", body["account"]["login"])
+                self.assertEqual("Darwinex-Live", body["account"]["server"])
+                self.assertFalse(body["direct_sync_available"])
+                self.assertEqual("ea", body["sync_required"])
 
                 list_response = asyncio.run(connector_api.list_accounts(request))
                 list_body_text = list_response.body.decode("utf-8")
@@ -253,9 +260,64 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertEqual("Darwinex-Live", account["server"])
                 self.assertNotIn("investor-secret", list_body_text)
 
+                snapshot = connector_api.build_live_accounts_snapshot("421e2f82-d3c9-4965-bda5-35d6e88cbd0f")
+                self.assertEqual(1, len(snapshot["accounts"]))
+                self.assertEqual("mt5_direct_pending", snapshot["accounts"][0]["dashboard_payload"]["payloadSource"])
+                self.assertEqual("pending_direct_backend", snapshot["accounts"][0]["dashboard_payload"]["data_status"])
+
                 with open(store_path, "r", encoding="utf-8") as handle:
                     persisted_text = handle.read()
                 self.assertNotIn("investor-secret", persisted_text)
+            finally:
+                connector_api.account_service = previous_service
+
+    def test_direct_mt5_brokers_returns_server_catalog_for_authenticated_user(self) -> None:
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        response = asyncio.run(connector_api.direct_mt5_brokers(request, q="Darwinex", limit=10))
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertTrue(any(item["server"] == "Darwinex-Live" for item in body["servers"]))
+        self.assertIn("provider", body)
+
+    def test_direct_mt5_link_with_fixture_provider_ingests_live_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                with patch.dict("os.environ", {"KMFX_DIRECT_MT5_PROVIDER": "fixture"}, clear=True):
+                    request = self._request(
+                        host="127.0.0.1",
+                        headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"},
+                        json_body={
+                            "label": "Cuenta Direct Fixture",
+                            "platform": "mt5",
+                            "login": "52651704",
+                            "server": "ICMarketsSC-Demo",
+                            "password": "fixture-investor",
+                        },
+                    )
+
+                    response = asyncio.run(connector_api.direct_mt5_link(request))
+                    body = json.loads(response.body.decode("utf-8"))
+                    self.assertEqual(200, response.status_code)
+                    self.assertTrue(body["ok"])
+                    self.assertTrue(body["direct_sync_available"])
+                    self.assertEqual("", body["sync_required"])
+                    self.assertEqual("direct", body["account"]["connection_mode"])
+                    self.assertEqual("active", body["account"]["status"])
+
+                    snapshot = connector_api.build_live_accounts_snapshot("421e2f82-d3c9-4965-bda5-35d6e88cbd0f")
+                    self.assertEqual(1, len(snapshot["accounts"]))
+                    payload = snapshot["accounts"][0]["dashboard_payload"]
+                    self.assertEqual("mt5_direct_live", payload["payloadSource"])
+                    self.assertEqual(2, len(payload["trades"]))
+                    self.assertEqual("fixture", payload["directSync"]["provider"])
+
+                    with open(store_path, "r", encoding="utf-8") as handle:
+                        persisted_text = handle.read()
+                    self.assertNotIn("fixture-investor", persisted_text)
             finally:
                 connector_api.account_service = previous_service
 

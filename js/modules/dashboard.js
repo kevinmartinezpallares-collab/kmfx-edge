@@ -12,6 +12,76 @@ import {
 } from "./risk-panel-components.js?v=build-20260504-080918";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function isDirectAccountPendingLiveSync(account, dashboardPayload = {}) {
+  const connectionMode = String(
+    account?.connectionMode
+    || account?.connection_mode
+    || account?.meta?.connectionMode
+    || account?.meta?.connection_mode
+    || ""
+  ).trim().toLowerCase();
+  const payloadSource = String(dashboardPayload?.payloadSource || "").trim().toLowerCase();
+  return connectionMode === "direct" && payloadSource === "mt5_direct_pending";
+}
+
+function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
+  const display = resolveAccountDisplayIdentity(account);
+  const login = display.login || dashboardPayload.login || dashboardPayload.account?.login || "";
+  const server = display.server || dashboardPayload.server || dashboardPayload.account?.server || "";
+  root.innerHTML = `
+    <section class="dashboard-screen dashboard-page-flow">
+      ${pageHeaderMarkup({
+        eyebrow: "Dashboard",
+        title: "Dashboard",
+        description: "Cuenta directa registrada, pendiente de sincronización live.",
+        className: "calendar-screen__header dashboard-screen__header",
+        contentClassName: "calendar-screen__copy",
+        eyebrowClassName: "calendar-screen__eyebrow",
+        titleClassName: "calendar-screen__title",
+        descriptionClassName: "calendar-screen__subtitle",
+        actionsClassName: "dashboard-screen__actions",
+        actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-method="ea" data-connection-source="dashboard-direct-pending">Sincronizar con EA</button>`,
+      })}
+      <article class="tl-section-card dashboard-direct-pending">
+        <div class="tl-section-header">
+          <div>
+            <div class="tl-section-title">La cuenta está añadida, pero aún no hay datos</div>
+            <div class="settings-section-sub">KMFX todavía no tiene un backend directo capaz de leer MT5 con credenciales. Para traer balance, equity, trades e historial ahora, instala el EA en MetaTrader 5.</div>
+          </div>
+          <span class="meta-badge">Pendiente live</span>
+        </div>
+        <div class="settings-status-list">
+          <div class="settings-status-card">
+            <span>Cuenta</span>
+            <strong>${escapeHtml(display.title || "Cuenta MT5 directa")}</strong>
+            <small>${escapeHtml([server, login ? `Login ${login}` : ""].filter(Boolean).join(" · ") || "Identidad registrada")}</small>
+          </div>
+          <div class="settings-status-card">
+            <span>Datos live</span>
+            <strong>Pendientes</strong>
+            <small>Sin balance, operaciones ni historial hasta recibir un sync real.</small>
+          </div>
+        </div>
+        <div class="calendar-inline-note calendar-inline-note--warning">
+          <strong>Camino disponible ahora:</strong> abre el asistente, crea/usa una KMFXKey e instala KMFXConnector en MT5. Cuando el EA envíe el primer sync, este dashboard se llenará con los datos reales.
+        </div>
+      </article>
+    </section>
+  `;
+  root.__dashboardRendered = true;
+  root.__dashboardStructureSignature = "direct-pending";
+  root.__dashboardLiveSignature = "";
+}
+
 function parseChartAxisDate(pointOrLabel) {
   const rawValue = typeof pointOrLabel === "object" && pointOrLabel !== null
     ? (pointOrLabel.timestamp || pointOrLabel.time || pointOrLabel.date || pointOrLabel.datetime || pointOrLabel.when || pointOrLabel.label || "")
@@ -1066,6 +1136,11 @@ export function renderDashboard(root, state) {
     root.__dashboardRendered = true;
     root.__dashboardStructureSignature = "";
     root.__dashboardLiveSignature = "";
+    return;
+  }
+
+  if (isDirectAccountPendingLiveSync(account, dashboardPayload)) {
+    renderDirectAccountPendingState(root, account, dashboardPayload);
     return;
   }
 

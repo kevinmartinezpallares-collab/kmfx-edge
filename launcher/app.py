@@ -850,7 +850,7 @@ class KMFXApi:
         if normalized == "active":
             return "Activa"
         if normalized in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"}:
-            return "Esperando sync"
+            return "Esperando primer sync"
         if normalized == "archived":
             return "Archivada"
         return normalized.replace("_", " ").capitalize() if normalized else "Pendiente"

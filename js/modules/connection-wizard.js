@@ -15,6 +15,16 @@ const WIZARD_STEPS = [
 ];
 let activeWizardStore = null;
 const LOCAL_CONNECTION_KEYS_STORAGE_KEY = "kmfx.connectionKeys.v1";
+const FALLBACK_DIRECT_MT5_SERVERS = [
+  { broker: "Darwinex", server: "Darwinex-Live", label: "Darwinex-Live" },
+  { broker: "Darwinex", server: "Darwinex-Demo", label: "Darwinex-Demo" },
+  { broker: "FTMO", server: "FTMO-Server", label: "FTMO-Server" },
+  { broker: "FTMO", server: "FTMO-Demo", label: "FTMO-Demo" },
+  { broker: "IC Markets Raw Trading Ltd", server: "ICMarketsSC-Demo", label: "ICMarketsSC-Demo" },
+  { broker: "IC Markets Raw Trading Ltd", server: "ICMarketsSC-MT5", label: "ICMarketsSC-MT5" },
+  { broker: "FundingPips", server: "FundingPips-SIM", label: "FundingPips-SIM" },
+  { broker: "FundedNext", server: "FundedNext-Server", label: "FundedNext-Server" },
+];
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -58,6 +68,27 @@ function downloadLauncher(platform = "auto") {
 
 function downloadEa() {
   window.open(EA_DOWNLOAD_URL, "_blank", "noopener");
+}
+
+function normalizeDirectServers(servers = []) {
+  const seen = new Set();
+  return (Array.isArray(servers) ? servers : [])
+    .map((server) => ({
+      broker: String(server?.broker || "").trim(),
+      server: String(server?.server || server?.label || "").trim(),
+      label: String(server?.label || server?.server || "").trim(),
+    }))
+    .filter((server) => {
+      if (!server.server || seen.has(server.server)) return false;
+      seen.add(server.server);
+      return true;
+    });
+}
+
+function renderDirectServerOptions(servers = []) {
+  return normalizeDirectServers(servers).map((server) => (
+    `<option value="${escapeHtml(server.server)}" label="${escapeHtml(server.broker ? `${server.broker} · ${server.server}` : server.server)}"></option>`
+  )).join("");
 }
 
 function buildAuthHeaders(store, extra = {}) {
@@ -127,6 +158,63 @@ function persistLocalConnectionKey({ accountId = "", connectionKey = "", label =
   } catch {
     // Browser storage is optional; the modal still shows the generated key.
   }
+}
+
+function maskConnectionKeyForDisplay(value = "") {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (normalized.length <= 12) return "••••••••";
+  return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+}
+
+function normalizeLinkedAccount(payload = {}, fallback = {}) {
+  const account = payload.account && typeof payload.account === "object" ? payload.account : {};
+  const accountId = String(account.account_id || payload.account_id || fallback.accountId || "").trim();
+  if (!accountId) return null;
+  const connectionKey = String(payload.connection_key || account.connection_key || "").trim();
+  const label = String(
+    account.alias ||
+    account.display_name ||
+    fallback.label ||
+    (fallback.login ? `MT5 ${fallback.login}` : "Cuenta MT5")
+  ).trim();
+  return {
+    ...account,
+    account_id: accountId,
+    alias: label,
+    display_name: account.display_name || label,
+    platform: account.platform || fallback.platform || "mt5",
+    connection_mode: account.connection_mode || payload.connection_mode || fallback.connectionMode || "ea_direct",
+    status: account.status || account.lifecycle_status || fallback.status || "pending_link",
+    lifecycle_status: account.lifecycle_status || account.status || fallback.status || "pending_link",
+    login: account.login || fallback.login || "",
+    mt5_login: account.mt5_login || account.login || fallback.login || "",
+    server: account.server || fallback.server || "",
+    broker: account.broker || fallback.broker || "",
+    connection_key: connectionKey,
+    connection_key_preview: account.connection_key_preview || maskConnectionKeyForDisplay(connectionKey),
+    has_connection_key: account.has_connection_key ?? Boolean(connectionKey || account.connection_key_preview),
+  };
+}
+
+function upsertManagedAccountFromLink(store, payload = {}, fallback = {}) {
+  const linkedAccount = normalizeLinkedAccount(payload, fallback);
+  if (!linkedAccount || !store?.setState) return;
+  store.setState((state) => {
+    const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
+    const index = managedAccounts.findIndex((account) => account?.account_id === linkedAccount.account_id);
+    const nextManagedAccounts = index >= 0
+      ? managedAccounts.map((account, accountIndex) => (
+          accountIndex === index
+            ? { ...account, ...linkedAccount }
+            : account
+        ))
+      : [linkedAccount, ...managedAccounts];
+    return {
+      ...state,
+      managedAccounts: nextManagedAccounts,
+    };
+  });
 }
 
 function accountLooksConnected(account = {}) {
@@ -258,8 +346,8 @@ function renderMethodStep() {
           <button class="connection-wizard__option" type="button" data-wizard-select-method="direct">
             <span class="connection-wizard__option-copy">
               <span class="connection-wizard__option-title">Conexión directa</span>
-              <span class="connection-wizard__option-subtitle">Introduce login, servidor e investor password. Mejor para capital propio.</span>
-              <span class="connection-wizard__option-note">Requiere backend seguro antes de producción.</span>
+              <span class="connection-wizard__option-subtitle">Introduce login, servidor e investor password. La cuenta se añade a Cuentas al finalizar.</span>
+              <span class="connection-wizard__option-note">Usa investor password siempre que puedas.</span>
             </span>
           </button>
           <button class="connection-wizard__option is-selected" type="button" data-wizard-select-method="ea">
@@ -285,7 +373,7 @@ function renderEaConfigStep(state) {
   return `
     ${renderStepFrame(
       "Prepara MetaTrader 5",
-      "Primero deja el conector instalado. Después crea la KMFXKey y pégala en el EA.",
+      "El Launcher solo instala y configura. La sincronización la hace MT5 con el EA activo.",
       `
         <label class="form-stack">
           <span>Nombre de la conexión</span>
@@ -295,7 +383,7 @@ function renderEaConfigStep(state) {
           <div class="connection-wizard__setup-card connection-wizard__setup-card--accent">
             <div class="connection-wizard__setup-eyebrow">Recomendado</div>
             <div class="connection-wizard__setup-title">Launcher + conector automático</div>
-            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. No necesitas introducir contraseña de trading.</p>
+            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Después puedes cerrar el Launcher cuando MT5 ya sincronice.</p>
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
               <button class="btn-primary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
@@ -346,15 +434,17 @@ function renderEaConfigStep(state) {
 
 function renderDirectConfigStep(state) {
   const direct = state.direct || {};
+  const servers = normalizeDirectServers(state.directServers?.length ? state.directServers : FALLBACK_DIRECT_MT5_SERVERS);
+  const providerConfigured = state.directProvider?.configured === true;
   return `
     ${renderStepFrame(
       "Conexión directa",
-      "Introduce login, servidor e investor password para registrar esta cuenta en modo directo.",
+      providerConfigured ? "Introduce login, servidor e investor password para validar y sincronizar desde backend." : "Introduce login, servidor e investor password. Quedará registrada hasta activar el provider directo.",
       `
         <div class="connection-wizard__utility-row connection-wizard__utility-row--accent">
           <div>
             <div class="connection-wizard__success-title">Modo lectura</div>
-            <p class="connection-wizard__warning" style="margin-top:8px !important;">Usa investor password siempre que sea posible. KMFX no ejecuta operaciones desde esta conexión.</p>
+            <p class="connection-wizard__warning" style="margin-top:8px !important;">Usa investor password siempre que sea posible. La conexión directa se valida desde backend y puede registrar la IP de KMFX/proveedor en el broker.</p>
           </div>
         </div>
         <div class="connection-wizard__form-grid">
@@ -368,7 +458,9 @@ function renderDirectConfigStep(state) {
           </label>
           <label class="form-stack">
             <span>Servidor</span>
-            <input type="text" name="directServer" autocomplete="off" value="${escapeHtml(direct.server || "")}" placeholder="Selecciona o escribe el servidor del broker">
+            <input type="text" name="directServer" list="directMt5ServerOptions" autocomplete="off" value="${escapeHtml(direct.server || "")}" placeholder="${state.directServersLoading ? "Cargando servidores..." : "Busca o escribe el servidor"}">
+            <datalist id="directMt5ServerOptions">${renderDirectServerOptions(servers)}</datalist>
+            <small>${state.directServersLoaded ? `${servers.length} servidores disponibles` : "Puedes escribirlo manualmente si no aparece."}</small>
           </label>
         </div>
       `
@@ -384,22 +476,23 @@ function renderDirectConfigStep(state) {
 function renderConfirmationStep(state) {
   const ea = state.ea || {};
   const isDirect = state.method === "direct";
+  const isDirectPendingSync = isDirect && state.directSyncAvailable !== true;
   const key = ea.connectionKey || "";
   const visibleKey = state.showKey ? key : "••••••••••••••••••••";
   const syncStatus = state.syncStatus || {};
-  const isConnected = syncStatus.status === "connected" || isDirect;
+  const isConnected = syncStatus.status === "connected" && !isDirectPendingSync;
   const isWaiting = syncStatus.status === "waiting";
   const isError = syncStatus.status === "error";
   return `
     ${renderStepFrame(
       isDirect ? "Cuenta directa registrada" : isConnected ? "Conexión finalizada" : "Finaliza la conexión en MT5",
-      isDirect ? "La cuenta se ha registrado en modo directo. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización.",
+      isDirectPendingSync ? "La cuenta ya está añadida, pero la sincronización directa de datos live aún no está disponible. Usa EA para sincronizar ahora." : isDirect ? "La cuenta ya está añadida a Cuentas. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización.",
       `
         <div class="connection-wizard__success ${isConnected ? "connection-wizard__success--complete" : "connection-wizard__success--pending"}">
           <span class="connection-wizard__success-icon">${isConnected ? "✓" : "3"}</span>
           <div class="connection-wizard__success-copy">
-            <div class="connection-wizard__success-title">${isDirect ? "Solicitud directa enviada" : isConnected ? "Cuenta MT5 conectada" : "KMFXKey lista"}</div>
-            <div class="connection-wizard__success-subtitle">${isDirect ? "La sección Cuentas se refrescará con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave."}</div>
+            <div class="connection-wizard__success-title">${isDirectPendingSync ? "Registro preparado" : isDirect ? "Cuenta directa añadida" : isConnected ? "Cuenta MT5 conectada" : "KMFXKey lista"}</div>
+            <div class="connection-wizard__success-subtitle">${isDirectPendingSync ? "Aparecerá en dashboard como pendiente de sync. Para datos reales, instala el EA." : isDirect ? "La verás en Cuentas con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave."}</div>
           </div>
         </div>
         ${key ? `<div class="connection-wizard__secret-row">
@@ -423,20 +516,20 @@ function renderConfirmationStep(state) {
           </div>
           <div class="connection-wizard__finish-step ${isConnected ? "is-complete" : ""}">
             <span>3</span>
-            <div><strong>${isDirect ? "Proceso finalizado" : "Primer sync"}</strong><small>${isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
+            <div><strong>${isDirect ? "Sync live" : "Primer sync"}</strong><small>${isDirectPendingSync ? "Pendiente de backend directo. Usa EA si quieres datos ahora." : isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
           </div>
         </div>
-        ${isWaiting || isError ? `
+        ${isWaiting || isError || isDirectPendingSync ? `
           <div class="connection-wizard__inline-status connection-wizard__inline-status--${isError ? "danger" : "warning"}">
             <strong>${escapeHtml(syncStatus.title || (isError ? "No pude comprobar la conexión" : "Aún no veo la sincronización"))}</strong>
-            <span>${escapeHtml(syncStatus.message || "Deja MT5 abierto con el EA activo y vuelve a comprobar.")}</span>
+            <span>${escapeHtml(syncStatus.message || (isDirectPendingSync ? "La conexión directa queda registrada, pero el dashboard necesita EA hasta que exista el backend directo." : "Deja MT5 abierto con el EA activo y vuelve a comprobar."))}</span>
           </div>
         ` : ""}
       `
     )}
     <div class="connection-wizard__actions">
       <button class="btn-secondary" type="button" data-wizard-step="${isDirect ? "directConfig" : "eaConfig"}">Volver</button>
-      ${isConnected ? `
+      ${isConnected || isDirectPendingSync ? `
         <button class="btn-primary" type="button" data-wizard-finish-connection="true">Finalizar</button>
       ` : `
         <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar por ahora</button>
@@ -528,6 +621,22 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       hint: "",
     };
   }
+  if (reason === "invalid_direct_mt5_credentials" || reason === "direct_mt5_auth_failed") {
+    return {
+      kind: "warning",
+      title: "Credenciales rechazadas",
+      message: "MT5 no ha aceptado login, password o servidor.",
+      hint: "Comprueba el server exacto y usa investor password si solo quieres lectura.",
+    };
+  }
+  if (reason === "direct_mt5_provider_unreachable" || reason === "direct_mt5_provider_error") {
+    return {
+      kind: "warning",
+      title: "Provider directo no disponible",
+      message: "No se pudo contactar con el motor de conexión directa.",
+      hint: "Puedes usar EA ahora y reintentar conexión directa más tarde.",
+    };
+  }
   if (reason === "connection_key_already_linked") {
     return {
       kind: "warning",
@@ -586,6 +695,11 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
       label,
       store,
     });
+    upsertManagedAccountFromLink(store, payload, {
+      label,
+      connectionMode: "ea_direct",
+      status: "pending_link",
+    });
     state.step = "confirm";
     state.showKey = false;
     state.syncStatus = { status: "", title: "", message: "" };
@@ -625,7 +739,7 @@ async function createDirectConnection(card, state, options = {}, store = activeW
   state.error = "";
   mountWizard(card, state, options, store);
   try {
-    const response = await fetch(buildApiUrl("/api/accounts/link"), {
+    const response = await fetch(buildApiUrl("/api/direct-mt5/link"), {
       method: "POST",
       headers: buildAuthHeaders(store, { "Content-Type": "application/json" }),
       body: JSON.stringify({
@@ -654,6 +768,7 @@ async function createDirectConnection(card, state, options = {}, store = activeW
       server,
       password: "",
     };
+    state.directSyncAvailable = payload.direct_sync_available === true;
     if (payload.connection_key) {
       persistLocalConnectionKey({
         accountId: payload.account_id || "",
@@ -662,14 +777,23 @@ async function createDirectConnection(card, state, options = {}, store = activeW
         store,
       });
     }
+    upsertManagedAccountFromLink(store, payload, {
+      label,
+      login,
+      server,
+      connectionMode: "direct",
+      status: "linked",
+    });
     state.step = "confirm";
     state.showKey = false;
     state.syncStatus = {
-      status: "connected",
-      title: "Cuenta directa registrada",
-      message: "La cuenta se ha creado y Cuentas se refrescará automáticamente.",
+      status: payload.direct_sync_available ? "connected" : "waiting",
+      title: payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada",
+      message: payload.direct_sync_available
+        ? "La cuenta ya aparece en Cuentas y se ha recibido el primer snapshot directo."
+        : "La cuenta aparecerá en el dashboard como pendiente. Para sincronizar datos live ahora, instala el EA en MT5.",
     };
-    showToast("Cuenta directa registrada", "success");
+    showToast(payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada; falta sync live", payload.direct_sync_available ? "success" : "warning");
     window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
   } catch (error) {
     state.error = normalizeWizardError(error?.message ? error : {
@@ -729,6 +853,28 @@ function setWizardStep(card, state, step, options, store) {
   mountWizard(card, state, options, store);
 }
 
+async function loadDirectMt5Servers(card, state, options = {}, store = activeWizardStore) {
+  state.directServersLoading = true;
+  mountWizard(card, state, options, store);
+  try {
+    const response = await fetch(buildApiUrl("/api/direct-mt5/brokers"), {
+      headers: buildAuthHeaders(store),
+    });
+    const payload = await response.json();
+    if (!response.ok || payload?.ok === false) throw new Error(payload?.reason || "direct_servers_unavailable");
+    state.directServers = normalizeDirectServers(payload.servers);
+    state.directProvider = payload.provider || {};
+    state.directServersLoaded = true;
+  } catch {
+    state.directServers = FALLBACK_DIRECT_MT5_SERVERS;
+    state.directProvider = { configured: false, mode: "fallback" };
+    state.directServersLoaded = true;
+  } finally {
+    state.directServersLoading = false;
+    mountWizard(card, state, options, store);
+  }
+}
+
 function captureDirectFields(body, state) {
   state.direct = {
     login: String(body?.querySelector("[name='directLogin']")?.value || ""),
@@ -742,6 +888,11 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
   if (!body) return;
 
   body.innerHTML = renderWizardMarkup(state);
+
+  if (state.step === "directConfig" && !state.directServersLoaded && !state.directServersLoading) {
+    loadDirectMt5Servers(card, state, options, store);
+    return;
+  }
 
   body.querySelectorAll("[data-wizard-step]").forEach((button) => {
     button.addEventListener("click", () => setWizardStep(card, state, button.dataset.wizardStep || "platform", options, store));
@@ -798,6 +949,10 @@ export function openConnectionWizard(options = {}) {
       password: "",
       server: "",
     },
+    directServers: [],
+    directServersLoaded: false,
+    directServersLoading: false,
+    directProvider: {},
   };
 
   openModal({

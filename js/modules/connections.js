@@ -33,6 +33,7 @@ function registrySignature(accounts = []) {
   return JSON.stringify(
     (Array.isArray(accounts) ? accounts : []).map((account) => ({
       account_id: account?.account_id || "",
+      connection_mode: account?.connection_mode || "",
       status: account?.status || "",
       broker: account?.broker || "",
       login: account?.login || "",
@@ -87,9 +88,23 @@ function isConnectedStatus(status = "") {
   return ["connected", "active", "first_sync_received"].includes(String(status || "").toLowerCase());
 }
 
-function accountStatusMeta(status = "", lastSyncAt = "") {
+function isDirectConnectionMode(connectionMode = "") {
+  return String(connectionMode || "").trim().toLowerCase() === "direct";
+}
+
+function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
   const relative = relativeTime(lastSyncAt);
-  if (status === "connected" || status === "active" || status === "first_sync_received") {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  if (isDirectConnectionMode(connectionMode) && !isConnectedStatus(normalizedStatus)) {
+    return {
+      label: "Directa registrada",
+      tone: "waiting",
+      subtitle: "Pendiente de datos live",
+      actionLabel: "Ver detalle",
+      action: "none",
+    };
+  }
+  if (normalizedStatus === "connected" || normalizedStatus === "active" || normalizedStatus === "first_sync_received") {
     return {
       label: "Conectada",
       tone: "connected",
@@ -98,25 +113,25 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       action: "none",
     };
   }
-  if (status === "waiting_sync" || status === "linked") {
+  if (normalizedStatus === "waiting_sync" || normalizedStatus === "linked") {
     return {
       label: "Conectando…",
       tone: "waiting",
-      subtitle: "Esperando sincronización",
-      actionLabel: "Abrir Launcher",
+      subtitle: "Esperando primer sync de MT5",
+      actionLabel: "Abrir o instalar conector",
       action: "launcher",
     };
   }
-  if (status === "pending_setup" || status === "pending" || status === "pending_link" || status === "draft") {
+  if (normalizedStatus === "pending_setup" || normalizedStatus === "pending" || normalizedStatus === "pending_link" || normalizedStatus === "draft") {
     return {
       label: "Pendiente",
       tone: "pending",
-      subtitle: "Vincúlala desde el Launcher",
-      actionLabel: "Abrir Launcher",
+      subtitle: "Instala el EA y espera primer sync",
+      actionLabel: "Abrir o instalar conector",
       action: "launcher",
     };
   }
-  if (status === "archived") {
+  if (normalizedStatus === "archived") {
     return {
       label: "Archivada",
       tone: "neutral",
@@ -125,7 +140,7 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       action: "none",
     };
   }
-  if (status === "stale") {
+  if (normalizedStatus === "stale") {
     return {
       label: "Sin actualizar",
       tone: "stale",
@@ -134,7 +149,7 @@ function accountStatusMeta(status = "", lastSyncAt = "") {
       action: "none",
     };
   }
-  if (status === "error") {
+  if (normalizedStatus === "error") {
     return {
       label: "Error de conexión",
       tone: "error",
@@ -214,7 +229,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   return pageHeaderMarkup({
     eyebrow: "Cuentas",
     title: "Cuentas",
-    description: "Conecta y gestiona tus cuentas MT5 desde KMFX Launcher. KMFX no pide tu contraseña ni ejecuta operaciones.",
+    description: "El Launcher instala y configura el conector. Después la sincronización la hace MT5 con el EA; no necesitas dejar el Launcher abierto.",
     className: "calendar-screen__header",
     contentClassName: "calendar-screen__copy",
     eyebrowClassName: "calendar-screen__eyebrow",
@@ -399,8 +414,8 @@ function maskConnectionKeyForDisplay(value = "") {
 function renderConnectionGuide() {
   const steps = [
     {
-      title: "Descarga KMFX Launcher",
-      body: "Instala el Launcher para macOS o Windows. El Launcher crea la key y deja el EA configurado.",
+      title: "Abre o instala KMFX Launcher",
+      body: "Úsalo para preparar MT5. Si no se abre, descarga la versión de tu sistema.",
     },
     {
       title: "Instala el conector",
@@ -416,7 +431,7 @@ function renderConnectionGuide() {
     },
     {
       title: "Confirma la sincronización",
-      body: "Cuando Experts muestre Conectado a KMFX, la cuenta aparecerá en Cuentas y en el dashboard.",
+      body: "Cuando Experts muestre Conectado a KMFX, la cuenta aparecerá con datos live. Ya puedes cerrar el Launcher.",
     },
   ];
 
@@ -425,7 +440,7 @@ function renderConnectionGuide() {
       <div class="calendar-panel-head">
         <div>
           <div class="dashboard-risk-block__title">Conectar MT5 paso a paso</div>
-          <div class="row-sub">Flujo recomendado: Launcher, conector, permiso WebRequest y primera sincronización. Sin copiar keys manualmente.</div>
+          <div class="row-sub">Flujo recomendado: Launcher para instalar, MT5 abierto para sincronizar. El Launcher no es un requisito permanente.</div>
         </div>
         <div class="connections-guide-card__launcher-actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
@@ -454,7 +469,7 @@ function renderConnectionGuide() {
       <div class="connections-guide-card__direct" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 64%, transparent);">
         <div>
           <div class="dashboard-risk-block__title" style="font-size:15px;">Manual con EA</div>
-          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key en este modal y pégala en KMFXKey. Compatible con investor password en modo lectura.</div>
+          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key y pégala en KMFXKey. Después solo necesitas MT5 abierto con el EA activo.</div>
         </div>
         <div class="connections-empty-card__actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-ea="true">Descargar EA</button>
@@ -546,7 +561,7 @@ function resolveAccountConnectionPreview(account, connectionKey = "") {
 }
 
 function openAccountInfoModal(account, state, activeAccount = null) {
-  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
   const canInspectConnectionKey = isAdminUser(state);
   openModal({
@@ -672,7 +687,7 @@ function renderEmptyState(root) {
           <div class="calendar-panel-head">
             <div>
               <div class="calendar-panel-title">Conecta tu cuenta MT5</div>
-              <div class="calendar-panel-sub">KMFX no pide tu contraseña ni ejecuta operaciones. Solo recibe datos enviados desde tu terminal MT5.</div>
+              <div class="calendar-panel-sub">Instala el conector con el Launcher y deja MT5 abierto con el EA activo. El Launcher puede cerrarse tras el primer sync.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">
@@ -825,7 +840,7 @@ function resolveAccountMetaLine(account, activeAccount = null) {
 }
 
 function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, keyRevealed = false, state = {}, adminOpen = false, adminState = null }) {
-  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "");
+  const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
   const statusLine = isActive ? "Activa en panel" : meta.label;
