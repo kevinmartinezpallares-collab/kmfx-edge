@@ -24,8 +24,33 @@
   <meta property="og:url" content="https://kmfxedge.com/">
   <meta property="og:image" content="https://kmfxedge.com/assets/brand/kmfx-edge/social/og-image-1200x630.png">
   <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="./styles.css?v=build-20260504-080918">
-<link rel="stylesheet" href="./styles-v2.css?v=build-20260504-080918">
+  <script>
+    (function retireLegacyServiceWorker() {
+      var reloadKey = "kmfx-sw-retired-build-20260504-112500";
+      if (!("serviceWorker" in navigator)) return;
+
+      Promise.all([
+        navigator.serviceWorker.getRegistrations()
+          .then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister();
+            }));
+          }),
+        "caches" in window
+          ? caches.keys().then(function (keys) {
+              return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+            })
+          : Promise.resolve()
+      ]).then(function () {
+        if (navigator.serviceWorker.controller && !sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, "1");
+          window.location.reload();
+        }
+      }).catch(function () {});
+    })();
+  </script>
+  <link rel="stylesheet" href="./styles.css?v=build-20260504-112500">
+  <link rel="stylesheet" href="./styles-v2.css?v=build-20260504-112500">
   <style id="light-card-flatten-bootstrap">
     html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
     html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
@@ -550,6 +575,6 @@
   <div id="modalRoot"></div>
   <div id="mobileNavRoot"></div>
 
-  <script type="module" src="./app.js?v=build-20260504-080918"></script>
+  <script type="module" src="./app.js?v=build-20260504-112500"></script>
 </body>
 </html>
