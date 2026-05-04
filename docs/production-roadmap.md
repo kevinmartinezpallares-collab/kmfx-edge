@@ -1,341 +1,154 @@
-# Hoja de Ruta de Producción de KMFX Edge
+# Roadmap de Producción KMFX Edge
 
-Fecha de auditoría: 2026-05-01 09:45 CEST  
-Objetivo: terminar el camino mínimo a producción lo antes posible, sin esperar a la migración completa a Next.js.
+Última revisión: 2026-05-04
+Rama revisada: `main`
+Commit base: `6be516a Harden MT5 payload handling`
+Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
 ## Resumen Ejecutivo
 
-KMFX Edge ya está parcialmente en producción:
+KMFX Edge ya tiene una base real de producción:
 
-- Web app: `dashboard.kmfxedge.com` responde 200 a través de Vercel.
-- Vercel: el proyecto `kmfx-edge` tiene el último despliegue de producción en estado `READY`.
-- Backend API: `https://kmfx-edge-api.onrender.com/health` responde 200 y reporta el commit `e61ae4c`.
-- GitHub: el repo está conectado a Vercel y despliega desde `main`.
-- Supabase: el proyecto `KMFX` está activo, las migraciones de billing están aplicadas y las tablas públicas inspeccionadas tienen RLS activo.
-- Tests locales: la suite Python pasa con 24 tests OK.
+- `https://kmfxedge.com` está desplegado en Vercel y responde `200`.
+- Vercel despliega desde `main`; el deployment del commit `6be516a` está `READY`.
+- Render responde en `https://kmfx-edge-api.onrender.com/health` y reporta el commit `6be516a`.
+- `https://mt5-api.kmfxedge.com` existe como proxy Cloudflare para el flujo EA/MT5.
+- El dashboard ya usa rutas limpias como `/dashboard`, `/cuentas`, `/funding`, `/risk-engine`, `/ejecucion`, etc.
+- `dashboard.kmfxedge.com` y `www.kmfxedge.com` ya redirigen a `kmfxedge.com`.
+- El Launcher macOS y el paquete Windows están publicados desde la web propia.
+- La conexión MT5 multi-cuenta funciona en el flujo probado con Darwinex y Orion.
+- Hay CI, smoke de producción y workflow Windows launcher en GitHub.
+- La parte de seguridad de connection keys ha avanzado: keys hash at rest, rechazo de keys en query, rate limit por key, CORS cerrado, no-key ingestion bloqueada en producción y límites de payload MT5.
 
-La ruta más rápida no es reconstruir todo. Lo más sensato es lanzar el MVP con la app vanilla actual en Vercel, el backend FastAPI en Render, Supabase Auth y Stripe Billing implementado en el backend. La migración a Next.js debe quedar como pista posterior al lanzamiento.
+La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que más bloquea producción de pago no es el launcher ni el dominio, sino **billing, entitlements, QA final y gobierno de release**.
 
-## Estado Verificado
+## Estado Actual
 
-### Repo Local
+### Web y dominio
 
-- Rama actual: `main`.
-- Commit inspeccionado: `e61ae4cf25d9bc07d77486e78c0aa1be1f9ee173`.
-- El árbol estaba limpio al auditar.
-- Tests ejecutados: `python3 -m unittest discover -s tests` -> 24 tests OK.
-- La app actual es estática/vanilla: no hay `package.json` ni runtime Next.js en la raíz.
-- No se encontraron workflows `.github` localmente.
+- [x] `kmfxedge.com` funciona como dominio principal.
+- [x] `www.kmfxedge.com` redirige a `kmfxedge.com`.
+- [x] `dashboard.kmfxedge.com` redirige a `kmfxedge.com`.
+- [x] Rutas limpias configuradas en `vercel.json`.
+- [x] Headers básicos de seguridad activos: CSP, HSTS, `X-Frame-Options`, `nosniff`, Referrer Policy y Permissions Policy.
+- [x] Vercel sirve la app vanilla actual; no hay migración Next.js todavía.
+- [ ] `api.kmfxedge.com` sigue pendiente; el frontend aún permite `kmfx-edge-api.onrender.com`.
+- [ ] Revisar si el CSP final debe eliminar `kmfx-edge-api.onrender.com` cuando exista `api.kmfxedge.com`.
 
-### Vercel
+### Auth, Supabase y Google
 
-- Equipo: `kevinmartinezpallares-1079's projects`.
-- Proyecto: `kmfx-edge`.
-- Framework: `null`; Vercel está sirviendo salida estática, no una app Next.js.
-- Último deployment inspeccionado: `dpl_7Fk1nf8vJjqXarfz18NHhZQcqU6x`, estado `READY`, commit `e61ae4c`.
-- Dominios actuales:
-  - `dashboard.kmfxedge.com`
-  - `kmfx-edge.vercel.app`
-  - aliases de rama/preview
-- Los logs de build muestran que no hay build real de app; el despliegue completa como estático.
+- [x] Supabase Auth acepta `kmfxedge.com`.
+- [x] Google OAuth tiene marca y dominio autorizados.
+- [x] Dominio personalizado de Supabase Auth queda aplazado por coste mensual.
+- [ ] Probar de nuevo login Google, magic link y recovery desde producción tras cada cambio de auth.
+- [ ] Revisar manualmente que `dashboard.kmfxedge.com` solo queda como alias temporal autorizado mientras interese.
+- [ ] Confirmar que decisiones de permisos se leen desde `app_metadata`, no desde `user_metadata`.
 
-### Backend Render
+### MT5, EA y Launcher
 
-- Base URL de producción usada por el frontend: `https://kmfx-edge-api.onrender.com`.
-- `/health` responde OK y coincide con el commit desplegado.
-- `/api/accounts/snapshot` sin autenticación devuelve cuentas vacías con `auth_required: true`.
-- `/api/mt5/policy` rechaza correctamente una petición sin identidad.
-- El backend ya tiene endpoints reales para cuentas, link del launcher, sync MT5, journal MT5, policy MT5, snapshots y operaciones admin.
-
-### Supabase
-
-- Proyecto: `KMFX`, ref `uuhiqreifisppqkawzif`, región `eu-west-1`, estado `ACTIVE_HEALTHY`.
-- Migraciones remotas:
-  - `billing_subscriptions`
-  - `billing_advisor_fixes`
-- Todas las tablas públicas inspeccionadas tienen RLS activo:
-  - `billing_customers`
-  - `billing_events`
-  - `billing_subscriptions`
-  - `calculator_presets`
-  - `dashboard_objectives`
-  - `plan_entitlements`
-  - `risk_rules`
-  - `user_preferences`
-  - `user_profiles`
-- `plan_entitlements` está sembrada para `free`, `core`, `pro` y `desk`.
-
-### Stripe
-
-- Cuenta conectada: `Kevinmartinezfx`.
-- Productos: ninguno.
-- Prices: ninguno.
-- Suscripciones: ninguna.
-- Hay clientes antiguos en Stripe, pero todavía no existe catálogo KMFX.
-- Conclusión: Stripe aún no está listo para billing self-service.
-
-### GitHub
-
-- Repositorio: `kevinmartinezpallares-collab/kmfx-edge`.
-- PRs abiertos encontrados: ninguno.
-- Issues abiertos encontrados: ninguno.
-- Workflow runs para el último commit: ninguno.
-- Conclusión: todavía no hay una capa visible de CI/release management.
-
-## Decisión de Dominio y Marca
-
-Objetivo de producción: que el usuario vea **KMFX Edge como producto propio**, no como una mezcla de subdominios técnicos.
-
-### Dominio público recomendado
-
-- Dominio principal de la app: `https://kmfxedge.com`.
-- Redirección permanente:
-  - `https://dashboard.kmfxedge.com` -> `https://kmfxedge.com`
-  - `https://www.kmfxedge.com` -> `https://kmfxedge.com`
-- API pública:
-  - `https://api.kmfxedge.com` -> backend Render
-- Auth/OAuth, si Supabase y el plan lo permiten:
-  - `https://auth.kmfxedge.com` o auth bajo dominio propio
-
-Nota: en este roadmap asumo `kmfxedge.com`. Si se quiere usar literalmente `kmfedge.com`, hay que comprobar disponibilidad, propiedad y branding antes de cambiarlo.
-
-### Limpieza de URLs visibles
-
-Hay que eliminar o reducir URLs técnicas visibles para el usuario:
-
-- Reemplazar `dashboard.kmfxedge.com` por `kmfxedge.com` en código, docs, Vercel y Supabase.
-- Reemplazar `kmfx-edge-api.onrender.com` por `api.kmfxedge.com` en runtime de producción.
-- Evitar que el login con Google muestre `uuhiqreifisppqkawzif.supabase.co` cuando sea posible.
-- Configurar marca, nombre de app, dominio autorizado y pantalla de consentimiento en Google Cloud.
-- Configurar Site URL y Redirect URLs en Supabase apuntando a `https://kmfxedge.com`.
-- Revisar si hace falta dominio personalizado de Supabase/Auth para que el flujo OAuth no enseñe el dominio Supabase.
-
-Archivos locales donde ya se detectaron URLs a cambiar:
-
-- `js/modules/auth-session.js`: `resolveOAuthRedirectUrl()` devuelve `https://dashboard.kmfxedge.com`.
-- `launcher/app.py`: `DASHBOARD_RECOVERY_URL` usa `https://dashboard.kmfxedge.com?auth=recovery`.
-- `launcher/backend_client.py`: OAuth del launcher construye URL sobre `https://uuhiqreifisppqkawzif.supabase.co/auth/v1`.
-- `js/lib/supabase.js`: cliente Supabase apunta al dominio Supabase público.
-- `kmfx_connector_api.py`: backend verifica usuario contra el proyecto Supabase.
-- `docs/billing-env-vars.md`: `NEXT_PUBLIC_APP_URL` aún está pensado para local/Next futuro.
-- `start_kmfx.sh`: ya menciona `kmfxedge.com/kmfx-edge.html` y `wss://ws.kmfxedge.com`, hay que reconciliarlo con la arquitectura real.
-
-## Bloqueadores de Producción
-
-### P0 - Bloquea producción pública o de pago
-
-- Las decisiones de pricing no están cerradas: moneda, precios Core/Pro, anual, trial, grace period y modelo Desk.
-- No existe catálogo Stripe: producto, prices, lookup keys, portal y webhook.
-- No existen endpoints de billing en el runtime actual.
-- La app Vercel actual es estática, así que Checkout server-side y webhooks Stripe no pueden vivir ahí todavía.
-- Los permisos de producto aún no están completamente gobernados por entitlements.
-- La emisión de connection keys debe depender de auth y `launcherConnection`.
-- El número de cuentas MT5 live debe limitarse por `liveMt5Accounts`.
-- Debug/admin/raw bridge deben estar protegidos también en backend.
-- CORS del backend es permisivo y debe cerrarse antes de un lanzamiento amplio.
-- Los IDs/admin fallback y mappings de launcher deben quedar controlados por env vars, no por hardcodes.
-- El dominio canónico debe cambiarse a `https://kmfxedge.com`.
-- Google OAuth debe dejar de enseñar marcas o dominios técnicos siempre que sea posible.
-
-### P1 - Bloquea un lanzamiento tranquilo
-
-- No hay GitHub Actions CI para tests.
-- No hay smoke/e2e test del flujo auth -> link cuenta -> launcher -> sync -> dashboard.
-- No hay QA visual/mobile automatizada sobre el dashboard desplegado.
-- Render tiene healthcheck, pero no hay plan documentado de uptime/alertas.
-- La API sigue en dominio `onrender.com`; debería pasar a `api.kmfxedge.com`.
-- Falta documentar config real de Vercel aunque la raíz siga estática.
-- Las páginas legales existen, pero hay que revisar suscripción, retención, cancelación, refunds y disclaimers de riesgo.
-- Falta revisar emails, recovery links, redirects OAuth y mensajes de error para que todo apunte a `kmfxedge.com`.
-
-### P2 - Puede esperar a después del primer lanzamiento
-
-- Migración completa a Next.js + shadcn.
-- Paridad visual completa con `docs/restoration-gap-list.md`.
-- Pulido total de instaladores desktop.
-- Firma y notarización macOS con Developer ID.
-- Instalador y code signing Windows.
-- Desk/team workspace.
-- Observabilidad avanzada.
-
-## Estrategia de Lanzamiento Más Rápida
-
-### Recomendación
-
-Lanzar en dos pistas:
-
-1. MVP de producción: app vanilla actual + FastAPI en Render + Supabase Auth + Stripe Billing en FastAPI.
-2. Modernización post-lanzamiento: migración sidecar a Next.js según `docs/nextjs-migration-blueprint.md`.
-
-No conviene bloquear el primer lanzamiento por Next.js. El backend ya existe, está desplegado y puede recibir webhooks Stripe de forma segura. Más adelante, si se hace el cutover a Next.js, billing puede moverse o quedar en un backend dedicado.
-
-### Scope del primer producto
-
-Lanzar:
-
-- Dashboard autenticado.
-- Link de cuenta y conexión del launcher.
-- Sync MT5, journal sync y policy retrieval.
-- Vistas core de dashboard, riesgo y cuentas.
-- Stripe Checkout y Customer Portal.
-- Entitlements para launcher, cuentas live, debug, export y features avanzadas.
-- Flujos admin de soporte para inspección de cuenta y regeneración de keys.
-- Terms, privacy, refunds y disclaimer de riesgo.
-- Dominio raíz `kmfxedge.com` como experiencia principal.
-
-Dejar fuera del primer lanzamiento:
-
-- Migración completa a Next.js.
-- Paridad total de todos los modales legacy.
-- Desk self-service.
-- Team workspaces.
-- Instaladores firmados como requisito duro.
-- Exports avanzados si no están protegidos y probados.
-
-## Fase 0 - Decisiones de Negocio, Mismo Día
-
-Responsable: producto/negocio.
-
-- [ ] Confirmar modo de lanzamiento: beta gratuita, beta de pago o público de pago.
-- [ ] Confirmar dominio canónico: `kmfxedge.com`.
-- [ ] Confirmar qué pasa con `dashboard.kmfxedge.com`: redirección 301 o alias temporal.
-- [ ] Confirmar moneda: USD, EUR o ambas.
-- [ ] Confirmar precio mensual Core.
-- [ ] Confirmar precio anual Core o descuento anual.
-- [ ] Confirmar precio mensual Pro.
-- [ ] Confirmar precio anual Pro o descuento anual.
-- [ ] Decidir si habrá trial.
-- [ ] Decidir si el trial requiere tarjeta.
-- [ ] Decidir grace period para `past_due`.
-- [ ] Decidir si Desk es privado/contact-only en el lanzamiento.
-- [ ] Decidir comportamiento de retención cuando el usuario baja de plan.
-- [ ] Confirmar política de refunds/cancelación.
-- [ ] Confirmar canal de soporte.
-
-Criterio de salida:
-
-- Pricing final suficiente para crear productos y prices Stripe en test mode.
-- No queda una ambigüedad de negocio bloqueando ingeniería.
-
-## Fase 1 - Dominio, Marca y OAuth, 1 Día
-
-Responsable: frontend/backend/infra.
-
-- [ ] Añadir `kmfxedge.com` como dominio principal en Vercel.
-- [ ] Configurar `www.kmfxedge.com` como redirect al dominio raíz.
-- [ ] Redirigir `dashboard.kmfxedge.com` a `kmfxedge.com`.
-- [ ] Actualizar `resolveOAuthRedirectUrl()` en `js/modules/auth-session.js` a `https://kmfxedge.com`.
-- [ ] Actualizar `DASHBOARD_RECOVERY_URL` en `launcher/app.py`.
-- [ ] Revisar todos los links de recovery/password reset/email.
-- [ ] Configurar Supabase Auth Site URL: `https://kmfxedge.com`.
-- [ ] Configurar Supabase Auth Redirect URLs:
-  - `https://kmfxedge.com`
-  - `https://kmfxedge.com/*`
-  - URLs locales de desarrollo
-  - callback local del launcher si sigue aplicando
-- [ ] Configurar Google Cloud OAuth consent screen:
-  - App name: `KMFX Edge`
-  - Authorized domain: `kmfxedge.com`
-  - Privacy Policy URL
-  - Terms URL
-  - Support email
-- [ ] Revisar Authorized redirect URIs del provider Google usado por Supabase.
-- [ ] Evaluar dominio personalizado de Supabase/Auth para evitar mostrar `supabase.co` en el flujo OAuth.
-- [ ] Si no se puede ocultar `supabase.co` por plan/arquitectura, documentarlo como deuda de branding y minimizarlo en el resto del flujo.
-- [ ] Actualizar manifest, favicons, start_url y links públicos para usar `kmfxedge.com`.
-
-Criterio de salida:
-
-- El usuario entra por `https://kmfxedge.com`.
-- Google login vuelve a `https://kmfxedge.com`.
-- Recovery/password reset vuelve a `https://kmfxedge.com`.
-- El subdominio `dashboard` ya no es la URL principal del producto.
-
-## Fase 2 - Hardening de Producción, 1-2 Días
-
-Responsable: backend/frontend.
-
-- [x] Mover admin user IDs y admin launcher key mapping completamente a env vars de Render.
-- [x] Eliminar o desactivar fallback hardcoded de admin launcher en producción.
-- [x] Restringir CORS del backend a orígenes reales:
-  - `https://kmfxedge.com`
-  - `https://www.kmfxedge.com`, solo si no redirige antes de tocar API
-  - `https://dashboard.kmfxedge.com`, solo durante transición
-  - orígenes locales solo en dev
-- [ ] Confirmar ruta de verificación JWT de Supabase en producción.
-- [ ] Añadir `SUPABASE_JWT_SECRET` o documentar el uso intencional de verificación vía Supabase Auth.
-- [ ] Añadir `SUPABASE_SERVICE_ROLE_KEY` solo en backend server para writes de billing.
-- [ ] Garantizar que ningún secreto server-side es legible por el navegador.
-- [ ] Mantener la publishable key de Supabase en frontend solo si es intencional.
-- [ ] Añadir manejo de errores para auth required, plan bloqueado, límite de cuentas y backend unavailable.
-- [ ] Confirmar que usuarios no autenticados no pueden crear/linkear cuentas.
-- [ ] Confirmar que endpoints admin devuelven 403 para usuarios no-admin verificados.
-- [ ] Crear `api.kmfxedge.com` o documentar por qué Render domain queda temporalmente.
-- [ ] Revisar privacy/refunds/terms contra el modelo de suscripción.
-
-Criterio de salida:
-
-- Backend no depende de accesos sensibles hardcoded.
-- CORS está cerrado a producción.
-- Account linking y admin routes están protegidos explícitamente.
-- Copy legal y de riesgo no es engañoso.
-
-## Fase 2.5 - Flujo MT5 para Usuario Final, 1-2 Días
-
-Responsable: frontend/launcher/backend.
-
-Decisión de producto: para usuarios normales solo debe existir un camino principal:
-
-`Cuentas -> Conectar MT5 -> KMFX Launcher -> Instalar conector -> Cuenta sincronizada`
-
-El modo manual, keys, puertos, endpoints locales, logs técnicos y payload raw quedan reservados para admin/dev/soporte.
-
-- [x] Cambiar la pantalla Cuentas para presentar "Conectar MT5" como acción principal.
-- [x] Ocultar `connection_key` y endpoints en modales de usuario normal.
-- [x] Dejar la inspección técnica y regeneración de key solo en admin tools.
-- [x] Cambiar el launcher a lenguaje de producto: "Añadir cuenta MT5", "Instalar conector" y estado de sincronización.
-- [x] Ocultar key y endpoint en la lista normal del launcher.
-- [x] Soportar multi-cuenta real sin que el usuario gestione puertos.
-- [x] Crear un account slot por cuenta MT5 desde backend, vinculado a `user_id`.
-- [x] Permitir instalar el conector para una cuenta concreta usando su key interna sin mostrarla al usuario.
-- [x] Añadir conexión directa avanzada con `https://mt5-api.kmfxedge.com` y key generada desde Cuentas.
-- [x] Cambiar la descarga del launcher para que apunte a un artefacto propio de KMFX, no a GitHub visible.
-- [x] Hacer que el EA soporte cuentas con investor password en modo lectura, sincronizando sin intentar enforcement.
-- [ ] Crear y publicar launcher Windows desde entorno Windows 10/11 o CI Windows.
-- [ ] Detectar primera sincronización y pedir confirmación de nombre/tipo de cuenta.
+- [x] Flujo principal de usuario definido: Cuentas -> Conectar MT5 -> Launcher -> Instalar conector -> Sync.
+- [x] Conexión EA con WebRequest a `https://mt5-api.kmfxedge.com`.
+- [x] Descarga macOS desde la web propia.
+- [x] Descarga Windows desde la web propia.
+- [x] CI Windows genera y publica `downloads/KMFX-Launcher-Windows.zip`.
+- [x] Launcher muestra cuentas detectadas y sincronizadas de forma más clara.
+- [x] Multi-cuenta probado localmente con dos cuentas MT5.
+- [x] El EA funciona con investor password en modo lectura.
+- [x] Logs del EA reducidos a mensajes de estado útiles.
+- [ ] Probar launcher Windows real en Windows 10/11 limpio.
+- [ ] Probar launcher macOS en máquina limpia, sin tus instancias previas.
+- [ ] Añadir confirmación de primera sincronización: nombre, tipo de cuenta y broker.
 - [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
-- [ ] Vincular cuenta marcada como Funding a un journey existente o nuevo.
-- [ ] Añadir estado bloqueado por plan cuando se alcance el límite de cuentas live.
-- [x] Definir y activar `https://mt5-api.kmfxedge.com` como proxy Cloudflare hacia el backend actual.
-- [ ] Mover la descarga final del launcher a `downloads.kmfxedge.com` con checksum, firma y versión publicados.
+- [ ] Vincular cuenta MT5 a Funding journey existente o nuevo.
+- [ ] Mostrar límites de plan en launcher y dashboard sin borrar cola local.
+- [ ] Definir versión visible, checksum visible y estrategia de actualización del launcher.
 
-Criterio de salida:
+### Backend y seguridad
 
-- Usuario no técnico puede conectar una cuenta MT5 sin ver claves, puertos ni endpoints.
-- Usuario puede añadir otra cuenta MT5 desde el launcher sin pisar la cuenta anterior.
-- Admin/soporte conserva herramientas para ver key, payload, logs y errores.
+- [x] CORS restringido a dominios reales.
+- [x] Public MT5 writes sin key/bearer bloqueados en producción.
+- [x] Keys en URL rechazadas por defecto.
+- [x] Keys aceptadas por header/body para compatibilidad.
+- [x] Keys almacenadas como hash.
+- [x] Revocación y rate limit por `connection_key`.
+- [x] Payloads MT5 demasiado grandes rechazados con `413 payload_too_large`.
+- [x] Admin y plan limits mueven decisiones hacia env/app metadata.
+- [ ] Auditar env vars reales de Render, Vercel, Cloudflare y GitHub.
+- [ ] Añadir o documentar verificación JWT final: Supabase Auth remote verification vs `SUPABASE_JWT_SECRET`.
+- [ ] Añadir rate limit complementario por IP/usuario para endpoints sensibles.
+- [ ] Revisar logs históricos por si contienen keys antiguas y rotarlas si procede.
+- [ ] Confirmar que endpoints admin devuelven `403` para usuarios no-admin verificados.
 
-## Fase 3 - Stripe Billing MVP, 2-3 Días
+### Billing y planes
 
-Responsable: backend/billing.
+- [x] Tablas Supabase de billing preparadas y RLS revisado.
+- [x] `plan_entitlements` sembrado para `free`, `core`, `pro`, `desk`.
+- [ ] Pricing final no confirmado.
+- [ ] Stripe Product y Prices no están creados como catálogo KMFX final.
+- [ ] Customer Portal no está configurado.
+- [ ] Webhooks Stripe no están implementados en producción.
+- [ ] Endpoints `/api/billing/*` no están implementados.
+- [ ] El frontend no consume billing status/entitlements.
+- [ ] Los guards de producto no dependen aún de entitlements finales.
 
-Usar Stripe Billing con Checkout Sessions en modo `subscription` y Customer Portal.
+### CI, QA y release
 
-- [ ] Crear Stripe Product `KMFX Edge` en test mode.
+- [x] GitHub Actions CI existe.
+- [x] Workflow `Production Smoke` existe.
+- [x] Workflow Windows launcher existe.
+- [x] `CODEOWNERS` existe.
+- [ ] Activar branch protection real en GitHub.
+- [ ] Activar secret scanning y push protection.
+- [ ] Exigir checks de CI antes de merge cuando el flujo esté estable.
+- [ ] Ejecutar smoke manual antes de cada release.
+- [ ] Crear tag de release cuando el MVP esté cerrado.
+
+## Prioridad Inmediata
+
+### Siguiente paso recomendado
+
+Empezar por **Billing MVP + Entitlements**.
+
+Motivo: dominio, MT5 y launcher ya tienen una base funcional. Sin billing y entitlements no hay producción comercial segura: cualquiera podría quedar con acceso incorrecto, y no hay forma clara de limitar cuentas, debug, risk editor o funciones premium.
+
+La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada como pendiente hasta que exista vault seguro, rate limit, revocación y política de permisos. El flujo recomendado para producción debe seguir siendo EA/Launcher.
+
+## Fase 1 - Cierre de Producto y Billing
+
+Objetivo: poder vender Core/Pro sin improvisar permisos.
+
+- [ ] Confirmar moneda: EUR, USD o ambas.
+- [ ] Confirmar precio mensual Core.
+- [ ] Confirmar precio anual Core.
+- [ ] Confirmar precio mensual Pro.
+- [ ] Confirmar precio anual Pro.
+- [ ] Decidir trial: sin trial, trial con tarjeta o trial sin tarjeta.
+- [ ] Decidir grace period para `past_due`.
+- [ ] Decidir si Desk queda privado/contact-only.
+- [ ] Confirmar política de refunds y cancelación.
+- [ ] Crear Stripe Product `KMFX Edge`.
 - [ ] Crear Prices con lookup keys:
   - `kmfx_core_monthly`
   - `kmfx_core_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
-- [ ] Añadir metadata:
-  - `app=kmfx_edge`
-  - `plan_key=core|pro`
-  - `interval=month|year`
-- [ ] Configurar Stripe Customer Portal.
+- [ ] Configurar Customer Portal.
+- [ ] Configurar webhook endpoint en Stripe.
+
+Criterio de salida:
+
+- Hay catálogo Stripe test mode completo.
+- Hay decisiones de pricing suficientes para implementar Checkout.
+- No quedan decisiones comerciales bloqueando ingeniería.
+
+## Fase 2 - Backend Billing
+
+Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el acceso.
+
 - [ ] Añadir env vars en Render:
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
-  - `STRIPE_API_VERSION=2026-02-25.clover`
+  - `STRIPE_API_VERSION`
   - `STRIPE_PRICE_CORE_MONTHLY`
   - `STRIPE_PRICE_CORE_YEARLY`
   - `STRIPE_PRICE_PRO_MONTHLY`
@@ -345,15 +158,16 @@ Usar Stripe Billing con Checkout Sessions en modo `subscription` y Customer Port
 - [ ] Implementar `POST /api/billing/portal`.
 - [ ] Implementar `POST /api/billing/webhook`.
 - [ ] Implementar `GET /api/billing/status`.
-- [ ] Verificar firma webhook usando raw body.
-- [ ] Guardar eventos idempotentes en `billing_events`.
-- [ ] Upsert en `billing_customers`.
-- [ ] Upsert en `billing_subscriptions`.
-- [ ] Mapear Stripe status a estado interno de acceso.
+- [ ] Verificar firma Stripe webhook usando raw body.
+- [ ] Guardar `stripe_event_id` en `billing_events` para idempotencia.
+- [ ] Upsert de `billing_customers`.
+- [ ] Upsert de `billing_subscriptions`.
+- [ ] Mapear estados Stripe a estado interno.
 - [ ] Devolver entitlements desde `plan_entitlements`.
-- [ ] Añadir tests de webhook idempotente y status mapping.
+- [ ] Añadir tests de webhook idempotente.
+- [ ] Añadir tests de status mapping.
 
-Eventos webhook mínimos:
+Eventos mínimos:
 
 - `checkout.session.completed`
 - `customer.subscription.created`
@@ -364,219 +178,206 @@ Eventos webhook mínimos:
 
 Criterio de salida:
 
-- Checkout test crea suscripción y actualiza Supabase.
-- Portal test permite cancelar/cambiar suscripción y los webhooks sincronizan.
-- `/api/billing/status` devuelve billing + entitlements para usuario autenticado.
+- Checkout test crea suscripción.
+- Webhook test actualiza Supabase.
+- `/api/billing/status` devuelve plan, estado y entitlements para el usuario autenticado.
 
-## Fase 4 - Guards de Producto, 1-2 Días
+## Fase 3 - Guards de Producto
 
-Responsable: backend/frontend/launcher.
+Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 
 - [ ] Añadir helper backend de entitlements.
-- [ ] Exigir `launcherConnection` antes de emitir connection keys.
-- [ ] Exigir auth y plan activo antes de emitir keys directas para EA.
-- [ ] Rotar/revocar connection keys desde Cuentas.
-- [ ] Aplicar rate limiting por `connection_key`, usuario e IP en `/api/mt5/*`.
-- [ ] Exigir `liveMt5Accounts` antes de añadir/linkear una cuenta MT5 live.
-- [ ] Proteger editor Risk con `riskPolicyEditor`.
+- [ ] Exigir auth antes de crear cuentas MT5.
+- [ ] Exigir `launcherConnection` antes de emitir keys para Launcher/EA.
+- [ ] Exigir `liveMt5Accounts` antes de permitir nuevas cuentas live.
+- [ ] Bloquear creación de nuevas keys cuando el plan no lo permita.
+- [ ] Añadir respuesta clara `billing_required`.
+- [ ] Añadir respuesta clara `plan_limit_reached`.
+- [ ] Añadir respuesta clara `entitlement_required`.
+- [ ] Añadir respuesta clara `billing_past_due`.
+- [ ] Conectar frontend con `/api/billing/status`.
+- [ ] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
+- [ ] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.
+- [ ] Proteger Risk editor con `riskPolicyEditor`.
 - [ ] Proteger auto-block local con `localAutoBlock`.
-- [ ] Proteger debug raw bridge con `rawBridgeDebug`.
 - [ ] Proteger exports con `exports`.
-- [ ] Devolver respuestas claras:
-  - `billing_required`
-  - `plan_limit_reached`
-  - `entitlement_required`
-  - `billing_past_due`
-- [ ] Añadir empty/blocked states sobrios en frontend.
-- [ ] Asegurar que el launcher muestra “plan/account limit” sin borrar cola ni logs locales.
 
 Criterio de salida:
 
-- Usuario Free no puede linkear cuenta live.
-- Usuario Core no puede superar 1 cuenta MT5 live.
-- Usuario Pro no puede superar 3 cuentas MT5 live.
-- Debug/admin/raw routes no están disponibles para usuarios normales.
+- Free no puede conectar cuenta live.
+- Core no puede superar 1 cuenta MT5 live.
+- Pro no puede superar 3 cuentas MT5 live.
+- Usuario sin permiso ve estado bloqueado claro, no errores técnicos.
 
-## Fase 5 - QA de Release, 1-2 Días
+## Fase 4 - MT5 UX Final
 
-Responsable: QA/engineering.
+Objetivo: que un usuario no técnico conecte MT5 sin pensar en puertos, keys ni logs.
 
-- [ ] Ejecutar unit tests: `python3 -m unittest discover -s tests`.
-- [ ] Añadir GitHub Actions para tests Python.
-- [ ] Añadir smoke test de producción:
-  - `https://kmfxedge.com` devuelve 200.
-  - `https://api.kmfxedge.com/health` devuelve commit actual.
-  - `/api/accounts/snapshot` sin auth devuelve `auth_required`.
-  - `/api/mt5/policy` rechaza identity ausente.
-- [ ] Probar login auth desde dominio production.
-- [ ] Probar Google login y comprobar que vuelve a `kmfxedge.com`.
-- [ ] Probar creación de account link con usuario real autenticado.
-- [ ] Probar ruta launcher:
-  - EA -> launcher localhost -> backend production -> dashboard.
-- [ ] Probar resiliencia:
-  - backend caído -> cola launcher crece.
-  - backend vuelve -> cola drena.
-- [ ] Probar navegación móvil.
-- [ ] Probar navegación desktop.
-- [ ] Probar dark/light mode si se ofrece públicamente.
-- [ ] Probar Terms, Privacy y Refund links.
-- [ ] Probar Checkout success/cancel redirects.
-- [ ] Probar replay/idempotencia de Stripe webhook.
-- [ ] Probar cancelación en Stripe Customer Portal.
+- [ ] Probar flujo completo en producción:
+  - login
+  - abrir Cuentas
+  - descargar Launcher
+  - instalar conector
+  - añadir EA al gráfico
+  - pegar key si es flujo manual
+  - primer sync
+  - cuenta visible en dashboard
+- [ ] Añadir modal de confirmación tras primera sincronización.
+- [ ] Permitir editar nombre de cuenta.
+- [ ] Permitir elegir tipo: Demo, Real, Funding, Challenge.
+- [ ] Si es Funding, permitir vincular a journey existente.
+- [ ] Añadir estado de sincronización reciente y stale más claro.
+- [ ] Añadir guía breve dentro de Cuentas para WebRequest.
+- [ ] Añadir checksum visible para descargas.
+- [ ] Probar Windows launcher en Windows real.
+- [ ] Probar macOS launcher en máquina limpia.
 
 Criterio de salida:
 
-- Un viaje completo de usuario funciona en URLs de producción.
-- Billing funciona en Stripe test mode.
+- Un usuario nuevo puede conectar una cuenta sin ayuda.
+- El dashboard distingue cuentas conectadas, pendientes, stale y bloqueadas por plan.
+- Funding puede usar una cuenta MT5 como origen real.
+
+## Fase 5 - Seguridad, Infra y Gobierno
+
+Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
+
+- [ ] Activar secret scanning en GitHub.
+- [ ] Activar push protection en GitHub.
+- [ ] Activar Dependabot alerts/security updates.
+- [ ] Configurar branch protection para `main`.
+- [ ] Exigir checks:
+  - `Backend and connector tests`
+  - `Static app checks`
+  - `Build Windows launcher`
+- [ ] Revisar colaboradores, deploy keys, GitHub Apps y webhooks.
+- [ ] Revisar secrets en GitHub Actions.
+- [ ] Revisar env vars en Vercel: solo valores públicos.
+- [ ] Revisar env vars en Render: secretos solo backend.
+- [ ] Revisar Cloudflare Worker y DNS.
+- [ ] Revisar Supabase Auth providers, redirect URLs y RLS.
+- [ ] Configurar alerta mínima de Render/API caído.
+- [ ] Documentar rollback web, backend, launcher y billing.
+
+Criterio de salida:
+
+- No hay secretos backend en frontend/Vercel.
+- `main` no acepta cambios críticos sin checks.
+- Hay rollback operativo documentado.
+
+## Fase 6 - QA de Release
+
+Objetivo: validar un viaje real de usuario antes de cobrar.
+
+- [ ] Ejecutar `python3 -m unittest discover -s tests`.
+- [ ] Ejecutar CI en GitHub y confirmar verde.
+- [ ] Ejecutar `Production Smoke`.
+- [ ] Probar `https://kmfxedge.com`.
+- [ ] Probar redirección desde `www` y `dashboard`.
+- [ ] Probar login Google.
+- [ ] Probar recovery/password reset.
+- [ ] Probar `/api/accounts/snapshot` sin auth: debe requerir auth.
+- [ ] Probar `/api/mt5/policy` sin key: debe rechazar.
+- [ ] Probar `/api/mt5/sync` sin key: debe rechazar.
+- [ ] Probar Checkout test success/cancel.
+- [ ] Probar Customer Portal test.
+- [ ] Probar webhook replay/idempotencia.
+- [ ] Probar launcher con backend caído: cola crece.
+- [ ] Probar launcher con backend recuperado: cola drena.
+- [ ] Probar dashboard desktop completo.
+- [ ] Probar mobile básico, aunque no sea rediseño final.
+- [ ] Revisar Terms, Privacy, Refunds y Risk disclaimer.
+
+Criterio de salida:
+
+- Un usuario puede registrarse, pagar en test mode, conectar MT5 y ver datos.
 - No queda ningún P0 abierto.
 
-## Fase 6 - Go Live, Mismo Día Tras QA
+## Fase 7 - Go Live
 
-Responsable: release.
+Objetivo: pasar de beta técnica a producción controlada.
 
 - [ ] Congelar `main`.
-- [ ] Crear tag, por ejemplo `v0.1.0-production-mvp`.
-- [ ] Cambiar Stripe de test keys a live keys.
-- [ ] Crear productos/prices live con los mismos lookup keys.
+- [ ] Crear tag `v0.1.0-production-mvp`.
+- [ ] Cambiar Stripe a live keys.
+- [ ] Crear productos/prices live con las mismas lookup keys.
 - [ ] Configurar webhook live.
 - [ ] Configurar Customer Portal live.
-- [ ] Confirmar Render env con live Stripe keys y Supabase production.
-- [ ] Confirmar Vercel con `kmfxedge.com` como dominio principal.
-- [ ] Confirmar `api.kmfxedge.com`, si se activa.
-- [ ] Ejecutar smoke tests production.
-- [ ] Hacer rehearsal de checkout live con el camino más seguro disponible.
+- [ ] Confirmar Render env live.
+- [ ] Confirmar Supabase production.
+- [ ] Confirmar Vercel production branch `main`.
+- [ ] Ejecutar smoke production.
+- [ ] Hacer compra real de prueba controlada.
 - [ ] Monitorizar Render logs, Stripe events, Supabase writes y Vercel traffic.
 
 Criterio de salida:
 
-- Un usuario real puede registrarse, suscribirse, linkear launcher, sincronizar MT5 y ver datos en el dashboard.
+- Un usuario real puede autenticarse, suscribirse, conectar MT5 y usar el dashboard sin intervención manual.
 
-## Revisión Integral por Complementos
+## Pistas Post-Lanzamiento
 
-No hay un único complemento que haga bien toda la revisión. Para buscar puntos de mejora de verdad, conviene usar varios:
+### Next.js + shadcn
 
-- **Browser Use**: revisión visual y funcional en navegador real. Sirve para detectar problemas de UX, mobile, redirects, login, botones rotos, responsive, consola y flujos completos.
-- **Vercel**: revisión de dominios, aliases, deployments, build output, previews, redirects y configuración de producción.
-- **Supabase**: revisión de Auth, redirect URLs, RLS, tablas, policies, migrations y seguridad de datos.
-- **Stripe**: revisión de catálogo, precios, Checkout, Portal, webhooks, eventos e integración de suscripciones.
-- **GitHub**: revisión de issues, PRs, CI/CD, release flow, branches y checks.
-- **Codex Security**: revisión de seguridad técnica del repo: auth, secretos, CORS, endpoints admin, permisos y superficies expuestas.
-- **Build Web Apps / frontend audit**: revisión de experiencia, accesibilidad, copy, layout, mobile y polish del producto.
+- [ ] Crear sidecar Next.js sin bloquear la app vanilla.
+- [ ] Migrar primero dashboard read-only.
+- [ ] Portar AppShell, rutas, sidebar y topbar.
+- [ ] Tipar contratos de datos.
+- [ ] Rehacer charts y tablas con componentes mantenibles.
+- [ ] Hacer cutover solo con paridad visual y funcional.
 
-Orden recomendado de revisión:
+### Launcher distribution
 
-1. Browser Use + Vercel para detectar problemas visibles de dominio, navegación, mobile y despliegue.
-2. Supabase + Stripe para auth, billing y datos.
-3. Codex Security para riesgos de producción.
-4. GitHub para convertir hallazgos en issues, CI y release checklist.
+- [ ] Firma macOS con Developer ID.
+- [ ] Notarización macOS.
+- [ ] Windows code signing.
+- [ ] Instalador `.msi` o `.exe` con Inno/WiX.
+- [ ] Auto-update o aviso de nueva versión.
+- [ ] `downloads.kmfxedge.com` o bucket dedicado.
 
-## Pista Post-Lanzamiento A - Migración a Next.js
+### Conexión directa MT5
 
-Hacer después de que el MVP sea usable y billing esté estable.
+- [ ] Definir vault seguro para credenciales.
+- [ ] Separar investor/master password.
+- [ ] Auditar riesgos para prop firms.
+- [ ] Añadir rate limit y revocación.
+- [ ] Lanzar solo para usuarios/planes permitidos.
 
-- [ ] Crear `apps/web-next`.
-- [ ] Instalar Next.js, TypeScript, Tailwind, shadcn/ui, lucide y Recharts.
-- [ ] Portar tokens desde `styles-v2.css`.
-- [ ] Construir AppShell, rutas, sidebar, topbar y mobile nav.
-- [ ] Crear fixtures tipados y modelos de dominio.
-- [ ] Extraer selectors de cuentas, riesgo y charts.
-- [ ] Construir primero Dashboard read-only.
-- [ ] Añadir live data clients después del data layer tipado.
-- [ ] Hacer cutover solo tras paridad de rutas y QA visual.
+### Producto
 
-Referencia: `docs/nextjs-migration-blueprint.md`.
+- [ ] Completar secciones Risk Engine y Ejecución.
+- [ ] Pulir Funding con journeys reales.
+- [ ] Mejorar Journal/Strategies con datos live.
+- [ ] Revisar mobile.
+- [ ] Añadir onboarding guiado para primer usuario.
 
-## Pista Post-Lanzamiento B - Distribución del Launcher
+## Orden de Trabajo Recomendado Desde Aquí
 
-- [ ] Validar app macOS en máquina limpia.
-- [ ] Añadir Developer ID signing.
-- [ ] Notarizar build macOS.
-- [ ] Publicar checksum SHA-256 del DMG en el dashboard.
-- [ ] Servir descargas desde dominio propio `downloads.kmfxedge.com` o bucket privado con URL firmada.
-- [ ] Build Windows en Windows 10/11 limpio.
-- [ ] Envolver build Windows onedir con Inno Setup o WiX.
-- [ ] Añadir Windows code signing.
-- [ ] Añadir enlace Windows al dashboard cuando exista `KMFX-Launcher-Windows.exe` o `.msi`.
-- [ ] Publicar guía de instalación del launcher.
-- [ ] Definir estrategia de updates.
+1. Cerrar pricing y catálogo Stripe.
+2. Implementar backend billing.
+3. Conectar entitlements al frontend y al backend.
+4. QA del flujo MT5 usuario final.
+5. Activar branch protection y release governance.
+6. Ejecutar smoke completo.
+7. Tag `v0.1.0-production-mvp`.
+8. Lanzamiento controlado.
 
-## Pista Post-Lanzamiento C - Paridad de Producto
+## Qué Se Puede Saltar Por Ahora
 
-Referencia: `docs/restoration-gap-list.md`.
+- Dominio personalizado de Supabase Auth, por coste mensual.
+- Firma/notarización Apple, porque has aceptado el aviso de descarga.
+- Windows code signing, mientras el primer paquete funcione y se explique el aviso.
+- Migración Next.js completa.
+- `api.kmfxedge.com`, si se documenta temporalmente que Render sigue como backend interno y `mt5-api.kmfxedge.com` cubre el EA.
 
-- [ ] Restaurar flujo de gestión del banner add-account.
-- [ ] Restaurar diagnósticos ricos de cuenta.
-- [ ] Restaurar modales de journal y lifecycle de estrategias.
-- [ ] Restaurar edición/creación de funded challenges.
-- [ ] Restaurar tablas RAW EA vs dashboard.
-- [ ] Restaurar breakdown mensual de bridge debug.
-- [ ] Restaurar widgets ricos de instrumentos en calculadora.
-- [ ] Restaurar paridad más profunda en market/glossary.
-- [ ] Mejorar bottom nav móvil y menú “Más secciones”.
+## Definition of Done del MVP
 
-## Backlog Sugerido en GitHub
-
-Crear issues con estos labels:
-
-- `P0 Launch blocker`
-- `P1 Launch confidence`
-- `P2 Post launch`
-- `branding`
-- `domain`
-- `billing`
-- `backend`
-- `frontend`
-- `launcher`
-- `supabase`
-- `stripe`
-- `vercel`
-- `security`
-
-Issues iniciales:
-
-- [ ] Finalizar pricing y política de trial.
-- [ ] Cambiar dominio principal a `kmfxedge.com`.
-- [ ] Limpiar OAuth/Google para que vuelva a `kmfxedge.com`.
-- [ ] Evaluar dominio personalizado de Supabase/Auth.
-- [ ] Crear `api.kmfxedge.com`.
-- [ ] Hardening de producción del backend.
-- [ ] Implementar endpoints Stripe billing en FastAPI.
-- [ ] Añadir helper de entitlements y product guards.
-- [ ] Añadir GitHub Actions para unit tests.
-- [ ] Añadir smoke test de producción.
-- [ ] Ejecutar revisión Browser Use sobre producción.
-- [ ] Ejecutar revisión de seguridad.
-- [ ] Probar launcher end-to-end en producción.
-- [ ] Preparar tag de release y rollback plan.
-- [ ] Empezar sidecar Next.js después del lanzamiento.
-
-## Plan de Rollback
-
-- Web rollback: usar rollback candidate en Vercel para `kmfx-edge`.
-- Backend rollback: redeploy del commit anterior en Render.
-- Stripe rollback:
-  - mantener test mode hasta que QA pase.
-  - si live falla, desactivar prices live o pausar entry points de compra.
-  - Customer Portal debe seguir disponible para suscriptores existentes.
-- Supabase rollback:
-  - evitar migraciones destructivas durante launch.
-  - billing writes deben ser aditivos y event-driven.
-- Launcher rollback:
-  - mantener instalador/connector anterior disponible.
-  - no forzar auto-update en primera release.
-
-## Definition of Done del MVP de Producción
-
-- [ ] Usuario puede autenticarse en `https://kmfxedge.com`.
-- [ ] Login con Google vuelve a `https://kmfxedge.com`.
-- [ ] Usuario puede comprar Core o Pro.
-- [ ] Stripe webhook actualiza Supabase.
-- [ ] App lee billing status y entitlements.
-- [ ] Usuario puede linkear launcher solo si tiene permiso.
-- [ ] Launcher puede sincronizar MT5 con production API.
-- [ ] Dashboard muestra datos live de la cuenta autenticada.
-- [ ] Usuarios no autorizados no pueden ver datos de otra cuenta.
-- [ ] Admin tools están protegidas en servidor.
-- [ ] Tests y smoke checks de producción pasan.
-- [ ] Terms, privacy, refunds y risk disclaimer están finales.
-- [ ] Rollback path está claro.
+- [ ] Auth funciona en `kmfxedge.com`.
+- [ ] Billing test funciona end-to-end.
+- [ ] Entitlements gobiernan cuentas y features premium.
+- [ ] Launcher conecta una cuenta nueva en producción.
+- [ ] EA sincroniza con `mt5-api.kmfxedge.com`.
+- [ ] Dashboard muestra datos live del usuario correcto.
+- [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
+- [ ] CI y smoke están verdes.
+- [ ] Legal mínimo está publicado.
+- [ ] Rollback está documentado.
