@@ -75,11 +75,24 @@ const pageContext = {
 
 const SUBMENU_STORAGE_KEY = "kmfx_sidebar_submenus_v1";
 const DEFAULT_SUBMENU_STATE = Object.freeze({
-  strategies: true,
+  dashboard: true,
   risk: true,
   journal: true,
   funded: true
 });
+
+const DASHBOARD_NAV_PAGES = new Set([
+  "dashboard",
+  "calendar",
+  "trades",
+  "strategies",
+  "strategies-backtest",
+  "strategies-portfolio",
+  "analytics",
+  "analytics-daily",
+  "analytics-hourly",
+  "analytics-risk"
+]);
 
 function readStoredSubmenuState() {
   try {
@@ -191,9 +204,12 @@ export function initNavigation(store) {
     navButtons.forEach((item) => {
       const targetPage = item.dataset.page;
       const isSubitem = item.classList.contains("nav-subitem");
+      const isDashboardParent = targetPage === "dashboard"
+        && item.getAttribute("data-nav-submenu-trigger") === "dashboard"
+        && DASHBOARD_NAV_PAGES.has(activePage);
       const isActive = isSubitem
-        ? targetPage === activePage
-        : targetPage === activePage || targetPage === activeNavPage;
+        ? targetPage === activePage || targetPage === activeNavPage
+        : targetPage === activePage || targetPage === activeNavPage || isDashboardParent;
       item.classList.toggle("active", isActive);
       if (isActive) {
         item.setAttribute("aria-current", "page");

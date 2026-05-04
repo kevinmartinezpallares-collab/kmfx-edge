@@ -36315,3 +36315,39 @@ html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-t
 body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.tl-page-title, .tl-section-title) {
   gap: 0 !important;
 }
+
+/* KMFX Edge sidebar information architecture: equal rhythm across every group. */
+.app-shell.sidebar-vnext.sidebar-provider .nav-list.sidebar-group-list,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list.sidebar-group-list,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-list.sidebar-group-list {
+  gap: 10px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-group,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-group,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-group {
+  gap: 2px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .nav-group-items.sidebar-menu,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items.sidebar-menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group-items.sidebar-menu,
+.app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="dashboard"] .nav-group-items,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="dashboard"] .nav-group-items,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .nav-group[data-nav-group="dashboard"] .nav-group-items {
+  gap: 2px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-group-label,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-group-label,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-group-label {
+  height: 26px !important;
+  min-height: 26px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub {
+  gap: 1px !important;
+  margin-bottom: 4px !important;
+}
