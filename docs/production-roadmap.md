@@ -112,7 +112,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Fixture de contrato con dos cuentas MT5 live y validacion automatica inicial de KPIs.
 - [x] Smoke render inicial certifica que las vistas principales no caen a mock cuando hay cuenta live activa.
 - [x] Cuentas queda cubierta para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
-- [ ] Falta ampliar estados degradados a Risk/Funding cuando dependan de policy, billing o journey.
+- [x] Risk/Funding quedan cubiertos para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
+- [ ] Falta ampliar estados degradados a billing/entitlements cuando exista el guard real de plan.
 - [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con workspace del usuario.
 - [ ] Falta quitar mensajes internos visibles como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
 
@@ -143,7 +144,8 @@ Bloque previo obligatorio:
 - [ ] Pasada final de textos visibles para usuario final.
 - [x] Render smoke inicial de metricas live por seccion con fixture.
 - [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.
-- [ ] Render smoke de estados degradados en Risk/Funding cuando haya policy o billing bloqueado.
+- [x] Render smoke de estados degradados en Risk/Funding: sin policy/snapshot, stale y funding no vinculado.
+- [ ] Render smoke de billing bloqueado cuando se implemente status/entitlements.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 
