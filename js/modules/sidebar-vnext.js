@@ -38,6 +38,7 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
   const sidebar = shell.querySelector(".sidebar");
   const toggles = document.querySelectorAll("[data-sidebar-vnext-toggle], [data-sidebar-mobile-toggle]");
   const mobileToggle = document.querySelector("[data-sidebar-mobile-toggle]");
+  const mobileClose = document.querySelector("[data-sidebar-mobile-close]");
   const mobileBackdrop = document.querySelector("[data-mobile-sidebar-backdrop]");
   const isMobile = isMobileSidebarViewport();
   shell.classList.toggle("sidebar-vnext-collapsed", isCollapsed);
@@ -56,6 +57,7 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
   toggle?.setAttribute("title", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
   mobileToggle?.setAttribute("aria-label", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
   mobileToggle?.setAttribute("title", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
+  mobileClose?.setAttribute("aria-hidden", isMobile && !isCollapsed ? "false" : "true");
   if (mobileBackdrop) {
     mobileBackdrop.hidden = !isMobile || isCollapsed;
     mobileBackdrop.setAttribute("aria-hidden", (!isMobile || isCollapsed) ? "true" : "false");
@@ -71,7 +73,7 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
 export function initSidebarVNext() {
   const shell = document.querySelector(".app-shell");
   const toggle = document.querySelector("[data-sidebar-vnext-toggle]");
-  const controls = document.querySelectorAll("[data-sidebar-vnext-toggle], [data-sidebar-mobile-toggle], [data-mobile-sidebar-backdrop]");
+  const controls = document.querySelectorAll("[data-sidebar-vnext-toggle], [data-sidebar-mobile-toggle], [data-sidebar-mobile-close], [data-mobile-sidebar-backdrop]");
   if (!shell) return;
 
   shell.classList.add("sidebar-vnext");
@@ -82,7 +84,8 @@ export function initSidebarVNext() {
   controls.forEach((control) => {
     control.addEventListener("click", () => {
       const isBackdrop = control.hasAttribute("data-mobile-sidebar-backdrop");
-      const isCollapsed = isBackdrop ? true : !shell.classList.contains("sidebar-vnext-collapsed");
+      const isMobileClose = control.hasAttribute("data-sidebar-mobile-close");
+      const isCollapsed = isBackdrop || isMobileClose ? true : !shell.classList.contains("sidebar-vnext-collapsed");
       applySidebarState(shell, toggle, isCollapsed);
     });
   });

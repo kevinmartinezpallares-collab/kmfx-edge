@@ -26,7 +26,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <script>
     (function retireLegacyServiceWorker() {
-      var reloadKey = "kmfx-sw-retired-build-20260505-001500";
+      var reloadKey = "kmfx-sw-retired-build-20260505-004000";
       if (!("serviceWorker" in navigator)) return;
 
       Promise.all([
@@ -49,8 +49,8 @@
       }).catch(function () {});
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css?v=build-20260505-001500">
-  <link rel="stylesheet" href="./styles-v2.css?v=build-20260505-001500">
+  <link rel="stylesheet" href="./styles.css?v=build-20260505-004000">
+  <link rel="stylesheet" href="./styles-v2.css?v=build-20260505-004000">
   <style id="light-card-flatten-bootstrap">
     html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
     html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
@@ -114,6 +114,12 @@
 <body>
   <div class="app-shell sidebar-vnext sidebar-provider">
     <aside class="sidebar sidebar-panel" data-sidebar="sidebar" data-side="left" data-collapsible="icon">
+      <button class="mobile-sidebar-close" type="button" aria-label="Cerrar navegación" title="Cerrar navegación" data-sidebar-mobile-close>
+        <svg class="mobile-sidebar-close__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
       <div class="sidebar-header sidebar-section sidebar-section--header" data-sidebar="header">
         <div class="sidebar-menu sidebar-menu--brand">
           <div class="sidebar-menu-item">
@@ -591,6 +597,6 @@
   <div id="modalRoot"></div>
   <div id="mobileNavRoot"></div>
 
-  <script type="module" src="./app.js?v=build-20260505-001500"></script>
+  <script type="module" src="./app.js?v=build-20260505-004000"></script>
 </body>
 </html>
