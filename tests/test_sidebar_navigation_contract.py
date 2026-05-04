@@ -97,6 +97,75 @@ class SidebarNavigationContractTests(unittest.TestCase):
         self.assertIn("kmfx_sidebar_submenus_v1", navigation)
         self.assertIn("setSubmenuOpen", navigation)
 
+    def test_new_subsection_pages_use_kmfx_visual_shell(self):
+        css = read_text("styles-v2.css")
+        self.assertIn("KMFX Edge desktop subpage rhythm", css)
+        self.assertIn("@media (min-width: 921px)", css)
+        self.assertIn(".kmfx-subpage-shell", css)
+        self.assertNotIn("KMFX Edge desktop page rhythm: shared product surface for every section.", css)
+
+        module_contracts = {
+            "js/modules/risk.js": ["risk-ruin-var", "risk-monte-carlo", "risk-exposure"],
+            "js/modules/journal.js": ["journal-review", "journal-entries", "journal-ai-review"],
+            "js/modules/strategies.js": ["strategies-backtest", "strategies-portfolio"],
+            "js/modules/funded.js": ["funded-rules", "funded-payouts"],
+        }
+        for module_path, pages in module_contracts.items():
+            source = read_text(module_path)
+            self.assertIn("kmfx-subpage-shell", source)
+            self.assertIn("data-kmfx-subpage", source)
+            for page in pages:
+                self.assertIn(page, source)
+
+    def test_new_subsection_pages_have_distinct_visual_content(self):
+        css = read_text("styles-v2.css")
+        journal = read_text("js/modules/journal.js")
+        funded = read_text("js/modules/funded.js")
+        strategies = read_text("js/modules/strategies.js")
+        backtest = read_text("js/modules/backtest-real.js")
+
+        for class_name in [
+            "journal-subpage-hero--review",
+            "journal-subpage-hero--entries",
+            "journal-subpage-hero--ai",
+            "journal-subpage-metric",
+        ]:
+            self.assertIn(class_name, journal)
+            self.assertIn(class_name, css)
+
+        for class_name in [
+            "funding-subpage-hero--rules",
+            "funding-subpage-hero--payouts",
+            "funding-rules-command-panel",
+            "funding-payout-ledger-panel",
+            "funding-ledger-type",
+        ]:
+            self.assertIn(class_name, funded)
+            self.assertIn(class_name, css)
+
+        self.assertIn("fundingRulesSummaryMarkup", funded)
+        self.assertIn("fundingPayoutsSummaryMarkup", funded)
+        self.assertIn("showChallenges ? `", funded)
+        self.assertIn("strategies-setup-item--featured", strategies)
+        self.assertIn("strategy-status-chip", strategies)
+        self.assertIn("backtest-real-focus-chip", backtest)
+        self.assertIn("backtest-real-focus-chip", css)
+        self.assertIn('data-tone="${statusTone(strategy.status)}"', backtest)
+        for scoped_selector in [
+            ".kmfx-subpage-shell .journal-review-item",
+            ".kmfx-subpage-shell .journal-ai-export-item",
+            ".kmfx-subpage-shell .strategies-setup-item",
+            ".kmfx-subpage-shell .strategies-summary__item",
+            ".kmfx-subpage-shell .backtest-real-table",
+        ]:
+            self.assertIn(scoped_selector, css)
+        for unscoped_selector in [
+            ".app-shell.sidebar-vnext.sidebar-provider .journal-review-item",
+            ".app-shell.sidebar-vnext.sidebar-provider .strategies-setup-item",
+            ".app-shell.sidebar-vnext.sidebar-provider .backtest-real-table",
+        ]:
+            self.assertNotIn(unscoped_selector, css)
+
 
 if __name__ == "__main__":
     unittest.main()

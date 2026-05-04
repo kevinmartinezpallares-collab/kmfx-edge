@@ -486,6 +486,9 @@ export function renderStrategies(root, state) {
     : activePage === "strategies-portfolio"
       ? "Distribución de setups, concentración de riesgo y prioridades de capital operativo."
       : "Qué setups tienes, cuáles rinden mejor y cuáles necesitan más muestra.";
+  const isStrategiesSubpage = activePage === "strategies-backtest" || activePage === "strategies-portfolio";
+  const strategiesSubpageClass = isStrategiesSubpage ? ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}` : "";
+  const strategiesSubpageAttr = isStrategiesSubpage ? ` data-kmfx-subpage="${activePage}"` : "";
 
   const setupStatsMarkup = `
     <article class="tl-section-card strategies-setup-card">
@@ -609,7 +612,7 @@ export function renderStrategies(root, state) {
         </div>
       </div>
       <div class="strategies-setup-grid">
-        <div class="strategies-setup-item">
+        <div class="strategies-setup-item strategies-setup-item--featured" data-tone="profit">
           <div class="strategies-setup-item__head">
             <div class="strategies-setup-item__name">Setup dominante</div>
             <div class="strategies-setup-item__sample">${strongestSetup ? sampleLabel(strongestSetup.trades) : "Sin muestra"}</div>
@@ -617,10 +620,10 @@ export function renderStrategies(root, state) {
           <div class="strategies-setup-item__stats">
             <span class="strategies-setup-item__metric">${strongestSetup?.name || "—"}</span>
             <span class="strategies-setup-item__metric">${strongestSetup ? percent(strongestSetup.winRate) : "—"} WR</span>
-            <span class="strategies-setup-item__metric ${safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${strongestSetup ? formatCurrency(strongestSetup.pnl) : "—"}</span>
+            <span class="strategies-setup-item__metric ${safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${strongestSetup ? pnlTextMarkup({ value: strongestSetup.pnl, text: formatCurrency(strongestSetup.pnl), className: safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative" }) : "—"}</span>
           </div>
         </div>
-        <div class="strategies-setup-item">
+        <div class="strategies-setup-item strategies-setup-item--reduce" data-tone="${safeNumber(weakestSetup?.pnl) < 0 ? "loss" : "warning"}">
           <div class="strategies-setup-item__head">
             <div class="strategies-setup-item__name">Setup a reducir</div>
             <div class="strategies-setup-item__sample">${weakestSetup ? sampleLabel(weakestSetup.trades) : "Sin muestra"}</div>
@@ -628,10 +631,10 @@ export function renderStrategies(root, state) {
           <div class="strategies-setup-item__stats">
             <span class="strategies-setup-item__metric">${weakestSetup?.name || "—"}</span>
             <span class="strategies-setup-item__metric">${weakestSetup ? percent(weakestSetup.winRate) : "—"} WR</span>
-            <span class="strategies-setup-item__metric ${safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${weakestSetup ? formatCurrency(weakestSetup.pnl) : "—"}</span>
+            <span class="strategies-setup-item__metric ${safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${weakestSetup ? pnlTextMarkup({ value: weakestSetup.pnl, text: formatCurrency(weakestSetup.pnl), className: safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative" }) : "—"}</span>
           </div>
         </div>
-        <div class="strategies-setup-item">
+        <div class="strategies-setup-item strategies-setup-item--info" data-tone="info">
           <div class="strategies-setup-item__head">
             <div class="strategies-setup-item__name">Estado portfolio</div>
             <div class="strategies-setup-item__sample">${items.length} setups</div>
@@ -659,11 +662,11 @@ export function renderStrategies(root, state) {
               const stats = deriveStrategyStats(item, journalEntries);
               const decision = stats.trades < 12 ? "Acumular muestra" : stats.pnl < 0 ? "Reducir o pausar" : stats.score >= 7 ? "Candidato a más capital" : "Mantener controlado";
               return `
-                <tr>
+                <tr data-tone="${stats.trades < 12 ? "warning" : stats.pnl < 0 ? "loss" : stats.score >= 7 ? "profit" : "neutral"}">
                   <td><strong>${item.name}</strong></td>
-                  <td>${strategyStatusLabel(item.status)}</td>
+                  <td><span class="strategy-status-chip strategy-status-chip--${item.status || "testing"}">${strategyStatusLabel(item.status)}</span></td>
                   <td class="num">${stats.trades}</td>
-                  <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(stats.pnl)}</td>
+                  <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: stats.pnl, text: formatCurrency(stats.pnl), className: stats.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
                   <td class="num">${percent(stats.winRate)}</td>
                   <td>${decision}</td>
                 </tr>
@@ -681,7 +684,7 @@ export function renderStrategies(root, state) {
       : `${setupStatsMarkup}${strategiesTableMarkup}`;
 
   root.innerHTML = `
-    <section class="strategies-screen strategies-page-stack">
+    <section class="strategies-screen strategies-page-stack${strategiesSubpageClass}"${strategiesSubpageAttr}>
     ${pageHeaderMarkup({
       eyebrow: "Estrategias",
       title: strategiesTitle,

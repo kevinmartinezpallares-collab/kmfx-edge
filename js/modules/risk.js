@@ -1036,6 +1036,8 @@ export function renderRisk(root, state) {
   const showRuinVar = activePage === "risk-ruin-var";
   const showMonteCarlo = activePage === "risk-monte-carlo";
   const showExposure = activePage === "risk-exposure";
+  const riskSubpageClass = showRiskCockpit ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
+  const riskSubpageAttr = showRiskCockpit ? "" : ` data-kmfx-subpage="${activePage}"`;
   const riskTitle = showRuinVar ? "Ruin / VaR" : showMonteCarlo ? "Monte Carlo" : showExposure ? "Exposición" : "Risk Engine";
   const riskDescription = showRuinVar
     ? "Probabilidad de ruina, VaR, CVaR, supuestos y lectura de cola."
@@ -1060,10 +1062,10 @@ export function renderRisk(root, state) {
   });
   if (!liveSnapshot) {
     root.innerHTML = `
-      <div class="risk-page-stack risk-engine-page">
+      <div class="risk-page-stack risk-engine-page${riskSubpageClass}"${riskSubpageAttr}>
         ${pageHeaderMarkup({
-          title: "Risk Engine",
-          description: "Protección de cuenta, límites activos y política de riesgo.",
+          title: riskTitle,
+          description: riskDescription,
           className: "tl-page-header risk-engine-page-header",
           titleClassName: "tl-page-title risk-engine-page-title",
           descriptionClassName: "tl-page-sub risk-engine-page-sub",
@@ -1075,7 +1077,7 @@ export function renderRisk(root, state) {
     return;
   }
   root.innerHTML = `
-    <div class="risk-page-stack risk-engine-page">
+    <div class="risk-page-stack risk-engine-page${riskSubpageClass}"${riskSubpageAttr}>
     ${pageHeaderMarkup({
       title: riskTitle,
       description: riskDescription,

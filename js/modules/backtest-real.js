@@ -333,7 +333,7 @@ export function renderBacktestVsRealSection(report) {
           <button class="btn-secondary btn-inline strategies-action-btn" type="button" data-strategy-action="import-backtest">Importar MT5</button>
           <input type="file" accept=".html,.htm,.xml,.csv,text/html,text/csv,application/xml" multiple hidden data-backtest-import-input>
           <div class="strategies-summary" aria-label="Resumen Backtest vs Real">
-            <div class="strategies-summary__item" data-tone="neutral">
+            <div class="strategies-summary__item" data-tone="info">
               <span class="strategies-summary__label">Comparadas</span>
               <strong class="strategies-summary__value">${strategies.length}</strong>
             </div>
@@ -341,7 +341,7 @@ export function renderBacktestVsRealSection(report) {
               <span class="strategies-summary__label">Degradadas</span>
               <strong class="strategies-summary__value">${safeNumber(report?.diagnostic_counts?.edge_degraded)}</strong>
             </div>
-            <div class="strategies-summary__item" data-tone="neutral">
+            <div class="strategies-summary__item" data-tone="warning">
               <span class="strategies-summary__label">Muestra baja</span>
               <strong class="strategies-summary__value">${safeNumber(report?.diagnostic_counts?.sample_insufficient)}</strong>
             </div>
@@ -362,7 +362,7 @@ export function renderBacktestVsRealSection(report) {
             </thead>
             <tbody>
               ${strategies.map((strategy) => `
-                <tr class="strategies-table-row">
+                <tr class="strategies-table-row" data-tone="${statusTone(strategy.status)}">
                   <td>
                     <div class="table-primary-cell strategy-primary-cell">
                       <strong>${escapeHtml(strategy.strategy)}</strong>
@@ -379,7 +379,7 @@ export function renderBacktestVsRealSection(report) {
                       ${metricPair("DD", strategy.backtest.max_drawdown_pct, strategy.real.max_drawdown_pct, (value) => `${formatNumber(value, 2)}%`)}
                     </div>
                   </td>
-                  <td>${escapeHtml(worstFocus(strategy))}</td>
+                  <td><span class="backtest-real-focus-chip">${escapeHtml(worstFocus(strategy))}</span></td>
                   <td><div class="row-sub">${escapeHtml(strategy.action)}</div></td>
                 </tr>
               `).join("")}

@@ -298,6 +298,136 @@ function reviewQueueItem(label, value, detail, tone = "neutral") {
   `;
 }
 
+function journalSubpageMetricCard({ label, value, detail, tone = "neutral" } = {}) {
+  return `
+    <article class="journal-subpage-metric" data-tone="${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(detail)}</small>
+    </article>
+  `;
+}
+
+function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, state) {
+  if (activePage === "journal-review") {
+    const leak = cockpit.leaks.setupLeak;
+    return `
+      <section class="tl-section-card journal-subpage-hero journal-subpage-hero--review" aria-label="Resumen de revisión">
+        <div class="journal-subpage-hero__copy">
+          <span>Review desk</span>
+          <h2>${cockpit.unreviewedTrades.length ? "Prioridad antes de volver a ejecutar" : "Cola limpia"}</h2>
+          <p>${cockpit.unreviewedTrades.length ? "La revisión se ordena por trades sin review, días rojos, reglas violadas y leaks de setup." : "La muestra actual no muestra bloqueos de revisión críticos."}</p>
+        </div>
+        <div class="journal-subpage-hero__grid">
+          ${journalSubpageMetricCard({
+            label: "Sin review",
+            value: String(cockpit.unreviewedTrades.length),
+            detail: `${cockpit.reviewedPct.toFixed(0)}% cobertura`,
+            tone: cockpit.unreviewedTrades.length ? "warning" : "profit",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Días rojos",
+            value: String(cockpit.redDays.length),
+            detail: cockpit.redDays.length ? "Revisar contexto y gestión" : "Sin presión diaria",
+            tone: cockpit.redDays.length ? "loss" : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Reglas",
+            value: String(cockpit.policyIssues),
+            detail: cockpit.policyIssues ? "Hay señales de política" : "Sin alertas activas",
+            tone: cockpit.policyIssues ? "loss" : "profit",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Leak principal",
+            value: leak.label,
+            detail: `${formatSignedCurrency(leak.pnl, currency)} · ${leak.trades} trades`,
+            tone: leak.pnl < 0 ? "loss" : leak.pnl > 0 ? "profit" : "neutral",
+          })}
+        </div>
+      </section>
+    `;
+  }
+
+  if (activePage === "journal-entries") {
+    return `
+      <section class="tl-section-card journal-subpage-hero journal-subpage-hero--entries" aria-label="Resumen de entradas">
+        <div class="journal-subpage-hero__copy">
+          <span>Trade log</span>
+          <h2>${latestEntry ? `${escapeHtml(latestEntry.symbol)} · ${escapeHtml(latestEntry.grade)}` : "Sin entrada manual todavía"}</h2>
+          <p>${latestEntry ? escapeHtml(latestEntry.lesson || latestEntry.notes || "Última revisión registrada.") : "La página separa captura rápida, sizing y tabla de evidencia."}</p>
+        </div>
+        <div class="journal-subpage-hero__grid">
+          ${journalSubpageMetricCard({
+            label: "Entradas",
+            value: String(cockpit.reviewEntries.length),
+            detail: `${cockpit.trades.length} trades detectados`,
+            tone: cockpit.reviewEntries.length ? "info" : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Cobertura",
+            value: `${cockpit.reviewedPct.toFixed(0)}%`,
+            detail: "Reviews sobre muestra",
+            tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct >= 35 ? "warning" : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "R medio",
+            value: Number.isFinite(cockpit.averageR) ? `${cockpit.averageR.toFixed(2)}R` : "—",
+            detail: "Edge normalizado",
+            tone: Number.isFinite(cockpit.averageR) ? (cockpit.averageR >= 0 ? "profit" : "warning") : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Sizing",
+            value: cockpit.sizing.recommended_fractional_kelly_pct != null ? formatPlainPct(cockpit.sizing.recommended_fractional_kelly_pct) : "—",
+            detail: "Kelly fraccional",
+            tone: cockpit.sizing.recommended_fractional_kelly_pct != null ? "info" : "neutral",
+          })}
+        </div>
+      </section>
+    `;
+  }
+
+  if (activePage === "journal-ai-review") {
+    const backtestCount = safeArray(state.workspace?.strategies?.backtests).length;
+    return `
+      <section class="tl-section-card journal-subpage-hero journal-subpage-hero--ai" aria-label="Resumen de reporte externo">
+        <div class="journal-subpage-hero__copy">
+          <span>AI evidence report</span>
+          <h2>Reporte externo listo para revisión</h2>
+          <p>El dashboard genera evidencia estructurada; la interpretación se hace fuera y la respuesta se guarda manualmente.</p>
+        </div>
+        <div class="journal-subpage-hero__grid">
+          ${journalSubpageMetricCard({
+            label: "Trades",
+            value: String(cockpit.trades.length),
+            detail: "Incluidos en evidencia",
+            tone: cockpit.trades.length ? "info" : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Reviews",
+            value: String(cockpit.reviewEntries.length),
+            detail: "Contexto manual",
+            tone: cockpit.reviewEntries.length ? "profit" : "warning",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Backtests",
+            value: String(backtestCount),
+            detail: backtestCount ? "Comparativa incluida" : "Sin dataset externo",
+            tone: backtestCount ? "info" : "neutral",
+          })}
+          ${journalSubpageMetricCard({
+            label: "Respuestas",
+            value: String(cockpit.externalAiResponses.length),
+            detail: "Guardadas fuera del motor",
+            tone: cockpit.externalAiResponses.length ? "profit" : "neutral",
+          })}
+        </div>
+      </section>
+    `;
+  }
+
+  return "";
+}
+
 function leakItem(label, leak, currency) {
   const tone = leak.pnl < 0 ? "loss" : leak.pnl > 0 ? "profit" : "neutral";
   return `
@@ -911,8 +1041,11 @@ export function renderJournal(root, state) {
   const showEntries = activePage === "journal" || activePage === "journal-entries";
   const showAiExport = activePage === "journal-ai-review";
   const showLeaks = activePage === "journal" || activePage === "journal-review";
+  const journalSubpageClass = showCockpit ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
+  const journalSubpageAttr = showCockpit ? "" : ` data-kmfx-subpage="${activePage}"`;
 
   root.innerHTML = `
+    <div class="journal-page-stack${journalSubpageClass}"${journalSubpageAttr}>
     ${pageHeaderMarkup({
       title: pageTitle,
       description: pageDescription,
@@ -931,6 +1064,7 @@ export function renderJournal(root, state) {
     })}
 
     ${renderAuthorityNotice(authorityMeta)}
+    ${journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, state)}
 
     <div class="journal-cockpit">
       ${showCockpit ? `
@@ -1125,6 +1259,7 @@ export function renderJournal(root, state) {
         </div>
       </article>
       ` : ""}
+    </div>
     </div>
   `;
 }

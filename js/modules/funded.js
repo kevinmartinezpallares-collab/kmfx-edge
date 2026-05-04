@@ -839,6 +839,139 @@ function fundingEconomicsKpiMarkup(economics = {}) {
   `;
 }
 
+function fundingSubpageKpiMarkup({ label = "", value = "", meta = "", tone = "neutral" } = {}) {
+  return `
+    <article class="funding-subpage-kpi" data-tone="${escapeHtml(tone)}">
+      <span class="funding-subpage-kpi__label">${escapeHtml(label)}</span>
+      <strong class="funding-subpage-kpi__value">${value}</strong>
+      <span class="funding-subpage-kpi__meta">${escapeHtml(meta)}</span>
+    </article>
+  `;
+}
+
+function fundingRulesSummaryMarkup(account = {}, economics = {}, daysStatus = tradingDaysStatus(account), challengeStatus = fundedChallengeStatus(account)) {
+  const dailyMargin = drawdownMarginPct(account.dailyLimitPct, account.dailyDdPct);
+  const maxMargin = drawdownMarginPct(account.maxLimitPct, account.maxDdPct);
+  return `
+    <section class="funding-subpage-hero funding-subpage-hero--rules" aria-label="Resumen de reglas de funding">
+      <div class="funding-subpage-hero__copy">
+        <span>Rule command</span>
+        <h2>${escapeHtml(fundingRuleDisplayLabel(account))}</h2>
+        <p>${escapeHtml(fundingInsightSummary(account, economics))}</p>
+      </div>
+      <div class="funding-subpage-kpi-grid">
+        ${fundingSubpageKpiMarkup({
+          label: "Estado",
+          value: escapeHtml(challengeStatus.label),
+          meta: selectedLinkedAccountMeta(account),
+          tone: challengeStatus.dataTone || "neutral",
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "DD diario",
+          value: escapeHtml(dailyMargin == null ? "Sin regla" : `${formatRuleValue(dailyMargin)} margen`),
+          meta: account.dailyLimitPct ? `Límite ${formatRuleValue(account.dailyLimitPct)}` : "No configurado",
+          tone: drawdownTone(account.dailyUsagePct, account.dailyLimitPct),
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "DD máximo",
+          value: escapeHtml(maxMargin == null ? "Sin regla" : `${formatRuleValue(maxMargin)} margen`),
+          meta: account.maxLimitPct ? `Límite ${formatRuleValue(account.maxLimitPct)}` : "No configurado",
+          tone: drawdownTone(account.maxUsagePct, account.maxLimitPct),
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "Días mínimos",
+          value: escapeHtml(daysStatus.label),
+          meta: daysStatus.remaining,
+          tone: daysStatus.tone,
+        })}
+      </div>
+    </section>
+  `;
+}
+
+function fundingPayoutTone(value = 0) {
+  const numeric = Number(value || 0);
+  if (numeric > 0) return "profit";
+  if (numeric < 0) return "loss";
+  return "neutral";
+}
+
+function fundingPayoutsSummaryMarkup(economics = {}, transactions = []) {
+  const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
+  return `
+    <section class="funding-subpage-hero funding-subpage-hero--payouts" aria-label="Resumen de payouts">
+      <div class="funding-subpage-hero__copy">
+        <span>Payout ledger</span>
+        <h2>${economicsAmountMarkup(economics.netFundingResult || 0)}</h2>
+        <p>${economics.hasTransactions ? `${transactions.length} movimientos registrados en el journey seleccionado.` : "Ledger de costes, refunds, payouts y ajustes pendiente de completar."}</p>
+      </div>
+      <div class="funding-subpage-kpi-grid">
+        ${fundingSubpageKpiMarkup({
+          label: "Costes",
+          value: escapeHtml(formatCurrency(economics.totalSpent || 0)),
+          meta: "Fees, resets y rebuys",
+          tone: economics.totalSpent > 0 ? "warning" : "neutral",
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "Payouts / retiros",
+          value: escapeHtml(formatCurrency(payoutAndWithdrawals)),
+          meta: `${formatCurrency(economics.totalRefunds || 0)} refunds`,
+          tone: payoutAndWithdrawals > 0 ? "profit" : "neutral",
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "Neto funding",
+          value: economicsAmountMarkup(economics.netFundingResult || 0),
+          meta: "Cashflow manual",
+          tone: fundingPayoutTone(economics.netFundingResult || 0),
+        })}
+        ${fundingSubpageKpiMarkup({
+          label: "ROI costes",
+          value: economicsRoiMarkup(economics.roiOnCosts),
+          meta: "Retorno sobre fees",
+          tone: economics.roiOnCosts == null ? "neutral" : fundingPayoutTone(economics.roiOnCosts),
+        })}
+      </div>
+    </section>
+  `;
+}
+
+function fundingLedgerTone(transaction = {}) {
+  if (transaction.type === "payout" || transaction.type === "withdrawal" || transaction.type === "refund") return "profit";
+  if (transaction.type === "challenge_fee" || transaction.type === "reset_fee" || transaction.type === "rebuy_fee") return "warning";
+  return Number(transaction.amount || 0) < 0 ? "loss" : "neutral";
+}
+
+function fundingLedgerRowsMarkup(transactions = []) {
+  if (!transactions.length) {
+    return `
+      <div class="funding-ledger-empty">
+        <strong>Sin movimientos registrados</strong>
+        <span>Cuando añadas costes, refunds o payouts aparecerán aquí separados del P&L de trading.</span>
+      </div>
+    `;
+  }
+  return `
+    <div class="funding-ledger-table">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Importe</th><th>Notas</th></tr>
+        </thead>
+        <tbody>
+          ${transactions.map((transaction) => `
+            <tr>
+              <td>${escapeHtml(transaction.date || "—")}</td>
+              <td><span class="funding-ledger-type" data-tone="${escapeHtml(fundingLedgerTone(transaction))}">${escapeHtml(fundingTransactionTypeLabel(transaction.type))}</span></td>
+              <td><strong>${escapeHtml(transaction.label || "Movimiento")}</strong></td>
+              <td>${economicsAmountMarkup(transaction.amount || 0)}</td>
+              <td>${escapeHtml(transaction.notes || "—")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function fundingCardEconomicsValue(economics = {}) {
   if (!economics.hasTransactions) return "Pendiente";
   return economicsAmountMarkup(economics.netFundingResult || 0);
@@ -1529,9 +1662,11 @@ export function renderFunded(root, state) {
     : showPayouts
       ? "Economía del fondeo: costes, payouts, retiros y resultado neto."
       : "Seguimiento de cuentas fondeadas, progreso de fase y preservación de capital.";
+  const fundedSubpageClass = showChallenges ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
+  const fundedSubpageAttr = showChallenges ? "" : ` data-kmfx-subpage="${activePage}"`;
 
   root.innerHTML = `
-    <div class="funded-page-stack">
+    <div class="funded-page-stack${fundedSubpageClass}"${fundedSubpageAttr}>
       ${pageHeaderMarkup({
         title: fundedTitle,
         description: fundedDescription,
@@ -1540,7 +1675,7 @@ export function renderFunded(root, state) {
         descriptionClassName: "tl-page-sub",
       })}
 
-      ${showChallenges || showPayouts ? `
+      ${showChallenges ? `
       <section class="funding-overview" aria-label="Resumen de funding">
         <article class="funding-kpi" data-tone="info">
           <span class="funding-kpi__label">Cuentas funded</span>
@@ -1560,6 +1695,9 @@ export function renderFunded(root, state) {
         ${fundingEconomicsKpiMarkup(visibleFundingEconomics)}
       </section>
       ` : ""}
+
+      ${showRules ? fundingRulesSummaryMarkup(selected, selectedFundingEconomics, daysStatus, challengeStatus) : ""}
+      ${showPayouts ? fundingPayoutsSummaryMarkup(selectedFundingEconomics, selectedFundingTransactions) : ""}
 
       ${showChallenges ? `
       <section class="tl-section-card funding-accounts-panel" aria-label="Cuentas de fondeo">
@@ -1641,11 +1779,11 @@ export function renderFunded(root, state) {
       ` : ""}
 
       ${showRules ? `
-      <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
+      <article class="tl-section-card funding-rules-command-panel" data-tone="${challengeStatus.dataTone}">
         <div class="funding-detail-header">
           <div>
-            <div class="tl-section-title">Reglas y buffers</div>
-            <div class="funding-detail-title">${escapeHtml(fundingInsightSummary(selected, selectedFundingEconomics))}</div>
+            <div class="tl-section-title">Matriz de reglas</div>
+            <div class="funding-detail-title">${escapeHtml(fundingRuleDisplayMeta(selected))}</div>
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
             ${fundingJourneyMetaLine(selected) ? `<div class="funding-detail-sub">${escapeHtml(fundingJourneyMetaLine(selected))}</div>` : ""}
           </div>
@@ -1654,7 +1792,7 @@ export function renderFunded(root, state) {
             <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
           </div>
         </div>
-        <div class="funding-reading-grid">
+        <div class="funding-reading-grid funding-rules-command-grid">
           ${fundingRulesVisualMarkup(selected)}
           ${fundingCurrentStateMarkup(selected, selectedFundingEconomics, daysStatus)}
         </div>
@@ -1662,20 +1800,23 @@ export function renderFunded(root, state) {
       ` : ""}
 
       ${showPayouts ? `
-      <article class="tl-section-card funding-detail-panel" data-tone="${safeNumber(selectedFundingEconomics.netFundingResult || 0) < 0 ? "warning" : "profit"}">
+      <article class="tl-section-card funding-payout-ledger-panel" data-tone="${safeNumber(selectedFundingEconomics.netFundingResult || 0) < 0 ? "warning" : "profit"}">
         <div class="funding-detail-header">
           <div>
-            <div class="tl-section-title">Economía del fondeo</div>
-            <div class="funding-detail-title">${escapeHtml(fundingInsightSummary(selected, selectedFundingEconomics))}</div>
-            <div class="funding-detail-sub">Ledger manual separado del P&L de trading.</div>
+            <div class="tl-section-title">Ledger de payouts</div>
+            <div class="funding-detail-title">Cashflow separado del P&L de trading.</div>
+            <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
           </div>
           <div class="funding-detail-actions">
             <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
             <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
           </div>
         </div>
-        <div class="funding-economics-panel" aria-label="Economía del fondeo">
-          ${fundingEconomicsMarkup(selectedFundingEconomics)}
+        <div class="funding-payout-ledger-grid">
+          <div class="funding-economics-panel" aria-label="Economía del fondeo">
+            ${fundingEconomicsMarkup(selectedFundingEconomics)}
+          </div>
+          ${fundingLedgerRowsMarkup(selectedFundingTransactions)}
         </div>
       </article>
       ` : ""}

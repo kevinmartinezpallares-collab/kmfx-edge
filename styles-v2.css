@@ -35187,6 +35187,968 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-
   }
 }
 
+/* KMFX Edge desktop subpage rhythm: visual system for newly added roadmap pages. */
+@media (min-width: 921px) {
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell {
+    --kmfx-edge-page-gap: 24px;
+    --kmfx-edge-section-gap: 22px;
+    --kmfx-edge-panel-gap: 18px;
+    --kmfx-edge-card-padding: 22px;
+    --kmfx-edge-card-header-gap: 16px;
+    --kmfx-edge-card-radius: var(--kmfx-brand-radius-ui, 8px);
+    --kmfx-edge-card-border: color-mix(in srgb, var(--kmfx-brand-muted, #8d95a3) 18%, transparent);
+    --kmfx-edge-title-size: 34px;
+    --kmfx-edge-title-line: 1.08;
+    --kmfx-edge-body-max: 760px;
+    display: grid !important;
+    align-content: start !important;
+    gap: var(--kmfx-edge-page-gap) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .dashboard-page-flow,
+    #dashboardRoot,
+    .analytics-page-flow,
+    #analyticsRoot,
+    #riskRoot,
+    .risk-page-stack,
+    #disciplineRoot,
+    .discipline-page-stack,
+    #tradesRoot,
+    .trades-screen,
+    #calendarRoot,
+    .calendar-screen,
+    #connectionsRoot,
+    .connections-shell,
+    #calculatorRoot,
+    .tools-page-stack,
+    #journalRoot,
+    .journal-cockpit,
+    .journal-page-stack,
+    #strategiesRoot,
+    .strategies-page-stack,
+    #fundedRoot,
+    .funded-page-stack,
+    #marketRoot,
+    #portfolioRoot,
+    .capital-page,
+    #glossaryRoot,
+    .debug-page-stack,
+    #debugRoot,
+    .kmfx-mt5-page,
+    .settings-page-shell
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .dashboard-page-flow,
+    #dashboardRoot,
+    .analytics-page-flow,
+    #analyticsRoot,
+    #riskRoot,
+    .risk-page-stack,
+    #disciplineRoot,
+    .discipline-page-stack,
+    #tradesRoot,
+    .trades-screen,
+    #calendarRoot,
+    .calendar-screen,
+    #connectionsRoot,
+    .connections-shell,
+    #calculatorRoot,
+    .tools-page-stack,
+    #journalRoot,
+    .journal-cockpit,
+    .journal-page-stack,
+    #strategiesRoot,
+    .strategies-page-stack,
+    #fundedRoot,
+    .funded-page-stack,
+    #marketRoot,
+    #portfolioRoot,
+    .capital-page,
+    #glossaryRoot,
+    .debug-page-stack,
+    #debugRoot,
+    .kmfx-mt5-page,
+    .settings-page-shell
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .dashboard-page-flow,
+    #dashboardRoot,
+    .analytics-page-flow,
+    #analyticsRoot,
+    #riskRoot,
+    .risk-page-stack,
+    #disciplineRoot,
+    .discipline-page-stack,
+    #tradesRoot,
+    .trades-screen,
+    #calendarRoot,
+    .calendar-screen,
+    #connectionsRoot,
+    .connections-shell,
+    #calculatorRoot,
+    .tools-page-stack,
+    #journalRoot,
+    .journal-cockpit,
+    .journal-page-stack,
+    #strategiesRoot,
+    .strategies-page-stack,
+    #fundedRoot,
+    .funded-page-stack,
+    #marketRoot,
+    #portfolioRoot,
+    .capital-page,
+    #glossaryRoot,
+    .debug-page-stack,
+    #debugRoot,
+    .kmfx-mt5-page,
+    .settings-page-shell
+  ) {
+    display: grid !important;
+    align-content: start !important;
+    gap: var(--kmfx-edge-section-gap) !important;
+    min-width: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .calendar-screen__header,
+    .connections-shell__header,
+    .kmfx-mt5-header,
+    .settings-page-header,
+    .capital-page__header
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .calendar-screen__header,
+    .connections-shell__header,
+    .kmfx-mt5-header,
+    .settings-page-header,
+    .capital-page__header
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .calendar-screen__header,
+    .connections-shell__header,
+    .kmfx-mt5-header,
+    .settings-page-header,
+    .capital-page__header
+  ) {
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__title,
+    .tl-page-title,
+    .calendar-screen__title,
+    .connections-shell__title,
+    .kmfx-mt5-header__title
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__title,
+    .tl-page-title,
+    .calendar-screen__title,
+    .connections-shell__title,
+    .kmfx-mt5-header__title
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__title,
+    .tl-page-title,
+    .calendar-screen__title,
+    .connections-shell__title,
+    .kmfx-mt5-header__title
+  ) {
+    font-size: var(--kmfx-edge-title-size) !important;
+    line-height: var(--kmfx-edge-title-line) !important;
+    font-weight: 760 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__description,
+    .tl-page-sub,
+    .calendar-screen__subtitle,
+    .connections-shell__subtitle,
+    .kmfx-mt5-header__subtitle
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__description,
+    .tl-page-sub,
+    .calendar-screen__subtitle,
+    .connections-shell__subtitle,
+    .kmfx-mt5-header__subtitle
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .kmfx-ui-page-header__description,
+    .tl-page-sub,
+    .calendar-screen__subtitle,
+    .connections-shell__subtitle,
+    .kmfx-mt5-header__subtitle
+  ) {
+    max-width: var(--kmfx-edge-body-max) !important;
+    margin-top: 8px !important;
+    color: var(--text-2) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .grid-2,
+    .grid-2.equal,
+    .dashboard-main-grid,
+    .dashboard-secondary-grid,
+    .dashboard-tertiary-grid,
+    .dashboard-bottom-grid,
+    .dashboard-kpi-premium-grid,
+    .tl-kpi-row,
+    .tl-kpi-row.five,
+    .risk-core-grid,
+    .risk-professional-grid,
+    .risk-professional-detail-grid,
+    .risk-assumption-grid,
+    .risk-portfolio-var-grid,
+    .risk-simulation-stat-grid,
+    .journal-ai-export-grid,
+    .capital-overview,
+    .capital-account-grid,
+    .portfolio-account-grid,
+    .journal-cockpit-grid,
+    .journal-leaks-grid,
+    .strategies-setup-grid,
+    .backtest-real-head-tools,
+    .strategies-summary,
+    .funding-overview,
+    .funding-reading-grid,
+    .funding-card-grid,
+    .funding-review-list,
+    .settings-layout,
+    .settings-layout-main,
+    .settings-layout-side,
+    .connections-shell__kpis,
+    .glossary-grid
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .grid-2,
+    .grid-2.equal,
+    .dashboard-main-grid,
+    .dashboard-secondary-grid,
+    .dashboard-tertiary-grid,
+    .dashboard-bottom-grid,
+    .dashboard-kpi-premium-grid,
+    .tl-kpi-row,
+    .tl-kpi-row.five,
+    .risk-core-grid,
+    .risk-professional-grid,
+    .risk-professional-detail-grid,
+    .risk-assumption-grid,
+    .risk-portfolio-var-grid,
+    .risk-simulation-stat-grid,
+    .journal-ai-export-grid,
+    .capital-overview,
+    .capital-account-grid,
+    .portfolio-account-grid,
+    .journal-cockpit-grid,
+    .journal-leaks-grid,
+    .strategies-setup-grid,
+    .backtest-real-head-tools,
+    .strategies-summary,
+    .funding-overview,
+    .funding-reading-grid,
+    .funding-card-grid,
+    .funding-review-list,
+    .settings-layout,
+    .settings-layout-main,
+    .settings-layout-side,
+    .connections-shell__kpis,
+    .glossary-grid
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .grid-2,
+    .grid-2.equal,
+    .dashboard-main-grid,
+    .dashboard-secondary-grid,
+    .dashboard-tertiary-grid,
+    .dashboard-bottom-grid,
+    .dashboard-kpi-premium-grid,
+    .tl-kpi-row,
+    .tl-kpi-row.five,
+    .risk-core-grid,
+    .risk-professional-grid,
+    .risk-professional-detail-grid,
+    .risk-assumption-grid,
+    .risk-portfolio-var-grid,
+    .risk-simulation-stat-grid,
+    .journal-ai-export-grid,
+    .capital-overview,
+    .capital-account-grid,
+    .portfolio-account-grid,
+    .journal-cockpit-grid,
+    .journal-leaks-grid,
+    .strategies-setup-grid,
+    .backtest-real-head-tools,
+    .strategies-summary,
+    .funding-overview,
+    .funding-reading-grid,
+    .funding-card-grid,
+    .funding-review-list,
+    .settings-layout,
+    .settings-layout-main,
+    .settings-layout-side,
+    .connections-shell__kpis,
+    .glossary-grid
+  ) {
+    gap: var(--kmfx-edge-panel-gap) !important;
+    margin-bottom: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .tl-section-card,
+    .kmfx-ui-card,
+    .widget-card,
+    .chart-card,
+    .pnlcal-card,
+    .table-wrap,
+    .widget-table-wrap,
+    .calculator-workspace-card,
+    .capital-section,
+    .capital-kpi,
+    .capital-cashflow-notice,
+    .settings-card.tl-section-card
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .tl-section-card,
+    .kmfx-ui-card,
+    .widget-card,
+    .chart-card,
+    .pnlcal-card,
+    .table-wrap,
+    .widget-table-wrap,
+    .calculator-workspace-card,
+    .capital-section,
+    .capital-kpi,
+    .capital-cashflow-notice,
+    .settings-card.tl-section-card
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .tl-section-card,
+    .kmfx-ui-card,
+    .widget-card,
+    .chart-card,
+    .pnlcal-card,
+    .table-wrap,
+    .widget-table-wrap,
+    .calculator-workspace-card,
+    .capital-section,
+    .capital-kpi,
+    .capital-cashflow-notice,
+    .settings-card.tl-section-card
+  ) {
+    padding: var(--kmfx-edge-card-padding) !important;
+    border-color: var(--kmfx-edge-card-border) !important;
+    border-radius: var(--kmfx-edge-card-radius) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .risk-professional-card,
+    .risk-professional-detail-panel,
+    .risk-portfolio-var-card,
+    .risk-simulation-panel,
+    .risk-professional-actions,
+    .risk-professional-warnings,
+    .risk-core-kpi,
+    .journal-ai-export-item,
+    .journal-quick-entry,
+    .journal-sizing-read,
+    .journal-review-item,
+    .strategies-setup-item,
+    .strategies-summary__item,
+    .funding-kpi,
+    .funding-review-row,
+    .funding-economics-panel
+  ),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .risk-professional-card,
+    .risk-professional-detail-panel,
+    .risk-portfolio-var-card,
+    .risk-simulation-panel,
+    .risk-professional-actions,
+    .risk-professional-warnings,
+    .risk-core-kpi,
+    .journal-ai-export-item,
+    .journal-quick-entry,
+    .journal-sizing-read,
+    .journal-review-item,
+    .strategies-setup-item,
+    .strategies-summary__item,
+    .funding-kpi,
+    .funding-review-row,
+    .funding-economics-panel
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(
+    .risk-professional-card,
+    .risk-professional-detail-panel,
+    .risk-portfolio-var-card,
+    .risk-simulation-panel,
+    .risk-professional-actions,
+    .risk-professional-warnings,
+    .risk-core-kpi,
+    .journal-ai-export-item,
+    .journal-quick-entry,
+    .journal-sizing-read,
+    .journal-review-item,
+    .strategies-setup-item,
+    .strategies-summary__item,
+    .funding-kpi,
+    .funding-review-row,
+    .funding-economics-panel
+  ) {
+    border-color: var(--kmfx-edge-card-border) !important;
+    border-radius: var(--kmfx-edge-card-radius) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-header, .kmfx-ui-card__header, .capital-section__header),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-header, .kmfx-ui-card__header, .capital-section__header),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-header, .kmfx-ui-card__header, .capital-section__header) {
+    gap: 12px !important;
+    margin-bottom: var(--kmfx-edge-card-header-gap) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .settings-page-shell,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .settings-page-shell,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .settings-page-shell {
+    gap: var(--kmfx-edge-section-gap) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.settings-toolbar, .settings-profile-card, .settings-check),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.settings-toolbar, .settings-profile-card, .settings-check),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.settings-toolbar, .settings-profile-card, .settings-check) {
+    border-radius: var(--kmfx-edge-card-radius) !important;
+    border-color: var(--kmfx-edge-card-border) !important;
+  }
+}
+
+/* shadcn-style card composition for roadmap subpages. */
+@media (min-width: 921px) {
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-card, .kmfx-ui-card),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-card, .kmfx-ui-card),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.tl-section-card, .kmfx-ui-card) {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.6%, transparent), transparent 42%),
+      var(--card) !important;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-positive, .kmfx-ui-pnl[data-tone="profit"]),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-positive, .kmfx-ui-pnl[data-tone="profit"]),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-positive, .kmfx-ui-pnl[data-tone="profit"]) {
+    color: color-mix(in srgb, var(--profit) 88%, var(--foreground)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-negative, .kmfx-ui-pnl[data-tone="loss"]),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-negative, .kmfx-ui-pnl[data-tone="loss"]),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-negative, .kmfx-ui-pnl[data-tone="loss"]) {
+    color: color-mix(in srgb, var(--loss) 86%, var(--foreground)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-warning, [data-tone="warning"] .kmfx-ui-pnl),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-warning, [data-tone="warning"] .kmfx-ui-pnl),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell :is(.metric-warning, [data-tone="warning"] .kmfx-ui-pnl) {
+    color: color-mix(in srgb, var(--risk) 84%, var(--foreground)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero,
+  .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+    align-items: stretch;
+    gap: 18px;
+    padding: 22px !important;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: var(--kmfx-edge-card-radius);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--equity) 7%, transparent), transparent 44%),
+      color-mix(in srgb, var(--card) 94%, var(--background)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--review,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--review,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--review {
+    border-color: color-mix(in srgb, var(--risk) 22%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--entries,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--entries,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--entries {
+    border-color: color-mix(in srgb, var(--profit) 20%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--ai,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--ai,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero--ai {
+    border-color: color-mix(in srgb, var(--equity) 26%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy, .funding-subpage-hero__copy),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy, .funding-subpage-hero__copy),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy, .funding-subpage-hero__copy) {
+    display: grid;
+    align-content: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy span, .funding-subpage-hero__copy span),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy span, .funding-subpage-hero__copy span),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy span, .funding-subpage-hero__copy span) {
+    color: color-mix(in srgb, var(--equity) 72%, var(--text-2));
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy h2, .funding-subpage-hero__copy h2),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy h2, .funding-subpage-hero__copy h2),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy h2, .funding-subpage-hero__copy h2) {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 30px;
+    line-height: 1.05;
+    font-weight: 760;
+    letter-spacing: 0;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy p, .funding-subpage-hero__copy p),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy p, .funding-subpage-hero__copy p),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__copy p, .funding-subpage-hero__copy p) {
+    max-width: 560px;
+    margin: 0;
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__grid, .funding-subpage-kpi-grid),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__grid, .funding-subpage-kpi-grid),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-hero__grid, .funding-subpage-kpi-grid) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi) {
+    display: grid;
+    align-content: space-between;
+    gap: 9px;
+    min-width: 0;
+    min-height: 128px;
+    padding: 15px;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: var(--kmfx-edge-card-radius);
+    background: color-mix(in srgb, var(--foreground) 2.4%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric span, .funding-subpage-kpi__label),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric span, .funding-subpage-kpi__label),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric span, .funding-subpage-kpi__label) {
+    color: var(--text-2);
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 760;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric strong, .funding-subpage-kpi__value),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric strong, .funding-subpage-kpi__value),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric strong, .funding-subpage-kpi__value) {
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: 22px;
+    line-height: 1.05;
+    font-weight: 780;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric small, .funding-subpage-kpi__meta),
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric small, .funding-subpage-kpi__meta),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric small, .funding-subpage-kpi__meta) {
+    overflow: hidden;
+    color: var(--text-2);
+    font-size: 11.5px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"] {
+    border-color: color-mix(in srgb, var(--profit) 28%, var(--kmfx-edge-card-border));
+    background: color-mix(in srgb, var(--profit) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"] strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"] strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="profit"] strong {
+    color: color-mix(in srgb, var(--profit) 86%, var(--foreground));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"] {
+    border-color: color-mix(in srgb, var(--loss) 30%, var(--kmfx-edge-card-border));
+    background: color-mix(in srgb, var(--loss) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"] strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"] strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="loss"] strong {
+    color: color-mix(in srgb, var(--loss) 86%, var(--foreground));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"] {
+    border-color: color-mix(in srgb, var(--risk) 28%, var(--kmfx-edge-card-border));
+    background: color-mix(in srgb, var(--risk) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"] strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"] strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="warning"] strong {
+    color: color-mix(in srgb, var(--risk) 84%, var(--foreground));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"] {
+    border-color: color-mix(in srgb, var(--equity) 28%, var(--kmfx-edge-card-border));
+    background: color-mix(in srgb, var(--equity) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"] strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"] strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :is(.journal-subpage-metric, .funding-subpage-kpi)[data-tone="info"] strong {
+    color: color-mix(in srgb, var(--equity) 82%, var(--foreground));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-list,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-list,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-list {
+    gap: 10px;
+    border-top: 0;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item {
+    padding: 14px;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: var(--kmfx-edge-card-radius);
+    background: color-mix(in srgb, var(--foreground) 2.2%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--ok,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--ok,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--ok {
+    border-color: color-mix(in srgb, var(--profit) 24%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--warn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--warn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--warn {
+    border-color: color-mix(in srgb, var(--risk) 26%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--danger,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--danger,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-review-item--danger {
+    border-color: color-mix(in srgb, var(--loss) 30%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-item,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-item,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .journal-ai-export-item {
+    padding: 16px;
+    background: color-mix(in srgb, var(--equity) 5%, transparent) !important;
+    border-color: color-mix(in srgb, var(--equity) 22%, var(--kmfx-edge-card-border)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item,
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item {
+    background: color-mix(in srgb, var(--foreground) 2.2%, transparent) !important;
+    border-color: var(--kmfx-edge-card-border) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="profit"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="profit"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="profit"],
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="profit"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="profit"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="profit"] {
+    border-color: color-mix(in srgb, var(--profit) 28%, var(--kmfx-edge-card-border)) !important;
+    background: color-mix(in srgb, var(--profit) 5%, transparent) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="loss"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="loss"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="loss"],
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="loss"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="loss"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="loss"] {
+    border-color: color-mix(in srgb, var(--loss) 30%, var(--kmfx-edge-card-border)) !important;
+    background: color-mix(in srgb, var(--loss) 5%, transparent) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="warning"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="warning"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="warning"],
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="warning"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="warning"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="warning"] {
+    border-color: color-mix(in srgb, var(--risk) 28%, var(--kmfx-edge-card-border)) !important;
+    background: color-mix(in srgb, var(--risk) 5%, transparent) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="info"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="info"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-setup-item[data-tone="info"],
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="info"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="info"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__item[data-tone="info"] {
+    border-color: color-mix(in srgb, var(--equity) 28%, var(--kmfx-edge-card-border)) !important;
+    background: color-mix(in srgb, var(--equity) 5%, transparent) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__value,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__value,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .strategies-summary__value {
+    color: var(--foreground);
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr {
+    background: color-mix(in srgb, var(--foreground) 1.8%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="testing"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="testing"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="testing"] {
+    background: color-mix(in srgb, var(--equity) 4%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="paused"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="paused"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="paused"] {
+    background: color-mix(in srgb, var(--loss) 5%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="active"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="active"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-table tbody tr[data-tone="active"] {
+    background: color-mix(in srgb, var(--profit) 4%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-pairs,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-pairs,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-pairs {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: var(--kmfx-edge-card-radius);
+    background: color-mix(in srgb, var(--background) 42%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-focus-chip,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-focus-chip,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-subpage-shell .backtest-real-focus-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--equity) 24%, var(--kmfx-edge-card-border));
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--equity) 76%, var(--foreground));
+    background: color-mix(in srgb, var(--equity) 5%, transparent);
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--rules,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--rules,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--rules {
+    border-color: color-mix(in srgb, var(--risk) 20%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--payouts,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--payouts,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-subpage-hero--payouts {
+    border-color: color-mix(in srgb, var(--profit) 22%, var(--kmfx-edge-card-border));
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-rules-command-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-rules-command-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-rules-command-panel,
+  .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-panel {
+    gap: 18px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-payout-ledger-grid {
+    display: grid;
+    gap: 14px;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table {
+    overflow: auto;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: var(--kmfx-edge-card-radius);
+    background: color-mix(in srgb, var(--background) 42%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table table,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table table,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th,
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table td,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table td,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-0) 46%, transparent);
+    text-align: left;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-table th {
+    color: var(--text-2);
+    font-size: 10px;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    padding: 0 9px;
+    border: 1px solid var(--kmfx-edge-card-border);
+    border-radius: 999px;
+    color: var(--text-1);
+    background: color-mix(in srgb, var(--foreground) 2.4%, transparent);
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 720;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="profit"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="profit"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="profit"] {
+    border-color: color-mix(in srgb, var(--profit) 28%, var(--kmfx-edge-card-border));
+    color: color-mix(in srgb, var(--profit) 82%, var(--foreground));
+    background: color-mix(in srgb, var(--profit) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="warning"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="warning"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="warning"] {
+    border-color: color-mix(in srgb, var(--risk) 28%, var(--kmfx-edge-card-border));
+    color: color-mix(in srgb, var(--risk) 82%, var(--foreground));
+    background: color-mix(in srgb, var(--risk) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="loss"],
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="loss"],
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-type[data-tone="loss"] {
+    border-color: color-mix(in srgb, var(--loss) 30%, var(--kmfx-edge-card-border));
+    color: color-mix(in srgb, var(--loss) 84%, var(--foreground));
+    background: color-mix(in srgb, var(--loss) 6%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty {
+    display: grid;
+    gap: 7px;
+    padding: 18px;
+    border: 1px solid color-mix(in srgb, var(--risk) 20%, var(--kmfx-edge-card-border));
+    border-radius: var(--kmfx-edge-card-radius);
+    background: color-mix(in srgb, var(--risk) 5%, transparent);
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty strong {
+    color: color-mix(in srgb, var(--risk) 82%, var(--foreground));
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty span,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty span,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-empty span {
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+
 /* Roadmap mobile shell lock: mobile gets its own navigation layer without changing desktop surfaces. */
 @media (max-width: 920px) {
   html,
