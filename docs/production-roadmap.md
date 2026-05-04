@@ -2,7 +2,8 @@
 
 Última revisión: 2026-05-04
 Rama revisada: `main`
-Commit base: `6be516a Harden MT5 payload handling`
+Commit base: `0e8a673 Fix Forex pip sizing in calculator`
+Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
 ## Resumen Ejecutivo
@@ -105,17 +106,32 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 
 ## Prioridad Inmediata
 
-### Siguiente paso recomendado
+### Siguiente paso recomendado tras auditoria
 
-Empezar por **Billing MVP + Entitlements**.
+Antes de billing, cerrar una pasada corta de **QA de producto y contrato del dashboard**:
 
-Motivo: dominio, MT5 y launcher ya tienen una base funcional. Sin billing y entitlements no hay producción comercial segura: cualquiera podría quedar con acceso incorrecto, y no hay forma clara de limitar cuentas, debug, risk editor o funciones premium.
+- resolver la regresion actual de navegacion/sidebar detectada por `tests.test_sidebar_navigation_contract`;
+- retirar textos internos visibles para usuario final como `workspace`, `sesion local`, `bridge local` o mensajes tecnicos fuera de modo admin;
+- certificar seccion por seccion que metricas vienen de MT5 live, backend/riskSnapshot, workspace local o entrada manual;
+- probar launcher macOS y Windows en maquina limpia.
+
+Despues de eso, empezar por **Billing MVP + Entitlements**.
+
+Motivo: dominio, MT5 y launcher ya tienen una base funcional. Sin billing y entitlements no hay produccion comercial segura: cualquiera podria quedar con acceso incorrecto, y no hay forma clara de limitar cuentas, debug, risk editor o funciones premium.
 
 La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada como pendiente hasta que exista vault seguro, rate limit, revocación y política de permisos. El flujo recomendado para producción debe seguir siendo EA/Launcher.
 
 ## Fase 1 - Cierre de Producto y Billing
 
 Objetivo: poder vender Core/Pro sin improvisar permisos.
+
+Bloque previo obligatorio:
+
+- [ ] Resolver contrato de sidebar y rutas reales.
+- [ ] Pasada final de textos visibles para usuario final.
+- [ ] Matriz de metricas live por seccion.
+- [ ] QA macOS limpio.
+- [ ] QA Windows 10/11 limpio.
 
 - [ ] Confirmar moneda: EUR, USD o ambas.
 - [ ] Confirmar precio mensual Core.
