@@ -959,6 +959,31 @@ def connection_key_rate_limit_for_endpoint(endpoint: str) -> int:
     return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=120)
 
 
+def prune_connection_rate_limit_buckets(now: float, *, max_buckets: int | None = None) -> None:
+    resolved_max_buckets = max_buckets if max_buckets is not None else _env_int(
+        "KMFX_CONNECTION_RATE_LIMIT_MAX_BUCKETS",
+        default=10000,
+    )
+    expired = [
+        bucket_key
+        for bucket_key, (window_start, _count) in CONNECTION_RATE_LIMIT_BUCKETS.items()
+        if now - window_start >= CONNECTION_RATE_LIMIT_WINDOW_SECONDS
+    ]
+    for bucket_key in expired:
+        CONNECTION_RATE_LIMIT_BUCKETS.pop(bucket_key, None)
+
+    if resolved_max_buckets <= 0 or len(CONNECTION_RATE_LIMIT_BUCKETS) <= resolved_max_buckets:
+        return
+
+    overflow = len(CONNECTION_RATE_LIMIT_BUCKETS) - resolved_max_buckets
+    oldest_keys = sorted(
+        CONNECTION_RATE_LIMIT_BUCKETS,
+        key=lambda bucket_key: CONNECTION_RATE_LIMIT_BUCKETS[bucket_key][0],
+    )[:overflow]
+    for bucket_key in oldest_keys:
+        CONNECTION_RATE_LIMIT_BUCKETS.pop(bucket_key, None)
+
+
 def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JSONResponse | None:
     normalized_key = safe_str(connection_key)
     if not normalized_key:
@@ -967,6 +992,7 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
     if limit <= 0:
         return None
     now = time.time()
+    prune_connection_rate_limit_buckets(now)
     bucket_key = f"{endpoint}:{hashlib.sha256(normalized_key.encode('utf-8')).hexdigest()}"
     window_start, count = CONNECTION_RATE_LIMIT_BUCKETS.get(bucket_key, (now, 0))
     if now - window_start >= CONNECTION_RATE_LIMIT_WINDOW_SECONDS:
@@ -983,7 +1009,7 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
         limit,
         retry_after_seconds,
     )
-    return connector_json_response(
+    response = connector_json_response(
         {
             "ok": False,
             "received": False,
@@ -998,6 +1024,8 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
         },
         status_code=429,
     )
+    response.headers["Retry-After"] = str(retry_after_seconds)
+    return response
 
 
 def mt5_revoked_connection_key_response(endpoint: str, connection_key: str, *, sync_id: str = "", batch_id: str = "") -> JSONResponse:

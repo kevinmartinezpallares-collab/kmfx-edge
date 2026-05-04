@@ -17,8 +17,13 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         host: str = "203.0.113.10",
         headers: dict[str, str] | None = None,
         query_params: dict[str, str] | None = None,
+        json_body: object | None = None,
     ):
-        return SimpleNamespace(headers=headers or {}, query_params=query_params or {}, client=SimpleNamespace(host=host))
+        class RequestStub(SimpleNamespace):
+            async def json(self_inner):
+                return json_body if json_body is not None else {}
+
+        return RequestStub(headers=headers or {}, query_params=query_params or {}, client=SimpleNamespace(host=host))
 
     def test_default_cors_origins_are_real_kmfx_domains(self) -> None:
         self.assertIn("https://kmfxedge.com", connector_api.CORS_ALLOW_ORIGINS)
@@ -251,6 +256,92 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertIsNotNone(response)
         self.assertEqual(429, response.status_code)
+        self.assertEqual("connection_key_rate_limited", json.loads(response.body.decode("utf-8"))["reason"])
+        self.assertIn("Retry-After", response.headers)
+
+    def test_connection_key_rate_limit_prunes_old_and_excess_buckets(self) -> None:
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.update(
+            {
+                "old": (0.0, 1),
+                "recent-a": (1000.0, 1),
+                "recent-b": (1001.0, 1),
+                "recent-c": (1002.0, 1),
+            }
+        )
+
+        connector_api.prune_connection_rate_limit_buckets(1002.0, max_buckets=2)
+        keys = set(connector_api.CONNECTION_RATE_LIMIT_BUCKETS)
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+
+        self.assertEqual({"recent-b", "recent-c"}, keys)
+
+    def test_revoked_connection_key_is_rejected_at_mt5_route_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+            try:
+                created = connector_api.account_service.create_pending_account_with_key(
+                    user_id="user-123",
+                    alias="Cuenta MT5",
+                    connection_key="revoked-route-key",
+                )
+                self.assertIsNotNone(created)
+                connector_api.account_service.revoke_connection_key(created.account_id, reason="test_revocation")
+                request = self._request(
+                    headers={"x-kmfx-connection-key": "revoked-route-key"},
+                    json_body={
+                        "sync_id": "revoked-route-sync",
+                        "account": {
+                            "login": "123456",
+                            "broker": "Broker",
+                            "server": "Broker-Live",
+                            "balance": 1000,
+                            "equity": 1000,
+                        },
+                        "positions": [],
+                        "trades": [],
+                    },
+                )
+                response = asyncio.run(connector_api.mt5_sync(request))
+            finally:
+                connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+                connector_api.account_service = previous_service
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(401, response.status_code)
+        self.assertEqual("revoked_connection_key", body["reason"])
+        self.assertNotIn("revoked-route-key", body_text)
+        self.assertEqual("revoke...-key", body["details"]["connection_key"])
+
+    def test_policy_route_rate_limits_valid_connection_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+            try:
+                connector_api.account_service.create_pending_account_with_key(
+                    user_id="user-123",
+                    alias="Cuenta MT5",
+                    connection_key="policy-route-rate-key",
+                )
+                request = self._request(headers={"x-kmfx-connection-key": "policy-route-rate-key"})
+                with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE": "1"}, clear=False):
+                    first = asyncio.run(connector_api.mt5_policy(request, login="123456"))
+                    second = asyncio.run(connector_api.mt5_policy(request, login="123456"))
+            finally:
+                connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+                connector_api.account_service = previous_service
+
+        body_text = second.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(200, first.status_code)
+        self.assertEqual(429, second.status_code)
+        self.assertEqual("connection_key_rate_limited", body["reason"])
+        self.assertIn("Retry-After", second.headers)
+        self.assertNotIn("policy-route-rate-key", body_text)
 
 
 if __name__ == "__main__":
