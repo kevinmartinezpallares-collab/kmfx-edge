@@ -111,7 +111,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Dashboard, Cuentas, Operaciones, Calendario, Insights, Risk Engine, Capital y Herramientas ya tienen ruta live cuando `payloadSource=mt5_sync_live`.
 - [x] Fixture de contrato con dos cuentas MT5 live y validacion automatica inicial de KPIs.
 - [x] Smoke render inicial certifica que las vistas principales no caen a mock cuando hay cuenta live activa.
-- [ ] Falta ampliar la certificacion a estados `pending`, `stale`, `revoked`, `plan_limited` y errores controlados.
+- [x] Cuentas queda cubierta para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
+- [ ] Falta ampliar estados degradados a Risk/Funding cuando dependan de policy, billing o journey.
 - [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con workspace del usuario.
 - [ ] Falta quitar mensajes internos visibles como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
 
@@ -141,7 +142,8 @@ Bloque previo obligatorio:
 - [x] Crear contrato inicial live de `/api/accounts/snapshot`.
 - [ ] Pasada final de textos visibles para usuario final.
 - [x] Render smoke inicial de metricas live por seccion con fixture.
-- [ ] Render smoke de estados degradados: pending, stale, revoked y plan-limited.
+- [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.
+- [ ] Render smoke de estados degradados en Risk/Funding cuando haya policy o billing bloqueado.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 
@@ -254,7 +256,7 @@ Objetivo: que un usuario no técnico conecte MT5 sin pensar en puertos, keys ni 
 - [ ] Permitir editar nombre de cuenta.
 - [ ] Permitir elegir tipo: Demo, Real, Funding, Challenge.
 - [ ] Si es Funding, permitir vincular a journey existente.
-- [ ] Añadir estado de sincronización reciente y stale más claro.
+- [x] Añadir estado de sincronización reciente, stale, key revocada y bloqueo por plan más claro en Cuentas.
 - [ ] Añadir guía breve dentro de Cuentas para WebRequest.
 - [ ] Añadir checksum visible para descargas.
 - [ ] Probar Windows launcher en Windows real.

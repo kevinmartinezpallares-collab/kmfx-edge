@@ -140,6 +140,29 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
       action: "none",
     };
   }
+  if (normalizedStatus === "revoked" || normalizedStatus === "key_revoked" || normalizedStatus === "connection_revoked") {
+    return {
+      label: "Key revocada",
+      tone: "error",
+      subtitle: "Crea una nueva conexión para volver a sincronizar",
+      actionLabel: "Ver detalle",
+      action: "none",
+    };
+  }
+  if (
+    normalizedStatus === "plan_limited"
+    || normalizedStatus === "plan_limit_reached"
+    || normalizedStatus === "billing_required"
+    || normalizedStatus === "entitlement_required"
+  ) {
+    return {
+      label: "Bloqueada por plan",
+      tone: "pending",
+      subtitle: "Actualiza el plan o libera una conexión",
+      actionLabel: "Ver plan",
+      action: "billing",
+    };
+  }
   if (normalizedStatus === "stale") {
     return {
       label: "Sin actualizar",
@@ -873,6 +896,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
         <div class="connections-account-card__metric">
           <div class="metric-label">Estado</div>
           <div class="row-sub">${escapeHtml(statusLine)}</div>
+          ${meta.subtitle ? `<div class="row-sub connections-account-card__status-note">${escapeHtml(meta.subtitle)}</div>` : ""}
         </div>
         <div class="connections-account-card__metric">
           <div class="metric-label">Última sincronización</div>
