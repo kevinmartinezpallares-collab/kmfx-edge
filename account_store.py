@@ -153,6 +153,17 @@ def record_to_account(record: dict) -> Account:
     )
 
 
+def record_needs_connection_key_migration(record: dict) -> bool:
+    if not isinstance(record, dict):
+        return False
+    if normalize_connection_key(record.get("api_key")):
+        return True
+    revoked_connection_keys = record.get("revoked_connection_keys") or []
+    if isinstance(revoked_connection_keys, list) and any(normalize_connection_key(item) for item in revoked_connection_keys):
+        return True
+    return False
+
+
 class AccountStore(ABC):
     @abstractmethod
     def list_accounts(self) -> list[Account]:
@@ -179,7 +190,14 @@ class JsonFileAccountStore(AccountStore):
         records = payload.get("accounts") if isinstance(payload, dict) else []
         if not isinstance(records, list):
             return []
-        return [record_to_account(record) for record in records if isinstance(record, dict)]
+        account_records = [record for record in records if isinstance(record, dict)]
+        accounts = [record_to_account(record) for record in account_records]
+        if any(record_needs_connection_key_migration(record) for record in account_records):
+            try:
+                self.save_accounts(accounts)
+            except OSError:
+                pass
+        return accounts
 
     def save_accounts(self, accounts: Iterable[Account]) -> None:
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)

@@ -246,6 +246,43 @@ class AccountServiceTests(unittest.TestCase):
         self.assertIsNotNone(self.service.get_account_by_api_key_any_user("persisted-secret-key"))
         self.assertEqual("persisted-secret-key", created.api_key)
 
+    def test_legacy_raw_connection_keys_are_migrated_on_read(self) -> None:
+        with open(self.store_path, "w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "accounts": [
+                        {
+                            "account_id": "legacy-account",
+                            "user_id": "user-123",
+                            "alias": "Legacy",
+                            "broker": "",
+                            "platform": "mt5",
+                            "login": "",
+                            "server": "",
+                            "connection_mode": "launcher",
+                            "status": "pending_link",
+                            "api_key": "legacy-secret-key",
+                            "revoked_connection_keys": ["legacy-revoked-key"],
+                        }
+                    ]
+                },
+                handle,
+            )
+
+        account = self.service.get_account_by_api_key_any_user("legacy-secret-key")
+
+        self.assertIsNotNone(account)
+        self.assertTrue(self.service.is_connection_key_revoked_any_user("legacy-revoked-key"))
+        with open(self.store_path, "r", encoding="utf-8") as handle:
+            migrated = json.load(handle)
+        record = migrated["accounts"][0]
+        self.assertEqual("", record["api_key"])
+        self.assertEqual([], record["revoked_connection_keys"])
+        self.assertEqual(hash_connection_key("legacy-secret-key"), record["connection_key_hash"])
+        self.assertIn(hash_connection_key("legacy-revoked-key"), record["revoked_connection_key_hashes"])
+        self.assertNotIn("legacy-secret-key", json.dumps(migrated))
+        self.assertNotIn("legacy-revoked-key", json.dumps(migrated))
+
     def test_connection_slot_count_ignores_archived_accounts(self) -> None:
         first = self.service.create_pending_account(user_id="user-123", alias="Primera")
         self.service.create_pending_account(user_id="user-123", alias="Segunda")
