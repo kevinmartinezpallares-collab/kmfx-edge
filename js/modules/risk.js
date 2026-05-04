@@ -1336,7 +1336,7 @@ export function renderRisk(root, state) {
       <div class="risk-policy-header">
         <div>
           <div class="tl-section-title">Política editable</div>
-          <div class="row-sub">Configuración guardada para la cuenta. La aplicación en MT5 depende de backend, launcher y EA.</div>
+          <div class="row-sub">Configuración guardada para la cuenta. La aplicación en MT5 depende del conector y de la cuenta sincronizada.</div>
         </div>
         <div class="risk-policy-sync risk-policy-sync--${mt5SyncState.tone}">
           <span>${mt5SyncState.label}</span>

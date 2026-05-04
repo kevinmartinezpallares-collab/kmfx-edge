@@ -2,7 +2,7 @@
 
 Ultima revision: 2026-05-04
 Rama revisada: `main`
-Commit base local: `6f4f05f Harden frontend cache recovery`
+Commit base local: `daaae24 Add dashboard live data contract fixture`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
@@ -23,7 +23,7 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 | Snapshot sin auth | Cerrado por datos | `/api/accounts/snapshot` devuelve `accounts: []` y `auth_required: true`. No filtra cuentas. |
 | JS dashboard | OK sintaxis | 62 archivos JS revisados con `node --check`. |
 | Backend/launcher | OK compilacion | `py_compile` pasa en API, launcher, bridge y account service. |
-| Tests criticos | OK en ultimo commit propio | Pasaron `tests.test_sidebar_navigation_contract`, checks JS principales y validacion de routing/cache. Hay cambios ajenos posteriores sin certificar. |
+| Tests criticos | OK en ultimo commit propio | Pasaron contrato live, smoke render de dashboard, sidebar, account service, calculadora Forex pips y CORS. Hay cambios ajenos en otras worktrees que no forman parte de esta certificacion. |
 
 ## Hallazgos principales
 
@@ -33,10 +33,10 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
    - Sin Checkout, webhooks, `/api/billing/status` y guards por plan, no hay forma segura de limitar cuentas MT5, debug, exports, Risk editor o features premium.
    - La produccion puede funcionar tecnicamente, pero no como SaaS de pago.
 
-2. El contrato de datos del dashboard aun no esta certificado pantalla por pantalla.
-   - La app ya consume snapshots live, pero varias secciones combinan MT5 live con workspace local o entrada manual.
-   - Antes de abrir usuarios hay que fijar el contrato esperado de `/api/accounts/snapshot` y validarlo con fixtures de cuentas MT5.
-   - Las vistas no deben mostrar textos internos como "workspace" o "local" a usuarios finales.
+2. El contrato de datos del dashboard ya tiene una primera certificacion, pero falta ampliar estados de cuenta.
+   - Hay fixture automatizado de dos cuentas MT5 live y smoke render para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
+   - Aun faltan fixtures de cuenta `pending`, `stale`, `revoked`, `plan_limited` y errores controlados.
+   - Las vistas no deben mostrar textos internos como "workspace" o "local" a usuarios finales; el smoke inicial ya bloquea esos textos en las pantallas principales cubiertas.
 
 3. Falta QA real en maquina limpia.
    - Multi-cuenta funciona en tu Mac, pero falta verificar usuario nuevo en macOS limpio y Windows 10/11 limpio.
@@ -65,10 +65,11 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 1. Confirmacion de primera sincronizacion pendiente.
    - Falta modal para nombrar cuenta, elegir Demo/Real/Funding/Challenge y vincular a journey.
 
-2. Metricas live: base buena, pero falta certificacion automatizada.
+2. Metricas live: base buena, con certificacion automatizada inicial.
    - El backend ya construye `dashboard_payload`, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
    - El frontend adapta MT5 con `mt5-account-adapter` y tiene `kmfx-integrity-check`.
-- Prueba inicial creada en `tests.test_dashboard_live_contract` con fixture de dos cuentas MT5. Falta ampliarla a render smoke por pagina.
+   - Prueba inicial creada en `tests.test_dashboard_live_contract` con fixture de dos cuentas MT5.
+   - Smoke render creado en `tests.test_dashboard_render_smoke` para certificar que las vistas principales renderizan con ese contrato live y sin fallback mock visible.
 
 3. Descargas Launcher.
    - macOS y Windows estan publicados.
@@ -111,14 +112,14 @@ Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y 
 
 | Modulo | Contrato live | Pendiente antes de produccion |
 | --- | --- | --- |
-| Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture inicial cubierto; falta render smoke por pagina. |
-| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Fixture inicial cubre `active`; faltan `pending`, `stale`, `revoked`, `plan_limited`. |
-| Operaciones | Usa trades normalizados desde payload MT5. | Garantizar que el EA/backend envia deals cerrados con costes completos. |
-| Calendario | Deriva calendario desde trades cerrados. | Verificar fechas, timezone y sesiones con datos reales. |
-| Insights | Deriva analitica desde el modelo de trades. | Validar que no usa mock cuando hay cuenta live activa. |
-| Capital | Agrega varias cuentas y posiciones abiertas. | Fixture multi-cuenta Darwinex/Orion y comprobacion de totales. |
-| Risk Engine | Usa `riskSnapshot`. | Tests de resumen, enforcement, exposicion y limites por policy. |
-| Herramientas | Usa `symbolSpecs` y fallback manual. | Fixture Forex/JPY/XAUUSD con specs MT5 reales. |
+| Dashboard | Usa `dashboardPayload`, `reportMetrics`, `riskSnapshot` y posiciones. | Fixture inicial y render smoke cubiertos; faltan estados degradados. |
+| Cuentas | Usa `/api/accounts/snapshot` y ownership guard. | Fixture inicial y render smoke cubren `active`; faltan `pending`, `stale`, `revoked`, `plan_limited`. |
+| Operaciones | Usa trades normalizados desde payload MT5. | Render smoke cubierto; garantizar que el EA/backend envia deals cerrados con costes completos. |
+| Calendario | Deriva calendario desde trades cerrados. | Render smoke cubierto; verificar fechas, timezone y sesiones con datos reales. |
+| Insights | Deriva analitica desde el modelo de trades. | Render smoke cubierto; ampliar con muestras mas grandes. |
+| Capital | Agrega varias cuentas y posiciones abiertas. | Render smoke cubierto; falta fixture de totales multi-cuenta mas exigente. |
+| Risk Engine | Usa `riskSnapshot`. | Render smoke cubierto; faltan tests de enforcement, exposicion y limites por policy. |
+| Herramientas | Usa `symbolSpecs` y fallback manual. | Render smoke cubierto; fixture Forex/JPY/XAUUSD con specs MT5 reales. |
 | Funding | Mezcla cuenta live con journeys workspace. | Vincular cuenta MT5 a journey Funding persistente. |
 | Estrategias | Setups/backtests son workspace; puede comparar con trades live. | Persistencia backend o etiqueta clara de datos propios del usuario. |
 | Journal | Entradas/reviews son workspace/manual; usa trades live como contexto. | Persistir journal y tags por usuario antes de uso comercial serio. |
@@ -153,6 +154,7 @@ Riesgos pendientes:
 - `curl -X OPTIONS https://mt5-api.kmfxedge.com/api/mt5/sync` con origin malicioso
 - `python3 -m py_compile kmfx_connector_api.py launcher/backend_client.py launcher/service.py launcher/config.py kmfx_bridge_mac.py account_service.py account_keys.py`
 - `python3 -m unittest tests.test_connector_cors_config tests.test_launcher_connection_keys tests.test_account_service tests.test_calculator_fx_pip tests.test_sidebar_navigation_contract`
+- `python3 -m unittest tests.test_dashboard_live_contract tests.test_dashboard_render_smoke`
 - `node --check app.js`
 - `node --check js/modules/calculator.js`
 - sintaxis de todos los JS de `js/`, `app.js` y `cloudflare/mt5-api-proxy.js`
@@ -169,7 +171,7 @@ Resultado:
 
 - [x] Crear fixture de `/api/accounts/snapshot` con dos cuentas MT5, posiciones, trades, history, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
 - [x] Añadir test backend/contrato que valida KPIs agregados, cuenta activa, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
-- [ ] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
+- [x] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
 - [ ] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion

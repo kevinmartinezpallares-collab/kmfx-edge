@@ -2,7 +2,7 @@
 
 Última revisión: 2026-05-04
 Rama revisada: `main`
-Commit base: `6f4f05f Harden frontend cache recovery`
+Commit base: `daaae24 Add dashboard live data contract fixture`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
@@ -110,7 +110,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] El adaptador MT5 normaliza `dashboard_payload`, `reportMetrics`, `riskSnapshot`, `symbolSpecs`, trades, posiciones e historial.
 - [x] Dashboard, Cuentas, Operaciones, Calendario, Insights, Risk Engine, Capital y Herramientas ya tienen ruta live cuando `payloadSource=mt5_sync_live`.
 - [x] Fixture de contrato con dos cuentas MT5 live y validacion automatica inicial de KPIs.
-- [ ] Falta certificar que ninguna vista cae a mock cuando hay cuenta live activa.
+- [x] Smoke render inicial certifica que las vistas principales no caen a mock cuando hay cuenta live activa.
+- [ ] Falta ampliar la certificacion a estados `pending`, `stale`, `revoked`, `plan_limited` y errores controlados.
 - [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con workspace del usuario.
 - [ ] Falta quitar mensajes internos visibles como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
 
@@ -121,7 +122,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 Antes de billing, cerrar una pasada corta de **contrato de datos live y QA de producto**:
 
 - retirar textos internos visibles para usuario final como `workspace`, `sesion local`, `bridge local` o mensajes tecnicos fuera de modo admin;
-- ampliar el fixture de `/api/accounts/snapshot` hacia render smoke por pagina;
+- mantener y ampliar el render smoke por pagina con estados degradados;
 - certificar seccion por seccion que metricas vienen de MT5 live, backend/riskSnapshot, workspace local o entrada manual;
 - probar launcher macOS y Windows en maquina limpia.
 
@@ -139,7 +140,8 @@ Bloque previo obligatorio:
 
 - [x] Crear contrato inicial live de `/api/accounts/snapshot`.
 - [ ] Pasada final de textos visibles para usuario final.
-- [ ] Render smoke de metricas live por seccion con fixture.
+- [x] Render smoke inicial de metricas live por seccion con fixture.
+- [ ] Render smoke de estados degradados: pending, stale, revoked y plan-limited.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 

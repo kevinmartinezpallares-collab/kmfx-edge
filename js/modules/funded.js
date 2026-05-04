@@ -725,7 +725,7 @@ function ruleAmountFromPct(account = {}, pct = 0) {
 function dailyResetLabel(reset = "") {
   const normalized = normalizeText(reset);
   if (normalized === "server_time") return "Reset servidor";
-  if (normalized === "local_time") return "Reset local";
+  if (normalized === "local_time") return "Reset terminal";
   return "Reset por verificar";
 }
 

@@ -439,9 +439,9 @@ export function describeAccountAuthority(account, kind = "derived") {
   if (kind === "workspace") {
     return {
       tone: "neutral",
-      label: "Workspace",
-      title: "Herramienta de workspace",
-      text: "Esta vista usa la cuenta activa como contexto, pero parte de su contenido pertenece al workspace local del usuario y no al snapshot MT5 del backend.",
+      label: "Manual",
+      title: "Evidencia manual vinculada a la cuenta",
+      text: "Esta vista combina la cuenta activa con registros manuales del trader. Úsala como contexto operativo, no como sustituto del ledger MT5.",
       authority,
     };
   }
@@ -461,8 +461,8 @@ export function describeAccountAuthority(account, kind = "derived") {
     label: "Live",
     title: "Dato live de cuenta",
     text: authority.firstTradeLabel
-      ? `Esta vista usa el snapshot live de la cuenta activa y el ledger real disponible desde ${authority.firstTradeLabel}.`
-      : "Esta vista usa el snapshot live de la cuenta activa.",
+      ? `Esta vista usa datos live de la cuenta activa y el ledger real disponible desde ${authority.firstTradeLabel}.`
+      : "Esta vista usa datos live de la cuenta activa.",
     authority,
   };
 }
