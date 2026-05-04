@@ -91,6 +91,11 @@ function isPageActive(activePage, page) {
 export function initMobileNav(store) {
   const root = document.getElementById("mobileNavRoot");
   if (!root) return;
+  root.replaceChildren();
+  root.hidden = true;
+  root.setAttribute("aria-hidden", "true");
+  root.dataset.navigationRetired = "sidebar";
+  return;
 
   root.__mobileNavState = root.__mobileNavState || {
     moreOpen: false
