@@ -648,6 +648,34 @@ function normalizeDashboardRiskKpiTone(tone) {
   return "neutral";
 }
 
+const DASHBOARD_KPI_HELP = Object.freeze({
+  equity: "Foto real de la cuenta: balance más flotante. Si se separa mucho del balance, revisa la exposición abierta.",
+  pnl: "Resultado neto del periodo activo. Léelo junto a retorno, drawdown y número de operaciones.",
+  dd: "Caída desde máximo de equity. Es la métrica que marca cuánto dolor operativo está soportando la cuenta.",
+  edge: "Relación entre beneficio bruto y pérdida bruta. Un PF alto necesita muestra suficiente para confirmar edge.",
+  "open-risk": "Riesgo agregado de posiciones abiertas. Antes de añadir una entrada, comprueba si el heat sigue dentro de política.",
+  positions: "Número de posiciones abiertas ahora. Revisa concentración por símbolo, dirección y riesgo total."
+});
+
+function dashboardKpiHelpMarkup(key) {
+  const help = DASHBOARD_KPI_HELP[key];
+  if (!help) return "";
+  const tooltipId = `dashboard-kpi-help-${String(key).replace(/[^a-z0-9-]/gi, "-")}`;
+  return `
+    <span class="dashboard-kpi-card__help-wrap" data-dashboard-kpi-tooltip>
+      <button
+        class="dashboard-kpi-card__help"
+        type="button"
+        aria-label="${escapeDashboardHtml(help)}"
+        aria-describedby="${escapeDashboardHtml(tooltipId)}"
+      >?</button>
+      <span class="kmfx-ui-tooltip dashboard-kpi-card__tooltip" id="${escapeDashboardHtml(tooltipId)}" role="tooltip">
+        <span class="kmfx-ui-tooltip__content">${escapeDashboardHtml(help)}</span>
+      </span>
+    </span>
+  `;
+}
+
 function renderDashboardKpiValue({ key = "", value, valueClass = "", tone = "neutral", meta = "", trend = "" }) {
   const metaHtml = (meta || trend)
     ? `<span class="dashboard-kpi-card__meta" data-kpi-meta>${[meta, trend].filter(Boolean).join(" / ")}</span>`
@@ -691,6 +719,7 @@ function renderDashboardKpiCard({
   return kpiCardMarkup({
     label,
     valueHtml: renderDashboardKpiValue({ key, value, valueClass, tone, meta, trend }),
+    headerHtml: dashboardKpiHelpMarkup(key),
     trend: badge,
     trendTone: trendTone || tone,
     tone,
