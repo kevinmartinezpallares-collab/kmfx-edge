@@ -2111,6 +2111,142 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
     )
 
 
+def mt5_request_max_body_bytes(route: str) -> int:
+    if route == "/api/mt5/journal":
+        return _env_int("KMFX_MT5_JOURNAL_MAX_BODY_BYTES", default=4 * 1024 * 1024)
+    return _env_int("KMFX_MT5_SYNC_MAX_BODY_BYTES", default=2 * 1024 * 1024)
+
+
+def request_header(request: Request, name: str) -> str:
+    headers = getattr(request, "headers", {}) or {}
+    candidates = (name, name.lower(), name.title())
+    for candidate in candidates:
+        try:
+            value = headers.get(candidate)
+        except AttributeError:
+            value = None
+        if value:
+            return safe_str(value)
+    return ""
+
+
+def mt5_payload_too_large_response(
+    route: str,
+    max_bytes: int,
+    actual_bytes: int | None = None,
+    *,
+    sync_id: str = "",
+    batch_id: str = "",
+) -> JSONResponse:
+    details: dict[str, Any] = {"max_bytes": max_bytes}
+    if actual_bytes is not None:
+        details["actual_bytes"] = actual_bytes
+    if route == "/api/mt5/sync":
+        return sync_error_response("payload_too_large", details, http_status=413, sync_id=sync_id)
+    return connector_json_response(
+        {
+            "ok": False,
+            "received": False,
+            "batch_id": batch_id,
+            "disposition": "rejected",
+            "reason": "payload_too_large",
+            "error_code": SYNC_ERROR_INVALID_PAYLOAD,
+            "details": details,
+            "timestamp": now_iso(),
+        },
+        status_code=413,
+    )
+
+
+def mt5_invalid_json_response(route: str, exc: Exception, *, sync_id: str = "", batch_id: str = "") -> JSONResponse:
+    if route == "/api/mt5/sync":
+        return sync_error_response(
+            "invalid_json",
+            {
+                "section": "root",
+                "field": "body",
+                "problem": "invalid_json",
+                "message": str(exc),
+            },
+            sync_id=sync_id,
+        )
+    return connector_json_response(
+        {
+            "ok": False,
+            "received": False,
+            "batch_id": batch_id,
+            "disposition": "rejected",
+            "reason": "invalid_json",
+            "error_code": SYNC_ERROR_INVALID_PAYLOAD,
+            "details": {"message": str(exc)},
+            "timestamp": now_iso(),
+        }
+    )
+
+
+async def read_mt5_json_payload(
+    request: Request,
+    route: str,
+    *,
+    sync_id: str = "",
+    batch_id: str = "",
+) -> tuple[Any | None, JSONResponse | None]:
+    max_bytes = mt5_request_max_body_bytes(route)
+    content_length = request_header(request, "content-length")
+    if content_length:
+        try:
+            declared_bytes = int(content_length)
+        except ValueError:
+            declared_bytes = None
+        if declared_bytes is not None and declared_bytes > max_bytes:
+            log.warning(
+                "MT5 payload rejected before read | route=%s declared_bytes=%s max_bytes=%s",
+                route,
+                declared_bytes,
+                max_bytes,
+            )
+            return None, mt5_payload_too_large_response(
+                route,
+                max_bytes,
+                declared_bytes,
+                sync_id=sync_id,
+                batch_id=batch_id,
+            )
+
+    body_reader = getattr(request, "body", None)
+    if callable(body_reader):
+        try:
+            raw_body = await body_reader()
+            if isinstance(raw_body, str):
+                body_bytes = raw_body.encode("utf-8")
+            else:
+                body_bytes = bytes(raw_body or b"")
+            if len(body_bytes) > max_bytes:
+                log.warning(
+                    "MT5 payload rejected after read | route=%s actual_bytes=%s max_bytes=%s",
+                    route,
+                    len(body_bytes),
+                    max_bytes,
+                )
+                return None, mt5_payload_too_large_response(
+                    route,
+                    max_bytes,
+                    len(body_bytes),
+                    sync_id=sync_id,
+                    batch_id=batch_id,
+                )
+            return json.loads(body_bytes.decode("utf-8")), None
+        except Exception as exc:
+            log.exception("MT5 invalid JSON payload | route=%s error=%s", route, exc)
+            return None, mt5_invalid_json_response(route, exc, sync_id=sync_id, batch_id=batch_id)
+
+    try:
+        return await request.json(), None
+    except Exception as exc:
+        log.exception("MT5 invalid JSON payload | route=%s error=%s", route, exc)
+        return None, mt5_invalid_json_response(route, exc, sync_id=sync_id, batch_id=batch_id)
+
+
 def health_payload() -> dict[str, Any]:
     return {
         "ok": True,
@@ -2669,19 +2805,9 @@ async def mt5_sync(request: Request) -> JSONResponse:
     if query_rejection is not None:
         return query_rejection
 
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        log.exception("SYNC invalid JSON payload: %s", exc)
-        return sync_error_response(
-            "invalid_json",
-            {
-                "section": "root",
-                "field": "body",
-                "problem": "invalid_json",
-                "message": str(exc),
-            },
-        )
+    payload, payload_error = await read_mt5_json_payload(request, "/api/mt5/sync", sync_id=sync_id)
+    if payload_error is not None:
+        return payload_error
 
     if not isinstance(payload, dict):
         log.error("SYNC payload is not an object | value_type=%s", type(payload).__name__)
@@ -3002,22 +3128,9 @@ async def mt5_journal(request: Request) -> JSONResponse:
     if query_rejection is not None:
         return query_rejection
 
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        log.exception("JOURNAL invalid JSON payload: %s", exc)
-        return connector_json_response(
-            {
-                "ok": False,
-                "received": False,
-                "batch_id": batch_id,
-                "disposition": "rejected",
-                "reason": "invalid_json",
-                "error_code": SYNC_ERROR_INVALID_PAYLOAD,
-                "details": {"message": str(exc)},
-                "timestamp": now_iso(),
-            }
-        )
+    payload, payload_error = await read_mt5_json_payload(request, "/api/mt5/journal", batch_id=batch_id)
+    if payload_error is not None:
+        return payload_error
 
     if not isinstance(payload, dict):
         return connector_json_response(

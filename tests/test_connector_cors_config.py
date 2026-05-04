@@ -19,10 +19,16 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         headers: dict[str, str] | None = None,
         query_params: dict[str, str] | None = None,
         json_body: object | None = None,
+        body_bytes: bytes | None = None,
     ):
         class RequestStub(SimpleNamespace):
             async def json(self_inner):
                 return json_body if json_body is not None else {}
+
+            async def body(self_inner):
+                if body_bytes is not None:
+                    return body_bytes
+                return json.dumps(json_body if json_body is not None else {}).encode("utf-8")
 
         return RequestStub(headers=headers or {}, query_params=query_params or {}, client=SimpleNamespace(host=host))
 
@@ -138,6 +144,33 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             }
         )
         self.assertEqual({"login": "123456"}, cleaned)
+
+    def test_mt5_sync_rejects_oversized_content_length_before_processing(self) -> None:
+        request = self._request(headers={"content-length": "128"}, json_body={"unused": True})
+        with patch.dict("os.environ", {"KMFX_MT5_SYNC_MAX_BODY_BYTES": "32"}, clear=False):
+            response = asyncio.run(connector_api.mt5_sync(request))
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(413, response.status_code)
+        self.assertEqual("payload_too_large", body["reason"])
+        self.assertEqual(32, body["details"]["max_bytes"])
+        self.assertEqual(128, body["details"]["actual_bytes"])
+        self.assertNotIn("unused", body_text)
+
+    def test_mt5_journal_rejects_oversized_body_without_echoing_payload(self) -> None:
+        oversized_body = json.dumps({"batch_id": "batch-1", "events": ["secret-value"]}).encode("utf-8")
+        request = self._request(body_bytes=oversized_body)
+        with patch.dict("os.environ", {"KMFX_MT5_JOURNAL_MAX_BODY_BYTES": "24"}, clear=False):
+            response = asyncio.run(connector_api.mt5_journal(request))
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(413, response.status_code)
+        self.assertEqual("payload_too_large", body["reason"])
+        self.assertEqual(24, body["details"]["max_bytes"])
+        self.assertEqual(len(oversized_body), body["details"]["actual_bytes"])
+        self.assertNotIn("secret-value", body_text)
 
     def test_link_account_returns_key_once_and_persists_only_hash(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
