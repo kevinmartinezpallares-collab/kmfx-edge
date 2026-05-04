@@ -219,6 +219,173 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.fail(f"node render smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
         return json.loads(proc.stdout.splitlines()[-1])
 
+    def run_risk_funding_degraded_smoke(self) -> dict:
+        script = r"""
+          import fs from "node:fs";
+          import { adaptMt5Account } from "./js/data/adapters/mt5-account-adapter.js";
+          import { renderRisk } from "./js/modules/risk.js";
+          import { renderFunded } from "./js/modules/funded.js";
+
+          const storage = new Map();
+          globalThis.window = {
+            innerWidth: 1440,
+            localStorage: {
+              getItem: (key) => storage.get(key) ?? null,
+              setItem: (key, value) => storage.set(key, String(value)),
+              removeItem: (key) => storage.delete(key),
+            },
+            addEventListener() {},
+            removeEventListener() {},
+            matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+          };
+          globalThis.localStorage = window.localStorage;
+          globalThis.getComputedStyle = () => ({ getPropertyValue() { return ""; } });
+          globalThis.document = {
+            documentElement: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            body: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            createElement() {
+              return {
+                dataset: {},
+                style: {},
+                classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+                addEventListener() {},
+                removeEventListener() {},
+                querySelector() { return null; },
+                querySelectorAll() { return []; },
+              };
+            },
+            addEventListener() {},
+            removeEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+          };
+
+          class SmokeRoot {
+            constructor() {
+              this.dataset = {};
+              this.style = {};
+              this.innerHTML = "";
+              this.isConnected = true;
+              this.classList = { add() {}, remove() {}, toggle() {}, contains: () => false };
+            }
+            querySelector() { return null; }
+            querySelectorAll() { return []; }
+            addEventListener() {}
+            removeEventListener() {}
+          }
+
+          function baseState(account) {
+            return {
+              accounts: { [account.id]: account },
+              accountDirectory: { [account.id]: account },
+              managedAccounts: {},
+              liveAccountIds: [account.id],
+              activeLiveAccountId: account.id,
+              activeAccountId: account.id,
+              currentAccount: account.id,
+              mode: "live",
+              auth: {
+                status: "authenticated",
+                user: {
+                  id: "user-live-contract",
+                  email: "contract@kmfxedge.test",
+                  role: "user",
+                  is_admin: false,
+                },
+              },
+              ui: { activePage: "risk" },
+              workspace: {
+                fundedAccounts: [],
+                fundingJourneys: [],
+                fundingPhases: [],
+                fundingTransactions: [],
+              },
+            };
+          }
+
+          const snapshot = JSON.parse(fs.readFileSync("./tests/fixtures/live_accounts_snapshot_two_mt5.json", "utf8"));
+          const staleAccount = adaptMt5Account(snapshot.accounts[0]);
+          const pendingRiskAccount = {
+            ...staleAccount,
+            dashboardPayload: {
+              ...staleAccount.dashboardPayload,
+              riskSnapshot: null,
+              timestamp: "",
+            },
+            riskSnapshot: null,
+            connection: {
+              ...(staleAccount.connection || {}),
+              connected: false,
+              state: "connecting",
+              lastSync: "",
+            },
+          };
+
+          const emptyRiskRoot = new SmokeRoot();
+          renderRisk(emptyRiskRoot, baseState(pendingRiskAccount));
+          const staleRiskRoot = new SmokeRoot();
+          renderRisk(staleRiskRoot, baseState(staleAccount));
+          const fundingRoot = new SmokeRoot();
+          renderFunded(fundingRoot, {
+            ...baseState(staleAccount),
+            ui: { activePage: "funded" },
+          });
+
+          const riskEmptyHtml = String(emptyRiskRoot.innerHTML || "");
+          const riskStaleHtml = String(staleRiskRoot.innerHTML || "");
+          const fundingHtml = String(fundingRoot.innerHTML || "");
+          const forbidden = [
+            "payloadSource=mock",
+            "workspace local",
+            "snapshot MT5 del backend",
+          ];
+          console.log(JSON.stringify({
+            riskEmpty: {
+              htmlLength: riskEmptyHtml.length,
+              requiredHits: [
+                "Esperando sincronización",
+                "Aún no hay datos suficientes para calcular límites",
+                "Ir a Cuentas",
+              ].filter((needle) => riskEmptyHtml.includes(needle)),
+              forbiddenHits: forbidden.filter((needle) => riskEmptyHtml.toLowerCase().includes(needle.toLowerCase())),
+            },
+            riskStale: {
+              htmlLength: riskStaleHtml.length,
+              requiredHits: [
+                "Mostrando último estado conocido",
+                "La cuenta no ha enviado una actualización reciente",
+                "Última sincronización",
+              ].filter((needle) => riskStaleHtml.includes(needle)),
+              forbiddenHits: forbidden.filter((needle) => riskStaleHtml.toLowerCase().includes(needle.toLowerCase())),
+            },
+            fundingEmpty: {
+              htmlLength: fundingHtml.length,
+              requiredHits: [
+                "Sin cuenta funding vinculada",
+                "Marca una cuenta MT5 como Funding o Challenge",
+                "Ir a Cuentas",
+              ].filter((needle) => fundingHtml.includes(needle)),
+              forbiddenHits: forbidden.filter((needle) => fundingHtml.toLowerCase().includes(needle.toLowerCase())),
+            },
+          }));
+        """
+        proc = subprocess.run(
+            [
+                "node",
+                "--experimental-loader",
+                "./tests/node-esm-loader.mjs",
+                "--input-type=module",
+                "-e",
+                textwrap.dedent(script),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            self.fail(f"node risk/funding degraded smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        return json.loads(proc.stdout.splitlines()[-1])
+
     def run_degraded_connections_smoke(self) -> dict:
         script = r"""
           import { renderConnections } from "./js/modules/connections.js";
@@ -447,6 +614,14 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             },
             set(result["requiredHits"]),
         )
+
+    def test_risk_and_funding_render_degraded_states_without_internal_copy(self) -> None:
+        result = self.run_risk_funding_degraded_smoke()
+
+        for key, row in result.items():
+            self.assertGreater(row["htmlLength"], 500, key)
+            self.assertEqual([], row["forbiddenHits"], key)
+            self.assertGreaterEqual(len(row["requiredHits"]), 3, key)
 
 
 if __name__ == "__main__":

@@ -1597,11 +1597,16 @@ export function renderFunded(root, state) {
       <div class="funded-page-stack">
         ${pageHeaderMarkup({
           title: "Funding",
-          description: "Aún no hay cuentas funded configuradas.",
+          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y payouts.",
           className: "tl-page-header",
           titleClassName: "tl-page-title",
           descriptionClassName: "tl-page-sub",
         })}
+        <article class="tl-section-card funding-empty-state">
+          <div class="tl-section-title">Sin cuenta funding vinculada</div>
+          <div class="tl-section-sub">Marca una cuenta MT5 como Funding o Challenge desde Cuentas para crear su recorrido y empezar el seguimiento.</div>
+          <a class="btn-primary" href="/cuentas">Ir a Cuentas</a>
+        </article>
       </div>
     `;
     return;

@@ -36,7 +36,8 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 2. El contrato de datos del dashboard ya tiene una primera certificacion, pero falta ampliar estados de cuenta.
    - Hay fixture automatizado de dos cuentas MT5 live y smoke render para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
    - El smoke inicial ya cubre cuentas `active`, `pending`, `stale`, `revoked`, `plan_limited` y `error` en la pantalla de Cuentas.
-   - Aun faltan fixtures equivalentes de estados degradados en Risk/Funding cuando dependan de policy o billing.
+   - Risk ya queda cubierto para cuenta sin snapshot/policy y snapshot stale; Funding ya queda cubierto para cuenta funding no vinculada.
+   - Aun faltan fixtures equivalentes de billing bloqueado cuando los entitlements entren en produccion.
    - Las vistas no deben mostrar textos internos como "workspace" o "local" a usuarios finales; el smoke inicial ya bloquea esos textos en las pantallas principales cubiertas.
 
 3. Falta QA real en maquina limpia.
@@ -119,9 +120,9 @@ Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y 
 | Calendario | Deriva calendario desde trades cerrados. | Render smoke cubierto; verificar fechas, timezone y sesiones con datos reales. |
 | Insights | Deriva analitica desde el modelo de trades. | Render smoke cubierto; ampliar con muestras mas grandes. |
 | Capital | Agrega varias cuentas y posiciones abiertas. | Render smoke cubierto; falta fixture de totales multi-cuenta mas exigente. |
-| Risk Engine | Usa `riskSnapshot`. | Render smoke cubierto; faltan tests de enforcement, exposicion y limites por policy. |
+| Risk Engine | Usa `riskSnapshot`. | Render smoke cubierto para live, sin snapshot y stale; faltan tests de enforcement, exposicion y limites por policy. |
 | Herramientas | Usa `symbolSpecs` y fallback manual. | Render smoke cubierto; fixture Forex/JPY/XAUUSD con specs MT5 reales. |
-| Funding | Mezcla cuenta live con journeys workspace. | Vincular cuenta MT5 a journey Funding persistente. |
+| Funding | Mezcla cuenta live con journeys workspace. | Empty state de cuenta no vinculada cubierto; falta vincular cuenta MT5 a journey Funding persistente. |
 | Estrategias | Setups/backtests son workspace; puede comparar con trades live. | Persistencia backend o etiqueta clara de datos propios del usuario. |
 | Journal | Entradas/reviews son workspace/manual; usa trades live como contexto. | Persistir journal y tags por usuario antes de uso comercial serio. |
 
@@ -174,6 +175,7 @@ Resultado:
 - [x] Añadir test backend/contrato que valida KPIs agregados, cuenta activa, `reportMetrics`, `riskSnapshot` y `symbolSpecs`.
 - [x] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
 - [x] Añadir render smoke de Cuentas para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
+- [x] Añadir render smoke de Risk/Funding para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
 - [ ] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion
