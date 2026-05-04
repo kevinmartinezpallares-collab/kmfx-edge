@@ -5,6 +5,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+DASHBOARD_SUBSECTION_PAGES = [
+    "calendar",
+    "trades",
+    "strategies",
+    "analytics",
+]
+
 DESKTOP_SUBSECTION_PAGES = [
     "risk-ruin-var",
     "risk-monte-carlo",
@@ -12,15 +19,19 @@ DESKTOP_SUBSECTION_PAGES = [
     "journal-review",
     "journal-entries",
     "journal-ai-review",
-    "strategies-backtest",
-    "strategies-portfolio",
     "funded-rules",
     "funded-payouts",
 ]
 
-INTERNAL_TAB_PAGES = ["analytics-daily", "analytics-hourly", "analytics-risk"]
+ROUTED_INTERNAL_PAGES = [
+    "analytics-daily",
+    "analytics-hourly",
+    "analytics-risk",
+    "strategies-backtest",
+    "strategies-portfolio",
+]
 
-DEFAULT_PARENT_PAGES = ["strategies", "analytics", "funded", "risk", "journal"]
+DEFAULT_PARENT_PAGES = ["funded", "risk", "journal"]
 
 ROUTE_TARGETS = {
     "/risk-engine/ruin-var": "risk-ruin-var",
@@ -58,12 +69,14 @@ class SidebarNavigationContractTests(unittest.TestCase):
         self.assertIn('data-sidebar="rail"', html)
         self.assertIn("kmfx-edge-icon-contained.svg", html)
         self.assertNotIn("nav-subitem-marker", html)
-        for page in DESKTOP_SUBSECTION_PAGES:
+        for page in DASHBOARD_SUBSECTION_PAGES + DESKTOP_SUBSECTION_PAGES:
             self.assertIn(f'data-page="{page}"', html)
-        for submenu in ["strategies", "risk", "journal", "funded"]:
+        self.assertNotIn('data-page="glossary" title="Estudio" data-sidebar="menu-sub-button"', html)
+        self.assertIn('data-page="glossary" title="Estudio" data-sidebar="menu-button"', html)
+        for submenu in ["risk", "journal", "funded"]:
             self.assertIn(f'data-nav-submenu-trigger="{submenu}"', html)
             self.assertIn(f'id="nav-submenu-{submenu}"', html)
-        for page in INTERNAL_TAB_PAGES:
+        for page in ROUTED_INTERNAL_PAGES:
             self.assertNotIn(f'data-page="{page}"', html)
         for page in DEFAULT_PARENT_PAGES:
             self.assertNotRegex(
@@ -75,7 +88,7 @@ class SidebarNavigationContractTests(unittest.TestCase):
         route_map = read_text("js/modules/route-map.js")
         page_routes = extract_object_body(route_map, "PAGE_ROUTES")
 
-        for page in DESKTOP_SUBSECTION_PAGES + INTERNAL_TAB_PAGES:
+        for page in DESKTOP_SUBSECTION_PAGES + ROUTED_INTERNAL_PAGES:
             self.assertIn(f'"{page}"', page_routes)
 
         for path, target in ROUTE_TARGETS.items():

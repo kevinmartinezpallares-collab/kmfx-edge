@@ -27,7 +27,7 @@ export const PAGE_ROUTES = Object.freeze({
   "funded-payouts": "/funding/payouts",
   market: "/market",
   portfolio: "/capital",
-  glossary: "/glossary",
+  glossary: "/estudio",
   debug: "/debug",
   settings: "/ajustes"
 });
@@ -92,6 +92,8 @@ const ROUTE_ALIASES = Object.freeze({
   "/market": "market",
   "/capital": "portfolio",
   "/portfolio": "portfolio",
+  "/estudio": "glossary",
+  "/study": "glossary",
   "/glossary": "glossary",
   "/debug": "debug",
   "/ajustes": "settings",

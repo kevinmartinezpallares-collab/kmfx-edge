@@ -36,7 +36,7 @@ const pageTitle = {
   "funded-payouts": "Payouts",
   market: "Mercado",
   portfolio: "Capital",
-  glossary: "Glosario",
+  glossary: "Estudio",
   debug: "Debug",
   settings: "Ajustes"
 };
@@ -68,7 +68,7 @@ const pageContext = {
   "funded-payouts": "Ledger económico, retiros y fees",
   market: "Watchlist, régimen y catalizadores",
   portfolio: "Gestión económica de capital y evolución por cuenta",
-  glossary: "Glosario de métricas y definiciones",
+  glossary: "Qué significa cada métrica, cómo funciona y qué revisar",
   debug: "Diagnóstico local y contexto de restauración",
   settings: "Perfil, workspace e integraciones"
 };
