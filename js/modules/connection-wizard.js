@@ -1,6 +1,6 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-070424";
-import { buildApiUrl } from "./api-config.js?v=build-20260504-070424";
-import { showToast } from "./toast.js?v=build-20260504-070424";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-071418";
+import { buildApiUrl } from "./api-config.js?v=build-20260504-071418";
+import { showToast } from "./toast.js?v=build-20260504-071418";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
