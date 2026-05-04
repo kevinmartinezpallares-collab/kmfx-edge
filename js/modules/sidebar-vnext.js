@@ -1,5 +1,4 @@
 const SIDEBAR_STORAGE_KEY = "kmfx_sidebar_state";
-const MOBILE_SIDEBAR_STORAGE_KEY = "kmfx_mobile_sidebar_state";
 const COLLAPSED_VALUE = "collapsed";
 const EXPANDED_VALUE = "expanded";
 const MOBILE_MEDIA_QUERY = "(max-width: 920px)";
@@ -9,19 +8,18 @@ function isMobileSidebarViewport() {
 }
 
 function readStoredSidebarState(isMobile = isMobileSidebarViewport()) {
+  if (isMobile) return COLLAPSED_VALUE;
   try {
-    const key = isMobile ? MOBILE_SIDEBAR_STORAGE_KEY : SIDEBAR_STORAGE_KEY;
-    const fallback = isMobile ? COLLAPSED_VALUE : EXPANDED_VALUE;
-    return window.localStorage?.getItem(key) || fallback;
+    return window.localStorage?.getItem(SIDEBAR_STORAGE_KEY) || EXPANDED_VALUE;
   } catch (error) {
-    return isMobile ? COLLAPSED_VALUE : EXPANDED_VALUE;
+    return EXPANDED_VALUE;
   }
 }
 
 function persistSidebarState(isCollapsed, isMobile = isMobileSidebarViewport()) {
+  if (isMobile) return;
   try {
-    const key = isMobile ? MOBILE_SIDEBAR_STORAGE_KEY : SIDEBAR_STORAGE_KEY;
-    window.localStorage?.setItem(key, isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE);
+    window.localStorage?.setItem(SIDEBAR_STORAGE_KEY, isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE);
   } catch (error) {
     // localStorage can be unavailable in restricted contexts; layout still works.
   }
@@ -49,13 +47,15 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
   shell.dataset.collapsible = isCollapsed ? "icon" : "";
   sidebar?.setAttribute("data-state", isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE);
   sidebar?.setAttribute("data-collapsible", isCollapsed ? "icon" : "");
+  sidebar?.toggleAttribute("data-mobile", isMobile);
+  sidebar?.setAttribute("aria-hidden", isMobile && isCollapsed ? "true" : "false");
   toggles.forEach((control) => {
     control.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
   });
   toggle?.setAttribute("aria-label", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
   toggle?.setAttribute("title", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
-  mobileToggle?.setAttribute("aria-label", isCollapsed ? "Abrir sidebar" : "Cerrar sidebar");
-  mobileToggle?.setAttribute("title", isCollapsed ? "Abrir sidebar" : "Cerrar sidebar");
+  mobileToggle?.setAttribute("aria-label", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
+  mobileToggle?.setAttribute("title", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
   if (mobileBackdrop) {
     mobileBackdrop.hidden = !isMobile || isCollapsed;
     mobileBackdrop.setAttribute("aria-hidden", (!isMobile || isCollapsed) ? "true" : "false");
@@ -117,7 +117,7 @@ export function initSidebarVNext() {
 
   const mobileQuery = window.matchMedia?.(MOBILE_MEDIA_QUERY);
   mobileQuery?.addEventListener?.("change", () => {
-    const nextStoredState = readStoredSidebarState();
+    const nextStoredState = isMobileSidebarViewport() ? COLLAPSED_VALUE : readStoredSidebarState(false);
     applySidebarState(shell, toggle, nextStoredState === COLLAPSED_VALUE, false);
   });
 }

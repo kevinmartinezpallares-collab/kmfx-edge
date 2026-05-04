@@ -26,7 +26,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <script>
     (function retireLegacyServiceWorker() {
-      var reloadKey = "kmfx-sw-retired-build-20260504-235200";
+      var reloadKey = "kmfx-sw-retired-build-20260505-001500";
       if (!("serviceWorker" in navigator)) return;
 
       Promise.all([
@@ -49,8 +49,8 @@
       }).catch(function () {});
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css?v=build-20260504-235200">
-  <link rel="stylesheet" href="./styles-v2.css?v=build-20260504-235200">
+  <link rel="stylesheet" href="./styles.css?v=build-20260505-001500">
+  <link rel="stylesheet" href="./styles-v2.css?v=build-20260505-001500">
   <style id="light-card-flatten-bootstrap">
     html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
     html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
@@ -233,19 +233,22 @@
     </aside>
 
     <button class="mobile-sidebar-backdrop" type="button" aria-label="Cerrar sidebar" data-mobile-sidebar-backdrop hidden></button>
-    <button class="mobile-sidebar-trigger" type="button" aria-label="Abrir sidebar" aria-expanded="false" title="Abrir sidebar" data-sidebar-mobile-toggle>
-      <svg class="mobile-sidebar-trigger__icon mobile-sidebar-trigger__icon--menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-        <path d="M4 7h16"></path>
-        <path d="M4 12h16"></path>
-        <path d="M4 17h16"></path>
-      </svg>
-      <svg class="mobile-sidebar-trigger__icon mobile-sidebar-trigger__icon--close" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-        <path d="M18 6 6 18"></path>
-        <path d="m6 6 12 12"></path>
-      </svg>
-    </button>
 
     <main class="main-panel sidebar-inset">
+      <header class="mobile-sidebar-bar" data-sidebar-mobile-header>
+        <button class="mobile-sidebar-trigger" type="button" aria-label="Abrir sidebar" aria-expanded="false" title="Abrir sidebar" data-sidebar-mobile-toggle>
+          <svg class="mobile-sidebar-trigger__icon mobile-sidebar-trigger__icon--menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h16"></path>
+          </svg>
+        </button>
+        <div class="mobile-sidebar-bar__brand" aria-hidden="true">
+          <img class="mobile-sidebar-bar__logo" src="./assets/logos/kmfx-edge-icon-contained.svg" alt="">
+          <span class="mobile-sidebar-bar__title">KMFX Edge</span>
+        </div>
+        <div class="mobile-sidebar-bar__spacer" aria-hidden="true"></div>
+      </header>
       <div class="content">
         <div class="content-sticky-header">
           <div class="content-sticky-header__context" id="topbarContext"></div>
@@ -588,6 +591,6 @@
   <div id="modalRoot"></div>
   <div id="mobileNavRoot"></div>
 
-  <script type="module" src="./app.js?v=build-20260504-235200"></script>
+  <script type="module" src="./app.js?v=build-20260505-001500"></script>
 </body>
 </html>
