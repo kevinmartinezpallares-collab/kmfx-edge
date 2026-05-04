@@ -1,7 +1,7 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260504-074512";
-import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-074512";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260504-074512";
-import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-074512";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-080918";
+import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260504-080918";
+import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -9,8 +9,8 @@ import {
   renderRiskStatusBadge,
   renderSymbolExposureTable,
   riskToneFromStatus,
-} from "./risk-panel-components.js?v=build-20260504-074512";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-074512";
+} from "./risk-panel-components.js?v=build-20260504-080918";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 
 function parseChartAxisDate(pointOrLabel) {
   const rawValue = typeof pointOrLabel === "object" && pointOrLabel !== null

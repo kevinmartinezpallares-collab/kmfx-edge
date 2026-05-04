@@ -1,8 +1,8 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
-import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260504-074512";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-074512";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-074512";
-import { isAdminUserId } from "./auth-session.js?v=build-20260504-074512";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
+import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
+import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { isAdminUserId } from "./auth-session.js?v=build-20260504-080918";
 import {
   FUNDING_RULE_PHASES,
   availableFundingFirms,
@@ -11,20 +11,20 @@ import {
   inferFundingProgramModel,
   normalizeFundingPhase,
   resolveFundingRulePreset,
-} from "./funding-rules.js?v=build-20260504-074512";
+} from "./funding-rules.js?v=build-20260504-080918";
 import {
   buildFundingJourneys,
   fundingJourneyCurrentPhaseLine,
   fundingJourneyStatusLabel,
   fundingPhaseStatusLabel,
-} from "./funding-journeys.js?v=build-20260504-074512";
+} from "./funding-journeys.js?v=build-20260504-080918";
 import {
   FUNDING_TRANSACTION_TYPES,
   deriveFundingEconomics,
   fundingTransactionTypeLabel,
   fundingTransactionsForJourney,
   normalizeFundingTransaction,
-} from "./funding-ledger.js?v=build-20260504-074512";
+} from "./funding-ledger.js?v=build-20260504-080918";
 
 const ORION_FUNDING_LINK = {
   login: "80571774",

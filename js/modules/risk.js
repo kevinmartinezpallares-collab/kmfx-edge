@@ -1,9 +1,9 @@
-import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260504-074512";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-074512";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260504-074512";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260504-074512";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-074512";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-074512";
+import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
+import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260504-080918";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260504-080918";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },

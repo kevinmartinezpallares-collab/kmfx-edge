@@ -1,5 +1,5 @@
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-074512";
-import { resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-074512";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 
 // === DISCIPLINE SECTION ===
 export const disciplineData = {

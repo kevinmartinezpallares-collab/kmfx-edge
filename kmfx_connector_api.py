@@ -134,6 +134,26 @@ def resolve_admin_launcher_connection_keys_by_user_id() -> dict[str, set[str]]:
     return _parse_admin_launcher_connection_key_mappings(configured)
 
 
+def metadata_value_contains_admin(value: Any) -> bool:
+    if isinstance(value, (list, tuple, set)):
+        return any(metadata_value_contains_admin(item) for item in value)
+    normalized = safe_str(value).lower()
+    if not normalized:
+        return False
+    return any(part.strip() in {"admin", "owner"} for part in normalized.replace(";", ",").replace("|", ",").split(","))
+
+
+def app_metadata_marks_admin(app_metadata: dict[str, Any]) -> bool:
+    metadata = ensure_dict(app_metadata)
+    for key in ("is_admin", "admin", "kmfx_admin"):
+        if metadata_bool(metadata.get(key)) is True:
+            return True
+    for key in ("role", "kmfx_role", "roles", "kmfx_roles"):
+        if metadata_value_contains_admin(metadata.get(key)):
+            return True
+    return False
+
+
 def resolve_cors_allow_origins() -> list[str]:
     explicit_origins = _env_value("KMFX_CORS_ALLOW_ORIGINS", "CORS_ALLOW_ORIGINS")
     if explicit_origins:
@@ -780,13 +800,18 @@ def build_admin_context(request: Request) -> dict[str, Any]:
     user_id = safe_str(identity["user_id"]).lower()
     app_metadata = ensure_dict(identity.get("app_metadata"))
     user_metadata = ensure_dict(identity.get("user_metadata"))
+    is_admin = bool(
+        (user_id and user_id in ADMIN_USER_IDS)
+        or (email and email in ADMIN_EMAILS)
+        or app_metadata_marks_admin(app_metadata)
+    )
     return {
         "email": email,
         "user_id": user_id,
         "source": identity["source"],
         "app_metadata": app_metadata,
         "user_metadata": user_metadata,
-        "is_admin": bool((user_id and user_id in ADMIN_USER_IDS) or (email and email in ADMIN_EMAILS)),
+        "is_admin": is_admin,
     }
 
 

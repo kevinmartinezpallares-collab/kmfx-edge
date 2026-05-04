@@ -1,7 +1,7 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260504-074512";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260504-074512";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260504-074512";
-import { isAdminUserId } from "./auth-session.js?v=build-20260504-074512";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260504-080918";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260504-080918";
+import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260504-080918";
+import { isAdminUserId } from "./auth-session.js?v=build-20260504-080918";
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";

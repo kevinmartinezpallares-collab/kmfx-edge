@@ -290,6 +290,34 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertIsNone(response)
 
+    def test_verified_app_metadata_admin_bypasses_connection_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.create_pending_account(user_id="admin-user", alias="Primera")
+                request = self._request(headers={"authorization": "Bearer verified-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "admin-user",
+                        "email": "admin@kmfxedge.com",
+                        "app_metadata": {"role": "admin"},
+                        "user_metadata": {"plan": "free"},
+                    },
+                ):
+                    context = connector_api.build_admin_context(request)
+                    response = connector_api.connection_key_creation_denial(
+                        user_id="admin-user",
+                        context=context,
+                    )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertTrue(context["is_admin"])
+        self.assertIsNone(response)
+
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
         with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):

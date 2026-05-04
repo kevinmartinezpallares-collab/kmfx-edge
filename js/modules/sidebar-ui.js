@@ -1,6 +1,6 @@
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260504-074512";
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
-import { applyAvatarContent } from "./avatar-utils.js?v=build-20260504-074512";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260504-080918";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
+import { applyAvatarContent } from "./avatar-utils.js?v=build-20260504-080918";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase.js?v=build-20260504-074512";
-import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260504-074512";
+import { supabase } from "../lib/supabase.js?v=build-20260504-080918";
+import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260504-080918";
 
 const AUTH_STORAGE_KEY = "kmfx.auth.session.v1";
 const LEGACY_PROFILE_STORAGE_KEY = "kmfx.settings.profile";

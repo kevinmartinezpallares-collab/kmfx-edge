@@ -1,6 +1,6 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
-import { buildApiUrl } from "./api-config.js?v=build-20260504-074512";
-import { showToast } from "./toast.js?v=build-20260504-074512";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
+import { buildApiUrl } from "./api-config.js?v=build-20260504-080918";
+import { showToast } from "./toast.js?v=build-20260504-080918";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
@@ -348,9 +348,41 @@ function renderWizardMarkup(state) {
   return `
     <div class="connection-wizard connection-wizard--mt5-flow">
       ${renderStepper(state)}
-      ${state.error ? `<div class="connection-wizard__inline-error">${escapeHtml(state.error)}</div>` : ""}
+      ${state.error ? renderWizardAlert(state.error) : ""}
       ${renderCurrentStep(state)}
     </div>
+  `;
+}
+
+function normalizeWizardError(error) {
+  if (error && typeof error === "object") {
+    return {
+      kind: String(error.kind || error.wizardKind || "warning"),
+      title: String(error.title || error.wizardTitle || "No se pudo completar la acción"),
+      message: String(error.message || error.wizardMessage || "Inténtalo de nuevo."),
+      hint: String(error.hint || error.wizardHint || ""),
+    };
+  }
+  return {
+    kind: "warning",
+    title: "No se pudo completar la acción",
+    message: String(error || "Inténtalo de nuevo."),
+    hint: "",
+  };
+}
+
+function renderWizardAlert(error) {
+  const normalized = normalizeWizardError(error);
+  const kind = normalized.kind === "danger" ? "danger" : "warning";
+  return `
+    <article class="connection-wizard__alert connection-wizard__alert--${kind}" role="alert">
+      <span class="connection-wizard__alert-icon" aria-hidden="true">!</span>
+      <div class="connection-wizard__alert-copy">
+        <strong>${escapeHtml(normalized.title)}</strong>
+        <p>${escapeHtml(normalized.message)}</p>
+        ${normalized.hint ? `<small>${escapeHtml(normalized.hint)}</small>` : ""}
+      </div>
+    </article>
   `;
 }
 
@@ -360,21 +392,55 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
   if (reason === "connection_limit_exceeded") {
     const limit = Number(details.connection_limit);
     const current = Number(details.current_connections);
-    if (Number.isFinite(limit) && Number.isFinite(current)) {
-      return `Límite de conexiones alcanzado. Tu plan permite ${limit} cuenta MT5 y ya tienes ${current}.`;
-    }
-    return "Límite de conexiones alcanzado. Libera una cuenta o amplía el límite antes de crear otra key.";
+    const message = Number.isFinite(limit) && Number.isFinite(current)
+      ? `Tu plan permite ${limit} cuenta MT5 y ya tienes ${current}.`
+      : "Has alcanzado el máximo de cuentas MT5 disponibles en tu plan.";
+    return {
+      kind: "warning",
+      title: "Límite de conexiones alcanzado",
+      message,
+      hint: "Elimina una conexión que no uses o amplía tu plan antes de crear otra key.",
+    };
   }
   if (reason === "connection_keys_not_allowed") {
-    return "Tu cuenta no tiene conexiones MT5 activas. Revisa el acceso del plan antes de crear una key.";
+    return {
+      kind: "warning",
+      title: "Conexiones MT5 no disponibles",
+      message: "Tu cuenta no tiene conexiones MT5 activas.",
+      hint: "Revisa el acceso del plan antes de crear una key.",
+    };
   }
   if (reason === "auth_required") {
-    return "Tu sesión ha expirado. Inicia sesión de nuevo para crear la key.";
+    return {
+      kind: "warning",
+      title: "Sesión expirada",
+      message: "Inicia sesión de nuevo para crear la key.",
+      hint: "",
+    };
   }
   if (reason === "connection_key_already_linked") {
-    return "Esta clave ya está vinculada a otra cuenta.";
+    return {
+      kind: "warning",
+      title: "Key ya vinculada",
+      message: "Esta clave ya está vinculada a otra cuenta.",
+      hint: "",
+    };
   }
-  return reason ? reason.replaceAll("_", " ") : fallback;
+  return {
+    kind: "warning",
+    title: "No se pudo generar la clave",
+    message: reason ? reason.replaceAll("_", " ") : fallback,
+    hint: "",
+  };
+}
+
+function throwConnectionError(payload) {
+  const formatted = formatConnectionError(payload);
+  const error = new Error(formatted.message);
+  error.wizardKind = formatted.kind;
+  error.wizardTitle = formatted.title;
+  error.wizardHint = formatted.hint;
+  throw error;
 }
 
 async function createEaConnection(card, state, options = {}, store = activeWizardStore) {
@@ -397,7 +463,7 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
     });
     const payload = await response.json();
     if (!response.ok || payload?.ok === false || !payload?.connection_key) {
-      throw new Error(formatConnectionError(payload));
+      throwConnectionError(payload);
     }
     state.ea = {
       label,
@@ -409,7 +475,10 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
     showToast("Clave de conexión generada", "success");
     window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
   } catch (error) {
-    state.error = error?.message || "No se pudo generar la clave de conexión.";
+    state.error = normalizeWizardError(error?.message ? error : {
+      title: "No se pudo generar la clave",
+      message: "No se pudo generar la clave de conexión.",
+    });
   } finally {
     state.loading = false;
     mountWizard(card, state, options, store);

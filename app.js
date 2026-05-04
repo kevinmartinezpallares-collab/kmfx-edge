@@ -1,32 +1,32 @@
-import { createStore } from "./js/modules/store.js?v=build-20260504-074512";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260504-074512";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260504-074512";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260504-074512";
-import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260504-074512";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260504-074512";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260504-074512";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260504-074512";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260504-074512";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260504-074512";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260504-074512";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260504-074512";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260504-074512";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260504-074512";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260504-074512";
-import { renderMarket } from "./js/modules/market.js?v=build-20260504-074512";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260504-074512";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260504-074512";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260504-074512";
-import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260504-074512";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260504-074512";
-import "./js/modules/modal-system.js?v=build-20260504-074512";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260504-074512";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260504-074512";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260504-074512";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260504-074512";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260504-074512";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260504-074512";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260504-074512";
+import { createStore } from "./js/modules/store.js?v=build-20260504-080918";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260504-080918";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260504-080918";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260504-080918";
+import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260504-080918";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260504-080918";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260504-080918";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260504-080918";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260504-080918";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260504-080918";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260504-080918";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260504-080918";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260504-080918";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260504-080918";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260504-080918";
+import { renderMarket } from "./js/modules/market.js?v=build-20260504-080918";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260504-080918";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260504-080918";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260504-080918";
+import { initMobileNav } from "./js/modules/mobile-nav.js?v=build-20260504-080918";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260504-080918";
+import "./js/modules/modal-system.js?v=build-20260504-080918";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260504-080918";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260504-080918";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260504-080918";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260504-080918";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260504-080918";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260504-080918";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260504-080918";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260504-074512";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260504-074512";
+} from "./js/modules/auth-session.js?v=build-20260504-080918";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260504-080918";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,11 +45,11 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260504-074512";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260504-074512";
-import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260504-074512";
+} from "./js/modules/supabase-user-config.js?v=build-20260504-080918";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260504-080918";
+import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260504-080918";
 
-const BUILD_TAG = "build-20260504-074512";
+const BUILD_TAG = "build-20260504-080918";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();

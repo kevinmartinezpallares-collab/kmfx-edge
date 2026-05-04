@@ -1,8 +1,8 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
-import { showToast } from "./toast.js?v=build-20260504-074512";
-import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260504-074512";
-import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-074512";
-import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260504-074512";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
+import { showToast } from "./toast.js?v=build-20260504-080918";
+import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
+import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260504-080918";
 
 const emptyForm = {
   date: "2026-03-20",

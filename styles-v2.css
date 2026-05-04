@@ -17860,6 +17860,64 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__inline-erro
   margin: 0 !important;
 }
 
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+  margin: 0 0 18px !important;
+  padding: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--border-subtle)) !important;
+  border-radius: 14px !important;
+  background: color-mix(in srgb, var(--warning) 11%, rgba(255, 255, 255, 0.025)) !important;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.18) !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-icon,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-icon {
+  display: grid !important;
+  width: 34px !important;
+  height: 34px !important;
+  place-items: center !important;
+  border: 1px solid color-mix(in srgb, var(--warning) 48%, transparent) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--warning) 16%, transparent) !important;
+  color: var(--warning) !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy {
+  display: grid !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy strong,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy strong {
+  color: var(--text-primary) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy p,
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy small,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy p,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy small {
+  margin: 0 !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy small,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__alert-copy small {
+  color: var(--text-muted) !important;
+}
+
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__warning {
   color: var(--text-muted) !important;

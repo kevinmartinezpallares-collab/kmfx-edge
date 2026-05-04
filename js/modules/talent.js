@@ -1,6 +1,6 @@
-import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260504-074512";
-import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-074512";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-074512";
+import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260504-080918";
+import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 
 export function renderTalent(root, state) {
   const account = selectCurrentAccount(state);

@@ -1,9 +1,9 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-074512";
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260504-074512";
-import { showToast } from "./toast.js?v=build-20260504-074512";
-import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260504-074512";
-import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260504-074512";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-074512";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260504-080918";
+import { showToast } from "./toast.js?v=build-20260504-080918";
+import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260504-080918";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260504-080918";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
