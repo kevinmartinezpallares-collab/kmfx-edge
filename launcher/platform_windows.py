@@ -4,12 +4,14 @@ import os
 import subprocess
 from pathlib import Path
 
+APPDATA = Path(os.getenv("APPDATA", ""))
+LOCALAPPDATA = Path(os.getenv("LOCALAPPDATA", ""))
 
 COMMON_MT5_PATHS = [
     Path(os.getenv("PROGRAMFILES", r"C:\Program Files")),
     Path(os.getenv("PROGRAMFILES(X86)", r"C:\Program Files (x86)")),
-    Path(os.getenv("APPDATA", "")),
-    Path(os.getenv("LOCALAPPDATA", "")),
+    APPDATA / "MetaQuotes" / "Terminal" if APPDATA else Path(""),
+    LOCALAPPDATA / "MetaQuotes" / "Terminal" if LOCALAPPDATA else Path(""),
 ]
 
 

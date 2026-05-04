@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import platform
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,13 +19,49 @@ class MT5Installation:
     platform_name: str
 
 
+SKIPPED_SCAN_DIRS = {
+    ".git",
+    "__pycache__",
+    "cache",
+    "caches",
+    "code cache",
+    "gpucache",
+    "node_modules",
+    "temp",
+    "tmp",
+}
+
+
+def _should_descend(directory: Path) -> bool:
+    return directory.name.strip().lower() not in SKIPPED_SCAN_DIRS
+
+
+def _iter_experts_dirs(root: Path) -> list[Path]:
+    experts_dirs: list[Path] = []
+    if not root.exists():
+        return experts_dirs
+
+    def ignore_scan_error(_: OSError) -> None:
+        return None
+
+    for current, dirnames, _ in os.walk(root, topdown=True, onerror=ignore_scan_error, followlinks=False):
+        current_path = Path(current)
+        dirnames[:] = [dirname for dirname in dirnames if _should_descend(current_path / dirname)]
+        if current_path.name != "MQL5" or "Experts" not in dirnames:
+            continue
+        experts_dir = current_path / "Experts"
+        if experts_dir.is_dir():
+            experts_dirs.append(experts_dir)
+        dirnames[:] = [dirname for dirname in dirnames if dirname != "Experts"]
+    return experts_dirs
+
+
 def _glob_installations(root: Path, platform_name: str) -> list[MT5Installation]:
     installations: list[MT5Installation] = []
     if not root.exists():
         return installations
 
-    experts_dirs = list(root.glob("**/MQL5/Experts"))
-    for experts_dir in experts_dirs:
+    for experts_dir in _iter_experts_dirs(root):
         data_path = experts_dir.parent.parent
         presets_path = str(data_path / "Profiles" / "Presets")
         terminal_candidates = [
