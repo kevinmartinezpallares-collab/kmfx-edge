@@ -10,6 +10,13 @@ def read_text(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
+def png_size(relative_path: str) -> tuple[int, int]:
+    data = (ROOT / relative_path).read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise AssertionError(f"{relative_path} is not a PNG")
+    return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+
+
 def media_block(source: str, query: str, marker: str = "") -> str:
     if marker:
         marker_index = source.find(marker)
@@ -412,6 +419,44 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", header_block)
         self.assertIn("max-width: min(70vw, 220px) !important", header_block)
         self.assertIn("flex-basis: min(100%, 280px) !important", compact_block)
+
+    def test_pwa_install_icon_uses_dedicated_webapp_assets(self) -> None:
+        index = read_text("index.html")
+        manifest = read_text("kmfx-manifest.json")
+
+        self.assertIn("kmfx-edge-apple-touch-icon.png?v=install-logo-20260505", index)
+        self.assertIn("kmfx-manifest.json?v=install-logo-20260505", index)
+
+        for size in [192, 512, 1024]:
+            path = f"assets/logos/kmfx-edge-webapp-{size}.png"
+            self.assertEqual((size, size), png_size(path))
+            self.assertIn(f"kmfx-edge-webapp-{size}.png?v=install-logo-20260505", manifest)
+
+        self.assertEqual((180, 180), png_size("assets/logos/kmfx-edge-apple-touch-icon.png"))
+        self.assertIn("kmfx-edge-favicon.svg?v=favicon-optical-20260501", index)
+
+    def test_mobile_connections_screenshot_fixes_prevent_clipped_ctas(self) -> None:
+        css = read_text("styles-v2.css")
+        connections_block = media_block(css, "@media (max-width: 760px)", "Mobile connections screenshot fixes")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile connections screenshot fixes")
+
+        for selector in [
+            ".connections-shell__actions",
+            ".connections-empty-card__actions",
+            ".connections-guide-card__launcher-actions",
+            ".connections-shell__kpis",
+            ".connections-empty-card",
+            ".connections-guide-card",
+            ".connections-account-modal__key-value",
+        ]:
+            self.assertIn(selector, connections_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", connections_block)
+        self.assertIn("overflow: visible !important", connections_block)
+        self.assertIn("width: 100% !important", connections_block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", connections_block)
+        self.assertIn("overflow-wrap: anywhere", connections_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
 
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
