@@ -640,6 +640,125 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("billing_past_due", body["reason"])
         self.assertEqual("billing_attention", body["details"]["billing_access"])
 
+    def test_product_entitlement_helper_blocks_missing_export_entitlement(self) -> None:
+        response = connector_api.product_entitlement_denial(
+            context={
+                "is_admin": False,
+                "user_id": "user-123",
+                "app_metadata": {"plan": "core", "billing_status": "active"},
+                "user_metadata": {"plan": "desk"},
+            },
+            entitlement="exports",
+        )
+
+        self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("exports", body["details"]["entitlement"])
+        self.assertEqual("core", body["details"]["effective_plan"])
+
+    def test_product_entitlement_helper_allows_admin_without_plan(self) -> None:
+        response = connector_api.product_entitlement_denial(
+            context={
+                "is_admin": True,
+                "user_id": "admin-user",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+            entitlement="exports",
+        )
+
+        self.assertIsNone(response)
+
+    def test_ai_evidence_export_endpoint_requires_export_entitlement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                created = connector_api.account_service.ingest_account_snapshot(
+                    user_id="user-123",
+                    account_info={"login": "123456", "broker": "Broker", "server": "Broker-Live"},
+                    connection_mode="ea_direct",
+                    api_key="export-route-key",
+                    payload={
+                        "account": {
+                            "login": "123456",
+                            "broker": "Broker",
+                            "server": "Broker-Live",
+                            "balance": 1000,
+                            "equity": 1000,
+                        },
+                        "positions": [],
+                        "trades": [],
+                    },
+                )
+                request = self._request(headers={"authorization": "Bearer export-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "user-123",
+                        "email": "user@example.com",
+                        "app_metadata": {"plan": "core", "billing_status": "active"},
+                        "user_metadata": {"plan": "desk"},
+                    },
+                ):
+                    response = asyncio.run(
+                        connector_api.account_ai_evidence_report(created.account_id, request, format="markdown")
+                    )
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("exports", body["details"]["entitlement"])
+
+    def test_ai_evidence_export_endpoint_allows_pro_export_entitlement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                created = connector_api.account_service.ingest_account_snapshot(
+                    user_id="user-123",
+                    account_info={"login": "123456", "broker": "Broker", "server": "Broker-Live"},
+                    connection_mode="ea_direct",
+                    api_key="export-route-key",
+                    payload={
+                        "account": {
+                            "login": "123456",
+                            "broker": "Broker",
+                            "server": "Broker-Live",
+                            "balance": 1000,
+                            "equity": 1000,
+                        },
+                        "positions": [],
+                        "trades": [],
+                    },
+                )
+                request = self._request(headers={"authorization": "Bearer export-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "user-123",
+                        "email": "user@example.com",
+                        "app_metadata": {"plan": "pro", "billing_status": "active"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(
+                        connector_api.account_ai_evidence_report(created.account_id, request, format="markdown")
+                    )
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertIn("markdown", body)
+
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
         with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):

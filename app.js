@@ -3,14 +3,14 @@ import { initNavigation } from "./js/modules/navigation.js?v=build-20260505-0715
 import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260505-071500";
 import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260505-071500";
 import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260505-071500";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260505-071500";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260505-083000";
 import { renderTrades } from "./js/modules/trades.js?v=build-20260505-071500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260505-071500";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260505-071500";
 import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260505-071500";
 import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260505-071500";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260505-071500";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260505-071500";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260505-083000";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260505-071500";
 import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260505-071500";
 import { renderMarket } from "./js/modules/market.js?v=build-20260505-071500";
@@ -24,7 +24,7 @@ import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260505
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260505-071500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260505-071500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260505-071500";
-import { initBillingStatus } from "./js/modules/billing-status.js?v=build-20260505-071500";
+import { hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260505-083000";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260505-071500";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260505-071500";
 import {
@@ -49,7 +49,7 @@ import {
 import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260505-071500";
 import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl, resolveBillingStatusUrl } from "./js/modules/api-config.js?v=build-20260505-071500";
 
-const BUILD_TAG = "build-20260505-071500";
+const BUILD_TAG = "build-20260505-083000";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
@@ -168,10 +168,14 @@ function logBootState(label, state = store.getState(), extra = {}) {
   });
 }
 
+function canUseDebugPage(state) {
+  return isAdminUser(state) || hasBillingEntitlement(state, "rawBridgeDebug", { allowLimited: false });
+}
+
 function renderActivePage() {
   const state = store.getState();
   const activePanelPage = parentPageForPage(state.ui.activePage);
-  if (activePanelPage === "debug" && !isAdminUser(state)) {
+  if (activePanelPage === "debug" && !canUseDebugPage(state)) {
     store.setState((current) => ({
       ...current,
       ui: {

@@ -108,6 +108,18 @@ export function selectBillingStatus(state = {}) {
   return state.billing && typeof state.billing === "object" ? state.billing : DEFAULT_BILLING_STATUS;
 }
 
+export function hasBillingEntitlement(state = {}, entitlement = "", { allowLimited = true } = {}) {
+  if (!entitlement) return false;
+  const billingState = selectBillingStatus(state);
+  if (billingState.isAdmin === true || state.auth?.user?.is_admin === true) return true;
+  const value = billingState.entitlements?.[entitlement];
+  if (value === true) return true;
+  const normalized = String(value ?? "").toLowerCase();
+  if (normalized === "true" || normalized === "enabled" || normalized === "full") return true;
+  if (allowLimited && normalized === "limited") return true;
+  return false;
+}
+
 export function billingAccessTone(state = {}) {
   const billingState = selectBillingStatus(state);
   const access = String(billingState.billing?.access || "").toLowerCase();

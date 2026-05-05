@@ -3,6 +3,7 @@ import { showToast } from "./toast.js?v=build-20260504-080918";
 import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
 import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260504-080918";
+import { hasBillingEntitlement } from "./billing-status.js?v=build-20260505-083000";
 
 const emptyForm = {
   date: "2026-03-20",
@@ -952,6 +953,10 @@ export function initJournal(store) {
 
     if (journalAction === "copy-ai-report" || journalAction === "download-ai-report") {
       event.preventDefault();
+      if (!hasBillingEntitlement(store.getState(), "exports", { allowLimited: false })) {
+        showToast("Export no disponible en tu plan actual.", "warning");
+        return;
+      }
       try {
         const state = store.getState();
         const account = selectCurrentAccount(state);
@@ -1041,6 +1046,7 @@ export function renderJournal(root, state) {
   const showEntries = activePage === "journal" || activePage === "journal-entries";
   const showAiExport = activePage === "journal-ai-review";
   const showLeaks = activePage === "journal" || activePage === "journal-review";
+  const canExportEvidence = hasBillingEntitlement(state, "exports", { allowLimited: false });
   const journalSubpageClass = showCockpit ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
   const journalSubpageAttr = showCockpit ? "" : ` data-kmfx-subpage="${activePage}"`;
 
@@ -1175,11 +1181,11 @@ export function renderJournal(root, state) {
         <div class="tl-section-header">
           <div>
             <div class="tl-section-title">AI Evidence Export</div>
-            <div class="row-sub">Reporte Markdown para analizar fuera del dashboard, con riesgo, disciplina, journal y backtest si existe.</div>
+            <div class="row-sub">${canExportEvidence ? "Reporte Markdown para analizar fuera del dashboard, con riesgo, disciplina, journal y backtest si existe." : "Export bloqueado por plan. La vista sigue disponible para revisar qué incluirá al actualizar."}</div>
           </div>
           <div class="journal-ai-export-actions">
-            <button class="btn-secondary btn-inline" type="button" data-journal-action="copy-ai-report">Copiar report</button>
-            <button class="btn-secondary btn-inline" type="button" data-journal-action="download-ai-report">Descargar .md</button>
+            <button class="btn-secondary btn-inline" type="button" data-journal-action="copy-ai-report" ${canExportEvidence ? "" : "disabled"}>Copiar report</button>
+            <button class="btn-secondary btn-inline" type="button" data-journal-action="download-ai-report" ${canExportEvidence ? "" : "disabled"}>Descargar .md</button>
             <button class="btn-secondary btn-inline" type="button" data-journal-action="save-ai-response">Pegar respuesta</button>
           </div>
         </div>

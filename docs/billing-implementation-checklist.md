@@ -56,10 +56,10 @@ Residual advisor notes after billing setup:
 
 - [x] Enforce `launcherConnection` before issuing connection keys.
 - [x] Enforce `liveMt5Accounts` before adding MT5 accounts.
-- [ ] Gate Risk editor with `riskPolicyEditor`.
-- [ ] Gate local auto-block with `localAutoBlock`.
-- [ ] Gate raw bridge debug with `rawBridgeDebug`.
-- [ ] Gate exports with `exports`.
+- [x] Gate Risk editor with `riskPolicyEditor`.
+- [x] Gate local auto-block with `localAutoBlock`.
+- [x] Gate raw bridge debug with `rawBridgeDebug`.
+- [x] Gate exports with `exports`.
 
 ## Phase 5 - Go live
 

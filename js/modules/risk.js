@@ -4,6 +4,7 @@ import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260504-080
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260504-080918";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { hasBillingEntitlement } from "./billing-status.js?v=build-20260505-083000";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
@@ -775,6 +776,10 @@ export function renderRisk(root, state) {
 
   const prefsDraft = getRiskPreferencesDraft(root);
   const riskUi = ensureRiskUiState(root);
+  const canEditRiskPolicy = hasBillingEntitlement(state, "riskPolicyEditor");
+  const canUseLocalAutoBlock = hasBillingEntitlement(state, "localAutoBlock", { allowLimited: false });
+  const riskPolicyDisabledAttr = canEditRiskPolicy ? "" : " disabled";
+  const localAutoBlockDisabledAttr = canEditRiskPolicy && canUseLocalAutoBlock ? "" : " disabled";
   const sessionOptions = ["Asia", "London", "New York"];
   const customSymbols = parseTokenList(prefsDraft.customSymbols).map((id) => ({
     id,
@@ -813,7 +818,7 @@ export function renderRisk(root, state) {
       if (favDelta !== 0) return favDelta;
       return a.id.localeCompare(b.id);
     });
-  const canCreateCustomSymbol = Boolean(normalizedQuery) && filteredSymbols.length === 0 && !symbolUniverse.some((symbol) => symbol.id === normalizedQuery);
+  const canCreateCustomSymbol = canEditRiskPolicy && Boolean(normalizedQuery) && filteredSymbols.length === 0 && !symbolUniverse.some((symbol) => symbol.id === normalizedQuery);
   const selectedSessionsLabel = selectedSessions.length ? serializeTokenList(selectedSessions) : "Sin sesiones";
   const selectedSymbolsLabel = selectedSymbols.length
     ? selectedSymbols.length <= 4
@@ -848,7 +853,7 @@ export function renderRisk(root, state) {
   `;
   const selectedSymbolEditorTagsMarkup = selectedSymbolItems.length
     ? selectedSymbolItems.map((symbol) => `
-      <button class="risk-symbol-editor-tag risk-symbol-editor-tag--${symbolCategoryTone(symbol.cat)}" type="button" data-risk-symbol-remove="${symbol.id}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+      <button class="risk-symbol-editor-tag risk-symbol-editor-tag--${symbolCategoryTone(symbol.cat)}" type="button" data-risk-symbol-remove="${symbol.id}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
         <span>${symbol.id}</span>
         <em aria-hidden="true">×</em>
       </button>
@@ -858,12 +863,12 @@ export function renderRisk(root, state) {
     ? availableSymbolItems.length
       ? availableSymbolItems.map((symbol, index, list) => `
         <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-          <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+          <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
             <span class="risk-symbol-action-pill">Añadir</span>
             <span class="risk-symbol-name">${symbol.id}</span>
             ${categoryPillMarkup(symbol)}
           </button>
-          <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>★</button>
+          <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>★</button>
         </div>
       `).join("")
       : `<div class="risk-symbol-search-empty">No hay resultados para "${normalizedQuery}".</div>`
@@ -1343,6 +1348,13 @@ export function renderRisk(root, state) {
           <strong>${mt5SyncState.detail}</strong>
         </div>
       </div>
+      ${!canEditRiskPolicy ? `
+        <div class="risk-data-state risk-data-state--warning">
+          <div class="risk-data-state__eyebrow">Plan actual</div>
+          <strong>Política en modo lectura</strong>
+          <p>La edición de reglas de riesgo requiere el entitlement riskPolicyEditor. Las métricas y la política recibida desde MT5 siguen visibles.</p>
+        </div>
+      ` : ""}
 
       <div class="risk-policy-numeric-grid">
         <label class="risk-policy-field">
@@ -1351,7 +1363,7 @@ export function renderRisk(root, state) {
             ${defaultRiskMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${defaultRiskMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
-              <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk">
+              <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1361,7 +1373,7 @@ export function renderRisk(root, state) {
             ${dailyDdMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${dailyDdMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
-            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit">
+            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1371,7 +1383,7 @@ export function renderRisk(root, state) {
             ${maxDdMt5State.tone !== "warn" ? `<em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${maxDdMt5State.label}</em>` : ""}
           </div>
           <div class="risk-policy-input-shell">
-            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit">
+            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1385,14 +1397,14 @@ export function renderRisk(root, state) {
               <div class="risk-config-meta">Lote máximo autorizado por operación.</div>
             </div>
             <label class="risk-config-toggle" aria-label="Control de volumen">
-              <input type="checkbox" data-risk-pref-bool="maxVolumeEnabled" ${prefsDraft.maxVolumeEnabled ? "checked" : ""}>
+              <input type="checkbox" data-risk-pref-bool="maxVolumeEnabled" ${prefsDraft.maxVolumeEnabled ? "checked" : ""}${riskPolicyDisabledAttr}>
               <span class="risk-config-toggle-ui"></span>
             </label>
           </div>
           <label class="risk-policy-field risk-policy-field--compact">
             <span>Lote máximo</span>
             <div class="risk-policy-input-shell">
-              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policy?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled ? "" : "disabled"}>
+              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policy?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled && canEditRiskPolicy ? "" : "disabled"}>
               <em>lot</em>
             </div>
           </label>
@@ -1405,13 +1417,13 @@ export function renderRisk(root, state) {
               <div class="risk-config-meta">Sesiones que puede usar la cuenta para ejecutar.</div>
             </div>
             <label class="risk-config-toggle" aria-label="Horarios permitidos">
-              <input type="checkbox" data-risk-pref-bool="allowedSessionsEnabled" ${prefsDraft.allowedSessionsEnabled ? "checked" : ""}>
+              <input type="checkbox" data-risk-pref-bool="allowedSessionsEnabled" ${prefsDraft.allowedSessionsEnabled ? "checked" : ""}${riskPolicyDisabledAttr}>
               <span class="risk-config-toggle-ui"></span>
             </label>
           </div>
           ${sessionSummaryMarkup}
           <div class="risk-select ${riskUi.openMenu === "sessions" ? "open" : ""}">
-            <button class="risk-select-trigger risk-select-trigger--policy" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+            <button class="risk-select-trigger risk-select-trigger--policy" type="button" data-risk-menu-trigger="sessions" aria-expanded="${riskUi.openMenu === "sessions" ? "true" : "false"}" ${prefsDraft.allowedSessionsEnabled && canEditRiskPolicy ? "" : "disabled"}>
               <span>${selectedSessionsLabel}</span>
             </button>
             <div class="risk-select-menu risk-select-menu--policy risk-select-menu--sessions-policy">
@@ -1420,13 +1432,13 @@ export function renderRisk(root, state) {
                   <strong>Ventanas operativas</strong>
                   <span>Activa solo las sesiones autorizadas por la política.</span>
                 </div>
-                <button class="risk-inline-editor-link" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+                <button class="risk-inline-editor-link" type="button" data-risk-sessions-all ${prefsDraft.allowedSessionsEnabled && canEditRiskPolicy ? "" : "disabled"}>
                   ${allSessionsSelected ? "Quitar todas" : "Seleccionar todas"}
                 </button>
               </div>
               <div class="risk-session-group risk-session-group--inline">
                 ${sessionOptions.map((session, index) => `
-                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled ? "" : "disabled"}>
+                  <button class="risk-session-row ${index === sessionOptions.length - 1 ? "last" : ""} ${selectedSessions.includes(session) ? "checked" : ""}" type="button" data-risk-session-option="${session}" ${prefsDraft.allowedSessionsEnabled && canEditRiskPolicy ? "" : "disabled"}>
                     <span class="risk-session-copy">
                       <span class="risk-session-name">${session}</span>
                       <span class="risk-session-utc">${sessionUtcLabel(session)}</span>
@@ -1450,13 +1462,13 @@ export function renderRisk(root, state) {
               <div class="risk-config-meta">Corta la operativa cuando la política detecta incumplimiento crítico.</div>
             </div>
             <label class="risk-config-toggle" aria-label="Bloqueo automático">
-              <input type="checkbox" data-risk-pref-bool="autoBlockOptIn" ${prefsDraft.autoBlockOptIn ? "checked" : ""}>
+              <input type="checkbox" data-risk-pref-bool="autoBlockOptIn" ${prefsDraft.autoBlockOptIn ? "checked" : ""}${localAutoBlockDisabledAttr}>
               <span class="risk-config-toggle-ui"></span>
             </label>
           </div>
           <div class="risk-policy-confirmation">
-            <strong>${prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada"}</strong>
-            <span>${prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual."}</span>
+            <strong>${canUseLocalAutoBlock ? (prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada") : "No incluido en el plan"}</strong>
+            <span>${canUseLocalAutoBlock ? (prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual.") : "El autobloqueo local requiere el entitlement localAutoBlock."}</span>
           </div>
         </article>
 
@@ -1467,13 +1479,13 @@ export function renderRisk(root, state) {
               <div class="risk-config-meta">Lista operativa que define los símbolos autorizados para MT5.</div>
             </div>
             <label class="risk-config-toggle" aria-label="Símbolos permitidos">
-              <input type="checkbox" data-risk-pref-bool="allowedSymbolsEnabled" ${prefsDraft.allowedSymbolsEnabled ? "checked" : ""}>
+              <input type="checkbox" data-risk-pref-bool="allowedSymbolsEnabled" ${prefsDraft.allowedSymbolsEnabled ? "checked" : ""}${riskPolicyDisabledAttr}>
               <span class="risk-config-toggle-ui"></span>
             </label>
           </div>
           ${summaryCardMarkup}
           <div class="risk-select ${riskUi.openMenu === "symbols" ? "open" : ""}">
-            <button class="risk-select-trigger risk-select-trigger--symbols risk-select-trigger--policy" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+            <button class="risk-select-trigger risk-select-trigger--symbols risk-select-trigger--policy" type="button" data-risk-menu-trigger="symbols" aria-expanded="${riskUi.openMenu === "symbols" ? "true" : "false"}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
               <span class="risk-select-trigger__tags">
                 ${selectedSymbolTagsMarkup}
                 ${selectedSymbolOverflowMarkup}
@@ -1487,10 +1499,10 @@ export function renderRisk(root, state) {
                 </div>
               </div>
               <label class="risk-select-search">
-                <input type="search" placeholder="Buscar símbolo o mercado" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                <input type="search" placeholder="Buscar símbolo o mercado" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
               </label>
               ${canCreateCustomSymbol ? `
-                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled ? "" : "disabled"}>
+                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
                   + Añadir '${normalizedQuery}' como símbolo personalizado
                 </button>
               ` : ""}
@@ -1520,8 +1532,8 @@ export function renderRisk(root, state) {
           <span>${riskConfigStatusLabel(root.__riskPrefsStatus)}</span>
         </div>
         <div class="risk-limit-actions">
-          <button class="btn btn-secondary risk-limit-btn risk-limit-btn--secondary" type="button" data-risk-reset>Reset</button>
-          <button class="btn btn-primary risk-limit-btn risk-limit-btn--primary" type="button" data-risk-save>${root.__riskSaving ? "Guardando..." : "Guardar política"}</button>
+          <button class="btn btn-secondary risk-limit-btn risk-limit-btn--secondary" type="button" data-risk-reset${riskPolicyDisabledAttr}>Reset</button>
+          <button class="btn btn-primary risk-limit-btn risk-limit-btn--primary" type="button" data-risk-save${riskPolicyDisabledAttr}>${root.__riskSaving ? "Guardando..." : "Guardar política"}</button>
         </div>
       </div>
     </article>

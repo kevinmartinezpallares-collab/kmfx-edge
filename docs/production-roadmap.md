@@ -253,10 +253,10 @@ Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 - [x] Añadir respuesta clara `billing_past_due`.
 - [x] Conectar frontend con `/api/billing/status` para mostrar plan, acceso y avisos de billing.
 - [ ] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
-- [ ] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.
-- [ ] Proteger Risk editor con `riskPolicyEditor`.
-- [ ] Proteger auto-block local con `localAutoBlock`.
-- [ ] Proteger exports con `exports`.
+- [x] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.
+- [x] Proteger Risk editor con `riskPolicyEditor`.
+- [x] Proteger auto-block local con `localAutoBlock`.
+- [x] Proteger exports con `exports`.
 
 Criterio de salida:
 

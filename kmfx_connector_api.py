@@ -1254,6 +1254,63 @@ def connection_key_limit_from_entitlements(context: dict[str, Any], billing_payl
     return 0
 
 
+def entitlement_value_allows(value: Any, *, allow_limited: bool = False) -> bool:
+    if value is True:
+        return True
+    normalized = safe_str(value).lower()
+    if normalized in {"true", "enabled", "full"}:
+        return True
+    if allow_limited and normalized == "limited":
+        return True
+    return False
+
+
+def product_entitlement_details(*, billing_payload: dict[str, Any], entitlement: str) -> dict[str, Any]:
+    billing = ensure_dict(billing_payload.get("billing"))
+    return {
+        "plan": safe_str(billing.get("plan"), "free"),
+        "effective_plan": safe_str(billing.get("effectivePlan"), "free"),
+        "billing_status": safe_str(billing.get("status")),
+        "billing_access": safe_str(billing.get("access")),
+        "entitlement": entitlement,
+    }
+
+
+def product_entitlement_denial(
+    *,
+    context: dict[str, Any],
+    entitlement: str,
+    allow_limited: bool = False,
+) -> JSONResponse | None:
+    context = {**ensure_dict(context)}
+    if context.get("is_admin"):
+        return None
+    billing_payload = billing_status_payload_for_context(context)
+    billing = ensure_dict(billing_payload.get("billing"))
+    entitlements = ensure_dict(billing_payload.get("entitlements"))
+    details = product_entitlement_details(billing_payload=billing_payload, entitlement=entitlement)
+    billing_access = safe_str(billing.get("access"))
+    if billing_access == "restricted":
+        return connection_guard_denial_response(
+            reason="billing_required",
+            status_code=402,
+            details=details,
+        )
+    if billing_access == "billing_attention":
+        return connection_guard_denial_response(
+            reason="billing_past_due",
+            status_code=402,
+            details=details,
+        )
+    if not entitlement_value_allows(entitlements.get(entitlement), allow_limited=allow_limited):
+        return connection_guard_denial_response(
+            reason="entitlement_required",
+            status_code=403,
+            details=details,
+        )
+    return None
+
+
 def connection_key_creation_denial(
     *,
     user_id: str,
@@ -4094,7 +4151,6 @@ async def import_mt5_strategy_tester_reports(request: Request) -> JSONResponse:
             },
             status_code=401,
         )
-
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
     account_entry = find_scoped_account_entry(snapshot, account_id)
@@ -4138,6 +4194,9 @@ async def account_ai_evidence_report(
             },
             status_code=401,
         )
+    entitlement_denial = product_entitlement_denial(context=auth_context, entitlement="exports")
+    if entitlement_denial is not None:
+        return entitlement_denial
 
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
