@@ -2,8 +2,9 @@ import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918
 import { buildApiUrl } from "./api-config.js?v=build-20260504-080918";
 import { showToast } from "./toast.js?v=build-20260504-080918";
 import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260504-080918";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260504-080918";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 
 function emptyForm() {
   return {
@@ -489,6 +490,31 @@ export function renderStrategies(root, state) {
   const isStrategiesSubpage = activePage === "strategies-backtest" || activePage === "strategies-portfolio";
   const strategiesSubpageClass = isStrategiesSubpage ? ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}` : "";
   const strategiesSubpageAttr = isStrategiesSubpage ? ` data-kmfx-subpage="${activePage}"` : "";
+  const strategiesAccess = billingEntitlementState(state, "strategies", { allowLimited: false, allowPending: false });
+
+  if (!strategiesAccess.allowed) {
+    root.innerHTML = `
+      <section class="strategies-screen strategies-page-stack${strategiesSubpageClass}"${strategiesSubpageAttr}>
+      ${pageHeaderMarkup({
+        eyebrow: "Estrategias",
+        title: strategiesTitle,
+        description: strategiesDescription,
+        className: "calendar-screen__header strategies-screen__header",
+        contentClassName: "calendar-screen__copy",
+        eyebrowClassName: "calendar-screen__eyebrow",
+        titleClassName: "calendar-screen__title",
+        descriptionClassName: "calendar-screen__subtitle",
+      })}
+      ${emptyStateMarkup({
+        title: strategiesAccess.title,
+        description: strategiesAccess.description,
+        className: "strategies-empty-state",
+        actionHtml: `<a class="btn-secondary btn-inline" href="/ajustes">Revisar plan</a>`,
+      })}
+      </section>
+    `;
+    return;
+  }
 
   const setupStatsMarkup = `
     <article class="tl-section-card strategies-setup-card">

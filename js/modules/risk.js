@@ -4,8 +4,18 @@ import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260504-080
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260504-080918";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { hasBillingEntitlement } from "./billing-status.js?v=build-20260505-083000";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const ALL_SYMBOLS = [
   { id: "EURUSD", cat: "Forex", color: "#0A84FF" },
   { id: "GBPUSD", cat: "Forex", color: "#0A84FF" },
@@ -776,10 +786,17 @@ export function renderRisk(root, state) {
 
   const prefsDraft = getRiskPreferencesDraft(root);
   const riskUi = ensureRiskUiState(root);
-  const canEditRiskPolicy = hasBillingEntitlement(state, "riskPolicyEditor");
-  const canUseLocalAutoBlock = hasBillingEntitlement(state, "localAutoBlock", { allowLimited: false });
+  const riskPolicyAccess = billingEntitlementState(state, "riskPolicyEditor", { allowLimited: false, allowPending: false });
+  const localAutoBlockAccess = billingEntitlementState(state, "localAutoBlock", { allowLimited: false, allowPending: false });
+  const canEditRiskPolicy = riskPolicyAccess.allowed;
+  const canUseLocalAutoBlock = canEditRiskPolicy && localAutoBlockAccess.allowed;
   const riskPolicyDisabledAttr = canEditRiskPolicy ? "" : " disabled";
   const localAutoBlockDisabledAttr = canEditRiskPolicy && canUseLocalAutoBlock ? "" : " disabled";
+  const localAutoBlockCopy = canUseLocalAutoBlock
+    ? (prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual.")
+    : !canEditRiskPolicy
+      ? "La política está en modo lectura. Activa el editor de riesgo para cambiar este control."
+      : (localAutoBlockAccess.description || "El autobloqueo local no está disponible en tu plan actual.");
   const sessionOptions = ["Asia", "London", "New York"];
   const customSymbols = parseTokenList(prefsDraft.customSymbols).map((id) => ({
     id,
@@ -1350,9 +1367,9 @@ export function renderRisk(root, state) {
       </div>
       ${!canEditRiskPolicy ? `
         <div class="risk-data-state risk-data-state--warning">
-          <div class="risk-data-state__eyebrow">Plan actual</div>
-          <strong>Política en modo lectura</strong>
-          <p>La edición de reglas de riesgo requiere el entitlement riskPolicyEditor. Las métricas y la política recibida desde MT5 siguen visibles.</p>
+          <div class="risk-data-state__eyebrow">Modo lectura</div>
+          <strong>${escapeHtml(riskPolicyAccess.title || "Política en modo lectura")}</strong>
+          <p>${escapeHtml(riskPolicyAccess.description || "Puedes consultar métricas y límites recibidos desde MT5, pero la edición de reglas no está activa en tu plan actual.")}</p>
         </div>
       ` : ""}
 
@@ -1468,7 +1485,7 @@ export function renderRisk(root, state) {
           </div>
           <div class="risk-policy-confirmation">
             <strong>${canUseLocalAutoBlock ? (prefsDraft.autoBlockOptIn ? "Protección activa" : "Protección desactivada") : "No incluido en el plan"}</strong>
-            <span>${canUseLocalAutoBlock ? (prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual.") : "El autobloqueo local requiere el entitlement localAutoBlock."}</span>
+            <span>${escapeHtml(localAutoBlockCopy)}</span>
           </div>
         </article>
 

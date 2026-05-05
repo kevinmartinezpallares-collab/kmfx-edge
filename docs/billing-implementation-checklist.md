@@ -50,7 +50,7 @@ Residual advisor notes after billing setup:
 - [x] Implement `/api/billing/status` initial contract.
 - [x] Add entitlement helper for the backend status contract.
 - [x] Add initial UI status read by entitlement in Cuentas.
-- [ ] Add hard UI guards by entitlement, not by plan name.
+- [x] Add hard UI guards by entitlement, not by plan name.
 
 ## Phase 4 - KMFX product guards
 

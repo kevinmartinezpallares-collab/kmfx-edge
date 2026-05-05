@@ -90,8 +90,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Webhooks Stripe no están implementados en producción.
 - [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
 - [ ] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` no están implementados.
-- [x] El frontend consume `/api/billing/status` como soft entitlement en Cuentas.
-- [ ] Los guards de producto no dependen aún de entitlements finales.
+- [x] El frontend consume `/api/billing/status` para Cuentas y superficies premium.
+- [x] Los guards de producto principales dependen de entitlements y no de nombre de plan.
 
 ### CI, QA y release
 
@@ -137,9 +137,9 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 - [x] Smoke render inicial certifica que las vistas principales no caen a mock cuando hay cuenta live activa.
 - [x] Cuentas queda cubierta para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
 - [x] Risk/Funding quedan cubiertos para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
-- [ ] Falta ampliar estados degradados a billing/entitlements cuando exista el guard real de plan.
-- [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con workspace del usuario.
-- [ ] Falta quitar mensajes internos visibles como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
+- [x] Estados bloqueados por plan cubiertos en Cuentas, Risk, Funding, Journal AI, Strategies y Exports.
+- [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con entrada manual del usuario.
+- [ ] Falta quitar mensajes internos visibles restantes como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
 
 ## Prioridad Inmediata
 
@@ -169,7 +169,7 @@ Bloque previo obligatorio:
 - [x] Render smoke inicial de metricas live por seccion con fixture.
 - [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.
 - [x] Render smoke de estados degradados en Risk/Funding: sin policy/snapshot, stale y funding no vinculado.
-- [ ] Render smoke de billing bloqueado cuando se implemente status/entitlements.
+- [x] Render smoke de billing bloqueado cuando se implemente status/entitlements.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 
@@ -252,7 +252,7 @@ Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 - [x] Añadir respuesta clara `entitlement_required`.
 - [x] Añadir respuesta clara `billing_past_due`.
 - [x] Conectar frontend con `/api/billing/status` para mostrar plan, acceso y avisos de billing.
-- [ ] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
+- [x] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
 - [x] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.
 - [x] Proteger Risk editor con `riskPolicyEditor`.
 - [x] Proteger auto-block local con `localAutoBlock`.

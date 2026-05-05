@@ -1,9 +1,9 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
 import { showToast } from "./toast.js?v=build-20260504-080918";
 import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
-import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { emptyStateMarkup, kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260504-080918";
-import { hasBillingEntitlement } from "./billing-status.js?v=build-20260505-083000";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 
 const emptyForm = {
   date: "2026-03-20",
@@ -953,8 +953,9 @@ export function initJournal(store) {
 
     if (journalAction === "copy-ai-report" || journalAction === "download-ai-report") {
       event.preventDefault();
-      if (!hasBillingEntitlement(store.getState(), "exports", { allowLimited: false })) {
-        showToast("Export no disponible en tu plan actual.", "warning");
+      const exportAccess = billingEntitlementState(store.getState(), "exports", { allowLimited: false, allowPending: false });
+      if (!exportAccess.allowed) {
+        showToast(exportAccess.title || "Export no disponible en tu plan actual.", "warning");
         return;
       }
       try {
@@ -1046,7 +1047,8 @@ export function renderJournal(root, state) {
   const showEntries = activePage === "journal" || activePage === "journal-entries";
   const showAiExport = activePage === "journal-ai-review";
   const showLeaks = activePage === "journal" || activePage === "journal-review";
-  const canExportEvidence = hasBillingEntitlement(state, "exports", { allowLimited: false });
+  const evidenceExportAccess = billingEntitlementState(state, "exports", { allowLimited: false, allowPending: false });
+  const canExportEvidence = evidenceExportAccess.allowed;
   const journalSubpageClass = showCockpit ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
   const journalSubpageAttr = showCockpit ? "" : ` data-kmfx-subpage="${activePage}"`;
 
@@ -1181,7 +1183,7 @@ export function renderJournal(root, state) {
         <div class="tl-section-header">
           <div>
             <div class="tl-section-title">AI Evidence Export</div>
-            <div class="row-sub">${canExportEvidence ? "Reporte Markdown para analizar fuera del dashboard, con riesgo, disciplina, journal y backtest si existe." : "Export bloqueado por plan. La vista sigue disponible para revisar qué incluirá al actualizar."}</div>
+            <div class="row-sub">${canExportEvidence ? "Reporte Markdown para analizar fuera del dashboard, con riesgo, disciplina, journal y backtest si existe." : "La vista sigue disponible para revisar qué incluirá el reporte al actualizar."}</div>
           </div>
           <div class="journal-ai-export-actions">
             <button class="btn-secondary btn-inline" type="button" data-journal-action="copy-ai-report" ${canExportEvidence ? "" : "disabled"}>Copiar report</button>
@@ -1189,6 +1191,12 @@ export function renderJournal(root, state) {
             <button class="btn-secondary btn-inline" type="button" data-journal-action="save-ai-response">Pegar respuesta</button>
           </div>
         </div>
+        ${!canExportEvidence ? emptyStateMarkup({
+          title: evidenceExportAccess.title,
+          description: evidenceExportAccess.description,
+          className: "journal-ai-export-state",
+          actionHtml: `<a class="btn-secondary btn-inline" href="/ajustes">Revisar plan</a>`,
+        }) : ""}
         <div class="journal-ai-export-grid">
           <div class="journal-ai-export-item">
             <span>Formato</span>

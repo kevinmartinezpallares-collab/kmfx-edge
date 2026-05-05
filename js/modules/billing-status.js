@@ -120,6 +120,119 @@ export function hasBillingEntitlement(state = {}, entitlement = "", { allowLimit
   return false;
 }
 
+const ENTITLEMENT_LABELS = {
+  launcherConnection: "Conexión MT5",
+  liveMt5Accounts: "Cuentas MT5 reales",
+  riskPolicyEditor: "Editor de política de riesgo",
+  localAutoBlock: "Autobloqueo local",
+  strategies: "Strategy Lab",
+  fundedChallenges: "Funding",
+  exports: "Export de evidencia",
+  rawBridgeDebug: "Diagnóstico avanzado",
+};
+
+function isBillingPending(billingState = {}) {
+  const source = String(billingState.source || "").toLowerCase();
+  return Boolean(billingState.loading || (!billingState.loadedAt && (!source || source === "initial")));
+}
+
+export function billingEntitlementState(state = {}, entitlement = "", { allowLimited = true, allowPending = true } = {}) {
+  const billingState = selectBillingStatus(state);
+  const label = ENTITLEMENT_LABELS[entitlement] || "Función";
+  const planName = billingState.billing?.displayName || "tu plan";
+  const access = String(billingState.billing?.access || "").toLowerCase();
+  const allowed = hasBillingEntitlement(state, entitlement, { allowLimited });
+
+  if (allowed) {
+    return {
+      allowed: true,
+      pending: false,
+      reason: "allowed",
+      tone: "ok",
+      label,
+      planName,
+      title: `${label} disponible`,
+      description: "",
+    };
+  }
+
+  if (allowPending && isBillingPending(billingState)) {
+    return {
+      allowed: true,
+      pending: true,
+      reason: "checking",
+      tone: "neutral",
+      label,
+      planName,
+      title: "Comprobando permisos",
+      description: "Mantengo la vista disponible mientras KMFX confirma el plan de la sesión.",
+    };
+  }
+
+  if (billingState.error) {
+    return {
+      allowed: false,
+      pending: false,
+      reason: "billing_unavailable",
+      tone: "warning",
+      label,
+      planName,
+      title: "No pude comprobar el plan",
+      description: "Mantengo tus datos visibles. Reintenta más tarde o revisa tu sesión antes de activar esta función.",
+    };
+  }
+
+  if (billingState.authRequired || access === "anonymous" || state.auth?.status !== "authenticated") {
+    return {
+      allowed: false,
+      pending: false,
+      reason: "auth_required",
+      tone: "warning",
+      label,
+      planName,
+      title: `Inicia sesión para usar ${label}`,
+      description: "Esta función necesita una sesión KMFX activa para asociar los datos a tu perfil.",
+    };
+  }
+
+  if (access === "restricted") {
+    return {
+      allowed: false,
+      pending: false,
+      reason: "billing_required",
+      tone: "blocked",
+      label,
+      planName,
+      title: "Plan pendiente de pago",
+      description: "Tus datos siguen visibles, pero las acciones premium quedan pausadas hasta regularizar el plan.",
+    };
+  }
+
+  if (access === "billing_attention") {
+    return {
+      allowed: false,
+      pending: false,
+      reason: "billing_past_due",
+      tone: "warning",
+      label,
+      planName,
+      title: "Pago pendiente de revisar",
+      description: "La lectura se mantiene disponible. Las acciones nuevas se pausan hasta confirmar el estado del plan.",
+    };
+  }
+
+  return {
+    allowed: false,
+    pending: false,
+    reason: "entitlement_required",
+    tone: "neutral",
+    label,
+    planName,
+    title: `${label} no está disponible en ${planName}`,
+    description: "La vista queda visible para entender el flujo. Actualiza el plan cuando quieras activarlo en producción.",
+  };
+}
+
 export function billingAccessTone(state = {}) {
   const billingState = selectBillingStatus(state);
   const access = String(billingState.billing?.access || "").toLowerCase();

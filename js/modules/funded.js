@@ -1,8 +1,9 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
 import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { isAdminUserId } from "./auth-session.js?v=build-20260504-080918";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 import {
   FUNDING_RULE_PHASES,
   availableFundingFirms,
@@ -1591,6 +1592,28 @@ export function initFunded(store) {
 }
 
 export function renderFunded(root, state) {
+  const fundingAccess = billingEntitlementState(state, "fundedChallenges", { allowLimited: false, allowPending: false });
+  if (!fundingAccess.allowed) {
+    root.innerHTML = `
+      <div class="funded-page-stack">
+        ${pageHeaderMarkup({
+          title: "Funding",
+          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y payouts.",
+          className: "tl-page-header",
+          titleClassName: "tl-page-title",
+          descriptionClassName: "tl-page-sub",
+        })}
+        ${emptyStateMarkup({
+          title: fundingAccess.title,
+          description: fundingAccess.description,
+          className: "funding-empty-state",
+          actionHtml: `<a class="btn-secondary" href="/ajustes">Revisar plan</a>`,
+        })}
+      </div>
+    `;
+    return;
+  }
+
   const fundedAccounts = enrichFundedAccounts(state);
   if (!fundedAccounts.length) {
     root.innerHTML = `

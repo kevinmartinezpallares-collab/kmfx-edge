@@ -327,6 +327,35 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                   is_admin: false,
                 },
               },
+              billing: {
+                loading: false,
+                loadedAt: "2026-05-05T09:40:00Z",
+                error: "",
+                authRequired: false,
+                billing: {
+                  plan: "pro",
+                  effectivePlan: "pro",
+                  displayName: "Edge Pro",
+                  status: "active",
+                  access: "active",
+                },
+                entitlements: {
+                  liveMt5Accounts: 3,
+                  launcherConnection: true,
+                  riskCore: true,
+                  riskPolicyEditor: true,
+                  localAutoBlock: true,
+                  fundedChallenges: true,
+                  strategies: true,
+                  exports: true,
+                },
+                limits: {
+                  liveMt5Accounts: 3,
+                  connectionKeyLimit: 3,
+                },
+                isAdmin: false,
+                source: "app_metadata",
+              },
               ui: { activePage: "risk" },
               workspace: {
                 fundedAccounts: [],
@@ -639,6 +668,192 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.fail(f"node degraded connections smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
         return json.loads(proc.stdout.splitlines()[-1])
 
+    def run_entitlement_blocked_smoke(self) -> dict:
+        script = r"""
+          import fs from "node:fs";
+          import { adaptMt5Account } from "./js/data/adapters/mt5-account-adapter.js";
+          import { renderConnections } from "./js/modules/connections.js";
+          import { renderRisk } from "./js/modules/risk.js";
+          import { renderFunded } from "./js/modules/funded.js";
+          import { renderStrategies } from "./js/modules/strategies.js";
+          import { renderJournal } from "./js/modules/journal.js";
+
+          const storage = new Map();
+          globalThis.window = {
+            innerWidth: 1440,
+            localStorage: {
+              getItem: (key) => storage.get(key) ?? null,
+              setItem: (key, value) => storage.set(key, String(value)),
+              removeItem: (key) => storage.delete(key),
+            },
+            addEventListener() {},
+            removeEventListener() {},
+            matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+          };
+          globalThis.localStorage = window.localStorage;
+          globalThis.getComputedStyle = () => ({ getPropertyValue() { return ""; } });
+          globalThis.document = {
+            documentElement: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            body: { dataset: { theme: "dark" }, classList: { add() {}, remove() {}, toggle() {}, contains: () => false } },
+            createElement() {
+              return {
+                dataset: {},
+                style: {},
+                classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+                addEventListener() {},
+                removeEventListener() {},
+                querySelector() { return null; },
+                querySelectorAll() { return []; },
+              };
+            },
+            addEventListener() {},
+            removeEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+          };
+
+          class SmokeRoot {
+            constructor() {
+              this.dataset = {};
+              this.style = {};
+              this.innerHTML = "";
+              this.isConnected = true;
+              this.classList = { add() {}, remove() {}, toggle() {}, contains: () => false };
+            }
+            querySelector() { return null; }
+            querySelectorAll() { return []; }
+            addEventListener() {}
+            removeEventListener() {}
+          }
+
+          const snapshot = JSON.parse(fs.readFileSync("./tests/fixtures/live_accounts_snapshot_two_mt5.json", "utf8"));
+          const account = adaptMt5Account(snapshot.accounts[0]);
+          const freeBilling = {
+            loading: false,
+            loadedAt: "2026-05-05T09:55:00Z",
+            error: "",
+            authRequired: false,
+            billing: {
+              plan: "free",
+              effectivePlan: "free",
+              displayName: "Free / Demo",
+              status: "active",
+              access: "free",
+            },
+            entitlements: {
+              liveMt5Accounts: 0,
+              launcherConnection: false,
+              riskCore: "partial",
+              riskPolicyEditor: false,
+              localAutoBlock: false,
+              journal: "limited",
+              strategies: false,
+              fundedChallenges: false,
+              exports: false,
+            },
+            limits: {
+              liveMt5Accounts: 0,
+              connectionKeyLimit: 0,
+            },
+            isAdmin: false,
+            source: "app_metadata",
+          };
+          function baseState(activePage) {
+            return {
+              accounts: { [account.id]: account },
+              accountDirectory: { [account.id]: account },
+              managedAccounts: [],
+              liveAccountIds: [account.id],
+              activeLiveAccountId: account.id,
+              activeAccountId: account.id,
+              currentAccount: account.id,
+              mode: "live",
+              auth: {
+                status: "authenticated",
+                user: {
+                  id: "user-live-contract",
+                  email: "contract@kmfxedge.test",
+                  role: "user",
+                  is_admin: false,
+                },
+              },
+              billing: freeBilling,
+              ui: { activePage },
+              workspace: {
+                journal: { entries: [], form: {}, editingId: null },
+                strategies: { items: [], backtests: [] },
+                fundedAccounts: [],
+                fundingJourneys: [],
+                fundingPhases: [],
+                fundingTransactions: [],
+                market: { watchlist: [], events: [], rates: {} },
+                portfolio: { allocations: [], mandates: [] },
+              },
+            };
+          }
+
+          const roots = {
+            connections: new SmokeRoot(),
+            risk: new SmokeRoot(),
+            funded: new SmokeRoot(),
+            strategies: new SmokeRoot(),
+            journalAi: new SmokeRoot(),
+          };
+          renderConnections(roots.connections, {
+            ...baseState("accounts"),
+            accounts: {},
+            accountDirectory: {},
+            liveAccountIds: [],
+            activeLiveAccountId: "",
+            activeAccountId: "",
+            currentAccount: "",
+          });
+          renderRisk(roots.risk, baseState("risk"));
+          renderFunded(roots.funded, baseState("funded"));
+          renderStrategies(roots.strategies, baseState("strategies"));
+          renderJournal(roots.journalAi, baseState("journal-ai-review"));
+
+          const required = {
+            connections: ["Conexión MT5 no está disponible en Free / Demo", "Conectar MT5"],
+            risk: ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
+            funded: ["Funding no está disponible en Free / Demo"],
+            strategies: ["Strategy Lab no está disponible en Free / Demo"],
+            journalAi: ["Export de evidencia no está disponible en Free / Demo"],
+          };
+          const forbidden = [
+            "entitlement",
+            "riskPolicyEditor",
+            "localAutoBlock",
+            "workspace local",
+            "snapshot MT5 del backend",
+          ];
+          const result = Object.fromEntries(Object.entries(roots).map(([key, root]) => {
+            const html = String(root.innerHTML || "");
+            return [key, {
+              htmlLength: html.length,
+              requiredHits: required[key].filter((needle) => html.includes(needle)),
+              forbiddenHits: forbidden.filter((needle) => html.toLowerCase().includes(needle.toLowerCase())),
+            }];
+          }));
+          console.log(JSON.stringify(result));
+        """
+        proc = subprocess.run(
+            [
+                "node",
+                "--experimental-loader",
+                "./tests/node-esm-loader.mjs",
+                "--input-type=module",
+                "-e",
+                textwrap.dedent(script),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            self.fail(f"node entitlement blocked smoke failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        return json.loads(proc.stdout.splitlines()[-1])
+
     def test_live_fixture_renders_primary_dashboard_pages_without_mock_fallback(self) -> None:
         results = self.run_node_smoke()
         by_page = {row["page"]: row for row in results}
@@ -693,6 +908,20 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.assertGreater(row["htmlLength"], 500, key)
             self.assertEqual([], row["forbiddenHits"], key)
             self.assertGreaterEqual(len(row["requiredHits"]), 3, key)
+
+    def test_product_entitlement_blocks_render_as_production_states(self) -> None:
+        result = self.run_entitlement_blocked_smoke()
+
+        for key, row in result.items():
+            self.assertGreater(row["htmlLength"], 500, key)
+            self.assertEqual([], row["forbiddenHits"], key)
+            self.assertEqual(set(row["requiredHits"]), set({
+                "connections": ["Conexión MT5 no está disponible en Free / Demo", "Conectar MT5"],
+                "risk": ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
+                "funded": ["Funding no está disponible en Free / Demo"],
+                "strategies": ["Strategy Lab no está disponible en Free / Demo"],
+                "journalAi": ["Export de evidencia no está disponible en Free / Demo"],
+            }[key]), key)
 
 
 if __name__ == "__main__":

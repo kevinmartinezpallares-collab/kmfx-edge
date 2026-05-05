@@ -3,8 +3,8 @@ import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveA
 import { showToast } from "./toast.js?v=build-20260504-080918";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260504-080918";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260504-080918";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { billingAccessLabel, billingAccessTone, isBillingAttention, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260505-071500";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260505-100000";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -249,7 +249,8 @@ function resolveRegistryAccounts(state) {
   return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
 }
 
-function renderConnectionsHeader({ adminVisible = false, adminState = null } = {}) {
+function renderConnectionsHeader({ adminVisible = false, adminState = null, connectionAccess = { allowed: true } } = {}) {
+  const connectDisabled = connectionAccess.allowed ? "" : ` disabled aria-disabled="true" title="${escapeHtml(connectionAccess.title || "Conexión no disponible")}"`;
   return pageHeaderMarkup({
     eyebrow: "Cuentas",
     title: "Cuentas",
@@ -263,7 +264,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
     actionsHtml: `
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
         <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
-        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections">Conectar MT5</button>
+        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections"${connectDisabled}>Conectar MT5</button>
       `,
   });
 }
@@ -311,8 +312,8 @@ function renderBillingNotice(state = {}) {
   const copy = billingState.error
     ? "Puedes seguir usando el panel. KMFX volverá a comprobar el estado del plan automáticamente."
     : isRestricted
-      ? "Las funciones premium se mantendrán visibles, pero las próximas acciones de producción deberán validarse contra entitlements."
-      : "Mantengo tus permisos durante el periodo de gracia y marco el estado para que soporte pueda revisarlo.";
+      ? "Tus cuentas siguen visibles. La creación de nuevas conexiones queda pausada hasta regularizar el plan."
+      : "Tus cuentas siguen visibles durante el periodo de gracia. La creación de nuevas conexiones puede pausarse hasta confirmar el pago.";
   return `
     <article class="widget-card connections-billing-notice connections-billing-notice--${isRestricted ? "restricted" : "attention"}">
       <div class="calendar-panel-head">
@@ -324,6 +325,19 @@ function renderBillingNotice(state = {}) {
       </div>
     </article>
   `;
+}
+
+function renderConnectionAccessState(connectionAccess) {
+  if (connectionAccess.allowed) return "";
+  const actionHtml = connectionAccess.reason === "auth_required"
+    ? ""
+    : `<a class="btn-secondary connections-shell__utility-btn" href="/ajustes">Revisar plan</a>`;
+  return emptyStateMarkup({
+    title: connectionAccess.title,
+    description: connectionAccess.description,
+    className: "connections-plan-state",
+    actionHtml,
+  });
 }
 
 function isAdminUser(state) {
@@ -739,12 +753,14 @@ async function fetchAccountsRegistry(store) {
 }
 
 function renderEmptyState(root, state = {}) {
+  const connectionAccess = billingEntitlementState(state, "launcherConnection", { allowLimited: false, allowPending: false });
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
-      ${renderConnectionsHeader()}
+      ${renderConnectionsHeader({ connectionAccess })}
       ${renderConnectionsKpis([], state)}
       <section class="connections-shell__main">
         ${renderBillingNotice(state)}
+        ${renderConnectionAccessState(connectionAccess)}
         <article class="tl-section-card connections-empty-card">
           <div class="calendar-panel-head">
             <div>
@@ -753,7 +769,7 @@ function renderEmptyState(root, state = {}) {
             </div>
           </div>
           <div class="connections-empty-card__actions">
-            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty">Conectar MT5</button>
+            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty"${connectionAccess.allowed ? "" : " disabled aria-disabled=\"true\""}>Conectar MT5</button>
             <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Ya tengo el Launcher</button>
           </div>
         </article>
@@ -1260,6 +1276,7 @@ export function renderConnections(root, state) {
   const adminState = getAdminState(root);
   const uiState = getConnectionsUiState(root);
   const isSingleAccount = registryAccounts.length === 1;
+  const connectionAccess = billingEntitlementState(state, "launcherConnection", { allowLimited: false, allowPending: false });
 
   console.info("[KMFX][BOOT]", {
     label: "render-connections",
@@ -1275,10 +1292,11 @@ export function renderConnections(root, state) {
 
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
-      ${renderConnectionsHeader({ adminVisible, adminState })}
+      ${renderConnectionsHeader({ adminVisible, adminState, connectionAccess })}
       ${renderConnectionsKpis(registryAccounts, state)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
         ${renderBillingNotice(state)}
+        ${renderConnectionAccessState(connectionAccess)}
         ${renderConnectionGuide()}
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>
