@@ -180,6 +180,29 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
         self.assertIn("width: 100% !important", compact_block)
 
+    def test_mobile_cards_relax_desktop_rhythm(self) -> None:
+        css = read_text("styles-v2.css")
+        card_block = media_block(css, "@media (max-width: 760px)", "Mobile card rhythm polish")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile card rhythm polish")
+
+        for selector in [
+            ".trades-overview-grid",
+            ".portfolio-account-grid",
+            ".risk-core-metrics__grid",
+            ".dashboard-professional-kpi-card",
+            ".capital-account-card__metric strong",
+            ".trades-overview-row__value",
+        ]:
+            self.assertIn(selector, card_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", card_block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", card_block)
+        self.assertIn("min-height: auto !important", card_block)
+        self.assertIn("padding: var(--kmfx-mobile-card-pad, 14px) !important", card_block)
+        self.assertIn("overflow-wrap: anywhere", card_block)
+        self.assertIn("touch-action: manipulation", card_block)
+        self.assertIn(".capital-account-card__metrics", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

@@ -38902,3 +38902,100 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     white-space: normal;
   }
 }
+
+/* Mobile card rhythm polish: relax desktop card grids and fixed heights on narrow screens. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-overview-grid,
+    .portfolio-account-grid,
+    .capital-account-grid,
+    .dashboard-enforcement__grid,
+    .risk-core-grid,
+    .risk-secondary-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-core-metrics__grid,
+    .capital-account-card__metrics,
+    .dashboard-enforcement__grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-kpi-card,
+    .dashboard-professional-kpi-card,
+    .trades-kpi-card,
+    .capital-kpi,
+    .risk-core-kpi,
+    .trades-overview-card,
+    .capital-account-card,
+    .dashboard-enforcement-row,
+    .strategies-summary__item,
+    .journal-subpage-metric,
+    .funding-subpage-kpi
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-kpi-card,
+    .trades-kpi-card,
+    .capital-kpi,
+    .risk-core-kpi,
+    .trades-overview-card,
+    .capital-account-card
+  ) {
+    padding: var(--kmfx-mobile-card-pad, 14px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-kpi-card__metric,
+    .dashboard-professional-kpi__value,
+    .trades-kpi-card .tl-kpi-val,
+    .capital-kpi__value,
+    .risk-core-kpi .tl-kpi-val,
+    .trades-overview-row__value,
+    .capital-account-card__metric strong
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .capital-account-card,
+    .trades-overview-card,
+    .dashboard-enforcement-row
+  ) {
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-core-metrics__grid,
+    .capital-account-card__metrics,
+    .dashboard-enforcement__grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-professional-kpi-card,
+    .capital-kpi,
+    .risk-core-kpi,
+    .trades-overview-card,
+    .capital-account-card
+  ) {
+    gap: 10px !important;
+  }
+}
