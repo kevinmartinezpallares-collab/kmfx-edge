@@ -47,8 +47,8 @@ Residual advisor notes after billing setup:
 - [ ] Implement `/api/billing/checkout`.
 - [ ] Implement `/api/billing/portal`.
 - [ ] Implement `/api/billing/webhook`.
-- [ ] Implement `/api/billing/status`.
-- [ ] Add entitlement helper.
+- [x] Implement `/api/billing/status` initial contract.
+- [x] Add entitlement helper for the backend status contract.
 - [ ] Add UI guards by entitlement, not by plan name.
 
 ## Phase 4 - KMFX product guards

@@ -204,6 +204,107 @@ DEFAULT_CONNECTION_PLAN_LIMITS = {
     "business": 25,
     "admin": 1000,
 }
+PLAN_DISPLAY_NAMES = {
+    "free": "Free / Demo",
+    "core": "Edge Core",
+    "pro": "Edge Pro",
+    "desk": "Edge Desk",
+}
+DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
+    "free": {
+        "demoData": True,
+        "liveMt5Accounts": 0,
+        "launcherConnection": False,
+        "dashboardCore": True,
+        "riskCore": "partial",
+        "riskPolicyEditor": False,
+        "localAutoBlock": False,
+        "tradesHistory": "limited",
+        "calendar": "limited",
+        "advancedAnalytics": False,
+        "journal": "limited",
+        "strategies": False,
+        "fundedChallenges": False,
+        "portfolio": False,
+        "talentProfile": False,
+        "rawBridgeDebug": False,
+        "exports": False,
+        "teamWorkspace": False,
+        "prioritySupport": False,
+    },
+    "core": {
+        "demoData": True,
+        "liveMt5Accounts": 1,
+        "launcherConnection": True,
+        "dashboardCore": True,
+        "riskCore": True,
+        "riskPolicyEditor": "limited",
+        "localAutoBlock": False,
+        "tradesHistory": True,
+        "calendar": True,
+        "advancedAnalytics": "limited",
+        "journal": "limited",
+        "strategies": "limited",
+        "fundedChallenges": "limited",
+        "portfolio": "limited",
+        "talentProfile": "limited",
+        "rawBridgeDebug": False,
+        "exports": False,
+        "teamWorkspace": False,
+        "prioritySupport": False,
+    },
+    "pro": {
+        "demoData": True,
+        "liveMt5Accounts": 3,
+        "launcherConnection": True,
+        "dashboardCore": True,
+        "riskCore": True,
+        "riskPolicyEditor": True,
+        "localAutoBlock": True,
+        "tradesHistory": True,
+        "calendar": True,
+        "advancedAnalytics": True,
+        "journal": True,
+        "strategies": True,
+        "fundedChallenges": True,
+        "portfolio": True,
+        "talentProfile": True,
+        "rawBridgeDebug": True,
+        "exports": True,
+        "teamWorkspace": False,
+        "prioritySupport": False,
+    },
+    "desk": {
+        "demoData": True,
+        "liveMt5Accounts": "custom",
+        "launcherConnection": True,
+        "dashboardCore": True,
+        "riskCore": True,
+        "riskPolicyEditor": True,
+        "localAutoBlock": True,
+        "tradesHistory": True,
+        "calendar": True,
+        "advancedAnalytics": True,
+        "journal": True,
+        "strategies": True,
+        "fundedChallenges": True,
+        "portfolio": True,
+        "talentProfile": True,
+        "rawBridgeDebug": True,
+        "exports": True,
+        "teamWorkspace": True,
+        "prioritySupport": True,
+    },
+}
+BILLING_ACTIVE_STATUSES = {"free", "trialing", "active"}
+BILLING_ATTENTION_STATUSES = {"past_due"}
+BILLING_RESTRICTED_STATUSES = {"unpaid", "paused", "canceled", "incomplete", "incomplete_expired"}
+BILLING_STATUS_VALUES = {
+    "anonymous",
+    *BILLING_ACTIVE_STATUSES,
+    *BILLING_ATTENTION_STATUSES,
+    *BILLING_RESTRICTED_STATUSES,
+}
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
@@ -250,7 +351,7 @@ log.info(
     len(ADMIN_USER_IDS),
     len(ADMIN_EMAILS),
     len(ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID),
-    ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot"],
+    ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot", "/api/billing/status"],
 )
 
 
@@ -923,6 +1024,144 @@ def connection_plan_for_context(context: dict[str, Any]) -> str:
         "free",
     ).lower()
     return plan or "free"
+
+
+def normalize_plan_key(value: Any) -> str:
+    plan = safe_str(value, "free").lower()
+    return plan if plan in DEFAULT_PLAN_ENTITLEMENTS else "free"
+
+
+def plan_entitlements(plan: str) -> dict[str, Any]:
+    return deepcopy(DEFAULT_PLAN_ENTITLEMENTS.get(normalize_plan_key(plan), DEFAULT_PLAN_ENTITLEMENTS["free"]))
+
+
+def billing_status_from_metadata(app_metadata: dict[str, Any], plan: str) -> str:
+    status = safe_str(
+        app_metadata.get("kmfx_billing_status")
+        or app_metadata.get("billing_status")
+        or app_metadata.get("subscription_status")
+        or app_metadata.get("stripe_status")
+    ).lower()
+    if status in BILLING_STATUS_VALUES:
+        return status
+    return "free" if normalize_plan_key(plan) == "free" else "active"
+
+
+def metadata_first_value(app_metadata: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = safe_str(app_metadata.get(key))
+        if value:
+            return value
+    return ""
+
+
+def billing_cancel_at_period_end(app_metadata: dict[str, Any]) -> bool:
+    for key in ("kmfx_cancel_at_period_end", "cancel_at_period_end", "cancelAtPeriodEnd"):
+        if key in app_metadata:
+            return metadata_bool(app_metadata.get(key)) is True
+    return False
+
+
+def entitlement_account_limit(entitlements: dict[str, Any], context: dict[str, Any], *, authenticated: bool) -> int | str:
+    if not authenticated:
+        return 0
+    if context.get("is_admin"):
+        return DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
+    raw_limit = entitlements.get("liveMt5Accounts")
+    if isinstance(raw_limit, int):
+        return max(0, raw_limit)
+    if isinstance(raw_limit, float):
+        return max(0, int(raw_limit))
+    return raw_limit if safe_str(raw_limit).lower() == "custom" else 0
+
+
+def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any]:
+    user_id = safe_str(context.get("user_id")).lower()
+    email = safe_str(context.get("email")).lower()
+    authenticated = bool(user_id or email)
+    if not authenticated:
+        entitlements = plan_entitlements("free")
+        return {
+            "ok": True,
+            "auth_required": True,
+            "billing": {
+                "plan": "free",
+                "effectivePlan": "free",
+                "displayName": PLAN_DISPLAY_NAMES["free"],
+                "status": "anonymous",
+                "access": "anonymous",
+                "currentPeriodEndsAt": "",
+                "trialEndsAt": "",
+                "cancelAtPeriodEnd": False,
+            },
+            "entitlements": entitlements,
+            "limits": {
+                "liveMt5Accounts": 0,
+                "connectionKeyLimit": 0,
+            },
+            "is_admin": False,
+            "scope_user_id": "",
+            "source": "anonymous",
+            "timestamp": now_iso(),
+        }
+
+    app_metadata = ensure_dict(context.get("app_metadata"))
+    plan = normalize_plan_key(connection_plan_for_context(context))
+    status = billing_status_from_metadata(app_metadata, plan)
+    effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
+    entitlements = plan_entitlements(effective_plan)
+    account_limit = entitlement_account_limit(entitlements, context, authenticated=authenticated)
+    if isinstance(account_limit, int):
+        connection_key_limit: int | str = account_limit
+    else:
+        connection_key_limit = account_limit
+    if context.get("is_admin"):
+        account_limit = DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
+        connection_key_limit = DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
+
+    access = "active"
+    if status in BILLING_ATTENTION_STATUSES:
+        access = "billing_attention"
+    elif status in BILLING_RESTRICTED_STATUSES:
+        access = "restricted"
+    elif status == "free":
+        access = "free"
+
+    return {
+        "ok": True,
+        "auth_required": False,
+        "billing": {
+            "plan": plan,
+            "effectivePlan": effective_plan,
+            "displayName": PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"]),
+            "status": status,
+            "access": access,
+            "currentPeriodEndsAt": metadata_first_value(
+                app_metadata,
+                "kmfx_current_period_end",
+                "billing_current_period_end",
+                "current_period_end",
+                "currentPeriodEndsAt",
+            ),
+            "trialEndsAt": metadata_first_value(
+                app_metadata,
+                "kmfx_trial_end",
+                "billing_trial_end",
+                "trial_end",
+                "trialEndsAt",
+            ),
+            "cancelAtPeriodEnd": billing_cancel_at_period_end(app_metadata),
+        },
+        "entitlements": entitlements,
+        "limits": {
+            "liveMt5Accounts": account_limit,
+            "connectionKeyLimit": connection_key_limit,
+        },
+        "is_admin": bool(context.get("is_admin")),
+        "scope_user_id": user_id,
+        "source": "app_metadata",
+        "timestamp": now_iso(),
+    }
 
 
 def metadata_bool(value: Any) -> bool | None:
@@ -3672,6 +3911,20 @@ async def accounts_snapshot(request: Request) -> JSONResponse:
         snapshot.get("active_account_id") or "",
     )
     return connector_json_response(snapshot)
+
+
+@app.get("/api/billing/status")
+async def billing_status(request: Request) -> JSONResponse:
+    context = build_admin_context(request)
+    payload = billing_status_payload_for_context(context)
+    log.info(
+        "Billing status built | scope_user_id=%s plan=%s status=%s access=%s",
+        payload.get("scope_user_id") or "",
+        ensure_dict(payload.get("billing")).get("plan") or "",
+        ensure_dict(payload.get("billing")).get("status") or "",
+        ensure_dict(payload.get("billing")).get("access") or "",
+    )
+    return connector_json_response(payload)
 
 
 @app.post("/api/backtests/mt5/import")

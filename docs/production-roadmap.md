@@ -88,7 +88,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Stripe Product y Prices no están creados como catálogo KMFX final.
 - [ ] Customer Portal no está configurado.
 - [ ] Webhooks Stripe no están implementados en producción.
-- [ ] Endpoints `/api/billing/*` no están implementados.
+- [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
+- [ ] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` no están implementados.
 - [ ] El frontend no consume billing status/entitlements.
 - [ ] Los guards de producto no dependen aún de entitlements finales.
 
@@ -189,13 +190,13 @@ Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el ac
 - [ ] Implementar `POST /api/billing/checkout`.
 - [ ] Implementar `POST /api/billing/portal`.
 - [ ] Implementar `POST /api/billing/webhook`.
-- [ ] Implementar `GET /api/billing/status`.
+- [x] Implementar `GET /api/billing/status` como contrato inicial sin Stripe live.
 - [ ] Verificar firma Stripe webhook usando raw body.
 - [ ] Guardar `stripe_event_id` en `billing_events` para idempotencia.
 - [ ] Upsert de `billing_customers`.
 - [ ] Upsert de `billing_subscriptions`.
 - [ ] Mapear estados Stripe a estado interno.
-- [ ] Devolver entitlements desde `plan_entitlements`.
+- [x] Devolver entitlements equivalentes a `plan_entitlements` desde el contrato backend inicial.
 - [ ] Añadir tests de webhook idempotente.
 - [ ] Añadir tests de status mapping.
 
@@ -218,7 +219,7 @@ Criterio de salida:
 
 Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 
-- [ ] Añadir helper backend de entitlements.
+- [x] Añadir helper backend de entitlements para status/guards iniciales.
 - [ ] Exigir auth antes de crear cuentas MT5.
 - [ ] Exigir `launcherConnection` antes de emitir keys para Launcher/EA.
 - [ ] Exigir `liveMt5Accounts` antes de permitir nuevas cuentas live.

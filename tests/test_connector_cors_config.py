@@ -483,6 +483,86 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(context["is_admin"])
         self.assertEqual("admin", context["app_metadata"]["role"])
 
+    def test_billing_status_anonymous_returns_free_limited_entitlements(self) -> None:
+        response = asyncio.run(connector_api.billing_status(self._request()))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["auth_required"])
+        self.assertEqual("anonymous", body["billing"]["status"])
+        self.assertEqual("free", body["billing"]["effectivePlan"])
+        self.assertEqual(0, body["entitlements"]["liveMt5Accounts"])
+        self.assertFalse(body["entitlements"]["launcherConnection"])
+        self.assertEqual(0, body["limits"]["connectionKeyLimit"])
+
+    def test_billing_status_reads_plan_from_app_metadata_only(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "user@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "active"},
+                "user_metadata": {"plan": "desk"},
+            },
+        ):
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(body["auth_required"])
+        self.assertEqual("pro", body["billing"]["plan"])
+        self.assertEqual("pro", body["billing"]["effectivePlan"])
+        self.assertEqual("active", body["billing"]["status"])
+        self.assertEqual(3, body["entitlements"]["liveMt5Accounts"])
+        self.assertTrue(body["entitlements"]["rawBridgeDebug"])
+        self.assertFalse(body["entitlements"]["teamWorkspace"])
+
+    def test_billing_status_restricts_unpaid_to_free_entitlements(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "user@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "unpaid"},
+                "user_metadata": {},
+            },
+        ):
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("pro", body["billing"]["plan"])
+        self.assertEqual("free", body["billing"]["effectivePlan"])
+        self.assertEqual("unpaid", body["billing"]["status"])
+        self.assertEqual("restricted", body["billing"]["access"])
+        self.assertEqual(0, body["entitlements"]["liveMt5Accounts"])
+        self.assertFalse(body["entitlements"]["launcherConnection"])
+
+    def test_billing_status_keeps_past_due_entitlements_with_attention_state(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "user@example.com",
+                "app_metadata": {"plan": "core", "billing_status": "past_due"},
+                "user_metadata": {},
+            },
+        ):
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("core", body["billing"]["effectivePlan"])
+        self.assertEqual("billing_attention", body["billing"]["access"])
+        self.assertEqual(1, body["entitlements"]["liveMt5Accounts"])
+        self.assertTrue(body["entitlements"]["launcherConnection"])
+
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
         with patch.dict("os.environ", {"KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE": "2"}, clear=False):
