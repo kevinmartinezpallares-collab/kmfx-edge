@@ -38509,3 +38509,110 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     border-radius: 16px !important;
   }
 }
+
+/* Mobile chart hardening: keep visual panels stable without changing Chart.js config. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-chart-shell,
+    .kmfx-ui-chart-card__content,
+    .dashboard-chart-card__content,
+    .dashboard-chart-card__chart,
+    .dashboard-primary-card__chart,
+    .calendar-chart-wrap,
+    .calendar-day-report__chart,
+    .analytics-session-chart,
+    .analytics-daily-calendar,
+    .analytics-daily-card,
+    .account-banner-viz,
+    .rule-history-chart,
+    .chart-card,
+    .widget-card--feature
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-chart-shell,
+    .dashboard-chart-card__chart,
+    .dashboard-primary-card__chart,
+    .calendar-chart-wrap,
+    .calendar-day-report__chart,
+    .analytics-session-chart,
+    .account-banner-viz,
+    .rule-history-chart
+  ) {
+    position: relative;
+    width: 100% !important;
+    min-height: clamp(180px, 48vw, 260px) !important;
+    max-height: min(58dvh, 360px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-chart-shell canvas,
+    .dashboard-chart-card canvas,
+    .dashboard-primary-card__chart canvas,
+    .calendar-chart-wrap canvas,
+    .calendar-day-report__chart canvas,
+    .analytics-session-chart canvas,
+    .account-banner-viz canvas,
+    .rule-history-chart canvas,
+    .chart-card canvas,
+    .widget-card canvas
+  ) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: min(58dvh, 360px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-chart-card__header,
+    .dashboard-chart-card__header,
+    .chart-card .tl-section-header,
+    .widget-card-head
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-chart-card__legend,
+    .chart-legend,
+    .dashboard-chart-card__legend
+  ) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-chart-card__legend,
+    .chart-legend,
+    .dashboard-chart-card__legend
+  )::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-chart-shell,
+    .dashboard-chart-card__chart,
+    .dashboard-primary-card__chart,
+    .calendar-chart-wrap,
+    .calendar-day-report__chart,
+    .analytics-session-chart,
+    .account-banner-viz,
+    .rule-history-chart
+  ) {
+    min-height: clamp(164px, 56vw, 230px) !important;
+    max-height: min(52dvh, 320px) !important;
+  }
+}

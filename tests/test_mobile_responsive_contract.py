@@ -114,6 +114,27 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("body.modal-open", overlay_block)
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", overlay_block)
 
+    def test_mobile_charts_are_bounded_without_js_changes(self) -> None:
+        css = read_text("styles-v2.css")
+        chart_block = media_block(css, "@media (max-width: 760px)", "Mobile chart hardening")
+
+        for selector in [
+            ".kmfx-chart-shell",
+            ".dashboard-chart-card__chart",
+            ".calendar-chart-wrap",
+            ".analytics-session-chart",
+            ".account-banner-viz",
+            ".rule-history-chart",
+            ".chart-card canvas",
+        ]:
+            self.assertIn(selector, chart_block)
+
+        self.assertIn("min-height: clamp(180px, 48vw, 260px) !important", chart_block)
+        self.assertIn("max-height: min(58dvh, 360px) !important", chart_block)
+        self.assertIn("height: auto !important", chart_block)
+        self.assertIn("overflow-x: clip !important", chart_block)
+        self.assertIn("scrollbar-width: none", chart_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
