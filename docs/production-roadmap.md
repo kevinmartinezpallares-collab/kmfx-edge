@@ -210,18 +210,18 @@ Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el ac
   - `STRIPE_PRICE_PRO_MONTHLY`
   - `STRIPE_PRICE_PRO_YEARLY`
   - `SUPABASE_SERVICE_ROLE_KEY`
-- [ ] Implementar `POST /api/billing/checkout`.
-- [ ] Implementar `POST /api/billing/portal`.
-- [ ] Implementar `POST /api/billing/webhook`.
+- [x] Implementar `POST /api/billing/checkout`.
+- [x] Implementar `POST /api/billing/portal`.
+- [x] Implementar `POST /api/billing/webhook`.
 - [x] Implementar `GET /api/billing/status` como contrato inicial sin Stripe live.
-- [ ] Verificar firma Stripe webhook usando raw body.
-- [ ] Guardar `stripe_event_id` en `billing_events` para idempotencia.
-- [ ] Upsert de `billing_customers`.
-- [ ] Upsert de `billing_subscriptions`.
-- [ ] Mapear estados Stripe a estado interno.
+- [x] Verificar firma Stripe webhook usando raw body.
+- [x] Guardar `stripe_event_id` en `billing_events` para idempotencia.
+- [x] Upsert de `billing_customers`.
+- [x] Upsert de `billing_subscriptions`.
+- [x] Mapear estados Stripe a estado interno.
 - [x] Devolver entitlements equivalentes a `plan_entitlements` desde el contrato backend inicial.
-- [ ] Añadir tests de webhook idempotente.
-- [ ] Añadir tests de status mapping.
+- [x] Añadir tests de webhook idempotente.
+- [x] Añadir tests de status mapping.
 
 Eventos mínimos:
 

@@ -42,11 +42,11 @@ Residual advisor notes after billing setup:
 
 ## Phase 3 - Next.js implementation
 
-- [ ] Add Stripe SDK server-only.
-- [ ] Add Supabase SSR/server client.
-- [ ] Implement `/api/billing/checkout`.
-- [ ] Implement `/api/billing/portal`.
-- [ ] Implement `/api/billing/webhook`.
+- [x] Add server-only Stripe API integration.
+- [x] Add server-only Supabase service-role billing writes.
+- [x] Implement `/api/billing/checkout`.
+- [x] Implement `/api/billing/portal`.
+- [x] Implement `/api/billing/webhook`.
 - [x] Implement `/api/billing/status` initial contract.
 - [x] Add entitlement helper for the backend status contract.
 - [x] Add initial UI status read by entitlement in Cuentas.

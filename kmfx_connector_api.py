@@ -13,6 +13,7 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from typing import Any
 import urllib.error
+import urllib.parse
 import urllib.request
 from uuid import UUID
 
@@ -351,7 +352,16 @@ log.info(
     len(ADMIN_USER_IDS),
     len(ADMIN_EMAILS),
     len(ADMIN_LAUNCHER_CONNECTION_KEYS_BY_USER_ID),
-    ["/api/mt5/sync", "/api/mt5/journal", "/api/mt5/policy", "/api/accounts/snapshot", "/api/billing/status"],
+    [
+        "/api/mt5/sync",
+        "/api/mt5/journal",
+        "/api/mt5/policy",
+        "/api/accounts/snapshot",
+        "/api/billing/status",
+        "/api/billing/checkout",
+        "/api/billing/portal",
+        "/api/billing/webhook",
+    ],
 )
 
 
@@ -1309,6 +1319,609 @@ def product_entitlement_denial(
             details=details,
         )
     return None
+
+
+STRIPE_API_BASE_URL = "https://api.stripe.com/v1"
+STRIPE_DEFAULT_API_VERSION = "2026-02-25.clover"
+
+
+def billing_public_app_url() -> str:
+    return (_env_value("KMFX_APP_URL", "NEXT_PUBLIC_APP_URL", "PUBLIC_APP_URL", "APP_URL") or "https://kmfxedge.com").rstrip("/")
+
+
+def billing_success_url() -> str:
+    base_url = billing_public_app_url()
+    path = _env_value("BILLING_SUCCESS_PATH") or "/ajustes?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+    separator = "" if path.startswith("/") else "/"
+    return f"{base_url}{separator}{path}"
+
+
+def billing_cancel_url() -> str:
+    base_url = billing_public_app_url()
+    path = _env_value("BILLING_CANCEL_PATH") or "/ajustes?checkout=cancelled"
+    separator = "" if path.startswith("/") else "/"
+    return f"{base_url}{separator}{path}"
+
+
+def stripe_secret_key() -> str:
+    return _env_value("STRIPE_SECRET_KEY", "KMFX_STRIPE_SECRET_KEY")
+
+
+def stripe_webhook_secret() -> str:
+    return _env_value("STRIPE_WEBHOOK_SECRET", "KMFX_STRIPE_WEBHOOK_SECRET")
+
+
+def stripe_api_version() -> str:
+    return _env_value("STRIPE_API_VERSION", "KMFX_STRIPE_API_VERSION") or STRIPE_DEFAULT_API_VERSION
+
+
+def supabase_service_role_key() -> str:
+    return _env_value("SUPABASE_SERVICE_ROLE_KEY", "KMFX_SUPABASE_SERVICE_ROLE_KEY")
+
+
+def billing_json_response(payload: dict[str, Any], status_code: int = 200) -> JSONResponse:
+    return connector_json_response({**payload, "timestamp": payload.get("timestamp") or now_iso()}, status_code=status_code)
+
+
+def billing_auth_required_response(reason: str = "auth_required", status_code: int = 401) -> JSONResponse:
+    return billing_json_response(
+        {
+            "ok": False,
+            "reason": reason,
+            "error": reason,
+        },
+        status_code=status_code,
+    )
+
+
+def billing_user_context(request: Request) -> tuple[dict[str, Any], JSONResponse | None]:
+    context = build_admin_context(request)
+    user_id = safe_str(context.get("user_id")).lower()
+    if not user_id:
+        return context, billing_auth_required_response()
+    try:
+        UUID(user_id)
+    except (TypeError, ValueError):
+        return context, billing_auth_required_response("supabase_user_id_required", status_code=403)
+    return context, None
+
+
+def stripe_form_items(value: Any, prefix: str = "") -> list[tuple[str, str]]:
+    items: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_key = f"{prefix}[{key}]" if prefix else str(key)
+            items.extend(stripe_form_items(child, child_key))
+        return items
+    if isinstance(value, list):
+        for index, child in enumerate(value):
+            child_key = f"{prefix}[{index}]"
+            items.extend(stripe_form_items(child, child_key))
+        return items
+    if value is None:
+        return items
+    if isinstance(value, bool):
+        items.append((prefix, "true" if value else "false"))
+    else:
+        items.append((prefix, str(value)))
+    return items
+
+
+def encode_stripe_form(params: dict[str, Any] | None) -> bytes | None:
+    if not params:
+        return None
+    return urllib.parse.urlencode(stripe_form_items(params)).encode("utf-8")
+
+
+def read_json_http_response(response: Any) -> dict[str, Any]:
+    raw_body = response.read()
+    if not raw_body:
+        return {}
+    payload = json.loads(raw_body.decode("utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
+def stripe_api_request(method: str, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    secret = stripe_secret_key()
+    if not secret:
+        raise RuntimeError("stripe_not_configured")
+    normalized_path = f"/{path.lstrip('/')}"
+    method = safe_str(method, "GET").upper()
+    url = f"{STRIPE_API_BASE_URL}{normalized_path}"
+    body = None
+    if method == "GET" and params:
+        query = urllib.parse.urlencode(stripe_form_items(params))
+        url = f"{url}?{query}"
+    elif params:
+        body = encode_stripe_form(params)
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {secret}",
+        "Stripe-Version": stripe_api_version(),
+    }
+    if body is not None:
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+    request = urllib.request.Request(url, data=body, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return read_json_http_response(response)
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        log.warning("Stripe API request failed | path=%s status=%s body=%s", normalized_path, exc.code, error_body[:500])
+        raise RuntimeError(f"stripe_http_{exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        log.warning("Stripe API request failed | path=%s error=%s", normalized_path, exc)
+        raise RuntimeError("stripe_request_failed") from exc
+
+
+def supabase_admin_request(
+    method: str,
+    path: str,
+    *,
+    payload: Any = None,
+    query: dict[str, str] | None = None,
+    prefer: str = "return=representation",
+) -> Any:
+    service_key = supabase_service_role_key()
+    if not service_key:
+        raise RuntimeError("supabase_service_role_not_configured")
+    normalized_path = path.lstrip("/")
+    url = f"{SUPABASE_PROJECT_URL}/{normalized_path}"
+    if query:
+        url = f"{url}?{urllib.parse.urlencode(query)}"
+    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {service_key}",
+        "apikey": service_key,
+    }
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    if prefer:
+        headers["Prefer"] = prefer
+    request = urllib.request.Request(url, data=body, headers=headers, method=safe_str(method, "GET").upper())
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            raw_body = response.read()
+            if not raw_body:
+                return {}
+            return json.loads(raw_body.decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        log.warning("Supabase admin request failed | path=%s status=%s body=%s", normalized_path, exc.code, error_body[:500])
+        raise RuntimeError(f"supabase_http_{exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        log.warning("Supabase admin request failed | path=%s error=%s", normalized_path, exc)
+        raise RuntimeError("supabase_request_failed") from exc
+
+
+def billing_plan_price_reference(plan: str, interval: str) -> str:
+    plan = normalize_plan_key(plan)
+    interval = safe_str(interval, "monthly").lower()
+    if interval not in {"monthly", "yearly"}:
+        interval = "monthly"
+    env_name = f"STRIPE_PRICE_{plan.upper()}_{interval.upper()}"
+    configured = _env_value(env_name, f"KMFX_{env_name}")
+    if configured:
+        return configured
+    if plan in {"core", "pro"}:
+        return f"kmfx_{plan}_{interval}"
+    return ""
+
+
+def stripe_price_plan_candidates() -> dict[str, str]:
+    candidates: dict[str, str] = {}
+    for plan in ("core", "pro"):
+        for interval in ("monthly", "yearly"):
+            default_lookup_key = f"kmfx_{plan}_{interval}"
+            candidates[default_lookup_key] = plan
+            configured = billing_plan_price_reference(plan, interval)
+            if configured:
+                candidates[configured] = plan
+    return candidates
+
+
+def resolve_stripe_price_reference(plan: str, interval: str) -> dict[str, str]:
+    plan = normalize_plan_key(plan)
+    if plan not in {"core", "pro"}:
+        raise ValueError("invalid_billing_plan")
+    reference = billing_plan_price_reference(plan, interval)
+    if not reference:
+        raise RuntimeError("price_not_configured")
+    if reference.startswith("price_"):
+        return {"price_id": reference, "lookup_key": ""}
+    payload = stripe_api_request("GET", "/prices", {"lookup_keys": [reference], "active": True, "limit": 1})
+    prices = payload.get("data") if isinstance(payload.get("data"), list) else []
+    if not prices:
+        raise RuntimeError("stripe_price_not_found")
+    price = ensure_dict(prices[0])
+    price_id = safe_str(price.get("id"))
+    if not price_id:
+        raise RuntimeError("stripe_price_not_found")
+    return {"price_id": price_id, "lookup_key": reference}
+
+
+def stripe_plan_from_price(price: dict[str, Any] | None = None, *, price_id: str = "", lookup_key: str = "") -> str:
+    price = ensure_dict(price)
+    metadata = ensure_dict(price.get("metadata"))
+    for raw_plan in (
+        metadata.get("kmfx_plan"),
+        metadata.get("plan"),
+        metadata.get("product_plan"),
+    ):
+        plan = safe_str(raw_plan).lower()
+        if plan in {"core", "pro", "desk"}:
+            return plan
+    normalized_lookup = safe_str(lookup_key or price.get("lookup_key")).lower()
+    normalized_price_id = safe_str(price_id or price.get("id"))
+    candidates = stripe_price_plan_candidates()
+    if normalized_lookup and normalized_lookup in candidates:
+        return candidates[normalized_lookup]
+    if normalized_price_id and normalized_price_id in candidates:
+        return candidates[normalized_price_id]
+    return "free"
+
+
+def supabase_fetch_billing_customer(user_id: str) -> dict[str, Any]:
+    rows = supabase_admin_request(
+        "GET",
+        "/rest/v1/billing_customers",
+        query={
+            "user_id": f"eq.{user_id}",
+            "select": "user_id,stripe_customer_id,email,metadata",
+            "limit": "1",
+        },
+    )
+    if isinstance(rows, list) and rows:
+        return ensure_dict(rows[0])
+    return {}
+
+
+def supabase_upsert_billing_customer(user_id: str, stripe_customer_id: str, email: str = "", metadata: dict[str, Any] | None = None) -> None:
+    supabase_admin_request(
+        "POST",
+        "/rest/v1/billing_customers",
+        query={"on_conflict": "user_id"},
+        payload={
+            "user_id": user_id,
+            "stripe_customer_id": stripe_customer_id,
+            "email": email,
+            "metadata": metadata or {},
+        },
+        prefer="resolution=merge-duplicates,return=representation",
+    )
+
+
+def ensure_billing_customer(context: dict[str, Any]) -> str:
+    user_id = safe_str(context.get("user_id")).lower()
+    email = safe_str(context.get("email")).lower()
+    existing = supabase_fetch_billing_customer(user_id)
+    customer_id = safe_str(existing.get("stripe_customer_id"))
+    if customer_id:
+        return customer_id
+    customer = stripe_api_request(
+        "POST",
+        "/customers",
+        {
+            "email": email or None,
+            "metadata": {
+                "kmfx_user_id": user_id,
+                "kmfx_user_email": email,
+                "app": "kmfx_edge",
+            },
+        },
+    )
+    customer_id = safe_str(customer.get("id"))
+    if not customer_id:
+        raise RuntimeError("stripe_customer_create_failed")
+    supabase_upsert_billing_customer(
+        user_id,
+        customer_id,
+        email=email,
+        metadata={"source": "checkout", "stripe_livemode": bool(customer.get("livemode"))},
+    )
+    return customer_id
+
+
+def stripe_timestamp_to_iso(value: Any) -> str:
+    try:
+        timestamp = int(value)
+    except (TypeError, ValueError):
+        return ""
+    if timestamp <= 0:
+        return ""
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def first_subscription_price(subscription: dict[str, Any]) -> dict[str, Any]:
+    items = ensure_dict(subscription.get("items")).get("data")
+    if not isinstance(items, list) or not items:
+        return {}
+    return ensure_dict(ensure_dict(items[0]).get("price"))
+
+
+def stripe_subscription_to_billing_row(subscription: dict[str, Any], *, user_id: str = "") -> dict[str, Any]:
+    subscription = ensure_dict(subscription)
+    price = first_subscription_price(subscription)
+    metadata = {
+        **ensure_dict(subscription.get("metadata")),
+        **ensure_dict(price.get("metadata")),
+    }
+    plan_key = normalize_plan_key(
+        metadata.get("kmfx_plan")
+        or metadata.get("plan")
+        or stripe_plan_from_price(price)
+    )
+    customer_id = safe_str(subscription.get("customer"))
+    status = safe_str(subscription.get("status"), "incomplete").lower()
+    if status not in BILLING_STATUS_VALUES:
+        status = "active" if status in {"paid"} else "incomplete"
+    row = {
+        "user_id": user_id or safe_str(metadata.get("kmfx_user_id")).lower(),
+        "stripe_subscription_id": safe_str(subscription.get("id")),
+        "stripe_customer_id": customer_id,
+        "stripe_product_id": safe_str(price.get("product")),
+        "stripe_price_id": safe_str(price.get("id")),
+        "plan_key": plan_key,
+        "status": status,
+        "current_period_start": stripe_timestamp_to_iso(subscription.get("current_period_start")),
+        "current_period_end": stripe_timestamp_to_iso(subscription.get("current_period_end")),
+        "cancel_at_period_end": bool(subscription.get("cancel_at_period_end")),
+        "trial_end": stripe_timestamp_to_iso(subscription.get("trial_end")),
+        "is_current": status not in {"canceled", "incomplete_expired"},
+        "metadata": {
+            "stripe_lookup_key": safe_str(price.get("lookup_key")),
+            "stripe_livemode": bool(subscription.get("livemode")),
+            "billing_reason": safe_str(subscription.get("billing_reason")),
+        },
+    }
+    return {key: value for key, value in row.items() if value not in ("", None)}
+
+
+def supabase_mark_user_subscriptions_not_current(user_id: str) -> None:
+    supabase_admin_request(
+        "PATCH",
+        "/rest/v1/billing_subscriptions",
+        query={"user_id": f"eq.{user_id}", "is_current": "eq.true"},
+        payload={"is_current": False},
+        prefer="return=minimal",
+    )
+
+
+def supabase_upsert_billing_subscription(row: dict[str, Any]) -> None:
+    user_id = safe_str(row.get("user_id")).lower()
+    subscription_id = safe_str(row.get("stripe_subscription_id"))
+    if not user_id or not subscription_id:
+        raise RuntimeError("subscription_identity_required")
+    updated = supabase_admin_request(
+        "PATCH",
+        "/rest/v1/billing_subscriptions",
+        query={"stripe_subscription_id": f"eq.{subscription_id}"},
+        payload=row,
+        prefer="return=representation",
+    )
+    if isinstance(updated, list) and updated:
+        return
+    if row.get("is_current") is not False:
+        supabase_mark_user_subscriptions_not_current(user_id)
+    supabase_admin_request(
+        "POST",
+        "/rest/v1/billing_subscriptions",
+        payload=row,
+        prefer="return=representation",
+    )
+
+
+def supabase_update_auth_app_metadata(user_id: str, metadata: dict[str, Any]) -> None:
+    if not metadata:
+        return
+    supabase_admin_request(
+        "PUT",
+        f"/auth/v1/admin/users/{urllib.parse.quote(user_id)}",
+        payload={"app_metadata": metadata},
+        prefer="",
+    )
+
+
+def subscription_app_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    plan_key = normalize_plan_key(row.get("plan_key"))
+    status = safe_str(row.get("status"), "free").lower()
+    if status not in BILLING_STATUS_VALUES:
+        status = "active"
+    if status in {"canceled", "incomplete_expired"}:
+        plan_key = "free"
+    return {
+        "plan": plan_key,
+        "kmfx_plan": plan_key,
+        "billing_status": status,
+        "kmfx_billing_status": status,
+        "stripe_customer_id": safe_str(row.get("stripe_customer_id")),
+        "stripe_subscription_id": safe_str(row.get("stripe_subscription_id")),
+        "stripe_price_id": safe_str(row.get("stripe_price_id")),
+        "billing_current_period_end": safe_str(row.get("current_period_end")),
+        "kmfx_current_period_end": safe_str(row.get("current_period_end")),
+        "billing_trial_end": safe_str(row.get("trial_end")),
+        "kmfx_trial_end": safe_str(row.get("trial_end")),
+        "cancel_at_period_end": bool(row.get("cancel_at_period_end")),
+        "kmfx_cancel_at_period_end": bool(row.get("cancel_at_period_end")),
+    }
+
+
+def fetch_stripe_customer(customer_id: str) -> dict[str, Any]:
+    if not customer_id:
+        return {}
+    return stripe_api_request("GET", f"/customers/{urllib.parse.quote(customer_id)}")
+
+
+def stripe_customer_user_id(customer_id: str) -> str:
+    customer = fetch_stripe_customer(customer_id)
+    return safe_str(ensure_dict(customer.get("metadata")).get("kmfx_user_id")).lower()
+
+
+def fetch_stripe_subscription(subscription_id: str) -> dict[str, Any]:
+    if not subscription_id:
+        return {}
+    return stripe_api_request(
+        "GET",
+        f"/subscriptions/{urllib.parse.quote(subscription_id)}",
+        {"expand": ["items.data.price"]},
+    )
+
+
+def sync_billing_subscription(subscription: dict[str, Any], *, user_id: str = "", email: str = "") -> dict[str, Any]:
+    subscription = ensure_dict(subscription)
+    metadata = ensure_dict(subscription.get("metadata"))
+    customer_id = safe_str(subscription.get("customer"))
+    resolved_user_id = safe_str(user_id or metadata.get("kmfx_user_id")).lower()
+    if not resolved_user_id and customer_id:
+        resolved_user_id = stripe_customer_user_id(customer_id)
+    if not resolved_user_id:
+        raise RuntimeError("stripe_subscription_missing_user")
+    row = stripe_subscription_to_billing_row(subscription, user_id=resolved_user_id)
+    supabase_upsert_billing_customer(
+        resolved_user_id,
+        customer_id,
+        email=email or safe_str(metadata.get("kmfx_user_email")).lower(),
+        metadata={"source": "stripe_webhook", "stripe_livemode": bool(subscription.get("livemode"))},
+    )
+    supabase_upsert_billing_subscription(row)
+    supabase_update_auth_app_metadata(resolved_user_id, subscription_app_metadata(row))
+    return {"user_id": resolved_user_id, "plan": row.get("plan_key"), "status": row.get("status")}
+
+
+def parse_stripe_signature_header(signature_header: str) -> dict[str, list[str]]:
+    parsed: dict[str, list[str]] = {}
+    for part in safe_str(signature_header).split(","):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        parsed.setdefault(key.strip(), []).append(value.strip())
+    return parsed
+
+
+def verify_stripe_webhook_signature(raw_body: bytes, signature_header: str, secret: str, *, tolerance_seconds: int = 300) -> bool:
+    if not secret or not signature_header:
+        return False
+    parsed = parse_stripe_signature_header(signature_header)
+    timestamp = safe_str((parsed.get("t") or [""])[0])
+    signatures = parsed.get("v1") or []
+    try:
+        timestamp_int = int(timestamp)
+    except ValueError:
+        return False
+    if tolerance_seconds > 0 and abs(int(time.time()) - timestamp_int) > tolerance_seconds:
+        return False
+    signed_payload = f"{timestamp}.".encode("utf-8") + raw_body
+    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected, candidate) for candidate in signatures)
+
+
+def supabase_billing_event_status(event_id: str) -> str:
+    rows = supabase_admin_request(
+        "GET",
+        "/rest/v1/billing_events",
+        query={
+            "stripe_event_id": f"eq.{event_id}",
+            "select": "stripe_event_id,status",
+            "limit": "1",
+        },
+    )
+    if isinstance(rows, list) and rows:
+        return safe_str(ensure_dict(rows[0]).get("status")).lower()
+    return ""
+
+
+def record_billing_event_once(event: dict[str, Any]) -> bool:
+    event_id = safe_str(event.get("id"))
+    if not event_id:
+        raise RuntimeError("stripe_event_missing_id")
+    existing_status = supabase_billing_event_status(event_id)
+    if existing_status in {"processed", "ignored"}:
+        return False
+    payload = {
+        "stripe_event_id": event_id,
+        "event_type": safe_str(event.get("type")),
+        "livemode": bool(event.get("livemode")),
+        "status": "processed",
+        "processed_at": now_iso(),
+        "payload": event,
+    }
+    if existing_status == "failed":
+        supabase_admin_request(
+            "PATCH",
+            "/rest/v1/billing_events",
+            query={"stripe_event_id": f"eq.{event_id}"},
+            payload=payload,
+            prefer="return=minimal",
+        )
+    else:
+        supabase_admin_request(
+            "POST",
+            "/rest/v1/billing_events",
+            payload=payload,
+            prefer="return=minimal",
+        )
+    return True
+
+
+def mark_billing_event_status(event_id: str, status: str, error: str = "") -> None:
+    if not event_id:
+        return
+    payload = {
+        "status": status if status in {"processed", "ignored", "failed"} else "failed",
+        "processed_at": now_iso(),
+        "error": error[:1000] if error else None,
+    }
+    supabase_admin_request(
+        "PATCH",
+        "/rest/v1/billing_events",
+        query={"stripe_event_id": f"eq.{event_id}"},
+        payload=payload,
+        prefer="return=minimal",
+    )
+
+
+def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any]:
+    metadata = ensure_dict(session.get("metadata"))
+    user_id = safe_str(metadata.get("kmfx_user_id") or session.get("client_reference_id")).lower()
+    customer_id = safe_str(session.get("customer"))
+    email = safe_str(ensure_dict(session.get("customer_details")).get("email") or metadata.get("kmfx_user_email")).lower()
+    if not user_id:
+        raise RuntimeError("checkout_session_missing_user")
+    if customer_id:
+        supabase_upsert_billing_customer(
+            user_id,
+            customer_id,
+            email=email,
+            metadata={"source": "checkout.session.completed", "stripe_livemode": bool(session.get("livemode"))},
+        )
+    subscription_id = safe_str(session.get("subscription"))
+    if not subscription_id:
+        return {"user_id": user_id, "subscription": "", "processed": "customer"}
+    subscription = fetch_stripe_subscription(subscription_id)
+    return sync_billing_subscription(subscription, user_id=user_id, email=email)
+
+
+def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
+    event_type = safe_str(event.get("type"))
+    data_object = ensure_dict(ensure_dict(event.get("data")).get("object"))
+    if event_type == "checkout.session.completed":
+        return process_checkout_session_completed(data_object)
+    if event_type in {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"}:
+        return sync_billing_subscription(data_object)
+    if event_type == "customer.updated":
+        metadata = ensure_dict(data_object.get("metadata"))
+        user_id = safe_str(metadata.get("kmfx_user_id")).lower()
+        customer_id = safe_str(data_object.get("id"))
+        if user_id and customer_id:
+            supabase_upsert_billing_customer(
+                user_id,
+                customer_id,
+                email=safe_str(data_object.get("email")).lower(),
+                metadata={"source": "customer.updated", "stripe_livemode": bool(data_object.get("livemode"))},
+            )
+            return {"user_id": user_id, "customer": customer_id}
+    return {"ignored": event_type or "unknown"}
 
 
 def connection_key_creation_denial(
@@ -4078,6 +4691,180 @@ async def billing_status(request: Request) -> JSONResponse:
         ensure_dict(payload.get("billing")).get("access") or "",
     )
     return connector_json_response(payload)
+
+
+@app.post("/api/billing/checkout")
+async def billing_checkout(request: Request) -> JSONResponse:
+    context, denial = billing_user_context(request)
+    if denial is not None:
+        return denial
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+
+    plan = normalize_plan_key(payload.get("plan") or payload.get("plan_key") or payload.get("planKey") or "pro")
+    interval = safe_str(payload.get("interval") or payload.get("cadence") or "monthly").lower()
+    if interval not in {"monthly", "yearly"}:
+        return billing_json_response({"ok": False, "reason": "invalid_interval", "error": "invalid_interval"}, status_code=400)
+    if plan not in {"core", "pro"}:
+        return billing_json_response({"ok": False, "reason": "invalid_plan", "error": "invalid_plan"}, status_code=400)
+
+    try:
+        price_reference = resolve_stripe_price_reference(plan, interval)
+        customer_id = ensure_billing_customer(context)
+        user_id = safe_str(context.get("user_id")).lower()
+        email = safe_str(context.get("email")).lower()
+        session = stripe_api_request(
+            "POST",
+            "/checkout/sessions",
+            {
+                "mode": "subscription",
+                "customer": customer_id,
+                "client_reference_id": user_id,
+                "success_url": safe_str(payload.get("success_url") or payload.get("successUrl") or billing_success_url()),
+                "cancel_url": safe_str(payload.get("cancel_url") or payload.get("cancelUrl") or billing_cancel_url()),
+                "allow_promotion_codes": _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
+                "line_items": [
+                    {
+                        "price": price_reference["price_id"],
+                        "quantity": 1,
+                    }
+                ],
+                "metadata": {
+                    "app": "kmfx_edge",
+                    "kmfx_user_id": user_id,
+                    "kmfx_user_email": email,
+                    "kmfx_plan": plan,
+                    "kmfx_interval": interval,
+                    "stripe_lookup_key": price_reference.get("lookup_key") or "",
+                },
+                "subscription_data": {
+                    "metadata": {
+                        "app": "kmfx_edge",
+                        "kmfx_user_id": user_id,
+                        "kmfx_user_email": email,
+                        "kmfx_plan": plan,
+                        "kmfx_interval": interval,
+                    },
+                },
+            },
+        )
+    except ValueError as exc:
+        return billing_json_response({"ok": False, "reason": safe_str(exc) or "invalid_request", "error": safe_str(exc) or "invalid_request"}, status_code=400)
+    except RuntimeError as exc:
+        reason = safe_str(exc) or "billing_checkout_failed"
+        status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured", "price_not_configured"} else 502
+        return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
+
+    checkout_url = safe_str(session.get("url"))
+    if not checkout_url:
+        return billing_json_response({"ok": False, "reason": "stripe_checkout_url_missing", "error": "stripe_checkout_url_missing"}, status_code=502)
+    return billing_json_response(
+        {
+            "ok": True,
+            "checkout_url": checkout_url,
+            "url": checkout_url,
+            "session_id": safe_str(session.get("id")),
+            "plan": plan,
+            "interval": interval,
+        }
+    )
+
+
+@app.post("/api/billing/portal")
+async def billing_portal(request: Request) -> JSONResponse:
+    context, denial = billing_user_context(request)
+    if denial is not None:
+        return denial
+    try:
+        customer_id = ensure_billing_customer(context)
+    except RuntimeError as exc:
+        reason = safe_str(exc) or "billing_customer_failed"
+        status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
+        return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    try:
+        session = stripe_api_request(
+            "POST",
+            "/billing_portal/sessions",
+            {
+                "customer": customer_id,
+                "return_url": safe_str(payload.get("return_url") or payload.get("returnUrl") or f"{billing_public_app_url()}/ajustes"),
+            },
+        )
+    except RuntimeError as exc:
+        reason = safe_str(exc) or "billing_portal_failed"
+        status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
+        return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
+
+    portal_url = safe_str(session.get("url"))
+    if not portal_url:
+        return billing_json_response({"ok": False, "reason": "stripe_portal_url_missing", "error": "stripe_portal_url_missing"}, status_code=502)
+    return billing_json_response(
+        {
+            "ok": True,
+            "portal_url": portal_url,
+            "url": portal_url,
+            "session_id": safe_str(session.get("id")),
+        }
+    )
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request) -> JSONResponse:
+    raw_body = await request.body()
+    signature = safe_str(request.headers.get("stripe-signature") or request.headers.get("Stripe-Signature"))
+    secret = stripe_webhook_secret()
+    if not verify_stripe_webhook_signature(raw_body, signature, secret):
+        log.warning("Stripe webhook rejected | reason=invalid_signature")
+        return billing_json_response({"ok": False, "reason": "invalid_signature", "error": "invalid_signature"}, status_code=400)
+    try:
+        event = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return billing_json_response({"ok": False, "reason": "invalid_payload", "error": "invalid_payload"}, status_code=400)
+    if not isinstance(event, dict):
+        return billing_json_response({"ok": False, "reason": "invalid_payload", "error": "invalid_payload"}, status_code=400)
+
+    event_id = safe_str(event.get("id"))
+    try:
+        should_process = record_billing_event_once(event)
+    except RuntimeError as exc:
+        reason = safe_str(exc) or "billing_event_record_failed"
+        status_code = 503 if reason == "supabase_service_role_not_configured" else 502
+        return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
+    if not should_process:
+        return billing_json_response({"ok": True, "duplicate": True, "event_id": event_id})
+
+    try:
+        result = process_stripe_billing_event(event)
+        if result.get("ignored"):
+            mark_billing_event_status(event_id, "ignored")
+        else:
+            mark_billing_event_status(event_id, "processed")
+    except Exception as exc:
+        log.exception("Stripe webhook processing failed | event_id=%s type=%s", event_id, safe_str(event.get("type")))
+        try:
+            mark_billing_event_status(event_id, "failed", safe_str(exc))
+        except Exception:
+            log.warning("Stripe webhook failed status update failed | event_id=%s", event_id)
+        return billing_json_response({"ok": False, "reason": "webhook_processing_failed", "error": "webhook_processing_failed"}, status_code=500)
+
+    return billing_json_response(
+        {
+            "ok": True,
+            "event_id": event_id,
+            "event_type": safe_str(event.get("type")),
+            "result": result,
+        }
+    )
 
 
 @app.post("/api/backtests/mt5/import")

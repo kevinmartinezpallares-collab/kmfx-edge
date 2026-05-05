@@ -1,8 +1,11 @@
 import asyncio
+import hashlib
+import hmac
 import json
 import unittest
 import os
 import tempfile
+import time
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -595,6 +598,195 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("billing_attention", body["billing"]["access"])
         self.assertEqual(1, body["entitlements"]["liveMt5Accounts"])
         self.assertTrue(body["entitlements"]["launcherConnection"])
+
+    def test_billing_checkout_creates_subscription_session(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={"plan": "pro", "interval": "monthly"},
+        )
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"},
+        ) as price_mock, patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_123",
+        ) as customer_mock, patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "cs_123", "url": "https://checkout.stripe.test/session"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("https://checkout.stripe.test/session", body["url"])
+        price_mock.assert_called_once_with("pro", "monthly")
+        customer_mock.assert_called_once()
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/checkout/sessions", path)
+        self.assertEqual("subscription", params["mode"])
+        self.assertEqual("cus_123", params["customer"])
+        self.assertEqual("price_pro_monthly", params["line_items"][0]["price"])
+        self.assertEqual(user_id, params["metadata"]["kmfx_user_id"])
+        self.assertEqual("pro", params["subscription_data"]["metadata"]["kmfx_plan"])
+
+    def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:
+        response = asyncio.run(connector_api.billing_checkout(self._request(json_body={"plan": "pro"})))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(401, response.status_code)
+        self.assertEqual("auth_required", body["reason"])
+
+    def test_billing_portal_creates_customer_portal_session(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={"return_url": "https://kmfxedge.com/ajustes"},
+        )
+        user_id = "22222222-2222-4222-8222-222222222222"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "pro"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_456",
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "bps_123", "url": "https://billing.stripe.test/portal"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_portal(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("https://billing.stripe.test/portal", body["portal_url"])
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/billing_portal/sessions", path)
+        self.assertEqual("cus_456", params["customer"])
+        self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
+
+    def _stripe_signature_header(self, body: bytes, secret: str, timestamp: int | None = None) -> str:
+        timestamp = timestamp or int(time.time())
+        signed_payload = f"{timestamp}.".encode("utf-8") + body
+        signature = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+        return f"t={timestamp},v1={signature}"
+
+    def test_billing_webhook_verifies_signature_and_processes_once(self) -> None:
+        secret = "whsec_test_secret"
+        event = {
+            "id": "evt_123",
+            "type": "customer.subscription.updated",
+            "livemode": False,
+            "data": {
+                "object": {
+                    "id": "sub_123",
+                    "customer": "cus_123",
+                    "status": "active",
+                    "metadata": {"kmfx_user_id": "33333333-3333-4333-8333-333333333333"},
+                    "items": {"data": [{"price": {"id": "price_pro", "lookup_key": "kmfx_pro_monthly"}}]},
+                }
+            },
+        }
+        body_bytes = json.dumps(event, separators=(",", ":")).encode("utf-8")
+        request = self._request(
+            headers={"stripe-signature": self._stripe_signature_header(body_bytes, secret)},
+            body_bytes=body_bytes,
+        )
+        with patch.dict(os.environ, {"STRIPE_WEBHOOK_SECRET": secret}), patch.object(
+            connector_api,
+            "record_billing_event_once",
+            return_value=True,
+        ) as record_mock, patch.object(
+            connector_api,
+            "process_stripe_billing_event",
+            return_value={"user_id": "33333333-3333-4333-8333-333333333333", "plan": "pro", "status": "active"},
+        ) as process_mock, patch.object(
+            connector_api,
+            "mark_billing_event_status",
+        ) as mark_mock:
+            response = asyncio.run(connector_api.billing_webhook(request))
+
+        payload = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(payload["ok"])
+        self.assertEqual("evt_123", payload["event_id"])
+        record_mock.assert_called_once()
+        process_mock.assert_called_once()
+        mark_mock.assert_called_with("evt_123", "processed")
+
+    def test_billing_webhook_rejects_invalid_signature(self) -> None:
+        body_bytes = b'{"id":"evt_bad","type":"customer.updated","data":{"object":{}}}'
+        request = self._request(headers={"stripe-signature": "t=1,v1=bad"}, body_bytes=body_bytes)
+        with patch.dict(os.environ, {"STRIPE_WEBHOOK_SECRET": "whsec_test_secret"}):
+            response = asyncio.run(connector_api.billing_webhook(request))
+        payload = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("invalid_signature", payload["reason"])
+
+    def test_sync_subscription_updates_billing_tables_and_app_metadata(self) -> None:
+        subscription = {
+            "id": "sub_123",
+            "customer": "cus_123",
+            "status": "active",
+            "current_period_start": 1770000000,
+            "current_period_end": 1772600000,
+            "cancel_at_period_end": False,
+            "metadata": {
+                "kmfx_user_id": "44444444-4444-4444-8444-444444444444",
+                "kmfx_user_email": "pro@example.com",
+            },
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_pro_monthly",
+                            "lookup_key": "kmfx_pro_monthly",
+                            "product": "prod_pro",
+                            "metadata": {},
+                        }
+                    }
+                ]
+            },
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock, patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ) as subscription_mock, patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ) as metadata_mock:
+            result = connector_api.sync_billing_subscription(subscription)
+
+        self.assertEqual("pro", result["plan"])
+        customer_mock.assert_called_once()
+        subscription_row = subscription_mock.call_args.args[0]
+        self.assertEqual("pro", subscription_row["plan_key"])
+        self.assertEqual("active", subscription_row["status"])
+        metadata = metadata_mock.call_args.args[1]
+        self.assertEqual("pro", metadata["kmfx_plan"])
+        self.assertEqual("active", metadata["kmfx_billing_status"])
+        self.assertEqual("sub_123", metadata["stripe_subscription_id"])
 
     def test_restricted_billing_blocks_connection_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

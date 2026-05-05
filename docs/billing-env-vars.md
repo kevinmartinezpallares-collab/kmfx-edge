@@ -1,8 +1,8 @@
 # Billing Environment Variables
 
-These variables are for the future Next.js + shadcn implementation. Keep server secrets out of browser-exposed variables.
+These variables are used by the current Python API billing endpoints and can be reused by the future Next.js + shadcn implementation. Keep server secrets out of browser-exposed variables.
 
-## Next.js server variables
+## Server variables
 
 ```bash
 STRIPE_SECRET_KEY=sk_test_...
@@ -18,6 +18,13 @@ NEXT_PUBLIC_APP_URL=https://kmfxedge.com
 BILLING_SUCCESS_PATH=/settings/billing?checkout=success
 BILLING_CANCEL_PATH=/settings/billing?checkout=cancelled
 ```
+
+Current backend endpoints:
+
+- `POST /api/billing/checkout`: creates a Stripe Checkout Session in subscription mode.
+- `POST /api/billing/portal`: creates a Stripe Customer Portal Session.
+- `POST /api/billing/webhook`: verifies Stripe signature, records `billing_events`, upserts customer/subscription rows and updates Supabase `app_metadata`.
+- `GET /api/billing/status`: reads current plan/status from trusted `app_metadata`.
 
 ## Price lookup keys
 
@@ -35,6 +42,8 @@ STRIPE_PRICE_PRO_YEARLY=kmfx_pro_yearly
 - Webhook verification must use the raw request body.
 - Do not authorize by Stripe metadata alone; map Stripe customer/subscription records back to Supabase `auth.users.id`.
 - Use service role only inside trusted server routes or background jobs.
+- Webhook events must be idempotent through `billing_events.stripe_event_id`.
+- Checkout should use Price IDs or lookup keys from server env, never client-provided prices.
 
 ## Local development notes
 
