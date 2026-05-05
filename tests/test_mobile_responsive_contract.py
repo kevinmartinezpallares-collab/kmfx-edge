@@ -382,6 +382,37 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn(".risk-professional-header", compact_block)
         self.assertIn("justify-items: start !important", compact_block)
 
+    def test_mobile_headers_and_tabs_remain_reachable(self) -> None:
+        css = read_text("styles-v2.css")
+        header_block = media_block(css, "@media (max-width: 760px)", "Mobile header and tab hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile header and tab hardening")
+
+        for selector in [
+            ".kmfx-ui-page-header",
+            ".dashboard-screen__header",
+            ".calendar-screen__header",
+            ".strategies-screen__header",
+            ".risk-engine-page-header",
+            ".tl-section-header",
+            ".funding-section-head",
+            ".calendar-day-report__section-head",
+            ".kmfx-ui-page-header__actions",
+            ".calendar-screen__actions",
+            ".tl-tab-bar",
+            ".widget-segmented",
+            ".calculator-segmented-control",
+            ".dashboard-chart-range",
+        ]:
+            self.assertIn(selector, header_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", header_block)
+        self.assertIn("font-size: clamp(20px, 7vw, 30px) !important", header_block)
+        self.assertIn("overflow-x: auto !important", header_block)
+        self.assertIn("overscroll-behavior-inline: contain", header_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", header_block)
+        self.assertIn("max-width: min(70vw, 220px) !important", header_block)
+        self.assertIn("flex-basis: min(100%, 280px) !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

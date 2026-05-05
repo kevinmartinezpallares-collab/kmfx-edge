@@ -39966,3 +39966,201 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     white-space: normal !important;
   }
 }
+
+/* Mobile header and tab hardening: keep page context and secondary navigation reachable. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .dashboard-screen__header,
+    .calendar-screen__header,
+    .analytics-screen__header,
+    .trades-screen__header,
+    .strategies-screen__header,
+    .risk-engine-page-header,
+    .capital-page__header,
+    .funded-page-stack .tl-page-header,
+    .settings-toolbar,
+    .tl-section-header,
+    .funding-section-head,
+    .strategies-section-heading,
+    .execution-section-header,
+    .calendar-day-report__section-head,
+    .trades-position-focus__section-head
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__title,
+    .tl-page-title,
+    .calendar-screen__title,
+    .dashboard-screen__title,
+    .tl-section-title,
+    .strategies-section-heading .tl-section-title,
+    .settings-toolbar-title,
+    .calendar-panel-title,
+    .trades-overview-title,
+    .trades-focus-section__title,
+    .trades-position-focus__section-title
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    font-size: clamp(20px, 7vw, 30px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__description,
+    .tl-page-sub,
+    .calendar-screen__subtitle,
+    .row-sub,
+    .kmfx-ui-card__description,
+    .kmfx-ui-chart-card__description,
+    .settings-inline-note,
+    .strategies-section-heading .row-sub,
+    .calendar-panel-sub,
+    .trades-overview-subtitle
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .analytics-screen__actions,
+    .strategies-screen__actions,
+    .connections-shell__actions,
+    .connections-empty-card__actions,
+    .connections-guide-card__launcher-actions,
+    .settings-edit-actions,
+    .tl-section-actions,
+    .table-actions,
+    .strategies-table-actions,
+    .journal-ai-export-actions,
+    .risk-limit-actions,
+    .funding-detail-actions,
+    .kmfx-mt5-header__actions,
+    .kmfx-mt5-empty__actions,
+    .posttrade-tag-alert__actions,
+    .ptt-queue-actions,
+    .ptt-save-actions
+  ) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .analytics-screen__actions,
+    .strategies-screen__actions,
+    .connections-shell__actions,
+    .tl-section-actions,
+    .table-actions,
+    .strategies-table-actions,
+    .journal-ai-export-actions,
+    .risk-limit-actions,
+    .funding-detail-actions
+  )::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions > *,
+    .dashboard-screen__actions > *,
+    .calendar-screen__actions > *,
+    .analytics-screen__actions > *,
+    .strategies-screen__actions > *,
+    .connections-shell__actions > *,
+    .settings-edit-actions > *,
+    .tl-section-actions > *,
+    .table-actions > *,
+    .strategies-table-actions > *,
+    .journal-ai-export-actions > *,
+    .risk-limit-actions > *,
+    .funding-detail-actions > *,
+    .kmfx-mt5-header__actions > *,
+    .kmfx-mt5-empty__actions > *
+  ) {
+    flex: 0 0 auto;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    max-width: min(82vw, 280px) !important;
+    touch-action: manipulation;
+    white-space: normal !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .tl-tab-bar,
+    .kmfx-ui-tabs__list,
+    .kmfx-ui-segmented,
+    .analytics-screen__tabs,
+    .widget-segmented,
+    .calculator-segmented-control,
+    .calendar-view-toggle,
+    .calendar-value-toggle,
+    .dashboard-chart-range
+  ) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .tl-tab,
+    .kmfx-ui-tabs__trigger,
+    .kmfx-ui-segmented__item,
+    .widget-segmented-btn,
+    .calculator-segmented-control .calc-pill,
+    .dashboard-chart-range__button
+  ) {
+    flex: 0 0 auto;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    max-width: min(70vw, 220px) !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .analytics-screen__actions,
+    .strategies-screen__actions,
+    .connections-shell__actions,
+    .settings-edit-actions,
+    .tl-section-actions
+  ) > * {
+    flex-basis: min(100%, 280px) !important;
+  }
+}
