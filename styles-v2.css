@@ -39235,3 +39235,105 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     min-height: 40px !important;
   }
 }
+
+/* Mobile state-message hardening: keep empty, loading, notice, and error states readable. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-empty-state,
+    .connections-empty-card,
+    .risk-empty-state,
+    .risk-empty-state__primary,
+    .risk-data-state,
+    .calculator-advice-empty,
+    .capital-data-note,
+    .capital-cashflow-notice,
+    .connections-billing-notice,
+    .dashboard-direct-pending,
+    .strategies-empty-state,
+    .risk-simulation-empty,
+    .risk-symbol-search-empty,
+    .kmfx-mt5-admin-empty,
+    .kmfx-mt5-inline-error,
+    .auth-feedback,
+    .connection-wizard__alert
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: var(--kmfx-mobile-card-pad, 14px) !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-empty-state__title,
+    .kmfx-ui-empty-state__description,
+    .connections-empty-card .dashboard-risk-block__title,
+    .connections-empty-card .row-sub,
+    .risk-empty-state__primary strong,
+    .risk-empty-state__primary p,
+    .risk-empty-state__meta,
+    .risk-data-state strong,
+    .risk-data-state p,
+    .risk-data-state small,
+    .calculator-advice-empty strong,
+    .calculator-advice-empty span,
+    .capital-data-note,
+    .capital-cashflow-notice,
+    .strategies-empty-state__title,
+    .strategies-empty-state__copy,
+    .connection-wizard__alert-copy,
+    .connection-wizard__alert-copy p,
+    .connection-wizard__alert-copy small,
+    .auth-feedback
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .connections-empty-card__actions,
+    .risk-empty-state__meta,
+    .connection-wizard__alert,
+    .capital-data-note
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .connections-empty-card__actions > *,
+    .risk-empty-state__action,
+    .kmfx-ui-empty-state .btn-primary,
+    .kmfx-ui-empty-state .btn-secondary
+  ) {
+    width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    justify-content: center !important;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-empty-state,
+    .capital-table-empty
+  ) {
+    min-width: 100% !important;
+    padding: 16px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-empty-state,
+    .connections-empty-card,
+    .risk-empty-state__primary,
+    .risk-data-state,
+    .calculator-advice-empty,
+    .connection-wizard__alert
+  ) {
+    text-align: left !important;
+  }
+}

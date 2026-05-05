@@ -252,6 +252,31 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("flex-basis: min(42vw, 260px) !important", landscape_block)
         self.assertIn("min-height: 40px !important", landscape_block)
 
+    def test_mobile_state_messages_handle_long_copy(self) -> None:
+        css = read_text("styles-v2.css")
+        state_block = media_block(css, "@media (max-width: 760px)", "Mobile state-message hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile state-message hardening")
+
+        for selector in [
+            ".kmfx-ui-empty-state",
+            ".connections-empty-card",
+            ".risk-empty-state__primary",
+            ".risk-data-state",
+            ".calculator-advice-empty",
+            ".connection-wizard__alert",
+            ".trades-empty-state",
+            ".capital-table-empty",
+        ]:
+            self.assertIn(selector, state_block)
+
+        self.assertIn("padding: var(--kmfx-mobile-card-pad, 14px) !important", state_block)
+        self.assertIn("overflow-wrap: anywhere", state_block)
+        self.assertIn("hyphens: auto", state_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", state_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", state_block)
+        self.assertIn("white-space: normal !important", state_block)
+        self.assertIn("text-align: left !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
