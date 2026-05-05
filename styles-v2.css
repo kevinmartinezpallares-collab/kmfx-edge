@@ -37247,3 +37247,139 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     max-width: 82vw !important;
   }
 }
+
+/* Mobile sidebar defect pass: prevent stale blur, keep account/profile copy readable. */
+@media (max-width: 920px) {
+  body:not(.sidebar-mobile-open) .mobile-sidebar-backdrop,
+  html:not(.sidebar-mobile-open) .mobile-sidebar-backdrop,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-mobile-open) .mobile-sidebar-backdrop {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body.sidebar-mobile-open .mobile-sidebar-backdrop,
+  html.sidebar-mobile-open .mobile-sidebar-backdrop,
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .mobile-sidebar-backdrop {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-mobile-open) .main-panel,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-mobile-open) .content,
+  body:not(.sidebar-mobile-open) .main-panel,
+  body:not(.sidebar-mobile-open) .content {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-header.sidebar-section--header {
+    padding-right: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand {
+    padding-right: 42px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-slot {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty.sidebar-menu-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty.sidebar-menu-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty.sidebar-menu-button {
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 6px 8px !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__copy,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__copy,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__copy,
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__title,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__title,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-account-switcher--empty .sidebar-account-switcher__title {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-copy,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-copy,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-copy,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-copy,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-copy,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-copy {
+    display: block !important;
+    min-width: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-menu-btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-menu-btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-menu-btn,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-menu-btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-menu-btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-menu-btn {
+    display: inline-grid !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-trigger.sidebar-menu-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-trigger.sidebar-menu-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-trigger.sidebar-menu-button,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-trigger.sidebar-menu-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-trigger.sidebar-menu-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-trigger.sidebar-menu-button {
+    grid-template-columns: minmax(0, 1fr) 18px !important;
+    width: 100% !important;
+    min-height: 56px !important;
+    padding: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-main,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-main,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-main,
+  .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-main,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-main,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider:not(.sidebar-vnext-collapsed) .sidebar-profile-main {
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+    min-width: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-name,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-name,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-name,
+  .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-sub,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-sub,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-mobile-open .sidebar-profile-sub {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}

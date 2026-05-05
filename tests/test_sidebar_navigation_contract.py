@@ -192,6 +192,19 @@ class SidebarNavigationContractTests(unittest.TestCase):
         ]:
             self.assertNotIn(unscoped_selector, css)
 
+    def test_mobile_sidebar_defect_pass_keeps_drawer_state_crisp(self):
+        css = read_text("styles-v2.css")
+        js = read_text("js/modules/sidebar-vnext.js")
+
+        self.assertIn("Mobile sidebar defect pass", css)
+        self.assertIn("body:not(.sidebar-mobile-open) .mobile-sidebar-backdrop", css)
+        self.assertIn("backdrop-filter: none !important;", css)
+        self.assertIn(".sidebar-account-switcher--empty.sidebar-menu-button", css)
+        self.assertIn("grid-template-columns: 36px minmax(0, 1fr) !important;", css)
+        self.assertIn(".sidebar-mobile-open .sidebar-profile-copy", css)
+        self.assertIn("document.documentElement.classList.toggle(\"sidebar-mobile-open\", isMobileOpen)", js)
+        self.assertIn("window.addEventListener(\"pageshow\"", js)
+
 
 if __name__ == "__main__":
     unittest.main()

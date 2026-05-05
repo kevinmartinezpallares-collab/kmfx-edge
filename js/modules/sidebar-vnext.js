@@ -41,8 +41,9 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
   const mobileClose = document.querySelector("[data-sidebar-mobile-close]");
   const mobileBackdrop = document.querySelector("[data-mobile-sidebar-backdrop]");
   const isMobile = isMobileSidebarViewport();
+  const isMobileOpen = isMobile && !isCollapsed;
   shell.classList.toggle("sidebar-vnext-collapsed", isCollapsed);
-  shell.classList.toggle("sidebar-mobile-open", isMobile && !isCollapsed);
+  shell.classList.toggle("sidebar-mobile-open", isMobileOpen);
   shell.dataset.sidebarViewport = isMobile ? "mobile" : "desktop";
   shell.dataset.sidebarState = isCollapsed ? COLLAPSED_VALUE : EXPANDED_VALUE;
   shell.dataset.collapsible = isCollapsed ? "icon" : "";
@@ -57,12 +58,13 @@ function applySidebarState(shell, toggle, isCollapsed, shouldPersist = true) {
   toggle?.setAttribute("title", isCollapsed ? "Expandir sidebar" : "Colapsar sidebar");
   mobileToggle?.setAttribute("aria-label", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
   mobileToggle?.setAttribute("title", isCollapsed ? "Abrir navegación" : "Cerrar navegación");
-  mobileClose?.setAttribute("aria-hidden", isMobile && !isCollapsed ? "false" : "true");
+  mobileClose?.setAttribute("aria-hidden", isMobileOpen ? "false" : "true");
   if (mobileBackdrop) {
-    mobileBackdrop.hidden = !isMobile || isCollapsed;
-    mobileBackdrop.setAttribute("aria-hidden", (!isMobile || isCollapsed) ? "true" : "false");
+    mobileBackdrop.hidden = !isMobileOpen;
+    mobileBackdrop.setAttribute("aria-hidden", isMobileOpen ? "false" : "true");
   }
-  document.body.classList.toggle("sidebar-mobile-open", isMobile && !isCollapsed);
+  document.documentElement.classList.toggle("sidebar-mobile-open", isMobileOpen);
+  document.body.classList.toggle("sidebar-mobile-open", isMobileOpen);
 
   if (shouldPersist) {
     persistSidebarState(isCollapsed, isMobile);
@@ -116,6 +118,11 @@ export function initSidebarVNext() {
 
   window.addEventListener("kmfx:sidebar-close", () => {
     applySidebarState(shell, toggle, true);
+  });
+
+  window.addEventListener("pageshow", () => {
+    if (!isMobileSidebarViewport()) return;
+    applySidebarState(shell, toggle, true, false);
   });
 
   const mobileQuery = window.matchMedia?.(MOBILE_MEDIA_QUERY);
