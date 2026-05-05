@@ -38783,3 +38783,122 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     min-width: max(520px, 100%) !important;
   }
 }
+
+/* Mobile workflow polish: keep critical headers, filters, and action rails touch-safe. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-history-card .tl-section-header,
+    .trades-open-positions__header,
+    .capital-section__header,
+    .dashboard-enforcement__header,
+    .dashboard-screen__header,
+    .calendar-screen__header
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .tl-section-actions,
+    .trades-table-summary
+  ) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .tl-section-actions,
+    .trades-table-summary
+  )::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions button,
+    .dashboard-screen__actions button,
+    .calendar-screen__actions button,
+    .tl-section-actions button
+  ) {
+    flex: 0 0 auto;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    touch-action: manipulation;
+    white-space: nowrap;
+  }
+
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-toolbar,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-toolbar {
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-filter-field select,
+    .trades-filter-field input
+  ),
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-filter-field select,
+    .trades-filter-field input
+  ) {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    height: auto !important;
+    font-size: 16px !important;
+    line-height: 1.25 !important;
+  }
+
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-filter-field span,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-filter-field span {
+    letter-spacing: 0.04em;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-open-positions__summary,
+    .trades-table-summary,
+    .capital-section__pill,
+    .capital-kpi__label,
+    .capital-kpi__value,
+    .capital-kpi__meta
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions,
+    .dashboard-screen__actions,
+    .calendar-screen__actions,
+    .tl-section-actions
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    overflow-x: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-page-header__actions button,
+    .dashboard-screen__actions button,
+    .calendar-screen__actions button,
+    .tl-section-actions button
+  ) {
+    width: 100% !important;
+    justify-content: center !important;
+    white-space: normal;
+  }
+}

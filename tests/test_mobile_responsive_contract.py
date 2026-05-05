@@ -158,6 +158,28 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("display: none !important", data_block)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", data_block)
 
+    def test_mobile_workflow_controls_are_touch_safe(self) -> None:
+        css = read_text("styles-v2.css")
+        workflow_block = media_block(css, "@media (max-width: 760px)", "Mobile workflow polish")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile workflow polish")
+
+        for selector in [
+            ".trades-history-card .tl-section-header",
+            ".trades-toolbar",
+            ".trades-filter-field select",
+            ".dashboard-screen__actions button",
+            ".capital-section__pill",
+            ".capital-kpi__value",
+        ]:
+            self.assertIn(selector, workflow_block)
+
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", workflow_block)
+        self.assertIn("font-size: 16px !important", workflow_block)
+        self.assertIn("touch-action: manipulation", workflow_block)
+        self.assertIn("scrollbar-width: none", workflow_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
+        self.assertIn("width: 100% !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
