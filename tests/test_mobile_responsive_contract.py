@@ -75,6 +75,24 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn(".tool-actions", mobile_block)
         self.assertIn("grid-template-columns: minmax(0, 1fr)", mobile_block)
 
+    def test_mobile_forms_stack_and_keep_native_inputs_readable(self) -> None:
+        css = read_text("styles-v2.css")
+        form_block = media_block(css, "@media (max-width: 760px)", "Mobile form hardening")
+
+        for selector in [
+            ".settings-card .form-grid-clean",
+            ".settings-check-grid",
+            ".funding-config-modal .form-grid-clean",
+            ".calculator-config-card .form-grid-clean",
+        ]:
+            self.assertIn(selector, form_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", form_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", form_block)
+        self.assertIn("font-size: 16px !important", form_block)
+        self.assertIn(".settings-actions button", form_block)
+        self.assertIn("width: 100% !important", form_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

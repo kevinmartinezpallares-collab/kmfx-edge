@@ -38221,3 +38221,147 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Mobile form hardening: prevent settings/funding/calculator controls from forcing page overflow. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-toolbar,
+    .settings-layout,
+    .settings-layout-main,
+    .settings-layout-side,
+    .settings-card,
+    .settings-card .tl-section-header,
+    .settings-card .form-grid-clean,
+    .settings-check-grid,
+    .settings-actions,
+    .settings-edit-actions,
+    .settings-data-actions,
+    .funding-config-modal,
+    .calculator-config-card,
+    .calculator-spec-card,
+    .calculator-quick-card,
+    .calculator-workspace-card,
+    .calculator-advanced-card
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-card .form-grid-clean,
+    .settings-check-grid,
+    .settings-check-grid--wide,
+    .settings-layout-side,
+    .funding-config-modal .form-grid-clean,
+    .calculator-config-card .form-grid-clean,
+    .calculator-spec-card .form-grid-clean,
+    .calculator-quick-card .form-grid-clean,
+    .calculator-workspace-card .form-grid-clean,
+    .calculator-advanced-card .form-grid-clean
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-card .form-stack,
+    .settings-card .form-stack-wide,
+    .funding-config-modal .form-stack,
+    .calculator-config-card .form-stack,
+    .calculator-spec-card .form-stack,
+    .calculator-quick-card .form-stack,
+    .calculator-workspace-card .form-stack,
+    .calculator-advanced-card .form-stack
+  ) {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    input,
+    select,
+    textarea,
+    .settings-card .form-stack input,
+    .settings-card .form-stack select,
+    .funding-config-modal .form-stack input,
+    .funding-config-modal .form-stack select,
+    .funding-config-modal .form-stack textarea,
+    .calculator-config-card .form-stack input,
+    .calculator-config-card .form-stack select,
+    .calculator-spec-card .form-stack input,
+    .calculator-spec-card .form-stack select,
+    .calculator-quick-card .form-stack input,
+    .calculator-quick-card .form-stack select,
+    .calculator-workspace-card .form-stack input,
+    .calculator-workspace-card .form-stack select,
+    .calculator-advanced-card .form-stack input,
+    .calculator-advanced-card .form-stack select
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    font-size: 16px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(textarea, .funding-config-modal textarea) {
+    min-height: 104px !important;
+    resize: vertical;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-check,
+    .settings-status-card,
+    .settings-profile-card,
+    .settings-placeholder,
+    .funding-config-modal .form-stack,
+    .calculator-config-card .form-stack,
+    .calculator-spec-card .form-stack,
+    .calculator-quick-card .form-stack,
+    .calculator-workspace-card .form-stack,
+    .calculator-advanced-card .form-stack
+  ) {
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-actions,
+    .settings-edit-actions,
+    .settings-data-actions
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-actions button,
+    .settings-edit-actions button,
+    .settings-data-actions button,
+    .funded-detail-btn,
+    .funding-edit-config-btn
+  ) {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-toolbar,
+    .settings-card.tl-section-card,
+    .settings-layout-side .settings-card.tl-section-card
+  ) {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .settings-profile-card,
+    .settings-check,
+    .settings-status-card,
+    .settings-placeholder
+  ) {
+    padding: 10px !important;
+  }
+}
