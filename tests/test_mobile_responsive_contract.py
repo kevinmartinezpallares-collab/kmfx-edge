@@ -458,6 +458,33 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("overflow-wrap: anywhere", connections_block)
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
 
+    def test_mobile_top_safe_rhythm_keeps_headers_clear_of_app_bar(self) -> None:
+        css = read_text("styles-v2.css")
+        top_block = media_block(css, "@media (max-width: 920px)", "Mobile top-safe rhythm")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile top-safe rhythm")
+        short_block = media_block(css, "@media (max-width: 920px) and (max-height: 560px)", "Mobile top-safe rhythm")
+
+        for selector in [
+            ".content",
+            ".content-sticky-header",
+            ".kmfx-ui-page-header",
+            ".tl-page-header",
+            ".dashboard-screen__header",
+            ".calendar-screen__header",
+            ".connections-shell .calendar-screen__header",
+        ]:
+            self.assertIn(selector, top_block)
+
+        self.assertIn("--kmfx-mobile-top-rhythm: 16px", top_block)
+        self.assertIn("padding-top: var(--kmfx-mobile-top-rhythm, 16px) !important", top_block)
+        self.assertIn("scroll-margin-top: calc(72px + env(safe-area-inset-top)) !important", top_block)
+        self.assertIn("margin: 10px 0 14px auto !important", top_block)
+        self.assertIn("padding-top: 0 !important", top_block)
+        self.assertIn("--kmfx-mobile-top-rhythm: 18px", compact_block)
+        self.assertIn("max-width: calc(100vw - 24px) !important", compact_block)
+        self.assertIn("--kmfx-mobile-top-rhythm: 10px", short_block)
+        self.assertIn("margin-bottom: 10px !important", short_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
