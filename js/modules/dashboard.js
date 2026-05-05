@@ -1972,8 +1972,35 @@ export function renderDashboard(root, state) {
         actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
       })}
 
-      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview dashboard-professional-kpi-row" data-dashboard-professional-kpis>
-        ${professionalKpisHtml}
+      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview dashboard-kpi-row--primary">
+        ${renderDashboardKpiCard({
+          key: "equity",
+          label: "Equity",
+          value: formatCurrency(model.account.equity),
+          meta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
+          tone: "info",
+        })}
+        ${renderDashboardKpiCard({
+          key: "pnl",
+          label: "P&L",
+          value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay}`,
+          meta: `Retorno ${formatPercent(currentReturnPct)}`,
+          tone: panelSecondMetricValue >= 0 ? "profit" : "loss",
+        })}
+        ${renderDashboardKpiCard({
+          key: "dd",
+          label: "Drawdown",
+          value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
+          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+          tone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
+        })}
+        ${renderDashboardKpiCard({
+          key: "edge",
+          label: "Edge",
+          value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
+          meta: profitFactorMeta,
+          tone: "neutral",
+        })}
       </section>
 
       <section class="dashboard-layout">
@@ -1996,6 +2023,10 @@ export function renderDashboard(root, state) {
             </div>
           </div>
         </article>
+
+        <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-professional-kpi-row" data-dashboard-professional-kpis>
+          ${professionalKpisHtml}
+        </section>
 
         ${hasOpenPositions ? `
         <div class="dashboard-secondary-stack dashboard-state-grid">

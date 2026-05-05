@@ -20,7 +20,7 @@ class DashboardSimplificationContractTests(unittest.TestCase):
         dashboard = read_text("js/modules/dashboard.js")
         styles = read_text("styles-v2.css")
         overview = re.search(
-            r'<section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview">(?P<body>.*?)</section>',
+            r'<section class="[^"]*dashboard-kpi-row--overview[^"]*"[^>]*>(?P<body>.*?)</section>',
             dashboard,
             re.S,
         )
@@ -37,14 +37,24 @@ class DashboardSimplificationContractTests(unittest.TestCase):
         ]:
             self.assertIn(snippet, dashboard)
 
-        self.assertEqual(overview_body.count("renderDashboardKpiCard({"), 6)
+        self.assertEqual(overview_body.count("renderDashboardKpiCard({"), 4)
         self.assertIn('key: "equity"', overview_body)
         self.assertIn('key: "pnl"', overview_body)
         self.assertIn('key: "dd"', overview_body)
         self.assertIn('key: "edge"', overview_body)
-        self.assertIn('key: "open-risk"', overview_body)
-        self.assertIn('key: "positions"', overview_body)
+        self.assertNotIn('key: "open-risk"', overview_body)
+        self.assertNotIn('key: "positions"', overview_body)
         self.assertIn("grid-template-columns: repeat(6, minmax(0, 1fr));", styles)
+        self.assertIn(".dashboard-kpi-row--primary {\n  grid-template-columns: repeat(4, minmax(0, 1fr));", styles)
+        render_fragment = dashboard[dashboard.rindex("root.innerHTML = `"):]
+        self.assertLess(
+            render_fragment.index("dashboard-kpi-row--overview"),
+            render_fragment.index("dashboard-layout"),
+        )
+        self.assertLess(
+            render_fragment.index("dashboard-layout"),
+            render_fragment.index("data-dashboard-professional-kpis"),
+        )
         self.assertIn("dashboard-kpi-card__help-wrap", dashboard)
         self.assertIn("data-dashboard-kpi-tooltip", dashboard)
         self.assertIn("aria-describedby", dashboard)
