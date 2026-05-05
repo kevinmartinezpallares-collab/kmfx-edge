@@ -73,6 +73,7 @@ Hacer el rediseño real:
 - [x] Instalar skill oficial `shadcn/ui` en el proyecto para guiar componentes y patrones.
 - [x] Detectar contexto shadcn actual: proyecto `Manual`, sin `components.json`; no instalar componentes React sobre la app legacy.
 - [x] Añadir `?` explicativo en KPIs principales del Dashboard con patrón tipo Tooltip: trigger enfocable + contenido asociado.
+- [x] Preparar contrato KPI VNext sin tocar visual: selector puro para `Net Return`, `Max Drawdown`, `VaR 95`, `VaR 99`, `Exposure`, `Volatilidad anualizada`, `Sortino` y `D-Score`.
 
 ### Fase 0: Limpieza tactica actual
 
