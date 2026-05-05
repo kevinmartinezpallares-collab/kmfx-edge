@@ -301,6 +301,31 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("white-space: normal !important", number_block)
         self.assertIn("font-size: clamp(19px, 8.5vw, 29px) !important", compact_block)
 
+    def test_mobile_auth_surface_is_independent_from_dashboard_shell(self) -> None:
+        css = read_text("styles-v2.css")
+        auth_block = media_block(css, "@media (max-width: 920px)", "Mobile auth hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile auth hardening")
+        short_block = media_block(css, "@media (max-width: 920px) and (max-height: 560px)", "Mobile auth hardening")
+
+        for selector in [
+            ".auth-screen",
+            ".auth-layout",
+            ".auth-showcase",
+            ".auth-card",
+            ".auth-form-grid",
+            ".auth-turnstile-wrap",
+            ".auth-action",
+        ]:
+            self.assertIn(selector, auth_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", auth_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", auth_block)
+        self.assertIn("font-size: 16px !important", auth_block)
+        self.assertIn("overflow-x: auto !important", auth_block)
+        self.assertIn("white-space: normal !important", auth_block)
+        self.assertIn(".auth-benefits", compact_block)
+        self.assertIn("max-height: 44dvh !important", short_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
