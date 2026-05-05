@@ -193,7 +193,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     },
                 )
 
-                response = asyncio.run(connector_api.link_account(request))
+                with patch.dict("os.environ", {"KMFX_DEFAULT_CONNECTION_PLAN": "core"}, clear=False):
+                    response = asyncio.run(connector_api.link_account(request))
                 body = json.loads(response.body.decode("utf-8"))
                 raw_key = body["connection_key"]
 
@@ -349,12 +350,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_connection_plan_limit_blocks_extra_free_connection(self) -> None:
+    def test_free_plan_requires_launcher_entitlement_before_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
             try:
-                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
                 response = connector_api.connection_key_creation_denial(
                     user_id="user-123",
                     context={"is_admin": False, "app_metadata": {"plan": "free"}, "user_metadata": {}},
@@ -363,7 +363,34 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.account_service = previous_service
 
         self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
+
+    def test_core_plan_limit_blocks_extra_connection(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {"plan": "core", "billing_status": "active"},
+                        "user_metadata": {},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(409, response.status_code)
+        self.assertEqual("plan_limit_reached", body["reason"])
+        self.assertEqual(1, body["details"]["connection_limit"])
+        self.assertEqual("liveMt5Accounts", body["details"]["entitlement"])
 
     def test_connection_plan_limit_allows_admin(self) -> None:
         response = connector_api.connection_key_creation_denial(
@@ -389,7 +416,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.account_service = previous_service
 
         self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
 
     def test_user_metadata_plan_does_not_raise_connection_limit(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -401,7 +431,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     user_id="user-123",
                     context={
                         "is_admin": False,
-                        "app_metadata": {},
+                        "app_metadata": {"plan": "core", "billing_status": "active"},
                         "user_metadata": {"plan": "business", "kmfx_connection_limit": 99},
                     },
                 )
@@ -409,7 +439,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.account_service = previous_service
 
         self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(409, response.status_code)
+        self.assertEqual("plan_limit_reached", body["reason"])
+        self.assertEqual(1, body["details"]["connection_limit"])
 
     def test_user_metadata_mt5_disabled_does_not_block_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -420,7 +453,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     user_id="user-123",
                     context={
                         "is_admin": False,
-                        "app_metadata": {},
+                        "app_metadata": {"plan": "core", "billing_status": "active"},
                         "user_metadata": {"mt5_enabled": "false"},
                     },
                 )
@@ -562,6 +595,50 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("billing_attention", body["billing"]["access"])
         self.assertEqual(1, body["entitlements"]["liveMt5Accounts"])
         self.assertTrue(body["entitlements"]["launcherConnection"])
+
+    def test_restricted_billing_blocks_connection_key_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {"plan": "pro", "billing_status": "unpaid"},
+                        "user_metadata": {},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(402, response.status_code)
+        self.assertEqual("billing_required", body["reason"])
+        self.assertEqual("restricted", body["details"]["billing_access"])
+
+    def test_past_due_billing_blocks_new_connection_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={
+                        "is_admin": False,
+                        "app_metadata": {"plan": "core", "billing_status": "past_due"},
+                        "user_metadata": {},
+                    },
+                )
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(402, response.status_code)
+        self.assertEqual("billing_past_due", body["reason"])
+        self.assertEqual("billing_attention", body["details"]["billing_access"])
 
     def test_connection_key_rate_limit_is_per_key_and_endpoint(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()

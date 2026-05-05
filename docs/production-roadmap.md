@@ -243,14 +243,14 @@ Criterio de salida:
 Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 
 - [x] Añadir helper backend de entitlements para status/guards iniciales.
-- [ ] Exigir auth antes de crear cuentas MT5.
-- [ ] Exigir `launcherConnection` antes de emitir keys para Launcher/EA.
-- [ ] Exigir `liveMt5Accounts` antes de permitir nuevas cuentas live.
-- [ ] Bloquear creación de nuevas keys cuando el plan no lo permita.
-- [ ] Añadir respuesta clara `billing_required`.
-- [ ] Añadir respuesta clara `plan_limit_reached`.
-- [ ] Añadir respuesta clara `entitlement_required`.
-- [ ] Añadir respuesta clara `billing_past_due`.
+- [x] Exigir auth antes de crear cuentas MT5.
+- [x] Exigir `launcherConnection` antes de emitir keys para Launcher/EA.
+- [x] Exigir `liveMt5Accounts` antes de permitir nuevas cuentas live.
+- [x] Bloquear creación de nuevas keys cuando el plan no lo permita.
+- [x] Añadir respuesta clara `billing_required`.
+- [x] Añadir respuesta clara `plan_limit_reached`.
+- [x] Añadir respuesta clara `entitlement_required`.
+- [x] Añadir respuesta clara `billing_past_due`.
 - [x] Conectar frontend con `/api/billing/status` para mostrar plan, acceso y avisos de billing.
 - [ ] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
 - [ ] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.

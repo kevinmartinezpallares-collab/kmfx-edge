@@ -54,8 +54,8 @@ Residual advisor notes after billing setup:
 
 ## Phase 4 - KMFX product guards
 
-- [ ] Enforce `launcherConnection` before issuing connection keys.
-- [ ] Enforce `liveMt5Accounts` before adding MT5 accounts.
+- [x] Enforce `launcherConnection` before issuing connection keys.
+- [x] Enforce `liveMt5Accounts` before adding MT5 accounts.
 - [ ] Gate Risk editor with `riskPolicyEditor`.
 - [ ] Gate local auto-block with `localAutoBlock`.
 - [ ] Gate raw bridge debug with `rawBridgeDebug`.

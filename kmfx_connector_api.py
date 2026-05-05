@@ -1201,45 +1201,141 @@ def connection_key_limit_for_context(context: dict[str, Any]) -> int:
     return limits.get(connection_plan_for_context(context), limits["free"])
 
 
+def connection_guard_details(
+    *,
+    billing_payload: dict[str, Any],
+    current_count: int,
+    limit: int,
+    entitlement: str = "",
+) -> dict[str, Any]:
+    billing = ensure_dict(billing_payload.get("billing"))
+    details = {
+        "plan": safe_str(billing.get("plan"), "free"),
+        "effective_plan": safe_str(billing.get("effectivePlan"), "free"),
+        "billing_status": safe_str(billing.get("status")),
+        "billing_access": safe_str(billing.get("access")),
+        "connection_limit": limit,
+        "current_connections": current_count,
+    }
+    if entitlement:
+        details["entitlement"] = entitlement
+    return details
+
+
+def connection_guard_denial_response(
+    *,
+    reason: str,
+    status_code: int,
+    details: dict[str, Any],
+) -> JSONResponse:
+    return connector_json_response(
+        {
+            "ok": False,
+            "reason": reason,
+            "error": reason,
+            "details": details,
+            "timestamp": now_iso(),
+        },
+        status_code=status_code,
+    )
+
+
+def connection_key_limit_from_entitlements(context: dict[str, Any], billing_payload: dict[str, Any]) -> int:
+    if context.get("is_admin"):
+        return DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
+    limits = ensure_dict(billing_payload.get("limits"))
+    raw_limit = limits.get("connectionKeyLimit", limits.get("liveMt5Accounts", 0))
+    if isinstance(raw_limit, int):
+        return max(0, raw_limit)
+    if isinstance(raw_limit, float):
+        return max(0, int(raw_limit))
+    if safe_str(raw_limit).lower() == "custom":
+        return connection_key_limit_for_context(context)
+    return 0
+
+
 def connection_key_creation_denial(
     *,
     user_id: str,
     context: dict[str, Any],
     requested_slots: int = 1,
 ) -> JSONResponse | None:
+    context = {**ensure_dict(context)}
     if context.get("is_admin"):
         return None
     normalized_user_id = safe_str(user_id)
-    limit = connection_key_limit_for_context(context)
+    if normalized_user_id and not safe_str(context.get("user_id")):
+        context["user_id"] = normalized_user_id
     current_count = account_service.connection_slot_count(normalized_user_id)
-    plan = connection_plan_for_context(context)
-    if limit <= 0:
-        return connector_json_response(
-            {
-                "ok": False,
-                "reason": "connection_keys_not_allowed",
-                "details": {
-                    "plan": plan,
-                    "connection_limit": limit,
-                    "current_connections": current_count,
-                },
-                "timestamp": now_iso(),
+    if not normalized_user_id:
+        return connection_guard_denial_response(
+            reason="auth_required",
+            status_code=401,
+            details={
+                "connection_limit": 0,
+                "current_connections": current_count,
             },
+        )
+
+    billing_payload = billing_status_payload_for_context(context)
+    billing = ensure_dict(billing_payload.get("billing"))
+    entitlements = ensure_dict(billing_payload.get("entitlements"))
+    limit = connection_key_limit_from_entitlements(context, billing_payload)
+    guard_details = connection_guard_details(
+        billing_payload=billing_payload,
+        current_count=current_count,
+        limit=limit,
+    )
+
+    billing_access = safe_str(billing.get("access"))
+    if billing_access == "restricted":
+        return connection_guard_denial_response(
+            reason="billing_required",
+            status_code=402,
+            details=guard_details,
+        )
+    if billing_access == "billing_attention":
+        return connection_guard_denial_response(
+            reason="billing_past_due",
+            status_code=402,
+            details=guard_details,
+        )
+
+    if context_disables_connection_keys(context):
+        return connection_guard_denial_response(
+            reason="entitlement_required",
             status_code=403,
+            details={
+                **guard_details,
+                "entitlement": "launcherConnection",
+            },
+        )
+    if entitlements.get("launcherConnection") is not True:
+        return connection_guard_denial_response(
+            reason="entitlement_required",
+            status_code=403,
+            details={
+                **guard_details,
+                "entitlement": "launcherConnection",
+            },
+        )
+    if limit <= 0:
+        return connection_guard_denial_response(
+            reason="plan_limit_reached",
+            status_code=409,
+            details={
+                **guard_details,
+                "entitlement": "liveMt5Accounts",
+            },
         )
     if current_count + max(1, requested_slots) > limit:
-        return connector_json_response(
-            {
-                "ok": False,
-                "reason": "connection_limit_exceeded",
-                "details": {
-                    "plan": plan,
-                    "connection_limit": limit,
-                    "current_connections": current_count,
-                },
-                "timestamp": now_iso(),
-            },
+        return connection_guard_denial_response(
+            reason="plan_limit_reached",
             status_code=409,
+            details={
+                **guard_details,
+                "entitlement": "liveMt5Accounts",
+            },
         )
     return None
 
