@@ -135,6 +135,29 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("overflow-x: clip !important", chart_block)
         self.assertIn("scrollbar-width: none", chart_block)
 
+    def test_mobile_dense_data_surfaces_are_scrollable_and_compact(self) -> None:
+        css = read_text("styles-v2.css")
+        data_block = media_block(css, "@media (max-width: 760px)", "Mobile data density hardening")
+
+        for selector in [
+            ".trades-table-wrap",
+            ".calendar-returns-table__wrap",
+            ".capital-exposure-table",
+            ".funding-ledger-table",
+            ".strategies-table-card .table-wrap",
+            ".backtest-real-table",
+            ".risk-exposure-table__row",
+        ]:
+            self.assertIn(selector, data_block)
+
+        self.assertIn("overflow-x: auto !important", data_block)
+        self.assertIn("min-width: max(560px, 100%) !important", data_block)
+        self.assertIn("padding: 9px 10px !important", data_block)
+        self.assertIn("white-space: nowrap", data_block)
+        self.assertIn("white-space: normal !important", data_block)
+        self.assertIn("display: none !important", data_block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", data_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
