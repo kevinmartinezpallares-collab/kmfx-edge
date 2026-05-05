@@ -326,6 +326,33 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn(".auth-benefits", compact_block)
         self.assertIn("max-height: 44dvh !important", short_block)
 
+    def test_mobile_floating_menus_stay_inside_viewport(self) -> None:
+        css = read_text("styles-v2.css")
+        menu_block = media_block(css, "@media (max-width: 760px)", "Mobile floating-menu hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile floating-menu hardening")
+
+        for selector in [
+            ".kmfx-ui-tooltip",
+            ".kmfx-ui-popover__content",
+            ".kmfx-ui-dropdown",
+            ".custom-select-dropdown",
+            ".risk-select-menu",
+            ".connections-account-card__menu",
+            "#section-discipline .rule-profile-add-menu",
+            "#section-discipline .rule-profile-weight-menu",
+            "#section-discipline .rule-profile-custom-menu",
+        ]:
+            self.assertIn(selector, menu_block)
+
+        self.assertIn("width: min(100%, calc(100vw - 24px)) !important", menu_block)
+        self.assertIn("max-height: min(66dvh, 420px) !important", menu_block)
+        self.assertIn("overflow-y: auto !important", menu_block)
+        self.assertIn("overscroll-behavior: contain", menu_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", menu_block)
+        self.assertIn("font-size: 16px !important", menu_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", menu_block)
+        self.assertIn("width: calc(100vw - 16px) !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

@@ -39680,3 +39680,142 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     min-height: 40px !important;
   }
 }
+
+/* Mobile floating-menu hardening: keep compact menus, selects, and tooltips inside the viewport. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-tooltip,
+    .kmfx-ui-popover,
+    .kmfx-ui-popover__content,
+    .kmfx-ui-dropdown,
+    .custom-select-dropdown,
+    .risk-select-menu,
+    .sidebar-profile-menu,
+    .connections-account-card__menu,
+    #section-discipline .rule-profile-menu,
+    #section-discipline .rule-profile-add-menu,
+    #section-discipline .rule-profile-weight-menu,
+    #section-discipline .rule-profile-custom-menu
+  ) {
+    min-width: 0 !important;
+    width: min(100%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: min(66dvh, 420px) !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .connections-account-card__menu,
+    .risk-policy-card .risk-select-menu--policy,
+    #section-discipline .rule-profile-menu,
+    #section-discipline .rule-profile-add-menu,
+    #section-discipline .rule-profile-weight-menu,
+    #section-discipline .rule-profile-custom-menu
+  ) {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-card .risk-select-menu--policy,
+    #section-discipline .rule-profile-add-menu,
+    #section-discipline .rule-profile-weight-menu,
+    #section-discipline .rule-profile-custom-menu
+  ) {
+    transform-origin: top right;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-dropdown__item,
+    .custom-select-option,
+    .sidebar-profile-menu-item,
+    .connections-account-card__menu-item,
+    .risk-session-row,
+    .risk-symbol-row,
+    #section-discipline .rule-profile-menu button,
+    #section-discipline .rule-profile-add-menu button,
+    #section-discipline .rule-profile-weight-menu button,
+    #section-discipline .rule-profile-custom-menu > button
+  ) {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-tooltip__content,
+    .kmfx-ui-dropdown__item,
+    .custom-select-option,
+    .sidebar-profile-menu-item,
+    .connections-account-card__menu-item,
+    .risk-inline-editor-head,
+    .risk-session-copy,
+    .risk-session-name,
+    .risk-session-utc,
+    .risk-symbol-main,
+    .risk-symbol-summary,
+    .risk-symbol-search-empty,
+    #section-discipline .rule-profile-add-menu strong,
+    #section-discipline .rule-profile-add-menu small,
+    #section-discipline .rule-profile-weight-menu strong,
+    #section-discipline .rule-profile-weight-menu span,
+    #section-discipline .rule-profile-custom-menu > button
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    #section-discipline .rule-profile-weight-menu button,
+    #section-discipline .rule-profile-add-menu button
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    height: auto !important;
+    line-height: 1.25 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-select-search input,
+    .custom-select-search input
+  ) {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-tooltip,
+    .kmfx-ui-popover__content,
+    .kmfx-ui-dropdown,
+    .custom-select-dropdown,
+    .risk-select-menu,
+    .sidebar-profile-menu,
+    .connections-account-card__menu,
+    #section-discipline .rule-profile-menu,
+    #section-discipline .rule-profile-add-menu,
+    #section-discipline .rule-profile-weight-menu,
+    #section-discipline .rule-profile-custom-menu
+  ) {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: min(72dvh, 460px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-card .risk-select-menu--policy,
+    #section-discipline .rule-profile-add-menu,
+    #section-discipline .rule-profile-weight-menu,
+    #section-discipline .rule-profile-custom-menu
+  ) {
+    right: 8px !important;
+  }
+}
