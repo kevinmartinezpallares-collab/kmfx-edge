@@ -12,6 +12,9 @@ WINEPREFIX_DIR="${ROOT_DIR}/build/windows-wine-prefix"
 WINE_BIN="${KMFX_WINE_BIN:-/Applications/MetaTrader 5.app/Contents/SharedSupport/wine/bin/wine}"
 WINE_PATH_DIR="$(dirname "${WINE_BIN}")"
 OUTPUT_DIR="${ROOT_DIR}/dist/KMFX Launcher"
+OUTPUT_DIST_EXE="${ROOT_DIR}/dist/KMFX-Launcher-Windows.exe"
+OUTPUT_EXE="${ROOT_DIR}/downloads/KMFX-Launcher-Windows.exe"
+OUTPUT_EXE_SHA="${OUTPUT_EXE}.sha256"
 OUTPUT_ZIP="${ROOT_DIR}/downloads/KMFX-Launcher-Windows.zip"
 OUTPUT_SHA="${OUTPUT_ZIP}.sha256"
 
@@ -49,19 +52,26 @@ export PATH="${WINE_PATH_DIR}:${PATH}"
 "${WINE_BIN}" "${PYTHON_DIR}/python.exe" "${GET_PIP}" --no-warn-script-location
 "${WINE_BIN}" "${PYTHON_DIR}/python.exe" -m pip install --no-warn-script-location -r "${ROOT_DIR}/requirements.txt" -r "${ROOT_DIR}/requirements-build.txt"
 
-rm -rf "${OUTPUT_DIR}" "${ROOT_DIR}/build/KMFXLauncher"
+rm -rf "${OUTPUT_DIR}" "${OUTPUT_DIST_EXE}" "${ROOT_DIR}/build/KMFXLauncher"
 "${WINE_BIN}" "${PYTHON_DIR}/python.exe" -m PyInstaller --clean --noconfirm "${ROOT_DIR}/launcher/packaging/windows/KMFXLauncher.spec"
 
-if [[ ! -f "${OUTPUT_DIR}/KMFX Launcher.exe" ]]; then
+if [[ ! -f "${OUTPUT_DIST_EXE}" ]]; then
   echo "[KMFX][BUILD][ERROR] No se encontro el ejecutable esperado." >&2
   exit 1
 fi
 
-rm -f "${OUTPUT_ZIP}" "${OUTPUT_SHA}"
-(cd "${ROOT_DIR}/dist" && zip -qry "${OUTPUT_ZIP}" "KMFX Launcher")
+rm -f "${OUTPUT_EXE}" "${OUTPUT_EXE_SHA}" "${OUTPUT_ZIP}" "${OUTPUT_SHA}"
+cp "${OUTPUT_DIST_EXE}" "${OUTPUT_EXE}"
 
-WINDOWS_HASH="$(shasum -a 256 "${OUTPUT_ZIP}" | awk '{print $1}')"
-printf "%s  KMFX-Launcher-Windows.zip\n" "${WINDOWS_HASH}" > "${OUTPUT_SHA}"
+WINDOWS_EXE_HASH="$(shasum -a 256 "${OUTPUT_EXE}" | awk '{print $1}')"
+printf "%s  KMFX-Launcher-Windows.exe\n" "${WINDOWS_EXE_HASH}" > "${OUTPUT_EXE_SHA}"
 
-echo "[KMFX][BUILD] Windows launcher listo: ${OUTPUT_ZIP}"
-echo "[KMFX][BUILD] SHA256: ${WINDOWS_HASH}"
+zip -jq "${OUTPUT_ZIP}" "${OUTPUT_EXE}"
+
+WINDOWS_ZIP_HASH="$(shasum -a 256 "${OUTPUT_ZIP}" | awk '{print $1}')"
+printf "%s  KMFX-Launcher-Windows.zip\n" "${WINDOWS_ZIP_HASH}" > "${OUTPUT_SHA}"
+
+echo "[KMFX][BUILD] Windows launcher app lista: ${OUTPUT_EXE}"
+echo "[KMFX][BUILD] Windows launcher zip compatible: ${OUTPUT_ZIP}"
+echo "[KMFX][BUILD] EXE SHA256: ${WINDOWS_EXE_HASH}"
+echo "[KMFX][BUILD] ZIP SHA256: ${WINDOWS_ZIP_HASH}"

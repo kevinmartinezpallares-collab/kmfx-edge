@@ -51,7 +51,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Conexión EA con WebRequest a `https://mt5-api.kmfxedge.com`.
 - [x] Descarga macOS desde la web propia.
 - [x] Descarga Windows desde la web propia.
-- [x] CI Windows genera y publica `downloads/KMFX-Launcher-Windows.zip`.
+- [x] CI Windows genera y publica `downloads/KMFX-Launcher-Windows.exe`.
 - [x] Launcher muestra cuentas detectadas y sincronizadas de forma más clara.
 - [x] Multi-cuenta probado localmente con dos cuentas MT5.
 - [x] El EA funciona con investor password en modo lectura.

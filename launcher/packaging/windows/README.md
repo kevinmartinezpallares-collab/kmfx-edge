@@ -29,32 +29,38 @@ scripts/build_windows_launcher_wine.sh
 El script descarga una Python embeddable de Windows en `build/windows-toolchain`, instala las dependencias dentro de un `WINEPREFIX` local y genera:
 
 ```text
+downloads/KMFX-Launcher-Windows.exe
+downloads/KMFX-Launcher-Windows.exe.sha256
 downloads/KMFX-Launcher-Windows.zip
 downloads/KMFX-Launcher-Windows.zip.sha256
 ```
 
-Vercel sirve el ZIP desde:
+Vercel sirve la app Windows directamente desde:
 
 ```text
-https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
+https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe
 ```
+
+El ZIP se mantiene solo como compatibilidad y contiene el `.exe` en la raiz, no la carpeta interna de PyInstaller.
 
 ### Opcion CI en Windows real
 
 El workflow de GitHub Actions `Build Windows Launcher` compila el launcher en `windows-latest`, genera el mismo paquete y lo sube como artifact:
 
 ```text
+downloads/KMFX-Launcher-Windows.exe
+downloads/KMFX-Launcher-Windows.exe.sha256
 downloads/KMFX-Launcher-Windows.zip
 downloads/KMFX-Launcher-Windows.zip.sha256
 ```
 
-El workflow valida el build en pull requests. Cuando cambian el launcher, el conector o sus dependencias en `main`, tambien genera el paquete y publica automaticamente el ZIP y el SHA en `main` para dejar disponible la descarga en:
+El workflow valida el build en pull requests. Cuando cambian el launcher, el conector o sus dependencias en `main`, tambien genera el paquete y publica automaticamente la app y sus checksums en `main` para dejar disponible la descarga en:
 
 ```text
-https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip
+https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe
 ```
 
-Si GitHub bloquea la publicacion directa por proteccion de rama, el workflow deja una rama `automation/windows-launcher-artifact-*` con el ZIP listo para revisar.
+Si GitHub bloquea la publicacion directa por proteccion de rama, el workflow deja una rama `automation/windows-launcher-artifact-*` con los artefactos listos para revisar.
 
 ### Opcion local en Windows
 
@@ -72,10 +78,11 @@ scripts\build_windows_launcher.bat
 
 ## Output
 
-The Windows build intentionally uses PyInstaller `onedir` for better pywebview/resource reliability:
+The Windows build uses PyInstaller one-file mode so the dashboard can serve a real app download:
 
 ```text
-dist\KMFX Launcher\KMFX Launcher.exe
+dist\KMFX-Launcher-Windows.exe
+downloads\KMFX-Launcher-Windows.exe
 ```
 
 The executable is windowed (`console=False`), uses the KMFX icon, and includes:
@@ -92,4 +99,4 @@ The executable is windowed (`console=False`), uses the KMFX icon, and includes:
 
 ## Installer note
 
-The next distribution step should wrap `dist\KMFX Launcher\` with a Windows installer such as Inno Setup or WiX. Do that after validating the generated `.exe` on a clean Windows machine.
+The next distribution step can wrap `downloads\KMFX-Launcher-Windows.exe` with a Windows installer such as Inno Setup or WiX. Do that after validating the generated `.exe` on a clean Windows machine.

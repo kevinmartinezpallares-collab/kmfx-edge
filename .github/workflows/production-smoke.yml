@@ -32,8 +32,8 @@ jobs:
 
       - name: Launcher downloads are public
         run: |
-          curl -fsSI https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip | grep -qi '^HTTP/.* 200'
-          curl -fsS https://kmfxedge.com/downloads/KMFX-Launcher-Windows.zip.sha256 | grep -qi 'KMFX-Launcher-Windows.zip'
+          curl -fsSI https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe | grep -qi '^HTTP/.* 200'
+          curl -fsS https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe.sha256 | grep -qi 'KMFX-Launcher-Windows.exe'
 
       - name: MT5 API health through Cloudflare Worker
         run: |

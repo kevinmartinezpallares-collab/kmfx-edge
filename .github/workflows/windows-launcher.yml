@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_to_repo:
-        description: "Open a PR with downloads/KMFX-Launcher-Windows.zip"
+        description: "Publish downloads/KMFX-Launcher-Windows.exe"
         required: true
         default: false
         type: boolean
@@ -69,11 +69,16 @@ jobs:
       - name: Verify package
         shell: pwsh
         run: |
+          $exe = "downloads/KMFX-Launcher-Windows.exe"
+          $exeSha = "$exe.sha256"
           $zip = "downloads/KMFX-Launcher-Windows.zip"
           $sha = "$zip.sha256"
+          if (!(Test-Path $exe)) { throw "Missing $exe" }
+          if (!(Test-Path $exeSha)) { throw "Missing $exeSha" }
           if (!(Test-Path $zip)) { throw "Missing $zip" }
           if (!(Test-Path $sha)) { throw "Missing $sha" }
-          Get-ChildItem downloads/KMFX-Launcher-Windows.zip*
+          Get-ChildItem downloads/KMFX-Launcher-Windows*
+          Get-Content $exeSha
           Get-Content $sha
 
       - name: Upload launcher artifact
@@ -81,6 +86,8 @@ jobs:
         with:
           name: KMFX-Launcher-Windows
           path: |
+            downloads/KMFX-Launcher-Windows.exe
+            downloads/KMFX-Launcher-Windows.exe.sha256
             downloads/KMFX-Launcher-Windows.zip
             downloads/KMFX-Launcher-Windows.zip.sha256
           retention-days: 14
@@ -114,7 +121,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f downloads/KMFX-Launcher-Windows.zip downloads/KMFX-Launcher-Windows.zip.sha256
+          git add -f downloads/KMFX-Launcher-Windows.exe downloads/KMFX-Launcher-Windows.exe.sha256 downloads/KMFX-Launcher-Windows.zip downloads/KMFX-Launcher-Windows.zip.sha256
           if git diff --cached --quiet; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No launcher artifact changes to publish."

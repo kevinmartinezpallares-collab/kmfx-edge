@@ -225,6 +225,24 @@
       ]
     },
     {
+      "source": "/downloads/KMFX-Launcher-Windows.exe",
+      "headers": [
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"KMFX-Launcher-Windows.exe\""
+        }
+      ]
+    },
+    {
+      "source": "/downloads/KMFX-Launcher-mac.dmg",
+      "headers": [
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"KMFX-Launcher-mac.dmg\""
+        }
+      ]
+    },
+    {
       "source": "/downloads/:path*",
       "headers": [
         {

@@ -87,6 +87,15 @@ def resolve_backend_base_url(configured_value: str = "") -> str:
     return LOCAL_BACKEND_BASE_URL
 
 
+def launcher_debug_enabled(configured_value: bool = False) -> bool:
+    raw = os.getenv("KMFX_LAUNCHER_DEBUG", "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return False
+
+
 @dataclass
 class LauncherConfig:
     local_host: str = "127.0.0.1"
@@ -107,7 +116,7 @@ class LauncherConfig:
     service_retry_interval_seconds: int = 3
     max_queue_size: int = 100
     max_attempts: int = 8
-    debug: bool = True
+    debug: bool = False
     connection_key: str = ""
     connection_key_user_id: str = ""
     selected_mt5_terminal_path: str = ""
@@ -116,6 +125,7 @@ class LauncherConfig:
 
     def ensure_runtime_values(self) -> "LauncherConfig":
         self.backend_base_url = resolve_backend_base_url(self.backend_base_url)
+        self.debug = launcher_debug_enabled(self.debug)
         return self
 
 
