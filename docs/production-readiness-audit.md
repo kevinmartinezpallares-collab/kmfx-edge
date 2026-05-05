@@ -205,6 +205,11 @@ Resultado:
 
 ### Paso 5 - Seguridad y gobierno
 
+- Ejecutar auditoria completa con `codex-security:security-scan` sobre bridge localhost, Supabase/Auth, Cloudflare proxy MT5, CORS, account keys, billing/entitlements y endpoints admin.
+- Ejecutar auditoria UX con `audit`, `harden`, `polish` y `adapt` para estados vacios/error/bloqueados, accesibilidad, responsive y copy final.
+- Ejecutar auditoria launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`. La notarizacion Apple puede seguir aplazada, pero no la validacion del paquete.
+- Ejecutar revision Cloudflare con `cloudflare:workers-best-practices` para `cloudflare/mt5-api-proxy.js`.
+- Ejecutar revision Supabase con `supabase:supabase-postgres-best-practices` para migrations, RLS, indices y billing/accounts.
 - Activar branch protection.
 - Activar secret scanning/push protection.
 - Revisar secrets/env vars.

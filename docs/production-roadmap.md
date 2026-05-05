@@ -1,8 +1,8 @@
 # Roadmap de Producción KMFX Edge
 
-Última revisión: 2026-05-04
+Última revisión: 2026-05-05
 Rama revisada: `main`
-Commit base: `daaae24 Add dashboard live data contract fixture`
+Commit base: `4ef171b Connect dashboard to billing status`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
@@ -104,6 +104,29 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Exigir checks de CI antes de merge cuando el flujo esté estable.
 - [ ] Ejecutar smoke manual antes de cada release.
 - [ ] Crear tag de release cuando el MVP esté cerrado.
+
+### Auditorias especializadas preproduccion
+
+Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para reducir riesgo antes de usuarios reales.
+
+- [ ] Ejecutar `codex-security:security-scan` repository-wide o sobre el diff final antes de go live.
+  - Alcance: bridge localhost, Supabase/Auth, Cloudflare proxy MT5, CORS, account keys, billing/entitlements, endpoints admin y lógica financiera.
+  - Salida esperada: threat model, finding discovery, validacion, attack-path analysis y reporte markdown con hallazgos P0/P1/P2.
+- [ ] Ejecutar auditoria UX con `audit` + `harden` + `polish` + `adapt`.
+  - Alcance: dashboard desktop completo, estados vacios/error/bloqueados, accesibilidad, responsive final antes de produccion, consistencia KMFX/shadcn/Apple HIG.
+  - Salida esperada: issues priorizados y correcciones aplicadas solo cuando esten validadas.
+- [ ] Ejecutar auditoria frontend visual con `frontend-design`, `arrange`, `typeset`, `clarify`, `optimize` y `design-audit`.
+  - Alcance: `index.html`, `styles-v2.css`, `js/modules/*`, flujo Cuentas/Launcher, Billing states, Risk/Funding/Journal.
+  - Salida esperada: no quedan patrones legacy visibles, textos internos ni roturas de layout desktop.
+- [ ] Ejecutar auditoria launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`.
+  - Alcance: bundle `.app`, DMG/ZIP, Info.plist, permisos, entitlements, Gatekeeper y estructura de distribucion.
+  - Nota: notarizacion Apple sigue siendo opcional por decision de producto, pero la validacion de packaging/signing no se debe saltar.
+- [ ] Ejecutar revision `cloudflare:workers-best-practices`.
+  - Alcance: `cloudflare/mt5-api-proxy.js`, secrets, headers, streaming/body limits, logs, CORS, errores y observabilidad.
+- [ ] Ejecutar revision `supabase:supabase-postgres-best-practices`.
+  - Alcance: migrations de billing/accounts, RLS, indices, policies, funciones security definer, lecturas por usuario y tablas de eventos.
+- [ ] Ejecutar `vercel:verification` o `browser-use` para prueba visual final en navegador real.
+  - Alcance: rutas limpias, login, Cuentas, Dashboard, Billing state, descarga launcher, estados bloqueados y errores.
 
 ### Dashboard y contrato de datos
 
@@ -271,7 +294,43 @@ Criterio de salida:
 - El dashboard distingue cuentas conectadas, pendientes, stale y bloqueadas por plan.
 - Funding puede usar una cuenta MT5 como origen real.
 
-## Fase 5 - Seguridad, Infra y Gobierno
+## Fase 5 - Auditorias Especializadas
+
+Objetivo: cerrar los riesgos que no se ven en el smoke funcional.
+
+- [ ] Seguridad completa con `codex-security:security-scan`.
+  - Bridge localhost y launcher.
+  - Supabase Auth, RLS, app_metadata/user_metadata y billing.
+  - Cloudflare proxy MT5.
+  - CORS, headers, account keys, revocacion y rate limits.
+  - Endpoints admin y rutas de ingest MT5.
+- [ ] UX y robustez con `audit`, `harden`, `polish` y `adapt`.
+  - Estados vacios, carga, error, bloqueado y sin permisos.
+  - Accesibilidad, foco, contraste, scroll y desktop/responsive.
+  - Textos de usuario final sin jerga tecnica.
+- [ ] Frontend visual con `frontend-design`, `arrange`, `typeset`, `clarify`, `optimize` y `design-audit`.
+  - Consistencia KMFX Edge, shadcn y Apple HIG.
+  - Sin layouts legacy, titulos antiguos, lineas decorativas ni copy interno.
+  - Performance razonable de charts, modales y render de secciones principales.
+- [ ] Launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`.
+  - Validar bundle, plist, permisos, entitlements, firma local/ad hoc y comportamiento Gatekeeper.
+  - Confirmar que el aviso de Apple es aceptable si no se notariza, pero sin fallos de estructura del paquete.
+- [ ] Cloudflare con `cloudflare:workers-best-practices`.
+  - Revisar `cloudflare/mt5-api-proxy.js`, body limits, CORS, logs, errores y secretos.
+- [ ] Supabase con `supabase:supabase-postgres-best-practices`.
+  - Revisar migrations, RLS, indices, policies, funciones y tablas de billing/accounts.
+- [ ] Verificacion visual final con `vercel:verification` o `browser-use`.
+  - Probar rutas reales, modales, login, Cuentas, Billing state y descargas.
+
+Criterio de salida:
+
+- No quedan P0/P1 abiertos en seguridad.
+- Los P2 aceptados tienen mitigacion o issue documentado.
+- El dashboard no muestra copy tecnico a usuario normal.
+- Launcher macOS tiene packaging verificado aunque no se notarice.
+- Cloudflare Worker y Supabase quedan revisados contra reglas de produccion.
+
+## Fase 6 - Seguridad, Infra y Gobierno
 
 Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 
@@ -298,7 +357,7 @@ Criterio de salida:
 - `main` no acepta cambios críticos sin checks.
 - Hay rollback operativo documentado.
 
-## Fase 6 - QA de Release
+## Fase 7 - QA de Release
 
 Objetivo: validar un viaje real de usuario antes de cobrar.
 
@@ -326,7 +385,7 @@ Criterio de salida:
 - Un usuario puede registrarse, pagar en test mode, conectar MT5 y ver datos.
 - No queda ningún P0 abierto.
 
-## Fase 7 - Go Live
+## Fase 8 - Go Live
 
 Objetivo: pasar de beta técnica a producción controlada.
 
@@ -389,15 +448,17 @@ Criterio de salida:
 2. Implementar backend billing.
 3. Conectar entitlements al frontend y al backend.
 4. QA del flujo MT5 usuario final.
-5. Activar branch protection y release governance.
-6. Ejecutar smoke completo.
-7. Tag `v0.1.0-production-mvp`.
-8. Lanzamiento controlado.
+5. Ejecutar auditorias especializadas: seguridad, UX, launcher, Cloudflare y Supabase.
+6. Activar branch protection y release governance.
+7. Ejecutar smoke completo.
+8. Tag `v0.1.0-production-mvp`.
+9. Lanzamiento controlado.
 
 ## Qué Se Puede Saltar Por Ahora
 
 - Dominio personalizado de Supabase Auth, por coste mensual.
-- Firma/notarización Apple, porque has aceptado el aviso de descarga.
+- Notarización Apple, porque has aceptado el aviso de descarga.
+- Firma Developer ID completa, si se valida antes que el paquete abre correctamente y el aviso queda documentado.
 - Windows code signing, mientras el primer paquete funcione y se explique el aviso.
 - Migración Next.js completa.
 - `api.kmfxedge.com`, si se documenta temporalmente que Render sigue como backend interno y `mt5-api.kmfxedge.com` cubre el EA.
