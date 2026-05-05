@@ -1,5 +1,6 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-080918";
+import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260504-080918";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260504-080918";
 import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import {
@@ -657,8 +658,8 @@ const DASHBOARD_KPI_HELP = Object.freeze({
   positions: "Número de posiciones abiertas ahora. Revisa concentración por símbolo, dirección y riesgo total."
 });
 
-function dashboardKpiHelpMarkup(key) {
-  const help = DASHBOARD_KPI_HELP[key];
+function dashboardKpiHelpMarkup(key, helpOverride = "") {
+  const help = helpOverride || DASHBOARD_KPI_HELP[key];
   if (!help) return "";
   const tooltipId = `dashboard-kpi-help-${String(key).replace(/[^a-z0-9-]/gi, "-")}`;
   return `
@@ -728,6 +729,259 @@ function renderDashboardKpiCard({
   });
 }
 
+function finiteDashboardNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatDashboardPercentValue(value, { signed = false, digits = 2 } = {}) {
+  const parsed = finiteDashboardNumber(value);
+  if (parsed === null) return "–";
+  const formatted = parsed.toLocaleString("es-ES", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  const sign = signed && parsed > 0 ? "+" : "";
+  return `${sign}${formatted}%`;
+}
+
+function formatDashboardRatioValue(value, digits = 2) {
+  const parsed = finiteDashboardNumber(value);
+  if (parsed === null) return "–";
+  return parsed.toLocaleString("es-ES", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function dashboardProfessionalTone(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "good") return "profit";
+  if (normalized === "warn") return "warning";
+  if (normalized === "bad") return "loss";
+  return "neutral";
+}
+
+function dashboardProfessionalBadgeTone(kpi) {
+  if (String(kpi?.status || "").toLowerCase() === "insufficient") return "neutral";
+  return dashboardProfessionalTone(kpi?.status);
+}
+
+function dashboardProfessionalKpiValue(kpi = {}) {
+  if (String(kpi.status || "").toLowerCase() === "insufficient" || kpi.value === null || kpi.value === undefined) {
+    return "–";
+  }
+  if (kpi.unit === "currency") return formatCurrency(kpi.value);
+  if (kpi.unit === "percent") {
+    return formatDashboardPercentValue(kpi.value, {
+      signed: kpi.kpi === "net_return",
+      digits: kpi.kpi === "max_drawdown" ? 2 : 2,
+    });
+  }
+  if (kpi.unit === "ratio") return formatDashboardRatioValue(kpi.value, 2);
+  if (kpi.unit === "score") return formatDashboardRatioValue(kpi.value, 0);
+  return escapeDashboardHtml(kpi.value);
+}
+
+function dashboardProfessionalDeltaMarkup(kpi = {}) {
+  const delta = finiteDashboardNumber(kpi.deltaPct ?? kpi.delta?.value);
+  if (delta === null) {
+    const label = kpi.statusLabel || kpi.emptyReason || "";
+    return label ? `<span class="dashboard-professional-kpi__delta" data-tone="neutral">${escapeDashboardHtml(label)}</span>` : "";
+  }
+  const direction = String(kpi.delta?.direction || "").toLowerCase();
+  const tone = delta > 0 || direction === "up" ? "profit" : delta < 0 || direction === "down" ? "loss" : "neutral";
+  const arrow = tone === "profit" ? "▲" : tone === "loss" ? "▼" : "•";
+  return `
+    <span class="dashboard-professional-kpi__delta" data-tone="${tone}">
+      <span aria-hidden="true">${arrow}</span>
+      <span>${formatDashboardPercentValue(delta, { signed: true, digits: 2 })} 7d</span>
+    </span>
+  `;
+}
+
+function dashboardProfessionalMeta(kpi = {}) {
+  const meta = kpi.meta || {};
+  if (kpi.kpi === "var_95" || kpi.kpi === "var_99") {
+    const cvar = finiteDashboardNumber(meta.cvarAmount);
+    const equityPct = finiteDashboardNumber(meta.equityPct);
+    if (cvar !== null || equityPct !== null) {
+      return [
+        cvar !== null ? `CVaR ${formatCurrency(cvar)}` : "",
+        equityPct !== null ? `${formatDashboardPercentValue(equityPct, { digits: 2 })} equity` : "",
+      ].filter(Boolean).join(" / ");
+    }
+  }
+  if (kpi.kpi === "exposure") {
+    const gross = finiteDashboardNumber(meta.grossPct);
+    const net = finiteDashboardNumber(meta.netPct);
+    return `Gross ${formatDashboardPercentValue(gross, { digits: 2 })} / Net ${formatDashboardPercentValue(net, { signed: true, digits: 2 })}`;
+  }
+  if (kpi.kpi === "vol_ann") {
+    const sampleSize = finiteDashboardNumber(meta.sampleSize);
+    return sampleSize ? `${sampleSize} sesiones medidas` : (kpi.statusLabel || "insuficiente historico");
+  }
+  if (kpi.kpi === "sortino") {
+    const sampleSize = finiteDashboardNumber(meta.sampleSize);
+    return sampleSize ? `${sampleSize} retornos / downside` : (kpi.statusLabel || "insuficiente historico");
+  }
+  if (kpi.kpi === "dscore") {
+    return kpi.statusLabel || kpi.emptyReason || "requiere feed Darwinex";
+  }
+  if (kpi.kpi === "max_drawdown") {
+    const sampleSize = finiteDashboardNumber(meta.sampleSize);
+    return sampleSize ? `${sampleSize} trades / ${kpi.statusLabel || "lectura 30d"}` : (kpi.statusLabel || "lectura 30d");
+  }
+  if (kpi.kpi === "net_return") {
+    const pnl7d = finiteDashboardNumber(meta.pnl7d);
+    return pnl7d !== null ? `${formatCurrency(pnl7d)} últimos 7d` : (kpi.statusLabel || "retorno neto");
+  }
+  return kpi.statusLabel || "";
+}
+
+function dashboardMiniChartPath(series = [], { width = 118, height = 30, padding = 2 } = {}) {
+  const values = (Array.isArray(series) ? series : [])
+    .map((point) => finiteDashboardNumber(point?.value ?? point))
+    .filter((value) => value !== null);
+  if (values.length < 2) return null;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, Math.max(Math.abs(max), 1) * 0.02);
+  const usableWidth = width - padding * 2;
+  const usableHeight = height - padding * 2;
+  const points = values.map((value, index) => {
+    const x = padding + (index / Math.max(values.length - 1, 1)) * usableWidth;
+    const y = padding + usableHeight - ((value - min) / span) * usableHeight;
+    return [Number(x.toFixed(2)), Number(y.toFixed(2))];
+  });
+  const line = points.map(([x, y]) => `${x},${y}`).join(" ");
+  const area = `M ${points[0][0]} ${height - padding} L ${points.map(([x, y]) => `${x} ${y}`).join(" L ")} L ${points.at(-1)[0]} ${height - padding} Z`;
+  return { line, area };
+}
+
+function dashboardProfessionalVisualType(kpi = {}) {
+  return kpi.visual || kpi.microVisual?.type || "";
+}
+
+function dashboardProfessionalSeries(kpi = {}) {
+  if (Array.isArray(kpi.series)) return kpi.series;
+  if (Array.isArray(kpi.microVisual?.series)) return kpi.microVisual.series;
+  return [];
+}
+
+function renderDashboardSparkline(kpi = {}, { area = false } = {}) {
+  const path = dashboardMiniChartPath(dashboardProfessionalSeries(kpi));
+  if (!path) {
+    return `
+      <div class="dashboard-professional-kpi__empty-chart" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    `;
+  }
+  return `
+    <svg class="dashboard-professional-kpi__sparkline" viewBox="0 0 118 30" preserveAspectRatio="none" aria-hidden="true">
+      ${area ? `<path class="dashboard-professional-kpi__area" d="${path.area}"></path>` : ""}
+      <polyline class="dashboard-professional-kpi__line" points="${path.line}"></polyline>
+    </svg>
+  `;
+}
+
+function renderDashboardGauge(kpi = {}) {
+  const pointer = Math.max(0, Math.min(100, finiteDashboardNumber(kpi.microVisual?.pointerValuePct) ?? 0));
+  const boundedRisk = Math.max(0, Math.min(3, pointer));
+  const angle = -90 + (boundedRisk / 3) * 180;
+  return `
+    <div class="dashboard-professional-kpi__gauge" style="--pointer-angle:${angle}deg" aria-hidden="true">
+      <span class="dashboard-professional-kpi__gauge-track"></span>
+      <span class="dashboard-professional-kpi__gauge-pointer"></span>
+    </div>
+  `;
+}
+
+function renderDashboardExposureBar(kpi = {}) {
+  const limit = Math.max(1, finiteDashboardNumber(kpi.microVisual?.limitPct) ?? 3);
+  const grossRaw = finiteDashboardNumber(kpi.microVisual?.grossPct) ?? 0;
+  const netRaw = finiteDashboardNumber(kpi.microVisual?.netPct) ?? 0;
+  const gross = Math.max(0, Math.min(100, (Math.abs(grossRaw) / limit) * 100));
+  const net = Math.max(-100, Math.min(100, (netRaw / limit) * 100));
+  return `
+    <div class="dashboard-professional-kpi__exposure" style="--gross:${gross};--net:${Math.abs(net)};--net-side:${net < 0 ? -1 : 1}" aria-hidden="true">
+      <span class="dashboard-professional-kpi__exposure-base"></span>
+      <span class="dashboard-professional-kpi__exposure-net"></span>
+      <span class="dashboard-professional-kpi__exposure-zero"></span>
+    </div>
+  `;
+}
+
+function renderDashboardSortinoPill(kpi = {}) {
+  const direction = String(kpi.microVisual?.direction || "flat").toLowerCase();
+  const symbol = direction === "up" ? "▲" : direction === "down" ? "▼" : "•";
+  return `
+    <div class="dashboard-professional-kpi__sortino-pill" data-direction="${escapeDashboardHtml(direction)}" aria-hidden="true">
+      <span>${symbol}</span>
+      <span>${escapeDashboardHtml(kpi.statusLabel || "rolling")}</span>
+    </div>
+  `;
+}
+
+function renderDashboardDScoreScale(kpi = {}) {
+  const value = Math.max(0, Math.min(100, finiteDashboardNumber(kpi.value) ?? 0));
+  return `
+    <div class="dashboard-professional-kpi__dscore" style="--score:${value}" aria-hidden="true">
+      <span class="dashboard-professional-kpi__dscore-track"></span>
+      <span class="dashboard-professional-kpi__dscore-fill"></span>
+    </div>
+  `;
+}
+
+function renderDashboardProfessionalMicroVisual(kpi = {}) {
+  const visualType = dashboardProfessionalVisualType(kpi);
+  if (visualType === "sparkline") return renderDashboardSparkline(kpi);
+  if (visualType === "area") return renderDashboardSparkline(kpi, { area: true });
+  if (visualType === "gauge") return renderDashboardGauge(kpi);
+  if (visualType === "stacked_bar") return renderDashboardExposureBar(kpi);
+  if (visualType === "pill") return renderDashboardSortinoPill(kpi);
+  if (visualType === "badge") return renderDashboardDScoreScale(kpi);
+  return "";
+}
+
+function renderDashboardProfessionalKpiCard(kpi = {}) {
+  const visualType = dashboardProfessionalVisualType(kpi);
+  const tone = dashboardProfessionalTone(kpi.status);
+  const badgeTone = dashboardProfessionalBadgeTone(kpi);
+  const value = dashboardProfessionalKpiValue(kpi);
+  const meta = dashboardProfessionalMeta(kpi);
+  const deltaHtml = dashboardProfessionalDeltaMarkup(kpi);
+  const microVisualHtml = renderDashboardProfessionalMicroVisual(kpi);
+  const status = String(kpi.status || "neutral").toLowerCase();
+  return `
+    <article class="kmfx-ui-card dashboard-kpi-card dashboard-professional-kpi-card" data-dashboard-professional-kpi="${escapeDashboardHtml(kpi.kpi)}" data-tone="${tone}" data-kpi-status="${escapeDashboardHtml(status)}" data-kpi-visual="${escapeDashboardHtml(visualType)}">
+      <div class="dashboard-professional-kpi__top">
+        <div class="dashboard-professional-kpi__title">
+          ${dashboardKpiHelpMarkup(`professional-${kpi.kpi}`, kpi.tooltip)}
+          <span>${escapeDashboardHtml(kpi.label || "")}</span>
+        </div>
+        <span class="kmfx-ui-badge dashboard-professional-kpi__period" data-tone="${badgeTone}">${escapeDashboardHtml(kpi.period || "")}</span>
+      </div>
+      <div class="dashboard-professional-kpi__body">
+        <div class="dashboard-professional-kpi__value-row">
+          <strong class="dashboard-professional-kpi__value">${escapeDashboardHtml(value)}</strong>
+          ${deltaHtml}
+        </div>
+        ${microVisualHtml ? `<div class="dashboard-professional-kpi__visual">${microVisualHtml}</div>` : ""}
+        <p class="dashboard-professional-kpi__meta">${escapeDashboardHtml(meta)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function renderDashboardProfessionalKpiRow(contract = {}) {
+  const kpis = Array.isArray(contract.kpis) ? contract.kpis : [];
+  return kpis.map((kpi) => renderDashboardProfessionalKpiCard(kpi)).join("");
+}
+
 function setNodeHTML(root, selector, value) {
   const node = root.querySelector(selector);
   if (node) node.innerHTML = value;
@@ -776,6 +1030,9 @@ function animateNumberContent(node, target, formatter, duration = 680) {
 
 function updateDashboardLiveNodes(root, payload) {
   setNodeText(root, "[data-dashboard-subtitle]", payload.dashboardSubtitle);
+  if (payload.professionalKpisHtml != null) {
+    setNodeHTML(root, "[data-dashboard-professional-kpis]", payload.professionalKpisHtml);
+  }
   setNodeText(root, "[data-dashboard-hero-sub]", payload.heroSub);
   animateNumberContent(
     root.querySelector('[data-dashboard-kpi="equity"] [data-kpi-value]'),
@@ -1487,6 +1744,23 @@ export function renderDashboard(root, state) {
   const winRateMeta = totalTradesCount > 0 ? formatPercent(Number(model?.totals?.winRate || 0) / 100) : "—";
   const profitFactorMeta = `${totalTradesCount} trades / WR ${winRateMeta}`;
   const dashboardSubtitle = "Capital, riesgo y estado operativo de un vistazo.";
+  const professionalRiskSnapshot = account?.riskSnapshot || dashboardPayload?.riskSnapshot || { summary: riskSummary };
+  const professionalKpiContract = selectDashboardProfessionalKpis({
+    account,
+    model,
+    riskSnapshot: professionalRiskSnapshot,
+  });
+  const professionalKpisHtml = renderDashboardProfessionalKpiRow(professionalKpiContract);
+  const professionalKpiSignature = professionalKpiContract.kpis.map((kpi) => ({
+    id: kpi.kpi,
+    value: kpi.value,
+    deltaPct: kpi.deltaPct,
+    delta: kpi.delta,
+    microVisual: kpi.microVisual,
+    status: kpi.status,
+    statusLabel: kpi.statusLabel,
+    meta: kpi.meta,
+  }));
   console.log("[KMFX][PANEL_STATE_RESOLUTION]", {
     selectedAccountId: account?.id || activeAccountId || "",
     currentAccount: state.currentAccount,
@@ -1633,9 +1907,11 @@ export function renderDashboard(root, state) {
       sl: Number(item.stop_loss || 0),
       pnl: Number(item.open_pnl || 0),
     })),
+    professionalKpis: professionalKpiSignature,
   });
   const liveBindings = {
     dashboardSubtitle,
+    professionalKpisHtml,
     heroSub: `${heroSummaryLabel} / ${heroSummaryValue}`,
     equityValue: Number(model.account.equity || 0),
     equityMeta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
@@ -1696,64 +1972,8 @@ export function renderDashboard(root, state) {
         actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
       })}
 
-      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview">
-        ${renderDashboardKpiCard({
-          key: "equity",
-          label: "Equity",
-          value: formatCurrency(model.account.equity),
-          meta: `<span class="${panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative"}">${panelSecondMetricValue >= 0 ? "+" : "-"}${totalPnlDisplay} / ${currentReturnPct >= 0 ? "+" : "-"}${totalReturnDisplay} total</span>`,
-          tone: "info",
-          badge: "Actual",
-          trendTone: "neutral",
-        })}
-        ${renderDashboardKpiCard({
-          key: "pnl",
-          label: panelSecondMetricLabel,
-          value: `${panelSecondMetricValue >= 0 ? "+" : "-"}${formatCurrency(Math.abs(panelSecondMetricValue))}`,
-          valueClass: panelSecondMetricValue >= 0 ? "metric-positive" : "metric-negative",
-          meta: `Retorno ${formatPercent(currentReturnPct)}`,
-          tone: getDashboardKpiTone(panelSecondMetricValue),
-          badge: "PnL",
-          trendTone: "neutral",
-        })}
-        ${renderDashboardKpiCard({
-          key: "dd",
-          label: "Drawdown actual",
-          value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
-          valueClass: getDrawdownValueClass(riskSummary.peakToEquityDrawdownPct),
-          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
-          tone: getDashboardDrawdownKpiTone(riskSummary.peakToEquityDrawdownPct),
-          badge: "Riesgo",
-          trendTone: "neutral",
-        })}
-        ${renderDashboardKpiCard({
-          key: "edge",
-          label: "Profit Factor",
-          value: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
-          meta: profitFactorMeta,
-          cardClass: "dashboard-kpi-support",
-          tone: "neutral",
-          badge: "PF",
-          trendTone: "neutral",
-        })}
-        ${renderDashboardKpiCard({
-          key: "open-risk",
-          label: "Riesgo abierto",
-          value: formatRiskValuePct(riskSummary.totalOpenRiskPct, 2),
-          meta: openRiskKpiMeta,
-          tone: openRiskKpiTone,
-          badge: "Riesgo",
-          trendTone: "neutral",
-        })}
-        ${renderDashboardKpiCard({
-          key: "positions",
-          label: "Posiciones",
-          value: String(openPositionsCount),
-          meta: positionsMeta,
-          tone: positionsTone,
-          badge: "Ahora",
-          trendTone: "neutral",
-        })}
+      <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview dashboard-professional-kpi-row" data-dashboard-professional-kpis>
+        ${professionalKpisHtml}
       </section>
 
       <section class="dashboard-layout">

@@ -198,7 +198,17 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             "snapshot MT5 del backend",
           ];
           const requiredByPage = {
-            dashboard: ["Orion Challenge 5k", "5061", "AUDUSD"],
+            dashboard: [
+              "Orion Challenge 5k",
+              "5061",
+              "AUDUSD",
+              "Net Return",
+              "VaR 95",
+              "D-Score",
+              "dashboard-professional-kpi__gauge",
+              "dashboard-professional-kpi__exposure",
+              "dashboard-professional-kpi__delta",
+            ],
             connections: ["Cuentas conectadas", "Conectar MT5", "Edge Pro", "Activo"],
             trades: ["EURUSD", "GBPUSD"],
             calendar: ["Calendario"],
@@ -641,6 +651,17 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.assertGreater(row["htmlLength"], 500, page)
             self.assertEqual([], row["forbiddenHits"], page)
             self.assertGreater(len(row["requiredHits"]), 0, page)
+        self.assertTrue(
+            {
+                "Net Return",
+                "VaR 95",
+                "D-Score",
+                "dashboard-professional-kpi__gauge",
+                "dashboard-professional-kpi__exposure",
+                "dashboard-professional-kpi__delta",
+            }.issubset(set(by_page["dashboard"]["requiredHits"])),
+            by_page["dashboard"],
+        )
 
     def test_connections_render_pending_stale_revoked_and_plan_limited_states(self) -> None:
         result = self.run_degraded_connections_smoke()

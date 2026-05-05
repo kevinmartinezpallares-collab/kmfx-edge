@@ -1595,7 +1595,8 @@ body::after {
 .dashboard-professional-kpi__body {
   display: grid;
   min-width: 0;
-  align-content: end;
+  grid-template-rows: auto var(--microchart-h) minmax(32px, auto);
+  align-content: start;
   gap: 10px;
 }
 
@@ -1662,6 +1663,7 @@ body::after {
   height: var(--microchart-h);
   align-items: center;
   color: var(--kpi-accent);
+  overflow: hidden;
 }
 
 .dashboard-professional-kpi__sparkline {
@@ -1691,14 +1693,22 @@ body::after {
   grid-template-columns: 0.8fr 1.2fr 0.55fr;
   align-items: end;
   gap: 6px;
-  opacity: 0.46;
+  opacity: 0.62;
 }
 
 .dashboard-professional-kpi__empty-chart span {
   display: block;
-  height: 2px;
+  height: 8px;
   border-radius: 999px;
   background: currentColor;
+}
+
+.dashboard-professional-kpi__empty-chart span:nth-child(2) {
+  height: 15px;
+}
+
+.dashboard-professional-kpi__empty-chart span:nth-child(3) {
+  height: 5px;
 }
 
 .dashboard-professional-kpi__gauge {
