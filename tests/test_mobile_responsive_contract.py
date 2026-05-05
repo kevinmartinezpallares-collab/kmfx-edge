@@ -229,6 +229,29 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("flex-wrap: nowrap !important", compact_block)
         self.assertIn("flex: 0 0 auto", compact_block)
 
+    def test_mobile_short_viewports_stay_reachable(self) -> None:
+        css = read_text("styles-v2.css")
+        short_block = media_block(css, "@media (max-width: 920px) and (max-height: 560px)", "Mobile viewport-height hardening")
+        landscape_block = media_block(css, "@media (max-width: 920px) and (orientation: landscape)", "Mobile viewport-height hardening")
+
+        for selector in [
+            ".content-sticky-header",
+            ".mobile-sidebar-bar",
+            ".sidebar.sidebar-panel",
+            ".kmfx-ui-dialog",
+            ".kmfx-mobile-sheet",
+            ".dashboard-chart-card__chart",
+        ]:
+            self.assertIn(selector, short_block)
+
+        self.assertIn("--kmfx-mobile-edge: 10px", short_block)
+        self.assertIn("max-height: 100dvh !important", short_block)
+        self.assertIn("overflow-y: auto !important", short_block)
+        self.assertIn("max-height: calc(100dvh - 12px", short_block)
+        self.assertIn("min-height: clamp(128px, 36dvh, 180px) !important", short_block)
+        self.assertIn("flex-basis: min(42vw, 260px) !important", landscape_block)
+        self.assertIn("min-height: 40px !important", landscape_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

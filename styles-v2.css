@@ -39110,3 +39110,128 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     flex: 0 0 auto;
   }
 }
+
+/* Mobile viewport-height hardening: keep landscape and short screens usable. */
+@media (max-width: 920px) and (max-height: 560px) {
+  .app-shell.sidebar-vnext.sidebar-provider,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
+    --kmfx-mobile-edge: 10px;
+    --kmfx-mobile-gap: 10px;
+    --kmfx-mobile-card-pad: 10px;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .content,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .content {
+    padding-top: 6px !important;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .content-sticky-header,
+    .mobile-sidebar-bar,
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .calendar-screen__header,
+    .dashboard-screen__header,
+    .settings-toolbar
+  ) {
+    margin-block: 4px 8px !important;
+    padding-block: 6px !important;
+    gap: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar.sidebar-panel {
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .sidebar-header.sidebar-section--header,
+    .sidebar-bottom.sidebar-footer.sidebar-section--footer,
+    .sidebar-account-switcher,
+    .sidebar-account-switcher--empty
+  ) {
+    padding-block: 6px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .sidebar-nav,
+    .sidebar-content,
+    .sidebar-menu
+  ) {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :where(
+    .modal-card,
+    .kmfx-ui-dialog,
+    .connections-account-modal,
+    .connection-wizard-modal,
+    .modal-card--focus-panel,
+    #kmfx-posttrade-modal .ptt-dialog,
+    .kmfx-mt5-modal,
+    .kmfx-mobile-sheet
+  ) {
+    max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  }
+
+  :where(
+    .modal-head,
+    .modal-body,
+    .modal-actions,
+    .kmfx-ui-dialog__header,
+    .kmfx-ui-dialog__content,
+    .kmfx-ui-dialog__footer,
+    .ptt-header,
+    .ptt-body,
+    .kmfx-mt5-modal__header,
+    .kmfx-mt5-modal__body,
+    .kmfx-mt5-modal__footer
+  ) {
+    padding: 12px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-chart-shell,
+    .dashboard-chart-card__chart,
+    .dashboard-primary-card__chart,
+    .calendar-chart-wrap,
+    .analytics-session-chart,
+    .rule-history-chart
+  ) {
+    min-height: clamp(128px, 36dvh, 180px) !important;
+    max-height: min(46dvh, 240px) !important;
+  }
+}
+
+@media (max-width: 920px) and (orientation: landscape) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-kpi-premium-grid,
+    .dashboard-kpi-row,
+    .tl-kpi-row,
+    .tl-kpi-row.five,
+    .kmfx-mobile-scroll-strip
+  ) > * {
+    flex-basis: min(42vw, 260px) !important;
+    min-width: min(42vw, 260px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .mobile-sidebar-trigger,
+    .mobile-sidebar-close,
+    .sidebar-menu-button,
+    .sidebar-menu-sub-button,
+    .btn-primary,
+    .btn-secondary,
+    .btn-inline
+  ) {
+    min-height: 40px !important;
+  }
+}
