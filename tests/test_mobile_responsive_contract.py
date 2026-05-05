@@ -277,6 +277,30 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("white-space: normal !important", state_block)
         self.assertIn("text-align: left !important", compact_block)
 
+    def test_mobile_numeric_values_resist_overflow(self) -> None:
+        css = read_text("styles-v2.css")
+        number_block = media_block(css, "@media (max-width: 760px)", "Mobile numeric resilience")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile numeric resilience")
+
+        for selector in [
+            ".kmfx-ui-pnl",
+            ".table-num",
+            ".trades-position-row__pnl",
+            ".connections-account-card__metric-value",
+            ".calendar-week-chip__value",
+            ".calculator-primary-result strong",
+            ".dashboard-professional-kpi__value",
+            ".capital-account-card__metric strong",
+        ]:
+            self.assertIn(selector, number_block)
+
+        self.assertIn("font-variant-numeric: tabular-nums", number_block)
+        self.assertIn("overflow-wrap: anywhere", number_block)
+        self.assertIn("font-size: clamp(20px, 7.5vw, 32px) !important", number_block)
+        self.assertIn("line-height: 1.08 !important", number_block)
+        self.assertIn("white-space: normal !important", number_block)
+        self.assertIn("font-size: clamp(19px, 8.5vw, 29px) !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

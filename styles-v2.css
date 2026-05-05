@@ -39343,3 +39343,92 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     text-align: left !important;
   }
 }
+
+/* Mobile numeric resilience: keep money, percentages, and ratios from breaking compact cards. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-pnl,
+    .metric-positive,
+    .metric-negative,
+    .metric-warning,
+    .table-num,
+    .num,
+    .row-pnl,
+    .trades-symbol-value,
+    .trades-position-row__pnl,
+    .trades-position-row__pnl-cell,
+    .trades-focus-stats__value,
+    .trades-focus-kv__value,
+    .trades-position-kv__value,
+    .trades-position-state__value,
+    .trades-position-risk__value,
+    .focus-panel-disclosure__cell--value,
+    .connections-account-card__metric-value,
+    .connections-account-card__pnl,
+    .calendar-day__pnl,
+    .calendar-week-chip__value,
+    .calendar-year-card__badge,
+    .calculator-primary-result strong,
+    .calculator-result-panel strong
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-kpi__value,
+    .tl-kpi-val,
+    .dashboard-kpi-card__metric,
+    .dashboard-professional-kpi__value,
+    .capital-kpi__value,
+    .capital-account-card__metric strong,
+    .risk-core-kpi .tl-kpi-val,
+    .trades-kpi-card .tl-kpi-val,
+    .widget-value,
+    .calculator-primary-result strong
+  ) {
+    font-size: clamp(20px, 7.5vw, 32px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .dashboard-kpi-card__value-stack,
+    .dashboard-professional-kpi__value-row,
+    .capital-account-card__metric,
+    .connections-account-card__metric,
+    .trades-table-summary,
+    .trades-open-positions__summary
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-table-summary .kmfx-ui-pnl,
+    .trades-open-positions__summary .kmfx-ui-pnl,
+    .capital-account-card__metric .kmfx-ui-pnl,
+    .connections-account-card__metric .kmfx-ui-pnl,
+    .calendar-week-chip__value .kmfx-ui-pnl,
+    .calendar-day__pnl .kmfx-ui-pnl
+  ) {
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .kmfx-ui-kpi__value,
+    .tl-kpi-val,
+    .dashboard-kpi-card__metric,
+    .dashboard-professional-kpi__value,
+    .capital-kpi__value,
+    .risk-core-kpi .tl-kpi-val,
+    .trades-kpi-card .tl-kpi-val,
+    .calculator-primary-result strong
+  ) {
+    font-size: clamp(19px, 8.5vw, 29px) !important;
+  }
+}
