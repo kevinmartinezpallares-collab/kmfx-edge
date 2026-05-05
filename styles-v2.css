@@ -121,6 +121,13 @@
   --row-padding-y: var(--space-3);
   --section-gap: var(--space-4);
   --kpi-padding: var(--space-4);
+  --kpi-strong: var(--text-0);
+  --kpi-muted: var(--text-1);
+  --kpi-good: #27c281;
+  --kpi-warn: #f0b429;
+  --kpi-bad: #f05252;
+  --microchart-h: 28px;
+  --microchart-stroke: 2.5px;
 
   /* --------------------------------------------------------------------------
      KMFX Design System Token Bridge
@@ -1504,9 +1511,767 @@ body::after {
   letter-spacing: 0;
 }
 
+.dashboard-professional-kpi-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+
+.dashboard-professional-kpi-card {
+  --kpi-accent: var(--kpi-muted);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 168px;
+  padding: var(--kpi-padding);
+  gap: 14px;
+  overflow: visible;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent 62%),
+    color-mix(in srgb, var(--card) 88%, var(--layer-2) 12%);
+  border-color: color-mix(in srgb, var(--kpi-accent) 18%, var(--border));
+}
+
+.dashboard-professional-kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  background: var(--kpi-accent);
+  opacity: 0.42;
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="good"] {
+  --kpi-accent: var(--kpi-good);
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="warn"] {
+  --kpi-accent: var(--kpi-warn);
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="bad"] {
+  --kpi-accent: var(--kpi-bad);
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="insufficient"] {
+  --kpi-accent: var(--equity);
+}
+
+.dashboard-professional-kpi__top {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-professional-kpi__title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--kpi-muted);
+  font-size: 10px;
+  line-height: 1.16;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dashboard-professional-kpi__title > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-professional-kpi__period {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding-inline: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.dashboard-professional-kpi__body {
+  display: grid;
+  min-width: 0;
+  align-content: end;
+  gap: 10px;
+}
+
+.dashboard-professional-kpi__value-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-professional-kpi__value {
+  min-width: 0;
+  color: var(--kpi-strong);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="good"] .dashboard-professional-kpi__value {
+  color: color-mix(in srgb, var(--kpi-good) 84%, var(--foreground));
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="warn"] .dashboard-professional-kpi__value {
+  color: color-mix(in srgb, var(--kpi-warn) 88%, var(--foreground));
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="bad"] .dashboard-professional-kpi__value {
+  color: color-mix(in srgb, var(--kpi-bad) 88%, var(--foreground));
+}
+
+.dashboard-professional-kpi-card[data-kpi-status="insufficient"] .dashboard-professional-kpi__value {
+  color: var(--foreground);
+}
+
+.dashboard-professional-kpi__delta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 720;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dashboard-professional-kpi__delta[data-tone="profit"] {
+  color: var(--kpi-good);
+}
+
+.dashboard-professional-kpi__delta[data-tone="loss"] {
+  color: var(--kpi-bad);
+}
+
+.dashboard-professional-kpi__visual {
+  display: flex;
+  min-width: 0;
+  height: var(--microchart-h);
+  align-items: center;
+  color: var(--kpi-accent);
+}
+
+.dashboard-professional-kpi__sparkline {
+  width: 100%;
+  height: var(--microchart-h);
+  color: var(--kpi-accent);
+}
+
+.dashboard-professional-kpi__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--microchart-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dashboard-professional-kpi__area {
+  fill: currentColor;
+  opacity: 0.14;
+}
+
+.dashboard-professional-kpi__empty-chart {
+  display: grid;
+  width: 100%;
+  height: var(--microchart-h);
+  grid-template-columns: 0.8fr 1.2fr 0.55fr;
+  align-items: end;
+  gap: 6px;
+  opacity: 0.46;
+}
+
+.dashboard-professional-kpi__empty-chart span {
+  display: block;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.dashboard-professional-kpi__gauge {
+  position: relative;
+  width: 104px;
+  height: var(--microchart-h);
+  margin-top: 2px;
+}
+
+.dashboard-professional-kpi__gauge-track {
+  position: absolute;
+  left: 0;
+  bottom: -17px;
+  width: 104px;
+  height: 52px;
+  border-radius: 104px 104px 0 0;
+  background:
+    conic-gradient(
+      from 270deg at 50% 100%,
+      var(--kpi-good) 0deg 60deg,
+      var(--kpi-warn) 60deg 135deg,
+      var(--kpi-bad) 135deg 180deg,
+      transparent 180deg 360deg
+    );
+  -webkit-mask: radial-gradient(circle at 50% 100%, transparent 0 58%, #000 59% 72%, transparent 73%);
+  mask: radial-gradient(circle at 50% 100%, transparent 0 58%, #000 59% 72%, transparent 73%);
+  opacity: 0.82;
+}
+
+.dashboard-professional-kpi__gauge-pointer {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 36px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--foreground);
+  transform: rotate(var(--pointer-angle)) translateX(2px);
+  transform-origin: left center;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-professional-kpi__exposure {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  overflow: hidden;
+}
+
+.dashboard-professional-kpi__exposure-base,
+.dashboard-professional-kpi__exposure-net,
+.dashboard-professional-kpi__exposure-zero {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.dashboard-professional-kpi__exposure-base {
+  left: 0;
+  width: calc(var(--gross) * 1%);
+  background: color-mix(in srgb, var(--kpi-accent) 32%, transparent);
+}
+
+.dashboard-professional-kpi__exposure-net {
+  left: 50%;
+  width: calc(var(--net) * 0.5%);
+  background: var(--kpi-accent);
+  transform: scaleX(var(--net-side));
+  transform-origin: left center;
+}
+
+.dashboard-professional-kpi__exposure-zero {
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--foreground) 34%, transparent);
+}
+
+.dashboard-professional-kpi__sortino-pill {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  color: var(--kpi-accent);
+  border: 1px solid color-mix(in srgb, var(--kpi-accent) 24%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kpi-accent) 8%, transparent);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 720;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-professional-kpi__dscore {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--kpi-bad), var(--kpi-warn) 55%, var(--kpi-good));
+}
+
+.dashboard-professional-kpi__dscore::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.dashboard-professional-kpi__dscore-fill {
+  position: absolute;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  width: calc(var(--score) * 1%);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.dashboard-professional-kpi__meta {
+  min-height: 32px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.34;
+  font-weight: 520;
+  letter-spacing: 0;
+}
+
+.dashboard-professional-kpi-card .dashboard-kpi-card__help {
+  width: 21px;
+  height: 21px;
+  color: color-mix(in srgb, var(--kpi-accent) 68%, var(--muted-foreground));
+  border-color: color-mix(in srgb, var(--kpi-accent) 34%, var(--border));
+  background: color-mix(in srgb, var(--kpi-accent) 7%, transparent);
+}
+
+@media (max-width: 1280px) {
+  .dashboard-professional-kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-professional-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1280px) {
   .dashboard-kpi-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile responsive primitives
+   Additive, mobile-only rules for the current vanilla shell. Keep desktop
+   behavior unchanged and make these patterns easy to lift into Next later.
+-------------------------------------------------------------------------- */
+@media (max-width: 920px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+  }
+
+  body.sidebar-mobile-open {
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
+    --kmfx-mobile-edge: 14px;
+    --kmfx-mobile-gap: 14px;
+    --kmfx-mobile-card-pad: 14px;
+    --kmfx-mobile-tap: 44px;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .page,
+  .content > .page,
+  .content > .page.active,
+  :where(
+    #dashboardRoot,
+    #analyticsRoot,
+    #riskRoot,
+    #disciplineRoot,
+    #tradesRoot,
+    #calendarRoot,
+    #connectionsRoot,
+    #calculatorRoot,
+    #journalRoot,
+    #strategiesRoot,
+    #fundedRoot,
+    #marketRoot,
+    #portfolioRoot,
+    #glossaryRoot,
+    #debugRoot,
+    .dashboard-page-flow,
+    .dashboard-premium-grid,
+    .analytics-page-flow,
+    .risk-engine-page,
+    .journal-cockpit,
+    .strategies-page-stack,
+    .funded-page-stack,
+    .kmfx-subpage-shell,
+    .settings-page-shell,
+    .settings-layout,
+    .settings-layout-main,
+    .settings-layout-side,
+    .calendar-screen__header,
+    .analytics-screen__header
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  :where(
+    .kmfx-ui-page-header,
+    .tl-page-header,
+    .calendar-screen__header,
+    .analytics-screen__header,
+    .settings-toolbar,
+    .tl-section-header,
+    .kmfx-ui-card__header,
+    .kmfx-ui-chart-card__header
+  ) {
+    min-width: 0 !important;
+    gap: 10px !important;
+  }
+
+  :where(.kmfx-ui-page-header, .settings-toolbar) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  :where(
+    .kmfx-ui-page-header__actions,
+    .settings-edit-actions,
+    .tl-section-actions,
+    .calendar-screen__actions,
+    .analytics-screen__actions
+  ) {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  :where(
+    .kmfx-ui-page-header__actions,
+    .settings-edit-actions,
+    .tl-section-actions,
+    .calendar-screen__actions,
+    .analytics-screen__actions
+  )::-webkit-scrollbar {
+    display: none;
+  }
+
+  :where(
+    .kmfx-ui-page-header__title,
+    .tl-page-title,
+    .calendar-screen__title,
+    .kmfx-ui-card__title,
+    .kmfx-ui-chart-card__title,
+    .tl-section-title,
+    .settings-toolbar-title
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  :where(
+    .kmfx-ui-page-header__description,
+    .calendar-screen__subtitle,
+    .tl-page-sub,
+    .kmfx-ui-card__description,
+    .kmfx-ui-chart-card__description,
+    .settings-inline-note
+  ) {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  :where(
+    .dashboard-main-grid,
+    .dashboard-secondary-grid,
+    .dashboard-tertiary-grid,
+    .dashboard-bottom-grid,
+    .grid-2,
+    .grid-2.equal,
+    .journal-cockpit-grid,
+    .settings-layout,
+    .connections-guide-grid,
+    .kmfx-mt5-grid,
+    .kmfx-ui-decision-layer__grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :where(
+    .dashboard-kpi-premium-grid,
+    .dashboard-kpi-row,
+    .tl-kpi-row,
+    .tl-kpi-row.five
+  ) {
+    display: flex !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+    margin-inline: calc(var(--kmfx-mobile-edge) * -1) !important;
+    padding-inline: var(--kmfx-mobile-edge) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  :where(
+    .dashboard-kpi-premium-grid,
+    .dashboard-kpi-row,
+    .tl-kpi-row,
+    .tl-kpi-row.five
+  )::-webkit-scrollbar {
+    display: none;
+  }
+
+  :where(
+    .dashboard-kpi-premium-grid,
+    .dashboard-kpi-row,
+    .tl-kpi-row,
+    .tl-kpi-row.five
+  ) > * {
+    flex: 0 0 min(76vw, 280px) !important;
+    min-width: min(76vw, 280px) !important;
+    scroll-snap-align: start;
+  }
+
+  :where(
+    .tl-section-card,
+    .kmfx-ui-card,
+    .kmfx-ui-chart-card,
+    .kmfx-ui-kpi,
+    .widget-card,
+    .chart-card,
+    .pnlcal-card,
+    .account-switcher,
+    .account-banner
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  :where(.kmfx-ui-card__header, .kmfx-ui-card__content, .kmfx-ui-card__footer) {
+    padding: var(--kmfx-mobile-card-pad) !important;
+  }
+
+  :where(.kmfx-ui-kpi) {
+    min-height: 126px !important;
+    padding: var(--kmfx-mobile-card-pad) !important;
+    gap: 12px !important;
+  }
+
+  :where(.kmfx-ui-kpi__value, .dashboard-kpi-card__metric, .widget-value) {
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  :where(.tl-tab-bar, .kmfx-ui-tabs__list, .kmfx-ui-segmented, .analytics-screen__tabs) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  :where(.tl-tab-bar, .kmfx-ui-tabs__list, .kmfx-ui-segmented, .analytics-screen__tabs)::-webkit-scrollbar {
+    display: none;
+  }
+
+  :where(.tl-tab, .kmfx-ui-tabs__trigger, .kmfx-ui-segmented button) {
+    flex: 0 0 auto !important;
+    min-height: var(--kmfx-mobile-tap) !important;
+    min-width: max-content !important;
+    padding-inline: 12px !important;
+    touch-action: manipulation;
+  }
+
+  :where(
+    .mobile-sidebar-trigger,
+    .mobile-sidebar-close,
+    .sidebar-menu-button,
+    .sidebar-menu-sub-button,
+    .kmfx-ui-button,
+    .btn-primary,
+    .btn-secondary,
+    .btn-inline,
+    .custom-select-trigger,
+    .settings-edit-actions button
+  ) {
+    min-height: var(--kmfx-mobile-tap) !important;
+    touch-action: manipulation;
+  }
+
+  :where(.sidebar-menu-button, .sidebar-menu-sub-button, .nav-item-label) {
+    min-width: 0 !important;
+  }
+
+  :where(.nav-item-label) {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  :where(input, select, textarea, .kmfx-ui-input, .kmfx-ui-select) {
+    max-width: 100% !important;
+    min-height: var(--kmfx-mobile-tap) !important;
+    font-size: 16px !important;
+  }
+
+  :where(textarea, .kmfx-ui-textarea) {
+    min-height: 96px !important;
+  }
+
+  :where(
+    .table-wrap,
+    .widget-table-wrap,
+    .kmfx-ui-table-wrap,
+    .trades-table-wrap,
+    .portfolio-table-wrap,
+    .risk-ladder-table,
+    .calendar-returns-panel .table-wrap,
+    .analytics-panel .table-wrap,
+    .capital-exposure-table,
+    .funding-ledger-table,
+    .execution-entry-table
+  ) {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: auto !important;
+  }
+
+  :where(
+    .table-wrap table,
+    .widget-table-wrap table,
+    .kmfx-ui-table,
+    .trades-table-wrap table,
+    .portfolio-table-wrap table,
+    .risk-ladder-table table,
+    .calendar-returns-panel table,
+    .analytics-panel table,
+    .capital-exposure-table table,
+    .funding-ledger-table table,
+    .execution-entry-table table
+  ) {
+    min-width: 620px;
+  }
+
+  :where(.kmfx-ui-table th, .kmfx-ui-table td, .table-wrap th, .table-wrap td) {
+    padding: 10px 12px !important;
+    white-space: nowrap;
+  }
+
+  :where(.table-primary-cell, .strategy-primary-cell) {
+    min-width: 0 !important;
+    white-space: normal !important;
+  }
+
+  :where(canvas, svg, img, video) {
+    max-width: 100%;
+  }
+
+  .kmfx-mobile-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--kmfx-mobile-gap) !important;
+    min-width: 0 !important;
+  }
+
+  .kmfx-mobile-scroll-strip {
+    display: flex !important;
+    gap: 10px !important;
+    margin-inline: calc(var(--kmfx-mobile-edge) * -1) !important;
+    padding-inline: var(--kmfx-mobile-edge) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .kmfx-mobile-scroll-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kmfx-mobile-scroll-strip > * {
+    flex: 0 0 min(76vw, 280px) !important;
+    scroll-snap-align: start;
+  }
+
+  .kmfx-mobile-sheet {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    z-index: 210 !important;
+    max-height: min(82dvh, 640px) !important;
+    overflow: auto !important;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) !important;
+    border-radius: 18px 18px 0 0 !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider {
+    --kmfx-mobile-edge: 12px;
+    --kmfx-mobile-gap: 12px;
+    --kmfx-mobile-card-pad: 12px;
+  }
+
+  :where(
+    .dashboard-kpi-premium-grid,
+    .dashboard-kpi-row,
+    .tl-kpi-row,
+    .tl-kpi-row.five
+  ) > *,
+  .kmfx-mobile-scroll-strip > * {
+    flex-basis: min(82vw, 286px) !important;
+    min-width: min(82vw, 286px) !important;
+  }
+
+  :where(
+    .table-wrap table,
+    .widget-table-wrap table,
+    .kmfx-ui-table,
+    .trades-table-wrap table,
+    .portfolio-table-wrap table,
+    .risk-ladder-table table,
+    .calendar-returns-panel table,
+    .analytics-panel table,
+    .capital-exposure-table table,
+    .funding-ledger-table table,
+    .execution-entry-table table
+  ) {
+    min-width: 560px;
+  }
+
+  :where(.mobile-sidebar-bar__title) {
+    max-width: 42vw;
   }
 }
 
@@ -37395,5 +38160,64 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+  }
+}
+
+/* Mobile cascade guard: final mobile-only rules that must win over legacy passes. */
+@media (max-width: 920px) {
+  .app-shell.sidebar-vnext.sidebar-provider,
+  .app-shell.sidebar-vnext.sidebar-provider .main-panel,
+  .app-shell.sidebar-vnext.sidebar-provider .content,
+  .content > .page,
+  .content > .page.active {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-button,
+  .app-shell.sidebar-vnext.sidebar-provider .mobile-sidebar-trigger,
+  .app-shell.sidebar-vnext.sidebar-provider .mobile-sidebar-close,
+  .app-shell.sidebar-vnext.sidebar-provider .btn-primary,
+  .app-shell.sidebar-vnext.sidebar-provider .btn-secondary,
+  .app-shell.sidebar-vnext.sidebar-provider .btn-inline {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub-button,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub-button,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-sub-button {
+    min-height: 40px !important;
+    touch-action: manipulation;
+  }
+
+  .dashboard-kpi-premium-grid,
+  .dashboard-kpi-row,
+  .tl-kpi-row,
+  .tl-kpi-row.five,
+  .tl-tab-bar,
+  .kmfx-ui-tabs__list,
+  .kmfx-ui-segmented,
+  .analytics-screen__tabs {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap,
+  .widget-table-wrap,
+  .kmfx-ui-table-wrap,
+  .trades-table-wrap,
+  .portfolio-table-wrap,
+  .risk-ladder-table,
+  .capital-exposure-table,
+  .funding-ledger-table,
+  .execution-entry-table {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 }
