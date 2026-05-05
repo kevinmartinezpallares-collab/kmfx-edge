@@ -1521,9 +1521,9 @@ body::after {
   --kpi-accent: var(--kpi-muted);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  min-height: 168px;
-  padding: 18px;
-  gap: 16px;
+  min-height: 184px;
+  padding: 20px;
+  gap: 17px;
   overflow: visible;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.5%, transparent), transparent 68%),
@@ -1595,7 +1595,7 @@ body::after {
 .dashboard-professional-kpi__body {
   display: grid;
   min-width: 0;
-  grid-template-rows: auto var(--microchart-h) minmax(32px, auto);
+  grid-template-rows: minmax(40px, auto) var(--microchart-h) minmax(34px, auto);
   align-content: start;
   gap: 10px;
 }
@@ -1603,16 +1603,18 @@ body::after {
 .dashboard-professional-kpi__value-row {
   display: flex;
   min-width: 0;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
+  row-gap: 6px;
+  flex-wrap: wrap;
 }
 
 .dashboard-professional-kpi__value {
   min-width: 0;
   color: var(--kpi-strong);
   font-size: 30px;
-  line-height: 1;
+  line-height: 1.08;
   font-weight: 760;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -1642,23 +1644,27 @@ body::after {
 .dashboard-professional-kpi__delta {
   display: inline-flex;
   flex: 0 0 auto;
+  max-width: min(100%, 52%);
   align-items: center;
   gap: 5px;
   color: var(--muted-foreground);
   font-size: 11px;
-  line-height: 1;
+  line-height: 1.2;
   font-weight: 720;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  text-align: right;
+  white-space: normal;
 }
 
 .dashboard-professional-kpi__delta[data-tone="profit"] {
   color: var(--kpi-good);
+  white-space: nowrap;
 }
 
 .dashboard-professional-kpi__delta[data-tone="loss"] {
   color: var(--kpi-bad);
+  white-space: nowrap;
 }
 
 .dashboard-professional-kpi__visual {
