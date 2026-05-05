@@ -204,7 +204,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               "AUDUSD",
               "Net Return",
               "VaR 95",
-              "D-Score",
+              "Edge Score",
               "dashboard-professional-kpi__gauge",
               "dashboard-professional-kpi__exposure",
               "dashboard-professional-kpi__delta",
@@ -870,7 +870,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             {
                 "Net Return",
                 "VaR 95",
-                "D-Score",
+                "Edge Score",
                 "dashboard-professional-kpi__gauge",
                 "dashboard-professional-kpi__exposure",
                 "dashboard-professional-kpi__delta",

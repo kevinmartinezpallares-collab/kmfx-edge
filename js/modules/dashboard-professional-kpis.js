@@ -76,12 +76,12 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Retorno excedente dividido por desviacion negativa.",
   },
   dscore: {
-    label: "D-Score",
+    label: "Edge Score",
     unit: "score",
     period: "hourly",
     visual: "badge",
     refresh: "hourly",
-    tooltip: "Score de calidad y consistencia del ecosistema Darwinex.",
+    tooltip: "Score propio de calidad y consistencia operativa.",
   },
 });
 
@@ -374,14 +374,18 @@ export function selectDashboardProfessionalKpis(input = {}) {
         : statusToken("good", "eficiente");
 
   const dscore = finiteNumber(
+    professional.edge_score,
+    professional.edgeScore,
     professional.dscore,
     professional.d_score,
-    professional.darwinex?.d_score,
+    professional.quality_score,
     account.dashboardPayload?.dscore,
     account.dashboardPayload?.d_score,
+    account.dashboardPayload?.edge_score,
+    account.dashboardPayload?.edgeScore,
   );
   const dscoreStatus = dscore === null
-    ? statusToken("insufficient", "requiere feed Darwinex")
+    ? statusToken("insufficient", "score pendiente")
     : dscore >= 70
       ? statusToken("good", "alta calidad")
       : dscore >= 50
@@ -442,8 +446,8 @@ export function selectDashboardProfessionalKpis(input = {}) {
       value: round(dscore, 2),
       status: dscoreStatus.status,
       statusLabel: dscoreStatus.statusLabel,
-      source: dscore === null ? "missing_darwinex_feed" : "darwinex",
-      emptyReason: "requiere feed Darwinex",
+      source: dscore === null ? "missing_quality_score" : "kmfx_quality_score",
+      emptyReason: "score pendiente",
       microVisual: {
         bands: [
           { label: "bad", from: 0, to: 50 },

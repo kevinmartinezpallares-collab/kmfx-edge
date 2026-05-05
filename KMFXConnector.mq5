@@ -836,6 +836,12 @@ string KMFXPublicErrorMessage(string message)
   {
    if(StringFind(message,"WebRequest")>=0 || StringFind(message,"transporte")>=0)
       return "No se pudo conectar con KMFX. Revisa la URL autorizada en WebRequest y tu conexion.";
+   if(StringFind(message,"connection_key_rate_limited")>=0 || StringFind(message,"HTTP=429")>=0)
+      return "KMFX esta limitando temporalmente la sincronizacion. El conector reintentara automaticamente.";
+   if(StringFind(message,"payload_too_large")>=0 || StringFind(message,"HTTP=413")>=0)
+      return "La sincronizacion MT5 es demasiado grande. Reduce el historico enviado o actualiza el conector.";
+   if(StringFind(message,"unknown_connection_key")>=0 || StringFind(message,"HTTP=401")>=0)
+      return "KMFX no reconoce la clave de conexion. Revisa que la key pegada en el EA sea la de esta cuenta.";
    if(StringFind(message,"rechaz")>=0 || StringFind(message,"HTTP=")>=0)
       return "KMFX no acepto temporalmente la sincronizacion. Revisa tu conexion o vuelve a intentarlo.";
    return message;
@@ -1961,6 +1967,31 @@ string KMFXExtractSyncDisposition(string json)
    return "";
   }
 
+string KMFXExtractBackendReason(string json)
+  {
+   string reason="";
+   if(KMFXExtractJsonString(json,"reason",reason) && StringLen(reason)>0)
+      return reason;
+   if(KMFXExtractJsonString(json,"error",reason) && StringLen(reason)>0)
+      return reason;
+   if(KMFXExtractJsonString(json,"rejection_reason",reason) && StringLen(reason)>0)
+      return reason;
+   return "";
+  }
+
+bool KMFXIsTemporarySyncReject(int status_code,string reason)
+  {
+   string normalized_reason=reason;
+   StringToLower(normalized_reason);
+   if(status_code==408 || status_code==425 || status_code==429)
+      return true;
+   if(status_code>=500 && status_code<600)
+      return true;
+   if(StringFind(normalized_reason,"rate_limit")>=0 || StringFind(normalized_reason,"tempor")>=0)
+      return true;
+   return false;
+  }
+
 bool KMFXHandlePendingSyncFailure(string file_name,KMFXPendingSync &item,int status_code,int transport_error)
   {
    item.attempts++;
@@ -2169,10 +2200,22 @@ bool KMFXPushState()
 
    if(status_code>=300)
      {
-      Policy.backend_connected=false;
-      Policy.degraded_mode=true;
-      if(KMFXShouldSurfaceSyncReject())
-         KMFXSetError("Sync rechazado por backend. HTTP="+IntegerToString(status_code));
+      string backend_reason=KMFXExtractBackendReason(response);
+      bool temporary_reject=KMFXIsTemporarySyncReject(status_code,backend_reason);
+      bool surface_reject=temporary_reject ? KMFXShouldSurfaceSyncReject() : true;
+
+      if(surface_reject)
+        {
+         Policy.backend_connected=false;
+         Policy.degraded_mode=true;
+         string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
+         KMFXSetError("Sync rechazado por backend. HTTP="+IntegerToString(status_code)+reason_suffix);
+        }
+      else
+        {
+         Policy.backend_connected=true;
+         Policy.degraded_mode=false;
+        }
      return false;
     }
 

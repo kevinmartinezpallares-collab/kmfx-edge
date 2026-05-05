@@ -827,7 +827,7 @@ function dashboardProfessionalMeta(kpi = {}) {
     return sampleSize ? `${sampleSize} retornos / downside` : (kpi.statusLabel || "insuficiente historico");
   }
   if (kpi.kpi === "dscore") {
-    return kpi.statusLabel || kpi.emptyReason || "requiere feed Darwinex";
+    return kpi.statusLabel || kpi.emptyReason || "score pendiente";
   }
   if (kpi.kpi === "max_drawdown") {
     const sampleSize = finiteDashboardNumber(meta.sampleSize);

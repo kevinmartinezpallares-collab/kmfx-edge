@@ -152,8 +152,8 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["var_95"]["status"], "insufficient")
         self.assertEqual(kpis["vol_ann"]["display"], "-")
         self.assertEqual(kpis["vol_ann"]["emptyReason"], "insuficiente historico")
-        self.assertEqual(kpis["dscore"]["source"], "missing_darwinex_feed")
-        self.assertEqual(kpis["dscore"]["emptyReason"], "requiere feed Darwinex")
+        self.assertEqual(kpis["dscore"]["source"], "missing_quality_score")
+        self.assertEqual(kpis["dscore"]["emptyReason"], "score pendiente")
         self.assertFalse(payload["generatedFrom"]["hasRiskSnapshot"])
 
 
