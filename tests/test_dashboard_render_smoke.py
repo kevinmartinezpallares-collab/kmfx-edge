@@ -139,6 +139,30 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                 is_admin: false,
               },
             },
+            billing: {
+              loading: false,
+              loadedAt: "2026-05-05T07:40:00Z",
+              error: "",
+              authRequired: false,
+              billing: {
+                plan: "pro",
+                effectivePlan: "pro",
+                displayName: "Edge Pro",
+                status: "active",
+                access: "active",
+              },
+              entitlements: {
+                liveMt5Accounts: 3,
+                launcherConnection: true,
+                rawBridgeDebug: true,
+              },
+              limits: {
+                liveMt5Accounts: 3,
+                connectionKeyLimit: 3,
+              },
+              isAdmin: false,
+              source: "app_metadata",
+            },
             ui: { activePage: "dashboard" },
             workspace: {
               baseCurrency: "USD",
@@ -175,7 +199,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
           ];
           const requiredByPage = {
             dashboard: ["Orion Challenge 5k", "5061", "AUDUSD"],
-            connections: ["Cuentas conectadas", "Conectar MT5"],
+            connections: ["Cuentas conectadas", "Conectar MT5", "Edge Pro", "Activo"],
             trades: ["EURUSD", "GBPUSD"],
             calendar: ["Calendario"],
             analytics: ["Patrones detectados", "Dónde se concentra el resultado"],
@@ -535,6 +559,28 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                 is_admin: false,
               },
             },
+            billing: {
+              loading: false,
+              error: "",
+              authRequired: false,
+              billing: {
+                plan: "pro",
+                effectivePlan: "free",
+                displayName: "Edge Pro",
+                status: "unpaid",
+                access: "restricted",
+              },
+              entitlements: {
+                liveMt5Accounts: 0,
+                launcherConnection: false,
+              },
+              limits: {
+                liveMt5Accounts: 0,
+                connectionKeyLimit: 0,
+              },
+              isAdmin: false,
+              source: "app_metadata",
+            },
             ui: { activePage: "accounts" },
             workspace: {},
           };
@@ -552,6 +598,8 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             "Actualiza el plan o libera una conexión",
             "Error de conexión",
             "Revisa la conexión en Launcher",
+            "Plan con acceso restringido",
+            "Acceso restringido",
           ];
           const forbidden = [
             "payloadSource=mock",
@@ -611,6 +659,8 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                 "Actualiza el plan o libera una conexión",
                 "Error de conexión",
                 "Revisa la conexión en Launcher",
+                "Plan con acceso restringido",
+                "Acceso restringido",
             },
             set(result["requiredHits"]),
         )

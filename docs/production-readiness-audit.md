@@ -192,6 +192,7 @@ Resultado:
 - Crear catalogo Stripe test.
 - Implementar `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook`.
 - `GET /api/billing/status` ya existe como contrato inicial con plan, estado y entitlements desde `app_metadata`; falta conectarlo a Stripe/Supabase real.
+- Cuentas ya consume ese contrato como lectura suave: muestra plan, acceso y avisos sin activar todavia bloqueos duros de pago.
 - Aplicar limits: Free/Core/Pro en creacion de keys, cuentas MT5 live y features premium.
 - Bloquear nuevas keys si el plan no permite conectar.
 

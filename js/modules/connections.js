@@ -4,6 +4,7 @@ import { showToast } from "./toast.js?v=build-20260504-080918";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260504-080918";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260504-080918";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { billingAccessLabel, billingAccessTone, isBillingAttention, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260505-071500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-mac.dmg";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.zip";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -267,9 +268,13 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null } = {
   });
 }
 
-function renderConnectionsKpis(accounts = []) {
+function renderConnectionsKpis(accounts = [], state = {}) {
   const accountsCount = accounts.length;
   const connectedCount = accounts.filter((account) => isConnectedStatus(account.status)).length;
+  const billingState = selectBillingStatus(state);
+  const planName = billingState.loading
+    ? "Comprobando"
+    : billingState.billing?.displayName || "Free / Demo";
   return `
     <section class="tl-kpi-row connections-shell__kpis">
       ${renderRiskMetricCard({
@@ -284,7 +289,40 @@ function renderConnectionsKpis(accounts = []) {
         meta: connectedCount === 1 ? "Lista para usar" : connectedCount > 1 ? "Listas para usar" : "Sin conexión activa",
         tone: connectedCount > 0 ? "ok" : "neutral",
       })}
+      ${renderRiskMetricCard({
+        label: "Plan",
+        value: escapeHtml(planName),
+        meta: escapeHtml(billingAccessLabel(state)),
+        tone: billingAccessTone(state),
+      })}
     </section>
+  `;
+}
+
+function renderBillingNotice(state = {}) {
+  const billingState = selectBillingStatus(state);
+  if (!isBillingRestricted(state) && !isBillingAttention(state) && !billingState.error) return "";
+  const isRestricted = isBillingRestricted(state);
+  const title = billingState.error
+    ? "No pude comprobar el plan"
+    : isRestricted
+      ? "Plan con acceso restringido"
+      : "Pago pendiente de revisar";
+  const copy = billingState.error
+    ? "Puedes seguir usando el panel. KMFX volverá a comprobar el estado del plan automáticamente."
+    : isRestricted
+      ? "Las funciones premium se mantendrán visibles, pero las próximas acciones de producción deberán validarse contra entitlements."
+      : "Mantengo tus permisos durante el periodo de gracia y marco el estado para que soporte pueda revisarlo.";
+  return `
+    <article class="widget-card connections-billing-notice connections-billing-notice--${isRestricted ? "restricted" : "attention"}">
+      <div class="calendar-panel-head">
+        <div>
+          <div class="calendar-panel-title">${escapeHtml(title)}</div>
+          <div class="row-sub">${escapeHtml(copy)}</div>
+        </div>
+        <span class="risk-status-badge risk-status-badge--${isRestricted ? "blocked" : "warning"}">${escapeHtml(billingAccessLabel(state))}</span>
+      </div>
+    </article>
   `;
 }
 
@@ -700,12 +738,13 @@ async function fetchAccountsRegistry(store) {
   }
 }
 
-function renderEmptyState(root) {
+function renderEmptyState(root, state = {}) {
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader()}
-      ${renderConnectionsKpis([], null)}
+      ${renderConnectionsKpis([], state)}
       <section class="connections-shell__main">
+        ${renderBillingNotice(state)}
         <article class="tl-section-card connections-empty-card">
           <div class="calendar-panel-head">
             <div>
@@ -1230,15 +1269,16 @@ export function renderConnections(root, state) {
   });
 
   if (!registryAccounts.length) {
-    renderEmptyState(root);
+    renderEmptyState(root, state);
     return;
   }
 
   root.innerHTML = `
     <div class="dashboard-premium-grid connections-shell">
       ${renderConnectionsHeader({ adminVisible, adminState })}
-      ${renderConnectionsKpis(registryAccounts)}
+      ${renderConnectionsKpis(registryAccounts, state)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
+        ${renderBillingNotice(state)}
         ${renderConnectionGuide()}
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>

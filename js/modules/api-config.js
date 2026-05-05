@@ -57,6 +57,10 @@ export function resolveAccountsSnapshotUrl() {
   return buildApiUrl("/api/accounts/snapshot");
 }
 
+export function resolveBillingStatusUrl() {
+  return buildApiUrl("/api/billing/status");
+}
+
 export function resolveAccountsRegistryUrl() {
   return buildApiUrl("/accounts");
 }

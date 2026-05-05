@@ -90,7 +90,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Webhooks Stripe no están implementados en producción.
 - [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
 - [ ] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` no están implementados.
-- [ ] El frontend no consume billing status/entitlements.
+- [x] El frontend consume `/api/billing/status` como soft entitlement en Cuentas.
 - [ ] Los guards de producto no dependen aún de entitlements finales.
 
 ### CI, QA y release
@@ -228,7 +228,7 @@ Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 - [ ] Añadir respuesta clara `plan_limit_reached`.
 - [ ] Añadir respuesta clara `entitlement_required`.
 - [ ] Añadir respuesta clara `billing_past_due`.
-- [ ] Conectar frontend con `/api/billing/status`.
+- [x] Conectar frontend con `/api/billing/status` para mostrar plan, acceso y avisos de billing.
 - [ ] Añadir empty/blocked states sobrios en Cuentas, Risk, Funding, Journal, Strategies y Exports.
 - [ ] Proteger debug/raw bridge para admin o entitlement `rawBridgeDebug`.
 - [ ] Proteger Risk editor con `riskPolicyEditor`.

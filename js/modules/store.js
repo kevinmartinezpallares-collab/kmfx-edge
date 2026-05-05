@@ -35,6 +35,50 @@ const validPages = new Set([
 ]);
 const validAnalyticsTabs = new Set(["summary", "daily", "hourly", "risk"]);
 
+const DEFAULT_BILLING_STATE = {
+  loading: false,
+  loadedAt: "",
+  error: "",
+  authRequired: true,
+  billing: {
+    plan: "free",
+    effectivePlan: "free",
+    displayName: "Free / Demo",
+    status: "anonymous",
+    access: "anonymous",
+    currentPeriodEndsAt: "",
+    trialEndsAt: "",
+    cancelAtPeriodEnd: false
+  },
+  entitlements: {
+    demoData: true,
+    liveMt5Accounts: 0,
+    launcherConnection: false,
+    dashboardCore: true,
+    riskCore: "partial",
+    riskPolicyEditor: false,
+    localAutoBlock: false,
+    tradesHistory: "limited",
+    calendar: "limited",
+    advancedAnalytics: false,
+    journal: "limited",
+    strategies: false,
+    fundedChallenges: false,
+    portfolio: false,
+    talentProfile: false,
+    rawBridgeDebug: false,
+    exports: false,
+    teamWorkspace: false,
+    prioritySupport: false
+  },
+  limits: {
+    liveMt5Accounts: 0,
+    connectionKeyLimit: 0
+  },
+  isAdmin: false,
+  source: "initial"
+};
+
 function safeStorageGet(key) {
   try {
     return localStorage.getItem(key);
@@ -229,6 +273,7 @@ function createInitialState() {
     activeAccountId: null,
     mode: "mock",
     bootResolved: false,
+    billing: DEFAULT_BILLING_STATE,
     currentAccount,
     ui: sanitizeUi(persisted.ui),
     workspace,

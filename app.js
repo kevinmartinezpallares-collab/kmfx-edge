@@ -24,6 +24,7 @@ import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260505
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260505-071500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260505-071500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260505-071500";
+import { initBillingStatus } from "./js/modules/billing-status.js?v=build-20260505-071500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260505-071500";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260505-071500";
 import {
@@ -46,7 +47,7 @@ import {
   saveSupabaseUserConfig
 } from "./js/modules/supabase-user-config.js?v=build-20260505-071500";
 import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260505-071500";
-import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./js/modules/api-config.js?v=build-20260505-071500";
+import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl, resolveBillingStatusUrl } from "./js/modules/api-config.js?v=build-20260505-071500";
 
 const BUILD_TAG = "build-20260505-071500";
 window.__KMFX_BUILD__ = BUILD_TAG;
@@ -762,10 +763,12 @@ async function bootstrapApp() {
     baseURL: resolveApiBaseUrl() || "(unset)",
     snapshotURL: resolveAccountsSnapshotUrl() || "(disabled)",
     accountsURL: resolveAccountsRegistryUrl() || "(disabled)",
+    billingURL: resolveBillingStatusUrl() || "(disabled)",
   });
   logBootState("startup-before-init");
 
   const authSession = initAuthSession(store);
+  initBillingStatus(store);
   const snapshotBootstrap = await initAccountsLiveSnapshot(store);
   if (snapshotBootstrap?.ok && snapshotBootstrap.count > 0) {
     const state = store.getState();
