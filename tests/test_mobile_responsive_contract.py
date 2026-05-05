@@ -353,6 +353,35 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", menu_block)
         self.assertIn("width: calc(100vw - 16px) !important", compact_block)
 
+    def test_mobile_row_lists_stack_without_text_overflow(self) -> None:
+        css = read_text("styles-v2.css")
+        row_block = media_block(css, "@media (max-width: 760px)", "Mobile row-list hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile row-list hardening")
+
+        for selector in [
+            ".funding-rule-row",
+            ".funding-state-row",
+            ".funding-review-row",
+            ".risk-command-center__op-row",
+            ".risk-exposure-row",
+            ".risk-simulation-dd-row",
+            ".trades-overview-row",
+            ".trades-symbol-row",
+            ".trades-position-row",
+            ".focus-panel-execution",
+        ]:
+            self.assertIn(selector, row_block)
+
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", row_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", row_block)
+        self.assertIn("white-space: normal !important", row_block)
+        self.assertIn("overflow-wrap: anywhere", row_block)
+        self.assertIn("text-overflow: clip !important", row_block)
+        self.assertIn(".trades-open-positions__head", row_block)
+        self.assertIn("display: none !important", row_block)
+        self.assertIn(".risk-professional-header", compact_block)
+        self.assertIn("justify-items: start !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

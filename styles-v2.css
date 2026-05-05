@@ -39819,3 +39819,150 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     right: 8px !important;
   }
 }
+
+/* Mobile row-list hardening: make dense non-table rows readable and tap-safe. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-row,
+    .funding-state-row,
+    .funding-review-row,
+    .risk-command-center__op-row,
+    .risk-rule-card__meta-row,
+    .risk-exposure-row,
+    .risk-simulation-dd-row,
+    .risk-professional-actions__list,
+    .trades-overview-row,
+    .trades-symbol-row,
+    .trades-position-row,
+    .trades-position-kv__item,
+    .trades-position-state__item,
+    .focus-panel-execution
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    overflow: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-row,
+    .funding-state-row,
+    .risk-command-center__op-row,
+    .risk-exposure-row,
+    .risk-simulation-dd-row,
+    .trades-overview-row,
+    .trades-symbol-row,
+    .trades-position-row,
+    .focus-panel-execution
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 6px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-row small,
+    .funding-rule-row strong,
+    .funding-rule-row em,
+    .funding-state-row small,
+    .funding-state-row strong,
+    .funding-state-row em,
+    .funding-review-row strong,
+    .funding-review-row span:not(.funding-review-row__dot),
+    .risk-command-center__op-row span,
+    .risk-command-center__op-row strong,
+    .risk-command-center__op-row small,
+    .risk-rule-card__meta-row span,
+    .risk-rule-card__meta-row strong,
+    .risk-exposure-row span,
+    .risk-exposure-row strong,
+    .risk-simulation-dd-row span,
+    .risk-simulation-dd-row strong,
+    .risk-simulation-dd-row em,
+    .trades-overview-row__label,
+    .trades-overview-row__meta,
+    .trades-overview-row__value,
+    .trades-symbol-name,
+    .trades-symbol-meta,
+    .trades-symbol-value,
+    .trades-position-row__main,
+    .trades-position-row__symbol,
+    .trades-position-row__meta,
+    .trades-position-row__value,
+    .trades-position-row__pnl,
+    .trades-position-kv__label,
+    .trades-position-kv__value,
+    .trades-position-state__label,
+    .trades-position-state__value,
+    .focus-panel-execution > span
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    text-overflow: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-row em,
+    .funding-state-row em,
+    .risk-exposure-row strong,
+    .risk-simulation-dd-row em,
+    .trades-symbol-value,
+    .trades-position-row__pnl-cell,
+    .trades-position-row__pnl
+  ) {
+    justify-self: start !important;
+    text-align: left !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-review-row,
+    .trades-position-kv__item,
+    .trades-position-state__item
+  ) {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-position-row
+  ) {
+    width: 100% !important;
+    padding: 12px !important;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .trades-open-positions__head
+  ) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-card__head,
+    .funding-economics-head,
+    .risk-rule-card__head,
+    .risk-professional-header,
+    .trades-overview-row,
+    .trades-symbol-row
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: start !important;
+    gap: 6px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .funding-rule-card__head span,
+    .risk-rule-card__head span,
+    .risk-professional-sample
+  ) {
+    max-width: 100% !important;
+    justify-self: start !important;
+    white-space: normal !important;
+  }
+}
