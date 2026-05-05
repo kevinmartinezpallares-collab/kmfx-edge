@@ -93,6 +93,27 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn(".settings-actions button", form_block)
         self.assertIn("width: 100% !important", form_block)
 
+    def test_mobile_overlays_are_bounded_and_scrollable(self) -> None:
+        css = read_text("styles-v2.css")
+        overlay_block = media_block(css, "@media (max-width: 760px)", "Mobile overlay hardening")
+
+        for selector in [
+            ".modal-card",
+            ".kmfx-ui-dialog",
+            ".connection-wizard-modal",
+            "#kmfx-posttrade-modal .ptt-dialog",
+            ".kmfx-mt5-modal",
+            ".custom-select-dropdown",
+            ".kmfx-toast",
+        ]:
+            self.assertIn(selector, overlay_block)
+
+        self.assertIn("max-height: calc(100dvh", overlay_block)
+        self.assertIn("overflow-y: auto !important", overlay_block)
+        self.assertIn("-webkit-overflow-scrolling: touch", overlay_block)
+        self.assertIn("body.modal-open", overlay_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", overlay_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

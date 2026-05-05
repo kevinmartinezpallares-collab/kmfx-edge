@@ -38365,3 +38365,147 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     padding: 10px !important;
   }
 }
+
+/* Mobile overlay hardening: keep modals, sheets, popovers, and toasts reachable on small screens. */
+@media (max-width: 760px) {
+  body.modal-open {
+    overflow: hidden !important;
+    overscroll-behavior: contain;
+  }
+
+  :where(
+    .modal-overlay,
+    .kmfx-ui-dialog-overlay,
+    .ptt-overlay
+  ) {
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  :where(
+    .modal-card,
+    .kmfx-ui-dialog,
+    .connections-account-modal,
+    .connection-wizard-modal,
+    .modal-card--focus-panel,
+    #kmfx-posttrade-modal .ptt-dialog,
+    .kmfx-mt5-modal
+  ) {
+    width: min(100%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+  }
+
+  .kmfx-ui-dialog {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  :where(
+    .modal-card,
+    .kmfx-ui-dialog,
+    .connections-account-modal,
+    .connection-wizard-modal,
+    .modal-card--focus-panel,
+    #kmfx-posttrade-modal .ptt-dialog,
+    .kmfx-mt5-modal
+  ) {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  :where(
+    .modal-head,
+    .kmfx-ui-dialog__header,
+    .ptt-header,
+    .kmfx-mt5-modal__header
+  ) {
+    flex: 0 0 auto !important;
+    padding: 16px !important;
+  }
+
+  :where(
+    .modal-body,
+    .modal-body--focus-panel,
+    .kmfx-ui-dialog__content,
+    .connections-account-modal .modal-body,
+    .connection-wizard-modal__body,
+    #kmfx-posttrade-modal .ptt-body,
+    .kmfx-mt5-modal__body
+  ) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 16px !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :where(
+    .modal-actions,
+    .connections-account-modal__actions,
+    .kmfx-ui-dialog__footer,
+    .kmfx-mt5-modal__footer,
+    .posttrade-quick__actions
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  :where(
+    .modal-actions button,
+    .connections-account-modal__actions button,
+    .kmfx-ui-dialog__footer button,
+    .kmfx-mt5-modal__footer button,
+    .posttrade-quick__actions button
+  ) {
+    width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    justify-content: center !important;
+  }
+
+  :where(
+    .custom-select-dropdown,
+    .sidebar-profile-menu,
+    .connections-account-card__menu,
+    .rule-profile-menu,
+    .kmfx-ui-popover,
+    .kmfx-ui-dropdown
+  ) {
+    max-width: calc(100vw - 24px) !important;
+    max-height: min(62dvh, 420px) !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kmfx-toast {
+    right: 12px !important;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  :where(
+    .modal-card,
+    .kmfx-ui-dialog,
+    .connections-account-modal,
+    .connection-wizard-modal,
+    .modal-card--focus-panel,
+    #kmfx-posttrade-modal .ptt-dialog,
+    .kmfx-mt5-modal
+  ) {
+    width: min(100%, calc(100vw - 16px)) !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    border-radius: 16px !important;
+  }
+}
