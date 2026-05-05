@@ -1364,6 +1364,8 @@ body::after {
 }
 
 .dashboard-kpi-card {
+  position: relative;
+  overflow: visible;
   min-height: 118px;
   padding: 14px 15px 15px;
   gap: 10px;
@@ -1377,7 +1379,7 @@ body::after {
 }
 
 .dashboard-kpi-card__help-wrap {
-  position: relative;
+  position: static;
   display: inline-grid;
   place-items: center;
 }
@@ -1410,8 +1412,20 @@ body::after {
 .dashboard-kpi-card__tooltip {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 14px;
+  z-index: calc(var(--z-tooltip) + 1);
   width: min(260px, 68vw);
+}
+
+.dashboard-kpi-card:nth-child(n+5) .dashboard-kpi-card__tooltip {
+  right: 14px;
+  left: auto;
+}
+
+.dashboard-kpi-card__tooltip .kmfx-ui-tooltip__content {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-kpi-card__help-wrap:hover .dashboard-kpi-card__tooltip,

@@ -47,7 +47,7 @@ Regla de producto: si una pantalla no se entiende en 5 segundos, esta demasiado 
 Hacer una limpieza tactica del dashboard actual:
 
 - Reducir protagonismo visual de secciones secundarias.
-- Mantener 4 KPIs principales arriba.
+- Mantener la composicion actual de KPIs mientras se define la fase VNext; solo corregir legibilidad, tooltips y clipping.
 - Hacer que las cards tengan labels, valores y metas mas escaneables.
 - Añadir `?` explicativo en metricas clave con tooltip/popover simple.
 - Ocultar o bajar prioridad a tablas de riesgo si no hay senal activa.
@@ -100,7 +100,7 @@ Objetivo: reconstruir el dashboard como panel profesional.
 
 - Sidebar shadcn.
 - Header con cuenta activa, estado de sync, rango temporal y accion principal.
-- Grid superior de 4 metric cards.
+- Grid superior de metric cards definido por prioridad profesional.
 - Chart principal de equity.
 - Panel lateral de estado/riesgo.
 - Tabla de operaciones recientes.
@@ -141,3 +141,22 @@ Buenas candidatas para Next:
 - `Riesgo abierto`: progress contra politica.
 
 Ahora, en vanilla, solo aplicar graficas a KPIs si ya existe el dato y no complica el render. En caso contrario, esperar a Next.
+
+## Propuesta KPI VNext
+
+No implementarla mezclada con hotfixes visuales. Requiere contrato de datos, cadencia de refresco y QA visual propio.
+
+- `Net Return`: numero grande, delta vs 7d con flecha/texto/color y sparkline 7d.
+- `Max Drawdown`: 30d / YTD, area sparkline con tramo peak-to-trough resaltado.
+- `VaR`: 95% / 99%, mini gauge con bandas good / warn / bad.
+- `Exposure`: net / gross, barra apilada horizontal y porcentaje visible.
+- `Volatilidad anualizada`: sparkline de volatilidad y numero anualizado.
+- `Sortino`: pill con valor y delta.
+- `D-Score`: badge prominente por banda, tooltip con metodologia.
+
+Reglas:
+
+- Codificacion redundante: flecha o forma + color + texto. Nunca depender solo del color.
+- Estados sin historico: mostrar `-` y tooltip `insuficiente historico`.
+- Refresh: Balance/PnL/Exposure cada 1-10s; VaR/D-Score horario; Drawdown 6h/12h/EOD; metricas largas EOD.
+- QA: contraste automatico, limite de microchart 24-32px, stroke 2-3px y snapshots de microcharts con datos estables.
