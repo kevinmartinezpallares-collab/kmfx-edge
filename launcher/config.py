@@ -82,8 +82,15 @@ def resolve_backend_base_url(configured_value: str = "") -> str:
     env_override = os.getenv("BACKEND_BASE_URL", "").strip() or os.getenv("KMFX_BACKEND_BASE_URL", "").strip()
     if env_override:
         return env_override.rstrip("/")
-    if configured_value and configured_value.strip():
-        return configured_value.strip().rstrip("/")
+    configured = str(configured_value or "").strip().rstrip("/")
+    packaged_runtime = bool(getattr(sys, "frozen", False))
+    production_runtime = os.getenv("KMFX_ENV", "").strip().lower() == "production"
+    if configured and configured != LOCAL_BACKEND_BASE_URL:
+        return configured
+    if packaged_runtime or production_runtime:
+        return PRODUCTION_BACKEND_BASE_URL
+    if configured:
+        return configured
     return LOCAL_BACKEND_BASE_URL
 
 

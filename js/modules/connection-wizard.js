@@ -592,7 +592,7 @@ function renderWizardAlert(error) {
 function formatConnectionError(payload, fallback = "No se pudo generar la clave de conexión.") {
   const reason = String(payload?.reason || payload?.error || "").trim();
   const details = payload?.details && typeof payload.details === "object" ? payload.details : {};
-  if (reason === "connection_limit_exceeded") {
+  if (reason === "connection_limit_exceeded" || reason === "plan_limit_reached") {
     const limit = Number(details.connection_limit);
     const current = Number(details.current_connections);
     const message = Number.isFinite(limit) && Number.isFinite(current)
@@ -605,12 +605,28 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       hint: "Elimina una conexión que no uses o amplía tu plan antes de crear otra key.",
     };
   }
-  if (reason === "connection_keys_not_allowed") {
+  if (reason === "connection_keys_not_allowed" || reason === "entitlement_required") {
     return {
       kind: "warning",
       title: "Conexiones MT5 no disponibles",
-      message: "Tu cuenta no tiene conexiones MT5 activas.",
-      hint: "Revisa el acceso del plan antes de crear una key.",
+      message: "Tu plan no permite crear conexiones MT5.",
+      hint: "Revisa tu plan o contacta con soporte si deberías tener acceso.",
+    };
+  }
+  if (reason === "billing_required") {
+    return {
+      kind: "warning",
+      title: "Suscripción necesaria",
+      message: "Activa tu suscripción para crear conexiones MT5.",
+      hint: "La conexión se desbloqueará cuando el acceso esté activo.",
+    };
+  }
+  if (reason === "billing_past_due") {
+    return {
+      kind: "warning",
+      title: "Pago pendiente",
+      message: "Actualiza el pago de tu suscripción para crear conexiones MT5.",
+      hint: "Después de regularizar el pago, vuelve a generar la key.",
     };
   }
   if (reason === "auth_required") {

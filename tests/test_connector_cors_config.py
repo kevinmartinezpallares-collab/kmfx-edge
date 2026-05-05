@@ -225,6 +225,39 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_link_account_allows_authenticated_free_onboarding_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                request = self._request(
+                    headers={"authorization": "Bearer free-token"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "ea_direct",
+                    },
+                )
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "free-user",
+                        "email": "free@example.com",
+                        "app_metadata": {"plan": "free"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(connector_api.link_account(request))
+                body = json.loads(response.body.decode("utf-8"))
+            finally:
+                connector_api.account_service = previous_service
+
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["connection_key"])
+        self.assertEqual("ea_direct", body["account"]["connection_mode"])
+        self.assertEqual("free-user", body["account"]["user_id"])
+
     def test_direct_link_registers_login_server_without_persisting_password(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
@@ -353,7 +386,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_free_plan_requires_launcher_entitlement_before_key_creation(self) -> None:
+    def test_free_plan_allows_first_connection_key_for_onboarding(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -365,11 +398,27 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+        self.assertIsNone(response)
+
+    def test_free_plan_limit_blocks_second_connection(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
+                response = connector_api.connection_key_creation_denial(
+                    user_id="user-123",
+                    context={"is_admin": False, "app_metadata": {"plan": "free"}, "user_metadata": {}},
+                )
+            finally:
+                connector_api.account_service = previous_service
+
         self.assertIsNotNone(response)
         body = json.loads(response.body.decode("utf-8"))
-        self.assertEqual(403, response.status_code)
-        self.assertEqual("entitlement_required", body["reason"])
-        self.assertEqual("launcherConnection", body["details"]["entitlement"])
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("plan_limit_reached", body["reason"])
+        self.assertEqual(1, body["details"]["connection_limit"])
+        self.assertEqual("liveMt5Accounts", body["details"]["entitlement"])
 
     def test_core_plan_limit_blocks_extra_connection(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

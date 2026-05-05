@@ -214,8 +214,8 @@ PLAN_DISPLAY_NAMES = {
 DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
     "free": {
         "demoData": True,
-        "liveMt5Accounts": 0,
-        "launcherConnection": False,
+        "liveMt5Accounts": 1,
+        "launcherConnection": True,
         "dashboardCore": True,
         "riskCore": "partial",
         "riskPolicyEditor": False,
@@ -1091,6 +1091,8 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     authenticated = bool(user_id or email)
     if not authenticated:
         entitlements = plan_entitlements("free")
+        entitlements["liveMt5Accounts"] = 0
+        entitlements["launcherConnection"] = False
         return {
             "ok": True,
             "auth_required": True,
@@ -1120,6 +1122,9 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     status = billing_status_from_metadata(app_metadata, plan)
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
     entitlements = plan_entitlements(effective_plan)
+    if status in BILLING_RESTRICTED_STATUSES:
+        entitlements["liveMt5Accounts"] = 0
+        entitlements["launcherConnection"] = False
     account_limit = entitlement_account_limit(entitlements, context, authenticated=authenticated)
     if isinstance(account_limit, int):
         connection_key_limit: int | str = account_limit

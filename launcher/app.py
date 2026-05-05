@@ -335,7 +335,7 @@ class KMFXApi:
                 save_bridge_config(self.config, user_id=self.config.auth_user_id)
                 self.fetch_json("/bridge/reload-config")
                 return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
-            return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
+            return {"ok": False, "message": self.link_account_error_message(response)}
 
         body = response.body or {}
         connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
@@ -376,14 +376,18 @@ class KMFXApi:
         body = response.body if isinstance(response.body, dict) else {}
         reason = _safe_str(body.get("reason") or body.get("error"))
         details = body.get("details") if isinstance(body.get("details"), dict) else {}
-        if reason == "connection_limit_exceeded":
+        if reason in {"connection_limit_exceeded", "plan_limit_reached"}:
             limit = details.get("connection_limit")
             current = details.get("current_connections")
             if limit is not None and current is not None:
                 return f"Límite de conexiones alcanzado: tu plan permite {limit} cuenta MT5 y ya tienes {current}."
             return "Límite de conexiones alcanzado. Libera una cuenta o amplía el límite en KMFX Edge."
-        if reason == "connection_keys_not_allowed":
+        if reason in {"connection_keys_not_allowed", "entitlement_required"}:
             return "Tu plan no tiene conexiones MT5 activas. Revisa el acceso de tu cuenta en KMFX Edge."
+        if reason == "billing_required":
+            return "Activa tu suscripción para crear conexiones MT5."
+        if reason == "billing_past_due":
+            return "Actualiza el pago de tu suscripción para crear conexiones MT5."
         if reason == "auth_required":
             return "Inicia sesión de nuevo para crear una conexión MT5."
         if reason == "connection_key_already_linked":
