@@ -38999,3 +38999,100 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     gap: 10px !important;
   }
 }
+
+/* Mobile chip resilience: keep badges, tags, and pill groups from forcing horizontal page overflow. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .account-switcher-badges,
+    .capital-account-card__chips,
+    .calculator-workspace-badges,
+    .calculator-workspace-card .calc-chip-group,
+    .calculator-attached-presets,
+    .risk-select-trigger__tags,
+    .risk-symbol-editor__tags,
+    .risk-symbol-summary-pills,
+    .strategies-score-read__meta,
+    .strategy-primary-cell__meta
+  ) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .ui-badge,
+    .status-badge,
+    .risk-status-badge,
+    .strategy-status-chip,
+    .trade-side,
+    .capital-section__pill,
+    .capital-chip,
+    .footer-chip,
+    .calendar-year-card__badge,
+    .risk-selected-tag,
+    .risk-symbol-summary-pill,
+    .risk-symbol-action-pill,
+    .calculator-soft-badge,
+    .calc-chip,
+    .calc-pill
+  ) {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.2 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    button.calc-chip,
+    button.calc-pill,
+    button.risk-symbol-editor-tag,
+    .risk-select-trigger--symbols
+  ) {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calculator-symbol-strip,
+    .calculator-mini-presets,
+    .calculator-segmented-control,
+    .risk-symbol-editor__tags,
+    .risk-symbol-group--results
+  ) {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calculator-symbol-strip,
+    .calculator-mini-presets,
+    .calculator-segmented-control,
+    .risk-symbol-editor__tags,
+    .risk-symbol-group--results
+  )::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calculator-symbol-strip,
+    .calculator-mini-presets,
+    .calculator-segmented-control
+  ) {
+    flex-wrap: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calc-chip,
+    .calc-pill
+  ) {
+    flex: 0 0 auto;
+  }
+}

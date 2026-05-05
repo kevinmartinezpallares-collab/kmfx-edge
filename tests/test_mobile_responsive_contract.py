@@ -203,6 +203,32 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("touch-action: manipulation", card_block)
         self.assertIn(".capital-account-card__metrics", compact_block)
 
+    def test_mobile_chips_and_badges_resist_overflow(self) -> None:
+        css = read_text("styles-v2.css")
+        chip_block = media_block(css, "@media (max-width: 760px)", "Mobile chip resilience")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile chip resilience")
+
+        for selector in [
+            ".account-switcher-badges",
+            ".capital-account-card__chips",
+            ".calculator-workspace-badges",
+            ".risk-select-trigger__tags",
+            ".ui-badge",
+            ".strategy-status-chip",
+            ".risk-selected-tag",
+            ".calc-pill",
+        ]:
+            self.assertIn(selector, chip_block)
+
+        self.assertIn("flex-wrap: wrap !important", chip_block)
+        self.assertIn("white-space: normal !important", chip_block)
+        self.assertIn("overflow-wrap: anywhere", chip_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", chip_block)
+        self.assertIn("overflow-x: auto !important", chip_block)
+        self.assertIn("scrollbar-width: none", chip_block)
+        self.assertIn("flex-wrap: nowrap !important", compact_block)
+        self.assertIn("flex: 0 0 auto", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
