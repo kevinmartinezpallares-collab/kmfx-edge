@@ -595,6 +595,50 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("font-size: 12px !important", compact_block)
         self.assertIn("line-height: 1.45 !important", compact_block)
 
+    def test_mobile_screenshot_repair_prevents_journal_strategy_settings_collapse(self) -> None:
+        css = read_text("styles-v2.css")
+        repair_block = media_block(css, "@media (max-width: 760px)", "Mobile screenshot repair")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile screenshot repair")
+
+        for selector in [
+            'input[type="checkbox"]',
+            ".settings-check",
+            ".settings-check span",
+            ".journal-cockpit-hero",
+            ".journal-professional-strip",
+            ".journal-kpi-card",
+            ".journal-review-list",
+            ".journal-subpage-hero",
+            ".journal-ai-export-actions",
+            ".calendar-month-nav",
+            ".calendar-month-nav__label",
+            ".calendar-view-toggle",
+            ".calendar-value-toggle",
+            ".strategies-table-card table",
+            ".strategies-table-card thead",
+            ".strategies-table-card tr",
+            ".strategies-table-card td",
+        ]:
+            self.assertIn(selector, repair_block)
+
+        self.assertIn("width: 24px !important", repair_block)
+        self.assertIn("grid-template-columns: 28px minmax(0, 1fr) !important", repair_block)
+        self.assertIn("writing-mode: horizontal-tb !important", repair_block)
+        self.assertIn("display: flex !important", repair_block)
+        self.assertIn("overflow-x: auto !important", repair_block)
+        self.assertIn("flex: 0 0 min(42vw, 168px) !important", repair_block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", repair_block)
+        self.assertIn("display: none !important", repair_block)
+        self.assertIn("grid-column: 1 / -1 !important", repair_block)
+        self.assertIn("word-break: normal !important", repair_block)
+        self.assertIn("grid-template-columns: 28px minmax(92px, 1fr) auto auto 28px !important", repair_block)
+        self.assertIn("white-space: nowrap !important", repair_block)
+        self.assertIn("overflow: hidden !important", repair_block)
+        self.assertIn("overflow: visible !important", repair_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
+        self.assertIn("flex-basis: min(66vw, 180px) !important", compact_block)
+        self.assertIn("grid-template-columns: 26px minmax(76px, 1fr) auto auto 26px !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

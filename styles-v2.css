@@ -40777,3 +40777,379 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     line-height: 1.45 !important;
   }
 }
+
+/* Mobile screenshot repair: prevent narrow-card collapse in Journal, Strategies, and Settings. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    input[type="checkbox"],
+    input[type="radio"],
+    .settings-check input,
+    .settings-check input[type="checkbox"],
+    .settings-check input[type="radio"]
+  ) {
+    width: 24px !important;
+    max-width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    flex: 0 0 24px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .settings-check,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .settings-check,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .settings-check {
+    display: grid !important;
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    align-items: center !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .settings-check span,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .settings-check span,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .settings-check span {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .journal-cockpit,
+    .journal-cockpit-hero,
+    .journal-cockpit-grid,
+    .journal-review-queue,
+    .journal-daily-panel,
+    .journal-leaks-panel,
+    .journal-ai-export-panel,
+    .journal-subpage-hero,
+    .journal-subpage-hero__copy,
+    .strategies-table-card,
+    .strategies-table-card .table-wrap
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-professional-strip,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-professional-strip,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-professional-strip {
+    display: flex !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-professional-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card {
+    flex: 0 0 min(42vw, 168px) !important;
+    min-width: min(42vw, 168px) !important;
+    max-width: 168px !important;
+    min-height: 116px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-review-list,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-review-list,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-review-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .journal-cockpit-hero__copy h3,
+    .journal-cockpit-hero__copy p,
+    .journal-cockpit-hero__op-row,
+    .journal-cockpit-hero__op-row strong,
+    .journal-cockpit-hero__op-row small,
+    .journal-subpage-hero__copy h2,
+    .journal-subpage-hero__copy p,
+    .journal-subpage-metric,
+    .journal-subpage-metric strong,
+    .journal-subpage-metric small,
+    .journal-review-item,
+    .journal-review-item span,
+    .journal-review-item strong,
+    .journal-review-item small,
+    .journal-leak-item,
+    .journal-leak-item span,
+    .journal-leak-item strong,
+    .journal-leak-item small,
+    .journal-ai-export-item,
+    .journal-ai-export-item span,
+    .journal-ai-export-item strong,
+    .journal-ai-export-item small
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal !important;
+    text-overflow: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-actions,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-actions,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-actions,
+  .app-shell.sidebar-vnext.sidebar-provider .page-actions,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .page-actions,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .page-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .journal-ai-export-actions > *,
+    .page-actions > *
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card .table-wrap,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card .table-wrap,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card .table-wrap {
+    overflow: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card table,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card table,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card table,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card thead {
+    display: none !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tbody {
+    display: grid !important;
+    gap: 12px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px 10px !important;
+    padding: 12px !important;
+    border: 1px solid color-mix(in srgb, var(--kmfx-border) 78%, transparent) !important;
+    border-radius: 14px !important;
+    background: color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.014)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:first-child,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:first-child,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:first-child,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:last-child,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:last-child,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td:last-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card td {
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav {
+    display: grid !important;
+    grid-template-columns: 28px minmax(92px, 1fr) auto auto 28px !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 4px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 4px !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label strong,
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label span,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label span,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle,
+    .calendar-value-toggle
+  ) {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+    padding: 1px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle .widget-segmented-btn,
+    .calendar-value-toggle .widget-segmented-btn
+  ) {
+    min-width: 0 !important;
+    min-height: 28px !important;
+    padding: 5px 7px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-subpage-hero__grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-review-list,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-review-list,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-review-list,
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .strategies-table-card tr {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-kpi-card {
+    flex-basis: min(66vw, 180px) !important;
+    min-width: min(66vw, 180px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav {
+    grid-template-columns: 26px minmax(76px, 1fr) auto auto 26px !important;
+    gap: 3px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn {
+    width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle .widget-segmented-btn,
+    .calendar-value-toggle .widget-segmented-btn
+  ) {
+    min-height: 26px !important;
+    padding: 4px 6px !important;
+    font-size: 9px !important;
+  }
+}
