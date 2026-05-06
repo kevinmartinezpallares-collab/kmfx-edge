@@ -15285,8 +15285,13 @@ body[data-theme="dark"] .connections-guide-card__launcher-actions > * {
 
 html[data-theme="dark"] .connections-guide-modal .modal-body,
 body[data-theme="dark"] .connections-guide-modal .modal-body {
-  padding: 24px 28px 28px;
+  padding: 20px 26px 24px;
   overflow-x: hidden;
+}
+
+html[data-theme="dark"] .connections-guide-modal .modal-head,
+body[data-theme="dark"] .connections-guide-modal .modal-head {
+  padding: 24px 30px 20px;
 }
 
 html[data-theme="dark"] .connections-guide-modal,
@@ -15303,7 +15308,7 @@ body[data-theme="dark"] .connections-guide-modal .connections-guide-card {
 html[data-theme="dark"] .connections-guide-card,
 body[data-theme="dark"] .connections-guide-card {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
   width: 100%;
 }
@@ -15325,9 +15330,9 @@ body[data-theme="dark"] .connections-guide-step {
 html[data-theme="dark"] .connections-guide-card__intro,
 body[data-theme="dark"] .connections-guide-card__intro {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
-  padding: 22px;
+  padding: 18px 20px;
 }
 
 html[data-theme="dark"] .connections-guide-card__copy,
@@ -15346,7 +15351,7 @@ body[data-theme="dark"] .connections-guide-card__direct {
   justify-content: space-between;
   gap: 14px;
   min-width: 0;
-  padding: 16px 18px;
+  padding: 12px 16px;
 }
 
 html[data-theme="dark"] .connections-guide-card__endpoint > div,
@@ -15359,9 +15364,9 @@ body[data-theme="dark"] .connections-guide-card__direct > div {
 html[data-theme="dark"] .connections-guide-card__endpoint code,
 body[data-theme="dark"] .connections-guide-card__endpoint code {
   display: block;
-  margin-top: 7px;
+  margin-top: 5px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
   word-break: break-all;
 }
@@ -15369,27 +15374,27 @@ body[data-theme="dark"] .connections-guide-card__endpoint code {
 html[data-theme="dark"] .connections-guide-card__steps,
 body[data-theme="dark"] .connections-guide-card__steps {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
   min-width: 0;
 }
 
 html[data-theme="dark"] .connections-guide-step,
 body[data-theme="dark"] .connections-guide-step {
-  display: flex;
-  gap: 14px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
   min-width: 0;
-  min-height: 126px;
-  padding: 18px;
+  min-height: 142px;
+  padding: 14px;
 }
 
 html[data-theme="dark"] .connections-guide-step__index,
 body[data-theme="dark"] .connections-guide-step__index {
   display: grid;
   place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
@@ -15400,16 +15405,16 @@ html[data-theme="dark"] .connections-guide-step strong,
 body[data-theme="dark"] .connections-guide-step strong {
   display: block;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.24;
 }
 
 html[data-theme="dark"] .connections-guide-step p,
 body[data-theme="dark"] .connections-guide-step p {
-  margin: 7px 0 0;
+  margin: 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.36;
   overflow-wrap: anywhere;
 }
 
@@ -15434,7 +15439,7 @@ body[data-theme="dark"] .connections-guide-card__direct .connections-empty-card_
 
   html[data-theme="dark"] .connections-guide-card__steps,
   body[data-theme="dark"] .connections-guide-card__steps {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 /* FIN BLOQUE: connections-runtime */
@@ -41831,12 +41836,17 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 }
 
 .connections-guide-modal .modal-body {
+  padding: 20px 26px 24px;
   overflow-x: hidden;
+}
+
+.connections-guide-modal .modal-head {
+  padding: 24px 30px 20px;
 }
 
 .connections-guide-card {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
   width: 100%;
 }
@@ -41853,9 +41863,9 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 
 .connections-guide-card__intro {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
-  padding: 22px;
+  padding: 18px 20px;
 }
 
 .connections-guide-card__copy {
@@ -41886,7 +41896,7 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
   justify-content: space-between;
   gap: 14px;
   min-width: 0;
-  padding: 16px 18px;
+  padding: 12px 16px;
 }
 
 .connections-guide-card__endpoint > div,
@@ -41896,34 +41906,34 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 
 .connections-guide-card__endpoint code {
   display: block;
-  margin-top: 7px;
+  margin-top: 5px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.35;
   word-break: break-all;
 }
 
 .connections-guide-card__steps {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
   min-width: 0;
 }
 
 .connections-guide-step {
-  display: flex;
-  gap: 14px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
   min-width: 0;
-  min-height: 126px;
-  padding: 18px;
+  min-height: 142px;
+  padding: 14px;
 }
 
 .connections-guide-step__index {
   display: grid;
   place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
@@ -41933,15 +41943,15 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 .connections-guide-step strong {
   display: block;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.24;
 }
 
 .connections-guide-step p {
-  margin: 7px 0 0;
+  margin: 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.36;
   overflow-wrap: anywhere;
 }
 
@@ -41961,6 +41971,6 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
   }
 
   .connections-guide-card__steps {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

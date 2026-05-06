@@ -490,23 +490,23 @@ function renderConnectionGuide() {
   const steps = [
     {
       title: "Abre o instala KMFX Launcher",
-      body: "Úsalo para preparar MT5. Si no se abre, descarga la versión de tu sistema.",
+      body: "Prepara la instalación local. Si no se abre, descarga tu versión.",
     },
     {
       title: "Instala el conector",
-      body: "Pulsa Instalar conector en la instancia de MetaTrader 5 que quieras vincular.",
+      body: "Instálalo en la instancia de MetaTrader 5 que vas a vincular.",
     },
     {
       title: "Permite WebRequest en MT5",
-      body: "En MT5 ve a Herramientas > Opciones > Expert Advisors, activa WebRequest y añade la URL de KMFX.",
+      body: "Activa WebRequest en Expert Advisors y añade la URL de KMFX.",
     },
     {
       title: "Activa el EA",
-      body: "Arrastra KMFXConnector a un gráfico. Si usas investor password, KMFX sincroniza en modo lectura.",
+      body: "Arrastra KMFXConnector a un gráfico y deja Algo Trading activo.",
     },
     {
       title: "Confirma la sincronización",
-      body: "Cuando Experts muestre Conectado a KMFX, la cuenta aparecerá con datos live. Ya puedes cerrar el Launcher.",
+      body: "Cuando Experts confirme KMFX, la cuenta quedará sincronizada.",
     },
   ];
 
@@ -515,7 +515,7 @@ function renderConnectionGuide() {
       <div class="connections-guide-card__intro">
         <div class="connections-guide-card__copy">
           <div class="dashboard-risk-block__title">Conectar cuenta paso a paso</div>
-          <div class="row-sub">Flujo recomendado: Launcher para instalar el conector y MetaTrader 5 abierto con el EA activo para sincronizar.</div>
+          <div class="row-sub">Instala el conector con Launcher y deja MT5 abierto con el EA activo para el primer sync.</div>
         </div>
         <div class="connections-guide-card__launcher-actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
@@ -540,16 +540,6 @@ function renderConnectionGuide() {
             </div>
           </article>
         `).join("")}
-      </div>
-      <div class="connections-guide-card__direct">
-        <div>
-          <div class="dashboard-risk-block__title">Manual con EA</div>
-          <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key y pégala en KMFXKey. Después solo necesitas MT5 abierto con el EA activo.</div>
-        </div>
-        <div class="connections-empty-card__actions">
-          <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-download-ea="true">Descargar EA</button>
-          <button class="btn-secondary connections-shell__utility-btn" type="button" data-open-connection-wizard="true" data-connection-method="ea" data-connection-source="connections-guide">Crear key para EA</button>
-        </div>
       </div>
     </section>
   `;
