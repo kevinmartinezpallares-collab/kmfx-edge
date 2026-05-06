@@ -355,7 +355,7 @@ function renderMethodStep() {
             <span class="connection-wizard__option-copy">
               <span class="connection-wizard__option-title">Expert Advisor (EA)</span>
               <span class="connection-wizard__option-subtitle">Recomendado. No compartes credenciales de MT5 y funciona con investor password.</span>
-              <span class="connection-wizard__option-note">Usa KMFX Connector en tu terminal local.</span>
+              <span class="connection-wizard__option-note">Usa KMFX Connector en tu terminal MT5.</span>
             </span>
           </button>
         </div>
@@ -439,12 +439,12 @@ function renderDirectConfigStep(state) {
   return `
     ${renderStepFrame(
       "Conexión directa",
-      providerConfigured ? "Introduce login, servidor e investor password para validar y sincronizar desde backend." : "Introduce login, servidor e investor password. Quedará registrada hasta activar el provider directo.",
+      providerConfigured ? "Introduce login, servidor e investor password para validar y sincronizar la cuenta." : "Introduce login, servidor e investor password. La cuenta quedará registrada hasta activar la conexión directa real.",
       `
         <div class="connection-wizard__utility-row connection-wizard__utility-row--accent">
           <div>
             <div class="connection-wizard__success-title">Modo lectura</div>
-            <p class="connection-wizard__warning" style="margin-top:8px !important;">Usa investor password siempre que sea posible. La conexión directa se valida desde backend y puede registrar la IP de KMFX/proveedor en el broker.</p>
+            <p class="connection-wizard__warning" style="margin-top:8px !important;">Usa investor password siempre que sea posible. La conexión directa puede registrar una IP externa en el historial del broker.</p>
           </div>
         </div>
         <div class="connection-wizard__form-grid">
@@ -516,13 +516,13 @@ function renderConfirmationStep(state) {
           </div>
           <div class="connection-wizard__finish-step ${isConnected ? "is-complete" : ""}">
             <span>3</span>
-            <div><strong>${isDirect ? "Sync live" : "Primer sync"}</strong><small>${isDirectPendingSync ? "Pendiente de backend directo. Usa EA si quieres datos ahora." : isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
+            <div><strong>${isDirect ? "Sincronización" : "Primer sync"}</strong><small>${isDirectPendingSync ? "Pendiente de conexión directa real. Usa EA si quieres datos ahora." : isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
           </div>
         </div>
         ${isWaiting || isError || isDirectPendingSync ? `
           <div class="connection-wizard__inline-status connection-wizard__inline-status--${isError ? "danger" : "warning"}">
             <strong>${escapeHtml(syncStatus.title || (isError ? "No pude comprobar la conexión" : "Aún no veo la sincronización"))}</strong>
-            <span>${escapeHtml(syncStatus.message || (isDirectPendingSync ? "La conexión directa queda registrada, pero el dashboard necesita EA hasta que exista el backend directo." : "Deja MT5 abierto con el EA activo y vuelve a comprobar."))}</span>
+            <span>${escapeHtml(syncStatus.message || (isDirectPendingSync ? "La conexión directa queda registrada, pero el dashboard necesita EA para sincronizar datos reales ahora." : "Deja MT5 abierto con el EA activo y vuelve a comprobar."))}</span>
           </div>
         ` : ""}
       `

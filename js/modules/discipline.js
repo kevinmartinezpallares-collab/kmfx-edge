@@ -2218,7 +2218,7 @@ function renderAddRuleDropdown(profile, profileState) {
           <div class="rule-profile-add-separator" aria-hidden="true"></div>
           <button type="button" class="rule-profile-add-create" data-rule-action="new-custom-rule">
             <strong>Crear regla nueva</strong>
-            <small>Definir regla local para este perfil</small>
+            <small>Definir regla propia para este perfil</small>
           </button>
         </div>
       ` : ""}
@@ -2246,7 +2246,7 @@ function renderCustomRuleForm(profileState) {
         <div>
           <span>${isEditing ? "Editar regla" : "Nueva regla personalizada"}</span>
           <strong>${isEditing ? escapeHtml(rule.name) : "Crear regla nueva"}</strong>
-          <p>Las reglas custom viven en localStorage y no modifican las reglas del sistema.</p>
+          <p>Las reglas propias se guardan en este navegador y no modifican las reglas del sistema.</p>
         </div>
         <button type="button" data-rule-action="cancel-custom-rule">Cancelar</button>
       </div>
@@ -2508,7 +2508,7 @@ function renderProfileConfigZone(profileState = {}, activeProfile = {}, accountL
     <section class="execution-config-zone${profileConfigExpanded ? " is-open" : " is-collapsed"}">
       <div class="execution-config-zone__head">
         <div>
-          <span>Configuración local</span>
+          <span>Configuración de perfiles</span>
           <strong>Scoring y perfiles de reglas</strong>
         </div>
         <p>Define cómo se puntúan las reglas sin cambiar cálculos ni Risk Engine.</p>
@@ -2550,9 +2550,9 @@ function renderProfileManager(container, context = {}) {
     <article class="rule-profile-manager">
       <div class="rule-profile-manager__head">
         <div>
-          <span>Config local</span>
+          <span>Configuración</span>
           <strong>Perfiles de reglas</strong>
-          <p>Configuración local para scoring. La lectura principal vive arriba.</p>
+          <p>Ajustes de scoring por perfil. La lectura principal vive arriba.</p>
         </div>
         <button type="button" class="rule-profile-action" data-rule-action="new-profile">+ Nuevo</button>
       </div>
@@ -3206,7 +3206,7 @@ function buildExecutionReadiness({
     ? "histórico real y tags manuales"
     : recentTrades.length
       ? "histórico real con reglas inferidas"
-      : "datos de ejemplo del workspace";
+      : "datos de ejemplo de la app";
   const summary = recentTrades.length
     ? `Basado en ${recentTrades.length} trades cerrados; ${source}.`
     : "Aún no hay trades cerrados suficientes para una lectura fiable.";

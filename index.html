@@ -367,13 +367,13 @@
                     <div class="sidebar-profile-avatar" data-settings-avatar>KC</div>
                     <div class="settings-profile-copy">
                       <div class="sidebar-profile-name" data-settings-display-name>Kevin C.</div>
-                      <div class="settings-profile-email" data-settings-display-email>kevin@kmfxedge.local</div>
+                      <div class="settings-profile-email" data-settings-display-email>usuario@kmfxedge.com</div>
                       <div class="sidebar-profile-sub" data-settings-display-account>Cuenta principal</div>
                     </div>
                   </div>
                   <div class="form-grid-clean" data-settings-profile-form>
                     <label class="form-stack"><span>Nombre</span><input type="text" data-settings-field="name" value="Kevin C."></label>
-                    <label class="form-stack"><span>Email</span><input type="email" data-settings-field="email" value="kevin@kmfxedge.local"></label>
+                    <label class="form-stack"><span>Email</span><input type="email" data-settings-field="email" value="usuario@kmfxedge.com"></label>
                     <label class="form-stack form-stack-wide"><span>Cuenta por defecto</span><select data-settings-field="defaultAccount"></select></label>
                   </div>
                 </article>
@@ -418,7 +418,7 @@
                   <div class="settings-status-list">
                     <div class="settings-status-card">
                       <span>Sesión</span>
-                      <strong data-settings-session-state>Sesión local</strong>
+                      <strong data-settings-session-state>Sin sesión activa</strong>
                       <small data-settings-session-email>Sin usuario autenticado</small>
                     </div>
                     <button class="btn-secondary btn-inline" type="button" data-settings-signout>Cerrar sesión</button>
@@ -429,7 +429,7 @@
                   <div class="tl-section-header">
                     <div>
                       <div class="tl-section-title">Datos</div>
-                      <div class="settings-section-sub">Acciones locales existentes.</div>
+                      <div class="settings-section-sub">Preferencias guardadas en este navegador.</div>
                     </div>
                   </div>
                   <div class="settings-data-actions">
@@ -441,12 +441,12 @@
                 <details class="tl-section-card settings-card settings-card--compact settings-card--admin settings-card--advanced" data-admin-only="settings-connection">
                   <summary class="settings-advanced-summary">
                     <span>Avanzado / Admin</span>
-                    <small>Bridge local y estado técnico</small>
+                    <small>Conexión avanzada y diagnóstico</small>
                   </summary>
                   <div class="form-grid-clean">
-                    <label class="form-stack form-stack-wide"><span>Bridge URL / endpoint</span><input type="text" data-settings-field="bridgeUrl" value="ws://localhost:8080/bridge"></label>
+                    <label class="form-stack form-stack-wide"><span>URL de conexión avanzada</span><input type="text" data-settings-field="bridgeUrl" value="ws://localhost:8080/bridge"></label>
                     <label class="form-stack">
-                      <span>Refresh interval</span>
+                      <span>Intervalo de actualización</span>
                       <select data-settings-field="refreshInterval">
                         <option value="3">3s</option>
                         <option value="5">5s</option>
@@ -457,7 +457,7 @@
                     <div class="settings-status-card">
                       <span>Estado</span>
                       <strong data-settings-connection-status>Sin conexión</strong>
-                      <small data-settings-connection-source>Bridge local</small>
+                      <small data-settings-connection-source>Conexión avanzada</small>
                     </div>
                     <div class="settings-status-card">
                       <span>Última sync</span>

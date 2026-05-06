@@ -15,14 +15,39 @@ class JournalProDesktopContractTests(unittest.TestCase):
         source = "\n".join(
             read_text(path)
             for path in [
+                "app.js",
+                "index.html",
+                "js/data/sources/mock-workspace-source.js",
+                "js/modules/calculator.js",
+                "js/modules/connection-wizard.js",
+                "js/modules/dashboard.js",
+                "js/modules/discipline.js",
+                "js/modules/funding-rules.js",
                 "js/modules/utils.js",
                 "js/modules/journal.js",
                 "js/modules/funded.js",
                 "js/modules/risk.js",
+                "js/modules/status-badges.js",
             ]
         )
         blocked_phrases = [
+            "Acciones locales existentes.",
+            "Autobloqueo local",
+            "Bridge local",
+            "Bridge profile",
+            "Broker API",
+            "Config local",
+            "Configuración local",
+            "Fuente local",
             "Herramienta de workspace",
+            "Local workspace",
+            "Manual Import",
+            "MT5 Bridge",
+            "Módulos del workspace",
+            "Panel local",
+            "Perfil, workspace e integraciones",
+            "Sesión local",
+            "Estado local",
             "workspace local",
             "snapshot MT5 del backend",
             "Sin backtests importados en el workspace.",
@@ -30,6 +55,14 @@ class JournalProDesktopContractTests(unittest.TestCase):
             "workspace_journal",
             "Reset local",
             "depende de backend, launcher y EA",
+            "backend directo",
+            "provider directo",
+            "terminal local",
+            "validar y sincronizar desde backend",
+            "datos de ejemplo del workspace",
+            "localStorage y no modifican",
+            "Legacy workspace seed",
+            "workspaces existentes",
         ]
         for phrase in blocked_phrases:
             self.assertNotIn(phrase, source)

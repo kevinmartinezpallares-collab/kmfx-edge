@@ -176,14 +176,15 @@ Resultado:
 - [x] Añadir render smoke por pagina para Dashboard, Cuentas, Operaciones, Calendario, Insights, Capital, Risk Engine y Herramientas.
 - [x] Añadir render smoke de Cuentas para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
 - [x] Añadir render smoke de Risk/Funding para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
-- [ ] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
+- [x] Revisar textos de usuario final: quitar "workspace", "local", "bridge", "debug" y referencias tecnicas fuera de modo admin.
 
 ### Paso 2 - Certificacion de datos live por seccion
 
-- Crear matriz por pagina con:
+- [x] Crear matriz por pagina con:
   - KPI visible.
   - Fuente exacta: EA payload, backend riskSnapshot, workspace local, manual/import.
   - Estado: live, parcial, pendiente.
+- Matriz inicial: `docs/live-data-section-matrix.md`.
 - Usar `kmfx-integrity-check` para comparar `reportMetrics` vs dashboard model.
 - Probar dos cuentas live y cambiar cuenta activa verificando Dashboard, Risk, Operaciones, Calendario, Insights, Capital y Funding.
 

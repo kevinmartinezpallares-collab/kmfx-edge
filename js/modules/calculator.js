@@ -513,7 +513,7 @@ function resolveInstrumentSpec(calc, account, rateContext, accountCurrency) {
     unitLabel,
     source: manualOverride ? "override" : presetSpec ? "preset" : "manual",
     sourceLabel: manualOverride ? "Override manual" : presetSpec ? "Preset estimado" : "Supuestos manuales",
-    sourceDetail: manualOverride ? "Valores editados en este workspace" : presetSpec ? "Preset común editable" : "Sin specs MT5 exactas para este símbolo",
+    sourceDetail: manualOverride ? "Valores editados en esta configuración" : presetSpec ? "Preset común editable" : "Sin specs MT5 exactas para este símbolo",
     accuracyCopy: isGold
       ? estimatedGoldCopy
       : "Cálculo estimado con supuestos manuales. Verifica el valor por pip/punto de tu broker.",

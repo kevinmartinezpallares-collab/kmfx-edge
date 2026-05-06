@@ -85,7 +85,7 @@ export function getFundedStatusMeta(fundedStatus = "standby", compliance = {}) {
 export function getWorkspaceStatusMeta(source = "mock") {
   return source === "mt5-ready"
     ? { label: "Preparada para MT5", tone: "info" }
-    : { label: "Fuente local", tone: "neutral" };
+    : { label: "Fuente manual", tone: "neutral" };
 }
 
 export function badgeMarkup(meta, extraClass = "") {

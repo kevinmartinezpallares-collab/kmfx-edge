@@ -69,8 +69,8 @@ const pageContext = {
   market: "Watchlist, régimen y catalizadores",
   portfolio: "Gestión económica de capital y evolución por cuenta",
   glossary: "Qué significa cada métrica, cómo funciona y qué revisar",
-  debug: "Diagnóstico local y contexto de restauración",
-  settings: "Perfil, workspace e integraciones"
+  debug: "Diagnóstico y contexto de restauración",
+  settings: "Perfil, cuenta e integraciones"
 };
 
 const SUBMENU_STORAGE_KEY = "kmfx_sidebar_submenus_v1";

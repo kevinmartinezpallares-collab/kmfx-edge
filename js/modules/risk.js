@@ -278,8 +278,8 @@ function mt5FieldStateMeta(rawValue = "") {
   if (value === "activo_mt5") return { label: "MT5 recibido", tone: "ok" };
   if (value === "pendiente") return { label: "MT5 pendiente", tone: "warn" };
   if (value === "error") return { label: "Error", tone: "danger" };
-  if (value === "desactivado") return { label: "Estado local", tone: "neutral" };
-  if (value === "local" || value === "local_only") return { label: "Estado local", tone: "neutral" };
+  if (value === "desactivado") return { label: "Estado manual", tone: "neutral" };
+  if (value === "local" || value === "local_only") return { label: "Estado manual", tone: "neutral" };
   return { label: "Sin confirmación MT5", tone: "warn" };
 }
 
@@ -850,7 +850,7 @@ export function renderRisk(root, state) {
     ? (prefsDraft.autoBlockOptIn ? "La cuenta se bloqueará cuando una regla crítica se dispare." : "Sin autobloqueo: la disciplina dependerá de supervisión manual.")
     : !canEditRiskPolicy
       ? "La política está en modo lectura. Activa el editor de riesgo para cambiar este control."
-      : (localAutoBlockAccess.description || "El autobloqueo local no está disponible en tu plan actual.");
+      : (localAutoBlockAccess.description || "El autobloqueo en este equipo no está disponible en tu plan actual.");
   const sessionOptions = ["Asia", "London", "New York"];
   const customSymbols = parseTokenList(prefsDraft.customSymbols).map((id) => ({
     id,
@@ -1631,7 +1631,7 @@ export function renderRisk(root, state) {
         <div class="risk-advanced-empty">
           <div>
             <strong>Escalera dinámica</strong>
-            <p>Se mostrará cuando el backend envíe niveles de riesgo.</p>
+            <p>Se mostrará cuando el motor de riesgo envíe niveles activos.</p>
           </div>
           <span>Escalera dinámica pendiente</span>
         </div>

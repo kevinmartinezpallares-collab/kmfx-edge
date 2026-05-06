@@ -229,7 +229,7 @@ const apex = {
   sourceRetrievedAt: SOURCE_RETRIEVED_AT,
   verified: false,
   requiresReview: true,
-  sourceNote: "Compatibilidad legacy del workspace; sin preset verificado.",
+  sourceNote: "Preset editable conservado; sin verificación vigente.",
 };
 
 const fundedNext = {
@@ -241,7 +241,7 @@ const fundedNext = {
   sourceRetrievedAt: SOURCE_RETRIEVED_AT,
   verified: false,
   requiresReview: true,
-  sourceNote: "Compatibilidad legacy del workspace; verificar programa antes de usar.",
+  sourceNote: "Preset editable conservado; verificar programa antes de usar.",
 };
 
 const staticDailyBalanceOrEquity = {
@@ -766,8 +766,8 @@ export const FUNDING_RULE_PRESETS = Object.freeze({
     "Legacy / Editable": editableProgram(apex, "Legacy / Editable", {
       sourceType: "internal_seed",
       sourceUrl: "",
-      versionLabel: "Legacy workspace seed",
-      sourceNote: "Preset legacy editable conservado para no romper workspaces existentes.",
+      versionLabel: "Preset editable",
+      sourceNote: "Preset editable conservado para no romper configuraciones existentes.",
     }),
   }),
 
@@ -775,7 +775,7 @@ export const FUNDING_RULE_PRESETS = Object.freeze({
     "Stellar 2-Step": editableProgram(fundedNext, "Stellar 2-Step", {
       sourceType: "internal_seed",
       sourceUrl: "",
-      versionLabel: "Legacy workspace seed",
+      versionLabel: "Preset editable",
       sourceNote: "Preset legacy editable; confirmar reglas vigentes antes de interpretar objetivos.",
     }),
   }),

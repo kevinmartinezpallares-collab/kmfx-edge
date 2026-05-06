@@ -452,7 +452,7 @@ function initSettings(authSession = null) {
     if (connectionStatus) connectionStatus.textContent = friendlyStatus;
     if (connectionSource) {
       connectionSource.textContent = isAdminUser(state)
-        ? (account.connection.source || "Bridge local")
+        ? (account.connection.source || "Conexión avanzada")
         : "Estado general de sincronización";
     }
     if (connectionLastSync) {
@@ -467,7 +467,7 @@ function initSettings(authSession = null) {
     const auth = state.auth || {};
     const isAuthenticated = auth.status === "authenticated";
     if (sessionState) {
-      sessionState.textContent = isAuthenticated ? "Sesión activa" : "Sesión local";
+      sessionState.textContent = isAuthenticated ? "Sesión activa" : "Sin sesión activa";
     }
     if (sessionEmail) {
       sessionEmail.textContent = isAuthenticated

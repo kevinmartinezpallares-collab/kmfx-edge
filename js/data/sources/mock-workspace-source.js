@@ -6,21 +6,21 @@ const workspaceTemplate = {
   connections: [
     {
       id: "conn-bridge",
-      name: "MT5 Bridge",
-      provider: "MetaTrader Adapter",
+      name: "Conector MT5",
+      provider: "MetaTrader",
       status: "ready",
       endpoint: "wss://ws.kmfxedge.com",
-      lastEvent: "Bridge profile listo para futuros enlaces",
+      lastEvent: "Perfil MT5 listo para futuros enlaces",
       accountId: "sandbox",
       syncMode: "Realtime-ready",
       health: 92
     },
     {
       id: "conn-manual",
-      name: "Manual Import",
-      provider: "CSV / JSON Intake",
+      name: "Importación manual",
+      provider: "CSV / JSON",
       status: "standby",
-      endpoint: "Local workspace",
+      endpoint: "Datos de la app",
       lastEvent: "Pendiente de activar importador",
       accountId: "funded",
       syncMode: "Batch",
@@ -28,10 +28,10 @@ const workspaceTemplate = {
     },
     {
       id: "conn-api",
-      name: "Broker API",
-      provider: "Future API Adapter",
+      name: "Conector broker",
+      provider: "Integración futura",
       status: "planned",
-      endpoint: "No endpoint yet",
+      endpoint: "Pendiente",
       lastEvent: "Diseño de contrato pendiente",
       accountId: "swing",
       syncMode: "Event-driven",
@@ -532,7 +532,7 @@ const workspaceTemplate = {
   debug: {
     panels: [
       { name: "Salud del store", value: "Estable", detail: "Todas las páginas renderizan desde estado centralizado." },
-      { name: "Capa de adapters", value: "Lista", detail: "Fuente local normalizada y punto de entrada MT5 preparado." },
+      { name: "Capa de datos", value: "Lista", detail: "Fuente manual normalizada y punto de entrada MT5 preparado." },
       { name: "Bindings UI", value: "Activos", detail: "Navegación y módulos reactivos sin handlers inline legacy." }
     ],
     checkpoints: [

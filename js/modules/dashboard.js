@@ -56,7 +56,7 @@ function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
         <div class="tl-section-header">
           <div>
             <div class="tl-section-title">La cuenta está añadida, pero aún no hay datos</div>
-            <div class="settings-section-sub">KMFX todavía no tiene un backend directo capaz de leer MT5 con credenciales. Para traer balance, equity, trades e historial ahora, instala el EA en MetaTrader 5.</div>
+            <div class="settings-section-sub">La conexión directa real todavía no está disponible. Para traer balance, equity, trades e historial ahora, instala el EA en MetaTrader 5.</div>
           </div>
           <span class="meta-badge">Pendiente live</span>
         </div>
