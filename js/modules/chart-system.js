@@ -349,6 +349,28 @@ function buildLineAreaDatasets(spec) {
   return datasets;
 }
 
+function prefersReducedChartMotion() {
+  return typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function buildLineAreaIntroDatasets(spec, datasets) {
+  const introValue = Number.isFinite(Number(spec.introFromValue))
+    ? Number(spec.introFromValue)
+    : Number.isFinite(Number(spec.yMin))
+      ? Number(spec.yMin)
+      : 0;
+  return datasets.map((dataset) => ({
+    ...dataset,
+    data: (dataset.data || []).map((datum) => (
+      typeof datum === "object" && datum !== null
+        ? { ...datum, y: introValue }
+        : introValue
+    ))
+  }));
+}
+
 function buildLineAreaOptions(spec) {
   return {
     ...buildBaseOptions(spec),
@@ -1400,14 +1422,22 @@ function createSparklineChart(ChartLib, canvas, spec) {
 function createLineAreaChart(ChartLib, canvas, spec) {
   const labels = spec.points.map((point) => point.label);
   const datasets = buildLineAreaDatasets(spec);
-  return new ChartLib(canvas, {
+  const useIntroAnimation = spec.introAnimation === true && !prefersReducedChartMotion();
+  const chart = new ChartLib(canvas, {
     type: "line",
     data: {
       labels,
-      datasets
+      datasets: useIntroAnimation ? buildLineAreaIntroDatasets(spec, datasets) : datasets
     },
     options: buildLineAreaOptions(spec)
   });
+  if (useIntroAnimation) {
+    requestAnimationFrame(() => {
+      chart.data.datasets = datasets;
+      chart.update();
+    });
+  }
+  return chart;
 }
 
 function createBarChart(ChartLib, canvas, spec) {

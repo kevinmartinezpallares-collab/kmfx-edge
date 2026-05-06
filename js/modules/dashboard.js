@@ -956,6 +956,10 @@ function renderDashboardProfessionalKpiCard(kpi = {}) {
   const deltaHtml = dashboardProfessionalDeltaMarkup(kpi);
   const microVisualHtml = renderDashboardProfessionalMicroVisual(kpi);
   const status = String(kpi.status || "neutral").toLowerCase();
+  const numericValue = finiteDashboardNumber(kpi.value);
+  const countupAttrs = numericValue !== null && status !== "insufficient"
+    ? ` data-dashboard-countup="professional" data-countup-target="${numericValue}" data-countup-unit="${escapeDashboardHtml(kpi.unit || "")}" data-countup-kpi="${escapeDashboardHtml(kpi.kpi || "")}"`
+    : "";
   return `
     <article class="kmfx-ui-card dashboard-kpi-card dashboard-professional-kpi-card" data-dashboard-professional-kpi="${escapeDashboardHtml(kpi.kpi)}" data-tone="${tone}" data-kpi-status="${escapeDashboardHtml(status)}" data-kpi-visual="${escapeDashboardHtml(visualType)}">
       <div class="dashboard-professional-kpi__top">
@@ -967,7 +971,7 @@ function renderDashboardProfessionalKpiCard(kpi = {}) {
       </div>
       <div class="dashboard-professional-kpi__body">
         <div class="dashboard-professional-kpi__value-row">
-          <strong class="dashboard-professional-kpi__value">${escapeDashboardHtml(value)}</strong>
+          <strong class="dashboard-professional-kpi__value"${countupAttrs}>${escapeDashboardHtml(value)}</strong>
           ${deltaHtml}
         </div>
         ${microVisualHtml ? `<div class="dashboard-professional-kpi__visual">${microVisualHtml}</div>` : ""}
@@ -1026,6 +1030,82 @@ function animateNumberContent(node, target, formatter, duration = 680) {
     node.__kmfxNumberFrame = null;
   };
   node.__kmfxNumberFrame = requestAnimationFrame(step);
+}
+
+function prefersReducedDashboardMotion() {
+  return typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function animateNumberContentFrom(node, target, formatter, duration = 760, from = 0) {
+  if (!node || !Number.isFinite(target) || typeof formatter !== "function" || prefersReducedDashboardMotion()) {
+    if (node && typeof formatter === "function") node.textContent = formatter(target);
+    if (node && Number.isFinite(target)) node.dataset.kmfxValue = String(target);
+    return;
+  }
+  if (node.__kmfxNumberFrame) cancelAnimationFrame(node.__kmfxNumberFrame);
+  node.dataset.kmfxValue = String(from);
+  node.textContent = formatter(from);
+  requestAnimationFrame(() => {
+    animateNumberContent(node, target, formatter, duration);
+  });
+}
+
+function formatDashboardCountupValue(value, { unit = "", kpi = "" } = {}) {
+  if (unit === "currency") return formatCurrency(value);
+  if (unit === "percent") {
+    return formatDashboardPercentValue(value, {
+      signed: kpi === "net_return",
+      digits: 2,
+    });
+  }
+  if (unit === "score") return formatDashboardRatioValue(value, 0);
+  return formatDashboardRatioValue(value, 2);
+}
+
+function animateDashboardIntro(root, payload = {}) {
+  if (!root || root.__dashboardIntroAnimated) return;
+  root.__dashboardIntroAnimated = true;
+  animateNumberContentFrom(
+    root.querySelector('[data-dashboard-kpi="equity"] [data-kpi-value]'),
+    payload.equityValue,
+    (value) => formatCurrency(value),
+    980,
+  );
+  animateNumberContentFrom(
+    root.querySelector('[data-dashboard-kpi="pnl"] [data-kpi-value]'),
+    payload.pnlValue,
+    (value) => `${value >= 0 ? "+" : "-"}${formatCurrency(Math.abs(value))}`,
+    940,
+  );
+  animateNumberContentFrom(
+    root.querySelector('[data-dashboard-kpi="dd"] [data-kpi-value]'),
+    payload.drawdownValue,
+    (value) => formatRiskValuePct(value, 2),
+    820,
+  );
+  if (Number.isFinite(payload.edgeNumericValue)) {
+    animateNumberContentFrom(
+      root.querySelector('[data-dashboard-kpi="edge"] [data-kpi-value]'),
+      payload.edgeNumericValue,
+      (value) => value.toFixed(2),
+      880,
+    );
+  }
+  root.querySelectorAll("[data-dashboard-countup='professional']").forEach((node) => {
+    const target = finiteDashboardNumber(node.dataset.countupTarget);
+    if (target === null) return;
+    animateNumberContentFrom(
+      node,
+      target,
+      (value) => formatDashboardCountupValue(value, {
+        unit: node.dataset.countupUnit || "",
+        kpi: node.dataset.countupKpi || "",
+      }),
+      900,
+    );
+  });
 }
 
 function updateDashboardLiveNodes(root, payload) {
@@ -1787,6 +1867,7 @@ export function renderDashboard(root, state) {
       },
     },
   });
+  const shouldAnimateDashboardIntro = !root.__dashboardRendered && !prefersReducedDashboardMotion();
   chartSpecs.push(
     lineAreaSpec("dashboard-hero-equity-chart", heroCurve, {
       tone: "blue",
@@ -1827,8 +1908,10 @@ export function renderDashboard(root, state) {
       fillAlphaEnd: 0.001,
       glowAlpha: 0,
       tension: 0.68,
-      animationDisabled: true,
-      animationDuration: 0,
+      animationDisabled: !shouldAnimateDashboardIntro,
+      animationDuration: shouldAnimateDashboardIntro ? 980 : 0,
+      introAnimation: shouldAnimateDashboardIntro,
+      introFromValue: heroMinValue - heroValuePadding,
       axisColor: axisStandard,
       axisFontSize: 10,
       axisFontWeight: "500",
@@ -1921,6 +2004,7 @@ export function renderDashboard(root, state) {
     drawdownTone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
     drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
     edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
+    edgeNumericValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor) : null,
     edgeMeta: profitFactorMeta,
     openRiskKpiValue: Number(riskSummary.totalOpenRiskPct || 0),
     openRiskKpiMeta,
@@ -2140,6 +2224,7 @@ export function renderDashboard(root, state) {
     </section>
   `;
   mountCharts(root, chartSpecs);
+  animateDashboardIntro(root, liveBindings);
   root.__dashboardStructureSignature = structureSignature;
   root.__dashboardLiveSignature = liveSignature;
   root.__dashboardRendered = true;

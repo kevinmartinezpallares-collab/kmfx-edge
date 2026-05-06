@@ -67,6 +67,28 @@ class DashboardSimplificationContractTests(unittest.TestCase):
         self.assertIn(".dashboard-kpi-card__tooltip .kmfx-ui-tooltip__content", styles)
         self.assertIn("box-sizing: border-box;", styles)
 
+    def test_dashboard_intro_animates_counts_and_chart_without_new_dependency(self) -> None:
+        dashboard = read_text("js/modules/dashboard.js")
+        chart_system = read_text("js/modules/chart-system.js")
+
+        for snippet in [
+            "animateDashboardIntro(root, liveBindings)",
+            "animateNumberContentFrom(",
+            "data-dashboard-countup=\"professional\"",
+            "edgeNumericValue",
+            "introAnimation: shouldAnimateDashboardIntro",
+            "introFromValue: heroMinValue - heroValuePadding",
+        ]:
+            self.assertIn(snippet, dashboard)
+
+        for snippet in [
+            "buildLineAreaIntroDatasets",
+            "prefersReducedChartMotion",
+            "spec.introAnimation === true",
+            "chart.update();",
+        ]:
+            self.assertIn(snippet, chart_system)
+
 
 if __name__ == "__main__":
     unittest.main()
