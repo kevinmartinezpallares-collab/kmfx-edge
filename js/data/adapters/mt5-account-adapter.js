@@ -277,8 +277,6 @@ function normalizeTrades(rawTrades = []) {
     aggregate.volume += Number.isFinite(Number(deal.volume)) ? Number(deal.volume) : 0;
     aggregate.closeTime = !aggregate.closeTime || new Date(deal.closeTime) > new Date(aggregate.closeTime) ? deal.closeTime : aggregate.closeTime;
     aggregate.date = aggregate.closeTime;
-    aggregate.tradingDayKey = deal.tradingDayKey || aggregate.tradingDayKey;
-    aggregate.monthKey = deal.monthKey || aggregate.monthKey;
     aggregate.side = aggregate.side || deal.side;
     if (!aggregate.entry && deal.entry != null) aggregate.entry = deal.entry;
     if (!aggregate.openTime && deal.openTime) aggregate.openTime = deal.openTime;
@@ -316,12 +314,15 @@ function normalizeTrades(rawTrades = []) {
       const firstPartial = partials[0] || null;
       const lastPartial = partials.at(-1) || null;
       const weightedExit = toWeightedAverage(trade.__weightedExitSum, trade.__weightedExitVolume);
+      const finalCloseTime = trade.closeTime || lastPartial?.closeTime || firstPartial?.closeTime || trade.date;
       return {
         ...trade,
-        date: trade.closeTime,
-        closeTime: trade.closeTime,
-        when: lastPartial?.when || new Date(trade.closeTime),
-        durationMin: durationMinutes(trade.openTime || firstPartial?.closeTime, trade.closeTime),
+        date: finalCloseTime,
+        closeTime: finalCloseTime,
+        when: lastPartial?.when || new Date(finalCloseTime),
+        tradingDayKey: toTradingDayKey(finalCloseTime) || trade.tradingDayKey,
+        monthKey: toMonthKey(finalCloseTime) || trade.monthKey,
+        durationMin: durationMinutes(trade.openTime || firstPartial?.closeTime, finalCloseTime),
         volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
         exit: weightedExit,
         partials,
