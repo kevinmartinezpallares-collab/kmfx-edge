@@ -511,9 +511,9 @@ function renderConnectionGuide() {
   ];
 
   return `
-    <section class="tl-section-card connections-guide-card" style="display:grid;gap:18px;">
-      <div class="calendar-panel-head">
-        <div>
+    <section class="connections-guide-card">
+      <div class="connections-guide-card__intro">
+        <div class="connections-guide-card__copy">
           <div class="dashboard-risk-block__title">Conectar cuenta paso a paso</div>
           <div class="row-sub">Flujo recomendado: Launcher para instalar el conector y MetaTrader 5 abierto con el EA activo para sincronizar.</div>
         </div>
@@ -523,27 +523,27 @@ function renderConnectionGuide() {
           <button class="btn-primary" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
         </div>
       </div>
-      <div class="connections-guide-card__endpoint" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:var(--surface-elevated);">
+      <div class="connections-guide-card__endpoint">
         <div>
           <div class="metric-label">URL para WebRequest en MetaTrader 5</div>
-          <code style="display:block;margin-top:6px;font-size:14px;color:var(--text-primary);word-break:break-all;">${escapeHtml(MT5_WEBREQUEST_URL)}</code>
+          <code>${escapeHtml(MT5_WEBREQUEST_URL)}</code>
         </div>
         <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-value="${escapeHtml(MT5_WEBREQUEST_URL)}" data-copy-label="URL copiada">Copiar URL</button>
       </div>
-      <div class="connections-guide-card__steps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+      <div class="connections-guide-card__steps">
         ${steps.map((step, index) => `
-          <article class="connections-guide-step" style="display:flex;gap:12px;min-height:118px;padding:14px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 72%, transparent);">
-            <span class="connections-guide-step__index" style="display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:999px;background:var(--layer-accent);color:var(--accent);font-weight:700;">${index + 1}</span>
+          <article class="connections-guide-step">
+            <span class="connections-guide-step__index">${index + 1}</span>
             <div>
-              <strong style="display:block;color:var(--text-primary);font-size:14px;line-height:1.25;">${escapeHtml(step.title)}</strong>
-              <p style="margin:6px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.45;">${escapeHtml(step.body)}</p>
+              <strong>${escapeHtml(step.title)}</strong>
+              <p>${escapeHtml(step.body)}</p>
             </div>
           </article>
         `).join("")}
       </div>
-      <div class="connections-guide-card__direct" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb, var(--surface-elevated) 64%, transparent);">
+      <div class="connections-guide-card__direct">
         <div>
-          <div class="dashboard-risk-block__title" style="font-size:15px;">Manual con EA</div>
+          <div class="dashboard-risk-block__title">Manual con EA</div>
           <div class="row-sub">Para usuarios avanzados: descarga el EA, crea una key y pégala en KMFXKey. Después solo necesitas MT5 abierto con el EA activo.</div>
         </div>
         <div class="connections-empty-card__actions">
