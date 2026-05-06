@@ -567,6 +567,34 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("touch-action: manipulation", policy_block)
         self.assertIn("padding: 12px !important", compact_block)
 
+    def test_mobile_technical_text_wraps_urls_keys_and_copy_values(self) -> None:
+        css = read_text("styles-v2.css")
+        tech_block = media_block(css, "@media (max-width: 760px)", "Mobile technical-text hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile technical-text hardening")
+
+        for selector in [
+            "code",
+            "pre",
+            ".connection-wizard__code",
+            ".connections-account-modal__key-value",
+            ".connections-account-card__key-copy",
+            ".connections-guide-card code",
+            ".kmfx-mt5-modal pre",
+            ".settings-inline-note",
+        ]:
+            self.assertIn(selector, tech_block)
+
+        self.assertIn("white-space: normal !important", tech_block)
+        self.assertIn("overflow-wrap: anywhere", tech_block)
+        self.assertIn("word-break: break-word", tech_block)
+        self.assertIn("overflow-x: auto !important", tech_block)
+        self.assertIn("overscroll-behavior-inline: contain", tech_block)
+        self.assertIn("-webkit-overflow-scrolling: touch", tech_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", tech_block)
+        self.assertIn("touch-action: manipulation", tech_block)
+        self.assertIn("font-size: 12px !important", compact_block)
+        self.assertIn("line-height: 1.45 !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

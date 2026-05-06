@@ -40655,3 +40655,74 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     padding: 12px !important;
   }
 }
+
+/* Mobile technical-text hardening: keep URLs, keys, and copied values inside the viewport. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    code,
+    pre,
+    kbd,
+    samp,
+    .mono,
+    .debug-panel,
+    .body-copy,
+    .calendar-inline-note,
+    .connection-wizard__code,
+    .connections-account-modal__key-value,
+    .connections-account-card__key-copy,
+    .connections-account-card__key-copy code,
+    .connections-guide-card code,
+    .connections-guide-card .calendar-panel-sub,
+    .kmfx-mt5-modal code,
+    .kmfx-mt5-modal pre,
+    .settings-inline-note,
+    .capital-data-note
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-overflow: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    pre,
+    .connection-wizard__code,
+    .connections-account-modal__key-block,
+    .connections-account-card__key-copy,
+    .kmfx-mt5-modal pre
+  ) {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .connections-account-card__key-copy button,
+    .connections-account-modal__key-copy,
+    .connection-wizard__copy,
+    .kmfx-mt5-modal .copy-btn
+  ) {
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    max-width: 100% !important;
+    touch-action: manipulation;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    pre,
+    code,
+    .connection-wizard__code,
+    .connections-account-modal__key-value,
+    .connections-account-card__key-copy code
+  ) {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+}
