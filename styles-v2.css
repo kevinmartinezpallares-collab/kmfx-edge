@@ -42035,3 +42035,78 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* KMFX Edge sidebar brand: shadcn-style fixed header slot with full lockup when expanded and mark-only when collapsed. */
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu--brand {
+  padding-right: 8px !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .brand-lockup--adaptive {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: 196px !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 6px 4px !important;
+  overflow: visible !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--expanded {
+  display: block !important;
+  width: min(188px, 100%) !important;
+  max-width: 188px !important;
+  height: auto !important;
+  max-height: 34px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-brand-logo--collapsed {
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu--brand,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu--brand,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-menu--brand {
+  padding-right: 0 !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .brand-lockup--adaptive {
+  display: grid !important;
+  place-items: center !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--expanded {
+  display: none !important;
+}
+
+.app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider.sidebar-vnext-collapsed .sidebar-brand-logo--collapsed {
+  display: block !important;
+  width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  object-fit: contain !important;
+}
