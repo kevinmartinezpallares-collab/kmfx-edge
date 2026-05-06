@@ -540,6 +540,33 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("grid-template-columns: repeat(7, minmax(54px, 1fr)) !important", compact_block)
         self.assertIn("min-width: 54px !important", compact_block)
 
+    def test_mobile_policy_forms_stack_risk_and_funding_editors(self) -> None:
+        css = read_text("styles-v2.css")
+        policy_block = media_block(css, "@media (max-width: 760px)", "Mobile policy-form hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile policy-form hardening")
+
+        for selector in [
+            ".risk-policy-editors",
+            ".risk-policy-card",
+            ".risk-limit-form",
+            ".risk-limit-actions",
+            ".risk-symbol-editor",
+            ".risk-inline-editor-head",
+            ".funding-ledger-form",
+            ".funding-detail-actions",
+        ]:
+            self.assertIn(selector, policy_block)
+
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", policy_block)
+        self.assertIn("min-height: var(--kmfx-mobile-tap, 44px) !important", policy_block)
+        self.assertIn("font-size: 16px !important", policy_block)
+        self.assertIn("min-height: 108px !important", policy_block)
+        self.assertIn("white-space: normal !important", policy_block)
+        self.assertIn("overflow-wrap: anywhere", policy_block)
+        self.assertIn("text-overflow: clip !important", policy_block)
+        self.assertIn("touch-action: manipulation", policy_block)
+        self.assertIn("padding: 12px !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

@@ -40554,3 +40554,104 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     min-width: 54px !important;
   }
 }
+
+/* Mobile policy-form hardening: keep risk and funding editors usable with touch input. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-editors,
+    .risk-policy-card,
+    .risk-limit-form,
+    .risk-limit-actions,
+    .risk-symbol-editor,
+    .risk-symbol-editor__selected,
+    .risk-symbol-editor__results,
+    .funding-ledger-form,
+    .funding-detail-actions
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-editors,
+    .risk-limit-form,
+    .funding-ledger-form
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-inline-editor-head,
+    .risk-symbol-editor__selected,
+    .risk-symbol-editor__results,
+    .risk-limit-actions,
+    .funding-detail-actions
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-card input,
+    .risk-policy-card select,
+    .risk-limit-form input,
+    .risk-limit-form select,
+    .funding-ledger-form input,
+    .funding-ledger-form select,
+    .funding-ledger-form textarea
+  ) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    font-size: 16px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-form textarea,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-form textarea,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .funding-ledger-form textarea {
+    min-height: 108px !important;
+    resize: vertical;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-inline-editor-head strong,
+    .risk-inline-editor-head span,
+    .risk-symbol-editor-tag,
+    .risk-symbol-editor-tag em,
+    .risk-limit-form label,
+    .funding-ledger-form label
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-overflow: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-inline-editor-link,
+    .risk-limit-actions > *,
+    .funding-detail-actions > *,
+    .funding-ledger-form button
+  ) {
+    width: 100% !important;
+    min-height: var(--kmfx-mobile-tap, 44px) !important;
+    justify-content: center !important;
+    touch-action: manipulation;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .risk-policy-card,
+    .risk-symbol-editor__selected,
+    .risk-symbol-editor__results,
+    .funding-ledger-form
+  ) {
+    padding: 12px !important;
+  }
+}
