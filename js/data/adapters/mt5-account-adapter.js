@@ -157,6 +157,16 @@ function toWeightedAverage(totalValue, totalWeight) {
   return totalValue / totalWeight;
 }
 
+function earliestDateValue(currentValue, candidateValue) {
+  if (!candidateValue) return currentValue || null;
+  if (!currentValue) return candidateValue;
+  const currentDate = new Date(currentValue);
+  const candidateDate = new Date(candidateValue);
+  if (Number.isNaN(candidateDate.getTime())) return currentValue;
+  if (Number.isNaN(currentDate.getTime())) return candidateValue;
+  return candidateDate < currentDate ? candidateValue : currentValue;
+}
+
 function normalizeTrades(rawTrades = []) {
   const dayFormatter = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Andorra",
@@ -178,7 +188,9 @@ function normalizeTrades(rawTrades = []) {
     return parsed && !Number.isNaN(parsed.getTime()) ? monthFormatter.format(parsed) : "";
   };
   const normalizedDeals = (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
-    const date = toIsoString(trade.close_time || trade.time || trade.open_time);
+    const rawOpenTime = trade.open_time || trade.openTime || "";
+    const openTime = rawOpenTime ? toIsoString(rawOpenTime) : null;
+    const date = toIsoString(trade.close_time || trade.time || rawOpenTime);
     const profit = Number(trade.profit || 0);
     const commission = Number(trade.commission || 0);
     const swap = Number(trade.swap || 0);
@@ -215,13 +227,13 @@ function normalizeTrades(rawTrades = []) {
       rMultiple: Number(trade.r_multiple || trade.rMultiple || 0),
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
-      durationMin: durationMinutes(trade.open_time, trade.close_time),
+      durationMin: durationMinutes(openTime, date),
       volume,
       entry: entryPrice,
       exit: exitPrice,
       sl: Number.isFinite(Number(trade.sl || trade.stop_loss)) ? Number(trade.sl || trade.stop_loss) : null,
       tp: Number.isFinite(Number(trade.tp || trade.take_profit)) ? Number(trade.tp || trade.take_profit) : null,
-      openTime: trade.open_time || null,
+      openTime,
       raw: trade,
     };
   });
@@ -259,15 +271,21 @@ function normalizeTrades(rawTrades = []) {
         openTime: deal.openTime || null,
         partials: [],
         executions: [],
+        __seenDealIds: new Set(),
+        __weightedEntrySum: 0,
+        __weightedEntryVolume: 0,
         __weightedExitSum: 0,
         __weightedExitVolume: 0,
       });
     }
 
     const aggregate = groupedTrades.get(key);
+    if (aggregate.__seenDealIds.has(deal.id)) return;
+    aggregate.__seenDealIds.add(deal.id);
+
     aggregate.pnl += deal.pnl;
     aggregate.net += deal.net;
-    aggregate.grossProfit += deal.grossProfit;
+    aggregate.grossProfit += Math.max(deal.grossProfit, 0);
     aggregate.profit += deal.profit;
     aggregate.commission += deal.commission;
     aggregate.swap += deal.swap;
@@ -278,8 +296,13 @@ function normalizeTrades(rawTrades = []) {
     aggregate.closeTime = !aggregate.closeTime || new Date(deal.closeTime) > new Date(aggregate.closeTime) ? deal.closeTime : aggregate.closeTime;
     aggregate.date = aggregate.closeTime;
     aggregate.side = aggregate.side || deal.side;
-    if (!aggregate.entry && deal.entry != null) aggregate.entry = deal.entry;
-    if (!aggregate.openTime && deal.openTime) aggregate.openTime = deal.openTime;
+    if (deal.entry != null && Number.isFinite(Number(deal.volume))) {
+      aggregate.__weightedEntrySum += Number(deal.entry) * Number(deal.volume);
+      aggregate.__weightedEntryVolume += Number(deal.volume);
+    } else if (!aggregate.entry && deal.entry != null) {
+      aggregate.entry = deal.entry;
+    }
+    aggregate.openTime = earliestDateValue(aggregate.openTime, deal.openTime);
     if (aggregate.setup === "MT5 sync" && deal.setup !== "MT5 sync") aggregate.setup = deal.setup;
     if ((!aggregate.session || aggregate.session === "—") && deal.session) aggregate.session = deal.session;
     if (deal.exit != null && Number.isFinite(Number(deal.volume))) {
@@ -302,7 +325,7 @@ function normalizeTrades(rawTrades = []) {
       fees: deal.fees,
       net: deal.net,
       grossProfit: deal.grossProfit,
-      cumulativePnl: Number((aggregate.pnl).toFixed(2)),
+      cumulativePnl: 0,
     };
     aggregate.partials.push(partial);
     aggregate.executions.push(partial);
@@ -313,6 +336,12 @@ function normalizeTrades(rawTrades = []) {
       const partials = [...trade.partials].sort((a, b) => a.when - b.when);
       const firstPartial = partials[0] || null;
       const lastPartial = partials.at(-1) || null;
+      let cumulativePnl = 0;
+      partials.forEach((partial) => {
+        cumulativePnl += Number(partial.pnl || 0);
+        partial.cumulativePnl = Number(cumulativePnl.toFixed(2));
+      });
+      const weightedEntry = toWeightedAverage(trade.__weightedEntrySum, trade.__weightedEntryVolume);
       const weightedExit = toWeightedAverage(trade.__weightedExitSum, trade.__weightedExitVolume);
       const finalCloseTime = trade.closeTime || lastPartial?.closeTime || firstPartial?.closeTime || trade.date;
       return {
@@ -324,6 +353,7 @@ function normalizeTrades(rawTrades = []) {
         monthKey: toMonthKey(finalCloseTime) || trade.monthKey,
         durationMin: durationMinutes(trade.openTime || firstPartial?.closeTime, finalCloseTime),
         volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
+        entry: weightedEntry ?? trade.entry,
         exit: weightedExit,
         partials,
         executions: partials,
