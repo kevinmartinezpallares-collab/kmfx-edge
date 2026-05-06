@@ -640,6 +640,23 @@ export function renderCalendar(root, state) {
 
   if (!hasSelectedDay) root.__calendarSelectedDay = "";
 
+  const calendarNavControlsHtml = `
+    <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
+    <div class="calendar-month-nav__label">
+      <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
+      <span>${viewMode === "year" ? `${summary.activeMonths} meses operados` : `${summary.activeDays} días operados`}</span>
+    </div>
+    <div class="widget-segmented calendar-view-toggle" role="tablist" aria-label="Vista del calendario">
+      <button class="widget-segmented-btn ${viewMode === "month" ? "active" : ""}" type="button" data-calendar-view-mode="month">Mes</button>
+      <button class="widget-segmented-btn ${viewMode === "year" ? "active" : ""}" type="button" data-calendar-view-mode="year">Año</button>
+    </div>
+    <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
+      <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
+      <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
+    </div>
+    <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
+  `;
+
   root.innerHTML = `
     <section class="calendar-screen">
       ${pageHeaderMarkup({
@@ -652,23 +669,8 @@ export function renderCalendar(root, state) {
         titleClassName: "calendar-screen__title",
         descriptionClassName: "calendar-screen__subtitle",
         extraContentHtml: note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : "",
-        actionsClassName: "calendar-month-nav",
-        actionsHtml: `
-          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
-          <div class="calendar-month-nav__label">
-            <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
-            <span>${viewMode === "year" ? `${summary.activeMonths} meses operados` : `${summary.activeDays} días operados`}</span>
-          </div>
-          <div class="widget-segmented calendar-view-toggle" role="tablist" aria-label="Vista del calendario">
-            <button class="widget-segmented-btn ${viewMode === "month" ? "active" : ""}" type="button" data-calendar-view-mode="month">Mes</button>
-            <button class="widget-segmented-btn ${viewMode === "year" ? "active" : ""}" type="button" data-calendar-view-mode="year">Año</button>
-          </div>
-          <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
-            <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
-            <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
-          </div>
-          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
-        `,
+        actionsClassName: "calendar-month-nav calendar-month-nav--header",
+        actionsHtml: calendarNavControlsHtml,
       })}
       ${adminTracePanel}
 
@@ -713,6 +715,9 @@ export function renderCalendar(root, state) {
       ${viewMode === "year"
         ? `
           <section class="tl-section-card calendar-month-panel calendar-year-panel">
+            <div class="calendar-month-nav calendar-month-nav--embedded" aria-label="Selector de calendario">
+              ${calendarNavControlsHtml}
+            </div>
             <div class="calendar-month-panel__head">
               <div>
                 <div class="calendar-month-panel__title">${selectedYear} · vista anual</div>
@@ -733,6 +738,9 @@ export function renderCalendar(root, state) {
         `
         : `
           <section class="tl-section-card calendar-month-panel">
+            <div class="calendar-month-nav calendar-month-nav--embedded" aria-label="Selector de calendario">
+              ${calendarNavControlsHtml}
+            </div>
             <div class="calendar-month-panel__head">
               <div>
                 <div class="calendar-month-panel__title">${monthView.label}</div>

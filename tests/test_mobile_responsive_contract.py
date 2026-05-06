@@ -679,6 +679,20 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("toggleSubmenu(submenuKey)", js)
         self.assertIn("setSubmenuOpen(submenuKey, true)", js)
 
+    def test_desktop_calendar_controls_are_embedded_without_moving_mobile_header(self) -> None:
+        js = read_text("js/modules/calendar.js")
+        css = read_text("styles-v2.css")
+        desktop_block = media_block(css, "@media (min-width: 981px)")
+        mobile_block = media_block(css, "@media (max-width: 980px)", "Calendar embedded controls target")
+
+        self.assertIn("const calendarNavControlsHtml", js)
+        self.assertIn("calendar-month-nav calendar-month-nav--header", js)
+        self.assertIn("calendar-month-nav calendar-month-nav--embedded", js)
+        self.assertIn(".calendar-screen__header .calendar-month-nav--header", desktop_block)
+        self.assertIn(".calendar-month-panel .calendar-month-nav--embedded", desktop_block)
+        self.assertIn("grid-template-columns: 36px minmax(180px, 1fr) auto auto 36px", desktop_block)
+        self.assertIn("display: none !important", mobile_block)
+
     def test_mobile_shadcn_composition_repairs_var_calendar_and_sidebar(self) -> None:
         css = read_text("styles-v2.css")
         mobile_block = media_block(css, "@media (max-width: 760px)", "Mobile shadcn composition repair")

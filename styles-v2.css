@@ -13855,6 +13855,11 @@ body[data-theme="dark"] .calendar-month-nav {
   background: rgba(255, 255, 255, 0.02);
 }
 
+html[data-theme="dark"] .calendar-month-nav--embedded,
+body[data-theme="dark"] .calendar-month-nav--embedded {
+  display: none;
+}
+
 html[data-theme="dark"] .calendar-month-nav__btn,
 body[data-theme="dark"] .calendar-month-nav__btn {
   width: 32px;
@@ -14063,6 +14068,56 @@ html[data-theme="dark"] .calendar-legend-dot--today,
 body[data-theme="dark"] .calendar-legend-dot--today {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+@media (min-width: 981px) {
+  html[data-theme="dark"] .calendar-screen__header .calendar-month-nav--header,
+  body[data-theme="dark"] .calendar-screen__header .calendar-month-nav--header {
+    display: none;
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded,
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded {
+    display: grid;
+    grid-template-columns: 36px minmax(180px, 1fr) auto auto 36px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin: 0 0 18px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+      rgba(255, 255, 255, 0.018);
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__btn,
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label,
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label strong,
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label strong {
+    font-size: 15px;
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label span,
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded .calendar-month-nav__label span {
+    font-size: 12px;
+  }
+
+  html[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded :where(.calendar-view-toggle, .calendar-value-toggle),
+  body[data-theme="dark"] .calendar-month-panel .calendar-month-nav--embedded :where(.calendar-view-toggle, .calendar-value-toggle) {
+    margin: 0;
+  }
 }
 
 html[data-theme="dark"] .calendar-month-grid,
@@ -41963,7 +42018,13 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
   flex: 0 0 auto;
 }
 
+/* Calendar embedded controls target: keep the desktop-only control out of mobile header flow. */
 @media (max-width: 980px) {
+  html[data-theme="dark"] .calendar-month-nav--embedded,
+  body[data-theme="dark"] .calendar-month-nav--embedded {
+    display: none !important;
+  }
+
   .connections-guide-card__endpoint,
   .connections-guide-card__direct {
     align-items: stretch;
