@@ -229,6 +229,43 @@ class RiskOrchestrator:
             "allowed_symbols": [],
             "max_volume": 1.5,
             "auto_block_enabled": True,
+            "policy_source_label": "Política backend",
+            "policy_defaults": True,
+            "policy_note": "Sesiones, símbolos, volumen y autobloqueo se exponen como defaults backend hasta RISK-POLICY-1.",
+            "policy_controls": {
+                "risk_per_trade": {
+                    "classification": "enforced_by_backend",
+                    "source_label": "Política backend",
+                },
+                "daily_drawdown": {
+                    "classification": "enforced_by_backend",
+                    "source_label": "Política backend",
+                },
+                "max_drawdown": {
+                    "classification": "enforced_by_backend",
+                    "source_label": "Política backend",
+                },
+                "max_volume": {
+                    "classification": "saved_pending_backend_wiring",
+                    "source_label": "Default backend",
+                },
+                "allowed_sessions": {
+                    "classification": "saved_pending_backend_wiring",
+                    "source_label": "Default backend",
+                },
+                "allowed_symbols": {
+                    "classification": "saved_pending_backend_wiring",
+                    "source_label": "Default backend",
+                },
+                "auto_block": {
+                    "classification": "saved_pending_backend_wiring",
+                    "source_label": "Default backend",
+                },
+                "panic_lock": {
+                    "classification": "enforced_by_backend",
+                    "source_label": "Política backend",
+                },
+            },
             "current_level": self.engine.state.current_level,
             "recommended_level": self.engine.state.recommended_level,
             "volatility_override_active": bool(self.engine.state.volatility_override_active),
@@ -265,6 +302,7 @@ class RiskOrchestrator:
             "open_positions": len(open_positions),
             "total_open_risk_pct": self._pct(snapshot.total_open_risk_pct),
             "effective_correlated_risk": self._pct(snapshot.effective_correlated_risk),
+            "correlated_risk_pct": self._pct(snapshot.effective_correlated_risk),
             "pressure_label": snapshot.risk_status.value,
             "pressure_tone": "danger" if snapshot.panic_lock_active or snapshot.risk_status.value == "protection_mode" else "warn" if snapshot.risk_status.value == "active_monitoring" else "ok",
         }
