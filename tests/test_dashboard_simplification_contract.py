@@ -70,14 +70,18 @@ class DashboardSimplificationContractTests(unittest.TestCase):
     def test_dashboard_intro_animates_counts_and_chart_without_new_dependency(self) -> None:
         dashboard = read_text("js/modules/dashboard.js")
         chart_system = read_text("js/modules/chart-system.js")
+        styles = read_text("styles-v2.css")
 
         for snippet in [
-            "animateDashboardIntro(root, liveBindings)",
+            "animateDashboardIntro(root, liveBindings, { force: shouldAnimateDashboardIntro })",
             "animateNumberContentFrom(",
+            "triggerDashboardIntroCascade",
+            "dashboardPanel?.classList.contains(\"page-enter\")",
             "data-dashboard-countup=\"professional\"",
             "edgeNumericValue",
             "introAnimation: shouldAnimateDashboardIntro",
             "introFromValue: heroMinValue - heroValuePadding",
+            "!shouldAnimateDashboardIntro && root.__dashboardStructureSignature",
         ]:
             self.assertIn(snippet, dashboard)
 
@@ -88,6 +92,15 @@ class DashboardSimplificationContractTests(unittest.TestCase):
             "chart.update();",
         ]:
             self.assertIn(snippet, chart_system)
+
+        for snippet in [
+            ".dashboard-intro-active .dashboard-kpi-row--primary .dashboard-kpi-card",
+            ".dashboard-intro-active .dashboard-chart-card",
+            ".dashboard-intro-active .dashboard-professional-kpi-card",
+            "@keyframes dashboardIntroRise",
+            "@media (prefers-reduced-motion: reduce)",
+        ]:
+            self.assertIn(snippet, styles)
 
 
 if __name__ == "__main__":

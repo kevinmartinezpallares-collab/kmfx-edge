@@ -1064,9 +1064,24 @@ function formatDashboardCountupValue(value, { unit = "", kpi = "" } = {}) {
   return formatDashboardRatioValue(value, 2);
 }
 
-function animateDashboardIntro(root, payload = {}) {
-  if (!root || root.__dashboardIntroAnimated) return;
+function triggerDashboardIntroCascade(root) {
+  if (!root || prefersReducedDashboardMotion()) return;
+  if (root.__dashboardIntroCascadeTimer) clearTimeout(root.__dashboardIntroCascadeTimer);
+  root.classList.remove("dashboard-intro-active");
+  void root.offsetWidth;
+  root.classList.add("dashboard-intro-active");
+  root.__dashboardIntroCascadeTimer = setTimeout(() => {
+    root.classList.remove("dashboard-intro-active");
+    root.__dashboardIntroCascadeTimer = null;
+  }, 1300);
+}
+
+function animateDashboardIntro(root, payload = {}, options = {}) {
+  if (!root) return;
+  const force = Boolean(options.force);
+  if (root.__dashboardIntroAnimated && !force) return;
   root.__dashboardIntroAnimated = true;
+  triggerDashboardIntroCascade(root);
   animateNumberContentFrom(
     root.querySelector('[data-dashboard-kpi="equity"] [data-kpi-value]'),
     payload.equityValue,
@@ -1442,6 +1457,8 @@ export function renderDashboard(root, state) {
     accountSwitcher.innerHTML = "";
     accountSwitcher.classList.add("is-empty");
   }
+  const dashboardPanel = typeof root?.closest === "function" ? root.closest(".page") : null;
+  const isDashboardPanelEntering = !root?.__dashboardRendered || dashboardPanel?.classList.contains("page-enter");
 
   const liveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const activeAccountId = resolveSelectedLiveAccountId(state);
@@ -1867,7 +1884,7 @@ export function renderDashboard(root, state) {
       },
     },
   });
-  const shouldAnimateDashboardIntro = !root.__dashboardRendered && !prefersReducedDashboardMotion();
+  const shouldAnimateDashboardIntro = isDashboardPanelEntering && !prefersReducedDashboardMotion();
   chartSpecs.push(
     lineAreaSpec("dashboard-hero-equity-chart", heroCurve, {
       tone: "blue",
@@ -2031,7 +2048,7 @@ export function renderDashboard(root, state) {
     openTradeRiskHtml: hasOpenTradeRisk ? renderOpenTradeRiskTable(riskExposure.openTradeRisks) : null,
   };
 
-  if (root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
+  if (!shouldAnimateDashboardIntro && root.__dashboardStructureSignature === structureSignature && root.__dashboardRendered) {
     if (root.__dashboardLiveSignature !== liveSignature) {
       updateDashboardLiveNodes(root, liveBindings);
       updateCharts(root, chartSpecs);
@@ -2224,7 +2241,7 @@ export function renderDashboard(root, state) {
     </section>
   `;
   mountCharts(root, chartSpecs);
-  animateDashboardIntro(root, liveBindings);
+  animateDashboardIntro(root, liveBindings, { force: shouldAnimateDashboardIntro });
   root.__dashboardStructureSignature = structureSignature;
   root.__dashboardLiveSignature = liveSignature;
   root.__dashboardRendered = true;
