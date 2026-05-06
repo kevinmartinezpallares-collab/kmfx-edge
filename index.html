@@ -341,13 +341,13 @@
         <section class="page" id="page-settings">
           <div class="tl-page-header settings-page-header">
             <div class="tl-page-title">Ajustes</div>
-            <div class="tl-page-sub">Gestiona tu perfil, preferencias del workspace e integraciones.</div>
+            <div class="tl-page-sub">Perfil, sesión y preferencias básicas.</div>
           </div>
           <div class="settings-page-shell">
             <div class="settings-toolbar">
               <div>
-                <div class="settings-toolbar-title">Preferencias del workspace</div>
-                <div class="settings-inline-note" data-settings-status>Cambios listos para editar y guardar.</div>
+                <div class="settings-toolbar-title">Configuración esencial</div>
+                <div class="settings-inline-note" data-settings-status>Solo lo necesario para trabajar cómodo en KMFX.</div>
               </div>
               <div class="settings-edit-actions">
                 <button class="btn-primary btn-inline" type="button" data-settings-save>Guardar cambios</button>
@@ -374,8 +374,6 @@
                   <div class="form-grid-clean" data-settings-profile-form>
                     <label class="form-stack"><span>Nombre</span><input type="text" data-settings-field="name" value="Kevin C."></label>
                     <label class="form-stack"><span>Email</span><input type="email" data-settings-field="email" value="kevin@kmfxedge.local"></label>
-                    <label class="form-stack"><span>Discord</span><input type="text" data-settings-field="discord" value="@kevin.kmfx"></label>
-                    <label class="form-stack"><span>Avatar / iniciales</span><input type="text" maxlength="3" data-settings-field="initials" value="KC"></label>
                     <label class="form-stack form-stack-wide"><span>Cuenta por defecto</span><select data-settings-field="defaultAccount"></select></label>
                   </div>
                 </article>
@@ -383,8 +381,8 @@
                 <article class="tl-section-card settings-card">
                   <div class="tl-section-header">
                     <div>
-                      <div class="tl-section-title">Workspace</div>
-                      <div class="settings-section-sub">Preferencias visuales y de navegación de la app.</div>
+                      <div class="tl-section-title">Preferencias</div>
+                      <div class="settings-section-sub">Tema, entrada inicial y cuenta que carga el dashboard.</div>
                     </div>
                     <div class="meta-badge" id="themeBadge">Tema oscuro</div>
                   </div>
@@ -397,13 +395,6 @@
                       </select>
                     </label>
                     <label class="form-stack">
-                      <span>Densidad visual</span>
-                      <select data-settings-field="density">
-                        <option value="comfortable">Cómoda</option>
-                        <option value="compact">Compacta</option>
-                      </select>
-                    </label>
-                    <label class="form-stack">
                       <span>Página inicial</span>
                       <select data-settings-field="landingPage"></select>
                     </label>
@@ -411,116 +402,12 @@
                       <span>Cuenta del dashboard</span>
                       <select data-settings-field="dashboardAccount"></select>
                     </label>
-                    <label class="form-stack">
-                      <span>Vista de charts</span>
-                      <select data-settings-field="chartPreference">
-                        <option value="balanced">Equilibrada</option>
-                        <option value="compact">Compacta</option>
-                        <option value="labels">Etiquetas completas</option>
-                      </select>
-                    </label>
-                    <label class="form-stack">
-                      <span>Preset calculadora</span>
-                      <select data-settings-field="calculatorPreset">
-                        <option value="standard">Estándar</option>
-                        <option value="funded">Fondeada</option>
-                        <option value="swing">Swing</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="settings-check-grid">
-                    <label class="settings-check"><input type="checkbox" data-settings-field="showAdvancedMetrics" checked><span>Mostrar métricas avanzadas</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="showRiskAlerts" checked><span>Mostrar alertas de riesgo</span></label>
-                  </div>
-                  <div class="settings-actions">
-                    <button class="btn-secondary" id="resetView">Ir a la vista inicial</button>
                   </div>
                 </article>
 
-                <article class="tl-section-card settings-card">
-                  <div class="tl-section-header">
-                    <div>
-                      <div class="tl-section-title">Trading</div>
-                      <div class="settings-section-sub">Preferencias por defecto. No sustituyen reglas del Risk Engine.</div>
-                    </div>
-                  </div>
-                  <div class="form-grid-clean">
-                    <label class="form-stack form-stack-wide"><span>Pares favoritos</span><input type="text" data-settings-field="favorites" value="EURUSD · XAUUSD · NAS100"></label>
-                    <label class="form-stack">
-                      <span>Estilo de trading</span>
-                      <select data-settings-field="style">
-                        <option>Intradía</option>
-                        <option>Swing</option>
-                        <option>Scalping</option>
-                      </select>
-                    </label>
-                    <label class="form-stack">
-                      <span>Sesión principal</span>
-                      <select data-settings-field="primarySession">
-                        <option>London</option>
-                        <option>New York</option>
-                        <option>Asia</option>
-                      </select>
-                    </label>
-                    <label class="form-stack">
-                      <span>Riesgo por defecto</span>
-                      <input type="number" step="0.05" min="0" max="5" data-settings-field="defaultRisk" value="0.45">
-                    </label>
-                    <label class="form-stack">
-                      <span>Moneda base</span>
-                      <select data-settings-field="baseCurrency">
-                        <option>USD</option>
-                        <option>EUR</option>
-                      </select>
-                    </label>
-                    <label class="form-stack">
-                      <span>Zona horaria</span>
-                      <select data-settings-field="timezone">
-                        <option>Europe/Andorra</option>
-                        <option>UTC</option>
-                        <option>America/New_York</option>
-                        <option>Europe/Madrid</option>
-                      </select>
-                    </label>
-                  </div>
-                </article>
-
-                <article class="tl-section-card settings-card">
-                  <div class="tl-section-header">
-                    <div>
-                      <div class="tl-section-title">Riesgo</div>
-                      <div class="settings-section-sub">Valores por defecto para avisos y preparación. La aplicación de reglas vive en Risk Engine.</div>
-                    </div>
-                  </div>
-                  <div class="settings-check-grid settings-check-grid--wide">
-                    <label class="settings-check"><input type="checkbox" data-settings-field="alertDrawdown" checked><span>Alertas de drawdown</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="alertStreaks" checked><span>Alertas por rachas</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="alertWinRate" checked><span>Alertas por caída de win rate</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="alertOvertrading" checked><span>Alertas por overtrading</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="riskGuidanceEnabled" checked><span>Recomendación de riesgo</span></label>
-                    <label class="settings-check"><input type="checkbox" data-settings-field="autoBlockOptIn"><span>Auto-bloqueo (opt-in)</span></label>
-                  </div>
-                  <div class="form-grid-clean">
-                    <label class="form-stack"><span>Límite Daily DD</span><input type="number" step="0.1" data-settings-field="dailyDrawdownLimit" value="1.2"></label>
-                    <label class="form-stack"><span>Límite Max DD</span><input type="number" step="0.1" data-settings-field="maxDrawdownLimit" value="10"></label>
-                  </div>
-                </article>
               </div>
 
               <aside class="settings-layout-side">
-                <article class="tl-section-card settings-card settings-card--compact">
-                  <div class="tl-section-header">
-                    <div>
-                      <div class="tl-section-title">Funding</div>
-                      <div class="settings-section-sub">Defaults de Funding.</div>
-                    </div>
-                  </div>
-                  <div class="settings-placeholder">
-                    <strong>Presets por firma pendientes</strong>
-                    <span>La configuración avanzada de reglas vive en Funding hasta que existan defaults globales reales.</span>
-                  </div>
-                </article>
-
                 <article class="tl-section-card settings-card settings-card--compact">
                   <div class="tl-section-header">
                     <div>
@@ -551,13 +438,11 @@
                   </div>
                 </article>
 
-                <article class="tl-section-card settings-card settings-card--compact settings-card--admin" data-admin-only="settings-connection">
-                  <div class="tl-section-header">
-                    <div>
-                      <div class="tl-section-title">Integraciones / Admin</div>
-                      <div class="settings-section-sub">Estado técnico del bridge local. Visible solo para admin.</div>
-                    </div>
-                  </div>
+                <details class="tl-section-card settings-card settings-card--compact settings-card--admin settings-card--advanced" data-admin-only="settings-connection">
+                  <summary class="settings-advanced-summary">
+                    <span>Avanzado / Admin</span>
+                    <small>Bridge local y estado técnico</small>
+                  </summary>
                   <div class="form-grid-clean">
                     <label class="form-stack form-stack-wide"><span>Bridge URL / endpoint</span><input type="text" data-settings-field="bridgeUrl" value="ws://localhost:8080/bridge"></label>
                     <label class="form-stack">
@@ -580,7 +465,7 @@
                       <small data-settings-last-account>Sin cuenta seleccionada</small>
                     </div>
                   </div>
-                </article>
+                </details>
               </aside>
             </div>
           </div>

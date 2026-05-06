@@ -47,7 +47,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 
 ### MT5, EA y Launcher
 
-- [x] Flujo principal de usuario definido: Cuentas -> Conectar MT5 -> Launcher -> Instalar conector -> Sync.
+- [x] Flujo principal de usuario definido: Cuentas -> Conectar cuenta -> Launcher -> Instalar conector -> Sync.
 - [x] Conexión EA con WebRequest a `https://mt5-api.kmfxedge.com`.
 - [x] Descarga macOS desde la web propia.
 - [x] Descarga Windows desde la web propia.

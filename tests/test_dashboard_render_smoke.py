@@ -209,7 +209,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               "dashboard-professional-kpi__exposure",
               "dashboard-professional-kpi__delta",
             ],
-            connections: ["Cuentas conectadas", "Conectar MT5", "Edge Pro", "Activo"],
+            connections: ["Cuentas conectadas", "Conectar cuenta", "Edge Pro", "Activo"],
             trades: ["EURUSD", "GBPUSD"],
             calendar: ["Calendario"],
             analytics: ["Patrones detectados", "Dónde se concentra el resultado"],
@@ -814,7 +814,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
           renderJournal(roots.journalAi, baseState("journal-ai-review"));
 
           const required = {
-            connections: ["Conexión MT5 no está disponible en Free / Demo", "Conectar MT5"],
+            connections: ["Conexión MT5 no está disponible en Free / Demo", "Conectar cuenta"],
             risk: ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
             funded: ["Funding no está disponible en Free / Demo"],
             strategies: ["Strategy Lab no está disponible en Free / Demo"],
@@ -916,7 +916,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.assertGreater(row["htmlLength"], 500, key)
             self.assertEqual([], row["forbiddenHits"], key)
             self.assertEqual(set(row["requiredHits"]), set({
-                "connections": ["Conexión MT5 no está disponible en Free / Demo", "Conectar MT5"],
+                "connections": ["Conexión MT5 no está disponible en Free / Demo", "Conectar cuenta"],
                 "risk": ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
                 "funded": ["Funding no está disponible en Free / Demo"],
                 "strategies": ["Strategy Lab no está disponible en Free / Demo"],

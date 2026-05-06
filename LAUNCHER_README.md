@@ -22,7 +22,7 @@ Ruta principal del MVP:
 En la app web:
 
 1. Ir a `Cuentas`.
-2. Pulsar `Conectar MT5`.
+2. Pulsar `Conectar cuenta`.
 3. Descargar o abrir `KMFX Launcher`.
 4. Iniciar sesión con la misma cuenta de KMFX.
 5. Pulsar `Instalar conector`.

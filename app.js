@@ -406,8 +406,8 @@ function initSettings(authSession = null) {
   };
 
   const collectSettings = () => {
-    const profile = { ...defaultProfile };
-    const preferences = { ...defaultPreferences };
+    const profile = { ...readStoredProfile() };
+    const preferences = { ...readStoredPreferences() };
     allSettingsFields.forEach((field) => {
       const key = field.dataset.settingsField;
       if (!key) return;
