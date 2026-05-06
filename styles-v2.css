@@ -40360,3 +40360,79 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     margin-bottom: 10px !important;
   }
 }
+
+/* Mobile admin trace hardening: keep debug grids readable on narrow operational screens. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: var(--kmfx-mobile-card-pad, 14px) !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__badge,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__badge,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__badge {
+    justify-self: start !important;
+    max-width: 100% !important;
+    min-height: 32px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: left !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 11px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item span,
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item strong,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item span,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item strong,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item span,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__item strong {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-overflow: clip !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__title,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__title,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .kmfx-admin-trace-card__title {
+    font-size: clamp(17px, 5.4vw, 22px) !important;
+    line-height: 1.16 !important;
+    overflow-wrap: anywhere;
+  }
+}

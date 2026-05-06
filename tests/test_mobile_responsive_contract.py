@@ -485,6 +485,31 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("--kmfx-mobile-top-rhythm: 10px", short_block)
         self.assertIn("margin-bottom: 10px !important", short_block)
 
+    def test_mobile_admin_trace_grid_stays_readable_on_narrow_screens(self) -> None:
+        css = read_text("styles-v2.css")
+        trace_block = media_block(css, "@media (max-width: 760px)", "Mobile admin trace hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile admin trace hardening")
+
+        for selector in [
+            ".kmfx-admin-trace-card",
+            ".kmfx-admin-trace-card__head",
+            ".kmfx-admin-trace-card__badge",
+            ".kmfx-admin-trace-card__grid",
+            ".kmfx-admin-trace-card__item",
+            ".kmfx-admin-trace-card__item span",
+            ".kmfx-admin-trace-card__item strong",
+        ]:
+            self.assertIn(selector, trace_block)
+
+        self.assertIn("padding: var(--kmfx-mobile-card-pad, 14px) !important", trace_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", trace_block)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", trace_block)
+        self.assertIn("white-space: normal !important", trace_block)
+        self.assertIn("overflow-wrap: anywhere", trace_block)
+        self.assertIn("text-overflow: clip !important", trace_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
+        self.assertIn("font-size: clamp(17px, 5.4vw, 22px) !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
