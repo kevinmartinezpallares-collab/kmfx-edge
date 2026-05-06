@@ -278,7 +278,12 @@ export function initNavigation(store) {
       const submenuKey = button.getAttribute("data-nav-submenu-trigger");
       if (submenuKey && !isSidebarIconCollapsed()) {
         const clickedChevron = Boolean(event.target.closest(".sidebar-menu-action"));
+        const isMobileSidebarOpen = document.body.classList.contains("sidebar-mobile-open");
         if (clickedChevron) {
+          toggleSubmenu(submenuKey);
+          return;
+        }
+        if (isMobileSidebarOpen) {
           toggleSubmenu(submenuKey);
           return;
         }

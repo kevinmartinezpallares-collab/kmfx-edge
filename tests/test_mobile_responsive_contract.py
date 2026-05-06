@@ -639,6 +639,45 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("flex-basis: min(66vw, 180px) !important", compact_block)
         self.assertIn("grid-template-columns: 26px minmax(76px, 1fr) auto auto 26px !important", compact_block)
 
+    def test_mobile_viewport_final_repair_covers_dashboard_calendar_trades_and_scores(self) -> None:
+        css = read_text("styles-v2.css")
+        repair_block = media_block(css, "@media (max-width: 760px)", "Mobile viewport final repair")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile viewport final repair")
+        narrow_block = media_block(css, "@media (max-width: 380px)", "Mobile viewport final repair")
+
+        for selector in [
+            ".dashboard-kpi-row--primary",
+            ".dashboard-professional-kpi-row",
+            ".dashboard-kpi-card__metric",
+            ".dashboard-professional-kpi__value",
+            ".calendar-month-nav__btn:last-child",
+            ".calendar-view-toggle",
+            ".calendar-value-toggle",
+            ".trades-screen .trade-side",
+            ".strategies-score-cell",
+            ".strategies-score-read__meta",
+        ]:
+            self.assertIn(selector, repair_block)
+
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr)) !important", repair_block)
+        self.assertIn("grid-template-columns: 30px minmax(98px, 1fr) 30px auto auto !important", repair_block)
+        self.assertIn("grid-column: 3 !important", repair_block)
+        self.assertIn("display: none !important", repair_block)
+        self.assertIn("white-space: nowrap !important", repair_block)
+        self.assertIn("overflow-wrap: normal !important", repair_block)
+        self.assertIn("word-break: keep-all !important", repair_block)
+        self.assertIn("writing-mode: horizontal-tb !important", repair_block)
+        self.assertIn("font-size: clamp(20px, 6vw, 28px) !important", repair_block)
+        self.assertIn("grid-template-columns: 28px minmax(86px, 1fr) 28px auto auto !important", compact_block)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) !important", narrow_block)
+
+    def test_mobile_sidebar_submenu_parent_toggles_when_drawer_is_open(self) -> None:
+        js = read_text("js/modules/navigation.js")
+
+        self.assertIn("document.body.classList.contains(\"sidebar-mobile-open\")", js)
+        self.assertIn("if (isMobileSidebarOpen)", js)
+        self.assertIn("toggleSubmenu(submenuKey)", js)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)

@@ -41153,3 +41153,282 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     font-size: 9px !important;
   }
 }
+
+/* Mobile viewport final repair: dashboard KPIs, calendar controls, trade chips, and scores. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen :where(
+    .dashboard-kpi-row,
+    .dashboard-kpi-row--primary,
+    .dashboard-professional-kpi-row
+  ) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    padding-inline: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen :where(
+    .dashboard-kpi-card,
+    .dashboard-professional-kpi-card
+  ) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 136px !important;
+    overflow: hidden !important;
+    flex: initial !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-kpi-card__metric {
+    font-size: clamp(24px, 8vw, 38px) !important;
+    line-height: 1.02 !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-kpi-card[data-dashboard-kpi="equity"] .dashboard-kpi-card__metric {
+    font-size: clamp(23px, 7.4vw, 34px) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen :where(
+    .dashboard-kpi-card__meta,
+    .dashboard-professional-kpi__meta,
+    .dashboard-professional-kpi__title > span:last-child
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-professional-kpi__top {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 8px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-professional-kpi__value-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-professional-kpi__value {
+    font-size: clamp(23px, 7.4vw, 34px) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-professional-kpi__delta {
+    max-width: 100% !important;
+    justify-self: start !important;
+    text-align: left !important;
+    white-space: normal !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen .dashboard-professional-kpi__visual {
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen :where(
+    .dashboard-professional-kpi__sparkline,
+    .dashboard-professional-kpi__gauge,
+    .dashboard-professional-kpi__empty-chart
+  ) {
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav {
+    display: grid !important;
+    grid-template-columns: 30px minmax(98px, 1fr) 30px auto auto !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 4px !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn:first-child {
+    grid-column: 1 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 4px !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn:last-child {
+    grid-column: 3 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-view-toggle {
+    grid-column: 4 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-value-toggle {
+    grid-column: 5 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label strong {
+    display: block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__label span {
+    display: none !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle,
+    .calendar-value-toggle
+  ) {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    padding: 2px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle .widget-segmented-btn,
+    .calendar-value-toggle .widget-segmented-btn
+  ) {
+    min-width: 28px !important;
+    min-height: 30px !important;
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.05em !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .trades-screen .trade-side,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-screen .trade-side,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .trades-screen .trade-side {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 54px !important;
+    max-width: none !important;
+    min-height: 30px !important;
+    padding: 6px 10px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    line-height: 1 !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .strategies-score-cell,
+    .strategies-score-read
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-score-read strong {
+    font-size: clamp(20px, 6vw, 28px) !important;
+    line-height: 1.05 !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-score-read__meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .strategies-score-read__meta span {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav {
+    grid-template-columns: 28px minmax(86px, 1fr) 28px auto auto !important;
+    gap: 3px !important;
+    min-height: 46px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav__btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav :where(
+    .calendar-view-toggle .widget-segmented-btn,
+    .calendar-value-toggle .widget-segmented-btn
+  ) {
+    min-width: 26px !important;
+    min-height: 28px !important;
+    padding: 4px 6px !important;
+    font-size: 9px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell.sidebar-vnext.sidebar-provider .dashboard-screen :where(
+    .dashboard-kpi-row,
+    .dashboard-kpi-row--primary,
+    .dashboard-professional-kpi-row
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-nav {
+    grid-template-columns: 26px minmax(68px, 1fr) 26px auto auto !important;
+  }
+}
