@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse
 
 from account_keys import hash_connection_key as storage_connection_key_hash
 from account_service import AccountService, account_summary_fields_from_payload
-from account_store import JsonFileAccountStore
+from account_store import JsonFileAccountStore, SupabaseAccountStore
 from ai_evidence_report import build_ai_evidence_report
 from backtest_real_engine import build_backtest_vs_real_report
 from direct_mt5_provider import (
@@ -377,7 +377,27 @@ SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-r
 JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
 JOURNAL_TRADES_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-trades.json")
 SYNC_RECEIPT_TTL = timedelta(days=7)
-account_service = AccountService(JsonFileAccountStore(ACCOUNTS_STATE_PATH))
+
+
+def account_store_service_role_key() -> str:
+    return _env_value("SUPABASE_SERVICE_ROLE_KEY", "KMFX_SUPABASE_SERVICE_ROLE_KEY")
+
+
+def build_account_store():
+    requested_store = _env_value("KMFX_ACCOUNT_STORE", "KMFX_ACCOUNT_STORE_BACKEND").lower()
+    service_key = account_store_service_role_key()
+    should_use_supabase = requested_store in {"supabase", "postgres", "postgresql"} or (_is_production_runtime() and bool(service_key))
+    if should_use_supabase and service_key:
+        log.info("Account store configured | backend=supabase table=mt5_account_registry")
+        return SupabaseAccountStore(SUPABASE_PROJECT_URL, service_key)
+    if should_use_supabase and not service_key:
+        log.warning("Account store requested Supabase but service role key is missing; falling back to local JSON store.")
+    log.info("Account store configured | backend=json path=%s", ACCOUNTS_STATE_PATH)
+    return JsonFileAccountStore(ACCOUNTS_STATE_PATH)
+
+
+account_store = build_account_store()
+account_service = AccountService(account_store)
 
 # 1003 is our sync validation error bucket:
 # the request reached the API, but some required structural field was invalid
@@ -3500,6 +3520,7 @@ def health_payload() -> dict[str, Any]:
         "service": "kmfx-edge-api",
         "runtime_marker": RUNTIME_SYNC_KEY_LOOKUP_MARKER,
         "render_git_commit": safe_str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("RENDER_GIT_COMMIT_SHA")),
+        "account_store": account_store.__class__.__name__,
     }
 
 

@@ -974,11 +974,11 @@ export function openConnectionWizard(options = {}) {
   openModal({
     title: "Añadir cuenta",
     subtitle: "Configura la conexión de esta cuenta.",
-    maxWidth: 980,
+    maxWidth: 1180,
     content: `<div class="connection-wizard-shell"></div>`,
     onMount(card) {
       card?.classList.add("connection-wizard-modal");
-      card?.style.setProperty("max-width", "980px", "important");
+      card?.style.setProperty("max-width", "1180px", "important");
       card?.style.setProperty("max-height", "min(92vh, 960px)", "important");
       card?.style.setProperty("display", "flex", "important");
       card?.style.setProperty("flex-direction", "column", "important");

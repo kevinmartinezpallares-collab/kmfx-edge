@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Iterable
@@ -209,3 +212,95 @@ class JsonFileAccountStore(AccountStore):
             json.dump(payload, handle, ensure_ascii=True, indent=2)
             temp_path = handle.name
         os.replace(temp_path, self.path)
+
+
+class SupabaseAccountStore(AccountStore):
+    def __init__(self, project_url: str, service_role_key: str, table: str = "mt5_account_registry") -> None:
+        self.project_url = str(project_url or "").strip().rstrip("/")
+        self.service_role_key = str(service_role_key or "").strip()
+        self.table = str(table or "mt5_account_registry").strip()
+        if not self.project_url or not self.service_role_key:
+            raise ValueError("supabase_account_store_not_configured")
+
+    def _request(
+        self,
+        method: str,
+        *,
+        query: dict[str, str] | None = None,
+        payload: object | None = None,
+        prefer: str = "return=representation",
+    ) -> object:
+        url = f"{self.project_url}/rest/v1/{urllib.parse.quote(self.table)}"
+        if query:
+            url = f"{url}?{urllib.parse.urlencode(query)}"
+        body = json.dumps(payload).encode("utf-8") if payload is not None else None
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self.service_role_key}",
+            "apikey": self.service_role_key,
+        }
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+        if prefer:
+            headers["Prefer"] = prefer
+        request = urllib.request.Request(url, data=body, headers=headers, method=str(method or "GET").upper())
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                raw_body = response.read()
+        except urllib.error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")[:500]
+            raise OSError(f"supabase_account_store_http_{exc.code}: {details}") from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise OSError("supabase_account_store_request_failed") from exc
+        if not raw_body:
+            return [] if str(method or "").upper() == "GET" else {}
+        try:
+            return json.loads(raw_body.decode("utf-8"))
+        except json.JSONDecodeError as exc:
+            raise OSError("supabase_account_store_invalid_json") from exc
+
+    def list_accounts(self) -> list[Account]:
+        rows = self._request(
+            "GET",
+            query={
+                "select": "record",
+                "order": "updated_at.asc",
+                "limit": "10000",
+            },
+        )
+        if not isinstance(rows, list):
+            return []
+        records = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            record = row.get("record")
+            if isinstance(record, dict):
+                records.append(record)
+        return [record_to_account(record) for record in records]
+
+    def save_accounts(self, accounts: Iterable[Account]) -> None:
+        rows = []
+        for account in accounts:
+            record = account_to_record(account)
+            account_id = str(record.get("account_id") or "").strip()
+            if not account_id:
+                continue
+            rows.append(
+                {
+                    "account_id": account_id,
+                    "user_id": str(record.get("user_id") or "local"),
+                    "status": str(record.get("status") or "pending"),
+                    "connection_key_hash": str(record.get("connection_key_hash") or ""),
+                    "connection_key_preview": str(record.get("connection_key_preview") or ""),
+                    "record": record,
+                }
+            )
+        if not rows:
+            return
+        self._request(
+            "POST",
+            query={"on_conflict": "account_id"},
+            payload=rows,
+            prefer="resolution=merge-duplicates,return=minimal",
+        )

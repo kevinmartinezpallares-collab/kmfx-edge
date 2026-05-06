@@ -523,6 +523,7 @@ function renderConnectionGuide() {
           <button class="btn-primary" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
         </div>
       </div>
+      <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir.</div>
       <div class="connections-guide-card__endpoint">
         <div>
           <div class="metric-label">URL para WebRequest en MetaTrader 5</div>

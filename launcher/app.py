@@ -525,7 +525,6 @@ class KMFXApi:
         with self._lock:
             if not self.get_session().get("authenticated"):
                 return {"ok": False, "message": "Inicia sesión para instalar el connector."}
-            self.ensure_remote_account_link()
             installation = self.selected_installation(selected_installation)
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
@@ -534,12 +533,37 @@ class KMFXApi:
             self.config.selected_mt5_data_path = installation.data_path
             self.config.selected_mt5_experts_path = installation.experts_path
             save_config(self.config)
-            if self.config.connection_key:
-                save_bridge_config(self.config, user_id=self.config.auth_user_id)
-                self.fetch_json("/bridge/reload-config")
 
-            result = install_connector(installation, self.config)
-            self.logger.info("[KMFX][LAUNCHER][INSTALL] connector installed target=%s", installation.label)
+            connection_key = self.installed_connection_key(installation)
+            label = self.installed_connection_label(installation)
+            if connection_key:
+                response = self.backend.link_account(
+                    user_id=self.config.auth_user_id,
+                    label=label,
+                    connection_key=connection_key,
+                )
+            else:
+                response = self.backend.link_account(
+                    user_id=self.config.auth_user_id,
+                    label=label,
+                    connection_key="",
+                )
+            if not response.ok:
+                return {"ok": False, "message": self.link_account_error_message(response)}
+            linked = self.cache_linked_account_connection(response.body, label=label)
+            connection_key = _safe_str(response.body.get("connection_key") or linked.get("connection_key"))
+            if not connection_key:
+                return {"ok": False, "message": "No se pudo preparar la key de esta cuenta MT5."}
+
+            install_config = replace(self.config)
+            install_config.connection_key = connection_key
+            result = install_connector(installation, install_config)
+            self.logger.info(
+                "[KMFX][LAUNCHER][INSTALL] connector installed target=%s account_id=%s key=%s",
+                installation.label,
+                linked.get("account_id", ""),
+                mask_connection_key(connection_key),
+            )
             self.refresh_installations()
             return {
                 "ok": True,
