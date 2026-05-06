@@ -40436,3 +40436,121 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     overflow-wrap: anywhere;
   }
 }
+
+/* Mobile calendar density hardening: preserve readable day cells with local scrolling. */
+@media (max-width: 760px) {
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calendar-month-panel,
+    .calendar-year-panel,
+    .calendar-returns-panel
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__head,
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-panel-head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-panel-head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-panel-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider :where(
+    .calendar-month-panel__title,
+    .calendar-month-panel__sub,
+    .calendar-panel-title,
+    .calendar-panel-sub,
+    .calendar-week-chip__label,
+    .calendar-week-chip__meta
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-overflow: clip !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__legend,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__legend,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-panel__legend {
+    gap: 8px 10px !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid {
+    grid-template-columns: repeat(7, minmax(58px, 1fr)) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head {
+    min-width: 58px !important;
+    white-space: nowrap !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-day,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-day,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-day {
+    min-width: 58px !important;
+    min-height: 82px !important;
+    touch-action: manipulation;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__grid,
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__weekdays,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__weekdays,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-year-card__weekdays {
+    min-width: 0 !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid {
+    grid-template-columns: repeat(7, minmax(54px, 1fr)) !important;
+  }
+
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-month-grid__head,
+  .app-shell.sidebar-vnext.sidebar-provider .calendar-day,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-day,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .calendar-day {
+    min-width: 54px !important;
+  }
+}

@@ -510,6 +510,36 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
         self.assertIn("font-size: clamp(17px, 5.4vw, 22px) !important", compact_block)
 
+    def test_mobile_calendar_density_uses_local_scroll_instead_of_cramped_cells(self) -> None:
+        css = read_text("styles-v2.css")
+        calendar_block = media_block(css, "@media (max-width: 760px)", "Mobile calendar density hardening")
+        compact_block = media_block(css, "@media (max-width: 520px)", "Mobile calendar density hardening")
+
+        for selector in [
+            ".calendar-month-panel",
+            ".calendar-month-panel__head",
+            ".calendar-month-grid",
+            ".calendar-month-grid__head",
+            ".calendar-day",
+            ".calendar-year-card",
+            ".calendar-year-card__head",
+            ".calendar-year-card__grid",
+            ".calendar-returns-panel",
+        ]:
+            self.assertIn(selector, calendar_block)
+
+        self.assertIn("overflow: hidden !important", calendar_block)
+        self.assertIn("grid-template-columns: repeat(7, minmax(58px, 1fr)) !important", calendar_block)
+        self.assertIn("overflow-x: auto !important", calendar_block)
+        self.assertIn("overscroll-behavior-inline: contain", calendar_block)
+        self.assertIn("-webkit-overflow-scrolling: touch", calendar_block)
+        self.assertIn("min-width: 58px !important", calendar_block)
+        self.assertIn("touch-action: manipulation", calendar_block)
+        self.assertIn("white-space: normal !important", calendar_block)
+        self.assertIn("overflow-wrap: anywhere", calendar_block)
+        self.assertIn("grid-template-columns: repeat(7, minmax(54px, 1fr)) !important", compact_block)
+        self.assertIn("min-width: 54px !important", compact_block)
+
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
             css = read_text(path)
