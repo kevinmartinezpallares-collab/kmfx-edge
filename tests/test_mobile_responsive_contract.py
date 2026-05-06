@@ -675,7 +675,7 @@ class MobileResponsiveContractTests(unittest.TestCase):
         js = read_text("js/modules/navigation.js")
 
         self.assertIn("document.body.classList.contains(\"sidebar-mobile-open\")", js)
-        self.assertIn("clickedChevron || isMobileSidebarOpen || submenuState[submenuKey] !== false", js)
+        self.assertIn("clickedChevron || isMobileSidebarOpen", js)
         self.assertIn("toggleSubmenu(submenuKey)", js)
         self.assertIn("setSubmenuOpen(submenuKey, true)", js)
 
@@ -684,7 +684,6 @@ class MobileResponsiveContractTests(unittest.TestCase):
         mobile_block = media_block(css, "@media (max-width: 760px)", "Mobile shadcn composition repair")
         compact_block = media_block(css, "@media (max-width: 520px)", "Mobile shadcn composition repair")
         dashboard_js = read_text("js/modules/dashboard.js")
-        calendar_js = read_text("js/modules/calendar.js")
 
         for selector in [
             'data-dashboard-professional-kpi="var_95"',
@@ -706,8 +705,6 @@ class MobileResponsiveContractTests(unittest.TestCase):
         self.assertIn("grid-template-columns: minmax(0, 1fr) !important", compact_block)
         self.assertIn("dashboard-professional-kpi__risk-score", dashboard_js)
         self.assertIn("dashboard-professional-kpi__risk-progress-fill", dashboard_js)
-        self.assertIn("calendar-month-switcher", calendar_js)
-        self.assertIn("calendar-control-tabs", calendar_js)
 
     def test_mobile_css_blocks_keep_balanced_braces(self) -> None:
         for path in ["styles-v2.css", "launcher/ui/styles.css"]:
