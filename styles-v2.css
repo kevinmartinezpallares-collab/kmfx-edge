@@ -18542,18 +18542,19 @@ body[data-theme="dark"] .sidebar::after {
 /* INICIO BLOQUE: wizard-runtime */
 html[data-theme="dark"] .connection-wizard-modal,
 body[data-theme="dark"] .connection-wizard-modal {
-  max-width: 720px !important;
+  width: min(calc(100vw - 72px), 1040px) !important;
+  max-width: 1040px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .modal-head,
 body[data-theme="dark"] .connection-wizard-modal .modal-head {
   align-items: flex-start !important;
-  padding: 28px 32px 24px !important;
+  padding: 30px 36px 24px !important;
 }
 
 html[data-theme="dark"] .modal-body.connection-wizard-modal__body,
 body[data-theme="dark"] .modal-body.connection-wizard-modal__body {
-  padding: 24px 32px 28px !important;
+  padding: 26px 36px 30px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard,
@@ -18923,8 +18924,8 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-grid,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-grid {
   display: grid !important;
-  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr) !important;
-  gap: 12px !important;
+  grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr) !important;
+  gap: 16px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-card,
@@ -18976,7 +18977,7 @@ html[data-theme="dark"] .connection-wizard-modal .connection-wizard__finish-grid
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__finish-grid {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 10px !important;
+  gap: 12px !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-step,
@@ -19241,12 +19242,12 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
   justify-content: flex-end !important;
   gap: 12px !important;
   flex-wrap: wrap !important;
-  margin: 8px -24px -24px !important;
-  padding: 20px 24px 24px !important;
+  margin: 10px -36px -30px !important;
+  padding: 20px 36px 24px !important;
   border-top: 1px solid var(--border-subtle) !important;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 860px) {
   html[data-theme="dark"] .connection-wizard-modal .connection-wizard__option-grid--methods,
   html[data-theme="dark"] .connection-wizard-modal .connection-wizard__form-grid,
   html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-grid,
@@ -19289,6 +19290,14 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
   body[data-theme="dark"] .connection-wizard-modal .connection-wizard__secret-actions > *,
   body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions > * {
     flex: 1 1 100% !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions,
+  body[data-theme="dark"] .connection-wizard-modal .connection-wizard__actions {
+    margin: 8px -16px -16px !important;
+    padding: 16px !important;
   }
 }
 /* FIN BLOQUE: wizard-runtime */
