@@ -184,6 +184,58 @@ class LauncherServiceRuntime:
         save_config(self.config)
         self.backend.config = self.config
 
+    def clear_expired_auth_session(self) -> None:
+        self.config.auth_access_token = ""
+        self.config.auth_refresh_token = ""
+        self.config.auth_expires_at = 0
+        self.config.auth_user_id = ""
+        self.config.auth_email = ""
+        self.config.auth_name = ""
+        self.config.backend_token = ""
+        save_config(self.config)
+        self.backend.config = self.config
+
+    def ensure_auth_session(self) -> dict[str, Any]:
+        session = self.auth_session_payload()
+        if self.config.auth_access_token:
+            self.config.backend_token = self.config.auth_access_token
+        expires_at = int(self.config.auth_expires_at or 0)
+        if self.config.auth_refresh_token and expires_at and expires_at <= int(time.time()) + 90:
+            response = self.backend.refresh_auth_session(refresh_token=self.config.auth_refresh_token)
+            if response.ok:
+                self.store_auth_response(response.body)
+                session = self.auth_session_payload()
+            elif response.status_code in {400, 401, 403}:
+                self.logger.warning("[KMFX][AUTH] refresh rejected; clearing expired launcher service session")
+                self.clear_expired_auth_session()
+                session = self.auth_session_payload()
+            else:
+                self.logger.warning("[KMFX][AUTH] refresh failed; keeping launcher service session until logout")
+        return session
+
+    def force_refresh_session(self, reason: str) -> bool:
+        if not self.config.auth_refresh_token:
+            return False
+        self.logger.info("[KMFX][AUTH] force refresh start reason=%s", reason)
+        response = self.backend.refresh_auth_session(refresh_token=self.config.auth_refresh_token)
+        if response.ok:
+            self.store_auth_response(response.body)
+            self.logger.info("[KMFX][AUTH] force refresh ok reason=%s", reason)
+            return True
+        if response.status_code in {400, 401, 403}:
+            self.logger.warning("[KMFX][AUTH] force refresh rejected; clearing launcher service session")
+            self.clear_expired_auth_session()
+        else:
+            self.logger.warning("[KMFX][AUTH] force refresh failed status=%s", response.status_code)
+        return False
+
+    def link_account_with_session(self, *, user_id: str = "", label: str = "", connection_key: str | None = None):
+        self.ensure_auth_session()
+        response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+        if response.status_code == 401 and self.force_refresh_session("link_account_401"):
+            response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+        return response
+
     def ensure_remote_account_link(self) -> dict[str, Any]:
         has_local_link = (
             self.config.connection_key
@@ -192,7 +244,7 @@ class LauncherServiceRuntime:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        response = self.backend.link_account(
+        response = self.link_account_with_session(
             user_id=self.config.auth_user_id,
             label="KMFX Connector MT5",
             connection_key=self.config.connection_key if has_local_link else "",

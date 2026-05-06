@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from launcher.backend_client import BackendClient, BackendResponse
 from launcher.connection_keys import clean_connection_key, payload_connection_key, resolve_effective_connection_key
-from launcher.config import LauncherConfig
+from launcher.config import LauncherConfig, save_config
+from launcher.app import KMFXApi
+from launcher.mt5_detector import MT5Installation
 from launcher.state_store import LauncherStateStore
 
 
@@ -27,6 +31,32 @@ class RecordingBackendClient(BackendClient):
             }
         )
         return BackendResponse(ok=True, status_code=200, body={})
+
+
+class ExpiredThenFreshBackend:
+    def __init__(self, config: LauncherConfig) -> None:
+        self.config = config
+        self.link_calls = 0
+        self.refresh_calls = 0
+
+    def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+        self.link_calls += 1
+        if self.link_calls == 1:
+            return BackendResponse(ok=False, status_code=401, body={"reason": "auth_required"})
+        return BackendResponse(ok=True, status_code=200, body={"connection_key": connection_key or "new-key"})
+
+    def refresh_auth_session(self, *, refresh_token: str) -> BackendResponse:
+        self.refresh_calls += 1
+        return BackendResponse(
+            ok=True,
+            status_code=200,
+            body={
+                "access_token": "fresh-access-token",
+                "refresh_token": refresh_token,
+                "expires_in": 3600,
+                "user": {"id": "user-1", "email": "kevin@example.test", "user_metadata": {"name": "Kevin"}},
+            },
+        )
 
 
 class LauncherConnectionKeyTests(unittest.TestCase):
@@ -113,6 +143,49 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual(1, len(connections))
         self.assertEqual("account-1", connections[0]["account_id"])
         self.assertEqual("rotated-local-key", connections[0]["connection_key"])
+
+    def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="expired-access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="expired-access-token",
+                )
+                save_config(config)
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = ExpiredThenFreshBackend(config)
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+
+                response = api.link_account_with_session(user_id="user-1", label="Orion", connection_key="local-key")
+
+        self.assertTrue(response.ok)
+        self.assertEqual(2, api.backend.link_calls)
+        self.assertEqual(1, api.backend.refresh_calls)
+        self.assertEqual("fresh-access-token", api.config.backend_token)
+
+    def test_launcher_detects_shared_installed_connection_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            first = root / "Darwinex"
+            second = root / "Orion"
+            for data_path in (first, second):
+                config_path = data_path / "MQL5" / "Files" / "kmfx_connection.conf"
+                config_path.parent.mkdir(parents=True)
+                config_path.write_text("connection_key=shared-key\n", encoding="utf-8")
+
+            api = object.__new__(KMFXApi)
+            api.installations = [
+                MT5Installation("Darwinex", "", str(first), str(first / "MQL5" / "Experts"), "", "test"),
+                MT5Installation("Orion", "", str(second), str(second / "MQL5" / "Experts"), "", "test"),
+            ]
+
+            self.assertEqual({"shared-key": 2}, api.installed_key_occurrences())
+            self.assertTrue(api.installation_has_shared_connection_key(api.installations[0]))
 
 
 if __name__ == "__main__":

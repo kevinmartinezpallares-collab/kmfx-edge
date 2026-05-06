@@ -476,6 +476,14 @@ void KMFXApplyConnectionConfigFromFile()
 
 void KMFXInitializeRuntimeConnectionKey()
   {
+   g_runtime_connection_key=KMFXLoadConnectionKeyFromFile();
+   if(StringLen(g_runtime_connection_key)>0)
+     {
+      if(KMFXVerboseLog)
+         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",KMFXMaskConnectionKey(g_runtime_connection_key));
+      return;
+     }
+
    string explicit_key=KMFXTrim(KMFXKey);
    if(StringLen(explicit_key)<=0)
       explicit_key=KMFXTrim(connection_key);
@@ -484,14 +492,6 @@ void KMFXInitializeRuntimeConnectionKey()
       g_runtime_connection_key="";
       if(KMFXVerboseLog)
          PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",KMFXMaskConnectionKey(explicit_key));
-      return;
-     }
-
-   g_runtime_connection_key=KMFXLoadConnectionKeyFromFile();
-   if(StringLen(g_runtime_connection_key)>0)
-     {
-      if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",KMFXMaskConnectionKey(g_runtime_connection_key));
       return;
      }
 
@@ -509,11 +509,6 @@ void KMFXInitializeRuntimeConnectionKey()
 
 void KMFXRefreshRuntimeConnectionKey()
   {
-   if(StringLen(KMFXTrim(KMFXKey))>0)
-      return;
-   if(StringLen(KMFXTrim(connection_key))>0)
-      return;
-
    datetime now=KMFXNow();
    if(g_last_connection_key_file_check_at>0 && (now-g_last_connection_key_file_check_at)<60)
       return;
@@ -538,6 +533,10 @@ string KMFXBuildSyncId()
 
 string KMFXConnectionKeyValue()
   {
+   string runtime_key=KMFXTrim(g_runtime_connection_key);
+   if(StringLen(runtime_key)>0)
+      return runtime_key;
+
    string explicit_key=KMFXTrim(KMFXKey);
    if(StringLen(explicit_key)>0)
       return explicit_key;
@@ -545,10 +544,6 @@ string KMFXConnectionKeyValue()
    explicit_key=KMFXTrim(connection_key);
    if(StringLen(explicit_key)>0)
       return explicit_key;
-
-   string runtime_key=KMFXTrim(g_runtime_connection_key);
-   if(StringLen(runtime_key)>0)
-      return runtime_key;
 
    string legacy_key=KMFXTrim(KMFXApiKey);
    return legacy_key;

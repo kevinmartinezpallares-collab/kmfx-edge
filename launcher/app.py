@@ -316,6 +316,29 @@ class KMFXApi:
                 self.logger.warning("[KMFX][AUTH] refresh failed; keeping launcher session until logout")
         return self.get_session()
 
+    def _force_refresh_session(self, reason: str) -> bool:
+        if not self.config.auth_refresh_token:
+            return False
+        self.logger.info("[KMFX][AUTH] force refresh start reason=%s", reason)
+        response = self.backend.refresh_auth_session(refresh_token=self.config.auth_refresh_token)
+        if response.ok:
+            self._store_auth_response(response.body)
+            self.logger.info("[KMFX][AUTH] force refresh ok reason=%s", reason)
+            return True
+        if response.status_code in {400, 401, 403}:
+            self.logger.warning("[KMFX][AUTH] force refresh rejected; clearing launcher session")
+            self._clear_expired_auth_session()
+        else:
+            self.logger.warning("[KMFX][AUTH] force refresh failed status=%s", response.status_code)
+        return False
+
+    def link_account_with_session(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+        self.ensure_session()
+        response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+        if response.status_code == 401 and self._force_refresh_session("link_account_401"):
+            response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+        return response
+
     def ensure_remote_account_link(self) -> dict[str, Any]:
         has_local_link = (
             self.config.connection_key
@@ -324,7 +347,7 @@ class KMFXApi:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        response = self.backend.link_account(
+        response = self.link_account_with_session(
             user_id=self.config.auth_user_id,
             label="KMFX Connector MT5",
             connection_key=self.config.connection_key if has_local_link else "",
@@ -352,25 +375,25 @@ class KMFXApi:
         self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
         return {"ok": True, "connection_key": mask_connection_key(connection_key)}
 
-    def cache_linked_account_connection(self, body: dict[str, Any] | None, *, label: str = "") -> None:
+    def cache_linked_account_connection(self, body: dict[str, Any] | None, *, label: str = "") -> dict[str, Any]:
         if not isinstance(body, dict):
-            return
+            return {}
         launcher_config = body.get("launcher_config") if isinstance(body.get("launcher_config"), dict) else {}
         connection_key = _safe_str(body.get("connection_key") or launcher_config.get("connection_key"))
         account_id = _safe_str(body.get("account_id"))
         if not account_id or not connection_key:
-            return
-        self.store.save_account_connection(
-            {
-                "account_id": account_id,
-                "label": _sanitize_account_label(label or body.get("alias") or body.get("display_name") or "Cuenta MT5"),
-                "platform": "mt5",
-                "connection_key": connection_key,
-                "connection_key_masked": mask_connection_key(connection_key),
-                "status": "pending_link",
-                "last_sync_at": "",
-            }
-        )
+            return {}
+        cached = {
+            "account_id": account_id,
+            "label": _sanitize_account_label(label or body.get("alias") or body.get("display_name") or "Cuenta MT5"),
+            "platform": "mt5",
+            "connection_key": connection_key,
+            "connection_key_masked": mask_connection_key(connection_key),
+            "status": _safe_str(body.get("status") or body.get("lifecycle_status"), "pending_link"),
+            "last_sync_at": _safe_str(body.get("last_sync_at")),
+        }
+        self.store.save_account_connection(cached)
+        return cached
 
     def link_account_error_message(self, response: BackendResponse) -> str:
         body = response.body if isinstance(response.body, dict) else {}
@@ -457,7 +480,7 @@ class KMFXApi:
                 return {"ok": False, "message": "Inicia sesión para crear una conexión MT5."}
             existing_count = len(self.get_account_connections())
             resolved_label = _sanitize_account_label(label, f"Cuenta MT5 {existing_count + 1}")
-            response = self.backend.link_account(
+            response = self.link_account_with_session(
                 user_id=self.config.auth_user_id,
                 label=resolved_label,
                 connection_key="",
@@ -486,7 +509,7 @@ class KMFXApi:
                 continue
             seen_keys.add(connection_key)
             label = self.installed_connection_label(installation)
-            response = self.backend.link_account(
+            response = self.link_account_with_session(
                 user_id=self.config.auth_user_id,
                 label=label,
                 connection_key=connection_key,
@@ -504,6 +527,18 @@ class KMFXApi:
                     installation.label,
                     response.status_code,
                 )
+
+    def installed_key_occurrences(self) -> dict[str, int]:
+        occurrences: dict[str, int] = {}
+        for installation in self.installations:
+            connection_key = self.installed_connection_key(installation)
+            if connection_key:
+                occurrences[connection_key] = occurrences.get(connection_key, 0) + 1
+        return occurrences
+
+    def installation_has_shared_connection_key(self, installation: MT5Installation) -> bool:
+        connection_key = self.installed_connection_key(installation)
+        return bool(connection_key and self.installed_key_occurrences().get(connection_key, 0) > 1)
 
     def account_connection_by_id(self, account_id: str) -> dict[str, Any] | None:
         normalized = _safe_str(account_id)
@@ -536,14 +571,20 @@ class KMFXApi:
 
             connection_key = self.installed_connection_key(installation)
             label = self.installed_connection_label(installation)
-            if connection_key:
-                response = self.backend.link_account(
+            if connection_key and not self.installation_has_shared_connection_key(installation):
+                response = self.link_account_with_session(
                     user_id=self.config.auth_user_id,
                     label=label,
                     connection_key=connection_key,
                 )
             else:
-                response = self.backend.link_account(
+                if connection_key:
+                    self.logger.warning(
+                        "[KMFX][LAUNCHER][INSTALL] shared connection key detected; creating dedicated MT5 connection target=%s key=%s",
+                        installation.label,
+                        mask_connection_key(connection_key),
+                    )
+                response = self.link_account_with_session(
                     user_id=self.config.auth_user_id,
                     label=label,
                     connection_key="",
