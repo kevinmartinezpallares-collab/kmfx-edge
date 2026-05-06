@@ -124,6 +124,7 @@ def _parse_admin_launcher_connection_key_mappings(value: str) -> dict[str, set[s
 
 
 DEFAULT_ADMIN_USER_IDS = {"421e2f82-d3c9-4965-bda5-35d6e88cbd0f"}
+DEFAULT_ADMIN_EMAILS = {"kevinmartinezpallares@gmail.com"}
 
 
 def resolve_admin_user_ids() -> set[str]:
@@ -140,7 +141,11 @@ def resolve_admin_user_ids() -> set[str]:
 
 
 def resolve_admin_emails() -> set[str]:
-    return {email.lower() for email in _split_env_list(_env_value("KMFX_ADMIN_EMAILS"))}
+    admin_emails: set[str] = set()
+    if not _env_flag("KMFX_DISABLE_DEFAULT_ADMIN_EMAILS", default=False):
+        admin_emails.update(DEFAULT_ADMIN_EMAILS)
+    admin_emails.update(email.lower() for email in _split_env_list(_env_value("KMFX_ADMIN_EMAILS")))
+    return admin_emails
 
 
 def resolve_admin_launcher_connection_keys_by_user_id() -> dict[str, set[str]]:

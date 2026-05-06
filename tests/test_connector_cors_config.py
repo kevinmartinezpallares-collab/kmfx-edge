@@ -64,6 +64,38 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         with patch.dict("os.environ", {"KMFX_ADMIN_USER_IDS": "USER-A, user-b "}, clear=True):
             self.assertEqual({"user-a", "user-b", *connector_api.DEFAULT_ADMIN_USER_IDS}, connector_api.resolve_admin_user_ids())
 
+    def test_default_admin_email_allows_owner_without_plan(self) -> None:
+        request = self._request(headers={"authorization": "Bearer owner-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "owner-user",
+                "email": "kevinmartinezpallares@gmail.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ):
+            context = connector_api.build_admin_context(request)
+            response = connector_api.connection_key_creation_denial(
+                user_id="owner-user",
+                context=context,
+            )
+
+        self.assertTrue(context["is_admin"])
+        self.assertIsNone(response)
+
+    def test_default_admin_emails_can_be_disabled(self) -> None:
+        with patch.dict("os.environ", {"KMFX_DISABLE_DEFAULT_ADMIN_EMAILS": "true"}, clear=True):
+            self.assertEqual(set(), connector_api.resolve_admin_emails())
+
+    def test_admin_emails_are_env_driven(self) -> None:
+        with patch.dict("os.environ", {"KMFX_ADMIN_EMAILS": "ops@kmfxedge.com, owner@kmfxedge.com "}, clear=True):
+            self.assertEqual(
+                {"ops@kmfxedge.com", "owner@kmfxedge.com", *connector_api.DEFAULT_ADMIN_EMAILS},
+                connector_api.resolve_admin_emails(),
+            )
+
     def test_dev_admin_fallback_requires_explicit_opt_in(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "development"}, clear=True):
             self.assertEqual(connector_api.DEFAULT_ADMIN_USER_IDS, connector_api.resolve_admin_user_ids())

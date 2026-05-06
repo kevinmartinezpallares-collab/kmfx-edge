@@ -37,10 +37,19 @@ export const DEFAULT_AUTH_STATE = {
 
 // Temporary admin bridge until live MT5 accounts carry per-user ownership metadata.
 const ADMIN_USER_IDS = new Set(["421e2f82-d3c9-4965-bda5-35d6e88cbd0f"]);
+const ADMIN_EMAILS = new Set(["kevinmartinezpallares@gmail.com"]);
 
 function readConfiguredAdminUserIds() {
   if (typeof window === "undefined") return [];
   const configured = window.__KMFX_ADMIN_USER_IDS__;
+  if (Array.isArray(configured)) return configured;
+  if (typeof configured === "string") return configured.split(",");
+  return [];
+}
+
+function readConfiguredAdminEmails() {
+  if (typeof window === "undefined") return [];
+  const configured = window.__KMFX_ADMIN_EMAILS__;
   if (Array.isArray(configured)) return configured;
   if (typeof configured === "string") return configured.split(",");
   return [];
@@ -54,6 +63,20 @@ export function isAdminUserId(userId = "") {
     .map((value) => String(value || "").trim().toLowerCase())
     .filter(Boolean)
     .includes(normalized);
+}
+
+export function isAdminEmail(email = "") {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) return false;
+  if (ADMIN_EMAILS.has(normalized)) return true;
+  return readConfiguredAdminEmails()
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
+    .includes(normalized);
+}
+
+export function isAdminIdentity(userId = "", email = "") {
+  return isAdminUserId(userId) || isAdminEmail(email);
 }
 
 const DEFAULT_RECOVERY_STATE = {
@@ -195,7 +218,7 @@ function sanitizeAuthUser(user = {}) {
   const email = String(user.email || "").trim();
   const fallbackName = email ? formatNameFromEmail(email) : DEFAULT_AUTH_USER.name;
   const name = String(user.name || fallbackName).trim() || fallbackName;
-  const isAdmin = isAdminUserId(userId);
+  const isAdmin = isAdminIdentity(userId, email);
   const role = isAdmin ? "admin" : "user";
   return {
     id: userId,

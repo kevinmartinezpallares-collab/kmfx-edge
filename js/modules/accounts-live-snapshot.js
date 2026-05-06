@@ -1,7 +1,7 @@
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260504-080918";
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260504-080918";
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260504-080918";
-import { isAdminUserId } from "./auth-session.js?v=build-20260504-080918";
+import { isAdminIdentity } from "./auth-session.js?v=build-20260504-080918";
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
@@ -98,7 +98,7 @@ function authContext(state = {}) {
     isAuthenticated: auth.status === "authenticated",
     userId,
     email: String(auth.user?.email || "").trim().toLowerCase(),
-    isAdmin: isAdminUserId(userId),
+    isAdmin: isAdminIdentity(userId, auth.user?.email),
     hasToken: Boolean(auth.session?.accessToken),
   };
 }
@@ -161,6 +161,17 @@ function clearLiveAccounts(store, reason = "unauthorized") {
       lastLiveAccountIsolationReason: reason,
     };
   });
+}
+
+function keepLiveAccountsDuringTransientSnapshotFailure(store, reason = "http_error") {
+  const state = store.getState();
+  if (!Array.isArray(state.liveAccountIds) || !state.liveAccountIds.length) return false;
+  store.setState((current) => ({
+    ...current,
+    bootResolved: true,
+    lastLiveAccountIsolationReason: reason,
+  }));
+  return true;
 }
 
 function applyAdminAccess(store, isAdmin) {
@@ -462,6 +473,9 @@ export function initAccountsLiveSnapshot(store) {
       const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
+        if (![401, 403].includes(response.status) && keepLiveAccountsDuringTransientSnapshotFailure(store, `http_${response.status}`)) {
+          return { ok: false, count: (store.getState().liveAccountIds || []).length, status: response.status, retained: true };
+        }
         clearLiveAccounts(store, `http_${response.status}`);
         return { ok: false, count: 0, status: response.status };
       }
@@ -488,6 +502,9 @@ export function initAccountsLiveSnapshot(store) {
       };
     } catch (error) {
       console.warn("[KMFX][ACCOUNTS] http snapshot error", error);
+      if (keepLiveAccountsDuringTransientSnapshotFailure(store, "http_error")) {
+        return { ok: false, count: (store.getState().liveAccountIds || []).length, error: true, retained: true };
+      }
       clearLiveAccounts(store, "http_error");
       return { ok: false, count: 0, error: true };
     }

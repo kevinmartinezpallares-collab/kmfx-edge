@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.80                                              |
+//| KMFXConnector v2.81                                              |
 //| KMFX Edge — MT5 connector híbrido                                |
 //|                                                                  |
 //| Backend = policy, estado de riesgo y snapshot operativo          |
@@ -10,12 +10,12 @@
 //| - PROTECT_MODE -> protección activa para cuentas propias         |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.80"
+#property version   "2.81"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.80"
+#define KMFX_CONNECTOR_VERSION "2.81"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -107,6 +107,7 @@ struct KMFXRuntimeState
    bool      hard_stop_triggered;
    string    freeze_reason;
    datetime  last_state_push_at;
+   datetime  last_good_sync_at;
    datetime  last_policy_poll_at;
    datetime  last_hard_stop_check_at;
    datetime  last_close_all_at;
@@ -840,8 +841,16 @@ string KMFXPublicErrorMessage(string message)
       return "KMFX esta limitando temporalmente la sincronizacion. El conector reintentara automaticamente.";
    if(StringFind(message,"payload_too_large")>=0 || StringFind(message,"HTTP=413")>=0)
       return "La sincronizacion MT5 es demasiado grande. Reduce el historico enviado o actualiza el conector.";
+   if(StringFind(message,"revoked_connection_key")>=0)
+      return "La clave de conexion de KMFX fue revocada. Genera una nueva key desde Cuentas.";
+   if(StringFind(message,"missing_connection_key")>=0)
+      return "KMFX no ha recibido la key de conexion. Revisa que este pegada en el EA.";
    if(StringFind(message,"unknown_connection_key")>=0 || StringFind(message,"HTTP=401")>=0)
       return "KMFX no reconoce la clave de conexion. Revisa que la key pegada en el EA sea la de esta cuenta.";
+   if(StringFind(message,"entitlement_required")>=0 || StringFind(message,"billing_required")>=0 || StringFind(message,"plan_limit_reached")>=0 || StringFind(message,"HTTP=402")>=0 || StringFind(message,"HTTP=403")>=0 || StringFind(message,"HTTP=409")>=0)
+      return "KMFX ha bloqueado esta conexion por permisos o plan. Revisa el acceso MT5 de tu usuario.";
+   if(StringFind(message,"query_connection_key_not_allowed")>=0 || StringFind(message,"HTTP=400")>=0)
+      return "La configuracion del conector no es valida. Reinstala el conector desde KMFX.";
    if(StringFind(message,"rechaz")>=0 || StringFind(message,"HTTP=")>=0)
       return "KMFX no acepto temporalmente la sincronizacion. Revisa tu conexion o vuelve a intentarlo.";
    return message;
@@ -877,6 +886,45 @@ void KMFXMarkSyncHealthy()
   {
    Runtime.transient_sync_failures=0;
    Runtime.last_transient_sync_error_at=0;
+  }
+
+bool KMFXHasRecentAcceptedSync(int grace_seconds=240)
+  {
+   datetime now_time=KMFXNow();
+   if(Runtime.last_good_sync_at>0 && (now_time-Runtime.last_good_sync_at)<=grace_seconds)
+      return true;
+   if(Runtime.last_state_push_at>0 && (now_time-Runtime.last_state_push_at)<=grace_seconds)
+      return true;
+   return false;
+  }
+
+bool KMFXIsHardBackendReject(int status_code,string reason)
+  {
+   string normalized_reason=reason;
+   StringToLower(normalized_reason);
+
+   if(StringFind(normalized_reason,"missing_connection_key")>=0 ||
+      StringFind(normalized_reason,"unknown_connection_key")>=0 ||
+      StringFind(normalized_reason,"revoked_connection_key")>=0 ||
+      StringFind(normalized_reason,"query_connection_key_not_allowed")>=0 ||
+      StringFind(normalized_reason,"entitlement_required")>=0 ||
+      StringFind(normalized_reason,"billing_required")>=0 ||
+      StringFind(normalized_reason,"billing_past_due")>=0 ||
+      StringFind(normalized_reason,"plan_limit_reached")>=0 ||
+      StringFind(normalized_reason,"auth_required")>=0)
+      return true;
+
+   if(status_code==400 || status_code==401 || status_code==402 || status_code==403 || status_code==409)
+      return true;
+
+   return false;
+  }
+
+bool KMFXKeepConnectionForBackendReject(int status_code,string reason)
+  {
+   if(KMFXIsHardBackendReject(status_code,reason))
+      return false;
+   return KMFXHasRecentAcceptedSync();
   }
 
 void KMFXLogStatus(string message,int cooldown_seconds=0)
@@ -2201,10 +2249,18 @@ bool KMFXPushState()
    if(status_code>=300)
      {
       string backend_reason=KMFXExtractBackendReason(response);
-      bool temporary_reject=KMFXIsTemporarySyncReject(status_code,backend_reason);
+      bool keep_connected=KMFXKeepConnectionForBackendReject(status_code,backend_reason);
+      bool temporary_reject=keep_connected || KMFXIsTemporarySyncReject(status_code,backend_reason);
       bool surface_reject=temporary_reject ? KMFXShouldSurfaceSyncReject() : true;
 
-      if(surface_reject)
+      if(keep_connected)
+        {
+         Policy.backend_connected=true;
+         Policy.degraded_mode=true;
+         if(surface_reject)
+            KMFXLogStatus("KMFX conectado. Reintentando una sincronizacion temporal.",60);
+        }
+      else if(surface_reject)
         {
          Policy.backend_connected=false;
          Policy.degraded_mode=true;
@@ -2229,6 +2285,7 @@ bool KMFXPushState()
    KMFXMarkSyncHealthy();
    Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();
+   Runtime.last_good_sync_at=Runtime.last_state_push_at;
    datetime now_time=Runtime.last_state_push_at;
    if(!Runtime.connection_ready_logged || (now_time-Runtime.last_connection_ready_log_at)>=3600)
      {
@@ -2411,9 +2468,21 @@ bool KMFXFetchPolicy()
 
    if(status_code<200 || status_code>=300)
      {
+      string backend_reason=KMFXExtractBackendReason(response);
+      if(KMFXKeepConnectionForBackendReject(status_code,backend_reason))
+        {
+         Policy.backend_connected=true;
+         Policy.degraded_mode=true;
+         string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
+         KMFXLogStatus("KMFX conectado. Reintentando politica de riesgo temporal."+reason_suffix,120);
+         Runtime.last_policy_poll_at=KMFXNow();
+         return false;
+        }
+
       Policy.backend_connected=false;
       Policy.degraded_mode=true;
-      KMFXSetError("Policy fetch rechazada por backend. HTTP="+IntegerToString(status_code));
+      string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
+      KMFXSetError("Policy fetch rechazada por backend. HTTP="+IntegerToString(status_code)+reason_suffix);
       return false;
      }
 
