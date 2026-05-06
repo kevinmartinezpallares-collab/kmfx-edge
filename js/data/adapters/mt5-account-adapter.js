@@ -1,5 +1,18 @@
 import { createAccountRecord } from "./internal-model-adapter.js";
 
+const DEFAULT_ACCOUNTING_TIMEZONE = "Europe/Andorra";
+const accountingDayFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: DEFAULT_ACCOUNTING_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const accountingMonthFormatter = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: DEFAULT_ACCOUNTING_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+});
+
 function toFiniteNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -73,8 +86,17 @@ function resolveMt5Connection(rawAccount = {}, dashboardPayload = {}) {
   return { state: "disconnected", connected: false, lastSync };
 }
 
-function toIsoString(value) {
-  if (!value) return new Date().toISOString();
+function unixSecondsToIso(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return "";
+  const date = new Date(parsed * 1000);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function toIsoString(value, unixSeconds = null, fallbackToNow = true) {
+  const unixIso = unixSecondsToIso(unixSeconds);
+  if (unixIso) return unixIso;
+  if (!value) return fallbackToNow ? new Date().toISOString() : "";
   if (typeof value === "string") {
     const mt5Match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
     if (mt5Match) {
@@ -85,6 +107,16 @@ function toIsoString(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return new Date().toISOString();
   return parsed.toISOString();
+}
+
+function getAccountingDayKey(value) {
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? accountingDayFormatter.format(parsed) : "";
+}
+
+function getAccountingMonthKey(value) {
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime()) ? accountingMonthFormatter.format(parsed) : "";
 }
 
 function inferSession(dateLike) {
@@ -168,29 +200,13 @@ function earliestDateValue(currentValue, candidateValue) {
 }
 
 function normalizeTrades(rawTrades = []) {
-  const dayFormatter = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Andorra",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const monthFormatter = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Andorra",
-    year: "numeric",
-    month: "2-digit",
-  });
-  const toTradingDayKey = (value) => {
-    const parsed = value ? new Date(value) : null;
-    return parsed && !Number.isNaN(parsed.getTime()) ? dayFormatter.format(parsed) : "";
-  };
-  const toMonthKey = (value) => {
-    const parsed = value ? new Date(value) : null;
-    return parsed && !Number.isNaN(parsed.getTime()) ? monthFormatter.format(parsed) : "";
-  };
   const normalizedDeals = (Array.isArray(rawTrades) ? rawTrades : []).map((trade, index) => {
     const rawOpenTime = trade.open_time || trade.openTime || "";
-    const openTime = rawOpenTime ? toIsoString(rawOpenTime) : null;
-    const date = toIsoString(trade.close_time || trade.time || rawOpenTime);
+    const rawCloseTime = trade.close_time || trade.closeTime || trade.time || trade.date || "";
+    const openTimeUnix = trade.open_time_unix ?? trade.openTimeUnix ?? null;
+    const closeTimeUnix = trade.close_time_unix ?? trade.closeTimeUnix ?? trade.time_unix ?? trade.timeUnix ?? trade.timestamp_unix ?? null;
+    const openTime = rawOpenTime || openTimeUnix ? toIsoString(rawOpenTime, openTimeUnix, false) : null;
+    const date = toIsoString(rawCloseTime || rawOpenTime, closeTimeUnix || (!rawCloseTime ? openTimeUnix : null));
     const profit = Number(trade.profit || 0);
     const commission = Number(trade.commission || 0);
     const swap = Number(trade.swap || 0);
@@ -209,10 +225,15 @@ function normalizeTrades(rawTrades = []) {
     return {
       id: String(trade.ticket || `mt5-deal-${index}`),
       parentId: resolveTradeGroupKey(trade, index),
+      rawOpenTime,
+      rawCloseTime,
       date,
       closeTime: date,
-      tradingDayKey: toTradingDayKey(date),
-      monthKey: toMonthKey(date),
+      closeTimeUnix: closeTimeUnix == null ? null : Number(closeTimeUnix),
+      openTimeUnix: openTimeUnix == null ? null : Number(openTimeUnix),
+      tradingDayKey: getAccountingDayKey(date),
+      openDayKey: openTime ? getAccountingDayKey(openTime) : "",
+      monthKey: getAccountingMonthKey(date),
       symbol: trade.symbol || "UNKNOWN",
       side: originalSide,
       technicalSide,
@@ -248,7 +269,12 @@ function normalizeTrades(rawTrades = []) {
         date: deal.date,
         closeTime: deal.closeTime,
         tradingDayKey: deal.tradingDayKey,
+        openDayKey: deal.openDayKey,
         monthKey: deal.monthKey,
+        rawOpenTime: deal.rawOpenTime,
+        rawCloseTime: deal.rawCloseTime,
+        closeTimeUnix: deal.closeTimeUnix,
+        openTimeUnix: deal.openTimeUnix,
         symbol: deal.symbol,
         side: deal.side,
         pnl: 0,
@@ -295,6 +321,8 @@ function normalizeTrades(rawTrades = []) {
     aggregate.volume += Number.isFinite(Number(deal.volume)) ? Number(deal.volume) : 0;
     aggregate.closeTime = !aggregate.closeTime || new Date(deal.closeTime) > new Date(aggregate.closeTime) ? deal.closeTime : aggregate.closeTime;
     aggregate.date = aggregate.closeTime;
+    if (!aggregate.rawCloseTime || new Date(deal.closeTime) >= new Date(aggregate.closeTime)) aggregate.rawCloseTime = deal.rawCloseTime;
+    if (deal.closeTimeUnix && (!aggregate.closeTimeUnix || deal.closeTimeUnix >= aggregate.closeTimeUnix)) aggregate.closeTimeUnix = deal.closeTimeUnix;
     aggregate.side = aggregate.side || deal.side;
     if (deal.entry != null && Number.isFinite(Number(deal.volume))) {
       aggregate.__weightedEntrySum += Number(deal.entry) * Number(deal.volume);
@@ -303,6 +331,8 @@ function normalizeTrades(rawTrades = []) {
       aggregate.entry = deal.entry;
     }
     aggregate.openTime = earliestDateValue(aggregate.openTime, deal.openTime);
+    aggregate.rawOpenTime = earliestDateValue(aggregate.rawOpenTime, deal.rawOpenTime);
+    if (deal.openTimeUnix && (!aggregate.openTimeUnix || deal.openTimeUnix < aggregate.openTimeUnix)) aggregate.openTimeUnix = deal.openTimeUnix;
     if (aggregate.setup === "MT5 sync" && deal.setup !== "MT5 sync") aggregate.setup = deal.setup;
     if ((!aggregate.session || aggregate.session === "—") && deal.session) aggregate.session = deal.session;
     if (deal.exit != null && Number.isFinite(Number(deal.volume))) {
@@ -317,6 +347,8 @@ function normalizeTrades(rawTrades = []) {
       originalSide: deal.side,
       when: new Date(deal.closeTime),
       closeTime: deal.closeTime,
+      rawCloseTime: deal.rawCloseTime,
+      closeTimeUnix: deal.closeTimeUnix,
       volume: deal.volume,
       exit: deal.exit,
       pnl: deal.pnl,
@@ -349,8 +381,9 @@ function normalizeTrades(rawTrades = []) {
         date: finalCloseTime,
         closeTime: finalCloseTime,
         when: lastPartial?.when || new Date(finalCloseTime),
-        tradingDayKey: toTradingDayKey(finalCloseTime) || trade.tradingDayKey,
-        monthKey: toMonthKey(finalCloseTime) || trade.monthKey,
+        tradingDayKey: getAccountingDayKey(finalCloseTime) || trade.tradingDayKey,
+        openDayKey: trade.openTime ? getAccountingDayKey(trade.openTime) : trade.openDayKey,
+        monthKey: getAccountingMonthKey(finalCloseTime) || trade.monthKey,
         durationMin: durationMinutes(trade.openTime || firstPartial?.closeTime, finalCloseTime),
         volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
         entry: weightedEntry ?? trade.entry,

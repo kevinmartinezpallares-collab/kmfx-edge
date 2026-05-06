@@ -19,6 +19,15 @@ const monthLabelFormatter = new Intl.DateTimeFormat("es-ES", {
   month: "short",
   year: "numeric",
 });
+const accountingHourFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: ACCOUNTING_TIMEZONE,
+  hour: "2-digit",
+  hour12: false,
+});
+const accountingWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: ACCOUNTING_TIMEZONE,
+  weekday: "short",
+});
 import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260504-080918";
 function readPreferredCurrency() {
   try {
@@ -68,14 +77,50 @@ export function getCurrencyFromModel(model) {
   return readPreferredCurrency();
 }
 
-function toLocalDayKey(dateLike) {
+export function getAccountingDayKey(dateLike, timezone = ACCOUNTING_TIMEZONE) {
   const date = normalizeDateLike(dateLike);
-  return date ? dayKeyFormatter.format(date) : "";
+  if (!date) return "";
+  if (timezone === ACCOUNTING_TIMEZONE) return dayKeyFormatter.format(date);
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: timezone || ACCOUNTING_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function getAccountingMonthKey(dateLike, timezone = ACCOUNTING_TIMEZONE) {
+  const date = normalizeDateLike(dateLike);
+  if (!date) return "";
+  if (timezone === ACCOUNTING_TIMEZONE) return monthKeyFormatter.format(date);
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: timezone || ACCOUNTING_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).format(date);
+}
+
+function getAccountingHour(dateLike) {
+  const date = normalizeDateLike(dateLike);
+  if (!date) return 0;
+  const hour = Number(accountingHourFormatter.format(date));
+  return Number.isFinite(hour) ? hour % 24 : 0;
+}
+
+function getAccountingWeekdayIndex(dateLike) {
+  const date = normalizeDateLike(dateLike);
+  if (!date) return 0;
+  const label = accountingWeekdayFormatter.format(date);
+  const index = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(label);
+  return index >= 0 ? index : 0;
+}
+
+function toLocalDayKey(dateLike) {
+  return getAccountingDayKey(dateLike);
 }
 
 function toLocalMonthKey(dateLike) {
-  const date = normalizeDateLike(dateLike);
-  return date ? monthKeyFormatter.format(date) : "";
+  return getAccountingMonthKey(dateLike);
 }
 
 export function formatCurrency(value, currencyOverride) {
@@ -168,7 +213,7 @@ function normalizeDateLike(value, unixFallbackSeconds) {
     const mt5Match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
     if (mt5Match) {
       const [, year, month, day, hour, minute, second] = mt5Match;
-      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+      const parsed = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
       if (!Number.isNaN(parsed.getTime())) return parsed;
     }
   }
@@ -1175,7 +1220,7 @@ function buildGroupStats(trades, getKey, order = []) {
 function buildHourStats(trades) {
   const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, pnl: 0, trades: 0 }));
   trades.forEach((trade) => {
-    const hour = trade.when.getHours();
+    const hour = getAccountingHour(trade.when);
     hours[hour].pnl += trade.pnl;
     hours[hour].trades += 1;
   });
@@ -1185,7 +1230,7 @@ function buildHourStats(trades) {
 function buildWeekdayStats(trades) {
   const stats = weekdays.map((label, index) => ({ index, label, pnl: 0, trades: 0 }));
   trades.forEach((trade) => {
-    const bucket = stats[trade.when.getDay()];
+    const bucket = stats[getAccountingWeekdayIndex(trade.when)];
     bucket.pnl += trade.pnl;
     bucket.trades += 1;
   });
@@ -1374,7 +1419,10 @@ function enrichTrade(trade, index) {
       : Number.isFinite(Number(trade.exit)) && Number(trade.exit) > 0
         ? roundPrice(Number(trade.exit))
         : null,
-    openTime: trade.open_time || null,
+    rawOpenTime: trade.rawOpenTime || trade.open_time || null,
+    rawCloseTime: trade.rawCloseTime || trade.close_time || trade.time || null,
+    openDayKey: trade.openDayKey || (trade.openTime || trade.open_time ? toLocalDayKey(trade.openTime || trade.open_time) : ""),
+    openTime: trade.openTime || trade.open_time || null,
     openTimeUnix: trade.open_time_unix || null,
     sl: Number.isFinite(Number(trade.sl)) ? roundPrice(Number(trade.sl)) : null,
     tp: Number.isFinite(Number(trade.tp)) ? roundPrice(Number(trade.tp)) : null,
