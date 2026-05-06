@@ -1,5 +1,5 @@
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 
 // === DISCIPLINE SECTION ===
 export const disciplineData = {
@@ -816,12 +816,7 @@ function cssEscape(value = "") {
 }
 
 function toDayKey(dateLike) {
-  const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
-  if (Number.isNaN(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getAccountingDayKey(dateLike);
 }
 
 function isoWeekStart(dateLike) {
@@ -1206,7 +1201,7 @@ function resetPostTradeQueue() {
 
 function groupTradesByDay(trades = []) {
   return trades.reduce((map, trade) => {
-    const key = toDayKey(trade.when);
+    const key = trade?.tradingDayKey || toDayKey(trade?.closeTime || trade?.close_time || trade?.time || trade?.when || trade?.date);
     if (!key) return map;
     const bucket = map.get(key) || { key, trades: [], pnl: 0 };
     bucket.trades.push(trade);
@@ -1242,7 +1237,7 @@ function calcRuleCompliance(recentTrades = []) {
     ? (beValues.filter(Boolean).length / beValues.length) * 100
     : null;
   const noPost17 = recentTrades.length
-    ? (recentTrades.filter((trade) => trade.when.getHours() < 17).length / recentTrades.length) * 100
+    ? (recentTrades.filter((trade) => getAccountingHour(trade.when) < 17).length / recentTrades.length) * 100
     : null;
   const validSetup = recentTrades.length
     ? (recentTrades.filter((trade) => {
@@ -1271,7 +1266,7 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
       const distance = pipsBetween(trade.symbol, trade.entry, trade.sl);
       return Number.isFinite(distance) && Math.abs(distance - 10) > 2;
     }).length;
-  const outsideSchedule = recentTrades.filter((trade) => trade.when.getHours() >= 17).length;
+  const outsideSchedule = recentTrades.filter((trade) => getAccountingHour(trade.when) >= 17).length;
 
   return [
     {
@@ -1357,7 +1352,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData, pro
           const awaiting = tagSummaries.reduce((sum, item) => sum + item.awaiting, 0);
           state = failed >= 2 ? "miss" : failed === 1 || awaiting > 0 ? "warn" : "clean";
         } else {
-          const outside = bucket.trades.some((trade) => trade.when.getHours() >= 17);
+          const outside = bucket.trades.some((trade) => getAccountingHour(trade.when) >= 17);
           const overtraded = bucket.trades.length > 1;
           const negative = bucket.pnl < 0;
           state = outside || (overtraded && negative) ? "miss" : overtraded || negative ? "warn" : "clean";

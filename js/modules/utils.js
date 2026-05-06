@@ -100,14 +100,14 @@ export function getAccountingMonthKey(dateLike, timezone = ACCOUNTING_TIMEZONE) 
   }).format(date);
 }
 
-function getAccountingHour(dateLike) {
+export function getAccountingHour(dateLike) {
   const date = normalizeDateLike(dateLike);
   if (!date) return 0;
   const hour = Number(accountingHourFormatter.format(date));
   return Number.isFinite(hour) ? hour % 24 : 0;
 }
 
-function getAccountingWeekdayIndex(dateLike) {
+export function getAccountingWeekdayIndex(dateLike) {
   const date = normalizeDateLike(dateLike);
   if (!date) return 0;
   const label = accountingWeekdayFormatter.format(date);

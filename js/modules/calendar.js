@@ -1,5 +1,5 @@
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
-import { formatCurrency, formatDurationHuman, formatPercent, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { openFocusPanel } from "./modal-system.js?v=build-20260504-080918";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
@@ -11,15 +11,11 @@ const CALENDAR_TOOLTIP_PERCENT_FORMATTER = new Intl.NumberFormat("es-ES", {
 });
 
 function toLocalDayKey(dateLike) {
-  const date = new Date(dateLike);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getAccountingDayKey(dateLike);
 }
 
 function toLocalMonthKey(dateLike) {
-  return toLocalDayKey(dateLike).slice(0, 7);
+  return getAccountingMonthKey(dateLike);
 }
 
 function buildDayCurve(dayTrades) {
@@ -193,6 +189,7 @@ function getTradeTimeRange(trade) {
 }
 
 function getCalendarTradeDayKey(trade) {
+  if (trade?.tradingDayKey) return trade.tradingDayKey;
   const source = trade?.closeTime || trade?.close_time || trade?.time || trade?.when || trade?.date || trade?.entryTime || trade?.openTime || trade?.open_time;
   return source ? toLocalDayKey(source) : "";
 }

@@ -1,4 +1,4 @@
-import { formatCompact, formatCurrency, formatPercent, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { formatCompact, formatCurrency, formatPercent, getAccountingDayKey, getAccountingHour, getAccountingMonthKey, getAccountingWeekdayIndex, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
 import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260504-080918";
 import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
@@ -45,15 +45,15 @@ function formatTradeCount(value) {
 }
 
 function toLocalDayKey(dateLike) {
-  const date = new Date(dateLike);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getAccountingDayKey(dateLike);
 }
 
 function toLocalMonthKey(dateLike) {
-  return toLocalDayKey(dateLike).slice(0, 7);
+  return getAccountingMonthKey(dateLike);
+}
+
+function getTradeRealizedDayKey(trade) {
+  return trade?.tradingDayKey || toLocalDayKey(trade?.closeTime || trade?.close_time || trade?.time || trade?.when || trade?.date);
 }
 
 function monthKeyToDate(key) {
@@ -148,8 +148,8 @@ function describeDayBehavior(day, trades, bestSessionKey, worstSessionKey, bestH
   const avgTrades = trades.length;
   if (day.pnl > 0 && mainSession === bestSessionKey) return "Sesión fuerte. Cierre positivo.";
   if (day.pnl < 0 && mainSession === worstSessionKey) return "Sesión débil. La pérdida se amplifica.";
-  if (day.pnl < 0 && trades.some((trade) => trade.when.getHours() === worstHour)) return "Timing débil. La calidad cae.";
-  if (day.pnl > 0 && trades.some((trade) => trade.when.getHours() === bestHour)) return "Timing a favor. El día suma con claridad.";
+  if (day.pnl < 0 && trades.some((trade) => getAccountingHour(trade.when) === worstHour)) return "Timing débil. La calidad cae.";
+  if (day.pnl > 0 && trades.some((trade) => getAccountingHour(trade.when) === bestHour)) return "Timing a favor. El día suma con claridad.";
   if (avgTrades >= 3 && day.pnl < 0) return "Alta frecuencia. Calidad más débil.";
   if (avgTrades === 1 && day.pnl > 0) return "Menos fricción. Mejor ejecución.";
   return day.pnl >= 0 ? "Control del día. Cierre favorable." : "Gestión más débil. Cierre negativo.";
@@ -677,7 +677,7 @@ export function renderAnalytics(root, state) {
   const workdayIndexes = new Set([1, 2, 3, 4, 5]);
   const weekdayTrades = new Map([...workdayIndexes].map((index) => [index, []]));
   model.trades.forEach((trade) => {
-    const weekday = trade.when.getDay();
+    const weekday = getAccountingWeekdayIndex(trade.when);
     if (weekdayTrades.has(weekday)) weekdayTrades.get(weekday).push(trade);
   });
   const weekdayWorkdays = model.weekdays
@@ -753,7 +753,7 @@ export function renderAnalytics(root, state) {
   const analyticsDayView = buildAnalyticsMonthView(model.dayStats || [], analyticsDailyMonthKey);
   const monthDayStats = (model.dayStats || []).filter((day) => day.key.startsWith(analyticsDailyMonthKey));
   const operatedMonthDays = monthDayStats.filter((day) => Number(day.trades || 0) > 0);
-  const dayTradeMap = new Map(monthDayStats.map((day) => [day.key, (model.trades || []).filter((trade) => toLocalDayKey(trade.when) === day.key)]));
+  const dayTradeMap = new Map(monthDayStats.map((day) => [day.key, (model.trades || []).filter((trade) => getTradeRealizedDayKey(trade) === day.key)]));
   const keyDays = monthDayStats
     .slice()
     .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
