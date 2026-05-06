@@ -109,7 +109,7 @@ class SidebarNavigationContractTests(unittest.TestCase):
             self.assertIn(f'"{page}"', valid_pages.group("body"))
         self.assertIn("kmfx_sidebar_submenus_v1", navigation)
         self.assertIn("setSubmenuOpen", navigation)
-        self.assertIn("if (clickedChevron)", navigation)
+        self.assertIn("clickedChevron || isMobileSidebarOpen", navigation)
         self.assertNotIn("clickedChevron || isActiveParent", navigation)
 
     def test_new_subsection_pages_use_kmfx_visual_shell(self):

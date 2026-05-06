@@ -890,12 +890,19 @@ function renderDashboardSparkline(kpi = {}, { area = false } = {}) {
 
 function renderDashboardGauge(kpi = {}) {
   const pointer = Math.max(0, Math.min(100, finiteDashboardNumber(kpi.microVisual?.pointerValuePct) ?? 0));
-  const boundedRisk = Math.max(0, Math.min(3, pointer));
-  const angle = -90 + (boundedRisk / 3) * 180;
+  const isInsufficient = String(kpi.status || "").toLowerCase() === "insufficient";
+  const progress = isInsufficient ? 0 : pointer;
+  const scoreLabel = isInsufficient ? (kpi.emptyReason || "Muestra insuficiente") : `${formatDashboardPercentValue(progress, { digits: 1 })} equity`;
+  const detailLabel = isInsufficient ? "Recopilando cierres reales" : (kpi.statusLabel || "Lectura de cola");
   return `
-    <div class="dashboard-professional-kpi__gauge" style="--pointer-angle:${angle}deg" aria-hidden="true">
-      <span class="dashboard-professional-kpi__gauge-track"></span>
-      <span class="dashboard-professional-kpi__gauge-pointer"></span>
+    <div class="dashboard-professional-kpi__risk-score" style="--risk-score:${progress}" aria-hidden="true">
+      <div class="dashboard-professional-kpi__risk-score-head">
+        <span>${escapeDashboardHtml(scoreLabel)}</span>
+        <strong>${escapeDashboardHtml(detailLabel)}</strong>
+      </div>
+      <div class="dashboard-professional-kpi__risk-progress">
+        <span class="dashboard-professional-kpi__risk-progress-fill"></span>
+      </div>
     </div>
   `;
 }

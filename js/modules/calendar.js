@@ -654,20 +654,24 @@ export function renderCalendar(root, state) {
         extraContentHtml: note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : "",
         actionsClassName: "calendar-month-nav",
         actionsHtml: `
-          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
-          <div class="calendar-month-nav__label">
-            <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
-            <span>${viewMode === "year" ? `${summary.activeMonths} meses operados` : `${summary.activeDays} días operados`}</span>
+          <div class="calendar-month-switcher" aria-label="Cambio de periodo">
+            <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="-1" ${selectedYearIndex <= 0 ? "disabled" : ""}` : `data-calendar-shift="-1" ${monthIndex <= 0 ? "disabled" : ""}`}>‹</button>
+            <div class="calendar-month-nav__label">
+              <strong>${viewMode === "year" ? selectedYear : monthView.label}</strong>
+              <span>${viewMode === "year" ? `${summary.activeMonths} meses operados` : `${summary.activeDays} días operados`}</span>
+            </div>
+            <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
           </div>
-          <div class="widget-segmented calendar-view-toggle" role="tablist" aria-label="Vista del calendario">
-            <button class="widget-segmented-btn ${viewMode === "month" ? "active" : ""}" type="button" data-calendar-view-mode="month">Mes</button>
-            <button class="widget-segmented-btn ${viewMode === "year" ? "active" : ""}" type="button" data-calendar-view-mode="year">Año</button>
+          <div class="calendar-control-tabs">
+            <div class="widget-segmented calendar-view-toggle" role="tablist" aria-label="Vista del calendario">
+              <button class="widget-segmented-btn ${viewMode === "month" ? "active" : ""}" type="button" data-calendar-view-mode="month">Mes</button>
+              <button class="widget-segmented-btn ${viewMode === "year" ? "active" : ""}" type="button" data-calendar-view-mode="year">Año</button>
+            </div>
+            <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
+              <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
+              <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
+            </div>
           </div>
-          <div class="widget-segmented calendar-value-toggle" role="tablist" aria-label="Unidad visible del calendario">
-            <button class="widget-segmented-btn ${valueMode === "usd" ? "active" : ""}" type="button" data-calendar-value-mode="usd">USD</button>
-            <button class="widget-segmented-btn ${valueMode === "percent" ? "active" : ""}" type="button" data-calendar-value-mode="percent">%</button>
-          </div>
-          <button class="calendar-month-nav__btn" type="button" ${viewMode === "year" ? `data-calendar-year-shift="1" ${selectedYearIndex >= calendarYears.length - 1 ? "disabled" : ""}` : `data-calendar-shift="1" ${monthIndex >= calendarMonths.length - 1 ? "disabled" : ""}`}>›</button>
         `,
       })}
       ${adminTracePanel}

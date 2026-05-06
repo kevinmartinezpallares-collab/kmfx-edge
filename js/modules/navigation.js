@@ -279,15 +279,12 @@ export function initNavigation(store) {
       if (submenuKey && !isSidebarIconCollapsed()) {
         const clickedChevron = Boolean(event.target.closest(".sidebar-menu-action"));
         const isMobileSidebarOpen = document.body.classList.contains("sidebar-mobile-open");
-        if (clickedChevron) {
-          toggleSubmenu(submenuKey);
-          return;
-        }
-        if (isMobileSidebarOpen) {
+        if (clickedChevron || isMobileSidebarOpen || submenuState[submenuKey] !== false) {
           toggleSubmenu(submenuKey);
           return;
         }
         setSubmenuOpen(submenuKey, true);
+        return;
       }
       const analyticsTab = button.dataset.tab || analyticsTabForPage(page);
       store.setState((state) => ({
