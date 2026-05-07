@@ -27987,6 +27987,47 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
   min-width: 0;
 }
 
+.settings-tabs.tl-tab-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+}
+
+.settings-tabs .tl-tab {
+  justify-content: center;
+  width: 100%;
+  min-height: 38px;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.settings-tab-locked {
+  position: relative;
+}
+
+.settings-tab-locked span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  margin-left: 7px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 82%, transparent);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.settings-panel {
+  display: none !important;
+}
+
+.settings-panel.active {
+  display: grid !important;
+}
+
 .settings-toolbar {
   display: flex;
   align-items: center;
@@ -28172,18 +28213,26 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
   line-height: 1.42;
 }
 
-.settings-billing-current {
+.settings-billing-hero {
   display: flex;
   align-items: stretch;
   gap: 10px;
   min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 64%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, rgba(59, 130, 246, 0.13) 62%, transparent), transparent 48%),
+    color-mix(in srgb, var(--kmfx-card-bg-soft) 75%, transparent);
 }
 
-.settings-billing-current .settings-status-card {
+.settings-billing-hero .settings-status-card {
   flex: 1 1 auto;
+  border-color: transparent;
+  background: transparent;
 }
 
-.settings-billing-current .btn-secondary {
+.settings-billing-hero .btn-secondary {
   align-self: center;
   min-height: 34px;
   white-space: nowrap;
@@ -28191,59 +28240,201 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
 
 .settings-billing-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   min-width: 0;
 }
 
 .settings-billing-plan {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
-  padding: 11px;
+  padding: 16px;
   border: 1px solid color-mix(in srgb, var(--kmfx-border) 64%, transparent);
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 72%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, rgba(96, 165, 250, 0.18) 65%, transparent), transparent 32%),
+    linear-gradient(145deg, color-mix(in srgb, var(--kmfx-card-bg-soft) 86%, transparent), color-mix(in srgb, var(--kmfx-card-bg) 96%, transparent));
+}
+
+.settings-billing-plan::after {
+  content: "";
+  position: absolute;
+  inset: auto -18% -35% auto;
+  width: 190px;
+  height: 190px;
+  border-radius: 999px;
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.08) 70%, transparent);
+  pointer-events: none;
+}
+
+.settings-billing-plan--basic {
+  border-color: color-mix(in srgb, #22c55e 28%, var(--kmfx-border));
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, rgba(34, 197, 94, 0.18) 70%, transparent), transparent 33%),
+    linear-gradient(145deg, color-mix(in srgb, var(--kmfx-card-bg-soft) 88%, transparent), color-mix(in srgb, rgba(15, 23, 42, 0.22) 30%, var(--kmfx-card-bg)));
+}
+
+.settings-billing-plan--pro {
+  border-color: color-mix(in srgb, #38bdf8 38%, var(--kmfx-border));
+  background:
+    radial-gradient(circle at 16% 0%, color-mix(in srgb, rgba(14, 165, 233, 0.22) 70%, transparent), transparent 34%),
+    radial-gradient(circle at 90% 88%, color-mix(in srgb, rgba(34, 211, 238, 0.13) 62%, transparent), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--kmfx-card-bg-soft) 90%, transparent), color-mix(in srgb, rgba(15, 23, 42, 0.3) 36%, var(--kmfx-card-bg)));
 }
 
 .settings-billing-plan--featured {
-  border-color: color-mix(in srgb, var(--kmfx-accent) 42%, var(--kmfx-border));
-  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 78%, rgba(49, 127, 255, 0.08));
+  border-color: color-mix(in srgb, var(--kmfx-accent) 62%, var(--kmfx-border));
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, rgba(59, 130, 246, 0.28) 70%, transparent), transparent 34%),
+    radial-gradient(circle at 90% 88%, color-mix(in srgb, rgba(168, 85, 247, 0.18) 62%, transparent), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--kmfx-card-bg-soft) 92%, transparent), color-mix(in srgb, rgba(15, 23, 42, 0.36) 42%, var(--kmfx-card-bg)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
 }
 
-.settings-billing-plan span {
+.settings-plan-topline {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-plan-topline span {
   color: var(--text-2);
   font-size: 11.5px;
   line-height: 1.25;
+  font-weight: 760;
 }
 
-.settings-billing-plan strong {
+.settings-plan-topline em {
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--text-0);
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 88%, rgba(255,255,255,0.08));
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.settings-plan-price {
+  position: relative;
+  z-index: 1;
+}
+
+.settings-plan-price strong {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  margin-top: 3px;
   color: var(--text-0);
-  font-size: 23px;
+  font-size: 30px;
   line-height: 1.05;
 }
 
-.settings-billing-plan strong small {
+.settings-plan-price strong small {
   color: var(--text-2);
   font-size: 11px;
   font-weight: 650;
 }
 
-.settings-billing-plan p {
-  margin: 7px 0 0;
+.settings-plan-price p {
+  margin: 5px 0 0;
   color: var(--text-2);
   font-size: 11.5px;
+  line-height: 1.3;
+}
+
+.settings-plan-description {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  min-height: 50px;
+  color: var(--text-1);
+  font-size: 12px;
   line-height: 1.42;
 }
 
+.settings-plan-features {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-1);
+  font-size: 11.8px;
+  line-height: 1.3;
+}
+
+.settings-plan-features li::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--kmfx-accent) 82%, #ffffff);
+}
+
 .settings-billing-plan__actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.settings-referral-lock {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px dashed color-mix(in srgb, var(--kmfx-border) 82%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, rgba(148, 163, 184, 0.14) 65%, transparent), transparent 56%),
+    color-mix(in srgb, var(--kmfx-card-bg-soft) 72%, transparent);
+}
+
+.settings-referral-lock__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: var(--text-0);
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 90%, rgba(255,255,255,0.08));
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.settings-referral-lock strong {
+  color: var(--text-0);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.settings-referral-lock p {
+  max-width: 620px;
+  margin: 5px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.42;
 }
 
 .settings-placeholder,
@@ -28395,8 +28586,17 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .settings-billing-current {
+  .settings-billing-hero {
     display: grid;
+  }
+
+  .settings-tabs.tl-tab-bar {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .settings-tabs .tl-tab {
+    flex: 1 0 150px;
   }
 }
 

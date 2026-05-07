@@ -27,35 +27,36 @@ Precios MVP definidos en `docs/pricing-competitor-research.md`. El plan interno 
 | Plan | Precio MVP | Usuario objetivo | Limite base | Uso principal |
 | --- | ---: | --- | --- | --- |
 | Free / Demo | 0 EUR | Usuario evaluando la app | 0 cuentas MT5 live, demo/mock | Explorar dashboard y conceptos sin conectar capital real. |
-| Edge Basic (`core`) | 15 EUR/mes o 150 EUR/año | Trader individual | 1 cuenta MT5 live | Dashboard, riesgo base, trades y calendario operativo. |
-| Edge Pro | 39 EUR/mes o 390 EUR/año | Trader activo/fondeo | 3 cuentas MT5 live | Riesgo avanzado, funded, journal, strategies y analytics completos. |
-| Edge Desk | Custom | Multi-cuenta/equipo | Limite custom | Workspaces, cuentas multiples, permisos, soporte prioritario. |
+| Edge Basic (`core`) | 15 EUR/mes o 150 EUR/año | Trader individual | 2 cuentas MT5 live | Dashboard, riesgo base, trades y calendario operativo. |
+| Edge Pro (`pro`) | 25 EUR/mes o 250 EUR/año | Trader activo/fondeo | 5 cuentas MT5 live | Riesgo avanzado, funded, journal, strategies y analytics completos. |
+| Edge Unlimited (`unlimited`) | 39 EUR/mes o 390 EUR/año | Multi-cuenta avanzado/comunidad privada | Cuentas MT5 ilimitadas | Acceso completo sin limite operativo, exports, debug avanzado y soporte prioritario. |
+| Edge Desk | Custom | Equipo/enterprise | Limite custom | Workspaces, permisos, integraciones y soporte a medida. |
 
 ## Entitlements
 
 Los entitlements deben ser la fuente interna para activar o bloquear funcionalidad. La UI no deberia comprobar "plan === pro" directamente; debe preguntar por permisos concretos.
 
-| Entitlement | Free / Demo | Edge Basic | Edge Pro | Edge Desk |
-| --- | --- | --- | --- | --- |
-| `demo_data` | si | si | si | si |
-| `live_mt5_accounts` | 0 | 1 | 3 | custom |
-| `launcher_connection` | no | si | si | si |
-| `dashboard_core` | si | si | si | si |
-| `risk_core` | parcial | si | si | si |
-| `risk_policy_editor` | no | limitado | si | si |
-| `local_auto_block` | no | no/limitado | si | si |
-| `trades_history` | limitado | si | si | si |
-| `calendar` | limitado | si | si | si |
-| `advanced_analytics` | no | limitado | si | si |
-| `journal` | limitado | limitado | si | si |
-| `strategies` | no | limitado | si | si |
-| `funded_challenges` | no | limitado | si | si |
-| `portfolio` | no | limitado | si | si |
-| `talent_profile` | no | limitado | si | si |
-| `raw_bridge_debug` | no | no | si | si |
-| `exports` | no | no | si | si |
-| `team_workspace` | no | no | no | si |
-| `priority_support` | no | no | no | si |
+| Entitlement | Free / Demo | Edge Basic | Edge Pro | Edge Unlimited | Edge Desk |
+| --- | --- | --- | --- | --- | --- |
+| `demo_data` | si | si | si | si | si |
+| `live_mt5_accounts` | 0 | 2 | 5 | custom | custom |
+| `launcher_connection` | no | si | si | si | si |
+| `dashboard_core` | si | si | si | si | si |
+| `risk_core` | parcial | si | si | si | si |
+| `risk_policy_editor` | no | limitado | si | si | si |
+| `local_auto_block` | no | no/limitado | si | si | si |
+| `trades_history` | limitado | si | si | si | si |
+| `calendar` | limitado | si | si | si | si |
+| `advanced_analytics` | no | limitado | si | si | si |
+| `journal` | limitado | limitado | si | si | si |
+| `strategies` | no | limitado | si | si | si |
+| `funded_challenges` | no | limitado | si | si | si |
+| `portfolio` | no | limitado | si | si | si |
+| `talent_profile` | no | limitado | si | si | si |
+| `raw_bridge_debug` | no | no | si | si | si |
+| `exports` | no | no | si | si | si |
+| `team_workspace` | no | no | no | no | si |
+| `priority_support` | no | no | no | si | si |
 
 ## Estados de billing que la app debe entender
 
@@ -141,7 +142,7 @@ Pensado para Supabase/Postgres y portable a Next.js.
 | `stripe_subscription_id` | text unique | Subscription de Stripe. |
 | `stripe_customer_id` | text | Customer asociado. |
 | `stripe_price_id` | text | Price activo. |
-| `plan_key` | text | `free`, `core`, `pro`, `desk`. |
+| `plan_key` | text | `free`, `core`, `pro`, `unlimited`, `desk`. |
 | `status` | text | Estado normalizado. |
 | `current_period_start` | timestamptz | Periodo actual. |
 | `current_period_end` | timestamptz | Fin de acceso pagado. |
@@ -165,7 +166,7 @@ Pensado para Supabase/Postgres y portable a Next.js.
 
 | Campo | Tipo | Nota |
 | --- | --- | --- |
-| `plan_key` | text primary key | `free`, `core`, `pro`, `desk`. |
+| `plan_key` | text primary key | `free`, `core`, `pro`, `unlimited`, `desk`. |
 | `entitlements` | jsonb | Permisos y limites. |
 | `updated_at` | timestamptz | Versionado simple. |
 

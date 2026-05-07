@@ -5,8 +5,9 @@
 - [x] Confirm currency: EUR.
 - [x] Confirm monthly Basic/Core price: 15 EUR/month.
 - [x] Confirm yearly Basic/Core price: 150 EUR/year.
-- [x] Confirm monthly Pro price: 39 EUR/month.
-- [x] Confirm yearly Pro price: 390 EUR/year.
+- [x] Confirm monthly Pro price: 25 EUR/month.
+- [x] Confirm yearly Pro price: 250 EUR/year.
+- [x] Confirm Unlimited price: 39 EUR/month or 390 EUR/year.
 - [x] Decide whether trial exists: 7-day trial.
 - [x] Decide whether trial requires card: no card for MVP trial.
 - [x] Decide grace period for `past_due`: 7 days.

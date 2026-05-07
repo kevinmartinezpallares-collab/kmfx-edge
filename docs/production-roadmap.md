@@ -176,8 +176,8 @@ Bloque previo obligatorio:
 - [x] Confirmar moneda: EUR.
 - [x] Confirmar precio mensual Basic/Core: 15 EUR.
 - [x] Confirmar precio anual Basic/Core: 150 EUR.
-- [x] Confirmar precio mensual Pro: 39 EUR.
-- [x] Confirmar precio anual Pro: 390 EUR.
+- [x] Confirmar precio mensual Pro: 25 EUR.
+- [x] Confirmar precios finales MVP: Basic 15/150 EUR, Pro 25/250 EUR, Unlimited 39/390 EUR.
 - [x] Decidir trial: 7 dias sin tarjeta.
 - [x] Decidir grace period para `past_due`: 7 dias.
 - [x] Decidir si Desk queda privado/contact-only.
@@ -188,6 +188,8 @@ Bloque previo obligatorio:
   - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
+  - `kmfx_unlimited_monthly`
+  - `kmfx_unlimited_yearly`
 - [x] Crear Prices live bajo `KMFX Edge` con Price IDs documentados en `docs/stripe-product-catalog.md`.
 - [ ] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API.
 - [ ] Configurar Customer Portal.
@@ -211,6 +213,8 @@ Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el ac
   - `STRIPE_PRICE_CORE_YEARLY`
   - `STRIPE_PRICE_PRO_MONTHLY`
   - `STRIPE_PRICE_PRO_YEARLY`
+  - `STRIPE_PRICE_UNLIMITED_MONTHLY`
+  - `STRIPE_PRICE_UNLIMITED_YEARLY`
   - `SUPABASE_SERVICE_ROLE_KEY`
 - [x] Implementar `POST /api/billing/checkout`.
 - [x] Implementar `POST /api/billing/portal`.
@@ -263,8 +267,9 @@ Objetivo: que el acceso real dependa de permisos, no de botones visibles.
 Criterio de salida:
 
 - Free no puede conectar cuenta live.
-- Core no puede superar 1 cuenta MT5 live.
-- Pro no puede superar 3 cuentas MT5 live.
+- Core no puede superar 2 cuentas MT5 live.
+- Pro no puede superar 5 cuentas MT5 live.
+- Unlimited no tiene limite comercial de cuentas MT5 live.
 - Usuario sin permiso ve estado bloqueado claro, no errores técnicos.
 
 ## Fase 4 - MT5 UX Final

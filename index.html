@@ -340,6 +340,11 @@
             <div class="tl-page-sub">Perfil, sesión y preferencias básicas.</div>
           </div>
           <div class="settings-page-shell">
+            <div class="tl-tab-bar settings-tabs" role="tablist" aria-label="Secciones de ajustes">
+              <button class="tl-tab active" type="button" role="tab" aria-selected="true" data-settings-tab="general">General</button>
+              <button class="tl-tab" type="button" role="tab" aria-selected="false" data-settings-tab="subscription">Suscripción</button>
+              <button class="tl-tab settings-tab-locked" type="button" role="tab" aria-selected="false" data-settings-tab="referrals" aria-disabled="true">Referidos <span>Bloqueado</span></button>
+            </div>
             <div class="settings-toolbar">
               <div>
                 <div class="settings-toolbar-title">Configuración esencial</div>
@@ -352,7 +357,7 @@
 
             <div class="settings-layout">
               <div class="settings-layout-main">
-                <article class="tl-section-card settings-card settings-card--profile">
+                <article class="tl-section-card settings-card settings-panel active settings-card--profile" data-settings-panel="general">
                   <div class="tl-section-header">
                     <div>
                       <div class="tl-section-title">Perfil y cuenta</div>
@@ -374,15 +379,15 @@
                   </div>
                 </article>
 
-                <article class="tl-section-card settings-card settings-card--billing">
+                <article class="tl-section-card settings-card settings-panel settings-card--billing" data-settings-panel="subscription">
                   <div class="tl-section-header">
                     <div>
-                      <div class="tl-section-title">Plan y pagos</div>
-                      <div class="settings-section-sub">Gestiona el acceso de KMFX Edge sin tocar otros pagos de tu cuenta Stripe.</div>
+                      <div class="tl-section-title">Suscripción</div>
+                      <div class="settings-section-sub">Elige el nivel de acceso para operar KMFX Edge con Checkout seguro.</div>
                     </div>
                     <div class="meta-badge" data-settings-billing-badge>Free / Demo</div>
                   </div>
-                  <div class="settings-billing-current">
+                  <div class="settings-billing-hero">
                     <div class="settings-status-card">
                       <span>Plan actual</span>
                       <strong data-settings-billing-plan>Free / Demo</strong>
@@ -391,32 +396,73 @@
                     <button class="btn-secondary btn-inline" type="button" data-billing-portal>Gestionar suscripción</button>
                   </div>
                   <div class="settings-billing-grid" aria-label="Planes disponibles">
-                    <article class="settings-billing-plan">
-                      <div>
+                    <article class="settings-billing-plan settings-billing-plan--basic">
+                      <div class="settings-plan-topline">
                         <span>Edge Basic</span>
-                        <strong>15 €<small>/mes</small></strong>
-                        <p>1 cuenta MT5, dashboard live, riesgo base y calendario operativo.</p>
+                        <em>Base operativa</em>
                       </div>
+                      <div class="settings-plan-price">
+                        <strong>15 €<small>/mes</small></strong>
+                        <p>150 €/año</p>
+                      </div>
+                      <p class="settings-plan-description">Para traders que quieren dejar de mirar MT5 a ciegas y empezar a medir su proceso con orden.</p>
+                      <ul class="settings-plan-features">
+                        <li>Hasta 2 cuentas MT5 conectadas</li>
+                        <li>Dashboard live con rendimiento, drawdown y calendario</li>
+                        <li>Riesgo base, journal limitado y lectura de consistencia</li>
+                        <li>Ideal para una operativa principal y una cuenta de apoyo</li>
+                      </ul>
                       <div class="settings-billing-plan__actions">
                         <button class="btn-primary btn-inline" type="button" data-billing-checkout data-plan="core" data-interval="monthly">Mensual</button>
                         <button class="btn-secondary btn-inline" type="button" data-billing-checkout data-plan="core" data-interval="yearly">150 €/año</button>
                       </div>
                     </article>
-                    <article class="settings-billing-plan settings-billing-plan--featured">
-                      <div>
+                    <article class="settings-billing-plan settings-billing-plan--pro">
+                      <div class="settings-plan-topline">
                         <span>Edge Pro</span>
-                        <strong>39 €<small>/mes</small></strong>
-                        <p>3 cuentas MT5, funding, estrategias, exports y riesgo avanzado.</p>
+                        <em>Más elegido</em>
                       </div>
+                      <div class="settings-plan-price">
+                        <strong>25 €<small>/mes</small></strong>
+                        <p>250 €/año</p>
+                      </div>
+                      <p class="settings-plan-description">Para traders con varias cuentas, fondeo o estrategias que necesitan comparar, priorizar y corregir rápido.</p>
+                      <ul class="settings-plan-features">
+                        <li>Hasta 5 cuentas MT5 conectadas</li>
+                        <li>Funding, estrategias, portfolio y analítica avanzada</li>
+                        <li>Exports, journal completo y control de riesgo por cuenta</li>
+                        <li>La mejor opción para operar varias pruebas o brokers</li>
+                      </ul>
                       <div class="settings-billing-plan__actions">
                         <button class="btn-primary btn-inline" type="button" data-billing-checkout data-plan="pro" data-interval="monthly">Mensual</button>
-                        <button class="btn-secondary btn-inline" type="button" data-billing-checkout data-plan="pro" data-interval="yearly">390 €/año</button>
+                        <button class="btn-secondary btn-inline" type="button" data-billing-checkout data-plan="pro" data-interval="yearly">250 €/año</button>
+                      </div>
+                    </article>
+                    <article class="settings-billing-plan settings-billing-plan--featured">
+                      <div class="settings-plan-topline">
+                        <span>Edge Unlimited</span>
+                        <em>Acceso total</em>
+                      </div>
+                      <div class="settings-plan-price">
+                        <strong>39 €<small>/mes</small></strong>
+                        <p>390 €/año</p>
+                      </div>
+                      <p class="settings-plan-description">Para traders avanzados, mentores o equipos que quieren KMFX Edge sin límites de cuentas ni fricción operativa.</p>
+                      <ul class="settings-plan-features">
+                        <li>Cuentas MT5 ilimitadas</li>
+                        <li>Acceso completo a dashboard, riesgo, funding y estrategias</li>
+                        <li>Exports, debug avanzado y soporte prioritario</li>
+                        <li>Perfecto para comunidad privada, mentoring o gestión multi-cuenta</li>
+                      </ul>
+                      <div class="settings-billing-plan__actions">
+                        <button class="btn-primary btn-inline" type="button" data-billing-checkout data-plan="unlimited" data-interval="monthly">Mensual</button>
+                        <button class="btn-secondary btn-inline" type="button" data-billing-checkout data-plan="unlimited" data-interval="yearly">390 €/año</button>
                       </div>
                     </article>
                   </div>
                 </article>
 
-                <article class="tl-section-card settings-card">
+                <article class="tl-section-card settings-card settings-panel" data-settings-panel="general">
                   <div class="tl-section-header">
                     <div>
                       <div class="tl-section-title">Preferencias</div>
@@ -440,6 +486,23 @@
                       <span>Cuenta del dashboard</span>
                       <select data-settings-field="dashboardAccount"></select>
                     </label>
+                  </div>
+                </article>
+
+                <article class="tl-section-card settings-card settings-panel settings-card--referrals" data-settings-panel="referrals">
+                  <div class="tl-section-header">
+                    <div>
+                      <div class="tl-section-title">Referidos</div>
+                      <div class="settings-section-sub">Programa privado para invitar traders y desbloquear recompensas.</div>
+                    </div>
+                    <div class="meta-badge">Próximamente</div>
+                  </div>
+                  <div class="settings-referral-lock">
+                    <div class="settings-referral-lock__icon" aria-hidden="true">↗</div>
+                    <div>
+                      <strong>Bloqueado por ahora</strong>
+                      <p>Lo activaremos cuando el flujo de suscripciones esté completamente estabilizado en producción.</p>
+                    </div>
                   </div>
                 </article>
 

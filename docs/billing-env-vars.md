@@ -36,6 +36,8 @@ STRIPE_PRICE_CORE_MONTHLY=kmfx_basic_monthly
 STRIPE_PRICE_CORE_YEARLY=kmfx_basic_yearly
 STRIPE_PRICE_PRO_MONTHLY=kmfx_pro_monthly
 STRIPE_PRICE_PRO_YEARLY=kmfx_pro_yearly
+STRIPE_PRICE_UNLIMITED_MONTHLY=kmfx_unlimited_monthly
+STRIPE_PRICE_UNLIMITED_YEARLY=kmfx_unlimited_yearly
 ```
 
 Live Price IDs currently created under the isolated `KMFX Edge` product:
@@ -43,8 +45,10 @@ Live Price IDs currently created under the isolated `KMFX Edge` product:
 ```bash
 STRIPE_PRICE_CORE_MONTHLY=price_1TUBYUEoC6e7wNItXEGCdVZ4
 STRIPE_PRICE_CORE_YEARLY=price_1TUC1ZEoC6e7wNItpQF7UGPA
-STRIPE_PRICE_PRO_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
-STRIPE_PRICE_PRO_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
+STRIPE_PRICE_PRO_MONTHLY=price_1TULXwEoC6e7wNItP3e4pCh4
+STRIPE_PRICE_PRO_YEARLY=price_1TULY0EoC6e7wNItYVKQKHIi
+STRIPE_PRICE_UNLIMITED_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
+STRIPE_PRICE_UNLIMITED_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
 ```
 
 Use either lookup keys or Price IDs, never client-provided prices.

@@ -205,8 +205,10 @@ CORS_ALLOW_HEADERS = [
 DEFAULT_CONNECTION_PLAN_LIMITS = {
     "disabled": 0,
     "free": 1,
+    "core": 2,
     "starter": 2,
     "pro": 5,
+    "unlimited": 1000,
     "business": 25,
     "admin": 1000,
 }
@@ -214,6 +216,7 @@ PLAN_DISPLAY_NAMES = {
     "free": "Free / Demo",
     "core": "Edge Basic",
     "pro": "Edge Pro",
+    "unlimited": "Edge Unlimited",
     "desk": "Edge Desk",
 }
 DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
@@ -240,7 +243,7 @@ DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
     },
     "core": {
         "demoData": True,
-        "liveMt5Accounts": 1,
+        "liveMt5Accounts": 2,
         "launcherConnection": True,
         "dashboardCore": True,
         "riskCore": True,
@@ -261,7 +264,7 @@ DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
     },
     "pro": {
         "demoData": True,
-        "liveMt5Accounts": 3,
+        "liveMt5Accounts": 5,
         "launcherConnection": True,
         "dashboardCore": True,
         "riskCore": True,
@@ -279,6 +282,27 @@ DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
         "exports": True,
         "teamWorkspace": False,
         "prioritySupport": False,
+    },
+    "unlimited": {
+        "demoData": True,
+        "liveMt5Accounts": "custom",
+        "launcherConnection": True,
+        "dashboardCore": True,
+        "riskCore": True,
+        "riskPolicyEditor": True,
+        "localAutoBlock": True,
+        "tradesHistory": True,
+        "calendar": True,
+        "advancedAnalytics": True,
+        "journal": True,
+        "strategies": True,
+        "fundedChallenges": True,
+        "portfolio": True,
+        "talentProfile": True,
+        "rawBridgeDebug": True,
+        "exports": True,
+        "teamWorkspace": False,
+        "prioritySupport": True,
     },
     "desk": {
         "demoData": True,
@@ -1146,8 +1170,10 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     plan = normalize_plan_key(connection_plan_for_context(context))
     status = billing_status_from_metadata(app_metadata, plan)
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
+    if context.get("is_admin"):
+        effective_plan = "unlimited"
     entitlements = plan_entitlements(effective_plan)
-    if status in BILLING_RESTRICTED_STATUSES:
+    if status in BILLING_RESTRICTED_STATUSES and not context.get("is_admin"):
         entitlements["liveMt5Accounts"] = 0
         entitlements["launcherConnection"] = False
     account_limit = entitlement_account_limit(entitlements, context, authenticated=authenticated)
@@ -1160,7 +1186,9 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         connection_key_limit = DEFAULT_CONNECTION_PLAN_LIMITS["admin"]
 
     access = "active"
-    if status in BILLING_ATTENTION_STATUSES:
+    if context.get("is_admin"):
+        access = "active"
+    elif status in BILLING_ATTENTION_STATUSES:
         access = "billing_attention"
     elif status in BILLING_RESTRICTED_STATUSES:
         access = "restricted"
@@ -1173,7 +1201,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         "billing": {
             "plan": plan,
             "effectivePlan": effective_plan,
-            "displayName": PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"]),
+            "displayName": PLAN_DISPLAY_NAMES.get(effective_plan, PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"])),
             "status": status,
             "access": access,
             "currentPeriodEndsAt": metadata_first_value(
@@ -1538,12 +1566,14 @@ def billing_plan_price_reference(plan: str, interval: str) -> str:
         return f"kmfx_basic_{interval}"
     if plan == "pro":
         return f"kmfx_{plan}_{interval}"
+    if plan == "unlimited":
+        return f"kmfx_unlimited_{interval}"
     return ""
 
 
 def stripe_price_plan_candidates() -> dict[str, str]:
     candidates: dict[str, str] = {}
-    for plan in ("core", "pro"):
+    for plan in ("core", "pro", "unlimited"):
         for interval in ("monthly", "yearly"):
             default_lookup_key = f"kmfx_basic_{interval}" if plan == "core" else f"kmfx_{plan}_{interval}"
             candidates[default_lookup_key] = plan
@@ -1557,7 +1587,7 @@ def stripe_price_plan_candidates() -> dict[str, str]:
 
 def resolve_stripe_price_reference(plan: str, interval: str) -> dict[str, str]:
     plan = normalize_plan_key(plan)
-    if plan not in {"core", "pro"}:
+    if plan not in {"core", "pro", "unlimited"}:
         raise ValueError("invalid_billing_plan")
     reference = billing_plan_price_reference(plan, interval)
     if not reference:
@@ -1585,7 +1615,7 @@ def stripe_plan_from_price(price: dict[str, Any] | None = None, *, price_id: str
         metadata.get("product_plan"),
     ):
         plan = safe_str(raw_plan).lower()
-        if plan in {"core", "pro", "desk"}:
+        if plan in {"core", "pro", "unlimited", "desk"}:
             return plan
     normalized_lookup = safe_str(lookup_key or price.get("lookup_key")).lower()
     normalized_price_id = safe_str(price_id or price.get("id"))
@@ -1602,7 +1632,7 @@ def stripe_price_belongs_to_kmfx(price: dict[str, Any] | None = None, *, price_i
     metadata = ensure_dict(price.get("metadata"))
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
         return True
-    if safe_str(metadata.get("kmfx_plan") or metadata.get("plan_key")).lower() in {"core", "pro", "desk"}:
+    if safe_str(metadata.get("kmfx_plan") or metadata.get("plan_key")).lower() in {"core", "pro", "unlimited", "desk"}:
         return True
     product_id = safe_str(price.get("product"))
     configured_product = _env_value("STRIPE_PRODUCT_ID", "KMFX_STRIPE_PRODUCT_ID")

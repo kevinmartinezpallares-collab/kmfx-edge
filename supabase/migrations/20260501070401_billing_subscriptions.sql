@@ -184,7 +184,7 @@ insert into public.plan_entitlements (
     true,
     '{
       "demoData": true,
-      "liveMt5Accounts": 1,
+      "liveMt5Accounts": 2,
       "launcherConnection": true,
       "dashboardCore": true,
       "riskCore": true,
@@ -212,7 +212,7 @@ insert into public.plan_entitlements (
     true,
     '{
       "demoData": true,
-      "liveMt5Accounts": 3,
+      "liveMt5Accounts": 5,
       "launcherConnection": true,
       "dashboardCore": true,
       "riskCore": true,
@@ -230,6 +230,34 @@ insert into public.plan_entitlements (
       "exports": true,
       "teamWorkspace": false,
       "prioritySupport": false
+    }'::jsonb
+  ),
+  (
+    'unlimited',
+    'Edge Unlimited',
+    'kmfx_unlimited_monthly',
+    'kmfx_unlimited_yearly',
+    true,
+    '{
+      "demoData": true,
+      "liveMt5Accounts": "custom",
+      "launcherConnection": true,
+      "dashboardCore": true,
+      "riskCore": true,
+      "riskPolicyEditor": true,
+      "localAutoBlock": true,
+      "tradesHistory": true,
+      "calendar": true,
+      "advancedAnalytics": true,
+      "journal": true,
+      "strategies": true,
+      "fundedChallenges": true,
+      "portfolio": true,
+      "talentProfile": true,
+      "rawBridgeDebug": true,
+      "exports": true,
+      "teamWorkspace": false,
+      "prioritySupport": true
     }'::jsonb
   ),
   (

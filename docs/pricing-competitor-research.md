@@ -39,9 +39,9 @@ Por eso el plan basico puede ser agresivo, pero Pro no debe quedar demasiado bar
 | Plan | Mensual | Anual | Ahorro anual | Usuario objetivo |
 | --- | ---: | ---: | ---: | --- |
 | Free / Demo | 0 EUR | 0 EUR | n/a | Explorar producto sin conectar MT5 live. |
-| Edge Basic | 15 EUR/mes | 150 EUR/año | 2 meses gratis | Trader individual con 1 cuenta MT5. |
-| Edge Pro | 39 EUR/mes | 390 EUR/año | 2 meses gratis | Trader activo, fondeo, hasta 3 cuentas MT5. |
-| Edge Desk | Custom | Custom | Custom | Equipos, comunidades, cuentas custom y soporte prioritario. |
+| Edge Basic | 15 EUR/mes | 150 EUR/año | 2 meses gratis | Trader individual con hasta 2 cuentas MT5. |
+| Edge Pro | 25 EUR/mes | 250 EUR/año | 2 meses gratis | Trader activo, fondeo, hasta 5 cuentas MT5. |
+| Edge Unlimited | 39 EUR/mes | 390 EUR/año | 2 meses gratis | Traders avanzados, comunidad privada y cuentas MT5 ilimitadas. |
 
 ## Reglas comerciales MVP
 
@@ -61,6 +61,8 @@ Lookup keys definitivas:
 - `kmfx_basic_yearly`
 - `kmfx_pro_monthly`
 - `kmfx_pro_yearly`
+- `kmfx_unlimited_monthly`
+- `kmfx_unlimited_yearly`
 
 Compatibilidad interna:
 
@@ -71,6 +73,6 @@ Compatibilidad interna:
 
 15 EUR/mes queda justo por debajo de Trademetria Basic mensual y muy por debajo de TradeZella/TraderSync/Tradervue paid tiers. Eso ayuda a captar traders de forex/prop que aun no quieren pagar 30-50 USD por un journal.
 
-39 EUR/mes para Pro mantiene margen suficiente y queda por debajo o cerca de los planes premium mainstream, pero justificado por multi-cuenta, funding, risk engine avanzado, exports, journal/strategies y soporte de flujo MT5.
+25 EUR/mes para Pro crea un escalón claro desde Basic sin duplicar el coste de entrada. 39 EUR/mes queda reservado para Unlimited, donde el valor se justifica por cuentas ilimitadas, comunidad privada, funding, risk engine avanzado, exports, journal/strategies y soporte de flujo MT5.
 
 El anual con dos meses gratis es simple, facil de comunicar y evita descuentos agresivos que devaluen el producto antes del lanzamiento.

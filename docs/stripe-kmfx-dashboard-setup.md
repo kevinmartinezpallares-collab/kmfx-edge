@@ -9,8 +9,10 @@ Este checklist completa lo que el conector de Stripe no permite configurar con s
 - Product: `prod_UT7nzmgj3Eg3Zv` (`KMFX Edge`)
 - Edge Basic monthly: `price_1TUBYUEoC6e7wNItXEGCdVZ4`
 - Edge Basic yearly: `price_1TUC1ZEoC6e7wNItpQF7UGPA`
-- Edge Pro monthly: `price_1TUC5uEoC6e7wNItcPyjGy5Z`
-- Edge Pro yearly: `price_1TUC65EoC6e7wNItBfoMCblt`
+- Edge Pro monthly: `price_1TULXwEoC6e7wNItP3e4pCh4`
+- Edge Pro yearly: `price_1TULY0EoC6e7wNItYVKQKHIi`
+- Edge Unlimited monthly: `price_1TUC5uEoC6e7wNItcPyjGy5Z`
+- Edge Unlimited yearly: `price_1TUC65EoC6e7wNItBfoMCblt`
 
 ## Completar metadata y lookup keys
 
@@ -20,8 +22,10 @@ En Stripe Dashboard o API, completar solo estos objetos:
 | --- | --- | --- |
 | `price_1TUBYUEoC6e7wNItXEGCdVZ4` | `kmfx_basic_monthly` | `app=kmfx_edge`, `plan_key=core`, `commercial_plan=basic`, `interval=month` |
 | `price_1TUC1ZEoC6e7wNItpQF7UGPA` | `kmfx_basic_yearly` | `app=kmfx_edge`, `plan_key=core`, `commercial_plan=basic`, `interval=year` |
-| `price_1TUC5uEoC6e7wNItcPyjGy5Z` | `kmfx_pro_monthly` | `app=kmfx_edge`, `plan_key=pro`, `commercial_plan=pro`, `interval=month` |
-| `price_1TUC65EoC6e7wNItBfoMCblt` | `kmfx_pro_yearly` | `app=kmfx_edge`, `plan_key=pro`, `commercial_plan=pro`, `interval=year` |
+| `price_1TULXwEoC6e7wNItP3e4pCh4` | `kmfx_pro_monthly` | `app=kmfx_edge`, `plan_key=pro`, `commercial_plan=pro`, `interval=month` |
+| `price_1TULY0EoC6e7wNItYVKQKHIi` | `kmfx_pro_yearly` | `app=kmfx_edge`, `plan_key=pro`, `commercial_plan=pro`, `interval=year` |
+| `price_1TUC5uEoC6e7wNItcPyjGy5Z` | `kmfx_unlimited_monthly` | `app=kmfx_edge`, `plan_key=unlimited`, `commercial_plan=unlimited`, `interval=month` |
+| `price_1TUC65EoC6e7wNItBfoMCblt` | `kmfx_unlimited_yearly` | `app=kmfx_edge`, `plan_key=unlimited`, `commercial_plan=unlimited`, `interval=year` |
 
 Product metadata:
 
@@ -35,7 +39,7 @@ Configurar portal sin afectar productos externos:
 - permitir actualizar metodo de pago;
 - permitir ver facturas;
 - permitir cancelar suscripcion;
-- permitir cambiar solo entre los cuatro Prices de KMFX;
+- permitir cambiar solo entre los seis Prices de KMFX;
 - no incluir productos/precios externos;
 - mostrar cancelacion al final del periodo pagado.
 
@@ -68,8 +72,10 @@ STRIPE_API_VERSION=2026-02-25.clover
 STRIPE_PRODUCT_ID=prod_UT7nzmgj3Eg3Zv
 STRIPE_PRICE_CORE_MONTHLY=price_1TUBYUEoC6e7wNItXEGCdVZ4
 STRIPE_PRICE_CORE_YEARLY=price_1TUC1ZEoC6e7wNItpQF7UGPA
-STRIPE_PRICE_PRO_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
-STRIPE_PRICE_PRO_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
+STRIPE_PRICE_PRO_MONTHLY=price_1TULXwEoC6e7wNItP3e4pCh4
+STRIPE_PRICE_PRO_YEARLY=price_1TULY0EoC6e7wNItYVKQKHIi
+STRIPE_PRICE_UNLIMITED_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
+STRIPE_PRICE_UNLIMITED_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
 SUPABASE_SERVICE_ROLE_KEY=...
 NEXT_PUBLIC_APP_URL=https://kmfxedge.com
 BILLING_SUCCESS_PATH=/settings/billing?checkout=success

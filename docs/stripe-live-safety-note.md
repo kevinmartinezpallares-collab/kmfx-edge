@@ -25,12 +25,14 @@ Objetos creados:
 
 ## Accion realizada tras confirmacion de usar la misma cuenta
 
-El usuario confirmo que KMFX puede vivir en la misma cuenta Stripe siempre que no se toque nada de los pagos externos. Se completaron solo los Prices Pro dentro del Product `KMFX Edge`.
+El usuario confirmo que KMFX puede vivir en la misma cuenta Stripe siempre que no se toque nada de los pagos externos. Se completaron solo los Prices dentro del Product `KMFX Edge`.
 
 | Tipo | ID | Descripcion |
 | --- | --- | --- |
-| Price | `price_1TUC5uEoC6e7wNItcPyjGy5Z` | Edge Pro, 39.00 EUR/month |
-| Price | `price_1TUC65EoC6e7wNItBfoMCblt` | Edge Pro, 390.00 EUR/year |
+| Price | `price_1TULXwEoC6e7wNItP3e4pCh4` | Edge Pro, 25.00 EUR/month |
+| Price | `price_1TULY0EoC6e7wNItYVKQKHIi` | Edge Pro, 250.00 EUR/year |
+| Price | `price_1TUC5uEoC6e7wNItcPyjGy5Z` | Edge Unlimited, 39.00 EUR/month |
+| Price | `price_1TUC65EoC6e7wNItBfoMCblt` | Edge Unlimited, 390.00 EUR/year |
 
 No se crearon:
 

@@ -441,6 +441,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
             try:
                 connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
+                connector_api.account_service.create_pending_account(user_id="user-123", alias="Segunda")
                 response = connector_api.connection_key_creation_denial(
                     user_id="user-123",
                     context={"is_admin": False, "app_metadata": {"plan": "free"}, "user_metadata": {}},
@@ -459,7 +460,6 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
             try:
-                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
                 response = connector_api.connection_key_creation_denial(
                     user_id="user-123",
                     context={
@@ -467,6 +467,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                         "app_metadata": {"plan": "core", "billing_status": "active"},
                         "user_metadata": {},
                     },
+                    requested_slots=3,
                 )
             finally:
                 connector_api.account_service = previous_service
@@ -475,7 +476,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(409, response.status_code)
         self.assertEqual("plan_limit_reached", body["reason"])
-        self.assertEqual(1, body["details"]["connection_limit"])
+        self.assertEqual(2, body["details"]["connection_limit"])
         self.assertEqual("liveMt5Accounts", body["details"]["entitlement"])
 
     def test_connection_plan_limit_allows_admin(self) -> None:
@@ -512,7 +513,6 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
             try:
-                connector_api.account_service.create_pending_account(user_id="user-123", alias="Primera")
                 response = connector_api.connection_key_creation_denial(
                     user_id="user-123",
                     context={
@@ -520,6 +520,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                         "app_metadata": {"plan": "core", "billing_status": "active"},
                         "user_metadata": {"plan": "business", "kmfx_connection_limit": 99},
                     },
+                    requested_slots=3,
                 )
             finally:
                 connector_api.account_service = previous_service
@@ -528,7 +529,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(409, response.status_code)
         self.assertEqual("plan_limit_reached", body["reason"])
-        self.assertEqual(1, body["details"]["connection_limit"])
+        self.assertEqual(2, body["details"]["connection_limit"])
 
     def test_user_metadata_mt5_disabled_does_not_block_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -602,6 +603,29 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(context["is_admin"])
         self.assertEqual("admin", context["app_metadata"]["role"])
 
+    def test_admin_billing_status_gets_unlimited_effective_access(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "admin-user",
+                "email": "admin@kmfxedge.com",
+                "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
+                "user_metadata": {},
+            },
+        ):
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["is_admin"])
+        self.assertEqual("unlimited", body["billing"]["effectivePlan"])
+        self.assertEqual("Edge Unlimited", body["billing"]["displayName"])
+        self.assertEqual("active", body["billing"]["access"])
+        self.assertEqual(connector_api.DEFAULT_CONNECTION_PLAN_LIMITS["admin"], body["limits"]["connectionKeyLimit"])
+        self.assertTrue(body["entitlements"]["rawBridgeDebug"])
+
     def test_billing_status_anonymous_returns_free_limited_entitlements(self) -> None:
         response = asyncio.run(connector_api.billing_status(self._request()))
         body = json.loads(response.body.decode("utf-8"))
@@ -634,7 +658,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("pro", body["billing"]["plan"])
         self.assertEqual("pro", body["billing"]["effectivePlan"])
         self.assertEqual("active", body["billing"]["status"])
-        self.assertEqual(3, body["entitlements"]["liveMt5Accounts"])
+        self.assertEqual(5, body["entitlements"]["liveMt5Accounts"])
         self.assertTrue(body["entitlements"]["rawBridgeDebug"])
         self.assertFalse(body["entitlements"]["teamWorkspace"])
 
@@ -679,7 +703,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual("core", body["billing"]["effectivePlan"])
         self.assertEqual("billing_attention", body["billing"]["access"])
-        self.assertEqual(1, body["entitlements"]["liveMt5Accounts"])
+        self.assertEqual(2, body["entitlements"]["liveMt5Accounts"])
         self.assertTrue(body["entitlements"]["launcherConnection"])
 
     def test_billing_checkout_creates_subscription_session(self) -> None:
@@ -739,8 +763,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             {
                 "STRIPE_PRICE_CORE_MONTHLY": "price_1TUBYUEoC6e7wNItXEGCdVZ4",
                 "STRIPE_PRICE_CORE_YEARLY": "price_1TUC1ZEoC6e7wNItpQF7UGPA",
-                "STRIPE_PRICE_PRO_MONTHLY": "price_1TUC5uEoC6e7wNItcPyjGy5Z",
-                "STRIPE_PRICE_PRO_YEARLY": "price_1TUC65EoC6e7wNItBfoMCblt",
+                "STRIPE_PRICE_PRO_MONTHLY": "price_1TULXwEoC6e7wNItP3e4pCh4",
+                "STRIPE_PRICE_PRO_YEARLY": "price_1TULY0EoC6e7wNItYVKQKHIi",
+                "STRIPE_PRICE_UNLIMITED_MONTHLY": "price_1TUC5uEoC6e7wNItcPyjGy5Z",
+                "STRIPE_PRICE_UNLIMITED_YEARLY": "price_1TUC65EoC6e7wNItBfoMCblt",
             },
         ):
             self.assertEqual(
@@ -753,6 +779,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             )
             self.assertEqual(
                 "pro",
+                connector_api.stripe_plan_from_price({"id": "price_1TULY0EoC6e7wNItYVKQKHIi", "metadata": {}}),
+            )
+            self.assertEqual(
+                "unlimited",
                 connector_api.stripe_plan_from_price({"id": "price_1TUC65EoC6e7wNItBfoMCblt", "metadata": {}}),
             )
 

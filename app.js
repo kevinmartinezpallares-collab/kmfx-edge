@@ -316,6 +316,8 @@ function initSettings(authSession = null) {
   const billingStatus = document.querySelector("[data-settings-billing-status]");
   const billingPortalButton = document.querySelector("[data-billing-portal]");
   const billingCheckoutButtons = [...document.querySelectorAll("[data-billing-checkout]")];
+  const settingsTabButtons = [...document.querySelectorAll("[data-settings-tab]")];
+  const settingsPanels = [...document.querySelectorAll("[data-settings-panel]")];
   const adminOnlyNodes = [...document.querySelectorAll("[data-admin-only]")];
   const themeSelect = document.querySelector('[data-settings-field="theme"]');
   const densitySelect = document.querySelector('[data-settings-field="density"]');
@@ -530,6 +532,18 @@ function initSettings(authSession = null) {
       billingPortalButton.disabled = !canOpenPortal;
       billingPortalButton.setAttribute("aria-disabled", canOpenPortal ? "false" : "true");
     }
+  };
+
+  const activateSettingsTab = (tab) => {
+    const nextTab = tab === "subscription" || tab === "referrals" ? tab : "general";
+    settingsTabButtons.forEach((button) => {
+      const active = button.dataset.settingsTab === nextTab;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    settingsPanels.forEach((panel) => {
+      panel.classList.toggle("active", panel.dataset.settingsPanel === nextTab);
+    });
   };
 
   const syncAccountSelectors = (selectedId) => {
@@ -823,6 +837,9 @@ function initSettings(authSession = null) {
     button.addEventListener("click", () => startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly"));
   });
   billingPortalButton?.addEventListener("click", openBillingPortal);
+  settingsTabButtons.forEach((button) => {
+    button.addEventListener("click", () => activateSettingsTab(button.dataset.settingsTab));
+  });
 
   const handleSettingsFieldEdit = (field) => {
     if (!field) return;
