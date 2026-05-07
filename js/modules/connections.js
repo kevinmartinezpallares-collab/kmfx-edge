@@ -273,6 +273,9 @@ function renderConnectionsKpis(accounts = [], state = {}) {
   const planName = billingState.loading
     ? "Comprobando"
     : billingState.billing?.displayName || "Free / Demo";
+  const planKey = String(billingState.billing?.effectivePlan || billingState.billing?.plan || "free")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
   const planTone = billingAccessTone(state);
   const planMeta = billingAccessLabel(state);
   return `
@@ -289,7 +292,7 @@ function renderConnectionsKpis(accounts = [], state = {}) {
         meta: connectedCount === 1 ? "Lista para usar" : connectedCount > 1 ? "Listas para usar" : "Sin conexión activa",
         tone: connectedCount > 0 ? "ok" : "neutral",
       })}
-      <article class="risk-metric-card risk-metric-card--${escapeHtml(planTone)} connections-plan-kpi">
+      <article class="risk-metric-card risk-metric-card--${escapeHtml(planTone)} connections-plan-kpi connections-plan-kpi--${escapeHtml(planKey || "free")}">
         <div class="risk-metric-card__label">Plan</div>
         <div class="risk-metric-card__value">${escapeHtml(planName)}</div>
         <div class="risk-metric-card__meta">${escapeHtml(planMeta)}</div>
