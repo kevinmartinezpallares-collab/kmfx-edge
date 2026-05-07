@@ -8,6 +8,7 @@ These variables are used by the current Python API billing endpoints and can be 
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_API_VERSION=2026-02-25.clover
+STRIPE_PRODUCT_ID=prod_UT7nzmgj3Eg3Zv
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 NEXT_PUBLIC_SUPABASE_URL=https://uuhiqreifisppqkawzif.supabase.co
@@ -28,12 +29,25 @@ Current backend endpoints:
 
 ## Price lookup keys
 
+Preferred once lookup keys are configured in Stripe:
+
 ```bash
-STRIPE_PRICE_CORE_MONTHLY=kmfx_core_monthly
-STRIPE_PRICE_CORE_YEARLY=kmfx_core_yearly
+STRIPE_PRICE_CORE_MONTHLY=kmfx_basic_monthly
+STRIPE_PRICE_CORE_YEARLY=kmfx_basic_yearly
 STRIPE_PRICE_PRO_MONTHLY=kmfx_pro_monthly
 STRIPE_PRICE_PRO_YEARLY=kmfx_pro_yearly
 ```
+
+Live Price IDs currently created under the isolated `KMFX Edge` product:
+
+```bash
+STRIPE_PRICE_CORE_MONTHLY=price_1TUBYUEoC6e7wNItXEGCdVZ4
+STRIPE_PRICE_CORE_YEARLY=price_1TUC1ZEoC6e7wNItpQF7UGPA
+STRIPE_PRICE_PRO_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
+STRIPE_PRICE_PRO_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
+```
+
+Use either lookup keys or Price IDs, never client-provided prices.
 
 ## Security rules
 

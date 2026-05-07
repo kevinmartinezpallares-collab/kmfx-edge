@@ -4,7 +4,7 @@
 
 Use Stripe Billing with Checkout Sessions in `subscription` mode. Use Customer Portal for self-service plan changes, card updates, invoices, and cancellation.
 
-The catalog below is intentionally price-ready but not price-final. Do not create final Stripe Prices until the amounts, currency, trial rules, and annual discount are confirmed.
+The catalog below is price-final for MVP. Pricing was set after competitor research in `docs/pricing-competitor-research.md`.
 
 ## Product model
 
@@ -12,8 +12,8 @@ Recommended Stripe model:
 
 - Product: `KMFX Edge`
 - Prices:
-  - `kmfx_core_monthly`
-  - `kmfx_core_yearly`
+  - `kmfx_basic_monthly`
+  - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
 - Desk: manual/custom quote for now, no public Price required.
@@ -24,17 +24,29 @@ Recommended Stripe model:
 | Field | Value |
 | --- | --- |
 | Name | `KMFX Edge` |
+| Live Product ID | `prod_UT7nzmgj3Eg3Zv` |
 | Description | `Risk, performance, and MT5 workflow layer for disciplined traders.` |
 | Metadata | `app=kmfx_edge`, `billing_model=subscription` |
 
-## Prices to create after final pricing
+## Prices
 
-| Lookup key | Plan | Interval | Currency | Amount | Metadata |
-| --- | --- | --- | --- | --- | --- |
-| `kmfx_core_monthly` | Edge Core | monthly | TBD | TBD | `plan_key=core`, `interval=month` |
-| `kmfx_core_yearly` | Edge Core | yearly | TBD | TBD | `plan_key=core`, `interval=year` |
-| `kmfx_pro_monthly` | Edge Pro | monthly | TBD | TBD | `plan_key=pro`, `interval=month` |
-| `kmfx_pro_yearly` | Edge Pro | yearly | TBD | TBD | `plan_key=pro`, `interval=year` |
+| Lookup key | Live Price ID | Plan | Interval | Currency | Amount | Metadata |
+| --- | --- | --- | --- | --- | --- | --- |
+| `kmfx_basic_monthly` | `price_1TUBYUEoC6e7wNItXEGCdVZ4` | Edge Basic | monthly | EUR | 15.00 EUR | `plan_key=core`, `commercial_plan=basic`, `interval=month` |
+| `kmfx_basic_yearly` | `price_1TUC1ZEoC6e7wNItpQF7UGPA` | Edge Basic | yearly | EUR | 150.00 EUR | `plan_key=core`, `commercial_plan=basic`, `interval=year` |
+| `kmfx_pro_monthly` | `price_1TUC5uEoC6e7wNItcPyjGy5Z` | Edge Pro | monthly | EUR | 39.00 EUR | `plan_key=pro`, `commercial_plan=pro`, `interval=month` |
+| `kmfx_pro_yearly` | `price_1TUC65EoC6e7wNItBfoMCblt` | Edge Pro | yearly | EUR | 390.00 EUR | `plan_key=pro`, `commercial_plan=pro`, `interval=year` |
+
+Note: the Stripe connector created Prices without lookup keys or metadata. Until those fields are completed in Stripe Dashboard/API, configure the backend with the live Price IDs from `docs/billing-env-vars.md`.
+
+## Commercial rules
+
+- Trial: 7 days, no card required for MVP.
+- `past_due` grace period: 7 days.
+- Refunds: 14 days for the first purchase when there is no abuse, or when a product-blocking technical issue cannot be resolved.
+- Cancellation: self-service in Customer Portal; access remains active until the paid period ends.
+- Downgrade: keep data; over-limit accounts/features become read-only until the user archives/removes them or upgrades again.
+- Desk: contact-only, no public Stripe Price.
 
 ## Required webhook events
 
@@ -76,18 +88,20 @@ When creating Checkout Sessions, set subscription metadata too:
 
 ## Customer Portal
 
-Configure Customer Portal to allow:
+Configure Customer Portal carefully because the same Stripe account receives non-KMFX payments. Do not change unrelated products or flows.
+
+Allow:
 
 - payment method updates
 - invoice history
 - cancellation
-- switching between Core and Pro
+- switching between Edge Basic and Edge Pro
 - monthly/yearly interval changes only if pricing is finalized
 
 Keep Desk upgrades outside self-service until the sales/support process exists.
 
 ## Notes from current account scan
 
-As of 2026-05-01, the connected Stripe account had no Products or Prices returned by the plugin. That means creating the KMFX catalog later should not collide with existing Stripe resources.
+As of 2026-05-01, the connected Stripe account had no Products or Prices returned by the plugin. On 2026-05-06, the KMFX product and four live recurring prices above were created.
 
-No Stripe Products or Prices were created during this setup pass because final amounts, currency, trial rules, and annual discounts are not confirmed yet. This avoids creating live billing objects that might need cleanup later.
+Do not modify any Stripe object outside the isolated `KMFX Edge` product unless the user explicitly asks for it.

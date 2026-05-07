@@ -173,21 +173,23 @@ Bloque previo obligatorio:
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 
-- [ ] Confirmar moneda: EUR, USD o ambas.
-- [ ] Confirmar precio mensual Core.
-- [ ] Confirmar precio anual Core.
-- [ ] Confirmar precio mensual Pro.
-- [ ] Confirmar precio anual Pro.
-- [ ] Decidir trial: sin trial, trial con tarjeta o trial sin tarjeta.
-- [ ] Decidir grace period para `past_due`.
-- [ ] Decidir si Desk queda privado/contact-only.
-- [ ] Confirmar política de refunds y cancelación.
-- [ ] Crear Stripe Product `KMFX Edge`.
+- [x] Confirmar moneda: EUR.
+- [x] Confirmar precio mensual Basic/Core: 15 EUR.
+- [x] Confirmar precio anual Basic/Core: 150 EUR.
+- [x] Confirmar precio mensual Pro: 39 EUR.
+- [x] Confirmar precio anual Pro: 390 EUR.
+- [x] Decidir trial: 7 dias sin tarjeta.
+- [x] Decidir grace period para `past_due`: 7 dias.
+- [x] Decidir si Desk queda privado/contact-only.
+- [x] Confirmar política de refunds y cancelación: 14 dias en primera compra sin abuso o fallo tecnico no resuelto.
+- [x] Crear Stripe Product `KMFX Edge`: `prod_UT7nzmgj3Eg3Zv`.
 - [ ] Crear Prices con lookup keys:
-  - `kmfx_core_monthly`
-  - `kmfx_core_yearly`
+  - `kmfx_basic_monthly`
+  - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
+- [x] Crear Prices live bajo `KMFX Edge` con Price IDs documentados en `docs/stripe-product-catalog.md`.
+- [ ] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API.
 - [ ] Configurar Customer Portal.
 - [ ] Configurar webhook endpoint en Stripe.
 

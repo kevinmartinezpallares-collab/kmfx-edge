@@ -257,7 +257,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_link_account_allows_authenticated_free_onboarding_key(self) -> None:
+    def test_link_account_blocks_authenticated_free_live_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -285,10 +285,9 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-        self.assertEqual(200, response.status_code)
-        self.assertTrue(body["connection_key"])
-        self.assertEqual("ea_direct", body["account"]["connection_mode"])
-        self.assertEqual("free-user", body["account"]["user_id"])
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
 
     def test_direct_link_registers_login_server_without_persisting_password(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -418,7 +417,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-    def test_free_plan_allows_first_connection_key_for_onboarding(self) -> None:
+    def test_free_plan_blocks_first_connection_key_for_onboarding(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -430,9 +429,13 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-        self.assertIsNone(response)
+        self.assertIsNotNone(response)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
 
-    def test_free_plan_limit_blocks_second_connection(self) -> None:
+    def test_free_plan_blocks_second_connection_before_limit_check(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -447,10 +450,9 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertIsNotNone(response)
         body = json.loads(response.body.decode("utf-8"))
-        self.assertEqual(409, response.status_code)
-        self.assertEqual("plan_limit_reached", body["reason"])
-        self.assertEqual(1, body["details"]["connection_limit"])
-        self.assertEqual("liveMt5Accounts", body["details"]["entitlement"])
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
 
     def test_core_plan_limit_blocks_extra_connection(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -731,6 +733,35 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(401, response.status_code)
         self.assertEqual("auth_required", body["reason"])
 
+    def test_live_kmfx_price_ids_map_to_expected_plans(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "STRIPE_PRICE_CORE_MONTHLY": "price_1TUBYUEoC6e7wNItXEGCdVZ4",
+                "STRIPE_PRICE_CORE_YEARLY": "price_1TUC1ZEoC6e7wNItpQF7UGPA",
+                "STRIPE_PRICE_PRO_MONTHLY": "price_1TUC5uEoC6e7wNItcPyjGy5Z",
+                "STRIPE_PRICE_PRO_YEARLY": "price_1TUC65EoC6e7wNItBfoMCblt",
+            },
+        ):
+            self.assertEqual(
+                {"price_id": "price_1TUBYUEoC6e7wNItXEGCdVZ4", "lookup_key": ""},
+                connector_api.resolve_stripe_price_reference("core", "monthly"),
+            )
+            self.assertEqual(
+                "core",
+                connector_api.stripe_plan_from_price({"id": "price_1TUC1ZEoC6e7wNItpQF7UGPA", "metadata": {}}),
+            )
+            self.assertEqual(
+                "pro",
+                connector_api.stripe_plan_from_price({"id": "price_1TUC65EoC6e7wNItBfoMCblt", "metadata": {}}),
+            )
+
+    def test_stripe_plan_from_price_accepts_plan_key_metadata(self) -> None:
+        self.assertEqual(
+            "core",
+            connector_api.stripe_plan_from_price({"id": "price_unknown", "metadata": {"app": "kmfx_edge", "plan_key": "core"}}),
+        )
+
     def test_billing_portal_creates_customer_portal_session(self) -> None:
         request = self._request(
             headers={"authorization": "Bearer billing-token"},
@@ -824,6 +855,43 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual(400, response.status_code)
         self.assertEqual("invalid_signature", payload["reason"])
+
+    def test_billing_webhook_ignores_non_kmfx_subscription_events(self) -> None:
+        secret = "whsec_test_secret"
+        event = {
+            "id": "evt_external",
+            "type": "customer.subscription.updated",
+            "livemode": True,
+            "data": {
+                "object": {
+                    "id": "sub_external",
+                    "customer": "cus_external",
+                    "status": "active",
+                    "metadata": {},
+                    "items": {"data": [{"price": {"id": "price_external", "lookup_key": "external_monthly", "metadata": {}}}]},
+                }
+            },
+        }
+        body_bytes = json.dumps(event, separators=(",", ":")).encode("utf-8")
+        request = self._request(
+            headers={"stripe-signature": self._stripe_signature_header(body_bytes, secret)},
+            body_bytes=body_bytes,
+        )
+        with patch.dict(os.environ, {"STRIPE_WEBHOOK_SECRET": secret}, clear=True), patch.object(
+            connector_api,
+            "record_billing_event_once",
+            return_value=True,
+        ), patch.object(connector_api, "sync_billing_subscription") as sync_mock, patch.object(
+            connector_api,
+            "mark_billing_event_status",
+        ) as mark_mock:
+            response = asyncio.run(connector_api.billing_webhook(request))
+
+        payload = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"ignored": "non_kmfx_subscription"}, payload["result"])
+        sync_mock.assert_not_called()
+        mark_mock.assert_called_with("evt_external", "ignored")
 
     def test_sync_subscription_updates_billing_tables_and_app_metadata(self) -> None:
         subscription = {

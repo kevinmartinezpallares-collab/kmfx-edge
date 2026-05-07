@@ -311,6 +311,11 @@ function initSettings(authSession = null) {
   const sessionState = document.querySelector("[data-settings-session-state]");
   const sessionEmail = document.querySelector("[data-settings-session-email]");
   const signOutButton = document.querySelector("[data-settings-signout]");
+  const billingBadge = document.querySelector("[data-settings-billing-badge]");
+  const billingPlan = document.querySelector("[data-settings-billing-plan]");
+  const billingStatus = document.querySelector("[data-settings-billing-status]");
+  const billingPortalButton = document.querySelector("[data-billing-portal]");
+  const billingCheckoutButtons = [...document.querySelectorAll("[data-billing-checkout]")];
   const adminOnlyNodes = [...document.querySelectorAll("[data-admin-only]")];
   const themeSelect = document.querySelector('[data-settings-field="theme"]');
   const densitySelect = document.querySelector('[data-settings-field="density"]');
@@ -480,6 +485,53 @@ function initSettings(authSession = null) {
     }
   };
 
+  const billingRequestHeaders = () => {
+    const state = store.getState();
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+    const token = state.auth?.session?.accessToken;
+    const email = state.auth?.user?.email;
+    const userId = state.auth?.user?.id;
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (email) headers["X-KMFX-User-Email"] = email;
+    if (userId) headers["X-KMFX-User-ID"] = userId;
+    return headers;
+  };
+
+  const syncBillingReadout = (state = store.getState()) => {
+    const billing = state.billing?.billing || {};
+    const authReady = state.auth?.status === "authenticated";
+    const displayName = billing.displayName || "Free / Demo";
+    const status = String(billing.status || "").toLowerCase();
+    const access = String(billing.access || "").toLowerCase();
+    const statusCopy = !authReady
+      ? "Inicia sesión para activar una suscripción."
+      : access === "active"
+        ? "Suscripción activa."
+        : access === "billing_attention"
+          ? "Pago pendiente de revisar."
+          : access === "restricted"
+            ? "Acceso premium pausado."
+            : status === "trialing"
+              ? "Trial activo."
+              : "Demo activo. Elige un plan para conectar MT5 live.";
+    if (billingBadge) billingBadge.textContent = state.billing?.loading ? "Comprobando" : displayName;
+    if (billingPlan) billingPlan.textContent = displayName;
+    if (billingStatus) billingStatus.textContent = statusCopy;
+    const disabled = !authReady || state.billing?.loading === true;
+    billingCheckoutButtons.forEach((button) => {
+      button.disabled = disabled;
+      button.setAttribute("aria-disabled", disabled ? "true" : "false");
+    });
+    if (billingPortalButton) {
+      const canOpenPortal = authReady && access !== "anonymous" && !state.billing?.loading;
+      billingPortalButton.disabled = !canOpenPortal;
+      billingPortalButton.setAttribute("aria-disabled", canOpenPortal ? "false" : "true");
+    }
+  };
+
   const syncAccountSelectors = (selectedId) => {
     accountSelects.forEach((select) => {
       if (select) select.value = selectedId;
@@ -498,6 +550,7 @@ function initSettings(authSession = null) {
     syncAccountSelectors(profile.defaultAccount);
     syncConnectionReadout(store.getState());
     syncSessionReadout(store.getState());
+    syncBillingReadout(store.getState());
     syncAdminUI(store.getState());
   };
 
@@ -710,6 +763,67 @@ function initSettings(authSession = null) {
     if (settingsStatus) settingsStatus.textContent = "Sesión cerrada.";
   });
 
+  const startBillingCheckout = async (plan, interval) => {
+    if (store.getState().auth?.status !== "authenticated") {
+      if (settingsStatus) settingsStatus.textContent = "Inicia sesión para activar un plan.";
+      return;
+    }
+    const url = `${resolveApiBaseUrl()}/api/billing/checkout`;
+    if (settingsStatus) settingsStatus.textContent = "Preparando Checkout seguro...";
+    billingCheckoutButtons.forEach((button) => { button.disabled = true; });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: billingRequestHeaders(),
+        body: JSON.stringify({ plan, interval }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.url) {
+        if (settingsStatus) settingsStatus.textContent = payload?.reason || "No se pudo abrir Checkout.";
+        return;
+      }
+      window.location.assign(payload.url);
+    } catch (error) {
+      console.warn("[KMFX][BILLING] checkout failed", error);
+      if (settingsStatus) settingsStatus.textContent = "No se pudo conectar con Checkout.";
+    } finally {
+      syncBillingReadout(store.getState());
+    }
+  };
+
+  const openBillingPortal = async () => {
+    if (store.getState().auth?.status !== "authenticated") {
+      if (settingsStatus) settingsStatus.textContent = "Inicia sesión para gestionar tu suscripción.";
+      return;
+    }
+    const url = `${resolveApiBaseUrl()}/api/billing/portal`;
+    if (settingsStatus) settingsStatus.textContent = "Abriendo portal de suscripción...";
+    if (billingPortalButton) billingPortalButton.disabled = true;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: billingRequestHeaders(),
+        body: JSON.stringify({ return_url: window.location.href }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.url) {
+        if (settingsStatus) settingsStatus.textContent = payload?.reason || "No se pudo abrir el portal.";
+        return;
+      }
+      window.location.assign(payload.url);
+    } catch (error) {
+      console.warn("[KMFX][BILLING] portal failed", error);
+      if (settingsStatus) settingsStatus.textContent = "No se pudo conectar con el portal.";
+    } finally {
+      syncBillingReadout(store.getState());
+    }
+  };
+
+  billingCheckoutButtons.forEach((button) => {
+    button.addEventListener("click", () => startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly"));
+  });
+  billingPortalButton?.addEventListener("click", openBillingPortal);
+
   const handleSettingsFieldEdit = (field) => {
     if (!field) return;
       const { profile, preferences } = collectSettings();
@@ -739,6 +853,7 @@ function initSettings(authSession = null) {
     applyTheme(state.ui.theme);
     syncConnectionReadout(state);
     syncSessionReadout(state);
+    syncBillingReadout(state);
     syncAdminUI(state);
     const nextAuthSignature = JSON.stringify(state.auth || {});
     if (nextAuthSignature !== lastAuthSignature) {

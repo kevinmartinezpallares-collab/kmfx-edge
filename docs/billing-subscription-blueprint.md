@@ -22,20 +22,20 @@ Ruta recomendada:
 
 ## Modelo inicial de planes
 
-Los precios exactos quedan pendientes. Lo importante ahora es definir capacidades.
+Precios MVP definidos en `docs/pricing-competitor-research.md`. El plan interno `core` se presenta comercialmente como `Edge Basic`.
 
-| Plan | Usuario objetivo | Limite base | Uso principal |
-| --- | --- | --- | --- |
-| Free / Demo | Usuario evaluando la app | 0 cuentas MT5 live, demo/mock | Explorar dashboard y conceptos sin conectar capital real. |
-| Edge Core | Trader individual | 1 cuenta MT5 live | Dashboard, riesgo base, trades y calendario operativo. |
-| Edge Pro | Trader activo/fondeo | 3 cuentas MT5 live | Riesgo avanzado, funded, journal, strategies y analytics completos. |
-| Edge Desk | Multi-cuenta/equipo | Limite custom | Workspaces, cuentas multiples, permisos, soporte prioritario. |
+| Plan | Precio MVP | Usuario objetivo | Limite base | Uso principal |
+| --- | ---: | --- | --- | --- |
+| Free / Demo | 0 EUR | Usuario evaluando la app | 0 cuentas MT5 live, demo/mock | Explorar dashboard y conceptos sin conectar capital real. |
+| Edge Basic (`core`) | 15 EUR/mes o 150 EUR/año | Trader individual | 1 cuenta MT5 live | Dashboard, riesgo base, trades y calendario operativo. |
+| Edge Pro | 39 EUR/mes o 390 EUR/año | Trader activo/fondeo | 3 cuentas MT5 live | Riesgo avanzado, funded, journal, strategies y analytics completos. |
+| Edge Desk | Custom | Multi-cuenta/equipo | Limite custom | Workspaces, cuentas multiples, permisos, soporte prioritario. |
 
 ## Entitlements
 
 Los entitlements deben ser la fuente interna para activar o bloquear funcionalidad. La UI no deberia comprobar "plan === pro" directamente; debe preguntar por permisos concretos.
 
-| Entitlement | Free / Demo | Edge Core | Edge Pro | Edge Desk |
+| Entitlement | Free / Demo | Edge Basic | Edge Pro | Edge Desk |
 | --- | --- | --- | --- | --- |
 | `demo_data` | si | si | si | si |
 | `live_mt5_accounts` | 0 | 1 | 3 | custom |

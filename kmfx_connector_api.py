@@ -212,15 +212,15 @@ DEFAULT_CONNECTION_PLAN_LIMITS = {
 }
 PLAN_DISPLAY_NAMES = {
     "free": "Free / Demo",
-    "core": "Edge Core",
+    "core": "Edge Basic",
     "pro": "Edge Pro",
     "desk": "Edge Desk",
 }
 DEFAULT_PLAN_ENTITLEMENTS: dict[str, dict[str, Any]] = {
     "free": {
         "demoData": True,
-        "liveMt5Accounts": 1,
-        "launcherConnection": True,
+        "liveMt5Accounts": 0,
+        "launcherConnection": False,
         "dashboardCore": True,
         "riskCore": "partial",
         "riskPolicyEditor": False,
@@ -1534,7 +1534,9 @@ def billing_plan_price_reference(plan: str, interval: str) -> str:
     configured = _env_value(env_name, f"KMFX_{env_name}")
     if configured:
         return configured
-    if plan in {"core", "pro"}:
+    if plan == "core":
+        return f"kmfx_basic_{interval}"
+    if plan == "pro":
         return f"kmfx_{plan}_{interval}"
     return ""
 
@@ -1543,8 +1545,10 @@ def stripe_price_plan_candidates() -> dict[str, str]:
     candidates: dict[str, str] = {}
     for plan in ("core", "pro"):
         for interval in ("monthly", "yearly"):
-            default_lookup_key = f"kmfx_{plan}_{interval}"
+            default_lookup_key = f"kmfx_basic_{interval}" if plan == "core" else f"kmfx_{plan}_{interval}"
             candidates[default_lookup_key] = plan
+            if plan == "core":
+                candidates[f"kmfx_core_{interval}"] = plan
             configured = billing_plan_price_reference(plan, interval)
             if configured:
                 candidates[configured] = plan
@@ -1576,6 +1580,7 @@ def stripe_plan_from_price(price: dict[str, Any] | None = None, *, price_id: str
     metadata = ensure_dict(price.get("metadata"))
     for raw_plan in (
         metadata.get("kmfx_plan"),
+        metadata.get("plan_key"),
         metadata.get("plan"),
         metadata.get("product_plan"),
     ):
@@ -1590,6 +1595,43 @@ def stripe_plan_from_price(price: dict[str, Any] | None = None, *, price_id: str
     if normalized_price_id and normalized_price_id in candidates:
         return candidates[normalized_price_id]
     return "free"
+
+
+def stripe_price_belongs_to_kmfx(price: dict[str, Any] | None = None, *, price_id: str = "", lookup_key: str = "") -> bool:
+    price = ensure_dict(price)
+    metadata = ensure_dict(price.get("metadata"))
+    if safe_str(metadata.get("app")).lower() == "kmfx_edge":
+        return True
+    if safe_str(metadata.get("kmfx_plan") or metadata.get("plan_key")).lower() in {"core", "pro", "desk"}:
+        return True
+    product_id = safe_str(price.get("product"))
+    configured_product = _env_value("STRIPE_PRODUCT_ID", "KMFX_STRIPE_PRODUCT_ID")
+    if configured_product and product_id == configured_product:
+        return True
+    normalized_lookup = safe_str(lookup_key or price.get("lookup_key")).lower()
+    normalized_price_id = safe_str(price_id or price.get("id"))
+    candidates = stripe_price_plan_candidates()
+    return bool((normalized_lookup and normalized_lookup in candidates) or (normalized_price_id and normalized_price_id in candidates))
+
+
+def stripe_subscription_belongs_to_kmfx(subscription: dict[str, Any]) -> bool:
+    subscription = ensure_dict(subscription)
+    metadata = ensure_dict(subscription.get("metadata"))
+    if safe_str(metadata.get("app")).lower() == "kmfx_edge":
+        return True
+    if safe_str(metadata.get("kmfx_user_id") or metadata.get("kmfx_plan")).strip():
+        return True
+    return stripe_price_belongs_to_kmfx(first_subscription_price(subscription))
+
+
+def stripe_checkout_session_belongs_to_kmfx(session: dict[str, Any]) -> bool:
+    session = ensure_dict(session)
+    metadata = ensure_dict(session.get("metadata"))
+    if safe_str(metadata.get("app")).lower() == "kmfx_edge":
+        return True
+    if safe_str(metadata.get("kmfx_user_id") or metadata.get("kmfx_plan")).strip():
+        return True
+    return False
 
 
 def supabase_fetch_billing_customer(user_id: str) -> dict[str, Any]:
@@ -1912,6 +1954,8 @@ def mark_billing_event_status(event_id: str, status: str, error: str = "") -> No
 
 
 def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any]:
+    if not stripe_checkout_session_belongs_to_kmfx(session):
+        return {"ignored": "non_kmfx_checkout_session"}
     metadata = ensure_dict(session.get("metadata"))
     user_id = safe_str(metadata.get("kmfx_user_id") or session.get("client_reference_id")).lower()
     customer_id = safe_str(session.get("customer"))
@@ -1938,6 +1982,8 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
     if event_type == "checkout.session.completed":
         return process_checkout_session_completed(data_object)
     if event_type in {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"}:
+        if not stripe_subscription_belongs_to_kmfx(data_object):
+            return {"ignored": "non_kmfx_subscription"}
         return sync_billing_subscription(data_object)
     if event_type == "customer.updated":
         metadata = ensure_dict(data_object.get("metadata"))

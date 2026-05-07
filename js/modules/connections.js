@@ -163,18 +163,18 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
   }
   if (normalizedStatus === "stale") {
     return {
-      label: "Sin sincronización",
+      label: "Sin actualizar",
       tone: "stale",
-      subtitle: lastSyncAt ? `Última actividad ${relative}. Repara esta cuenta si no vuelve a sincronizar.` : "Abre MT5 o repara el conector de esta cuenta.",
+      subtitle: lastSyncAt ? `Sin actualizar. Última actividad ${relative}. Repara esta cuenta si no vuelve a sincronizar.` : "Sin actualizar. Abre MT5 o repara el conector de esta cuenta.",
       actionLabel: "Reparar conexión",
       action: "launcher",
     };
   }
   if (normalizedStatus === "error") {
     return {
-      label: "Requiere revisión",
+      label: "Error de conexión",
       tone: "error",
-      subtitle: "Revisa la conexión en Launcher antes de crear otra.",
+      subtitle: "Error de conexión. Revisa la conexión en Launcher antes de crear otra.",
       actionLabel: "Reparar conexión",
       action: "launcher",
     };
@@ -972,7 +972,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
-  const statusLine = isActive ? "Activa en panel" : meta.label;
+  const statusLine = isActive && isConnectedStatus(account.status) ? "Activa en panel" : meta.label;
   const primaryLabel = resolveAccountPrimaryLabel(account, activeAccount);
   const secondaryLabel = resolveAccountSecondaryLabel(account, activeAccount);
   const accountTag = secondaryLabel === "Funded" || secondaryLabel === "Challenge" ? secondaryLabel : "Real";

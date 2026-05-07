@@ -178,9 +178,9 @@ insert into public.plan_entitlements (
   ),
   (
     'core',
-    'Edge Core',
-    'kmfx_core_monthly',
-    'kmfx_core_yearly',
+    'Edge Basic',
+    'kmfx_basic_monthly',
+    'kmfx_basic_yearly',
     true,
     '{
       "demoData": true,

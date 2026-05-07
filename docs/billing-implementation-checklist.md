@@ -2,16 +2,18 @@
 
 ## Phase 0 - Decisions
 
-- [ ] Confirm currency: USD, EUR, or both.
-- [ ] Confirm monthly Core price.
-- [ ] Confirm yearly Core price or annual discount.
-- [ ] Confirm monthly Pro price.
-- [ ] Confirm yearly Pro price or annual discount.
-- [ ] Decide whether trial exists.
-- [ ] Decide whether trial requires card.
-- [ ] Decide grace period for `past_due`.
-- [ ] Decide if Desk is public, private, or contact-only.
-- [ ] Decide retention behavior when a user downgrades.
+- [x] Confirm currency: EUR.
+- [x] Confirm monthly Basic/Core price: 15 EUR/month.
+- [x] Confirm yearly Basic/Core price: 150 EUR/year.
+- [x] Confirm monthly Pro price: 39 EUR/month.
+- [x] Confirm yearly Pro price: 390 EUR/year.
+- [x] Decide whether trial exists: 7-day trial.
+- [x] Decide whether trial requires card: no card for MVP trial.
+- [x] Decide grace period for `past_due`: 7 days.
+- [x] Decide if Desk is public, private, or contact-only: private/contact-only.
+- [x] Decide retention behavior when a user downgrades: keep data, make over-limit resources read-only until the user archives/removes them or upgrades again.
+
+Pricing source: `docs/pricing-competitor-research.md`.
 
 ## Phase 1 - Supabase
 
@@ -31,14 +33,16 @@ Residual advisor notes after billing setup:
 
 ## Phase 2 - Stripe test mode
 
-- [ ] Confirm final pricing before creating Stripe objects.
-- [ ] Create `KMFX Edge` Product.
-- [ ] Create Core monthly/yearly Prices.
-- [ ] Create Pro monthly/yearly Prices.
-- [ ] Add lookup keys and metadata.
+- [x] Confirm final pricing before creating Stripe objects.
+- [x] Create `KMFX Edge` Product in live mode: `prod_UT7nzmgj3Eg3Zv`.
+- [x] Create Basic/Core monthly/yearly Prices in live mode.
+- [x] Create Pro monthly/yearly Prices in live mode.
+- [ ] Add lookup keys and metadata in Stripe Dashboard/API.
 - [ ] Configure Customer Portal.
 - [ ] Configure webhook endpoint.
 - [ ] Send test events.
+
+Safety note: the same Stripe account receives non-KMFX payments. Only touch objects under Product `prod_UT7nzmgj3Eg3Zv` and see `docs/stripe-live-safety-note.md`.
 
 ## Phase 3 - Next.js implementation
 

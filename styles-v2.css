@@ -28172,6 +28172,80 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
   line-height: 1.42;
 }
 
+.settings-billing-current {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-billing-current .settings-status-card {
+  flex: 1 1 auto;
+}
+
+.settings-billing-current .btn-secondary {
+  align-self: center;
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.settings-billing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-billing-plan {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 64%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 72%, transparent);
+}
+
+.settings-billing-plan--featured {
+  border-color: color-mix(in srgb, var(--kmfx-accent) 42%, var(--kmfx-border));
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 78%, rgba(49, 127, 255, 0.08));
+}
+
+.settings-billing-plan span {
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.settings-billing-plan strong {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 3px;
+  color: var(--text-0);
+  font-size: 23px;
+  line-height: 1.05;
+}
+
+.settings-billing-plan strong small {
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.settings-billing-plan p {
+  margin: 7px 0 0;
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.42;
+}
+
+.settings-billing-plan__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .settings-placeholder,
 .settings-status-list {
   display: grid;
@@ -28314,10 +28388,15 @@ body[data-theme="dark"] #section-discipline .execution-entry-pattern {
   }
 
   .settings-card .form-grid-clean,
+  .settings-billing-grid,
   .settings-check-grid,
   .settings-check-grid--wide,
   .settings-layout-side {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-billing-current {
+    display: grid;
   }
 }
 
