@@ -249,6 +249,24 @@ string KMFXTrim(string value)
    return output;
   }
 
+string KMFXLongString(long value)
+  {
+   return StringFormat("%I64d",value);
+  }
+
+string KMFXULongString(ulong value)
+  {
+   return StringFormat("%I64u",value);
+  }
+
+int KMFXSymbolDigits(string symbol)
+  {
+   long digits=SymbolInfoInteger(symbol,SYMBOL_DIGITS);
+   if(digits<0 || digits>12)
+      return _Digits;
+   return (int)digits;
+  }
+
 void KMFXResetEntryDealInfo(KMFXEntryDealInfo &info)
   {
    info.found=false;
@@ -402,24 +420,6 @@ string KMFXEscapeJson(string value)
 string KMFXQuote(string value)
   {
    return "\""+KMFXEscapeJson(value)+"\"";
-  }
-
-string KMFXLongString(long value)
-  {
-   return StringFormat("%I64d",value);
-  }
-
-string KMFXULongString(ulong value)
-  {
-   return StringFormat("%I64u",value);
-  }
-
-int KMFXSymbolDigits(string symbol)
-  {
-   long digits=SymbolInfoInteger(symbol,SYMBOL_DIGITS);
-   if(digits<0 || digits>12)
-      return _Digits;
-   return (int)digits;
   }
 
 string KMFXBoolJson(bool value)
