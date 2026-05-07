@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.82                                              |
+//| KMFXConnector v2.83                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.82"
+#property version   "2.83"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.82"
+#define KMFX_CONNECTOR_VERSION "2.83"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -69,7 +69,7 @@ bool              KMFXSendClosedDeals         = true;
 bool              KMFXUseBrokerTime           = true;
 
 string g_runtime_connection_key="";
-datetime g_last_connection_key_file_check_at=0;
+datetime g_last_connection_config_file_check_at=0;
 
 // -------------------------------------------------------------------
 // Estado runtime
@@ -534,12 +534,16 @@ void KMFXInitializeRuntimeConnectionKey()
       Print("[KMFX][INIT][KEY_SOURCE] source=empty key=");
   }
 
-void KMFXRefreshRuntimeConnectionKey()
+void KMFXRefreshRuntimeConnectionConfig()
   {
    datetime now=KMFXNow();
-   if(g_last_connection_key_file_check_at>0 && (now-g_last_connection_key_file_check_at)<60)
+   if(g_last_connection_config_file_check_at>0 && (now-g_last_connection_config_file_check_at)<60)
       return;
-   g_last_connection_key_file_check_at=now;
+   g_last_connection_config_file_check_at=now;
+
+   // Launcher puede instalar o reparar kmfx_connection.conf con el EA ya activo.
+   // Recargamos URL/rutas además de la key para evitar quedar apuntando a localhost.
+   KMFXApplyConnectionConfigFromFile();
 
    string file_key=KMFXLoadConnectionKeyFromFile();
    if(StringLen(file_key)>0 && file_key!=g_runtime_connection_key)
@@ -2963,7 +2967,7 @@ bool KMFXShouldRefreshPolicy()
 
 void KMFXRunCycle()
   {
-   KMFXRefreshRuntimeConnectionKey();
+   KMFXRefreshRuntimeConnectionConfig();
    KMFXResetDailyContextIfNeeded();
    KMFXProcessPendingSyncQueue();
    KMFXProcessPendingJournalQueue();
