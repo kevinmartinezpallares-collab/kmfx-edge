@@ -28391,6 +28391,41 @@ body[data-theme="dark"] #section-discipline .execution-kpi strong {
   line-height: 1.02 !important;
 }
 
+html[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi,
+body[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--kmfx-accent) 20%, var(--kmfx-card-bg)) 0%,
+      color-mix(in srgb, var(--positive) 10%, var(--kmfx-card-bg)) 100%
+    ) !important;
+  border-color: color-mix(in srgb, var(--kmfx-accent) 34%, var(--kmfx-border)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+html[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi::before,
+body[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--kmfx-accent) 72%, #ffffff 14%);
+}
+
+html[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__label,
+body[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__label,
+html[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__meta,
+body[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__meta {
+  color: color-mix(in srgb, var(--text-0) 70%, var(--kmfx-accent) 30%) !important;
+}
+
+html[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__value,
+body[data-theme="dark"] .connections-shell__kpis .connections-plan-kpi .risk-metric-card__value {
+  color: var(--text-0) !important;
+}
+
 html[data-theme="dark"] .tl-kpi-row,
 body[data-theme="dark"] .tl-kpi-row,
 html[data-theme="dark"] .tl-kpi-row.five,

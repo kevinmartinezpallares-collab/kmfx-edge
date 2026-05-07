@@ -276,6 +276,8 @@ function renderConnectionsKpis(accounts = [], state = {}) {
   const planName = billingState.loading
     ? "Comprobando"
     : billingState.billing?.displayName || "Free / Demo";
+  const planTone = billingAccessTone(state);
+  const planMeta = billingAccessLabel(state);
   return `
     <section class="tl-kpi-row connections-shell__kpis">
       ${renderRiskMetricCard({
@@ -290,12 +292,11 @@ function renderConnectionsKpis(accounts = [], state = {}) {
         meta: connectedCount === 1 ? "Lista para usar" : connectedCount > 1 ? "Listas para usar" : "Sin conexión activa",
         tone: connectedCount > 0 ? "ok" : "neutral",
       })}
-      ${renderRiskMetricCard({
-        label: "Plan",
-        value: escapeHtml(planName),
-        meta: escapeHtml(billingAccessLabel(state)),
-        tone: billingAccessTone(state),
-      })}
+      <article class="risk-metric-card risk-metric-card--${escapeHtml(planTone)} connections-plan-kpi">
+        <div class="risk-metric-card__label">Plan</div>
+        <div class="risk-metric-card__value">${escapeHtml(planName)}</div>
+        <div class="risk-metric-card__meta">${escapeHtml(planMeta)}</div>
+      </article>
     </section>
   `;
 }
@@ -840,7 +841,6 @@ function renderAccountsSection(registryAccounts, activeAccountId, activeAccount,
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           activeAccount,
           menuOpen: uiState.openMenuAccountId === account.account_id,
-          keyRevealed: uiState.revealedKeyAccountId === account.account_id,
           state,
           adminOpen: adminVisible && adminState.open,
           adminState,
@@ -971,7 +971,7 @@ function resolveAccountMetaLine(account, activeAccount = null) {
   return "Cuenta disponible";
 }
 
-function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, keyRevealed = false, state = {}, adminOpen = false, adminState = null }) {
+function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, state = {}, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
@@ -982,10 +982,6 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const metaLine = resolveAccountMetaLine(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
   const accountId = account.account_id || "";
-  const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
-  const connectionPreview = resolveAccountConnectionPreview(account, connectionKey);
-  const displayedKey = keyRevealed && connectionKey ? connectionKey : connectionPreview;
-  const hasKey = Boolean(connectionKey);
   const repairLabel = meta.action === "launcher" && !isConnectedStatus(account.status) ? "Reparar conexión" : "Abrir Launcher";
   return `
     <article class="widget-card connections-account-card">
@@ -1034,36 +1030,12 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
             <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(accountId)}">Editar</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(accountId)}">Ver detalles</button>
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-copy-value="${escapeHtml(connectionKey)}" data-copy-label="KMFXKey copiada" ${hasKey ? "" : "disabled"}>Copiar KMFXKey</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-open-launcher="true">${escapeHtml(repairLabel)}</button>
               <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(accountId)}">Eliminar</button>
             </div>
           ` : ""}
         </div>
       </div>
-      ${displayedKey ? `
-        <div class="connections-account-card__key-strip">
-          <div class="connections-account-card__key-copy">
-            <code>${escapeHtml(displayedKey)}</code>
-            <span>KMFXKey de esta cuenta. Guárdala para reparar o reinstalar el EA sin crear otra conexión.</span>
-          </div>
-          <div class="connections-account-card__key-actions">
-            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-toggle-key="${escapeHtml(accountId)}" ${hasKey ? "" : "disabled"}>${keyRevealed ? "Ocultar" : "Mostrar"}</button>
-            <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-value="${escapeHtml(connectionKey)}" data-copy-label="KMFXKey copiada" ${hasKey ? "" : "disabled"}>Copiar key</button>
-            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-info="${escapeHtml(accountId)}">Ver pasos</button>
-          </div>
-        </div>
-      ` : `
-        <div class="connections-account-card__key-strip connections-account-card__key-strip--empty">
-          <div class="connections-account-card__key-copy">
-            <code>KMFXKey no disponible en este dispositivo</code>
-            <span>Si la cuenta ya existe, repara desde Launcher. Crea otra key solo para una cuenta MT5 nueva.</span>
-          </div>
-          <div class="connections-account-card__key-actions">
-            <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
-          </div>
-        </div>
-      `}
       ${adminOpen && adminState ? renderAccountAdminPanel(account, adminState) : ""}
     </article>
   `;
@@ -1104,14 +1076,6 @@ export function initConnections(store) {
     const copyButton = event.target.closest("[data-copy-value]");
     if (copyButton) {
       copyText(copyButton.dataset.copyValue || "", copyButton.dataset.copyLabel || "Copiado");
-      return;
-    }
-
-    const toggleKeyButton = event.target.closest("[data-account-toggle-key]");
-    if (toggleKeyButton) {
-      const accountId = toggleKeyButton.dataset.accountToggleKey || "";
-      uiState.revealedKeyAccountId = uiState.revealedKeyAccountId === accountId ? "" : accountId;
-      renderConnections(root, store.getState());
       return;
     }
 
