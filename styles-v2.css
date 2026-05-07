@@ -15026,6 +15026,12 @@ body[data-theme="dark"] .connections-account-card__key-actions {
   flex-wrap: wrap;
 }
 
+html[data-theme="dark"] .connections-account-card__key-strip--empty,
+body[data-theme="dark"] .connections-account-card__key-strip--empty {
+  border-color: var(--border-subtle);
+  background: var(--layer-1);
+}
+
 html[data-theme="dark"] .connections-account-card__menu-trigger,
 body[data-theme="dark"] .connections-account-card__menu-trigger {
   appearance: none;
@@ -15241,6 +15247,43 @@ body[data-theme="dark"] .connections-account-modal__key-value {
   font-weight: 500;
   line-height: 1.45;
   word-break: break-word;
+}
+
+html[data-theme="dark"] .connections-account-modal__key-actions,
+body[data-theme="dark"] .connections-account-modal__key-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+html[data-theme="dark"] .connections-account-modal__guide,
+body[data-theme="dark"] .connections-account-modal__guide {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--layer-1);
+}
+
+html[data-theme="dark"] .connections-account-modal__guide-title,
+body[data-theme="dark"] .connections-account-modal__guide-title {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+html[data-theme="dark"] .connections-account-modal__guide-list,
+body[data-theme="dark"] .connections-account-modal__guide-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 @media (max-width: 1180px) {

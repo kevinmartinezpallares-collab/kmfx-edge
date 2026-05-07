@@ -1734,6 +1734,20 @@ body,
   white-space: nowrap;
 }
 
+.connection-meta--key {
+  color: var(--text-1);
+  font-weight: 750;
+}
+
+.connection-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
 .connection-state-card {
   display: grid;
   justify-items: end;

@@ -262,7 +262,7 @@ function renderAccountConnections() {
   lastConnectionsSignature = nextSignature;
 
   if (!state.accountConnections.length) {
-    container.innerHTML = `<div class="empty-state">Pulsa Añadir cuenta MT5, instala el conector y abre MT5 para recibir el primer sync.</div>`;
+    container.innerHTML = `<div class="empty-state">Añade una cuenta MT5 solo si es una cuenta nueva. Si ya tenías una, usa Reparar conector sobre esa misma cuenta.</div>`;
     return;
   }
 
@@ -279,6 +279,7 @@ function renderAccountConnections() {
       const installation = installationForConnection(connection);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
       const actionDisabled = state.busy || !targetInstallationLabel;
+      const actionLabel = isActive ? "Reinstalar conector" : "Reparar conector";
       const actionTitle = installation
         ? `Instalación vinculada: ${installationDisplayLabel(installation)}`
         : "Elige una instalación de MetaTrader arriba para continuar.";
@@ -291,8 +292,9 @@ function renderAccountConnections() {
               <span class="status-badge ${statusKind}">${escapeHtml(connection.status_label || "Pendiente")}</span>
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
-            ${keyLabel ? `<span class="connection-meta">${escapeHtml(keyLabel)}</span>` : ""}
+            ${keyLabel ? `<span class="connection-meta connection-meta--key">${escapeHtml(keyLabel)}</span>` : ""}
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
+            <span class="connection-help">Si se desconecta, conserva esta key y repara el conector. Añade otra cuenta solo para otro MT5.</span>
           </div>
           <div class="connection-state-card">
             <span>Estado</span>
@@ -301,7 +303,7 @@ function renderAccountConnections() {
           </div>
           <div class="connection-row-actions">
             <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
-              ${isActive ? "Reinstalar" : "Instalar conector"}
+              ${escapeHtml(actionLabel)}
             </button>
             <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.connection_key || "")}" data-copy-label="Key copiada" ${connection.connection_key ? "" : "disabled"}>
               Copiar key
