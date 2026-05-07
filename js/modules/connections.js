@@ -46,14 +46,11 @@ function registrySignature(accounts = []) {
 }
 
 function openLauncher() {
-  const fallbackUrl = launcherDownloadUrl();
   try {
+    showToast("Abriendo KMFX Launcher. Si no se abre, usa Descargar macOS o Descargar Windows.", "info");
     window.location.href = LAUNCHER_OPEN_URL;
-    window.setTimeout(() => {
-      window.open(fallbackUrl, "_blank", "noopener");
-    }, 900);
   } catch {
-    window.open(fallbackUrl, "_blank", "noopener");
+    showToast("No se pudo abrir el Launcher. Descárgalo desde esta pantalla.", "warning");
   }
 }
 
