@@ -105,6 +105,22 @@ The public EA package must remain a read-only connector:
 - Support copy must explain that `KMFXConnector` is designed as read-only data sync and that users should verify their firm policy before using any third-party EA.
 - `KMFXRiskGuard` active protection is optional/beta, separate from the default public connector package, and must be explicitly enabled with user consent.
 
+Before packaging public `KMFXConnector`, complete and record these gates:
+
+- Run a static scan for `OrderSend`, `CTrade`, `PositionClose`, `OrderDelete`, `OrderModify`, `panic`, `enforce`, `protect mode`, `block trades`, and `close all`.
+- For every active-trading finding, confirm it is internal RiskGuard/admin code and cannot run when public/default `KMFXEnableEnforce=false`.
+- Confirm startup log says read-only.
+- Confirm no `connection_key`, `api_key`, or equivalent secret is appended to a URL or query string.
+- Confirm logs mask connection keys and do not dump full secrets in verbose mode.
+- Compile `KMFXConnector.mq5` to `KMFXConnector.ex5` in MetaEditor.
+- Record the SHA256 hash of the compiled `.ex5`.
+- Verify the Launcher/download package includes the exact `.ex5` matching that SHA256 hash.
+- Attach the EA to a demo MT5 terminal and verify sync reaches KMFX Edge.
+- Verify `symbolSpecs` appear for active/recent/common symbols when the broker provides them.
+- Verify partial closes sync as close deal rows and the dashboard groups them correctly.
+- Verify a normal/non-admin user can only see their own linked account data.
+- Rotate old local, demo, Darwinex, Orion, and test connection keys before production release.
+
 ## Pre-Production Key Rotation
 
 Before final user packaging:
