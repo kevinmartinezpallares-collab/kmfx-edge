@@ -757,6 +757,46 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(401, response.status_code)
         self.assertEqual("auth_required", body["reason"])
 
+    def test_billing_checkout_accepts_unlimited_plan(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={"plan": "unlimited", "interval": "yearly"},
+        )
+        user_id = "11111111-1111-4111-8111-111111111111"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_unlimited_yearly", "lookup_key": "kmfx_unlimited_yearly"},
+        ) as price_mock, patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_123",
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "cs_123", "url": "https://checkout.stripe.test/session"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("unlimited", body["plan"])
+        self.assertEqual("yearly", body["interval"])
+        price_mock.assert_called_once_with("unlimited", "yearly")
+        _, _, params = stripe_mock.call_args.args
+        self.assertEqual("unlimited", params["metadata"]["kmfx_plan"])
+        self.assertEqual("unlimited", params["subscription_data"]["metadata"]["kmfx_plan"])
+
     def test_live_kmfx_price_ids_map_to_expected_plans(self) -> None:
         with patch.dict(
             os.environ,
@@ -922,6 +962,53 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual({"ignored": "non_kmfx_subscription"}, payload["result"])
         sync_mock.assert_not_called()
         mark_mock.assert_called_with("evt_external", "ignored")
+
+    def test_checkout_session_completed_sends_purchase_confirmation_without_breaking_access_sync(self) -> None:
+        session = {
+            "id": "cs_123",
+            "livemode": True,
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "customer_details": {"email": "buyer@example.com"},
+            "client_reference_id": "55555555-5555-4555-8555-555555555555",
+            "metadata": {
+                "app": "kmfx_edge",
+                "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                "kmfx_user_email": "buyer@example.com",
+                "kmfx_plan": "unlimited",
+                "kmfx_interval": "yearly",
+            },
+        }
+        subscription = {
+            "id": "sub_123",
+            "customer": "cus_123",
+            "status": "active",
+            "metadata": {
+                "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                "kmfx_user_email": "buyer@example.com",
+                "kmfx_plan": "unlimited",
+            },
+            "items": {"data": [{"price": {"id": "price_unlimited", "lookup_key": "kmfx_unlimited_yearly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock, patch.object(
+            connector_api,
+            "fetch_stripe_subscription",
+            return_value=subscription,
+        ), patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "55555555-5555-4555-8555-555555555555", "plan": "unlimited", "status": "active"},
+        ) as sync_mock, patch.object(
+            connector_api,
+            "send_purchase_confirmation_email",
+            return_value={"sent": False, "reason": "email_not_configured"},
+        ) as email_mock:
+            result = connector_api.process_checkout_session_completed(session)
+
+        customer_mock.assert_called_once()
+        sync_mock.assert_called_once()
+        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
+        self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
 
     def test_sync_subscription_updates_billing_tables_and_app_metadata(self) -> None:
         subscription = {

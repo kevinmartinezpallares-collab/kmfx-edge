@@ -4,6 +4,7 @@ import base64
 from copy import deepcopy
 import hmac
 import hashlib
+import html as html_lib
 import json
 import logging
 import os
@@ -1512,6 +1513,126 @@ def stripe_api_request(method: str, path: str, params: dict[str, Any] | None = N
         raise RuntimeError("stripe_request_failed") from exc
 
 
+def transactional_email_api_key() -> str:
+    return _env_value("RESEND_API_KEY", "KMFX_RESEND_API_KEY")
+
+
+def transactional_email_from() -> str:
+    return _env_value("KMFX_EMAIL_FROM", "RESEND_FROM_EMAIL") or "KMFX Edge <no-reply@kmfxedge.com>"
+
+
+def transactional_email_reply_to() -> str:
+    return _env_value("KMFX_EMAIL_REPLY_TO", "RESEND_REPLY_TO") or ""
+
+
+def send_transactional_email(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    text: str,
+    tags: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    api_key = transactional_email_api_key()
+    to_email = safe_str(to_email).lower()
+    if not api_key:
+        return {"sent": False, "reason": "email_not_configured"}
+    if not to_email or "@" not in to_email:
+        return {"sent": False, "reason": "email_recipient_missing"}
+    payload: dict[str, Any] = {
+        "from": transactional_email_from(),
+        "to": [to_email],
+        "subject": subject,
+        "html": html,
+        "text": text,
+    }
+    reply_to = transactional_email_reply_to()
+    if reply_to:
+        payload["reply_to"] = reply_to
+    if tags:
+        payload["tags"] = tags
+    body = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=body,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return {"sent": True, "provider": "resend", "response": read_json_http_response(response)}
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        log.warning("Transactional email failed | status=%s body=%s", exc.code, error_body[:500])
+        return {"sent": False, "provider": "resend", "reason": f"email_http_{exc.code}"}
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        log.warning("Transactional email failed | error=%s", exc)
+        return {"sent": False, "provider": "resend", "reason": "email_request_failed"}
+
+
+def build_purchase_confirmation_email(*, email: str, plan: str, interval: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    interval_copy = "anual" if safe_str(interval).lower() == "yearly" else "mensual"
+    app_url = billing_public_app_url()
+    safe_email = html_lib.escape(safe_str(email).lower())
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_interval_copy = html_lib.escape(interval_copy)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu acceso a {plan_name} ya está activo"
+    text = (
+        f"Tu suscripción {plan_name} ({interval_copy}) ya está activa en KMFX Edge.\n\n"
+        f"Entra aquí para acceder al dashboard: {app_url}\n\n"
+        "Si acabas de usar un cupón del 100 %, tu acceso queda igualmente registrado como suscripción activa."
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Tu acceso ya está activo</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Has activado <strong style="color:#ffffff;">{safe_plan_name}</strong> en modalidad {safe_interval_copy}. Ya puedes entrar al dashboard y usar las funciones incluidas en tu plan.</p>
+        <div style="margin:24px 0;padding:16px;border:1px solid #27272a;border-radius:14px;background:#111113;">
+          <p style="margin:0;color:#a1a1aa;font-size:13px;">Cuenta</p>
+          <p style="margin:4px 0 0;color:#ffffff;font-size:16px;">{safe_email}</p>
+          <p style="margin:14px 0 0;color:#a1a1aa;font-size:13px;">Plan</p>
+          <p style="margin:4px 0 0;color:#ffffff;font-size:16px;">{safe_plan_name} · {safe_interval_copy}</p>
+        </div>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Entrar al dashboard</a>
+        <p style="margin:24px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">Si el pago se hizo con descuento del 100 %, es normal que el total sea 0 €. El acceso queda asociado a esta cuenta.</p>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_purchase_confirmation_email(*, email: str, plan: str, interval: str, event_id: str = "") -> dict[str, Any]:
+    message = build_purchase_confirmation_email(email=email, plan=plan, interval=interval)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "purchase_confirmation"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Purchase confirmation email result | email=%s plan=%s interval=%s sent=%s reason=%s",
+        email,
+        plan,
+        interval,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
 def supabase_admin_request(
     method: str,
     path: str,
@@ -2001,9 +2122,20 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
         )
     subscription_id = safe_str(session.get("subscription"))
     if not subscription_id:
-        return {"user_id": user_id, "subscription": "", "processed": "customer"}
+        email_result = send_purchase_confirmation_email(
+            email=email,
+            plan=safe_str(metadata.get("kmfx_plan"), "pro"),
+            interval=safe_str(metadata.get("kmfx_interval"), "monthly"),
+        )
+        return {"user_id": user_id, "subscription": "", "processed": "customer", "email": email_result}
     subscription = fetch_stripe_subscription(subscription_id)
-    return sync_billing_subscription(subscription, user_id=user_id, email=email)
+    result = sync_billing_subscription(subscription, user_id=user_id, email=email)
+    result["email"] = send_purchase_confirmation_email(
+        email=email or safe_str(metadata.get("kmfx_user_email")).lower(),
+        plan=safe_str(result.get("plan") or metadata.get("kmfx_plan"), "pro"),
+        interval=safe_str(metadata.get("kmfx_interval"), "monthly"),
+    )
+    return result
 
 
 def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
@@ -4922,7 +5054,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
     interval = safe_str(payload.get("interval") or payload.get("cadence") or "monthly").lower()
     if interval not in {"monthly", "yearly"}:
         return billing_json_response({"ok": False, "reason": "invalid_interval", "error": "invalid_interval"}, status_code=400)
-    if plan not in {"core", "pro"}:
+    if plan not in {"core", "pro", "unlimited"}:
         return billing_json_response({"ok": False, "reason": "invalid_plan", "error": "invalid_plan"}, status_code=400)
 
     try:
