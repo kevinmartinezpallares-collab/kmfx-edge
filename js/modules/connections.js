@@ -384,6 +384,13 @@ function resolveAdminAccountUrl(accountId, action = "") {
   return url.toString();
 }
 
+function resolveOwnAccountUrl(accountId, action = "") {
+  const registryUrl = resolveAccountsRegistryUrl();
+  const url = new URL(registryUrl, window.location.origin);
+  url.pathname = url.pathname.replace(/\/accounts\/?$/, `/api/accounts/${encodeURIComponent(accountId)}${action ? `/${action}` : ""}`);
+  return url.toString();
+}
+
 function updateManagedAccountLocally(store, accountId, nextFields) {
   store.setState((state) => {
     const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
@@ -668,8 +675,11 @@ function resolveAccountConnectionPreview(account, connectionKey = "") {
 
 function openAccountInfoModal(account, state, activeAccount = null) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
-  const connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
-  const connectionPreview = resolveAccountConnectionPreview(account, connectionKey) || "No disponible";
+  let connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
+  let connectionPreview = resolveAccountConnectionPreview(account, connectionKey) || "No disponible";
+  const accountId = account.account_id || "";
+  const hasRecoverableKey = Boolean(connectionKey);
+  const unavailableCopy = account.has_connection_key || account.connection_key_preview || account.connectionKeyPreview;
   openModal({
     title: "Detalles de cuenta",
     subtitle: "Estado, servidor y KMFXKey de esta cuenta.",
@@ -698,10 +708,19 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <div>
             <div class="connections-account-modal__label">KMFXKey</div>
             <div class="connections-account-modal__key-value" data-account-key-value="${escapeHtml(connectionPreview)}">${escapeHtml(connectionPreview)}</div>
+            ${hasRecoverableKey ? "" : `
+              <div class="connections-account-modal__key-note">
+                ${unavailableCopy
+                  ? "Por seguridad, la key completa solo se muestra al crearla o regenerarla. Si la has perdido, genera una nueva y pégala en el EA."
+                  : "Esta cuenta todavía no tiene una KMFXKey lista para copiar."}
+              </div>
+            `}
           </div>
           <div class="connections-account-modal__key-actions">
-            <button class="btn-secondary" type="button" data-account-modal-toggle-key="true" ${connectionKey ? "" : "disabled"}>Mostrar</button>
-            <button class="btn-secondary" type="button" data-account-copy-key="true" ${connectionKey ? "" : "disabled"}>Copiar key</button>
+            ${connectionKey ? `
+              <button class="btn-secondary" type="button" data-account-modal-toggle-key="true">Mostrar</button>
+              <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar key</button>
+            ` : `<button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar y copiar key</button>`}
           </div>
         </div>
         <div class="connections-account-modal__guide">
@@ -723,14 +742,59 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       let revealed = false;
       const valueNode = card?.querySelector("[data-account-key-value]");
       const toggleButton = card?.querySelector("[data-account-modal-toggle-key='true']");
+      const copyButton = card?.querySelector("[data-account-copy-key='true']");
+      const regenerateButton = card?.querySelector("[data-account-regenerate-key='true']");
       toggleButton?.addEventListener("click", () => {
         if (!connectionKey || !valueNode) return;
         revealed = !revealed;
         valueNode.textContent = revealed ? connectionKey : connectionPreview;
         toggleButton.textContent = revealed ? "Ocultar" : "Mostrar";
       });
-      card?.querySelector("[data-account-copy-key='true']")?.addEventListener("click", () => {
+      copyButton?.addEventListener("click", () => {
         copyText(connectionKey, "Clave copiada");
+      });
+      regenerateButton?.addEventListener("click", async () => {
+        if (!accountId) return;
+        const confirmed = window.confirm("Regenerar la KMFXKey sustituye la key actual. MT5 dejará de sincronizar hasta que pegues la nueva key en el EA. ¿Continuar?");
+        if (!confirmed) return;
+        let regeneratedOk = false;
+        regenerateButton.disabled = true;
+        regenerateButton.textContent = "Generando...";
+        try {
+          const response = await fetch(resolveOwnAccountUrl(accountId, "regenerate-key"), {
+            method: "POST",
+            headers: buildAuthHeaders(state),
+          });
+          const payload = await response.json();
+          if (!response.ok || payload?.ok === false || !payload?.connection_key) {
+            showToast(payload?.reason || "No pude regenerar la key.", "error");
+            return;
+          }
+          regeneratedOk = true;
+          connectionKey = payload.connection_key;
+          connectionPreview = maskConnectionKeyForDisplay(connectionKey);
+          persistLocalConnectionKey({
+            accountId,
+            connectionKey,
+            label: account.alias || account.display_name || account.login || "",
+            state,
+          });
+          revealed = true;
+          if (valueNode) valueNode.textContent = connectionKey;
+          if (toggleButton) {
+            toggleButton.disabled = false;
+            toggleButton.textContent = "Ocultar";
+          }
+          if (copyButton) copyButton.disabled = false;
+          copyText(connectionKey, "Key nueva copiada. Pégala en el EA.");
+          window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
+          regenerateButton.textContent = "Key regenerada";
+        } catch {
+          showToast("No pude conectar con el servidor de KMFX.", "error");
+        } finally {
+          regenerateButton.disabled = false;
+          if (!regeneratedOk) regenerateButton.textContent = "Regenerar y copiar key";
+        }
       });
       card?.querySelector("[data-account-open-launcher='true']")?.addEventListener("click", () => {
         openLauncher();
@@ -981,7 +1045,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const accountId = account.account_id || "";
   const repairLabel = meta.action === "launcher" && !isConnectedStatus(account.status) ? "Reparar conexión" : "Abrir Launcher";
   return `
-    <article class="widget-card connections-account-card">
+    <article class="widget-card connections-account-card ${menuOpen ? "connections-account-card--menu-open" : ""}">
       <div class="connections-account-card__layout">
         <div class="connections-account-card__identity">
           <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>

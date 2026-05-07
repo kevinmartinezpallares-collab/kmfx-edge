@@ -25486,6 +25486,28 @@ body[data-theme="dark"] .connections-account-card__menu-item--danger:focus-visib
 }
 /* FIN BLOQUE: connections-account-menu-compact */
 
+/* Account details actions: keep repair menus and key recovery usable in production. */
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .connections-account-card--menu-open,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .connections-account-card--menu-open {
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 80 !important;
+}
+
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .connections-account-card--menu-open .connections-account-card__menu,
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .connections-account-card--menu-open .connections-account-card__menu {
+  z-index: 12020 !important;
+}
+
+html[data-theme="dark"] .connections-account-modal__key-note,
+body[data-theme="dark"] .connections-account-modal__key-note {
+  max-width: 480px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 /* Shell tonal finish — controlled base refinement only */
 html,
 html[data-theme="dark"],
