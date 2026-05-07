@@ -35,7 +35,7 @@ from .connector_installer import (
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
 from .platform_mac import open_mt5 as open_mt5_mac
-from .platform_windows import open_mt5 as open_mt5_windows
+from .platform_windows import open_mt5 as open_mt5_windows, register_launcher_url_protocol
 from .resources import app_root, is_packaged, resource_path
 from .state_store import LauncherStateStore
 
@@ -1035,6 +1035,8 @@ class KMFXApi:
 
 def main() -> None:
     api = KMFXApi()
+    if platform.system().lower() == "windows" and is_packaged():
+        register_launcher_url_protocol()
     api.ensure_service_started()
     window = webview.create_window(
         "KMFX Launcher",

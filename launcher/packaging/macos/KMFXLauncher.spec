@@ -88,6 +88,12 @@ app = BUNDLE(
         "CFBundleDisplayName": "KMFX Launcher",
         "CFBundleShortVersionString": "1.0.0",
         "CFBundleVersion": "1.0.0",
+        "CFBundleURLTypes": [
+            {
+                "CFBundleURLName": "KMFX Launcher",
+                "CFBundleURLSchemes": ["kmfx-launcher"],
+            }
+        ],
         "LSApplicationCategoryType": "public.app-category.finance",
         "NSHighResolutionCapable": True,
     },

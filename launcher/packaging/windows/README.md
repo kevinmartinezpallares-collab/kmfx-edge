@@ -97,6 +97,8 @@ The executable is windowed (`console=False`), uses the KMFX icon, and includes:
 - `KMFXConnector.mq5`
 - `KMFXConnector.ex5` when present at repository root
 
+On first launch, the packaged Windows app registers the `kmfx-launcher://` URL protocol in the current user's registry hive. This lets dashboard buttons such as `Abrir Launcher` open the installed launcher instead of downloading the installer again.
+
 ## Installer note
 
 The next distribution step can wrap `downloads\KMFX-Launcher-Windows.exe` with a Windows installer such as Inno Setup or WiX. Do that after validating the generated `.exe` on a clean Windows machine.

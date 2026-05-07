@@ -53,4 +53,6 @@ dist/KMFX Launcher.dmg
 
 The bundle name, Finder/Dock display name, and app title are all `KMFX Launcher`.
 
+The macOS bundle registers the `kmfx-launcher://` URL scheme through `CFBundleURLTypes`, so dashboard buttons such as `Abrir Launcher` can open the installed app instead of downloading it again.
+
 The build script clears extended attributes and applies an ad-hoc signature for local testing. Use a Developer ID certificate plus notarization before public distribution.
