@@ -4150,6 +4150,59 @@ async def regenerate_own_account_key(account_id: str, request: Request) -> JSONR
     )
 
 
+@app.delete("/api/accounts/{account_id}")
+async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    normalized_account_id = safe_str(account_id)
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == normalized_account_id
+        ),
+        None,
+    )
+    if account is None:
+        if not auth_context.get("is_admin"):
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+        account = find_account_by_id_any_user(normalized_account_id)
+        if account is None:
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+    account_service.revoke_connection_key(normalized_account_id, reason="user_delete")
+    archived = account_service.archive_account(normalized_account_id)
+    if archived is None:
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    forget_live_account_snapshot(archived.account_id)
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": archived.account_id,
+            "deleted": True,
+            "archived": True,
+            "status": archived.status,
+            "timestamp": now_iso(),
+        }
+    )
+
+
 @app.get("/api/admin/accounts/{account_id}/payload")
 async def admin_account_payload(account_id: str, request: Request) -> JSONResponse:
     _, forbidden = require_admin(request)

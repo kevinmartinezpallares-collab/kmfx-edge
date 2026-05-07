@@ -473,6 +473,19 @@ function persistLocalConnectionKey({ accountId = "", connectionKey = "", label =
   }
 }
 
+function forgetLocalConnectionKey(accountId = "") {
+  const normalizedAccountId = String(accountId || "").trim();
+  if (!normalizedAccountId) return;
+  try {
+    const cache = readLocalConnectionKeys();
+    if (!Object.prototype.hasOwnProperty.call(cache, normalizedAccountId)) return;
+    delete cache[normalizedAccountId];
+    window.localStorage.setItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    // Browser storage is best-effort only.
+  }
+}
+
 function resolveLocalConnectionKey(accountId = "", state = {}) {
   const normalizedAccountId = String(accountId || "").trim();
   if (!normalizedAccountId) return "";
@@ -805,9 +818,9 @@ function openAccountInfoModal(account, state, activeAccount = null) {
 
 async function deleteManagedAccount({ store, root, accountId }) {
   if (!accountId) return;
-  if (!window.confirm("Borrar esta cuenta de forma permanente?")) return;
+  if (!window.confirm("Eliminar esta cuenta del dashboard? La KMFXKey actual quedará revocada y MT5 tendrá que conectarse con una key nueva si quieres volver a usarla.")) return;
   try {
-    const response = await fetch(resolveAdminAccountUrl(accountId), {
+    const response = await fetch(resolveOwnAccountUrl(accountId), {
       method: "DELETE",
       headers: buildAuthHeaders(store.getState()),
     });
@@ -816,11 +829,12 @@ async function deleteManagedAccount({ store, root, accountId }) {
       showToast(payload?.reason || "No pude borrar la cuenta.", "error");
       return;
     }
+    forgetLocalConnectionKey(accountId);
     await fetchAccountsRegistry(store);
-    showToast("Cuenta borrada", "success");
+    showToast("Cuenta eliminada", "success");
     renderConnections(root, store.getState());
   } catch {
-    showToast("No pude conectar con el endpoint admin.", "error");
+    showToast("No pude conectar con el servidor de KMFX.", "error");
   }
 }
 
@@ -898,10 +912,11 @@ function renderEmptyState(root, state = {}) {
 function renderAccountsSection(registryAccounts, activeAccountId, activeAccount, adminVisible, adminState, uiState, state) {
   return `
     <div class="connections-account-list ${registryAccounts.length === 1 ? "connections-account-list--single" : ""}">
-      ${registryAccounts.map((account) => renderAccountCard(account, {
+      ${registryAccounts.map((account, index) => renderAccountCard(account, {
           isActive: account.account_id === activeAccountId && activeAccount?.id === account.account_id,
           activeAccount,
           menuOpen: uiState.openMenuAccountId === account.account_id,
+          menuOpenAbove: registryAccounts.length > 2 && index >= registryAccounts.length - 2,
           state,
           adminOpen: adminVisible && adminState.open,
           adminState,
@@ -1032,7 +1047,7 @@ function resolveAccountMetaLine(account, activeAccount = null) {
   return "Cuenta disponible";
 }
 
-function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, state = {}, adminOpen = false, adminState = null }) {
+function renderAccountCard(account, { isActive, activeAccount = null, menuOpen = false, menuOpenAbove = false, state = {}, adminOpen = false, adminState = null }) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   const balanceLabel = resolveAccountBalanceLabel(account, activeAccount);
   const pnl = resolveAccountPnlLabel(account, activeAccount);
@@ -1045,7 +1060,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const accountId = account.account_id || "";
   const repairLabel = meta.action === "launcher" && !isConnectedStatus(account.status) ? "Reparar conexión" : "Abrir Launcher";
   return `
-    <article class="widget-card connections-account-card ${menuOpen ? "connections-account-card--menu-open" : ""}">
+    <article class="widget-card connections-account-card ${menuOpen ? "connections-account-card--menu-open" : ""} ${menuOpen && menuOpenAbove ? "connections-account-card--menu-above" : ""}">
       <div class="connections-account-card__layout">
         <div class="connections-account-card__identity">
           <div class="calendar-panel-title">${escapeHtml(primaryLabel)}</div>
@@ -1088,7 +1103,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
             data-account-menu-trigger="${escapeHtml(accountId)}"
           >•••</button>
           ${menuOpen ? `
-            <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta">
+            <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta" ${menuOpenAbove ? `style="top:auto;bottom:calc(100% + 10px);"` : ""}>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(accountId)}">Editar</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(accountId)}">Ver detalles</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-open-launcher="true">${escapeHtml(repairLabel)}</button>
