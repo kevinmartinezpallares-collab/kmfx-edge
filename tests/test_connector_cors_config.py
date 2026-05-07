@@ -624,7 +624,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("Edge Unlimited", body["billing"]["displayName"])
         self.assertEqual("active", body["billing"]["access"])
         self.assertEqual(connector_api.DEFAULT_CONNECTION_PLAN_LIMITS["admin"], body["limits"]["connectionKeyLimit"])
-        self.assertTrue(body["entitlements"]["rawBridgeDebug"])
+        self.assertFalse(body["entitlements"]["rawBridgeDebug"])
 
     def test_billing_status_anonymous_returns_free_limited_entitlements(self) -> None:
         response = asyncio.run(connector_api.billing_status(self._request()))
@@ -659,7 +659,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("pro", body["billing"]["effectivePlan"])
         self.assertEqual("active", body["billing"]["status"])
         self.assertEqual(5, body["entitlements"]["liveMt5Accounts"])
-        self.assertTrue(body["entitlements"]["rawBridgeDebug"])
+        self.assertFalse(body["entitlements"]["rawBridgeDebug"])
         self.assertFalse(body["entitlements"]["teamWorkspace"])
 
     def test_billing_status_restricts_unpaid_to_free_entitlements(self) -> None:

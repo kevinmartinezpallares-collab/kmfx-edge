@@ -226,7 +226,7 @@ insert into public.plan_entitlements (
       "fundedChallenges": true,
       "portfolio": true,
       "talentProfile": true,
-      "rawBridgeDebug": true,
+      "rawBridgeDebug": false,
       "exports": true,
       "teamWorkspace": false,
       "prioritySupport": false
@@ -254,7 +254,7 @@ insert into public.plan_entitlements (
       "fundedChallenges": true,
       "portfolio": true,
       "talentProfile": true,
-      "rawBridgeDebug": true,
+      "rawBridgeDebug": false,
       "exports": true,
       "teamWorkspace": false,
       "prioritySupport": true
