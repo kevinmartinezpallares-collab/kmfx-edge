@@ -1,21 +1,21 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.81                                              |
-//| KMFX Edge — MT5 connector híbrido                                |
+//| KMFXConnector v2.82                                              |
+//| KMFX Edge — MT5 connector público de solo sincronización         |
 //|                                                                  |
-//| Backend = policy, estado de riesgo y snapshot operativo          |
-//| EA      = sincronización + enforcement local defensivo           |
+//| Backend = snapshot operativo y telemetría de riesgo              |
+//| EA      = sincronización de cuenta/trades/posiciones/specs       |
 //|                                                                  |
 //| Diseñado para:                                                   |
-//| - SAFE_MODE    -> prop-safe, bloqueo preventivo, poca intrusión  |
-//| - PROTECT_MODE -> protección activa para cuentas propias         |
+//| - Public v1    -> solo sincronización / sin enforcement activo   |
+//| - RiskGuard    -> protección activa separada si se habilita      |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.81"
+#property version   "2.82"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.81"
+#define KMFX_CONNECTOR_VERSION "2.82"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -59,7 +59,7 @@ int               KMFXHistoryPointsLimit      = 120;
 int               KMFXHistoryLookbackDays     = 365;
 int               KMFXJournalBatchSize        = 20;
 bool              KMFXVerboseLog              = false;
-bool              KMFXEnableEnforce           = true;
+bool              KMFXEnableEnforce           = false;
 bool              KMFXSendClosedDeals         = true;
 bool              KMFXUseBrokerTime           = true;
 
@@ -211,7 +211,14 @@ datetime KMFXHistoryFromTime()
 
 string KMFXModeName()
   {
+   if(!KMFXEnableEnforce)
+      return "SYNC_ONLY";
    return KMFXMode==PROTECT_MODE ? "PROTECT_MODE" : "SAFE_MODE";
+  }
+
+bool KMFXRiskGuardActive()
+  {
+   return KMFXEnableEnforce && (KMFXMode==SAFE_MODE || KMFXMode==PROTECT_MODE);
   }
 
 string KMFXTrim(string value)
@@ -1492,6 +1499,20 @@ string KMFXBuildSymbolSpecsJson()
    return json;
   }
 
+string KMFXBuildCapabilitiesJson()
+  {
+   string json="{";
+   json+="\"supports_symbol_specs\":true,";
+   json+="\"supports_partials\":true,";
+   json+="\"supports_unix_timestamps\":true,";
+   json+="\"supports_risk_telemetry\":true,";
+   json+="\"supports_policy_receive\":true,";
+   json+="\"supports_active_enforcement\":"+KMFXBoolJson(KMFXRiskGuardActive())+",";
+   json+="\"supports_journal_batches\":true";
+   json+="}";
+   return json;
+  }
+
 string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
   {
    trade_ids_csv="";
@@ -1800,6 +1821,7 @@ string KMFXBuildSyncPayload(string sync_id)
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(TimeToString(now_time,TIME_DATE|TIME_SECONDS))+",";
    json+="\"timestamp_unix\":"+IntegerToString((long)now_time)+",";
+   json+="\"capabilities\":"+KMFXBuildCapabilitiesJson()+",";
    json+="\"floating_pnl\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_PROFIT),2)+",";
    json+="\"daily_dd_pct\":"+KMFXDoubleJson(daily_dd_pct,4)+",";
    json+="\"total_dd_pct\":"+KMFXDoubleJson(total_dd_pct,4)+",";
@@ -2565,9 +2587,17 @@ bool KMFXFetchPolicy()
    Runtime.last_error="";
 
    if(previous_hash!=Policy.policy_hash && StringLen(Policy.policy_hash)>0)
-      KMFXLog("POLICY","Nueva policy_hash aplicada: "+Policy.policy_hash);
+     {
+      if(KMFXRiskGuardActive())
+         KMFXLog("POLICY","Nueva policy_hash aplicada: "+Policy.policy_hash);
+      else
+         KMFXLog("POLICY","Nueva policy_hash recibida: "+Policy.policy_hash);
+     }
 
-   KMFXLog("POLICY","Política de riesgo actualizada desde backend.");
+   if(KMFXRiskGuardActive())
+      KMFXLog("POLICY","Política de riesgo actualizada desde backend.");
+   else
+      KMFXLog("POLICY","Política de riesgo recibida como telemetría; connector en solo sincronización.");
    return true;
   }
 
@@ -2606,6 +2636,9 @@ double KMFXEffectiveTradeRiskLimit()
 
 KMFXValidationResult KMFXCanOpenTradeInternal(KMFXOrderIntent &intent)
   {
+   if(!KMFXRiskGuardActive())
+      return KMFXAllowResult();
+
    if(!Policy.loaded)
       return KMFXAllowResult();
 
@@ -2710,6 +2743,12 @@ void KMFXLogReadOnlyMode(int cooldown_seconds=3600)
 
 bool KMFXClosePositionByTicket(ulong position_ticket)
   {
+   if(!KMFXRiskGuardActive())
+     {
+      KMFXLogReadOnlyMode();
+      return false;
+     }
+
    if(!PositionSelectByTicket(position_ticket))
       return false;
 
@@ -2727,6 +2766,12 @@ bool KMFXClosePositionByTicket(ulong position_ticket)
 
 bool KMFXDeleteOrderByTicket(ulong order_ticket)
   {
+   if(!KMFXRiskGuardActive())
+     {
+      KMFXLogReadOnlyMode();
+      return false;
+     }
+
    if(!KMFXTradeRequestsAllowed())
      {
       KMFXLogReadOnlyMode();
@@ -2741,6 +2786,12 @@ bool KMFXDeleteOrderByTicket(ulong order_ticket)
 
 void KMFXCloseAllPositions()
   {
+   if(!KMFXRiskGuardActive())
+     {
+      KMFXLogReadOnlyMode();
+      return;
+     }
+
    if(Runtime.close_all_in_progress)
       return;
 
@@ -2783,7 +2834,7 @@ bool KMFXShouldForceCloseNow()
 
 void KMFXCheckHardStops()
   {
-   if(!KMFXEnableEnforce || !Policy.loaded)
+   if(!KMFXRiskGuardActive() || !Policy.loaded)
       return;
 
    Runtime.last_hard_stop_check_at=KMFXNow();
@@ -2833,7 +2884,7 @@ void KMFXCheckHardStops()
 
 void KMFXEnforceTradeTransaction(const MqlTradeTransaction &trans)
   {
-   if(!KMFXEnableEnforce || !Policy.loaded || !Policy.auto_block)
+   if(!KMFXRiskGuardActive() || !Policy.loaded || !Policy.auto_block)
       return;
 
    if(trans.type!=TRADE_TRANSACTION_DEAL_ADD && trans.type!=TRADE_TRANSACTION_ORDER_ADD)
@@ -2883,6 +2934,8 @@ bool KMFXShouldPushState()
 
 bool KMFXShouldRefreshPolicy()
   {
+   // Public KMFXConnector may poll policy as read-only telemetry, but only
+   // KMFXRiskGuardActive() may act on it.
    if(!Policy.loaded)
       return true;
    return (KMFXNow()-Runtime.last_policy_poll_at)>=KMFXPolicyPollSeconds;
@@ -2921,7 +2974,7 @@ int OnInit()
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
    KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
-   KMFXLogStatus("Connector activo. Esperando sincronizacion con KMFX.",300);
+   KMFXLogStatus("Connector activo en solo sincronización. Esperando sincronizacion con KMFX.",300);
    if(!KMFXAccountTradeAllowed())
       KMFXLogReadOnlyMode(0);
 
@@ -2934,6 +2987,10 @@ int OnInit()
       PrintFormat("[KMFX][DEBUG] OnInit ACCOUNT_LOGIN=%I64d", (long)AccountInfoInteger(ACCOUNT_LOGIN));
      }
    KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl);
+   if(KMFXRiskGuardActive())
+      KMFXLog("INIT","RiskGuard activo por configuración explícita. El paquete público debe mantener KMFXEnableEnforce=false.",true);
+   else
+      KMFXLog("INIT","Modo público read-only: sync de cuenta/trades/posiciones/specs sin cierre, borrado ni bloqueo de órdenes.");
    EventSetMillisecondTimer(KMFXTimerMs);
    return(INIT_SUCCEEDED);
   }

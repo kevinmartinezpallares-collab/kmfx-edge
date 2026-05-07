@@ -4,12 +4,16 @@
 
 The public/private beta v1 EA package should ship `KMFXConnector.ex5` as a read-only sync connector.
 
+Current public package source version: `KMFXConnector` v2.82.
+
 Public v1 scope:
 
 - Read-only sync and analytics.
 - Account, trades, open positions, history, symbol specs, and risk telemetry.
 - No active enforcement claims.
 - No order execution, trade closing, or blocking claims.
+- `KMFXEnableEnforce=false` in the public connector package.
+- Payload `mode` should report `SYNC_ONLY` unless RiskGuard is explicitly enabled in a separate/admin beta.
 - Connection key transport via header/body paths only.
 - Cloud endpoint configured through launcher/EA setup.
 - Launcher-assisted setup for normal users.
@@ -39,6 +43,9 @@ Before packaging:
 
 - Compile `KMFXConnector.mq5` in MetaEditor.
 - Confirm `.ex5` timestamp and version match release manifest.
+- Confirm `KMFXConnector` version is `2.82` or the intended newer release version.
+- Confirm public/default source has `KMFXEnableEnforce=false`.
+- Confirm sync payload capabilities report `supports_active_enforcement=false`.
 - Confirm the EA does not send `connection_key` in URL or query string.
 - Confirm sync uses `X-KMFX-Connection-Key` header and/or approved body compatibility.
 - Confirm EA and launcher logs mask keys.
@@ -96,6 +103,7 @@ Before final user packaging:
 Release is blocked if any of these are true:
 
 - Public package includes active enforcement without explicit RiskGuard labeling.
+- Public/default package can close positions, delete orders, or block trades without explicit RiskGuard enablement.
 - Any connection key appears in a URL.
 - Logs or persisted payloads contain raw keys.
 - Partial closes are duplicated or dropped.

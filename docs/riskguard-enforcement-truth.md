@@ -21,6 +21,8 @@ It should be positioned as:
 
 Public `KMFXConnector` packaging must not claim that MT5 enforcement is active.
 
+For the public connector package, `KMFXEnableEnforce` must default to `false`, payload `mode` should report `SYNC_ONLY`, and `supports_active_enforcement` should be `false`.
+
 ## KMFXRiskGuard
 
 `KMFXRiskGuard` is optional active protection.
