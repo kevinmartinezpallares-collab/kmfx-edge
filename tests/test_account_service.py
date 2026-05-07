@@ -78,6 +78,41 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual([second.account_id], default_ids)
         self.assertNotEqual(first.account_id, default_ids[0])
 
+    def test_accounts_snapshot_includes_all_operational_accounts(self) -> None:
+        first = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={"balance": 105552, "equity": 105552},
+            api_key="darwinex-key",
+        )
+        second = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "OGM International Ltd.",
+                "platform": "mt5",
+                "login": "80571774",
+                "server": "OGMInternational-Server",
+            },
+            connection_mode="connector",
+            payload={"balance": 4838, "equity": 4838},
+            api_key="orion-key",
+            make_default_if_first=False,
+        )
+
+        snapshot = self.service.build_accounts_snapshot("user-123")
+
+        self.assertEqual(first.account_id, snapshot["active_account_id"])
+        self.assertEqual(
+            {first.account_id, second.account_id},
+            {account["account_id"] for account in snapshot["accounts"]},
+        )
+
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
         local = self.service.ingest_account_snapshot(
             user_id="local",

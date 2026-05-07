@@ -3,6 +3,8 @@ import { evaluateCompliance } from "./account-runtime.js?v=build-20260504-080918
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260504-080918";
 import { isAdminIdentity } from "./auth-session.js?v=build-20260504-080918";
 
+const EMPTY_SNAPSHOT_GRACE_MS = 90000;
+
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
   return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
@@ -415,6 +417,7 @@ export function initAccountsLiveSnapshot(store) {
   let socket = null;
   let reconnectTimer = null;
   let httpPollTimer = null;
+  let lastNonEmptyHttpSnapshotAt = 0;
 
   const clearHttpPollTimer = () => {
     clearTimeout(httpPollTimer);
@@ -490,9 +493,15 @@ export function initAccountsLiveSnapshot(store) {
         return { ok: false, count: 0 };
       }
       if (!payload.accounts.length) {
+        const hasCurrentLiveAccounts = Array.isArray(store.getState().liveAccountIds) && store.getState().liveAccountIds.length > 0;
+        const withinEmptyGrace = lastNonEmptyHttpSnapshotAt > 0 && Date.now() - lastNonEmptyHttpSnapshotAt <= EMPTY_SNAPSHOT_GRACE_MS;
+        if (hasCurrentLiveAccounts && withinEmptyGrace && keepLiveAccountsDuringTransientSnapshotFailure(store, "empty_snapshot_grace")) {
+          return { ok: false, count: (store.getState().liveAccountIds || []).length, selectedAccountId: store.getState().currentAccount || "", retained: true, reason: "empty_snapshot_grace" };
+        }
         clearLiveAccounts(store, "empty_snapshot");
         return { ok: true, count: 0, selectedAccountId: "" };
       }
+      lastNonEmptyHttpSnapshotAt = Date.now();
       mergeLiveAccounts(store, payload);
       const nextState = store.getState();
       return {

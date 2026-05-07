@@ -967,7 +967,11 @@ class AccountService:
 
     def build_accounts_snapshot(self, user_id: str = "local") -> dict[str, Any]:
         selected = self.resolve_operational_account(user_id)
-        accounts = [selected] if selected else []
+        accounts = [
+            account
+            for account in self.list_accounts(user_id)
+            if _is_operational(account)
+        ]
         return {
             "accounts": [
                 {
