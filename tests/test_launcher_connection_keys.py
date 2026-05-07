@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -10,7 +11,7 @@ from unittest.mock import patch
 from launcher.backend_client import BackendClient, BackendResponse
 from launcher.connection_keys import clean_connection_key, payload_connection_key, resolve_effective_connection_key
 from launcher.config import LauncherConfig, save_config
-from launcher.app import KMFXApi
+from launcher.app import KMFXApi, _friendly_mt5_identity_label, _generic_mt5_label
 from launcher.mt5_detector import MT5Installation
 from launcher.state_store import LauncherStateStore
 
@@ -57,6 +58,15 @@ class ExpiredThenFreshBackend:
                 "user": {"id": "user-1", "email": "kevin@example.test", "user_metadata": {"name": "Kevin"}},
             },
         )
+
+
+class RegistryBackend:
+    def __init__(self, config: LauncherConfig, accounts: list[dict[str, object]]) -> None:
+        self.config = config
+        self.accounts = accounts
+
+    def get_accounts_registry(self) -> BackendResponse:
+        return BackendResponse(ok=True, status_code=200, body={"accounts": self.accounts})
 
 
 class LauncherConnectionKeyTests(unittest.TestCase):
@@ -143,6 +153,85 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual(1, len(connections))
         self.assertEqual("account-1", connections[0]["account_id"])
         self.assertEqual("rotated-local-key", connections[0]["connection_key"])
+
+    def test_launcher_state_store_can_prune_remote_deleted_connections(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                store = LauncherStateStore()
+                store.save_account_connection({"account_id": "keep", "connection_key": "keep-key"})
+                store.save_account_connection({"account_id": "deleted", "connection_key": "deleted-key"})
+
+                store.retain_account_connections({"keep"})
+                connections = store.list_account_connections()
+
+        self.assertEqual(["keep"], [item["account_id"] for item in connections])
+
+    def test_launcher_connection_labels_prefer_broker_identity_over_technical_names(self) -> None:
+        self.assertTrue(_generic_mt5_label("net.metaquotes.wine.metatrader5 MetaTrader 5"))
+        self.assertEqual(
+            "Darwinex MT5",
+            _friendly_mt5_identity_label(
+                broker="Tradeslide Trading Tech Limited",
+                server="Darwinex-Live",
+                login="4000082126",
+            ),
+        )
+        self.assertEqual(
+            "Orion OGM MT5",
+            _friendly_mt5_identity_label(
+                broker="OGM International Ltd.",
+                server="OGMInternational-Server",
+                login="80571774",
+            ),
+        )
+
+    def test_launcher_get_account_connections_does_not_resurrect_deleted_cached_accounts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+                store = LauncherStateStore()
+                store.save_account_connection(
+                    {"account_id": "active-account", "label": "Orion OGM MT5", "connection_key": "active-key"}
+                )
+                store.save_account_connection(
+                    {"account_id": "deleted-account", "label": "Cuenta MT5", "connection_key": "deleted-key"}
+                )
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = RegistryBackend(
+                    config,
+                    [
+                        {
+                            "account_id": "active-account",
+                            "alias": "net.metaquotes.wine.metatrader5 MetaTrader 5",
+                            "broker": "Tradeslide Trading Tech Limited",
+                            "server": "Darwinex-Live",
+                            "login": "4000082126",
+                            "status": "active",
+                        }
+                    ],
+                )
+                api.store = store
+                api.installations = []
+                api._lock = threading.RLock()
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.config.connection_key = ""
+
+                connections = api.get_account_connections()
+                cached_after_sync = store.list_account_connections()
+
+        self.assertEqual(1, len(connections))
+        self.assertEqual("active-account", connections[0]["account_id"])
+        self.assertEqual("Darwinex MT5", connections[0]["label"])
+        self.assertEqual(["active-account"], [item["account_id"] for item in cached_after_sync])
 
     def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

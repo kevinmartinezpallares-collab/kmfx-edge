@@ -184,3 +184,17 @@ class LauncherStateStore:
     def list_account_connections(self) -> list[dict[str, Any]]:
         with self._lock:
             return deepcopy(self._state.setdefault("account_connections", []))
+
+    def retain_account_connections(self, account_ids: set[str]) -> None:
+        normalized_ids = {str(account_id or "").strip() for account_id in account_ids if str(account_id or "").strip()}
+        with self._lock:
+            connections = self._state.setdefault("account_connections", [])
+            next_connections = [
+                item
+                for item in connections
+                if str(item.get("account_id") or "").strip() in normalized_ids
+            ]
+            if len(next_connections) == len(connections):
+                return
+            self._state["account_connections"] = next_connections
+            self._save(self._state)

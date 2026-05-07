@@ -61,6 +61,74 @@ def _sanitize_account_label(value: str, fallback: str = "Cuenta MT5") -> str:
     return (cleaned or fallback)[:80]
 
 
+def _identity_text(*values: Any) -> str:
+    return " ".join(str(value or "") for value in values if str(value or "").strip()).replace("_", " ")
+
+
+def _generic_mt5_label(value: Any) -> bool:
+    cleaned = re.sub(r"\s+", " ", str(value or "").replace("_", " ")).strip().lower()
+    if not cleaned:
+        return True
+    if cleaned in {"mt5", "metatrader 5", "kmfx connector mt5", "launcher local"}:
+        return True
+    if re.fullmatch(r"cuenta mt5(?: \d+)?", cleaned):
+        return True
+    if re.fullmatch(r"[a-f0-9]{6,}(?:-[a-f0-9]{4,}){2,}", cleaned):
+        return True
+    technical_markers = (
+        "net.metaquotes",
+        ".wine.",
+        "wine.metatrader",
+        "program files",
+        "drive c",
+        "com.xmuk.",
+        "com.metaquotes.",
+    )
+    return any(marker in cleaned for marker in technical_markers)
+
+
+def _friendly_mt5_identity_label(*, broker: str = "", server: str = "", login: str = "", fallback: str = "MetaTrader 5") -> str:
+    identity = _identity_text(broker, server).lower()
+    if "orion" in identity or "ogminternational" in identity or "ogm international" in identity:
+        return "Orion OGM MT5"
+    if "darwinex" in identity or "tradeslide" in identity:
+        return "Darwinex MT5"
+    if "icmarkets" in identity or "ic markets" in identity:
+        return "IC Markets MT5"
+    if "xmuk" in identity or "xm uk" in identity:
+        return "XM UK MT5"
+
+    broker_label = _sanitize_account_label(broker, "")
+    if broker_label and not _generic_mt5_label(broker_label):
+        return broker_label
+
+    server_label = _sanitize_account_label(server, "")
+    if server_label and not _generic_mt5_label(server_label):
+        return server_label
+
+    if login:
+        return _sanitize_account_label(f"MT5 {login}", fallback)
+    return fallback
+
+
+def _friendly_installation_label_from_text(value: str, fallback: str = "MetaTrader 5") -> str:
+    identity = _identity_text(value)
+    lower = identity.lower()
+    if "orion" in lower or "ogm" in lower:
+        return "Orion OGM MT5"
+    if "darwinex" in lower or "tradeslide" in lower:
+        return "Darwinex MT5"
+    if "icmarkets" in lower or "ic markets" in lower:
+        return "IC Markets MT5"
+    if "xmuk" in lower or "xm uk" in lower:
+        return "XM UK MT5"
+    parts = [part.strip() for part in identity.split("·") if part.strip()]
+    candidate = parts[-1] if parts else identity
+    if _generic_mt5_label(candidate):
+        return fallback
+    return _sanitize_account_label(candidate, fallback)
+
+
 def _read_connector_version() -> str:
     source = resource_path("KMFXConnector.mq5")
     if not source.exists():
@@ -463,11 +531,7 @@ class KMFXApi:
                 and self.should_show_account_connection(account)
             ]
             present_ids = {_safe_str(connection.get("account_id")) for connection in connections}
-            for cached in cached_connections:
-                account_id = _safe_str(cached.get("account_id"))
-                if account_id and account_id not in present_ids and _safe_str(cached.get("connection_key")):
-                    connections.append(self.serialize_account_connection(cached))
-                    present_ids.add(account_id)
+            self.store.retain_account_connections(present_ids)
             if self.config.connection_key and not self._connection_key_present(connections, self.config.connection_key):
                 connections.append(self.serialize_local_connection_fallback())
             connections.sort(key=lambda item: (item["status_order"], item["label"].lower(), item["login"]))
@@ -748,15 +812,8 @@ class KMFXApi:
         return ""
 
     def installed_connection_label(self, installation: MT5Installation) -> str:
-        raw_label = installation.label
-        normalized = raw_label.replace("_", " ")
-        if "Orion" in normalized or "OGM" in normalized:
-            return "Orion OGM MT5"
-        if "Darwinex" in normalized:
-            return "Darwinex MT5"
-        parts = [part.strip() for part in raw_label.split("·") if part.strip()]
-        without_platform = " ".join(parts[1:] if len(parts) > 1 else parts)
-        return _sanitize_account_label(without_platform, "Cuenta MT5")
+        raw_label = _identity_text(installation.label, installation.data_path)
+        return _friendly_installation_label_from_text(raw_label, "Cuenta MT5")
 
     def mt5_display_name(self, installation: MT5Installation | None) -> str:
         if installation is None:
@@ -769,19 +826,20 @@ class KMFXApi:
             (item for item in connections if key and _safe_str(item.get("connection_key")) == key),
             {},
         )
-        identity = " ".join(
-            [
-                installation.label,
-                _safe_str(matching_connection.get("label")),
-                _safe_str(matching_connection.get("broker")),
-                _safe_str(matching_connection.get("server")),
-            ]
-        ).replace("_", " ")
+        identity = _identity_text(
+            installation.label,
+            installation.data_path,
+            matching_connection.get("label"),
+            matching_connection.get("broker"),
+            matching_connection.get("server"),
+        )
         identity_lower = identity.lower()
-        if "Orion" in identity or "OGM" in identity:
+        if "orion" in identity_lower or "ogm" in identity_lower:
             return "KMFX MT5 Orion"
-        if "darwinex" in identity_lower or "tradeslide" in identity_lower or "net.metaquotes.wine.metatrader5" in identity_lower:
+        if "darwinex" in identity_lower or "tradeslide" in identity_lower:
             return "KMFX MT5 Darwinex"
+        if "icmarkets" in identity_lower or "ic markets" in identity_lower:
+            return "KMFX MT5 IC Markets"
         login = _safe_str(matching_connection.get("login"))
         if login:
             return _sanitize_account_label(f"KMFX MT5 {login}", "KMFX MT5")
@@ -801,24 +859,18 @@ class KMFXApi:
 
     def installation_display_label(self, installation: MT5Installation, connection: dict[str, Any] | None = None) -> str:
         connection = connection or {}
-        identity = " ".join(
-            [
-                installation.label,
-                _safe_str(connection.get("label")),
-                _safe_str(connection.get("broker")),
-                _safe_str(connection.get("server")),
-            ]
-        ).replace("_", " ")
-        identity_lower = identity.lower()
         login = _safe_str(connection.get("login"))
-        if "orion" in identity_lower or "ogm" in identity_lower:
-            return _sanitize_account_label(f"Orion OGM{f' · {login}' if login else ''}", "Orion OGM")
-        if "darwinex" in identity_lower or "tradeslide" in identity_lower or "net.metaquotes.wine.metatrader5" in identity_lower:
-            return _sanitize_account_label(f"Darwinex{f' · {login}' if login else ''}", "Darwinex")
-        if _safe_str(connection.get("broker")) and login:
-            return _sanitize_account_label(f"{connection.get('broker')} · {login}", "MetaTrader 5")
-        parts = [part.strip() for part in installation.label.split("·") if part.strip()]
-        return _sanitize_account_label(parts[-1] if parts else installation.label, "MetaTrader 5")
+        broker = _safe_str(connection.get("broker"))
+        server = _safe_str(connection.get("server"))
+        if broker or server or login:
+            label = _friendly_mt5_identity_label(broker=broker, server=server, login=login)
+            if login:
+                return _sanitize_account_label(f"{label} · {login}", label)
+            return label
+        return _friendly_installation_label_from_text(
+            _identity_text(installation.label, installation.data_path),
+            "MetaTrader 5",
+        )
 
     def installation_sort_order(self, installation: MT5Installation, connection: dict[str, Any], connector_ready: bool) -> int:
         identity = " ".join([installation.label, installation.data_path]).lower()
@@ -857,13 +909,16 @@ class KMFXApi:
         login = _safe_str(account.get("login") or account.get("mt5_login"))
         server = _safe_str(account.get("server"))
         status = _safe_str(account.get("status") or account.get("lifecycle_status"), "pending_link")
-        display_name = _safe_str(
+        raw_display_name = _safe_str(
             account.get("display_name")
             or account.get("alias")
             or account.get("nickname")
             or (f"{broker} {login}".strip() if broker or login else ""),
             "Cuenta MT5",
         )
+        broker_display_name = _friendly_mt5_identity_label(broker=broker, server=server, login=login, fallback="")
+        display_name = broker_display_name if broker_display_name and _generic_mt5_label(raw_display_name) else raw_display_name
+        display_name = _sanitize_account_label(display_name, "Cuenta MT5")
         status_order = 0 if status == "active" else 1 if status.startswith("pending") or status in {"draft", "waiting_sync"} else 2
         last_sync_at = _safe_str(account.get("last_sync_at"))
         last_sync_label = _humanize_last_sync({"timestamp": last_sync_at}) if last_sync_at else "Pendiente de primer sync"
@@ -871,6 +926,7 @@ class KMFXApi:
         return {
             "account_id": _safe_str(account.get("account_id")),
             "label": display_name,
+            "display_label": display_name,
             "broker": broker,
             "login": login,
             "server": server,

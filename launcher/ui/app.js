@@ -95,6 +95,39 @@ function installationDisplayLabel(installation = {}) {
   return installation.display_label || installation.label || "MetaTrader 5";
 }
 
+function genericMt5Label(value = "") {
+  const normalized = String(value || "").replace(/_/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalized) return true;
+  if (["mt5", "metatrader 5", "kmfx connector mt5", "launcher local"].includes(normalized)) return true;
+  if (/^cuenta mt5(?: \d+)?$/.test(normalized)) return true;
+  if (/^[a-f0-9]{6,}(?:-[a-f0-9]{4,}){2,}$/.test(normalized)) return true;
+  return [
+    "net.metaquotes",
+    ".wine.",
+    "wine.metatrader",
+    "program files",
+    "drive c",
+    "com.xmuk.",
+    "com.metaquotes."
+  ].some((marker) => normalized.includes(marker));
+}
+
+function friendlyConnectionTitle(connection = {}, installation = null) {
+  const candidate = connection.display_label || connection.label || "";
+  if (candidate && !genericMt5Label(candidate)) return candidate;
+
+  const identity = [connection.broker, connection.server].filter(Boolean).join(" ").toLowerCase();
+  if (identity.includes("orion") || identity.includes("ogminternational") || identity.includes("ogm international")) return "Orion OGM MT5";
+  if (identity.includes("darwinex") || identity.includes("tradeslide")) return "Darwinex MT5";
+  if (identity.includes("icmarkets") || identity.includes("ic markets")) return "IC Markets MT5";
+  if (identity.includes("xmuk") || identity.includes("xm uk")) return "XM UK MT5";
+
+  const installationLabel = installation ? installationDisplayLabel(installation) : "";
+  if (installationLabel && !genericMt5Label(installationLabel)) return installationLabel;
+  if (connection.login) return `MT5 ${connection.login}`;
+  return candidate || "Cuenta MT5";
+}
+
 function installationForConnection(connection = {}) {
   const key = String(connection.connection_key || "").trim();
   const accountId = String(connection.account_id || "").trim();
@@ -277,6 +310,7 @@ function renderAccountConnections() {
       const primaryMeta = meta || "Sin datos de broker hasta que MT5 sincronice";
       const keyLabel = connection.connection_key_masked ? `Key ${connection.connection_key_masked}` : "";
       const installation = installationForConnection(connection);
+      const title = friendlyConnectionTitle(connection, installation);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
       const actionDisabled = state.busy || !targetInstallationLabel;
       const actionLabel = isActive ? "Reinstalar conector" : "Reparar conector";
@@ -288,7 +322,7 @@ function renderAccountConnections() {
           <div class="connection-symbol" aria-hidden="true">MT5</div>
           <div class="connection-main">
             <div class="connection-title-row">
-              <strong>${escapeHtml(connection.label || "Cuenta MT5")}</strong>
+              <strong>${escapeHtml(title)}</strong>
               <span class="status-badge ${statusKind}">${escapeHtml(connection.status_label || "Pendiente")}</span>
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
