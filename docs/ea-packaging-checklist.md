@@ -12,6 +12,9 @@ Public v1 scope:
 - Account, trades, open positions, history, symbol specs, and risk telemetry.
 - No active enforcement claims.
 - No order execution, trade closing, or blocking claims.
+- No order modification.
+- No copy trading or signal execution.
+- No broker password collection.
 - `KMFXEnableEnforce=false` in the public connector package.
 - Payload `mode` should report `SYNC_ONLY` unless RiskGuard is explicitly enabled in a separate/admin beta.
 - Connection key transport via header/body paths only.
@@ -46,6 +49,9 @@ Before packaging:
 - Confirm `KMFXConnector` version is `2.82` or the intended newer release version.
 - Confirm public/default source has `KMFXEnableEnforce=false`.
 - Confirm sync payload capabilities report `supports_active_enforcement=false`.
+- Confirm startup logs clearly state read-only mode.
+- Confirm MT5 inputs/comments do not suggest active trading, copy trading, signal execution, or broker credential collection.
+- Confirm no close/delete/modify/block functions run unless RiskGuard is explicitly enabled outside the public connector mode.
 - Confirm the EA does not send `connection_key` in URL or query string.
 - Confirm sync uses `X-KMFX-Connection-Key` header and/or approved body compatibility.
 - Confirm EA and launcher logs mask keys.
@@ -88,6 +94,17 @@ Frontend checks:
 - Analytics and Ejecución use normalized day keys.
 - Calculator consumes broker symbol specs when available.
 
+## Public Read-Only Release Gate
+
+The public EA package must remain a read-only connector:
+
+- Startup logs must say that `KMFXConnector` is read-only and only synchronizes account data.
+- Public/default configuration must not enable active enforcement or RiskGuard.
+- MT5 inputs and release notes must not imply automatic trading, order management, copy trading, signal execution, or broker password collection.
+- No order close, order delete, order modification, trade blocking, or close-all path may run in public connector mode.
+- Support copy must explain that `KMFXConnector` is designed as read-only data sync and that users should verify their firm policy before using any third-party EA.
+- `KMFXRiskGuard` active protection is optional/beta, separate from the default public connector package, and must be explicitly enabled with user consent.
+
 ## Pre-Production Key Rotation
 
 Before final user packaging:
@@ -104,6 +121,7 @@ Release is blocked if any of these are true:
 
 - Public package includes active enforcement without explicit RiskGuard labeling.
 - Public/default package can close positions, delete orders, or block trades without explicit RiskGuard enablement.
+- Public copy claims firm approval, guaranteed acceptance, invisibility, or rule bypass.
 - Any connection key appears in a URL.
 - Logs or persisted payloads contain raw keys.
 - Partial closes are duplicated or dropped.

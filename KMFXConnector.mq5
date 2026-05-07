@@ -1,13 +1,16 @@
 //+------------------------------------------------------------------+
 //| KMFXConnector v2.82                                              |
-//| KMFX Edge — MT5 connector público de solo sincronización         |
+//| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
 //| EA      = sincronización de cuenta/trades/posiciones/specs       |
 //|                                                                  |
 //| Diseñado para:                                                   |
-//| - Public v1    -> solo sincronización / sin enforcement activo   |
-//| - RiskGuard    -> protección activa separada si se habilita      |
+//| - Public v1    -> solo lectura / sincronizacion de datos         |
+//| - RiskGuard    -> proteccion activa separada si se habilita      |
+//|                                                                  |
+//| KMFXConnector no ejecuta, modifica, copia, bloquea ni cierra     |
+//| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
 #property version   "2.82"
@@ -37,6 +40,8 @@ enum KMFXSeverity
 
 // -------------------------------------------------------------------
 // Configuracion de usuario
+// Modo publico: solo lectura / sincronizacion de datos.
+// KMFXKey es una connection key de KMFX, no una contrasena del broker.
 // -------------------------------------------------------------------
 input string            KMFXKey               = "";
 
@@ -219,6 +224,21 @@ string KMFXModeName()
 bool KMFXRiskGuardActive()
   {
    return KMFXEnableEnforce && (KMFXMode==SAFE_MODE || KMFXMode==PROTECT_MODE);
+  }
+
+string KMFXReadOnlyNotice()
+  {
+   return "KMFX Connector iniciado en modo solo lectura. No ejecuta, modifica ni cierra operaciones. Solo sincroniza datos de la cuenta con KMFX Edge.";
+  }
+
+string KMFXReadOnlyScopeNotice()
+  {
+   return "Sin copy trading, sin ejecucion de senales y sin contrasena del broker. Verifica las reglas de tu firma antes de usar EAs de terceros.";
+  }
+
+string KMFXRiskGuardBetaNotice()
+  {
+   return "RiskGuard beta / proteccion activa habilitada explicitamente. No usar salvo que entiendas el modo activo.";
   }
 
 string KMFXTrim(string value)
@@ -2738,7 +2758,7 @@ void KMFXLogReadOnlyMode(int cooldown_seconds=3600)
 
    Runtime.read_only_mode_logged=true;
    Runtime.last_read_only_mode_log_at=now_time;
-   KMFXLogStatus("Cuenta en modo lectura/investor. KMFX sincroniza sin ejecutar acciones.",cooldown_seconds);
+   KMFXLogStatus("Cuenta en modo lectura/investor. KMFX Connector no ejecuta, modifica ni cierra operaciones; solo sincroniza datos.",cooldown_seconds);
   }
 
 bool KMFXClosePositionByTicket(ulong position_ticket)
@@ -2974,7 +2994,7 @@ int OnInit()
    Runtime.current_day_key=KMFXDayKey(KMFXNow());
    KMFXApplyConnectionConfigFromFile();
    KMFXInitializeRuntimeConnectionKey();
-   KMFXLogStatus("Connector activo en solo sincronización. Esperando sincronizacion con KMFX.",300);
+   KMFXLogStatus(KMFXReadOnlyNotice(),300);
    if(!KMFXAccountTradeAllowed())
       KMFXLogReadOnlyMode(0);
 
@@ -2988,9 +3008,12 @@ int OnInit()
      }
    KMFXLog("INIT","KMFX Connector v"+KMFX_CONNECTOR_VERSION+" iniciado. Mode="+KMFXModeName()+" Backend="+KMFXBackendBaseUrl);
    if(KMFXRiskGuardActive())
-      KMFXLog("INIT","RiskGuard activo por configuración explícita. El paquete público debe mantener KMFXEnableEnforce=false.",true);
+      KMFXLog("INIT",KMFXRiskGuardBetaNotice(),true);
    else
-      KMFXLog("INIT","Modo público read-only: sync de cuenta/trades/posiciones/specs sin cierre, borrado ni bloqueo de órdenes.");
+     {
+      KMFXLog("INIT",KMFXReadOnlyNotice());
+      KMFXLog("INIT",KMFXReadOnlyScopeNotice());
+     }
    EventSetMillisecondTimer(KMFXTimerMs);
    return(INIT_SUCCEEDED);
   }

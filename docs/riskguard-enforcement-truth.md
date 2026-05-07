@@ -15,13 +15,19 @@ It should be positioned as:
 - Read-only sync.
 - Account, trade, position, history, symbol specs, and risk telemetry collection.
 - No order execution.
+- No order modification.
 - No trade closing.
 - No active blocking.
-- Suitable for all users.
+- No copy trading.
+- No signal execution.
+- No broker password collection.
+- Designed as the default connector for normal users.
 
 Public `KMFXConnector` packaging must not claim that MT5 enforcement is active.
 
 For the public connector package, `KMFXEnableEnforce` must default to `false`, payload `mode` should report `SYNC_ONLY`, and `supports_active_enforcement` should be `false`.
+
+Users should verify their firm policy before using any third-party EA. Product copy must not claim firm approval, guaranteed acceptance, invisibility, or rule bypass.
 
 ## KMFXRiskGuard
 
@@ -38,6 +44,8 @@ It may:
 - Report current enforcement mode and any degraded/read-only state.
 
 It must not claim pre-server blocking of manual trades unless that exact behavior is verified on supported broker/account modes. Reactive deletion/closure is not the same as guaranteed pre-execution blocking.
+
+`KMFXRiskGuard` must be labeled as advanced/beta until enforcement telemetry, acknowledgements, and user consent flows are production-ready. It is not part of the default public `KMFXConnector` package.
 
 ## Enforcement Truth Matrix
 
@@ -66,6 +74,11 @@ It must not claim pre-server blocking of manual trades unless that exact behavio
 - Use "protección activa" only when RiskGuard is enabled and confirmed.
 - Use "bloqueo reactivo" when the EA can respond after a trade/order event but cannot guarantee pre-server prevention.
 - Use "modo lectura" when the account or terminal lacks trading permissions.
+- Say "designed as read-only data sync" for `KMFXConnector`.
+- Say "does not execute trades or copy signals" for public connector explanations.
+- Say "does not require broker passwords" when clarifying setup expectations.
+- Say "verify your firm policy" when discussing third-party EA usage.
+- Do not say "approved", "guaranteed", "undetectable", or "bypass" in public connector copy.
 - Keep admin diagnostics separate from normal user copy.
 
 ## Packaging Boundary
