@@ -15,6 +15,16 @@ function clampWidth(value) {
   return Math.max(0, Math.min(100, parsed));
 }
 
+function isUnboundedRisk(item = {}) {
+  const state = String(item.risk_state || item.riskState || "").toLowerCase();
+  return state === "missing_stop_loss" || state === "unbounded" || item.risk_calculable === false;
+}
+
+function formatRiskCell(item = {}) {
+  if (isUnboundedRisk(item)) return "Sin SL";
+  return formatPlainPercent(item.risk_pct, 2);
+}
+
 export function riskToneFromStatus(status = "unavailable", severity = "info") {
   const normalizedStatus = String(status || "").toLowerCase();
   const normalizedSeverity = String(severity || "").toLowerCase();
@@ -108,7 +118,7 @@ export function renderSymbolExposureTable(exposure = []) {
       ${exposure.map((item) => `
         <div class="risk-exposure-table__row">
           <strong>${item.symbol || "—"}</strong>
-          <span>${formatPlainPercent(item.risk_pct, 2)}</span>
+          <span>${Number(item.unbounded_positions || 0) > 0 ? `${formatPlainPercent(item.risk_pct, 2)} · ${Number(item.unbounded_positions)} sin SL` : formatPlainPercent(item.risk_pct, 2)}</span>
           <span class="${Number(item.open_pnl || 0) >= 0 ? "is-positive" : "is-negative"}">${formatCurrency(item.open_pnl || 0)}</span>
           <span>${item.direction || "—"}</span>
         </div>
@@ -133,7 +143,7 @@ export function renderOpenTradeRiskTable(trades = []) {
       ${trades.map((item) => `
         <div class="risk-exposure-table__row">
           <strong>${item.symbol || "—"} · ${item.side || "—"}</strong>
-          <span>${formatPlainPercent(item.risk_pct, 2)}</span>
+          <span>${formatRiskCell(item)}</span>
           <span>${Number.isFinite(Number(item.stop_loss)) ? Number(item.stop_loss).toLocaleString("es-ES", { maximumFractionDigits: 5 }) : "—"}</span>
           <span class="${Number(item.open_pnl || 0) >= 0 ? "is-positive" : "is-negative"}">${formatCurrency(item.open_pnl || 0)}</span>
         </div>

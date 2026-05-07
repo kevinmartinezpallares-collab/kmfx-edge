@@ -46,6 +46,16 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def safe_float_or_none(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed == parsed else None
+
+
 def safe_timestamp(value: Any) -> str:
     text = safe_str(value)
     return text or now_utc_iso()
@@ -106,8 +116,11 @@ def extract_previous_metadata(previous_snapshot: dict[str, Any] | None) -> dict[
 
 
 def position_risk_pct(position: dict[str, Any], balance: float) -> float:
-    direct_pct = safe_float(position.get("risk_pct"), -1.0)
-    if direct_pct >= 0:
+    if position_risk_is_unbounded(position):
+        return 0.0
+
+    direct_pct = safe_float_or_none(position.get("risk_pct"))
+    if direct_pct is not None and direct_pct >= 0:
         return round(direct_pct, 4)
 
     risk_amount = safe_float(position.get("risk_amount"), 0.0)
@@ -118,8 +131,11 @@ def position_risk_pct(position: dict[str, Any], balance: float) -> float:
 
 
 def position_risk_amount(position: dict[str, Any], balance: float) -> float:
-    direct_amount = safe_float(position.get("risk_amount"), -1.0)
-    if direct_amount >= 0:
+    if position_risk_is_unbounded(position):
+        return 0.0
+
+    direct_amount = safe_float_or_none(position.get("risk_amount"))
+    if direct_amount is not None and direct_amount >= 0:
         return round(direct_amount, 2)
 
     risk_pct = safe_float(position.get("risk_pct"), 0.0)
@@ -127,6 +143,40 @@ def position_risk_amount(position: dict[str, Any], balance: float) -> float:
         return round(balance * (risk_pct / 100.0), 2)
 
     return 0.0
+
+
+def position_risk_state(position: dict[str, Any]) -> str:
+    state = safe_str(position.get("risk_state") or position.get("riskState")).lower()
+    if state:
+        return state
+    risk_amount = safe_float_or_none(position.get("risk_amount"))
+    risk_pct = safe_float_or_none(position.get("risk_pct"))
+    if (
+        safe_float(position.get("sl"), 0.0) <= 0
+        and (risk_amount is None or risk_amount <= 0)
+        and (risk_pct is None or risk_pct <= 0)
+    ):
+        return "missing_stop_loss"
+    return "bounded_by_stop_loss"
+
+
+def position_risk_is_unbounded(position: dict[str, Any]) -> bool:
+    state = position_risk_state(position)
+    if state in {"missing_stop_loss", "unbounded", "not_calculable"}:
+        return True
+    risk_calculable = position.get("risk_calculable")
+    if risk_calculable is False or safe_str(risk_calculable).lower() in {"0", "false", "no", "n"}:
+        return True
+    return False
+
+
+def position_open_pnl(position: dict[str, Any]) -> float:
+    floating = safe_float_or_none(position.get("floating_pnl"))
+    if floating is None:
+        floating = safe_float_or_none(position.get("floatingPnl"))
+    if floating is not None:
+        return floating
+    return safe_float(position.get("profit")) + safe_float(position.get("swap"))
 
 
 def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> list[dict[str, Any]]:
@@ -137,8 +187,9 @@ def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> li
         risk_amount = position_risk_amount(position, balance)
         risk_pct = position_risk_pct(position, balance)
         volume = safe_float(position.get("volume"))
-        open_pnl = safe_float(position.get("profit"))
+        open_pnl = position_open_pnl(position)
         side = safe_str(position.get("type") or position.get("side"), "BUY").upper()
+        is_unbounded = position_risk_is_unbounded(position)
 
         bucket = exposure.setdefault(
             symbol,
@@ -149,6 +200,7 @@ def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> li
                 "open_pnl": 0.0,
                 "risk_amount": 0.0,
                 "risk_pct": 0.0,
+                "unbounded_positions": 0,
                 "sides": set(),
             },
         )
@@ -157,6 +209,8 @@ def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> li
         bucket["open_pnl"] += open_pnl
         bucket["risk_amount"] += risk_amount
         bucket["risk_pct"] += risk_pct
+        if is_unbounded:
+            bucket["unbounded_positions"] += 1
         bucket["sides"].add(side)
 
     rows = []
@@ -169,6 +223,7 @@ def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> li
                 "open_pnl": round(item["open_pnl"], 2),
                 "risk_amount": round(item["risk_amount"], 2),
                 "risk_pct": round(item["risk_pct"], 4),
+                "unbounded_positions": item["unbounded_positions"],
                 "direction": "/".join(sorted(item["sides"])) if item["sides"] else "N/A",
             }
         )
@@ -179,19 +234,22 @@ def build_symbol_exposure(positions: list[dict[str, Any]], balance: float) -> li
 def build_open_trade_risks(positions: list[dict[str, Any]], balance: float) -> list[dict[str, Any]]:
     rows = []
     for position in positions:
+        is_unbounded = position_risk_is_unbounded(position)
         rows.append(
             {
                 "position_id": safe_str(position.get("position_id") or position.get("ticket")),
                 "symbol": safe_str(position.get("symbol"), "UNKNOWN"),
                 "side": safe_str(position.get("type") or position.get("side"), "BUY").upper(),
-                "risk_amount": position_risk_amount(position, balance),
-                "risk_pct": position_risk_pct(position, balance),
+                "risk_amount": None if is_unbounded else position_risk_amount(position, balance),
+                "risk_pct": None if is_unbounded else position_risk_pct(position, balance),
+                "risk_state": position_risk_state(position),
+                "risk_calculable": not is_unbounded,
                 "entry_price": safe_float(position.get("price_open")),
                 "stop_loss": safe_float(position.get("sl")),
-                "open_pnl": safe_float(position.get("profit")),
+                "open_pnl": position_open_pnl(position),
             }
         )
-    return sorted(rows, key=lambda item: item["risk_amount"], reverse=True)
+    return sorted(rows, key=lambda item: safe_float(item.get("risk_amount")), reverse=True)
 
 
 def trade_net_pnl(trade: dict[str, Any]) -> float:
@@ -667,6 +725,8 @@ def build_risk_metrics(
     total_open_risk_amount = round(sum(position_risk_amount(position, balance) for position in positions), 2)
     total_open_risk_pct = round(sum(position_risk_pct(position, balance) for position in positions), 4)
     max_open_trade_risk_pct = round(max((position_risk_pct(position, balance) for position in positions), default=0.0), 4)
+    unbounded_positions = [position for position in positions if position_risk_is_unbounded(position)]
+    unbounded_positions_count = len(unbounded_positions)
     policy_snapshot = policy_snapshot or {}
     sizing_context = {
         "total_open_risk_pct": total_open_risk_pct,
@@ -694,6 +754,10 @@ def build_risk_metrics(
 
     if not trades:
         warnings.append("rolling_max_drawdown_pct usa una ventana vacía de trades; el valor refleja solo el estado live actual.")
+    if unbounded_positions_count:
+        warnings.append(
+            f"{unbounded_positions_count} posicion(es) abierta(s) sin SL: el riesgo abierto total solo suma posiciones con SL calculable."
+        )
     warnings.extend(professional_metrics.get("warnings") or [])
 
     return {
@@ -705,6 +769,8 @@ def build_risk_metrics(
             "total_open_risk_amount": total_open_risk_amount,
             "total_open_risk_pct": total_open_risk_pct,
             "max_open_trade_risk_pct": max_open_trade_risk_pct,
+            "unbounded_positions_count": unbounded_positions_count,
+            "missing_stop_loss_positions_count": unbounded_positions_count,
             "open_positions_count": len(positions),
             "daily_drawdown_pct": daily_context["daily_drawdown_pct"],
             "daily_peak_equity": daily_context["daily_peak_equity"],

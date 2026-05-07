@@ -162,7 +162,7 @@ class RiskContractFrontendTests(unittest.TestCase):
             hasLadder: html.includes("PROTECT") && html.includes("BASE"),
             hasMt5Received: html.includes("MT5 recibido"),
             hasMt5Pending: html.includes("MT5 pendiente"),
-            hasLocalState: html.includes("Estado local"),
+            hasManualState: html.includes("Estado manual"),
             hasPolicyControls: [
               "Riesgo por trade",
               "Límite daily DD",
@@ -200,7 +200,7 @@ class RiskContractFrontendTests(unittest.TestCase):
         self.assertTrue(result["hasLadder"])
         self.assertTrue(result["hasMt5Received"])
         self.assertTrue(result["hasMt5Pending"])
-        self.assertTrue(result["hasLocalState"])
+        self.assertTrue(result["hasManualState"])
         self.assertTrue(result["hasPolicyControls"])
         self.assertTrue(result["escapedRule"])
 

@@ -1,6 +1,6 @@
 # Auditoria completa de metricas KMFX Edge
 
-Estado: documento de trabajo para ejecutar cuando termine la fase de conexiones MT5/EA.
+Estado: Fases 0, 1 y parte critica de Fase 2 ejecutadas el 2026-05-07. Pendiente: motor matematico avanzado, tooltips/charts finales y QA visual.
 Alcance: EA -> ingest backend -> metric engine -> dashboard/risk/funding/journal -> visualizacion shadcn.
 
 ## Principio rector
@@ -204,23 +204,23 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 ### Fase 0 - Congelar contrato de metricas
 
-- Crear `metric_registry.json` o modulo equivalente.
-- Cada metrica debe tener id, label, formula, unit, source, confidence, policy_dependency, chart, refresh.
+- [x] Crear `docs/metric-registry-v1.json`.
+- [x] Cada metrica debe tener id, label, formula, unit, source, confidence, policy_dependency, chart, refresh.
 - Bloquear nombres ambiguos: `D-Score` solo si viene de Darwinex; si es propio, `Edge Score`.
 
 ### Fase 1 - Sanidad del EA
 
-- Emitir IDs como string.
-- Usar digits por simbolo.
-- Marcar posiciones sin SL como `unbounded`, no 0.
-- Incluir `floating_pnl` en agregados.
+- [x] Emitir IDs como string.
+- [x] Usar digits por simbolo.
+- [x] Marcar posiciones sin SL como `missing_stop_loss`, no 0.
+- [x] Incluir `floating_pnl` en agregados.
 - Test de parcialidades: entrada fuera de rango, cierre parcial, comision solo entrada, swap.
 
 ### Fase 2 - Fuente y politica
 
-- Introducir `policy_source` por limite.
-- Separar `configured_policy` de `reference_assumption`.
-- Eliminar rojo/bloqueo basado en defaults.
+- [x] Introducir `policy_source` por limite.
+- [x] Separar `configured_policy` de `reference_assumption`.
+- [x] Eliminar rojo/bloqueo basado en defaults.
 - Permitir politica por cuenta: riesgo/trade, DD diario, DD max, heat, funding rule.
 
 ### Fase 3 - Motor matematico
@@ -262,4 +262,3 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 - El chart coincide con la naturaleza del dato.
 - Hay estado empty/loading/error.
 - Hay tooltip con definicion y origen.
-

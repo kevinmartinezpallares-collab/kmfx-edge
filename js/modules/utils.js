@@ -350,11 +350,20 @@ function normalizeReportMetricsShape(reportMetrics, context = {}) {
     netProfit: Number.isFinite(Number(reportMetrics.netProfit)) ? Number(reportMetrics.netProfit) : 0,
     grossProfit: Number.isFinite(Number(reportMetrics.grossProfit)) ? Number(reportMetrics.grossProfit) : 0,
     grossLoss: Number.isFinite(Number(reportMetrics.grossLoss)) ? Number(reportMetrics.grossLoss) : 0,
+    netGrossProfit: Number.isFinite(Number(reportMetrics.netGrossProfit)) ? Number(reportMetrics.netGrossProfit) : 0,
+    netGrossLoss: Number.isFinite(Number(reportMetrics.netGrossLoss)) ? Number(reportMetrics.netGrossLoss) : 0,
     winRate: Number.isFinite(Number(reportMetrics.winRate)) ? Number(reportMetrics.winRate) : 0,
     totalTrades: Number.isFinite(Number(reportMetrics.totalTrades))
       ? Number(reportMetrics.totalTrades)
       : Number(context.totalTrades ?? 0),
-    profitFactor: Number.isFinite(Number(reportMetrics.profitFactor)) ? Number(reportMetrics.profitFactor) : 0,
+    profitFactor: Number.isFinite(Number(reportMetrics.netProfitFactor ?? reportMetrics.profitFactor))
+      ? Number(reportMetrics.netProfitFactor ?? reportMetrics.profitFactor)
+      : 0,
+    grossProfitFactor: Number.isFinite(Number(reportMetrics.grossProfitFactor)) ? Number(reportMetrics.grossProfitFactor) : 0,
+    netProfitFactor: Number.isFinite(Number(reportMetrics.netProfitFactor ?? reportMetrics.profitFactor))
+      ? Number(reportMetrics.netProfitFactor ?? reportMetrics.profitFactor)
+      : 0,
+    profitFactorBasis: reportMetrics.profitFactorBasis || (reportMetrics.netProfitFactor != null ? "net" : "legacy"),
     drawdownPct: Number.isFinite(Number(reportMetrics.drawdownPct)) ? Number(reportMetrics.drawdownPct) : 0,
     commissions: Number.isFinite(Number(reportMetrics.commissions)) ? Number(reportMetrics.commissions) : 0,
     swaps: Number.isFinite(Number(reportMetrics.swaps)) ? Number(reportMetrics.swaps) : 0,
@@ -377,9 +386,12 @@ function normalizeReportMetricsShape(reportMetrics, context = {}) {
     netProfit: normalized.netProfit,
     grossProfit: normalized.grossProfit,
     grossLoss: normalized.grossLoss,
+    netGrossProfit: normalized.netGrossProfit,
+    netGrossLoss: normalized.netGrossLoss,
     winRate: normalized.winRate,
     totalTrades: normalized.totalTrades,
     profitFactor: normalized.profitFactor,
+    profitFactorBasis: normalized.profitFactorBasis,
     drawdownPct: normalized.drawdownPct,
   });
 
@@ -915,8 +927,13 @@ export function buildDashboardModel(source) {
       winRate: reportMetrics.winRate,
       grossProfit: reportMetrics.grossProfit,
       grossLoss: reportMetrics.grossLoss,
+      netGrossProfit: reportMetrics.netGrossProfit,
+      netGrossLoss: reportMetrics.netGrossLoss,
       netProfit: reportMetrics.netProfit,
       profitFactor: reportMetrics.profitFactor,
+      grossProfitFactor: reportMetrics.grossProfitFactor,
+      netProfitFactor: reportMetrics.netProfitFactor,
+      profitFactorBasis: reportMetrics.profitFactorBasis,
       drawdownPct: reportMetrics.drawdownPct,
     });
   } else {

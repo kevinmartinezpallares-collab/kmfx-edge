@@ -30,6 +30,37 @@ DEFAULT_HEAT_LIMITS_BY_LEVEL = {
 }
 
 
+CONFIGURED_POLICY_SOURCES = {"user", "funding", "account", "backend_config", "policy", "configured"}
+REFERENCE_POLICY_SOURCES = {"default", "reference_default", "inferred", "inferred_from_current_level", "not_configured"}
+
+
+def _policy_sources(raw_policy: dict[str, Any]) -> dict[str, str]:
+    raw_sources = raw_policy.get("policy_sources")
+    if not isinstance(raw_sources, dict):
+        raw_sources = {}
+    return {safe_str(key): safe_str(value).lower() for key, value in raw_sources.items()}
+
+
+def _source_for_limit(raw_policy: dict[str, Any], canonical_key: str, raw_key: str, *, fallback: str) -> str:
+    sources = _policy_sources(raw_policy)
+    return (
+        safe_str(raw_policy.get(f"{raw_key}_source")).lower()
+        or safe_str(raw_policy.get(f"{canonical_key}_source")).lower()
+        or sources.get(raw_key)
+        or sources.get(canonical_key)
+        or fallback
+    )
+
+
+def _is_configured_source(source: str) -> bool:
+    normalized = safe_str(source).lower()
+    if not normalized:
+        return False
+    if normalized in REFERENCE_POLICY_SOURCES:
+        return False
+    return normalized in CONFIGURED_POLICY_SOURCES
+
+
 def build_policy_snapshot(raw_policy: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     warnings: list[str] = []
     current_level = safe_str(raw_policy.get("current_level"), "BASE")
@@ -43,14 +74,59 @@ def build_policy_snapshot(raw_policy: dict[str, Any]) -> tuple[dict[str, Any], l
         heat_limit_source = "inferred_from_current_level"
     else:
         portfolio_heat_limit_pct = safe_float(explicit_heat_limit, 0.0)
-        heat_limit_source = "policy"
+        heat_limit_source = _source_for_limit(
+            raw_policy,
+            "portfolio_heat_limit_pct",
+            "portfolio_heat_limit_pct",
+            fallback="policy",
+        )
+
+    risk_per_trade_source = _source_for_limit(
+        raw_policy,
+        "risk_per_trade_pct",
+        "max_risk_per_trade_pct",
+        fallback="policy" if raw_policy.get("max_risk_per_trade_pct") not in (None, "") else "not_configured",
+    )
+    daily_dd_source = _source_for_limit(
+        raw_policy,
+        "daily_dd_limit_pct",
+        "daily_dd_hard_stop",
+        fallback="policy" if raw_policy.get("daily_dd_hard_stop") not in (None, "") else "not_configured",
+    )
+    max_dd_source = _source_for_limit(
+        raw_policy,
+        "max_dd_limit_pct",
+        "total_dd_hard_stop",
+        fallback="policy" if raw_policy.get("total_dd_hard_stop") not in (None, "") else "not_configured",
+    )
 
     policy_snapshot = {
         "risk_per_trade_pct": safe_float(raw_policy.get("max_risk_per_trade_pct"), 0.0),
         "daily_dd_limit_pct": safe_float(raw_policy.get("daily_dd_hard_stop"), 0.0),
         "max_dd_limit_pct": safe_float(raw_policy.get("total_dd_hard_stop"), 0.0),
         "portfolio_heat_limit_pct": round(portfolio_heat_limit_pct, 4),
+        "risk_per_trade_pct_source": risk_per_trade_source,
+        "daily_dd_limit_pct_source": daily_dd_source,
+        "max_dd_limit_pct_source": max_dd_source,
         "portfolio_heat_limit_source": heat_limit_source,
+        "policy_sources": {
+            "risk_per_trade": risk_per_trade_source,
+            "daily_drawdown": daily_dd_source,
+            "max_drawdown": max_dd_source,
+            "portfolio_heat": heat_limit_source,
+        },
+        "configured_limits": {
+            "risk_per_trade": _is_configured_source(risk_per_trade_source),
+            "daily_drawdown": _is_configured_source(daily_dd_source),
+            "max_drawdown": _is_configured_source(max_dd_source),
+            "portfolio_heat": _is_configured_source(heat_limit_source),
+        },
+        "reference_assumptions": {
+            "risk_per_trade": not _is_configured_source(risk_per_trade_source),
+            "daily_drawdown": not _is_configured_source(daily_dd_source),
+            "max_drawdown": not _is_configured_source(max_dd_source),
+            "portfolio_heat": not _is_configured_source(heat_limit_source),
+        },
         "profit_target_pct": safe_float(raw_policy.get("profit_target_pct"), 0.0),
         "profit_target_remaining_pct": safe_float(raw_policy.get("profit_target_remaining_pct"), 0.0),
         "max_volume": safe_float(raw_policy.get("max_volume"), 0.0),
@@ -86,10 +162,15 @@ def evaluate_risk_policy(risk_snapshot: dict[str, Any], policy: dict[str, Any]) 
     breaches: list[dict[str, Any]] = []
     warnings: list[dict[str, Any]] = []
 
+    configured_limits = policy.get("configured_limits") if isinstance(policy.get("configured_limits"), dict) else {}
+    policy_sources = policy.get("policy_sources") if isinstance(policy.get("policy_sources"), dict) else {}
+
     def maybe_add_limit(metric_key: str, label: str, current: float, limit_value: float) -> dict[str, Any]:
+        source = safe_str(policy_sources.get(metric_key) or "not_configured")
+        is_configured = bool(configured_limits.get(metric_key)) and _is_configured_source(source)
         usage = _usage_ratio(current, limit_value)
-        state = "ok"
-        if limit_value > 0 and current >= limit_value:
+        state = "ok" if is_configured else "reference"
+        if is_configured and limit_value > 0 and current >= limit_value:
             state = "breach"
             breaches.append(
                 {
@@ -98,11 +179,12 @@ def evaluate_risk_policy(risk_snapshot: dict[str, Any], policy: dict[str, Any]) 
                     "label": label,
                     "current": round(current, 4),
                     "limit": round(limit_value, 4),
+                    "source": source,
                     "usage_ratio_pct": usage,
                     "message": f"{label} {current:.2f}% >= límite {limit_value:.2f}%",
                 }
             )
-        elif limit_value > 0 and current >= limit_value * 0.8:
+        elif is_configured and limit_value > 0 and current >= limit_value * 0.8:
             state = "warning"
             warnings.append(
                 {
@@ -111,6 +193,7 @@ def evaluate_risk_policy(risk_snapshot: dict[str, Any], policy: dict[str, Any]) 
                     "label": label,
                     "current": round(current, 4),
                     "limit": round(limit_value, 4),
+                    "source": source,
                     "usage_ratio_pct": usage,
                     "message": f"{label} en 80%+ del límite ({current:.2f}% / {limit_value:.2f}%).",
                 }
@@ -120,6 +203,9 @@ def evaluate_risk_policy(risk_snapshot: dict[str, Any], policy: dict[str, Any]) 
             "state": state,
             "current_pct": round(current, 4),
             "limit_pct": round(limit_value, 4),
+            "source": source,
+            "is_configured": is_configured,
+            "is_reference": not is_configured,
             "usage_ratio_pct": usage,
             "distance_to_limit_pct": distance,
         }

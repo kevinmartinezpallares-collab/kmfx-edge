@@ -2723,6 +2723,29 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def safe_float_or_none(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed == parsed else None
+
+
+def safe_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None or value == "":
+        return default
+    normalized = safe_str(value).lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
 def safe_int_or_none(value: Any) -> int | None:
     if value is None or value == "":
         return None
@@ -2842,6 +2865,24 @@ def sanitize_positions(raw_positions: Any) -> tuple[list[dict[str, Any]], list[d
     sanitized: list[dict[str, Any]] = []
 
     for index, position in enumerate(positions):
+        stop_loss = safe_float(position.get("sl"))
+        explicit_risk_state = safe_str(position.get("risk_state") or position.get("riskState")).lower()
+        risk_calculable = safe_bool(position.get("risk_calculable"), default=True)
+        raw_risk_amount = safe_float_or_none(position.get("risk_amount"))
+        raw_risk_pct = safe_float_or_none(position.get("risk_pct"))
+        if explicit_risk_state in {"missing_stop_loss", "unbounded", "not_calculable"}:
+            risk_calculable = False
+        if stop_loss <= 0 and (raw_risk_amount is None or raw_risk_amount <= 0) and (raw_risk_pct is None or raw_risk_pct <= 0):
+            risk_calculable = False
+        risk_state = explicit_risk_state or ("bounded_by_stop_loss" if risk_calculable else "missing_stop_loss")
+        risk_amount = raw_risk_amount if risk_calculable else None
+        risk_pct = raw_risk_pct if risk_calculable else None
+        profit = safe_float(position.get("profit"))
+        swap = safe_float(position.get("swap"))
+        floating_raw = position.get("floating_pnl")
+        if floating_raw in (None, ""):
+            floating_raw = position.get("floatingPnl")
+        floating_pnl = safe_float(floating_raw, profit + swap)
         sanitized.append(
             {
                 "position_id": safe_str(position.get("position_id")),
@@ -2851,11 +2892,15 @@ def sanitize_positions(raw_positions: Any) -> tuple[list[dict[str, Any]], list[d
                 "volume": safe_float(position.get("volume")),
                 "price_open": safe_float(position.get("price_open")),
                 "price_current": safe_float(position.get("price_current")),
-                "sl": safe_float(position.get("sl")),
+                "sl": stop_loss,
                 "tp": safe_float(position.get("tp")),
-                "profit": safe_float(position.get("profit")),
-                "risk_amount": safe_float(position.get("risk_amount")),
-                "risk_pct": safe_float(position.get("risk_pct")),
+                "profit": profit,
+                "swap": swap,
+                "floating_pnl": floating_pnl,
+                "risk_amount": risk_amount,
+                "risk_pct": risk_pct,
+                "risk_state": risk_state,
+                "risk_calculable": risk_calculable,
                 "strategy_tag": safe_str(position.get("strategy_tag")),
                 "time": safe_timestamp(position.get("time")),
                 "time_unix": safe_int_or_none(position.get("time_unix")),
@@ -2888,6 +2933,8 @@ def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[st
             {
                 "trade_id": safe_str(trade.get("trade_id") or trade.get("ticket")),
                 "ticket": safe_str(trade.get("ticket")),
+                "deal_id": safe_str(trade.get("deal_id") or trade.get("dealId") or trade.get("ticket")),
+                "order_id": safe_str(trade.get("order_id") or trade.get("orderId")),
                 "position_id": safe_str(trade.get("position_id")),
                 "symbol": safe_str(trade.get("symbol")),
                 "type": safe_str(trade.get("type")),
@@ -2994,6 +3041,21 @@ def build_policy(login: str) -> dict[str, Any]:
         "daily_dd_hard_stop": 1.20,
         "total_dd_hard_stop": 8.00,
         "trading_timezone": os.getenv("KMFX_TRADING_TIMEZONE", "Europe/Andorra"),
+        "policy_source": "reference_default",
+        "policy_source_label": "Referencia KMFX no configurada",
+        "policy_sources": {
+            "max_risk_per_trade_pct": "reference_default",
+            "daily_dd_hard_stop": "reference_default",
+            "total_dd_hard_stop": "reference_default",
+            "portfolio_heat_limit_pct": "inferred_from_current_level",
+        },
+        "configured_policy": {},
+        "reference_assumption": {
+            "max_risk_per_trade_pct": 0.50,
+            "daily_dd_hard_stop": 1.20,
+            "total_dd_hard_stop": 8.00,
+            "portfolio_heat_limit_pct": "level_reference",
+        },
     }
 
     last_sync = LAST_SYNC_BY_LOGIN.get(login)
@@ -3124,6 +3186,9 @@ def build_report_metrics(account: dict[str, Any], trades: list[dict[str, Any]], 
     gross_profit = sum(max(item["profit"], 0.0) for item in components)
     gross_loss_abs = sum(abs(min(item["profit"], 0.0)) for item in components)
     gross_loss = -gross_loss_abs
+    net_gross_profit = sum(max(item["net"], 0.0) for item in components)
+    net_gross_loss_abs = sum(abs(min(item["net"], 0.0)) for item in components)
+    net_gross_loss = -net_gross_loss_abs
     commissions = sum(item["commission"] for item in components)
     swaps = sum(item["swap"] for item in components)
     dividends = sum(item["dividend"] for item in components)
@@ -3132,7 +3197,12 @@ def build_report_metrics(account: dict[str, Any], trades: list[dict[str, Any]], 
     loss_trades = sum(1 for item in components if item["net"] < 0)
     total_trades = len(components)
     win_rate = (win_trades / total_trades * 100.0) if total_trades else 0.0
-    profit_factor = (gross_profit / gross_loss_abs) if gross_loss_abs > 0 else (gross_profit if gross_profit > 0 else 0.0)
+    gross_profit_factor = (gross_profit / gross_loss_abs) if gross_loss_abs > 0 else (9999.0 if gross_profit > 0 else 0.0)
+    net_profit_factor = (
+        (net_gross_profit / net_gross_loss_abs)
+        if net_gross_loss_abs > 0
+        else (9999.0 if net_gross_profit > 0 else 0.0)
+    )
 
     best_trade = max((item["net"] for item in components), default=0.0)
     worst_trade = min((item["net"] for item in components), default=0.0)
@@ -3217,12 +3287,17 @@ def build_report_metrics(account: dict[str, Any], trades: list[dict[str, Any]], 
         "equity": equity,
         "grossProfit": gross_profit,
         "grossLoss": gross_loss,
+        "netGrossProfit": net_gross_profit,
+        "netGrossLoss": net_gross_loss,
         "netProfit": net_profit,
         "winRate": win_rate,
         "totalTrades": total_trades,
         "winTrades": win_trades,
         "lossTrades": loss_trades,
-        "profitFactor": profit_factor,
+        "profitFactor": net_profit_factor,
+        "grossProfitFactor": gross_profit_factor,
+        "netProfitFactor": net_profit_factor,
+        "profitFactorBasis": "net",
         "drawdownPct": drawdown_pct,
         "commissions": commissions,
         "swaps": swaps,
@@ -3273,12 +3348,16 @@ def build_dashboard_account_payload(
             limit_pct = safe_float(limit_status.get("limit_pct"))
             distance_pct = limit_status.get("distance_to_limit_pct")
             usage_ratio_pct = limit_status.get("usage_ratio_pct")
+            is_configured = bool(limit_status.get("is_configured"))
 
             if matching_alert:
                 condition = matching_alert.get("message") or matching_alert.get("label") or fallback_title
                 current_label = f"{safe_float(matching_alert.get('current')):.2f}%"
                 limit_label = f"{safe_float(matching_alert.get('limit')):.2f}%"
                 impact = f"{current_label} sobre límite {limit_label}"
+            elif not is_configured:
+                condition = f"{fallback_title} sin política configurada"
+                impact = f"lectura actual {current_pct:.2f}% · referencia no vinculante"
             elif state == "ok":
                 condition = f"{fallback_title} dentro de límite"
                 if limit_pct > 0:
@@ -3299,7 +3378,7 @@ def build_dashboard_account_payload(
                 state_label = "ok"
                 tone_label = "ok"
 
-            if distance_pct is not None and state_label == "ok":
+            if is_configured and distance_pct is not None and state_label == "ok":
                 impact = f"margen {safe_float(distance_pct):.2f}% restante"
             elif usage_ratio_pct is not None and state_label != "ok":
                 impact = f"uso {safe_float(usage_ratio_pct):.2f}% del límite"

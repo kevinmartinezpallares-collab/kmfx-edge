@@ -1,0 +1,145 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-05-07",
+  "accounting_timezone": "Europe/Andorra",
+  "principles": [
+    "A metric can be shown as operational only when its source and formula are explicit.",
+    "A configured policy can create warning or breach states; a default/reference assumption cannot.",
+    "Positions without stop loss are unbounded risk, not zero risk.",
+    "MT5 identifiers are strings end to end to avoid truncation or JavaScript precision loss."
+  ],
+  "metrics": [
+    {
+      "id": "balance",
+      "label": "Balance",
+      "source": "EA AccountInfoDouble(ACCOUNT_BALANCE)",
+      "formula": "latest account balance",
+      "unit": "account_currency",
+      "confidence": "high",
+      "policy_source": "none",
+      "refresh": "live_sync",
+      "visual": "kpi_and_equity_area"
+    },
+    {
+      "id": "equity",
+      "label": "Equity",
+      "source": "EA AccountInfoDouble(ACCOUNT_EQUITY)",
+      "formula": "balance + open floating result",
+      "unit": "account_currency",
+      "confidence": "high",
+      "policy_source": "none",
+      "refresh": "live_sync",
+      "visual": "kpi_and_equity_area"
+    },
+    {
+      "id": "floating_pnl",
+      "label": "Floating PnL",
+      "source": "EA POSITION_PROFIT + POSITION_SWAP, fallback ACCOUNT_PROFIT",
+      "formula": "sum(position.floating_pnl)",
+      "unit": "account_currency",
+      "confidence": "high_when_position_payload_present",
+      "policy_source": "none",
+      "refresh": "live_sync",
+      "visual": "kpi_badge"
+    },
+    {
+      "id": "net_profit",
+      "label": "Net Profit",
+      "source": "Backend normalized closed trades",
+      "formula": "sum(profit + commission + swap + dividend)",
+      "unit": "account_currency",
+      "confidence": "high_when_mt5_history_complete",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "kpi_and_cumulative_line"
+    },
+    {
+      "id": "gross_profit_factor",
+      "label": "Gross Profit Factor",
+      "source": "Backend closed trade profit component",
+      "formula": "sum(max(profit, 0)) / abs(sum(min(profit, 0)))",
+      "unit": "ratio",
+      "confidence": "high_when_mt5_history_complete",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "detail_ratio"
+    },
+    {
+      "id": "net_profit_factor",
+      "label": "Net Profit Factor",
+      "source": "Backend closed trade net result",
+      "formula": "sum(max(net, 0)) / abs(sum(min(net, 0)))",
+      "unit": "ratio",
+      "confidence": "high_when_mt5_history_complete",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "primary_edge_kpi"
+    },
+    {
+      "id": "total_open_risk_pct",
+      "label": "Total Open Risk",
+      "source": "EA risk_amount/risk_pct per position",
+      "formula": "sum(calculable position risk_pct); unbounded positions are counted separately",
+      "unit": "percent",
+      "confidence": "high_only_when_all_positions_have_stop_loss",
+      "policy_source": "configured_policy_required_for_breach",
+      "refresh": "live_sync",
+      "visual": "risk_bar_with_unbounded_warning"
+    },
+    {
+      "id": "missing_stop_loss_positions_count",
+      "label": "Positions Without SL",
+      "source": "EA position.sl and risk_state",
+      "formula": "count(position where risk_state in missing_stop_loss/unbounded)",
+      "unit": "count",
+      "confidence": "high",
+      "policy_source": "none",
+      "refresh": "live_sync",
+      "visual": "warning_badge"
+    },
+    {
+      "id": "daily_drawdown_pct",
+      "label": "Daily Drawdown",
+      "source": "Backend persisted daily peak equity",
+      "formula": "(daily_peak_equity - equity) / daily_peak_equity * 100",
+      "unit": "percent",
+      "confidence": "high_after_first_daily_sync",
+      "policy_source": "configured_policy_required_for_breach",
+      "refresh": "live_sync",
+      "visual": "progress_bar"
+    },
+    {
+      "id": "peak_to_equity_drawdown_pct",
+      "label": "Peak To Equity Drawdown",
+      "source": "Backend persisted peak equity",
+      "formula": "(persisted_peak_equity - equity) / persisted_peak_equity * 100",
+      "unit": "percent",
+      "confidence": "high_after_persisted_history",
+      "policy_source": "configured_policy_required_for_breach",
+      "refresh": "live_sync",
+      "visual": "drawdown_area"
+    },
+    {
+      "id": "historical_var_95",
+      "label": "Historical VaR 95",
+      "source": "Backend normalized closed trade returns",
+      "formula": "5th percentile of historical losses",
+      "unit": "account_currency_or_percent",
+      "confidence": "directional_below_30_samples",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "radial_with_sample_size"
+    },
+    {
+      "id": "risk_of_ruin",
+      "label": "Risk Of Ruin",
+      "source": "Backend risk_math analytical/monte_carlo model",
+      "formula": "model dependent; must expose method, assumptions and sample size",
+      "unit": "probability_percent",
+      "confidence": "directional_until_sample_size_sufficient",
+      "policy_source": "configured_or_reference_assumption_visible",
+      "refresh": "sync_window",
+      "visual": "radial_with_assumptions"
+    }
+  ]
+}

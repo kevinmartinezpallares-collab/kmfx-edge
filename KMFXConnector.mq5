@@ -361,7 +361,7 @@ void KMFXBuildEntryMap(datetime from_time,
       if(position_id_long<=0)
          continue;
 
-      string position_id=IntegerToString(position_id_long);
+      string position_id=KMFXLongString(position_id_long);
       KMFXEntryDealInfo existing;
       if(KMFXFindEntryDeal(position_id,entry_map,position_ids,map_size,existing))
          continue;
@@ -402,6 +402,24 @@ string KMFXEscapeJson(string value)
 string KMFXQuote(string value)
   {
    return "\""+KMFXEscapeJson(value)+"\"";
+  }
+
+string KMFXLongString(long value)
+  {
+   return StringFormat("%I64d",value);
+  }
+
+string KMFXULongString(ulong value)
+  {
+   return StringFormat("%I64u",value);
+  }
+
+int KMFXSymbolDigits(string symbol)
+  {
+   long digits=SymbolInfoInteger(symbol,SYMBOL_DIGITS);
+   if(digits<0 || digits>12)
+      return _Digits;
+   return (int)digits;
   }
 
 string KMFXBoolJson(bool value)
@@ -1144,6 +1162,8 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
   {
    double gross_profit=0.0;
    double gross_loss=0.0;
+   double net_gross_profit=0.0;
+   double net_gross_loss=0.0;
    double net_profit=0.0;
    double total_commission=0.0;
    double total_swap=0.0;
@@ -1191,7 +1211,7 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
          double close_swap=HistoryDealGetDouble(ticket,DEAL_SWAP);
          double close_volume=HistoryDealGetDouble(ticket,DEAL_VOLUME);
          long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
-         string position_id=IntegerToString(position_id_long);
+         string position_id=KMFXLongString(position_id_long);
          KMFXEntryDealInfo entry_info;
          KMFXFindEntryDeal(position_id,entry_map,position_ids,entry_map_size,entry_info);
          double entry_ratio=KMFXEntryCostShareRatio(entry_info,close_volume);
@@ -1225,6 +1245,11 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
          net_profit+=net;
          total_commission+=commission;
          total_swap+=swap;
+         if(profit>0.0)
+            gross_profit+=profit;
+         else
+            if(profit<0.0)
+               gross_loss+=profit;
 
          if(first_trade)
            {
@@ -1240,7 +1265,7 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
 
          if(net>0.0)
            {
-            gross_profit+=net;
+            net_gross_profit+=net;
             win_count++;
             current_wins++;
             current_losses=0;
@@ -1249,7 +1274,7 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
          else
             if(net<0.0)
               {
-               gross_loss+=net;
+               net_gross_loss+=net;
                loss_count++;
                current_losses++;
                current_wins=0;
@@ -1284,14 +1309,20 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
      }
 
    double win_rate=total_trades>0 ? ((double)win_count/(double)total_trades)*100.0 : 0.0;
-   double profit_factor=0.0;
+   double gross_profit_factor=0.0;
    if(gross_loss!=0.0)
-      profit_factor=gross_profit/MathAbs(gross_loss);
+      gross_profit_factor=gross_profit/MathAbs(gross_loss);
    else
       if(gross_profit>0.0)
-         profit_factor=9999.0;
-   double avg_win=win_count>0 ? gross_profit/(double)win_count : 0.0;
-   double avg_loss=loss_count>0 ? MathAbs(gross_loss)/(double)loss_count : 0.0;
+         gross_profit_factor=9999.0;
+   double net_profit_factor=0.0;
+   if(net_gross_loss!=0.0)
+      net_profit_factor=net_gross_profit/MathAbs(net_gross_loss);
+   else
+      if(net_gross_profit>0.0)
+         net_profit_factor=9999.0;
+   double avg_win=win_count>0 ? net_gross_profit/(double)win_count : 0.0;
+   double avg_loss=loss_count>0 ? MathAbs(net_gross_loss)/(double)loss_count : 0.0;
 
    string json="{";
    json+="\"source\":\"mt5_mql5_computed\",";
@@ -1301,7 +1332,12 @@ string KMFXBuildReportMetrics(datetime from_time,datetime to_time)
    json+="\"netProfit\":"+KMFXDoubleJson(net_profit,2)+",";
    json+="\"grossProfit\":"+KMFXDoubleJson(gross_profit,2)+",";
    json+="\"grossLoss\":"+KMFXDoubleJson(gross_loss,2)+",";
-   json+="\"profitFactor\":"+KMFXDoubleJson(profit_factor,4)+",";
+   json+="\"netGrossProfit\":"+KMFXDoubleJson(net_gross_profit,2)+",";
+   json+="\"netGrossLoss\":"+KMFXDoubleJson(net_gross_loss,2)+",";
+   json+="\"profitFactor\":"+KMFXDoubleJson(net_profit_factor,4)+",";
+   json+="\"grossProfitFactor\":"+KMFXDoubleJson(gross_profit_factor,4)+",";
+   json+="\"netProfitFactor\":"+KMFXDoubleJson(net_profit_factor,4)+",";
+   json+="\"profitFactorBasis\":\"net\",";
    json+="\"winRate\":"+KMFXDoubleJson(win_rate,2)+",";
    json+="\"totalTrades\":"+IntegerToString(total_trades)+",";
    json+="\"winTrades\":"+IntegerToString(win_count)+",";
@@ -1355,6 +1391,7 @@ string KMFXBuildPositionsJson()
          continue;
 
       string symbol=PositionGetString(POSITION_SYMBOL);
+      int symbol_digits=KMFXSymbolDigits(symbol);
       string side=KMFXSideFromPositionType(PositionGetInteger(POSITION_TYPE));
       double volume=PositionGetDouble(POSITION_VOLUME);
       double entry_price=PositionGetDouble(POSITION_PRICE_OPEN);
@@ -1364,32 +1401,36 @@ string KMFXBuildPositionsJson()
       double floating_profit=PositionGetDouble(POSITION_PROFIT);
       double position_swap=PositionGetDouble(POSITION_SWAP);
       double floating_pnl=floating_profit+position_swap;
-      double risk_amount=KMFXEstimateRiskAmount(symbol,side,volume,entry_price,stop_loss);
-      double risk_pct=KMFXEstimateRiskPct(symbol,side,volume,entry_price,stop_loss);
+      bool risk_calculable=stop_loss>0.0;
+      double risk_amount=risk_calculable ? KMFXEstimateRiskAmount(symbol,side,volume,entry_price,stop_loss) : 0.0;
+      double risk_pct=risk_calculable ? KMFXEstimateRiskPct(symbol,side,volume,entry_price,stop_loss) : 0.0;
+      string risk_state=risk_calculable ? "bounded_by_stop_loss" : "missing_stop_loss";
 
       if(!first)
          json+=",";
       first=false;
 
       json+="{";
-      json+="\"position_id\":"+KMFXQuote((string)ticket)+",";
-      json+="\"ticket\":"+IntegerToString((int)ticket)+",";
+      json+="\"position_id\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"ticket\":"+KMFXQuote(KMFXULongString(ticket))+",";
       json+="\"symbol\":"+KMFXQuote(symbol)+",";
       json+="\"type\":"+KMFXQuote(side)+",";
       json+="\"volume\":"+KMFXDoubleJson(volume,2)+",";
-      json+="\"price_open\":"+KMFXDoubleJson(entry_price,_Digits)+",";
-      json+="\"price_current\":"+KMFXDoubleJson(current_price,_Digits)+",";
-      json+="\"sl\":"+KMFXDoubleJson(stop_loss,_Digits)+",";
-      json+="\"tp\":"+KMFXDoubleJson(take_profit,_Digits)+",";
+      json+="\"price_open\":"+KMFXDoubleJson(entry_price,symbol_digits)+",";
+      json+="\"price_current\":"+KMFXDoubleJson(current_price,symbol_digits)+",";
+      json+="\"sl\":"+KMFXDoubleJson(stop_loss,symbol_digits)+",";
+      json+="\"tp\":"+KMFXDoubleJson(take_profit,symbol_digits)+",";
       json+="\"profit\":"+KMFXDoubleJson(floating_profit,2)+",";
       json+="\"swap\":"+KMFXDoubleJson(position_swap,2)+",";
       // POSITION_COMMISSION not available in MT5 API
       json+="\"floating_pnl\":"+KMFXDoubleJson(floating_pnl,2)+",";
-      json+="\"risk_amount\":"+KMFXDoubleJson(risk_amount,2)+",";
-      json+="\"risk_pct\":"+KMFXDoubleJson(risk_pct,4)+",";
+      json+="\"risk_amount\":"+(risk_calculable ? KMFXDoubleJson(risk_amount,2) : "null")+",";
+      json+="\"risk_pct\":"+(risk_calculable ? KMFXDoubleJson(risk_pct,4) : "null")+",";
+      json+="\"risk_state\":"+KMFXQuote(risk_state)+",";
+      json+="\"risk_calculable\":"+KMFXBoolJson(risk_calculable)+",";
       json+="\"strategy_tag\":"+KMFXQuote(PositionGetString(POSITION_COMMENT))+",";
       json+="\"time\":"+KMFXQuote(TimeToString((datetime)PositionGetInteger(POSITION_TIME),TIME_DATE|TIME_SECONDS))+",";
-      json+="\"time_unix\":"+IntegerToString((long)PositionGetInteger(POSITION_TIME));
+      json+="\"time_unix\":"+KMFXLongString((long)PositionGetInteger(POSITION_TIME));
       json+="}";
      }
 
@@ -1566,7 +1607,7 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
       if(ticket==0)
          continue;
 
-      string trade_id=(string)ticket;
+      string trade_id=KMFXULongString(ticket);
       if(KMFXIsTradeSent(trade_id) || KMFXTradeIsQueued(trade_id))
          continue;
 
@@ -1583,7 +1624,10 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
       trade_ids_csv+=trade_id;
 
       long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
-      string position_id=IntegerToString(position_id_long);
+      string position_id=KMFXLongString(position_id_long);
+      long order_id_long=HistoryDealGetInteger(ticket,DEAL_ORDER);
+      string deal_symbol=HistoryDealGetString(ticket,DEAL_SYMBOL);
+      int symbol_digits=KMFXSymbolDigits(deal_symbol);
       KMFXEntryDealInfo entry_info;
       KMFXFindEntryDeal(position_id,entry_map,position_ids,entry_map_size,entry_info);
       string cleaned_comment=KMFXCleanComment(HistoryDealGetString(ticket,DEAL_COMMENT));
@@ -1614,18 +1658,20 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
 
       json+="{";
       json+="\"trade_id\":"+KMFXQuote(trade_id)+",";
-      json+="\"ticket\":"+IntegerToString((int)ticket)+",";
-      json+="\"position_id\":"+position_id+",";
-      json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
+      json+="\"ticket\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"deal_id\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"order_id\":"+KMFXQuote(KMFXLongString(order_id_long))+",";
+      json+="\"position_id\":"+KMFXQuote(position_id)+",";
+      json+="\"symbol\":"+KMFXQuote(deal_symbol)+",";
       json+="\"type\":"+KMFXQuote(HistoryDealGetInteger(ticket,DEAL_TYPE)==DEAL_TYPE_BUY ? "BUY" : "SELL")+",";
       json+="\"direction\":"+KMFXQuote(entry_info.found ? entry_info.direction : "")+",";
       json+="\"volume\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_VOLUME),2)+",";
-      json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),_Digits)+",";
-      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,_Digits) : "0")+",";
+      json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),symbol_digits)+",";
+      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,symbol_digits) : "0")+",";
       json+="\"open_time\":"+(entry_info.found ? KMFXQuote(entry_info.open_time) : KMFXQuote(""))+",";
-      json+="\"open_time_unix\":"+(entry_info.found ? IntegerToString(entry_info.open_time_unix) : "0")+",";
-      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,_Digits) : "0")+",";
-      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,_Digits) : "0")+",";
+      json+="\"open_time_unix\":"+(entry_info.found ? KMFXLongString(entry_info.open_time_unix) : "0")+",";
+      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,symbol_digits) : "0")+",";
+      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,symbol_digits) : "0")+",";
       json+="\"profit\":"+KMFXDoubleJson(trade_profit,2)+",";
       json+="\"commission\":"+KMFXDoubleJson(total_commission,2)+",";
       json+="\"close_commission\":"+KMFXDoubleJson(close_commission,2)+",";
@@ -1637,7 +1683,7 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
       json+="\"comment\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"strategy_tag\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"time\":"+KMFXQuote(TimeToString((datetime)HistoryDealGetInteger(ticket,DEAL_TIME),TIME_DATE|TIME_SECONDS))+",";
-      json+="\"time_unix\":"+IntegerToString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
+      json+="\"time_unix\":"+KMFXLongString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
       json+="}";
      }
 
@@ -1680,7 +1726,10 @@ string KMFXBuildSyncTradesJson(int max_count)
       added++;
 
       long position_id_long=HistoryDealGetInteger(ticket,DEAL_POSITION_ID);
-      string position_id=IntegerToString(position_id_long);
+      string position_id=KMFXLongString(position_id_long);
+      long order_id_long=HistoryDealGetInteger(ticket,DEAL_ORDER);
+      string deal_symbol=HistoryDealGetString(ticket,DEAL_SYMBOL);
+      int symbol_digits=KMFXSymbolDigits(deal_symbol);
       KMFXEntryDealInfo entry_info;
       KMFXFindEntryDeal(position_id,entry_map,position_ids,entry_map_size,entry_info);
       string cleaned_comment=KMFXCleanComment(HistoryDealGetString(ticket,DEAL_COMMENT));
@@ -1710,19 +1759,21 @@ string KMFXBuildSyncTradesJson(int max_count)
          trade_net=0.0;
 
       json+="{";
-      json+="\"trade_id\":"+KMFXQuote((string)ticket)+",";
-      json+="\"ticket\":"+IntegerToString((int)ticket)+",";
-      json+="\"position_id\":"+position_id+",";
-      json+="\"symbol\":"+KMFXQuote(HistoryDealGetString(ticket,DEAL_SYMBOL))+",";
+      json+="\"trade_id\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"ticket\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"deal_id\":"+KMFXQuote(KMFXULongString(ticket))+",";
+      json+="\"order_id\":"+KMFXQuote(KMFXLongString(order_id_long))+",";
+      json+="\"position_id\":"+KMFXQuote(position_id)+",";
+      json+="\"symbol\":"+KMFXQuote(deal_symbol)+",";
       json+="\"type\":"+KMFXQuote(HistoryDealGetInteger(ticket,DEAL_TYPE)==DEAL_TYPE_BUY ? "BUY" : "SELL")+",";
       json+="\"direction\":"+KMFXQuote(entry_info.found ? entry_info.direction : "")+",";
       json+="\"volume\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_VOLUME),2)+",";
-      json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),_Digits)+",";
-      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,_Digits) : "0")+",";
+      json+="\"price\":"+KMFXDoubleJson(HistoryDealGetDouble(ticket,DEAL_PRICE),symbol_digits)+",";
+      json+="\"open_price\":"+(entry_info.found ? KMFXDoubleJson(entry_info.open_price,symbol_digits) : "0")+",";
       json+="\"open_time\":"+(entry_info.found ? KMFXQuote(entry_info.open_time) : KMFXQuote(""))+",";
-      json+="\"open_time_unix\":"+(entry_info.found ? IntegerToString(entry_info.open_time_unix) : "0")+",";
-      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,_Digits) : "0")+",";
-      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,_Digits) : "0")+",";
+      json+="\"open_time_unix\":"+(entry_info.found ? KMFXLongString(entry_info.open_time_unix) : "0")+",";
+      json+="\"sl\":"+(entry_info.found ? KMFXDoubleJson(entry_info.sl,symbol_digits) : "0")+",";
+      json+="\"tp\":"+(entry_info.found ? KMFXDoubleJson(entry_info.tp,symbol_digits) : "0")+",";
       json+="\"profit\":"+KMFXDoubleJson(trade_profit,2)+",";
       json+="\"commission\":"+KMFXDoubleJson(total_commission,2)+",";
       json+="\"close_commission\":"+KMFXDoubleJson(close_commission,2)+",";
@@ -1734,7 +1785,7 @@ string KMFXBuildSyncTradesJson(int max_count)
       json+="\"comment\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"strategy_tag\":"+KMFXQuote(cleaned_comment)+",";
       json+="\"time\":"+KMFXQuote(TimeToString((datetime)HistoryDealGetInteger(ticket,DEAL_TIME),TIME_DATE|TIME_SECONDS))+",";
-      json+="\"time_unix\":"+IntegerToString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
+      json+="\"time_unix\":"+KMFXLongString((long)HistoryDealGetInteger(ticket,DEAL_TIME));
       json+="}";
      }
 
