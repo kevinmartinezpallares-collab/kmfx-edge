@@ -158,6 +158,7 @@ Notas 2026-05-09:
 - Corregidas env vars no secretas de billing en Render: `NEXT_PUBLIC_APP_URL=https://kmfxedge.com`, trial 7 dias sin tarjeta y retorno a `/ajustes?tab=subscription`.
 - Deploy Render `dep-d7v720d0lvsc73fj4me0` quedo `live` y `/health` responde con commit `4518825`.
 - Stripe read-only confirma los seis Prices bajo `prod_UT7nzmgj3Eg3Zv`; las lookup keys siguen pendientes en Stripe Dashboard/API.
+- Probes externos sin credenciales: `/api/billing/status` devuelve estado anonimo Free/Demo, `/api/billing/checkout` y `/api/billing/portal` devuelven `401 auth_required`, y `/api/billing/webhook` rechaza payload sin firma con `400 invalid_signature`.
 
 Criterio de salida:
 
