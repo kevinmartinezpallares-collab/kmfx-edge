@@ -30,6 +30,8 @@ class ProfessionalRiskMetricsTests(unittest.TestCase):
         self.assertGreater(metrics.var_amount, 0)
         self.assertGreaterEqual(metrics.cvar_amount, metrics.var_amount)
         self.assertEqual(metrics.method, "historical")
+        self.assertEqual(metrics.sample_quality_level, "insuficiente")
+        self.assertEqual(metrics.sample_quality_label, "Muestra insuficiente")
 
     def test_tail_risk_handles_empty_sample(self) -> None:
         metrics = calculate_tail_risk_metrics([], confidence=0.99)
@@ -37,17 +39,27 @@ class ProfessionalRiskMetricsTests(unittest.TestCase):
         self.assertEqual(metrics.sample_size, 0)
         self.assertEqual(metrics.var_amount, 0.0)
         self.assertEqual(metrics.cvar_amount, 0.0)
+        self.assertEqual(metrics.sample_quality_level, "sin_muestra")
+
+    def test_tail_risk_marks_robust_sample_quality(self) -> None:
+        metrics = calculate_tail_risk_metrics([120, -80] * 50, confidence=0.95)
+
+        self.assertEqual(metrics.sample_size, 100)
+        self.assertEqual(metrics.sample_quality_level, "robusta")
+        self.assertEqual(metrics.sample_quality_label, "Muestra robusta")
 
     def test_parametric_tail_risk_requires_sample_then_returns_var(self) -> None:
         insufficient = calculate_parametric_tail_risk_metrics([100, -50], confidence=0.95)
         self.assertEqual(insufficient.sample_size, 2)
         self.assertEqual(insufficient.var_amount, 0.0)
         self.assertEqual(insufficient.method, "parametric_normal")
+        self.assertEqual(insufficient.sample_quality_level, "insuficiente")
 
         metrics = calculate_parametric_tail_risk_metrics([120, -80, 60, -40, 90, -70] * 5, confidence=0.95)
         self.assertEqual(metrics.sample_size, 30)
         self.assertGreater(metrics.var_amount, 0.0)
         self.assertGreaterEqual(metrics.cvar_amount, metrics.var_amount)
+        self.assertEqual(metrics.sample_quality_level, "aceptable")
 
     def test_monte_carlo_var_is_deterministic_with_seed(self) -> None:
         first = calculate_monte_carlo_var_metrics(
@@ -69,6 +81,7 @@ class ProfessionalRiskMetricsTests(unittest.TestCase):
         self.assertEqual(first.sample_size, 4)
         self.assertEqual(first.method, "monte_carlo_bootstrap")
         self.assertGreaterEqual(first.var_amount, 0.0)
+        self.assertEqual(first.sample_quality_level, "insuficiente")
 
     def test_drawdown_path_tracks_amount_percentage_and_recovery(self) -> None:
         metrics = calculate_drawdown_path_metrics([100_000, 105_000, 98_000, 99_000, 110_000])
@@ -112,6 +125,8 @@ class ProfessionalRiskMetricsTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual(first.sample_size, 4)
+        self.assertEqual(first.method, "monte_carlo_bootstrap")
+        self.assertEqual(first.sample_quality_level, "insuficiente")
         self.assertGreaterEqual(first.ruin_probability_pct, 0.0)
         self.assertLessEqual(first.ruin_probability_pct, 100.0)
 

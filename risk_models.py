@@ -112,6 +112,8 @@ class TailRiskMetrics:
     tail_count: int
     method: str
     dashboard_text: str
+    sample_quality_level: str = ""
+    sample_quality_label: str = ""
 
 
 @dataclass(frozen=True)
@@ -185,6 +187,7 @@ class DrawdownPathMetrics:
 
 @dataclass(frozen=True)
 class MonteCarloRiskSummary:
+    method: str
     simulations: int
     horizon_trades: int
     ruin_threshold_pct: float
@@ -196,6 +199,8 @@ class MonteCarloRiskSummary:
     p95_max_drawdown_pct: float
     sample_size: int
     dashboard_text: str
+    sample_quality_level: str = ""
+    sample_quality_label: str = ""
 
 
 @dataclass(frozen=True)

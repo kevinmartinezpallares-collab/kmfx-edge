@@ -128,6 +128,14 @@ def calculate_sample_quality(sample_size: int) -> SampleQualityMetrics:
     )
 
 
+def sample_quality_fields(sample_size: int) -> dict[str, str]:
+    quality = calculate_sample_quality(sample_size)
+    return {
+        "sample_quality_level": quality.level,
+        "sample_quality_label": quality.label,
+    }
+
+
 def calculate_outlier_dependency(pnl_values: Sequence[float]) -> OutlierDependencyMetrics:
     pnls = finite_numbers(pnl_values)
     positive_pnls = sorted((pnl for pnl in pnls if pnl > 0), reverse=True)
@@ -719,6 +727,7 @@ def calculate_tail_risk_metrics(pnl_values: Sequence[float], confidence: float =
     """
     pnls = finite_numbers(pnl_values)
     safe_confidence = min(max(float(confidence), 0.0), 0.9999)
+    quality = sample_quality_fields(len(pnls))
     if not pnls:
         return TailRiskMetrics(
             confidence=round(safe_confidence, 4),
@@ -728,6 +737,7 @@ def calculate_tail_risk_metrics(pnl_values: Sequence[float], confidence: float =
             tail_count=0,
             method="historical",
             dashboard_text="Sin trades cerrados; VaR/CVaR no disponible.",
+            **quality,
         )
 
     losses = [-pnl for pnl in pnls]
@@ -744,6 +754,7 @@ def calculate_tail_risk_metrics(pnl_values: Sequence[float], confidence: float =
         tail_count=len(tail_losses),
         method="historical",
         dashboard_text=f"VaR {label} {format_money(var_amount)}; CVaR {label} {format_money(cvar_amount)}.",
+        **quality,
     )
 
 
@@ -756,6 +767,7 @@ def calculate_parametric_tail_risk_metrics(
     pnls = finite_numbers(pnl_values)
     safe_confidence = min(max(float(confidence), 0.0), 0.9999)
     safe_min_sample = max(2, int(min_sample_size or 30))
+    quality = sample_quality_fields(len(pnls))
     if len(pnls) < safe_min_sample:
         return TailRiskMetrics(
             confidence=round(safe_confidence, 4),
@@ -765,6 +777,7 @@ def calculate_parametric_tail_risk_metrics(
             tail_count=0,
             method="parametric_normal",
             dashboard_text=f"Muestra menor a {safe_min_sample}; VaR paramétrico no disponible.",
+            **quality,
         )
 
     mean_pnl = sum(pnls) / len(pnls)
@@ -779,6 +792,7 @@ def calculate_parametric_tail_risk_metrics(
             tail_count=0,
             method="parametric_normal",
             dashboard_text="Distribución sin volatilidad; VaR paramétrico degenerado.",
+            **quality,
         )
 
     normal = NormalDist()
@@ -796,6 +810,7 @@ def calculate_parametric_tail_risk_metrics(
         tail_count=max(1, round(len(pnls) * (1 - safe_confidence))),
         method="parametric_normal",
         dashboard_text=f"VaR paramétrico {label} {format_money(var_amount)}; CVaR {label} {format_money(cvar_amount)}.",
+        **quality,
     )
 
 
@@ -811,6 +826,7 @@ def calculate_monte_carlo_var_metrics(
     safe_confidence = min(max(float(confidence), 0.0), 0.9999)
     safe_simulations = max(1, int(simulations or 1))
     safe_horizon = max(1, int(horizon_trades or 1))
+    quality = sample_quality_fields(len(pnls))
     if not pnls:
         return TailRiskMetrics(
             confidence=round(safe_confidence, 4),
@@ -820,6 +836,7 @@ def calculate_monte_carlo_var_metrics(
             tail_count=0,
             method="monte_carlo_bootstrap",
             dashboard_text="Sin trades cerrados; VaR Monte Carlo no disponible.",
+            **quality,
         )
 
     rng = random.Random(seed)
@@ -840,6 +857,7 @@ def calculate_monte_carlo_var_metrics(
             f"VaR Monte Carlo {label} {format_money(base.var_amount)}; "
             f"{safe_simulations} simulaciones, horizonte {safe_horizon} trades."
         ),
+        **quality,
     )
 
 
@@ -959,9 +977,11 @@ def calculate_monte_carlo_risk_summary(
     safe_simulations = max(1, int(simulations or 1))
     safe_horizon = max(1, int(horizon_trades or sample_size or 1))
     safe_ruin_threshold = max(0.0, float(ruin_threshold_pct or 0.0))
+    quality = sample_quality_fields(sample_size)
 
     if not returns:
         return MonteCarloRiskSummary(
+            method="monte_carlo_bootstrap",
             simulations=safe_simulations,
             horizon_trades=safe_horizon,
             ruin_threshold_pct=round(safe_ruin_threshold, 4),
@@ -973,6 +993,7 @@ def calculate_monte_carlo_risk_summary(
             p95_max_drawdown_pct=0.0,
             sample_size=0,
             dashboard_text="Sin retornos; Monte Carlo no disponible.",
+            **quality,
         )
 
     rng = random.Random(seed)
@@ -1001,6 +1022,7 @@ def calculate_monte_carlo_risk_summary(
 
     ruin_probability_pct = (ruin_hits / safe_simulations) * 100.0
     return MonteCarloRiskSummary(
+        method="monte_carlo_bootstrap",
         simulations=safe_simulations,
         horizon_trades=safe_horizon,
         ruin_threshold_pct=round(safe_ruin_threshold, 4),
@@ -1015,6 +1037,7 @@ def calculate_monte_carlo_risk_summary(
             f"Riesgo de ruina {ruin_probability_pct:.2f}% con límite "
             f"-{safe_ruin_threshold:.1f}% en {safe_horizon} trades."
         ),
+        **quality,
     )
 
 
