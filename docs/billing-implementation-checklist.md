@@ -73,8 +73,15 @@ Safety note: the same Stripe account receives non-KMFX payments. Only touch obje
 ## Phase 5 - Go live
 
 - [ ] Replace test keys with live keys.
-- [ ] Confirm webhook signing secret in production.
+- [x] Confirm webhook signing secret in production.
 - [ ] Confirm tax/invoice settings.
 - [ ] Confirm refunds/cancellation copy.
 - [ ] Confirm terms/privacy mention subscriptions and data retention.
 - [ ] Run a real $0/test-mode equivalent rehearsal before live launch.
+
+Notes 2026-05-09:
+
+- Render `kmfx-edge-api` has `STRIPE_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_PRODUCT_ID`, all six Price ID env vars, `SUPABASE_SERVICE_ROLE_KEY` and `RESEND_API_KEY` configured.
+- Success/cancel URLs now return to `/ajustes?tab=subscription`.
+- Trial env is explicit: `STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`.
+- Stripe read-only check confirms the six KMFX Prices exist under `prod_UT7nzmgj3Eg3Zv`; lookup keys/metadata and Customer Portal remain pending in Stripe.

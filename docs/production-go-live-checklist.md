@@ -142,7 +142,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [x] Verificar `/api/billing/checkout`.
 - [x] Verificar `/api/billing/portal`.
 - [x] Verificar `/api/billing/webhook`.
-- [ ] Env vars live/test revisadas en Render.
+- [x] Env vars live/test revisadas en Render.
 
 Notas 2026-05-08:
 
@@ -151,6 +151,13 @@ Notas 2026-05-08:
 - Checkout queda preparado con trial de 7 dias sin tarjeta por defecto (`STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`).
 - Success/cancel vuelven a `/ajustes?tab=subscription`, y la UI muestra el estado de retorno sin caer al dashboard.
 - Webhooks de invoice (`invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required`) sincronizan la suscripcion KMFX asociada si pertenece al producto/metadata KMFX.
+
+Notas 2026-05-09:
+
+- Render `kmfx-edge-api` (`srv-d79k3b75r7bs73fspuu0`) revisado: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRODUCT_ID`, Price IDs, `SUPABASE_SERVICE_ROLE_KEY` y `RESEND_API_KEY` estan configurados.
+- Corregidas env vars no secretas de billing en Render: `NEXT_PUBLIC_APP_URL=https://kmfxedge.com`, trial 7 dias sin tarjeta y retorno a `/ajustes?tab=subscription`.
+- Deploy Render `dep-d7v720d0lvsc73fj4me0` quedo `live` y `/health` responde con commit `4518825`.
+- Stripe read-only confirma los seis Prices bajo `prod_UT7nzmgj3Eg3Zv`; las lookup keys siguen pendientes en Stripe Dashboard/API.
 
 Criterio de salida:
 

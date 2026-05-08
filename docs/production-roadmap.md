@@ -213,7 +213,7 @@ Criterio de salida:
 
 Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el acceso.
 
-- [ ] Añadir env vars en Render:
+- [x] Añadir env vars en Render:
   - `STRIPE_SECRET_KEY`
   - `STRIPE_WEBHOOK_SECRET`
   - `STRIPE_API_VERSION`
@@ -251,6 +251,12 @@ Criterio de salida:
 - Checkout test crea suscripción.
 - Webhook test actualiza Supabase.
 - `/api/billing/status` devuelve plan, estado y entitlements para el usuario autenticado.
+
+Checkpoint 2026-05-09:
+
+- Render backend `kmfx-edge-api` tiene Stripe secret, webhook secret, product ID, Price IDs, Supabase service role y Resend configurados.
+- `NEXT_PUBLIC_APP_URL`, trial de 7 dias y rutas success/cancel se fijaron explicitamente en Render.
+- Deploy Render `dep-d7v720d0lvsc73fj4me0` quedo live y `/health` responde.
 
 ## Fase 3 - Guards de Producto
 
