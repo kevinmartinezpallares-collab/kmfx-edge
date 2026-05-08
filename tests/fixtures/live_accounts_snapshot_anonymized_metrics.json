@@ -1,0 +1,397 @@
+{
+  "accounts": [
+    {
+      "account_id": "mt5-alpha-10000001",
+      "user_id": "user-anon-metrics-contract",
+      "display_name": "Alpha Challenge 25k",
+      "broker": "Alpha Broker Ltd.",
+      "platform": "mt5",
+      "login": "10000001",
+      "server": "Alpha-Live",
+      "connection_mode": "launcher",
+      "status": "active",
+      "last_sync_at": "2026-05-04T09:30:00Z",
+      "is_default": true,
+      "dashboard_payload": {
+        "payloadSource": "mt5_sync_live",
+        "accountName": "Alpha Challenge 25k",
+        "name": "Alpha Challenge 25k",
+        "broker": "Alpha Broker Ltd.",
+        "server": "Alpha-Live",
+        "platform": "mt5",
+        "mode": "MT5 Live",
+        "balance": 25120.5,
+        "equity": 25218.75,
+        "floatingPnl": 98.25,
+        "openPnl": 98.25,
+        "closedPnl": 120.5,
+        "totalPnl": 218.75,
+        "openPositionsCount": 1,
+        "totalTrades": 3,
+        "timestamp": "2026-05-04T09:30:00Z",
+        "positions": [
+          {
+            "position_id": "alpha-pos-open-1",
+            "symbol": "EURUSD",
+            "type": "BUY",
+            "volume": 0.8,
+            "open_price": 1.1385,
+            "current_price": 1.1398,
+            "profit": 104.0,
+            "swap": -5.75,
+            "floating_pnl": 98.25,
+            "sl": 1.136,
+            "tp": 1.144
+          }
+        ],
+        "trades": [
+          {
+            "ticket": "alpha-deal-1001",
+            "position_id": "alpha-position-closed-1",
+            "symbol": "EURUSD",
+            "type": "BUY",
+            "volume": 0.6,
+            "open_time": "2026-05-02T08:15:00Z",
+            "close_time": "2026-05-02T09:20:00Z",
+            "entry_price": 1.134,
+            "exit_price": 1.138,
+            "profit": 240.0,
+            "commission": -3.6,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "anonymized-session-a"
+          },
+          {
+            "ticket": "alpha-deal-1002",
+            "position_id": "alpha-position-closed-2",
+            "symbol": "GBPUSD",
+            "type": "SELL",
+            "volume": 0.4,
+            "open_time": "2026-05-03T11:05:00Z",
+            "close_time": "2026-05-03T11:55:00Z",
+            "entry_price": 1.352,
+            "exit_price": 1.3542,
+            "profit": -88.0,
+            "commission": -2.4,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "anonymized-session-b"
+          },
+          {
+            "ticket": "alpha-deal-1003",
+            "position_id": "alpha-position-closed-3",
+            "symbol": "AUDUSD",
+            "type": "BUY",
+            "volume": 0.3,
+            "open_time": "2026-05-03T14:30:00Z",
+            "close_time": "2026-05-03T15:10:00Z",
+            "entry_price": 0.662,
+            "exit_price": 0.663,
+            "profit": 30.0,
+            "commission": -1.5,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "anonymized-session-c"
+          }
+        ],
+        "history": [
+          { "timestamp": "2026-05-02T00:00:00Z", "value": 25000.0 },
+          { "timestamp": "2026-05-02T23:00:00Z", "value": 25236.4 },
+          { "timestamp": "2026-05-03T23:00:00Z", "value": 25120.5 },
+          { "timestamp": "2026-05-04T09:30:00Z", "value": 25218.75 }
+        ],
+        "reportMetrics": {
+          "source": "backend_mt5_report_metrics",
+          "balance": 25120.5,
+          "equity": 25218.75,
+          "netProfit": 120.5,
+          "grossProfit": 270.0,
+          "grossLoss": -91.9,
+          "winRate": 66.6666666667,
+          "totalTrades": 3,
+          "profitFactor": 2.938,
+          "drawdownPct": 0.46,
+          "commissions": -7.5,
+          "swaps": 0.0,
+          "dividends": 0.0,
+          "winTrades": 2,
+          "lossTrades": 1,
+          "bestTrade": 236.4,
+          "worstTrade": -90.4,
+          "maxConsecutiveWins": 1,
+          "maxConsecutiveLosses": 1
+        },
+        "riskSnapshot": {
+          "summary": {
+            "floating_drawdown_pct": 0.0,
+            "peak_to_equity_drawdown_pct": 0.46,
+            "rolling_max_drawdown_pct": 0.46,
+            "persisted_max_drawdown_pct": 0.46,
+            "max_drawdown_limit_pct": 8.0,
+            "distance_to_max_dd_limit_pct": 7.54,
+            "daily_drawdown_pct": 0.0,
+            "daily_peak_equity": 25218.75,
+            "distance_to_daily_dd_limit_pct": 4.0,
+            "total_open_risk_amount": 200.0,
+            "total_open_risk_pct": 0.8,
+            "max_risk_per_trade_pct": 1.0,
+            "max_open_trade_risk_pct": 0.8,
+            "open_positions_count": 1,
+            "portfolio_heat_limit_pct": 5.0,
+            "distance_to_heat_limit_pct": 4.2,
+            "heat_usage_ratio_pct": 16.0
+          },
+          "status": {
+            "risk_status": "ok",
+            "severity": "info",
+            "reason_code": "OK",
+            "blocking_rule": "",
+            "action_required": "Sin accion requerida.",
+            "enforcement": {
+              "allow_new_trades": true,
+              "block_new_trades": false,
+              "reduce_size": false,
+              "close_positions_required": false
+            }
+          },
+          "policy": {
+            "risk_per_trade_pct": 1.0,
+            "daily_dd_limit_pct": 4.0,
+            "max_dd_limit_pct": 8.0,
+            "portfolio_heat_limit_pct": 5.0,
+            "max_volume": 5.0,
+            "allowed_sessions": ["London", "New York"],
+            "allowed_symbols": ["EURUSD", "GBPUSD", "AUDUSD"],
+            "auto_block_enabled": true
+          },
+          "policy_evaluation": {
+            "ok": true,
+            "breaches": [],
+            "warnings": [],
+            "limits_status": {
+              "max_drawdown": { "state": "ok", "current_pct": 0.46, "limit_pct": 8.0, "distance_to_limit_pct": 7.54 },
+              "daily_drawdown": { "state": "ok", "current_pct": 0.0, "limit_pct": 4.0, "distance_to_limit_pct": 4.0 },
+              "portfolio_heat": { "state": "ok", "current_pct": 0.8, "limit_pct": 5.0, "distance_to_limit_pct": 4.2, "usage_ratio_pct": 16.0 }
+            }
+          },
+          "symbol_exposure": [
+            { "symbol": "EURUSD", "pnl": 98.25, "risk_amount": 200.0, "risk_pct": 0.8 }
+          ],
+          "open_trade_risks": [
+            { "symbol": "EURUSD", "ticket": "alpha-pos-open-1", "risk_amount": 200.0, "risk_pct": 0.8 }
+          ],
+          "professional_metrics": {
+            "inputs": { "equity": 25218.75, "closed_trades_count": 3 },
+            "tail_risk": {
+              "var_95": { "var_amount": 90.4, "cvar_amount": 90.4, "sample_size": 3, "sample_quality_label": "Muestra insuficiente", "sample_quality_level": "insuficiente" },
+              "var_99": { "var_amount": 90.4, "cvar_amount": 90.4, "sample_size": 3, "sample_quality_label": "Muestra insuficiente", "sample_quality_level": "insuficiente" }
+            },
+            "drawdown_path": { "max_drawdown_pct": 0.46, "recovery_factor": 1.31 },
+            "monte_carlo": { "ruin_probability_pct": 1.8, "ruin_threshold_pct": 8.0, "simulations": 1000, "sample_size": 3 },
+            "risk_adjusted": { "sortino_ratio": 1.12 },
+            "edge_score": 63
+          },
+          "metadata": {
+            "snapshot_version": "3.0.0",
+            "calculation_mode": "sync -> metrics -> policy -> enforcement -> snapshot"
+          }
+        },
+        "symbolSpecs": {
+          "EURUSD": { "symbol": "EURUSD", "digits": 5, "point": 0.00001, "tickSize": 0.00001, "tickValue": 1.0, "contractSize": 100000, "volumeMin": 0.01, "volumeMax": 100.0, "volumeStep": 0.01, "tradeCalcMode": "FOREX" },
+          "GBPUSD": { "symbol": "GBPUSD", "digits": 5, "point": 0.00001, "tickSize": 0.00001, "tickValue": 1.0, "contractSize": 100000, "volumeMin": 0.01, "volumeMax": 100.0, "volumeStep": 0.01, "tradeCalcMode": "FOREX" },
+          "AUDUSD": { "symbol": "AUDUSD", "digits": 5, "point": 0.00001, "tickSize": 0.00001, "tickValue": 1.0, "contractSize": 100000, "volumeMin": 0.01, "volumeMax": 100.0, "volumeStep": 0.01, "tradeCalcMode": "FOREX" }
+        }
+      }
+    },
+    {
+      "account_id": "mt5-beta-20000002",
+      "user_id": "user-anon-metrics-contract",
+      "display_name": "Beta Swing Account",
+      "broker": "Beta Markets Ltd.",
+      "platform": "mt5",
+      "login": "20000002",
+      "server": "Beta-Live",
+      "connection_mode": "launcher",
+      "status": "active",
+      "last_sync_at": "2026-05-04T09:30:02Z",
+      "is_default": false,
+      "dashboard_payload": {
+        "payloadSource": "mt5_sync_live",
+        "accountName": "Beta Swing Account",
+        "name": "Beta Swing Account",
+        "broker": "Beta Markets Ltd.",
+        "server": "Beta-Live",
+        "platform": "mt5",
+        "mode": "MT5 Live",
+        "balance": 74250.0,
+        "equity": 74105.5,
+        "floatingPnl": -144.5,
+        "openPnl": -144.5,
+        "closedPnl": 450.0,
+        "totalPnl": 305.5,
+        "openPositionsCount": 1,
+        "totalTrades": 2,
+        "timestamp": "2026-05-04T09:30:02Z",
+        "positions": [
+          {
+            "position_id": "beta-pos-open-1",
+            "symbol": "XAUUSD",
+            "type": "SELL",
+            "volume": 0.2,
+            "open_price": 2328.0,
+            "current_price": 2335.0,
+            "profit": -140.0,
+            "swap": -4.5,
+            "floating_pnl": -144.5,
+            "sl": 2342.0,
+            "tp": 2305.0
+          }
+        ],
+        "trades": [
+          {
+            "ticket": "beta-deal-2001",
+            "position_id": "beta-position-closed-1",
+            "symbol": "USDJPY",
+            "type": "SELL",
+            "volume": 0.7,
+            "open_time": "2026-05-02T12:00:00Z",
+            "close_time": "2026-05-02T12:45:00Z",
+            "entry_price": 155.2,
+            "exit_price": 154.7,
+            "profit": 320.0,
+            "commission": -4.0,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "anonymized-session-d"
+          },
+          {
+            "ticket": "beta-deal-2002",
+            "position_id": "beta-position-closed-2",
+            "symbol": "XAUUSD",
+            "type": "BUY",
+            "volume": 0.3,
+            "open_time": "2026-05-03T16:00:00Z",
+            "close_time": "2026-05-03T16:35:00Z",
+            "entry_price": 2310.0,
+            "exit_price": 2355.0,
+            "profit": 135.0,
+            "commission": -1.0,
+            "swap": 0.0,
+            "fees": 0.0,
+            "comment": "anonymized-session-e"
+          }
+        ],
+        "history": [
+          { "timestamp": "2026-05-02T00:00:00Z", "value": 73800.0 },
+          { "timestamp": "2026-05-02T23:00:00Z", "value": 74116.0 },
+          { "timestamp": "2026-05-03T23:00:00Z", "value": 74250.0 },
+          { "timestamp": "2026-05-04T09:30:02Z", "value": 74105.5 }
+        ],
+        "reportMetrics": {
+          "source": "backend_mt5_report_metrics",
+          "balance": 74250.0,
+          "equity": 74105.5,
+          "netProfit": 450.0,
+          "grossProfit": 455.0,
+          "grossLoss": 0.0,
+          "winRate": 100.0,
+          "totalTrades": 2,
+          "profitFactor": 0.0,
+          "drawdownPct": 0.19,
+          "commissions": -5.0,
+          "swaps": 0.0,
+          "dividends": 0.0,
+          "winTrades": 2,
+          "lossTrades": 0,
+          "bestTrade": 316.0,
+          "worstTrade": 134.0,
+          "maxConsecutiveWins": 2,
+          "maxConsecutiveLosses": 0
+        },
+        "riskSnapshot": {
+          "summary": {
+            "floating_drawdown_pct": 0.19,
+            "peak_to_equity_drawdown_pct": 0.19,
+            "rolling_max_drawdown_pct": 0.19,
+            "persisted_max_drawdown_pct": 0.19,
+            "max_drawdown_limit_pct": 10.0,
+            "distance_to_max_dd_limit_pct": 9.81,
+            "daily_drawdown_pct": 0.19,
+            "daily_peak_equity": 74250.0,
+            "distance_to_daily_dd_limit_pct": 4.81,
+            "total_open_risk_amount": 280.0,
+            "total_open_risk_pct": 0.38,
+            "max_risk_per_trade_pct": 0.5,
+            "max_open_trade_risk_pct": 0.38,
+            "open_positions_count": 1,
+            "portfolio_heat_limit_pct": 3.0,
+            "distance_to_heat_limit_pct": 2.62,
+            "heat_usage_ratio_pct": 12.6666666667
+          },
+          "status": {
+            "risk_status": "warning",
+            "severity": "warning",
+            "reason_code": "OPEN_FLOATING_DD",
+            "blocking_rule": "",
+            "action_required": "Revisa exposicion abierta.",
+            "enforcement": {
+              "allow_new_trades": true,
+              "block_new_trades": false,
+              "reduce_size": false,
+              "close_positions_required": false
+            }
+          },
+          "policy": {
+            "risk_per_trade_pct": 0.5,
+            "daily_dd_limit_pct": 5.0,
+            "max_dd_limit_pct": 10.0,
+            "portfolio_heat_limit_pct": 3.0,
+            "max_volume": 10.0,
+            "allowed_sessions": ["London", "New York"],
+            "allowed_symbols": ["USDJPY", "XAUUSD"],
+            "auto_block_enabled": true
+          },
+          "policy_evaluation": {
+            "ok": true,
+            "breaches": [],
+            "warnings": ["floating_dd_directional"],
+            "limits_status": {
+              "max_drawdown": { "state": "ok", "current_pct": 0.19, "limit_pct": 10.0, "distance_to_limit_pct": 9.81 },
+              "daily_drawdown": { "state": "ok", "current_pct": 0.19, "limit_pct": 5.0, "distance_to_limit_pct": 4.81 },
+              "portfolio_heat": { "state": "ok", "current_pct": 0.38, "limit_pct": 3.0, "distance_to_limit_pct": 2.62, "usage_ratio_pct": 12.6666666667 }
+            }
+          },
+          "symbol_exposure": [
+            { "symbol": "XAUUSD", "pnl": -144.5, "risk_amount": 280.0, "risk_pct": 0.38 }
+          ],
+          "open_trade_risks": [
+            { "symbol": "XAUUSD", "ticket": "beta-pos-open-1", "risk_amount": 280.0, "risk_pct": 0.38 }
+          ],
+          "professional_metrics": {
+            "inputs": { "equity": 74105.5, "closed_trades_count": 2 },
+            "tail_risk": {
+              "var_95": { "var_amount": 0.0, "cvar_amount": 0.0, "sample_size": 2, "sample_quality_label": "Muestra insuficiente", "sample_quality_level": "insuficiente" },
+              "var_99": { "var_amount": 0.0, "cvar_amount": 0.0, "sample_size": 2, "sample_quality_label": "Muestra insuficiente", "sample_quality_level": "insuficiente" }
+            },
+            "drawdown_path": { "max_drawdown_pct": 0.19, "recovery_factor": 2.4 },
+            "monte_carlo": { "ruin_probability_pct": 0.6, "ruin_threshold_pct": 10.0, "simulations": 1000, "sample_size": 2 },
+            "risk_adjusted": { "sortino_ratio": 1.82 },
+            "edge_score": 70
+          },
+          "metadata": {
+            "snapshot_version": "3.0.0",
+            "calculation_mode": "sync -> metrics -> policy -> enforcement -> snapshot"
+          }
+        },
+        "symbolSpecs": {
+          "USDJPY": { "symbol": "USDJPY", "digits": 3, "point": 0.001, "tickSize": 0.001, "tickValue": 0.91, "contractSize": 100000, "volumeMin": 0.01, "volumeMax": 100.0, "volumeStep": 0.01, "tradeCalcMode": "FOREX" },
+          "XAUUSD": { "symbol": "XAUUSD", "digits": 2, "point": 0.01, "tickSize": 0.01, "tickValue": 1.0, "contractSize": 100, "volumeMin": 0.01, "volumeMax": 50.0, "volumeStep": 0.01, "tradeCalcMode": "CFD" }
+        }
+      }
+    }
+  ],
+  "active_account_id": "mt5-alpha-10000001",
+  "scope_user_id": "user-anon-metrics-contract",
+  "is_admin": false,
+  "updated_at": "2026-05-04T09:30:05Z"
+}

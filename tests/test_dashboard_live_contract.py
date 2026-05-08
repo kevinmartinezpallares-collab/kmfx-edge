@@ -11,6 +11,7 @@ import kmfx_connector_api as connector_api
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_PATH = ROOT / "tests" / "fixtures" / "live_accounts_snapshot_two_mt5.json"
+ANONYMIZED_FIXTURE_PATH = ROOT / "tests" / "fixtures" / "live_accounts_snapshot_anonymized_metrics.json"
 
 
 REQUIRED_ACCOUNT_FIELDS = {
@@ -79,11 +80,72 @@ def load_fixture() -> dict:
     return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
+def load_anonymized_fixture() -> dict:
+    return json.loads(ANONYMIZED_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
 def assert_number(testcase: unittest.TestCase, value, field_name: str) -> None:
     testcase.assertIsInstance(value, (int, float), field_name)
 
 
 class DashboardLiveContractTests(unittest.TestCase):
+    def test_anonymized_metrics_fixture_has_no_live_identifiers(self) -> None:
+        raw_text = ANONYMIZED_FIXTURE_PATH.read_text(encoding="utf-8")
+        forbidden_identifiers = (
+            "80571774",
+            "4000082126",
+            "Orion",
+            "Darwinex",
+            "OGM",
+            "OGMInternational",
+            "Tradeslide",
+            "Kevin",
+            "kevin",
+        )
+        for identifier in forbidden_identifiers:
+            self.assertNotIn(identifier, raw_text)
+
+        snapshot = load_anonymized_fixture()
+        self.assertEqual("user-anon-metrics-contract", snapshot["scope_user_id"])
+        self.assertEqual("mt5-alpha-10000001", snapshot["active_account_id"])
+        self.assertEqual(2, len(snapshot["accounts"]))
+
+        for account in snapshot["accounts"]:
+            self.assertEqual("user-anon-metrics-contract", account["user_id"])
+            self.assertEqual("mt5", account["platform"])
+            self.assertEqual("active", account["status"])
+            self.assertTrue(REQUIRED_ACCOUNT_FIELDS.issubset(account.keys()), account["account_id"])
+            self.assertEqual("mt5_sync_live", account["dashboard_payload"]["payloadSource"])
+
+    def test_anonymized_metrics_fixture_supports_dashboard_sections(self) -> None:
+        snapshot = load_anonymized_fixture()
+
+        for account in snapshot["accounts"]:
+            payload = account["dashboard_payload"]
+            self.assertTrue(REQUIRED_PAYLOAD_FIELDS.issubset(payload.keys()), account["account_id"])
+            self.assertGreater(len(payload["trades"]), 0, account["account_id"])
+            self.assertGreater(len(payload["history"]), 1, account["account_id"])
+            self.assertGreaterEqual(len(payload["positions"]), 1, account["account_id"])
+            self.assertGreater(len(payload["symbolSpecs"]), 0, account["account_id"])
+
+            for field in ("balance", "equity", "openPnl", "closedPnl", "totalPnl"):
+                assert_number(self, payload[field], f"{account['account_id']}:{field}")
+
+            metrics = payload["reportMetrics"]
+            self.assertTrue(REQUIRED_REPORT_METRICS.issubset(metrics.keys()), account["account_id"])
+            self.assertEqual(payload["balance"], metrics["balance"])
+            self.assertEqual(payload["equity"], metrics["equity"])
+            self.assertEqual(payload["closedPnl"], metrics["netProfit"])
+            self.assertEqual(len(payload["trades"]), metrics["totalTrades"])
+
+            risk_snapshot = payload["riskSnapshot"]
+            self.assertTrue(REQUIRED_RISK_SUMMARY.issubset(risk_snapshot["summary"].keys()), account["account_id"])
+            self.assertIn(risk_snapshot["status"]["risk_status"], {"ok", "warning", "blocked"})
+            self.assertIn("limits_status", risk_snapshot["policy_evaluation"])
+            self.assertIsInstance(risk_snapshot["symbol_exposure"], list)
+            self.assertIsInstance(risk_snapshot["open_trade_risks"], list)
+            self.assertIn("professional_metrics", risk_snapshot)
+
     def test_live_snapshot_fixture_has_two_owned_mt5_accounts(self) -> None:
         snapshot = load_fixture()
 
