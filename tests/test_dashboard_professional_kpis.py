@@ -76,8 +76,8 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
                   closed_trades_count: 45,
                 },
                 tail_risk: {
-                  var_95: { var_amount: 950, cvar_amount: 1300, sample_size: 45 },
-                  var_99: { var_amount: 1800, cvar_amount: 2200, sample_size: 45 },
+                  var_95: { var_amount: 950, cvar_amount: 1300, sample_size: 45, sample_quality_level: "aceptable", sample_quality_label: "Muestra aceptable" },
+                  var_99: { var_amount: 1800, cvar_amount: 2200, sample_size: 45, sample_quality_level: "aceptable", sample_quality_label: "Muestra aceptable" },
                 },
                 risk_adjusted: {
                   sortino_ratio: 1.75,
@@ -112,6 +112,7 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["var_95"]["status"], "good")
         self.assertEqual(kpis["var_95"]["microVisual"]["type"], "gauge")
         self.assertEqual(kpis["var_95"]["meta"]["cvarAmount"], 1300)
+        self.assertEqual(kpis["var_95"]["meta"]["sampleQualityLabel"], "Muestra aceptable")
 
         self.assertEqual(kpis["var_99"]["value"], 1800)
         self.assertEqual(kpis["var_99"]["status"], "warn")
@@ -155,6 +156,43 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["dscore"]["source"], "missing_quality_score")
         self.assertEqual(kpis["dscore"]["emptyReason"], "score pendiente")
         self.assertFalse(payload["generatedFrom"]["hasRiskSnapshot"])
+
+    def test_var_kpi_uses_backend_sample_quality_label(self) -> None:
+        payload = self.run_node(
+            """
+            import { selectDashboardProfessionalKpis } from "./js/modules/dashboard-professional-kpis.js";
+
+            const contract = selectDashboardProfessionalKpis({
+              model: {
+                account: { balance: 100000, equity: 100000 },
+                trades: new Array(4).fill(null).map((_, index) => ({ id: index })),
+              },
+              account: {},
+              riskSnapshot: {
+                professional_metrics: {
+                  inputs: { equity: 100000, closed_trades_count: 4 },
+                  tail_risk: {
+                    var_95: {
+                      var_amount: 750,
+                      cvar_amount: 900,
+                      sample_size: 4,
+                      sample_quality_level: "insuficiente",
+                      sample_quality_label: "Muestra insuficiente",
+                    },
+                  },
+                },
+              },
+            });
+
+            console.log(JSON.stringify(contract));
+            """
+        )
+
+        kpis = {item["id"]: item for item in payload["kpis"]}
+        self.assertEqual(kpis["var_95"]["status"], "insufficient")
+        self.assertEqual(kpis["var_95"]["statusLabel"], "Muestra insuficiente")
+        self.assertEqual(kpis["var_95"]["meta"]["sampleQualityLevel"], "insuficiente")
+        self.assertEqual(kpis["var_95"]["meta"]["sampleQualityLabel"], "Muestra insuficiente")
 
 
 if __name__ == "__main__":

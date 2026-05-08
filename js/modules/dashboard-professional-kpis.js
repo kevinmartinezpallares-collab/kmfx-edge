@@ -248,9 +248,10 @@ function equityCapital(model, account, professional) {
   );
 }
 
-function statusFromPercent(value, warnAt, badAt, sampleSize = 30) {
-  if (sampleSize < 30) return statusToken("insufficient", "insuficiente historico");
-  if (value === null) return statusToken("insufficient", "insuficiente historico");
+function statusFromPercent(value, warnAt, badAt, sampleSize = 30, sampleQualityLabel = "") {
+  const qualityLabel = String(sampleQualityLabel || "").trim();
+  if (sampleSize < 30) return statusToken("insufficient", qualityLabel || "insuficiente historico");
+  if (value === null) return statusToken("insufficient", qualityLabel || "insuficiente historico");
   if (value >= badAt) return statusToken("bad", "riesgo alto");
   if (value >= warnAt) return statusToken("warn", "vigilancia");
   return statusToken("good", "controlado");
@@ -288,7 +289,9 @@ function buildVarKpi(id, confidence, model, account, professional) {
     varAmount !== null && capital ? (varAmount / capital) * 100 : null,
   );
   const sampleSize = finiteNumber(varMetrics.sample_size, professional.inputs?.closed_trades_count, model.trades?.length, 0) || 0;
-  const status = statusFromPercent(equityPct, 1, 2.5, sampleSize);
+  const sampleQualityLabel = String(varMetrics.sample_quality_label || "").trim();
+  const sampleQualityLevel = String(varMetrics.sample_quality_level || "").trim();
+  const status = statusFromPercent(equityPct, 1, 2.5, sampleSize, sampleQualityLabel);
 
   return buildKpi(id, {
     value: varAmount,
@@ -310,6 +313,8 @@ function buildVarKpi(id, confidence, model, account, professional) {
       cvarAmount: round(cvarAmount, 2),
       equityPct: round(equityPct, 2),
       sampleSize,
+      sampleQualityLevel,
+      sampleQualityLabel,
     },
   });
 }

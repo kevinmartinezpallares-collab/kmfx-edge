@@ -806,10 +806,12 @@ function dashboardProfessionalMeta(kpi = {}) {
   if (kpi.kpi === "var_95" || kpi.kpi === "var_99") {
     const cvar = finiteDashboardNumber(meta.cvarAmount);
     const equityPct = finiteDashboardNumber(meta.equityPct);
-    if (cvar !== null || equityPct !== null) {
+    const sampleQuality = typeof meta.sampleQualityLabel === "string" ? meta.sampleQualityLabel.trim() : "";
+    if (cvar !== null || equityPct !== null || sampleQuality) {
       return [
         cvar !== null ? `CVaR ${formatCurrency(cvar)}` : "",
         equityPct !== null ? `${formatDashboardPercentValue(equityPct, { digits: 2 })} equity` : "",
+        sampleQuality,
       ].filter(Boolean).join(" / ");
     }
   }
