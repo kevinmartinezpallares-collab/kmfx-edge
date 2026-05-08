@@ -1,6 +1,6 @@
 # KMFX Edge - Checklist Maestro de Produccion
 
-Ultima revision: 2026-05-08
+Ultima revision: 2026-05-09
 Rama objetivo: `main`
 Objetivo: cerrar KMFX Edge como SaaS usable por traders reales, lanzar produccion controlada y preparar migracion a Next.js sin romper el producto actual.
 
@@ -43,8 +43,8 @@ Requiere aprobacion explicita:
 
 Objetivo: asegurar que partimos de una base estable.
 
-- [ ] `main` actualizado localmente.
-- [ ] Worktree revisado y cambios ajenos identificados.
+- [x] `main` actualizado localmente.
+- [x] Worktree revisado y cambios ajenos identificados.
 - [ ] CI actual revisado.
 - [ ] Render/Vercel/Cloudflare/Supabase responden health.
 - [ ] Descargas Launcher macOS/Windows responden `200`.
@@ -221,24 +221,24 @@ Criterio de salida:
 
 Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 
-- [ ] Flujo dashboard: Cuentas -> Añadir cuenta -> Launcher recomendado.
-- [ ] Descarga macOS correcta desde dashboard.
-- [ ] Descarga Windows correcta desde dashboard.
-- [ ] Boton "Abrir Launcher" abre la app instalada, no descarga de nuevo.
+- [x] Flujo dashboard: Cuentas -> Añadir cuenta -> Launcher recomendado.
+- [x] Descarga macOS correcta desde dashboard.
+- [x] Descarga Windows correcta desde dashboard.
+- [x] Boton "Abrir Launcher" abre la app instalada, no descarga de nuevo.
 - [ ] Launcher detecta instalaciones por nombre legible: broker/cuenta/alias.
 - [ ] Instalar/Reinstalar conector deja `.ex5` y `kmfx_connection.conf`.
 - [ ] EA adjunto lee key desde archivo sin que el usuario la pegue si viene del Launcher.
-- [ ] Flujo manual permite copiar key desde "Ver detalles".
-- [ ] Si la cuenta se desconecta, se reutiliza la misma key.
-- [ ] Regenerar key solo por revocacion/filtracion/cambio explicito.
+- [x] Flujo manual permite copiar key desde "Ver detalles".
+- [x] Si la cuenta se desconecta, se reutiliza la misma key.
+- [x] Regenerar key solo por revocacion/filtracion/cambio explicito.
 - [ ] Errores claros:
   - WebRequest no autorizado
   - key no reconocida
   - backend temporalmente no disponible
   - cuenta stale
   - plan sin permiso
-- [ ] Primer sync convierte cuenta pendiente en activa.
-- [ ] Cerrar Launcher no corta sync cloud del EA.
+- [x] Primer sync convierte cuenta pendiente en activa.
+- [x] Cerrar Launcher no corta sync cloud del EA.
 - [ ] Backend caido: EA/Launcher no pierde datos criticos.
 - [ ] Backend recuperado: pendientes drenan.
 - [ ] QA macOS limpio.
@@ -256,11 +256,11 @@ Criterio de salida:
 Objetivo: que la app parezca producto final, no panel interno.
 
 - [ ] Onboarding tras registro.
-- [ ] Estados empty/loading/error/bloqueado.
+- [x] Estados empty/loading/error/bloqueado.
 - [ ] Ajustes: perfil, suscripcion, seguridad, conexiones y preferencias claros.
-- [ ] Cuentas: detalles, key, pasos, eliminar/revocar sin solapes.
-- [ ] Plan card visualmente destacada.
-- [ ] Menus se abren hacia arriba si estan al final de pagina.
+- [x] Cuentas: detalles, key, pasos, eliminar/revocar sin solapes.
+- [x] Plan card visualmente destacada.
+- [x] Menus se abren hacia arriba si estan al final de pagina.
 - [ ] Sin textos tecnicos visibles:
   - `workspace`
   - `local`
@@ -276,6 +276,12 @@ Objetivo: que la app parezca producto final, no panel interno.
 Criterio de salida:
 
 - Un usuario normal entiende que hacer en cada estado.
+
+Notas 2026-05-09:
+
+- Login con email/password integrado con token Turnstile para evitar falso error anti-bots cuando Supabase CAPTCHA esta activo.
+- Detalles de cuenta queda mas ancho, scrollable y con lectura de warnings orientada a usuario, no raw tecnica.
+- Estudio de metricas queda en cards estables por categoria; las explicaciones incluyen formula, fuente, confianza y utilidad para el trader.
 
 ## Fase 7 - Legal, Confianza y Soporte
 
@@ -343,7 +349,7 @@ Criterio de salida:
 
 Objetivo: validar un viaje real antes de cobrar.
 
-- [ ] `python3 -m unittest discover -s tests`.
+- [x] `python3 -m unittest discover -s tests`.
 - [ ] CI GitHub verde.
 - [ ] Production Smoke verde.
 - [ ] Registro nuevo.
@@ -376,6 +382,10 @@ Objetivo: validar un viaje real antes de cobrar.
 Criterio de salida:
 
 - Un usuario puede registrarse, pagar, conectar MT5 y ver sus datos sin intervencion manual.
+
+Notas 2026-05-09:
+
+- Suite local completa: 265 tests OK.
 
 ## Fase 10 - Go Live Controlado
 

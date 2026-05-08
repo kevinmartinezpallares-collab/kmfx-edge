@@ -1,8 +1,8 @@
 # Roadmap de Producción KMFX Edge
 
-Última revisión: 2026-05-05
+Última revisión: 2026-05-09
 Rama revisada: `main`
-Commit base: `4ef171b Connect dashboard to billing status`
+Commit base: `2ac0eb9 Fix auth captcha and metric study UX`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
@@ -76,7 +76,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Admin y plan limits mueven decisiones hacia env/app metadata.
 - [ ] Auditar env vars reales de Render, Vercel, Cloudflare y GitHub.
 - [ ] Añadir o documentar verificación JWT final: Supabase Auth remote verification vs `SUPABASE_JWT_SECRET`.
-- [ ] Añadir rate limit complementario por IP/usuario para endpoints sensibles.
+- [x] Añadir rate limit complementario por IP/usuario para endpoints sensibles.
 - [ ] Revisar logs históricos por si contienen keys antiguas y rotarlas si procede.
 - [ ] Confirmar que endpoints admin devuelven `403` para usuarios no-admin verificados.
 
@@ -84,12 +84,12 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 
 - [x] Tablas Supabase de billing preparadas y RLS revisado.
 - [x] `plan_entitlements` sembrado para `free`, `core`, `pro`, `desk`.
-- [ ] Pricing final no confirmado.
-- [ ] Stripe Product y Prices no están creados como catálogo KMFX final.
+- [x] Pricing final confirmado para MVP.
+- [x] Stripe Product y Prices creados como catálogo KMFX final.
 - [ ] Customer Portal no está configurado.
-- [ ] Webhooks Stripe no están implementados en producción.
+- [x] Webhooks Stripe implementados en backend; falta configurar endpoint/secreto live antes de cobrar.
 - [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
-- [ ] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` no están implementados.
+- [x] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` implementados.
 - [x] El frontend consume `/api/billing/status` para Cuentas y superficies premium.
 - [x] Los guards de producto principales dependen de entitlements y no de nombre de plan.
 
@@ -139,7 +139,7 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 - [x] Risk/Funding quedan cubiertos para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
 - [x] Estados bloqueados por plan cubiertos en Cuentas, Risk, Funding, Journal AI, Strategies y Exports.
 - [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y tags, que hoy mezclan live con entrada manual del usuario.
-- [ ] Falta quitar mensajes internos visibles restantes como `workspace`, `local`, `bridge` o copy tecnico fuera de modo admin.
+- [ ] Falta completar la pasada final de textos visibles fuera de Cuentas/Estudio: no debe quedar `workspace`, `local`, `bridge`, `debug`, `mock` o copy tecnico fuera de modo admin.
 
 ## Prioridad Inmediata
 
@@ -147,7 +147,7 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 
 Antes de billing, cerrar una pasada corta de **contrato de datos live y QA de producto**:
 
-- retirar textos internos visibles para usuario final como `workspace`, `sesion local`, `bridge local` o mensajes tecnicos fuera de modo admin;
+- retirar textos internos visibles restantes para usuario final como `workspace`, `sesion local`, `bridge local` o mensajes tecnicos fuera de modo admin;
 - mantener y ampliar el render smoke por pagina con estados degradados;
 - certificar seccion por seccion que metricas vienen de MT5 live, backend/riskSnapshot, workspace local o entrada manual;
 - probar launcher macOS y Windows en maquina limpia.
@@ -158,6 +158,15 @@ Motivo: dominio, MT5 y launcher ya tienen una base funcional. Sin billing y enti
 
 La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada como pendiente hasta que exista vault seguro, rate limit, revocación y política de permisos. El flujo recomendado para producción debe seguir siendo EA/Launcher.
 
+### Checkpoint 2026-05-09
+
+- Login con email/password ya envía token Turnstile cuando Supabase CAPTCHA está activo.
+- Estudio de métricas usa cards estables por categoría, sin slider horizontal que se corte o se reinicie.
+- Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
+- Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
+- `python3 -m unittest discover -s tests` pasa con 265 tests.
+- Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
+
 ## Fase 1 - Cierre de Producto y Billing
 
 Objetivo: poder vender Core/Pro sin improvisar permisos.
@@ -165,7 +174,7 @@ Objetivo: poder vender Core/Pro sin improvisar permisos.
 Bloque previo obligatorio:
 
 - [x] Crear contrato inicial live de `/api/accounts/snapshot`.
-- [ ] Pasada final de textos visibles para usuario final.
+- [ ] Pasada final de textos visibles para usuario final en secciones restantes.
 - [x] Render smoke inicial de metricas live por seccion con fixture.
 - [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.
 - [x] Render smoke de estados degradados en Risk/Funding: sin policy/snapshot, stale y funding no vinculado.
@@ -183,23 +192,22 @@ Bloque previo obligatorio:
 - [x] Decidir si Desk queda privado/contact-only.
 - [x] Confirmar política de refunds y cancelación: 14 dias en primera compra sin abuso o fallo tecnico no resuelto.
 - [x] Crear Stripe Product `KMFX Edge`: `prod_UT7nzmgj3Eg3Zv`.
-- [ ] Crear Prices con lookup keys:
+- [x] Crear Prices live bajo `KMFX Edge` con Price IDs documentados en `docs/stripe-product-catalog.md`.
+- [ ] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API:
   - `kmfx_basic_monthly`
   - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
   - `kmfx_unlimited_monthly`
   - `kmfx_unlimited_yearly`
-- [x] Crear Prices live bajo `KMFX Edge` con Price IDs documentados en `docs/stripe-product-catalog.md`.
-- [ ] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API.
 - [ ] Configurar Customer Portal.
 - [ ] Configurar webhook endpoint en Stripe.
 
 Criterio de salida:
 
-- Hay catálogo Stripe test mode completo.
-- Hay decisiones de pricing suficientes para implementar Checkout.
-- No quedan decisiones comerciales bloqueando ingeniería.
+- Hay catálogo Stripe creado y documentado.
+- Lookup keys/metadata, Customer Portal y webhook endpoint quedan configurados antes de cobrar.
+- No quedan decisiones comerciales bloqueando QA de billing.
 
 ## Fase 2 - Backend Billing
 
@@ -451,15 +459,14 @@ Criterio de salida:
 
 ## Orden de Trabajo Recomendado Desde Aquí
 
-1. Cerrar pricing y catálogo Stripe.
-2. Implementar backend billing.
-3. Conectar entitlements al frontend y al backend.
-4. QA del flujo MT5 usuario final.
-5. Ejecutar auditorias especializadas: seguridad, UX, launcher, Cloudflare y Supabase.
-6. Activar branch protection y release governance.
-7. Ejecutar smoke completo.
-8. Tag `v0.1.0-production-mvp`.
-9. Lanzamiento controlado.
+1. Cerrar configuración operativa Stripe: lookup keys/metadata, Customer Portal, webhook endpoint y env vars Render.
+2. QA del flujo MT5/Launcher con usuario final: macOS limpio, Windows real, descarga, apertura, key, primer sync y cuenta visible.
+3. Pasada final desktop de UX/copy en secciones restantes, sin tocar el rediseño mobile profundo hasta preproducción.
+4. Ejecutar auditorias especializadas: seguridad, UX, launcher, Cloudflare y Supabase.
+5. Activar branch protection, secret scanning, push protection y release governance.
+6. Ejecutar smoke completo: auth, billing, MT5, métricas, legal, descargas y errores.
+7. Tag `v0.1.0-production-mvp`.
+8. Lanzamiento controlado.
 
 ## Qué Se Puede Saltar Por Ahora
 
