@@ -170,7 +170,8 @@ Objetivo: no abrir superficie sensible sin controles.
 - [x] Logs sin keys completas, JWTs ni secrets.
 - [ ] Revisar logs historicos y rotar keys expuestas si procede.
 - [x] Confirmar endpoints admin devuelven `403` para no-admin.
-- [ ] Revisar Supabase RLS.
+- [x] Revisar Supabase RLS.
+- [ ] Activar Supabase Auth leaked password protection.
 - [x] Revisar Cloudflare Worker `mt5-api`.
 - [x] Revisar CORS.
 - [x] Revisar headers Vercel.
@@ -186,6 +187,11 @@ Notas 2026-05-08:
 - MT5 remoto requiere `X-KMFX-Connection-Key` o bearer valido; keys en query string siguen bloqueadas en produccion.
 - Rate limit por `connection_key` activo en sync/journal/policy.
 - Rate limit complementario por usuario/IP anadido a checkout, portal, creacion/link de cuentas, regeneracion/revocacion/borrado de keys y endpoints admin.
+- Supabase RLS revisado: todas las tablas `public` visibles tienen RLS activo y policies; no hay views `public`.
+- Supabase `handle_new_user` sigue como `SECURITY DEFINER` por trigger de Auth, pero con `search_path` vacio y sin `EXECUTE` para `anon`, `authenticated` ni `public`.
+- Supabase Advisor solo devuelve un warning de seguridad abierto: activar leaked password protection en Auth.
+- Supabase Performance Advisor ya no senala foreign keys sin indice; se aplico `calculator_presets_user_id_updated_at_idx`.
+- Supabase Performance Advisor conserva avisos `unused_index` informativos en indices recientes; se revisaran tras trafico real.
 - CORS backend sin wildcard; Worker `mt5-api` mantiene allowlist de dominios KMFX y elimina headers/query sensibles.
 - Vercel mantiene CSP, HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy` y `Permissions-Policy`.
 
