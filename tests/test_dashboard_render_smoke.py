@@ -972,12 +972,12 @@ class DashboardRenderSmokeTests(unittest.TestCase):
     def test_connections_account_details_include_technical_traceability(self) -> None:
         source = (ROOT / "js/modules/connections.js").read_text(encoding="utf-8")
         for needle in [
-            "Trazabilidad técnica",
+            "Estado de datos",
             "connections-account-modal__technical",
             "Fuente",
             "Muestra",
             "Último payload",
-            "Warnings",
+            "Lectura para el usuario",
             "resolveAccountTechnicalTrace",
         ]:
             self.assertIn(needle, source)

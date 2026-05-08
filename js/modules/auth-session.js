@@ -602,7 +602,7 @@ export function initAuthSession(store) {
     getSession: () => sanitizeAuthState(store.getState().auth || DEFAULT_AUTH_STATE),
     getUser: () => selectVisibleUserProfile(store.getState()),
     getRecoveryState: () => sanitizeRecoveryState(recoveryState),
-    signInWithPassword: async ({ email, password, name } = {}) => {
+    signInWithPassword: async ({ email, password, name, captchaToken } = {}) => {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       const normalizedPassword = String(password || "");
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
@@ -611,10 +611,15 @@ export function initAuthSession(store) {
       if (normalizedPassword.length < 6) {
         return { ok: false, reason: "La contraseña debe tener al menos 6 caracteres." };
       }
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const normalizedCaptchaToken = normalizeCaptchaToken(captchaToken);
+      const signInPayload = {
         email: normalizedEmail,
         password: normalizedPassword
-      });
+      };
+      if (normalizedCaptchaToken) {
+        signInPayload.options = withCaptchaToken({}, normalizedCaptchaToken);
+      }
+      const { data, error } = await supabase.auth.signInWithPassword(signInPayload);
       if (error) {
         return { ok: false, reason: normalizeAuthError(error, "No se pudo iniciar sesión.") };
       }

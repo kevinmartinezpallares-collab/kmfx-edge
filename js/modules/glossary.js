@@ -1,5 +1,23 @@
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260508-091500";
+import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260508-235500";
+
+const CATEGORY_ORDER = Object.freeze([
+  "Rendimiento",
+  "Riesgo",
+  "Seguimiento",
+  "Ejecución",
+  "Avanzadas",
+  "Prop Firms",
+]);
+
+const CATEGORY_COPY = Object.freeze({
+  Rendimiento: "Lecturas para saber si el sistema produce dinero de forma repetible y con muestra suficiente.",
+  Riesgo: "Métricas para proteger la cuenta, medir drawdown, exposición y escenarios de pérdida.",
+  Seguimiento: "Señales operativas para entender actividad, momentum reciente y contexto del panel.",
+  Ejecución: "Indicadores para mejorar entradas, salidas, gestión y calidad de proceso.",
+  Avanzadas: "Ratios y modelos que comparan retorno, volatilidad y recuperación con más profundidad.",
+  "Prop Firms": "Métricas orientadas a cumplir reglas de fondeo sin acercarte a límites críticos.",
+});
 
 const WATCH_GUIDES = Object.freeze({
   "Win Rate": "No lo mires solo. Un win rate alto con pérdidas medias grandes puede esconder un sistema frágil.",
@@ -77,10 +95,11 @@ function renderMetricStudyCard(card, index) {
   const formula = card.formula || "No aplica";
   const confidence = card.confidence || "Confianza pendiente de muestra";
   const visualLabel = String(card.visual || "").replace(/_/g, " ");
+  const traderUse = card.traderUse || "Sirve para convertir datos del panel en una decisión concreta de riesgo, ejecución o seguimiento.";
   return `
     <article class="study-metric-card" data-study-metric="${escapeGlossaryHtml(card.id)}" style="--study-index:${index}">
       <div class="study-metric-card__top">
-        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.period || "rolling")}</span>
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.category || card.period || "rolling")}</span>
         <span class="study-metric-card__chip">${escapeGlossaryHtml(refreshLabel)}</span>
       </div>
       <div class="study-metric-card__body">
@@ -91,6 +110,10 @@ function renderMetricStudyCard(card, index) {
         <div>
           <dt>Formula</dt>
           <dd>${escapeGlossaryHtml(formula)}</dd>
+        </div>
+        <div>
+          <dt>Para el trader</dt>
+          <dd>${escapeGlossaryHtml(traderUse)}</dd>
         </div>
         <div>
           <dt>Fuente</dt>
@@ -109,7 +132,40 @@ function renderMetricStudyCard(card, index) {
   `;
 }
 
-function renderMetricStudySlider() {
+function renderTermStudyCard(term, index) {
+  return `
+    <article class="study-metric-card study-metric-card--term" data-study-term="${escapeGlossaryHtml(term.term)}" style="--study-index:${index}">
+      <div class="study-metric-card__top">
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(term.category || "Métrica")}</span>
+        <span class="study-metric-card__chip">Guía</span>
+      </div>
+      <div class="study-metric-card__body">
+        <h3>${escapeGlossaryHtml(term.term)}</h3>
+        <p>${escapeGlossaryHtml(term.what)}</p>
+      </div>
+      <dl class="study-metric-card__facts">
+        <div>
+          <dt>Para qué sirve</dt>
+          <dd>${escapeGlossaryHtml(term.why)}</dd>
+        </div>
+        <div>
+          <dt>Cómo funciona</dt>
+          <dd>${escapeGlossaryHtml(resolveHowItWorks(term))}</dd>
+        </div>
+        <div>
+          <dt>Qué mirar</dt>
+          <dd>${escapeGlossaryHtml(resolveWhatToWatch(term))}</dd>
+        </div>
+      </dl>
+      <div class="study-metric-card__footer">
+        <span>${escapeGlossaryHtml(term.category || "metric")}</span>
+        <span>Card</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderMetricStudyGrid() {
   const cards = selectDashboardMetricStudyCards();
   return `
     <section class="study-metric-lab" aria-labelledby="study-metric-lab-title">
@@ -120,11 +176,22 @@ function renderMetricStudySlider() {
         </div>
         <p>Lee cada métrica con su fórmula, fuente y nivel de confianza antes de usarla para tomar decisiones.</p>
       </div>
-      <div class="study-metric-slider" aria-label="Cards de métricas críticas">
+      <div class="study-metric-slider study-card-grid" aria-label="Cards de métricas críticas">
         ${cards.map((card, index) => renderMetricStudyCard(card, index)).join("")}
       </div>
     </section>
   `;
+}
+
+function sortGlossaryGroups(groups) {
+  return [...groups.entries()].sort(([categoryA], [categoryB]) => {
+    const indexA = CATEGORY_ORDER.indexOf(categoryA);
+    const indexB = CATEGORY_ORDER.indexOf(categoryB);
+    if (indexA !== -1 || indexB !== -1) {
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    }
+    return categoryA.localeCompare(categoryB, "es");
+  });
 }
 
 export function renderGlossary(root, state) {
@@ -143,26 +210,22 @@ export function renderGlossary(root, state) {
       descriptionClassName: "tl-page-sub",
     })}
 
-    ${renderMetricStudySlider()}
+    ${renderMetricStudyGrid()}
 
     <div class="glossary-grid">
-      ${[...groups.entries()].map(([category, terms]) => `
-        <article class="tl-section-card">
-          <div class="tl-section-header"><div class="tl-section-title">${category}</div></div>
-          <div class="breakdown-list">
-            ${terms.map((term) => `
-              <div class="list-row glossary-row">
-                <div>
-                  <div class="row-title">${term.term}</div>
-                  <div class="glossary-copy"><strong>Qué es:</strong> ${term.what}</div>
-                  <div class="glossary-copy"><strong>Para qué sirve:</strong> ${term.why}</div>
-                  <div class="glossary-copy"><strong>Cómo funciona:</strong> ${resolveHowItWorks(term)}</div>
-                  <div class="glossary-copy"><strong>Qué mirar:</strong> ${resolveWhatToWatch(term)}</div>
-                </div>
-              </div>
-            `).join("")}
+      ${sortGlossaryGroups(groups).map(([category, terms]) => `
+        <section class="study-category-section" aria-label="${escapeGlossaryHtml(category)}">
+          <div class="study-category-section__header">
+            <div>
+              <p class="study-metric-lab__eyebrow">${escapeGlossaryHtml(category)}</p>
+              <h3>${escapeGlossaryHtml(category)}</h3>
+            </div>
+            <p>${escapeGlossaryHtml(CATEGORY_COPY[category] || "Métricas para entender mejor el contexto operativo antes de decidir.")}</p>
           </div>
-        </article>
+          <div class="study-card-grid study-card-grid--compact">
+            ${terms.map((term, index) => renderTermStudyCard(term, index)).join("")}
+          </div>
+        </section>
       `).join("")}
     </div>
   `;

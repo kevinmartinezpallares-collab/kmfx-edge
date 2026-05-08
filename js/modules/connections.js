@@ -731,6 +731,71 @@ function resolveAccountWarnings(riskSnapshot = {}) {
   ].filter(Boolean);
 }
 
+function normalizeAccountWarningText(warning) {
+  if (!warning) return "";
+  if (typeof warning === "object") {
+    const code = warning.code || warning.key || warning.metric || warning.field || "";
+    const message = warning.message || warning.detail || warning.reason || warning.description || "";
+    const joined = [code, message].filter(Boolean).join(": ");
+    return joined || "";
+  }
+  return String(warning || "").trim();
+}
+
+function accountWarningToUserCopy(warning) {
+  const raw = normalizeAccountWarningText(warning);
+  const normalized = raw.toLowerCase();
+  if (!raw) return "";
+  if (
+    normalized.includes("[object object]")
+    || normalized.includes("inferido")
+    || normalized.includes("portfolio_heat")
+    || normalized.includes("current_level")
+    || normalized.includes("fallback")
+  ) {
+    return "";
+  }
+  if (normalized.includes("sample") || normalized.includes("muestra") || normalized.includes("insufficient")) {
+    return "La muestra todavía es corta; algunas métricas ganarán precisión con más trades cerrados.";
+  }
+  if (normalized.includes("stale") || normalized.includes("desactualiz") || normalized.includes("last_sync")) {
+    return "La cuenta lleva demasiado tiempo sin sincronizar. Abre MT5 y comprueba el EA.";
+  }
+  if (normalized.includes("key") || normalized.includes("connection")) {
+    return "La key o la conexión necesita revisión. Usa esta misma KMFXKey en el EA o regenera una nueva.";
+  }
+  return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
+}
+
+function resolveAccountDataHealth(account, technicalTrace) {
+  const status = String(account?.status || "").trim().toLowerCase();
+  const userWarnings = [...new Set((technicalTrace.warnings || [])
+    .map(accountWarningToUserCopy)
+    .filter(Boolean))];
+  if (userWarnings.length) {
+    return {
+      label: "Revisar sincronización",
+      detail: userWarnings.slice(0, 2).join(" · "),
+    };
+  }
+  if (status === "pending" || status === "pending_setup" || status === "draft" || status === "waiting_sync") {
+    return {
+      label: "Esperando primer sync",
+      detail: "Abre MT5 con el EA activo. Cuando llegue el primer payload, la cuenta quedará lista en el dashboard.",
+    };
+  }
+  if (account?.login || technicalTrace.updatedAt) {
+    return {
+      label: "Datos sincronizados",
+      detail: "KMFX está recibiendo datos de esta cuenta. Las métricas se estabilizan cuanto más historial cerrado tenga MT5.",
+    };
+  }
+  return {
+    label: "Pendiente de datos",
+    detail: "Instala el conector, pega la KMFXKey en el EA y espera el primer sync desde MetaTrader 5.",
+  };
+}
+
 function resolveAccountTechnicalTrace(account, state, activeAccount = null) {
   const payload = resolveAccountDashboardPayload(account, state, activeAccount);
   const riskSnapshot = resolveAccountRiskSnapshot(account, state, activeAccount);
@@ -771,11 +836,11 @@ function openAccountInfoModal(account, state, activeAccount = null) {
   const hasRecoverableKey = Boolean(connectionKey);
   const unavailableCopy = account.has_connection_key || account.connection_key_preview || account.connectionKeyPreview;
   const technicalTrace = resolveAccountTechnicalTrace(account, state, activeAccount);
-  const warningPreview = technicalTrace.warnings.length ? technicalTrace.warnings.slice(0, 3).join(" · ") : "Sin warnings activos";
+  const dataHealth = resolveAccountDataHealth(account, technicalTrace);
   openModal({
     title: "Detalles de cuenta",
     subtitle: "Estado, servidor y KMFXKey de esta cuenta.",
-    maxWidth: 780,
+    maxWidth: 980,
     content: `
       <div class="connections-account-modal__info">
         <div class="connections-account-modal__info-grid">
@@ -816,7 +881,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           </div>
         </div>
         <div class="connections-account-modal__technical">
-          <div class="connections-account-modal__guide-title">Trazabilidad técnica</div>
+          <div class="connections-account-modal__guide-title">Estado de datos</div>
           <div class="connections-account-modal__technical-grid">
             <div>
               <span>Fuente</span>
@@ -836,8 +901,9 @@ function openAccountInfoModal(account, state, activeAccount = null) {
             </div>
           </div>
           <div class="connections-account-modal__technical-warning">
-            <span>Warnings</span>
-            <strong>${escapeHtml(warningPreview)}</strong>
+            <span>Lectura para el usuario</span>
+            <strong>${escapeHtml(dataHealth.label)}</strong>
+            <p>${escapeHtml(dataHealth.detail)}</p>
           </div>
         </div>
         <div class="connections-account-modal__guide">

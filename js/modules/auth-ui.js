@@ -4,6 +4,7 @@ export function initAuthUI(store) {
 
   const BOT_PROTECTION_PROVIDER = "turnstile";
   const BOT_PROTECTION_ACTIONS = {
+    signin: "signin",
     signup: "signup",
     forgot: "forgot_password",
     reset: "reset_password"
@@ -58,10 +59,10 @@ export function initAuthUI(store) {
     if (isResetMode) return "reset";
     if (isForgotMode) return "forgot";
     if (isSignUpMode) return "signup";
-    return "";
+    return "signin";
   };
 
-  const isProtectedTurnstileMode = (mode) => ["signup", "forgot", "reset"].includes(mode);
+  const isProtectedTurnstileMode = (mode) => ["signin", "signup", "forgot", "reset"].includes(mode);
 
   const getTurnstileAction = (mode) => BOT_PROTECTION_ACTIONS[mode] || mode || "auth";
 
@@ -222,11 +223,14 @@ export function initAuthUI(store) {
   };
 
   const signInWithPassword = async () => {
+    if (!ensureTurnstileCompleted("signin")) return;
     const email = String(root.__authUiState.email || "").trim();
     const password = String(root.__authUiState.password || "");
     setUiState({ loading: true, error: "", notice: "", providerLoading: "email" });
-    const result = await window.kmfxAuth?.signInWithPassword?.({ email, password });
+    const captchaToken = getTurnstileToken("signin");
+    const result = await window.kmfxAuth?.signInWithPassword?.({ email, password, captchaToken });
     if (!result?.ok) {
+      resetTurnstileWidget("signin");
       setUiState({
         loading: false,
         providerLoading: "",
