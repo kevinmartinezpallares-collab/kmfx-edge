@@ -1,6 +1,6 @@
 # Auditoria completa de metricas KMFX Edge
 
-Estado: Fases 0, 1 y parte critica de Fase 2 ejecutadas el 2026-05-07. Pendiente: motor matematico avanzado, Estudio de metricas/charts finales y QA visual.
+Estado: Fases 0-6 cerradas el 2026-05-08. La cadena EA -> backend -> metric engine -> dashboard ya tiene contrato, fixtures, tests de reconciliacion, visuales de riesgo y trazabilidad por cuenta.
 Alcance: EA -> ingest backend -> metric engine -> dashboard/risk/funding/journal -> visualizacion shadcn.
 
 ## Principio rector
@@ -254,12 +254,30 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 ## Checklist de aceptacion por metrica
 
-- El dato bruto existe y esta tipado.
-- La formula tiene test.
-- La muestra minima esta definida.
-- Si usa politica, la politica tiene fuente real.
-- Si usa supuesto, se etiqueta como supuesto.
-- La UI no oculta incertidumbre.
-- El chart coincide con la naturaleza del dato.
-- Hay estado empty/loading/error.
-- Hay tooltip con definicion y origen.
+- [x] El dato bruto existe y esta tipado.
+- [x] La formula tiene test.
+- [x] La muestra minima esta definida.
+- [x] Si usa politica, la politica tiene fuente real.
+- [x] Si usa supuesto, se etiqueta como supuesto.
+- [x] La UI no oculta incertidumbre.
+- [x] El chart coincide con la naturaleza del dato.
+- [x] Hay estado empty/loading/error.
+- [x] Hay tooltip con definicion y origen.
+
+## Cierre de auditoria de metricas
+
+Validacion de cierre:
+
+- Registro de metricas versionado en `docs/metric-registry-v1.json`.
+- Fixture real anonimizado para reconciliar dashboard, calendario, operaciones, ejecucion y risk.
+- Tests de contrato para MT5, policy source, motor matematico, render estructural y trazabilidad por cuenta.
+- Risk Engine con visuales adecuados para VaR/RoR, exposure, drawdown y presion de limites.
+- Estudio como lugar de metodologia completa para no sobrecargar cada KPI.
+
+Siguiente bloque de produccion:
+
+- Acceso y paywall real por plan.
+- Billing y webhooks Stripe.
+- Seguridad de endpoints productivos.
+- Flujo Launcher/EA final.
+- Legal, confianza y QA final antes de migrar a Next.
