@@ -44,7 +44,7 @@ def preset_contents(config: LauncherConfig) -> str:
             "KMFXHistoryPointsLimit=120||0||0||0||N",
             "KMFXHistoryLookbackDays=365||0||0||0||N",
             "KMFXVerboseLog=false||0||0||0||N",
-            "KMFXEnableEnforce=true||0||0||0||N",
+            "KMFXEnableEnforce=false||0||0||0||N",
             "KMFXSendClosedDeals=true||0||0||0||N",
             "KMFXUseBrokerTime=true||0||0||0||N",
             "",

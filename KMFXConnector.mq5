@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.83                                              |
+//| KMFXConnector v2.84                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.83"
+#property version   "2.84"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.83"
+#define KMFX_CONNECTOR_VERSION "2.84"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -49,10 +49,10 @@ input string            KMFXKey               = "";
 // Configuracion interna gestionada por KMFX Launcher
 // -------------------------------------------------------------------
 KMFXConnectorMode KMFXMode                    = SAFE_MODE;
-string            KMFXBackendBaseUrl          = "http://127.0.0.1:8766";
-string            KMFXSyncPath                = "/mt5/sync";
-string            KMFXJournalPath             = "/mt5/journal";
-string            KMFXPolicyPath              = "/mt5/policy";
+string            KMFXBackendBaseUrl          = "https://mt5-api.kmfxedge.com";
+string            KMFXSyncPath                = "/api/mt5/sync";
+string            KMFXJournalPath             = "/api/mt5/journal";
+string            KMFXPolicyPath              = "/api/mt5/policy";
 string            KMFXApiKey                  = "";
 string            connection_key              = "";
 int               KMFXTimerMs                 = 2000;
@@ -1976,7 +1976,7 @@ bool KMFXSendHttpRequest(string method,string url,string body,string &response,i
   {
    char req[];
    char res[];
-   string headers="Content-Type: application/json\r\nConnection: close\r\n";
+   string headers="Content-Type: application/json\r\nConnection: close\r\nUser-Agent: MetaTrader 5 WebRequest\r\n";
    string result_headers="";
    int request_bytes=0;
 
