@@ -1,12 +1,13 @@
 {
   "version": "1.0.0",
-  "updated_at": "2026-05-07",
+  "updated_at": "2026-05-08",
   "accounting_timezone": "Europe/Andorra",
   "principles": [
     "A metric can be shown as operational only when its source and formula are explicit.",
     "A configured policy can create warning or breach states; a default/reference assumption cannot.",
     "Positions without stop loss are unbounded risk, not zero risk.",
-    "MT5 identifiers are strings end to end to avoid truncation or JavaScript precision loss."
+    "MT5 identifiers are strings end to end to avoid truncation or JavaScript precision loss.",
+    "Tail risk and simulation metrics must expose method, assumptions, sample size, and sample quality."
   ],
   "metrics": [
     {
@@ -123,20 +124,70 @@
       "id": "historical_var_95",
       "label": "Historical VaR 95",
       "source": "Backend normalized closed trade returns",
-      "formula": "5th percentile of historical losses",
+      "formula": "95th percentile of the historical loss distribution where loss = -closed_trade_net_pnl",
       "unit": "account_currency_or_percent",
       "confidence": "directional_below_30_samples",
+      "method": "historical",
+      "assumptions": [
+        "Past closed trades are representative of the current trading style.",
+        "Closed trades are complete for the selected sync window.",
+        "Does not assume a normal distribution."
+      ],
+      "sample_quality": "0 = sin_muestra, <30 = insuficiente, 30-99 = aceptable, >=100 = robusta",
       "policy_source": "none",
       "refresh": "sync_window",
       "visual": "radial_with_sample_size"
     },
     {
+      "id": "parametric_var_95",
+      "label": "Parametric VaR 95",
+      "source": "Backend normalized closed trade net PnL",
+      "formula": "mean_loss + standard_deviation(pnl) * normal_z_score(confidence)",
+      "unit": "account_currency",
+      "confidence": "requires_at_least_30_samples_and_is_model_based",
+      "method": "parametric_normal",
+      "assumptions": [
+        "Trade PnL distribution is approximated by a normal distribution.",
+        "Volatility of the historical sample remains relevant.",
+        "Used as technical detail, not as primary dashboard truth when sample is small."
+      ],
+      "sample_quality": "0 = sin_muestra, <30 = unavailable, 30-99 = aceptable, >=100 = robusta",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "technical_detail"
+    },
+    {
+      "id": "monte_carlo_var_95",
+      "label": "Monte Carlo VaR 95",
+      "source": "Backend bootstrap from normalized closed trade net PnL",
+      "formula": "bootstrap simulated trade paths, then historical VaR over simulated outcomes",
+      "unit": "account_currency_or_percent",
+      "confidence": "directional_below_30_samples",
+      "method": "monte_carlo_bootstrap",
+      "assumptions": [
+        "Future trades can be sampled from the historical closed-trade distribution.",
+        "Does not predict new market regimes or strategy drift.",
+        "Seeded simulations must be deterministic for QA."
+      ],
+      "sample_quality": "0 = sin_muestra, <30 = insuficiente, 30-99 = aceptable, >=100 = robusta",
+      "policy_source": "none",
+      "refresh": "sync_window",
+      "visual": "histogram_or_radial_with_sample_size"
+    },
+    {
       "id": "risk_of_ruin",
       "label": "Risk Of Ruin",
-      "source": "Backend risk_math analytical/monte_carlo model",
-      "formula": "model dependent; must expose method, assumptions and sample size",
+      "source": "Backend risk_math analytical model plus Monte Carlo context",
+      "formula": "analytical Brownian approximation from win rate, payoff ratio, risk per trade, and ruin threshold",
       "unit": "probability_percent",
       "confidence": "directional_until_sample_size_sufficient",
+      "method": "analytical_brownian",
+      "assumptions": [
+        "Each trade is approximated as +payoff_ratio R or -1R.",
+        "Risk per trade comes from configured policy when available; otherwise average loss to equity.",
+        "If expectancy is non-positive, eventual ruin is treated as 100% to avoid optimistic false reads."
+      ],
+      "sample_quality": "0 = unavailable, <30 = low, 30-99 = medium, >=100 = high",
       "policy_source": "configured_or_reference_assumption_visible",
       "refresh": "sync_window",
       "visual": "radial_with_assumptions"

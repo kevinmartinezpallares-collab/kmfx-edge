@@ -228,7 +228,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 - Validar formulas con fixtures deterministas.
 - Duplicar PF gross/net y decidir cual aparece en dashboard.
 - [x] Agregar confidence por muestra: 0, <30, 30-99, >=100.
-- Documentar VaR historico, parametric, Monte Carlo y RoR con metodo y supuestos.
+- [x] Documentar VaR historico, parametric, Monte Carlo y RoR con metodo y supuestos.
 
 ### Fase 4 - UI y charts
 
