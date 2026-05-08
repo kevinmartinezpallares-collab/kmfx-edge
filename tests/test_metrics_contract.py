@@ -123,6 +123,45 @@ class MetricsContractTests(unittest.TestCase):
         self.assertEqual(43.0, snapshot["symbol_exposure"][0]["open_pnl"])
         self.assertEqual(120.0, snapshot["symbol_exposure"][0]["risk_amount"])
 
+    def test_entry_only_commission_and_swap_are_included_when_entry_is_out_of_range(self) -> None:
+        trades, _ = connector_api.sanitize_trades(
+            [
+                {
+                    "ticket": "entry-out-of-range-close-1",
+                    "position_id": "entry-out-of-range-position",
+                    "symbol": "XAUUSD",
+                    "type": "SELL",
+                    "volume": 0.3,
+                    "price": 2330.0,
+                    "profit": 120.0,
+                    "commission": 0,
+                    "entry_commission": -4.0,
+                    "close_commission": -1.0,
+                    "swap": 0,
+                    "entry_swap": -2.0,
+                    "close_swap": 0.0,
+                    "time": "2026-05-07T10:30:00Z",
+                }
+            ]
+        )
+
+        self.assertEqual("", trades[0]["open_time"])
+        self.assertAlmostEqual(-5.0, trades[0]["commission"])
+        self.assertAlmostEqual(-2.0, trades[0]["swap"])
+        self.assertAlmostEqual(113.0, trades[0]["net"])
+
+        metrics = connector_api.build_report_metrics(
+            {"balance": 10000, "equity": 10113},
+            trades,
+            [],
+        )
+
+        self.assertAlmostEqual(113.0, metrics["netProfit"])
+        self.assertAlmostEqual(-5.0, metrics["commissions"])
+        self.assertAlmostEqual(-2.0, metrics["swaps"])
+        self.assertEqual(1, metrics["totalTrades"])
+        self.assertEqual(1, metrics["winTrades"])
+
     def test_default_reference_policy_does_not_generate_breach(self) -> None:
         raw_policy = connector_api.build_policy("4000082126")
         policy, _ = build_policy_snapshot(raw_policy)

@@ -2919,14 +2919,26 @@ def sanitize_positions(raw_positions: Any) -> tuple[list[dict[str, Any]], list[d
     return sanitized, issues
 
 
+def resolve_trade_cost_component(trade: dict[str, Any], total_key: str, component_keys: tuple[str, ...]) -> float:
+    """Prefer the total cost when present, but recover entry/close-only broker costs."""
+    total = safe_float_or_none(trade.get(total_key))
+    component_values = [safe_float_or_none(trade.get(key)) for key in component_keys]
+    present_components = [value for value in component_values if value is not None]
+    component_total = sum(present_components)
+
+    if present_components and (total is None or (total == 0 and component_total != 0)):
+        return component_total
+    return total if total is not None else 0.0
+
+
 def sanitize_trades(raw_trades: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     trades, issues = ensure_list_of_dicts(raw_trades, "trades")
     sanitized: list[dict[str, Any]] = []
 
     for index, trade in enumerate(trades):
         profit = safe_float(trade.get("profit"))
-        commission = safe_float(trade.get("commission"))
-        swap = safe_float(trade.get("swap"))
+        commission = resolve_trade_cost_component(trade, "commission", ("entry_commission", "close_commission"))
+        swap = resolve_trade_cost_component(trade, "swap", ("entry_swap", "close_swap"))
         explicit_net = trade.get("net")
         net = safe_float(explicit_net) if explicit_net not in (None, "") else round(profit + commission + swap, 2)
         sanitized.append(
@@ -3136,8 +3148,8 @@ def resolve_persisted_equity_state(
 
 def trade_profit_components(trade: dict[str, Any]) -> dict[str, float]:
     profit = safe_float(trade.get("profit"))
-    commission = safe_float(trade.get("commission"))
-    swap = safe_float(trade.get("swap"))
+    commission = resolve_trade_cost_component(trade, "commission", ("entry_commission", "close_commission"))
+    swap = resolve_trade_cost_component(trade, "swap", ("entry_swap", "close_swap"))
     dividend = safe_float(trade.get("dividend"))
     net = profit + commission + swap + dividend
     return {

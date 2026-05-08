@@ -214,7 +214,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 - [x] Usar digits por simbolo.
 - [x] Marcar posiciones sin SL como `missing_stop_loss`, no 0.
 - [x] Incluir `floating_pnl` en agregados.
-- Test de parcialidades: entrada fuera de rango, cierre parcial, comision solo entrada, swap.
+- [x] Test de parcialidades: entrada fuera de rango, cierre parcial, comision solo entrada, swap.
 
 ### Fase 2 - Fuente y politica
 
