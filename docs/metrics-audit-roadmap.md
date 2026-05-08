@@ -225,8 +225,8 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 ### Fase 3 - Motor matematico
 
-- Validar formulas con fixtures deterministas.
-- Duplicar PF gross/net y decidir cual aparece en dashboard.
+- [x] Validar formulas con fixtures deterministas.
+- [x] Duplicar PF gross/net y decidir cual aparece en dashboard.
 - [x] Agregar confidence por muestra: 0, <30, 30-99, >=100.
 - [x] Documentar VaR historico, parametric, Monte Carlo y RoR con metodo y supuestos.
 
@@ -240,7 +240,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 ### Fase 5 - QA automatico
 
-- Tests unitarios por formula.
+- [x] Tests unitarios por formula.
 - [x] Contract test backend MT5 payload -> `riskSnapshot.professional_metrics` -> KPIs profesionales del dashboard.
 - Fixtures con datos reales anonimizados.
 - [x] Snapshot visual desktop estructural para cards/charts principales.
