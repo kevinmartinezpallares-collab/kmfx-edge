@@ -179,6 +179,11 @@ Objetivo: no abrir superficie sensible sin controles.
 - [ ] Activar push protection GitHub.
 - [ ] Activar Dependabot alerts/security updates.
 - [ ] Branch protection en `main`.
+- [ ] Validacion centralizada de payloads en endpoints state-changing.
+- [ ] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5.
+- [ ] Definir postura CSRF para Next.js si se usan cookies/sesiones server-side.
+- [ ] Ejecutar audit de dependencias cuando exista manifest/lockfile del frontend Next.
+- [ ] Alertas anti-abuso: bursts de registros, creacion de keys, writes rechazados y basura en tablas de usuario.
 
 Notas 2026-05-08:
 
@@ -194,6 +199,19 @@ Notas 2026-05-08:
 - Supabase Performance Advisor conserva avisos `unused_index` informativos en indices recientes; se revisaran tras trafico real.
 - CORS backend sin wildcard; Worker `mt5-api` mantiene allowlist de dominios KMFX y elimina headers/query sensibles.
 - Vercel mantiene CSP, HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy` y `Permissions-Policy`.
+- Revisión inspirada por checklists AppSec de X/Twitter:
+  - entradas de usuario validadas en servidor;
+  - auth en rutas protegidas;
+  - secrets reales fuera del repo;
+  - queries parametrizadas/cliente Supabase;
+  - rate limits en auth/write endpoints;
+  - CORS allowlist;
+  - HTTPS y headers de seguridad;
+  - CSRF si se introduce auth basada en cookies;
+  - audit de dependencias antes de deploy.
+- Scan local de secretos no encontro claves privadas obvias; aparecen la anon key publica de Supabase y placeholders documentales de Stripe.
+- No hay `package.json`/lockfile raiz en la app vanilla actual; `npm audit` queda pendiente para la migracion Next o cuando exista manifest JS.
+- Endurecido `avatar-utils`: los avatares ya no se renderizan con `innerHTML` y solo se aceptan URLs `http(s)` o data URI raster base64.
 
 Criterio de salida:
 

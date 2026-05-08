@@ -4,7 +4,8 @@ export function normalizeAvatarUrl(candidate) {
   if (typeof candidate === "string") {
     const value = candidate.trim();
     if (!value) return null;
-    if (/^https?:\/\//i.test(value) || /^data:image\//i.test(value)) return value;
+    if (/^https?:\/\//i.test(value)) return value;
+    if (/^data:image\/(?:png|jpe?g|gif|webp|avif);base64,/i.test(value)) return value;
     return null;
   }
 
@@ -33,9 +34,13 @@ export function applyAvatarContent(container, { avatarUrl, initials = "KM", name
     return;
   }
 
-  container.innerHTML = `<img class="user-avatar-image" src="${safeAvatar}" alt="${name}">`;
-  const img = container.querySelector(".user-avatar-image");
-  img?.addEventListener("error", () => {
+  container.textContent = "";
+  const img = document.createElement("img");
+  img.className = "user-avatar-image";
+  img.src = safeAvatar;
+  img.alt = String(name || "Usuario");
+  img.addEventListener("error", () => {
     container.textContent = safeInitials;
   }, { once: true });
+  container.appendChild(img);
 }
