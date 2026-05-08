@@ -1,6 +1,6 @@
 import { createStore } from "./js/modules/store.js?v=build-20260505-071500";
 import { initNavigation } from "./js/modules/navigation.js?v=build-20260505-071500";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260505-071500";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260508-091500";
 import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260505-071500";
 import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260505-071500";
 import { renderRisk } from "./js/modules/risk.js?v=build-20260505-100000";
@@ -15,7 +15,7 @@ import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=b
 import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260505-100000";
 import { renderMarket } from "./js/modules/market.js?v=build-20260505-071500";
 import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260505-071500";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260505-071500";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260508-091500";
 import { renderDebug } from "./js/modules/debug.js?v=build-20260505-071500";
 import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260505-071500";
 import "./js/modules/modal-system.js?v=build-20260505-071500";

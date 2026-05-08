@@ -63,7 +63,7 @@ Hacer el rediseño real:
 - Recharts dentro de cards de metricas cuando aporte lectura real.
 - TanStack Table para trades, exposicion y cuentas.
 - Componentes de dominio: `MetricCard`, `RiskStatusBadge`, `ChartPanel`, `AccountSwitcher`, `PromoFloatingCard`.
-- Sistema consistente de tooltips `?` para cada metrica.
+- Sistema consistente de tooltips `?` breves para cada metrica y explicacion completa en Estudio.
 - Dashboard desktop como primera pantalla migrada.
 
 ## Roadmap de ideas
@@ -83,7 +83,7 @@ Objetivo: que el dashboard actual sea mas claro sin rehacerlo entero.
 - Segunda zona: grafico `Equity / Balance`.
 - Tercera zona: estado operativo y riesgo, solo con senales importantes.
 - Tablas: operaciones recientes, exposicion y riesgo por posicion mas abajo.
-- Copy mas corto: menos explicacion visible, mas tooltip contextual.
+- Copy mas corto: menos explicacion visible, tooltip contextual breve y metodologia completa en cards de Estudio.
 - Mantener desktop como unico objetivo.
 
 ### Fase 1: Preparar migracion Next

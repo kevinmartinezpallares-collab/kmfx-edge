@@ -1,4 +1,5 @@
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260508-091500";
 
 const WATCH_GUIDES = Object.freeze({
   "Win Rate": "No lo mires solo. Un win rate alto con pérdidas medias grandes puede esconder un sistema frágil.",
@@ -61,6 +62,71 @@ function resolveWhatToWatch(term) {
   return "Mira tendencia, estabilidad y si cambia una decisión concreta.";
 }
 
+function escapeGlossaryHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderMetricStudyCard(card, index) {
+  const refreshLabel = card.refresh?.label ? `Refresh ${card.refresh.label}` : "Refresh según métrica";
+  const source = card.source || "Fuente pendiente";
+  const formula = card.formula || "No aplica";
+  const confidence = card.confidence || "Confianza pendiente de muestra";
+  const visualLabel = String(card.visual || "").replace(/_/g, " ");
+  return `
+    <article class="study-metric-card" data-study-metric="${escapeGlossaryHtml(card.id)}" style="--study-index:${index}">
+      <div class="study-metric-card__top">
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.period || "rolling")}</span>
+        <span class="study-metric-card__chip">${escapeGlossaryHtml(refreshLabel)}</span>
+      </div>
+      <div class="study-metric-card__body">
+        <h3>${escapeGlossaryHtml(card.label)}</h3>
+        <p>${escapeGlossaryHtml(card.summary)}</p>
+      </div>
+      <dl class="study-metric-card__facts">
+        <div>
+          <dt>Formula</dt>
+          <dd>${escapeGlossaryHtml(formula)}</dd>
+        </div>
+        <div>
+          <dt>Fuente</dt>
+          <dd>${escapeGlossaryHtml(source)}</dd>
+        </div>
+        <div>
+          <dt>Confianza</dt>
+          <dd>${escapeGlossaryHtml(confidence)}</dd>
+        </div>
+      </dl>
+      <div class="study-metric-card__footer">
+        <span>${escapeGlossaryHtml(card.unit || "metric")}</span>
+        <span>${escapeGlossaryHtml(visualLabel || "card")}</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderMetricStudySlider() {
+  const cards = selectDashboardMetricStudyCards();
+  return `
+    <section class="study-metric-lab" aria-labelledby="study-metric-lab-title">
+      <div class="study-metric-lab__header">
+        <div>
+          <p class="study-metric-lab__eyebrow">Metodología KMFX</p>
+          <h2 id="study-metric-lab-title">Métricas críticas del dashboard</h2>
+        </div>
+        <p>Lee cada métrica con su fórmula, fuente y nivel de confianza antes de usarla para tomar decisiones.</p>
+      </div>
+      <div class="study-metric-slider" aria-label="Cards de métricas críticas">
+        ${cards.map((card, index) => renderMetricStudyCard(card, index)).join("")}
+      </div>
+    </section>
+  `;
+}
+
 export function renderGlossary(root, state) {
   const groups = state.workspace.glossary.terms.reduce((map, term) => {
     if (!map.has(term.category)) map.set(term.category, []);
@@ -76,6 +142,8 @@ export function renderGlossary(root, state) {
       titleClassName: "tl-page-title",
       descriptionClassName: "tl-page-sub",
     })}
+
+    ${renderMetricStudySlider()}
 
     <div class="glossary-grid">
       ${[...groups.entries()].map(([category, terms]) => `

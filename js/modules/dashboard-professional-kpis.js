@@ -26,6 +26,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "sparkline",
     refresh: "realtime",
     tooltip: "Rendimiento neto sobre capital, tras costes y comisiones.",
+    formula: "P&L neto acumulado / capital de referencia.",
+    sourceLabel: "Snapshot MT5 normalizado: balance, equity, P&L y operaciones cerradas.",
+    confidence: "Alta cuando el ultimo sync MT5 esta al dia y el historial cerrado esta completo.",
   },
   max_drawdown: {
     label: "Max Drawdown",
@@ -34,6 +37,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "area",
     refresh: "intraday",
     tooltip: "Mayor caida pico-a-valle del periodo.",
+    formula: "max((pico de equity - valle posterior) / pico de equity).",
+    sourceLabel: "Curva de equity y drawdown normalizada desde MT5.",
+    confidence: "Mejora con historial continuo; las cuentas recien conectadas pueden infravalorarlo.",
   },
   var_95: {
     label: "VaR 95",
@@ -42,6 +48,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "gauge",
     refresh: "hourly",
     tooltip: "Perdida maxima esperada al 95% de confianza.",
+    formula: "Percentil 95 de perdidas cerradas normalizadas; CVaR = media de la cola.",
+    sourceLabel: "Backend Risk Metrics: tail_risk.var_95.",
+    confidence: "Depende de la calidad de muestra; robusto desde una muestra amplia de trades cerrados.",
   },
   var_99: {
     label: "VaR 99",
@@ -50,6 +59,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "gauge",
     refresh: "hourly",
     tooltip: "Perdida maxima esperada al 99% de confianza.",
+    formula: "Percentil 99 de perdidas cerradas normalizadas; CVaR = media de la cola extrema.",
+    sourceLabel: "Backend Risk Metrics: tail_risk.var_99.",
+    confidence: "Mas sensible a muestra pequena; robusto con historico amplio y limpio.",
   },
   exposure: {
     label: "Exposure",
@@ -58,6 +70,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "stacked_bar",
     refresh: "realtime",
     tooltip: "Exposicion neta y bruta sobre capital.",
+    formula: "Riesgo abierto bruto y neto / capital; el neto respeta direccion long/short.",
+    sourceLabel: "Posiciones abiertas y resumen de riesgo recibido desde MT5/Risk Engine.",
+    confidence: "Alta si las posiciones tienen SL o riesgo calculable; sin SL puede quedar incompleta.",
   },
   vol_ann: {
     label: "Volatilidad anualizada",
@@ -66,6 +81,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "sparkline",
     refresh: "eod",
     tooltip: "Desviacion estandar anualizada de retornos diarios.",
+    formula: "Desviacion estandar de retornos diarios x raiz(252).",
+    sourceLabel: "Retornos diarios normalizados por dia contable.",
+    confidence: "Necesita suficientes dias con actividad; con poca muestra es orientativa.",
   },
   sortino: {
     label: "Sortino",
@@ -74,6 +92,9 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "pill",
     refresh: "eod",
     tooltip: "Retorno excedente dividido por desviacion negativa.",
+    formula: "Retorno medio / desviacion negativa de los retornos.",
+    sourceLabel: "Backend Risk Metrics: risk_adjusted.sortino_ratio o fallback del modelo.",
+    confidence: "Mas fiable cuando hay suficientes retornos negativos y muestra amplia.",
   },
   dscore: {
     label: "Edge Score",
@@ -82,8 +103,32 @@ const KPI_DEFINITIONS = Object.freeze({
     visual: "badge",
     refresh: "hourly",
     tooltip: "Score propio de calidad y consistencia operativa.",
+    formula: "Score compuesto KMFX de consistencia, riesgo, ejecucion y calidad de muestra.",
+    sourceLabel: "Modelo de calidad KMFX calculado en backend/dashboard payload.",
+    confidence: "Complementa la revision manual; no sustituye el criterio del trader.",
   },
 });
+
+export function selectDashboardMetricStudyCards() {
+  return DASHBOARD_PROFESSIONAL_KPI_ORDER.map((id) => {
+    const definition = KPI_DEFINITIONS[id];
+    return {
+      id,
+      label: definition.label,
+      summary: definition.tooltip,
+      formula: definition.formula,
+      source: definition.sourceLabel,
+      confidence: definition.confidence,
+      unit: definition.unit,
+      period: definition.period,
+      visual: definition.visual,
+      refresh: {
+        key: definition.refresh,
+        ...DASHBOARD_PROFESSIONAL_KPI_REFRESH[definition.refresh],
+      },
+    };
+  });
+}
 
 function safeObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -171,6 +216,39 @@ function valueState(value, emptyReason = "insuficiente historico") {
   };
 }
 
+function compactText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function sampleConfidence(sampleSize, sampleQualityLabel, fallback = "") {
+  const size = finiteNumber(sampleSize);
+  const label = compactText(sampleQualityLabel);
+  if (label && size !== null) return `${label} (${size} trades)`;
+  if (label) return label;
+  if (size !== null && size < 30) return `Muestra insuficiente (${size} trades).`;
+  if (size !== null) return `Muestra calculada con ${size} trades.`;
+  return fallback;
+}
+
+function buildKpiExplain(id, definition, overrides = {}) {
+  const explain = safeObject(overrides.explain);
+  return {
+    summary: compactText(explain.summary || overrides.tooltip || definition.tooltip),
+    formula: compactText(explain.formula || overrides.formula || definition.formula),
+    source: compactText(explain.source || overrides.sourceLabel || definition.sourceLabel || overrides.source),
+    confidence: compactText(explain.confidence || overrides.confidence || definition.confidence),
+  };
+}
+
+function kpiExplainTooltip(explain) {
+  return [
+    explain.summary,
+    explain.formula ? `Formula: ${explain.formula}` : "",
+    explain.source ? `Fuente: ${explain.source}` : "",
+    explain.confidence ? `Confianza: ${explain.confidence}` : "",
+  ].filter(Boolean).join(" ");
+}
+
 function buildKpi(id, overrides = {}) {
   const definition = KPI_DEFINITIONS[id];
   const value = valueState(overrides.value, overrides.emptyReason);
@@ -178,6 +256,7 @@ function buildKpi(id, overrides = {}) {
     status: value.status || "neutral",
     statusLabel: value.statusLabel || "neutral",
   };
+  const explain = buildKpiExplain(id, definition, overrides);
 
   return {
     id,
@@ -199,7 +278,8 @@ function buildKpi(id, overrides = {}) {
       series: safeArray(overrides.series),
       ...safeObject(overrides.microVisual),
     },
-    tooltip: overrides.tooltip || definition.tooltip,
+    tooltip: overrides.tooltip || kpiExplainTooltip(explain),
+    explain,
     source: overrides.source || "derived",
     emptyReason: value.emptyReason,
     meta: safeObject(overrides.meta),
@@ -292,12 +372,24 @@ function buildVarKpi(id, confidence, model, account, professional) {
   const sampleQualityLabel = String(varMetrics.sample_quality_label || "").trim();
   const sampleQualityLevel = String(varMetrics.sample_quality_level || "").trim();
   const status = statusFromPercent(equityPct, 1, 2.5, sampleSize, sampleQualityLabel);
+  const sourceLabel = varAmount === null
+    ? "Pendiente de calculo: falta historico cerrado suficiente."
+    : `Backend Risk Metrics: tail_risk.var_${confidence}.`;
 
   return buildKpi(id, {
     value: varAmount,
     status: status.status,
     statusLabel: status.statusLabel,
     source: varAmount === null ? "missing" : "professional_metrics.tail_risk",
+    sourceLabel,
+    explain: {
+      source: sourceLabel,
+      confidence: sampleConfidence(
+        sampleSize,
+        sampleQualityLabel,
+        "Depende de la calidad de muestra; robusto desde una muestra amplia de trades cerrados.",
+      ),
+    },
     emptyReason: "insuficiente historico",
     microVisual: {
       confidence,
@@ -404,6 +496,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: netReturn === null ? "insufficient" : netReturn >= 0 ? "good" : "bad",
       statusLabel: netReturn === null ? "insuficiente historico" : netReturn >= 0 ? "positivo" : "negativo",
       source: model.cumulative ? "model.cumulative" : "derived",
+      sourceLabel: model.cumulative ? "Modelo de rendimiento normalizado del dashboard." : "P&L neto derivado del snapshot MT5.",
       series: dailySeries,
       microVisual: { stroke: "semantic", deltaEncoding: ["arrow", "color", "text"] },
       meta: { pnl7d: round(sevenDayPnl, 2), capital: round(capital, 2) },
@@ -413,6 +506,10 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: drawdownStatus.status,
       statusLabel: drawdownStatus.statusLabel,
       source: professional.drawdown_path ? "professional_metrics.drawdown_path" : "model.drawdown",
+      sourceLabel: professional.drawdown_path ? "Backend Risk Metrics: drawdown_path." : "Curva de drawdown del modelo local.",
+      explain: {
+        confidence: sampleConfidence(safeArray(model.trades).length, "", "Mejora con historico continuo y trades cerrados suficientes."),
+      },
       series: drawdownSeries,
       microVisual: { highlight: maxDrawdownFromSeries },
       meta: { sampleSize: safeArray(model.trades).length },
@@ -424,6 +521,12 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: exposureStatus.status,
       statusLabel: exposureStatus.statusLabel,
       source: "riskSnapshot.summary",
+      sourceLabel: "Risk snapshot live: posiciones abiertas, riesgo bruto/neto y limite de heat.",
+      explain: {
+        confidence: exposureValue === null
+          ? "Pendiente hasta recibir posiciones o resumen de riesgo desde MT5."
+          : "Alta si el EA envia posiciones completas y riesgo calculable por posicion.",
+      },
       microVisual: {
         grossPct: exposure.grossPct,
         netPct: exposure.netPct,
@@ -436,6 +539,11 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: volatilityStatus.status,
       statusLabel: volatilityStatus.statusLabel,
       source: "model.dailyReturns",
+      explain: {
+        confidence: dailyReturns.length >= 20
+          ? `Muestra operativa: ${dailyReturns.length} dias de retornos.`
+          : `Orientativa: solo ${dailyReturns.length} dias de retornos.`,
+      },
       series: dailyReturns.map((value, index) => ({ label: String(index + 1), value: round(Math.abs(value), 4) })),
       meta: { sampleSize: dailyReturns.length },
     }),
@@ -444,6 +552,14 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: sortinoStatus.status,
       statusLabel: sortinoStatus.statusLabel,
       source: professional.risk_adjusted ? "professional_metrics.risk_adjusted" : "model.ratios",
+      sourceLabel: professional.risk_adjusted ? "Backend Risk Metrics: risk_adjusted.sortino_ratio." : "Ratios derivados del modelo local.",
+      explain: {
+        confidence: sampleConfidence(
+          finiteNumber(professional.risk_adjusted?.sample_size, dailyReturns.length, 0),
+          "",
+          "Mas fiable cuando hay suficientes retornos negativos y muestra amplia.",
+        ),
+      },
       microVisual: { direction: sortino !== null && sortino >= 1 ? "up" : sortino !== null && sortino < 0 ? "down" : "flat" },
       meta: { sampleSize: finiteNumber(professional.risk_adjusted?.sample_size, dailyReturns.length, 0) },
     }),
@@ -452,6 +568,12 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: dscoreStatus.status,
       statusLabel: dscoreStatus.statusLabel,
       source: dscore === null ? "missing_quality_score" : "kmfx_quality_score",
+      sourceLabel: dscore === null ? "Pendiente de score de calidad." : "Score de calidad KMFX recibido en professional_metrics/dashboard payload.",
+      explain: {
+        confidence: dscore === null
+          ? "Pendiente hasta que exista muestra suficiente y score calculado."
+          : "Complementa la revision manual; revisa tambien drawdown, VaR y ejecucion.",
+      },
       emptyReason: "score pendiente",
       microVisual: {
         bands: [

@@ -23,6 +23,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
           import { renderPortfolio } from "./js/modules/portfolio.js";
           import { renderRisk } from "./js/modules/risk.js";
           import { renderCalculator } from "./js/modules/calculator.js";
+          import { renderGlossary } from "./js/modules/glossary.js";
 
           const storage = new Map();
           globalThis.window = {
@@ -187,6 +188,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             ["portfolio", renderPortfolio],
             ["risk", renderRisk],
             ["calculator", renderCalculator],
+            ["glossary", renderGlossary],
           ];
 
           const forbidden = [
@@ -208,6 +210,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               "dashboard-professional-kpi__risk-score",
               "dashboard-professional-kpi__exposure",
               "dashboard-professional-kpi__delta",
+              "dashboard-kpi-card__tooltip",
             ],
             connections: ["Cuentas conectadas", "Conectar cuenta", "Edge Pro", "Activo"],
             trades: ["EURUSD", "GBPUSD"],
@@ -216,6 +219,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             portfolio: ["110", "Capital"],
             risk: ["Risk"],
             calculator: ["Calculadora"],
+            glossary: ["Estudio de métricas", "study-metric-slider", "Métricas críticas del dashboard", "Confianza"],
           };
 
           const results = pages.map(([page, render]) => {
@@ -859,7 +863,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
         by_page = {row["page"]: row for row in results}
 
         self.assertEqual(
-            {"dashboard", "connections", "trades", "calendar", "analytics", "portfolio", "risk", "calculator"},
+            {"dashboard", "connections", "trades", "calendar", "analytics", "portfolio", "risk", "calculator", "glossary"},
             set(by_page),
         )
         for page, row in by_page.items():

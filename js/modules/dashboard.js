@@ -1,6 +1,6 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-080918";
-import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260504-080918";
+import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260508-091500";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260504-080918";
 import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import {
@@ -658,20 +658,54 @@ const DASHBOARD_KPI_HELP = Object.freeze({
   positions: "Número de posiciones abiertas ahora. Revisa concentración por símbolo, dirección y riesgo total."
 });
 
+function dashboardKpiHelpText(help) {
+  if (!help || typeof help !== "object") return String(help || "");
+  return [
+    help.summary,
+    help.formula ? `Formula: ${help.formula}` : "",
+    help.source ? `Fuente: ${help.source}` : "",
+    help.confidence ? `Confianza: ${help.confidence}` : "",
+  ].filter(Boolean).join(" ");
+}
+
+function dashboardKpiHelpContentMarkup(help) {
+  if (!help || typeof help !== "object") {
+    return `<span class="kmfx-ui-tooltip__content">${escapeDashboardHtml(help)}</span>`;
+  }
+  const rows = [
+    ["Formula", help.formula],
+    ["Fuente", help.source],
+    ["Confianza", help.confidence],
+  ].filter(([, value]) => value);
+
+  return `
+    <span class="kmfx-ui-tooltip__content dashboard-kpi-card__tooltip-content">
+      ${help.summary ? `<span class="dashboard-kpi-card__tooltip-summary">${escapeDashboardHtml(help.summary)}</span>` : ""}
+      ${rows.map(([label, value]) => `
+        <span class="dashboard-kpi-card__tooltip-line">
+          <span class="dashboard-kpi-card__tooltip-label">${escapeDashboardHtml(label)}</span>
+          <span class="dashboard-kpi-card__tooltip-value">${escapeDashboardHtml(value)}</span>
+        </span>
+      `).join("")}
+    </span>
+  `;
+}
+
 function dashboardKpiHelpMarkup(key, helpOverride = "") {
   const help = helpOverride || DASHBOARD_KPI_HELP[key];
   if (!help) return "";
+  const helpText = dashboardKpiHelpText(help);
   const tooltipId = `dashboard-kpi-help-${String(key).replace(/[^a-z0-9-]/gi, "-")}`;
   return `
     <span class="dashboard-kpi-card__help-wrap" data-dashboard-kpi-tooltip>
       <button
         class="dashboard-kpi-card__help"
         type="button"
-        aria-label="${escapeDashboardHtml(help)}"
+        aria-label="${escapeDashboardHtml(helpText)}"
         aria-describedby="${escapeDashboardHtml(tooltipId)}"
       >?</button>
       <span class="kmfx-ui-tooltip dashboard-kpi-card__tooltip" id="${escapeDashboardHtml(tooltipId)}" role="tooltip">
-        <span class="kmfx-ui-tooltip__content">${escapeDashboardHtml(help)}</span>
+        ${dashboardKpiHelpContentMarkup(help)}
       </span>
     </span>
   `;
@@ -973,7 +1007,7 @@ function renderDashboardProfessionalKpiCard(kpi = {}) {
     <article class="kmfx-ui-card dashboard-kpi-card dashboard-professional-kpi-card" data-dashboard-professional-kpi="${escapeDashboardHtml(kpi.kpi)}" data-tone="${tone}" data-kpi-status="${escapeDashboardHtml(status)}" data-kpi-visual="${escapeDashboardHtml(visualType)}">
       <div class="dashboard-professional-kpi__top">
         <div class="dashboard-professional-kpi__title">
-          ${dashboardKpiHelpMarkup(`professional-${kpi.kpi}`, kpi.tooltip)}
+          ${dashboardKpiHelpMarkup(`professional-${kpi.kpi}`, kpi.explain?.summary || kpi.tooltip)}
           <span>${escapeDashboardHtml(kpi.label || "")}</span>
         </div>
         <span class="kmfx-ui-badge dashboard-professional-kpi__period" data-tone="${badgeTone}">${escapeDashboardHtml(kpi.period || "")}</span>

@@ -1,6 +1,6 @@
 # Auditoria completa de metricas KMFX Edge
 
-Estado: Fases 0, 1 y parte critica de Fase 2 ejecutadas el 2026-05-07. Pendiente: motor matematico avanzado, tooltips/charts finales y QA visual.
+Estado: Fases 0, 1 y parte critica de Fase 2 ejecutadas el 2026-05-07. Pendiente: motor matematico avanzado, Estudio de metricas/charts finales y QA visual.
 Alcance: EA -> ingest backend -> metric engine -> dashboard/risk/funding/journal -> visualizacion shadcn.
 
 ## Principio rector
@@ -233,7 +233,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 ### Fase 4 - UI y charts
 
 - Dashboard: 4 KPIs core arriba, chart principal, 8 KPIs profesionales debajo, y luego estado operativo/postura.
-- Cada KPI debe tener tooltip con formula, source y confidence.
+- Cada KPI debe tener tooltip corto para lectura rapida; la formula, source y confidence completas viven en Estudio como cards de metodologia.
 - VaR/RoR con RadialChart; exposure con stacked horizontal; drawdown con AreaChart; scores con RadialBar/Progress.
 - Evitar color unico: texto + icono + badge + color semantico.
 
@@ -248,7 +248,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 ### Fase 6 - Documentacion de usuario
 
 - Glosario por metrica.
-- "De donde sale este dato" en cada tooltip.
+- "De donde sale este dato" en Estudio y ayuda breve en el KPI.
 - Vista tecnica por cuenta con ultima sync, fuente, sample size y warnings.
 
 ## Checklist de aceptacion por metrica

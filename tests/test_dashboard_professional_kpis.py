@@ -103,6 +103,12 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["net_return"]["delta"]["direction"], "up")
         self.assertEqual(kpis["net_return"]["microVisual"]["type"], "sparkline")
         self.assertEqual(len(kpis["net_return"]["microVisual"]["series"]), 7)
+        for kpi in kpis.values():
+            self.assertIn("explain", kpi)
+            self.assertTrue(kpi["explain"]["summary"])
+            self.assertTrue(kpi["explain"]["formula"])
+            self.assertTrue(kpi["explain"]["source"])
+            self.assertTrue(kpi["explain"]["confidence"])
 
         self.assertEqual(kpis["max_drawdown"]["value"], 4.2)
         self.assertEqual(kpis["max_drawdown"]["status"], "warn")
@@ -113,6 +119,9 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["var_95"]["microVisual"]["type"], "gauge")
         self.assertEqual(kpis["var_95"]["meta"]["cvarAmount"], 1300)
         self.assertEqual(kpis["var_95"]["meta"]["sampleQualityLabel"], "Muestra aceptable")
+        self.assertIn("Percentil 95", kpis["var_95"]["explain"]["formula"])
+        self.assertIn("Muestra aceptable", kpis["var_95"]["explain"]["confidence"])
+        self.assertIn("Formula:", kpis["var_95"]["tooltip"])
 
         self.assertEqual(kpis["var_99"]["value"], 1800)
         self.assertEqual(kpis["var_99"]["status"], "warn")
@@ -155,6 +164,7 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["vol_ann"]["emptyReason"], "insuficiente historico")
         self.assertEqual(kpis["dscore"]["source"], "missing_quality_score")
         self.assertEqual(kpis["dscore"]["emptyReason"], "score pendiente")
+        self.assertIn("formula", {key.lower() for key in kpis["dscore"]["explain"].keys()})
         self.assertFalse(payload["generatedFrom"]["hasRiskSnapshot"])
 
     def test_var_kpi_uses_backend_sample_quality_label(self) -> None:
