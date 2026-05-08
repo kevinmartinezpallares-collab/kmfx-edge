@@ -26113,6 +26113,60 @@ body[data-theme="dark"] .connections-account-modal__key-note {
   line-height: 1.45;
 }
 
+html[data-theme="dark"] .connections-account-modal__technical,
+body[data-theme="dark"] .connections-account-modal__technical {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+html[data-theme="dark"] .connections-account-modal__technical-grid,
+body[data-theme="dark"] .connections-account-modal__technical-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html[data-theme="dark"] .connections-account-modal__technical-grid div,
+body[data-theme="dark"] .connections-account-modal__technical-grid div,
+html[data-theme="dark"] .connections-account-modal__technical-warning,
+body[data-theme="dark"] .connections-account-modal__technical-warning {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+html[data-theme="dark"] .connections-account-modal__technical-grid span,
+body[data-theme="dark"] .connections-account-modal__technical-grid span,
+html[data-theme="dark"] .connections-account-modal__technical-warning span,
+body[data-theme="dark"] .connections-account-modal__technical-warning span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+html[data-theme="dark"] .connections-account-modal__technical-grid strong,
+body[data-theme="dark"] .connections-account-modal__technical-grid strong,
+html[data-theme="dark"] .connections-account-modal__technical-warning strong,
+body[data-theme="dark"] .connections-account-modal__technical-warning strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
 /* Shell tonal finish — controlled base refinement only */
 html,
 html[data-theme="dark"],

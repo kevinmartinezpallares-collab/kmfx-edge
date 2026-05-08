@@ -969,6 +969,19 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             set(result["requiredHits"]),
         )
 
+    def test_connections_account_details_include_technical_traceability(self) -> None:
+        source = (ROOT / "js/modules/connections.js").read_text(encoding="utf-8")
+        for needle in [
+            "Trazabilidad técnica",
+            "connections-account-modal__technical",
+            "Fuente",
+            "Muestra",
+            "Último payload",
+            "Warnings",
+            "resolveAccountTechnicalTrace",
+        ]:
+            self.assertIn(needle, source)
+
     def test_risk_and_funding_render_degraded_states_without_internal_copy(self) -> None:
         result = self.run_risk_funding_degraded_smoke()
 

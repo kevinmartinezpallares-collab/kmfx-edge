@@ -689,6 +689,80 @@ function resolveAccountConnectionPreview(account, connectionKey = "") {
   return String(account.connection_key_preview || account.connectionKeyPreview || "").trim();
 }
 
+function finiteAccountNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function resolveAccountDashboardPayload(account, state, activeAccount = null) {
+  const directoryAccount = state?.accountDirectory?.[account.account_id] || {};
+  const activeAccountMatches = Boolean(
+    activeAccount
+      && account?.account_id
+      && (activeAccount.id === account.account_id || activeAccount.accountId === account.account_id)
+  );
+  if (activeAccountMatches && activeAccount?.dashboardPayload) return activeAccount.dashboardPayload;
+  if (directoryAccount.dashboardPayload) return directoryAccount.dashboardPayload;
+  if (account.dashboardPayload) return account.dashboardPayload;
+  if (account.dashboard_payload) return account.dashboard_payload;
+  return {};
+}
+
+function resolveAccountRiskSnapshot(account, state, activeAccount = null) {
+  const directoryAccount = state?.accountDirectory?.[account.account_id] || {};
+  const payload = resolveAccountDashboardPayload(account, state, activeAccount);
+  if (payload.riskSnapshot && typeof payload.riskSnapshot === "object") return payload.riskSnapshot;
+  if (directoryAccount.riskSnapshot && typeof directoryAccount.riskSnapshot === "object") return directoryAccount.riskSnapshot;
+  if (activeAccount?.riskSnapshot && typeof activeAccount.riskSnapshot === "object") return activeAccount.riskSnapshot;
+  return {};
+}
+
+function resolveAccountWarnings(riskSnapshot = {}) {
+  const professional = riskSnapshot.professional_metrics && typeof riskSnapshot.professional_metrics === "object"
+    ? riskSnapshot.professional_metrics
+    : {};
+  const metadata = riskSnapshot.metadata && typeof riskSnapshot.metadata === "object" ? riskSnapshot.metadata : {};
+  const policyEvaluation = riskSnapshot.policy_evaluation && typeof riskSnapshot.policy_evaluation === "object" ? riskSnapshot.policy_evaluation : {};
+  return [
+    ...(Array.isArray(professional.warnings) ? professional.warnings : []),
+    ...(Array.isArray(riskSnapshot.warnings) ? riskSnapshot.warnings : []),
+    ...(Array.isArray(metadata.warnings) ? metadata.warnings : []),
+    ...(Array.isArray(policyEvaluation.warnings) ? policyEvaluation.warnings : []),
+  ].filter(Boolean);
+}
+
+function resolveAccountTechnicalTrace(account, state, activeAccount = null) {
+  const payload = resolveAccountDashboardPayload(account, state, activeAccount);
+  const riskSnapshot = resolveAccountRiskSnapshot(account, state, activeAccount);
+  const professional = riskSnapshot.professional_metrics && typeof riskSnapshot.professional_metrics === "object"
+    ? riskSnapshot.professional_metrics
+    : {};
+  const inputs = professional.inputs && typeof professional.inputs === "object" ? professional.inputs : {};
+  const monteCarlo = professional.monte_carlo && typeof professional.monte_carlo === "object" ? professional.monte_carlo : {};
+  const tailRisk = professional.tail_risk && typeof professional.tail_risk === "object" ? professional.tail_risk : {};
+  const var95 = tailRisk.var_95 && typeof tailRisk.var_95 === "object" ? tailRisk.var_95 : {};
+  const reportMetrics = payload.reportMetrics && typeof payload.reportMetrics === "object" ? payload.reportMetrics : {};
+  const warnings = resolveAccountWarnings(riskSnapshot);
+  const sampleSize = finiteAccountNumber(
+    inputs.closed_trades_count
+      ?? monteCarlo.sample_size
+      ?? var95.sample_size
+      ?? reportMetrics.totalTrades
+      ?? payload.totalTrades,
+    0
+  );
+  const payloadSource = String(payload.payloadSource || account.source || account.registry_source || "registry").trim();
+  const connectionMode = String(account.connection_mode || account.connectionMode || payload.mode || "EA").trim();
+  return {
+    payloadSource,
+    connectionMode,
+    sampleSize,
+    warnings,
+    updatedAt: account.last_sync_at || account.lastSyncAt || payload.timestamp || "",
+    riskStatus: riskSnapshot.status?.risk_status || riskSnapshot.risk_status || account.status || "",
+  };
+}
+
 function openAccountInfoModal(account, state, activeAccount = null) {
   const meta = accountStatusMeta(account.status, account.last_sync_at || account.lastSyncAt || "", account.connection_mode || account.connectionMode || "");
   let connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
@@ -696,6 +770,8 @@ function openAccountInfoModal(account, state, activeAccount = null) {
   const accountId = account.account_id || "";
   const hasRecoverableKey = Boolean(connectionKey);
   const unavailableCopy = account.has_connection_key || account.connection_key_preview || account.connectionKeyPreview;
+  const technicalTrace = resolveAccountTechnicalTrace(account, state, activeAccount);
+  const warningPreview = technicalTrace.warnings.length ? technicalTrace.warnings.slice(0, 3).join(" · ") : "Sin warnings activos";
   openModal({
     title: "Detalles de cuenta",
     subtitle: "Estado, servidor y KMFXKey de esta cuenta.",
@@ -737,6 +813,31 @@ function openAccountInfoModal(account, state, activeAccount = null) {
               <button class="btn-secondary" type="button" data-account-modal-toggle-key="true">Mostrar</button>
               <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar key</button>
             ` : `<button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar y copiar key</button>`}
+          </div>
+        </div>
+        <div class="connections-account-modal__technical">
+          <div class="connections-account-modal__guide-title">Trazabilidad técnica</div>
+          <div class="connections-account-modal__technical-grid">
+            <div>
+              <span>Fuente</span>
+              <strong>${escapeHtml(technicalTrace.payloadSource)}</strong>
+            </div>
+            <div>
+              <span>Modo</span>
+              <strong>${escapeHtml(technicalTrace.connectionMode)}</strong>
+            </div>
+            <div>
+              <span>Muestra</span>
+              <strong>${technicalTrace.sampleSize.toLocaleString("es-ES")} trades</strong>
+            </div>
+            <div>
+              <span>Último payload</span>
+              <strong>${escapeHtml(relativeTime(technicalTrace.updatedAt))}</strong>
+            </div>
+          </div>
+          <div class="connections-account-modal__technical-warning">
+            <span>Warnings</span>
+            <strong>${escapeHtml(warningPreview)}</strong>
           </div>
         </div>
         <div class="connections-account-modal__guide">

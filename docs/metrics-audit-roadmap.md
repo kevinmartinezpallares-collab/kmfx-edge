@@ -248,9 +248,9 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 ### Fase 6 - Documentacion de usuario
 
-- Glosario por metrica.
-- "De donde sale este dato" en Estudio y ayuda breve en el KPI.
-- Vista tecnica por cuenta con ultima sync, fuente, sample size y warnings.
+- [x] Glosario por metrica.
+- [x] "De donde sale este dato" en Estudio y ayuda breve en el KPI.
+- [x] Vista tecnica por cuenta con ultima sync, fuente, sample size y warnings.
 
 ## Checklist de aceptacion por metrica
 
