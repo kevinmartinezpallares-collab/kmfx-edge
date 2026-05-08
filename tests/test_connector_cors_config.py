@@ -891,7 +891,12 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("cus_123", params["customer"])
         self.assertEqual("price_pro_monthly", params["line_items"][0]["price"])
         self.assertEqual(user_id, params["metadata"]["kmfx_user_id"])
+        self.assertEqual(user_id, params["metadata"]["user_id"])
+        self.assertEqual("pro", params["metadata"]["plan_key"])
         self.assertEqual("pro", params["subscription_data"]["metadata"]["kmfx_plan"])
+        self.assertEqual("pro", params["subscription_data"]["metadata"]["plan_key"])
+        self.assertEqual(7, params["subscription_data"]["trial_period_days"])
+        self.assertEqual("if_required", params["payment_method_collection"])
 
     def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:
         response = asyncio.run(connector_api.billing_checkout(self._request(json_body={"plan": "pro"})))
@@ -899,6 +904,25 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual(401, response.status_code)
         self.assertEqual("auth_required", body["reason"])
+
+    def test_billing_default_return_urls_open_subscription_tab(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "NEXT_PUBLIC_APP_URL": "https://kmfxedge.com",
+                "BILLING_SUCCESS_PATH": "",
+                "BILLING_CANCEL_PATH": "",
+            },
+            clear=False,
+        ):
+            self.assertEqual(
+                "https://kmfxedge.com/ajustes?tab=subscription&checkout=success&session_id={CHECKOUT_SESSION_ID}",
+                connector_api.billing_success_url(),
+            )
+            self.assertEqual(
+                "https://kmfxedge.com/ajustes?tab=subscription&checkout=cancelled",
+                connector_api.billing_cancel_url(),
+            )
 
     def test_billing_checkout_accepts_unlimited_plan(self) -> None:
         request = self._request(
@@ -974,6 +998,35 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "core",
             connector_api.stripe_plan_from_price({"id": "price_unknown", "metadata": {"app": "kmfx_edge", "plan_key": "core"}}),
         )
+
+    def test_stripe_subscription_row_accepts_generic_kmfx_metadata_contract(self) -> None:
+        row = connector_api.stripe_subscription_to_billing_row(
+            {
+                "id": "sub_generic",
+                "customer": "cus_generic",
+                "status": "trialing",
+                "metadata": {
+                    "app": "kmfx_edge",
+                    "user_id": "77777777-7777-4777-8777-777777777777",
+                    "plan_key": "unlimited",
+                },
+                "items": {
+                    "data": [
+                        {
+                            "price": {
+                                "id": "price_generic",
+                                "product": "prod_UT7nzmgj3Eg3Zv",
+                                "metadata": {},
+                            }
+                        }
+                    ]
+                },
+            }
+        )
+
+        self.assertEqual("77777777-7777-4777-8777-777777777777", row["user_id"])
+        self.assertEqual("unlimited", row["plan_key"])
+        self.assertEqual("trialing", row["status"])
 
     def test_billing_portal_creates_customer_portal_session(self) -> None:
         request = self._request(
@@ -1152,6 +1205,41 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         sync_mock.assert_called_once()
         email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
+
+    def test_invoice_payment_failed_syncs_kmfx_subscription_state(self) -> None:
+        invoice = {
+            "id": "in_123",
+            "subscription": "sub_123",
+            "customer": "cus_123",
+        }
+        subscription = {
+            "id": "sub_123",
+            "customer": "cus_123",
+            "status": "past_due",
+            "metadata": {
+                "app": "kmfx_edge",
+                "user_id": "66666666-6666-4666-8666-666666666666",
+                "plan_key": "pro",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "fetch_stripe_subscription", return_value=subscription) as fetch_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "66666666-6666-4666-8666-666666666666", "plan": "pro", "status": "past_due"},
+        ) as sync_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_invoice_failed",
+                    "type": "invoice.payment_failed",
+                    "data": {"object": invoice},
+                }
+            )
+
+        fetch_mock.assert_called_once_with("sub_123")
+        sync_mock.assert_called_once_with(subscription)
+        self.assertEqual("invoice.payment_failed", result["invoice_event"])
+        self.assertEqual("in_123", result["invoice_id"])
 
     def test_sync_subscription_updates_billing_tables_and_app_metadata(self) -> None:
         subscription = {

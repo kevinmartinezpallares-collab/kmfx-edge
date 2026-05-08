@@ -47,7 +47,14 @@ import {
   saveSupabaseUserConfig
 } from "./js/modules/supabase-user-config.js?v=build-20260505-071500";
 import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260505-071500";
-import { resolveAccountsRegistryUrl, resolveAccountsSnapshotUrl, resolveApiBaseUrl, resolveBillingStatusUrl } from "./js/modules/api-config.js?v=build-20260505-071500";
+import {
+  resolveAccountsRegistryUrl,
+  resolveAccountsSnapshotUrl,
+  resolveApiBaseUrl,
+  resolveBillingCheckoutUrl,
+  resolveBillingPortalUrl,
+  resolveBillingStatusUrl
+} from "./js/modules/api-config.js?v=build-20260505-071500";
 
 const BUILD_TAG = "build-20260505-083000";
 window.__KMFX_BUILD__ = BUILD_TAG;
@@ -546,6 +553,21 @@ function initSettings(authSession = null) {
     });
   };
 
+  const syncCheckoutReturnState = () => {
+    const params = new URLSearchParams(window.location.search || "");
+    const checkoutState = String(params.get("checkout") || "").toLowerCase();
+    const tab = String(params.get("tab") || "").toLowerCase();
+    const path = String(window.location.pathname || "").toLowerCase();
+    const wantsSubscription = tab === "subscription" || Boolean(checkoutState) || path.includes("/billing") || path.includes("/suscripcion");
+    if (wantsSubscription) activateSettingsTab("subscription");
+    if (!settingsStatus || !checkoutState) return;
+    if (checkoutState === "success") {
+      settingsStatus.textContent = "Checkout completado. KMFX actualizará tu plan cuando Stripe confirme el webhook.";
+    } else if (checkoutState === "cancelled" || checkoutState === "canceled" || checkoutState === "cancel") {
+      settingsStatus.textContent = "Checkout cancelado. Tu plan no se ha modificado.";
+    }
+  };
+
   const syncAccountSelectors = (selectedId) => {
     accountSelects.forEach((select) => {
       if (select) select.value = selectedId;
@@ -569,6 +591,7 @@ function initSettings(authSession = null) {
   };
 
   syncSettingsUI();
+  syncCheckoutReturnState();
   let lastAuthSignature = JSON.stringify(store.getState().auth || {});
   let hydratedUserId = null;
   let hydrateInFlight = null;
@@ -782,7 +805,11 @@ function initSettings(authSession = null) {
       if (settingsStatus) settingsStatus.textContent = "Inicia sesión para activar un plan.";
       return;
     }
-    const url = `${resolveApiBaseUrl()}/api/billing/checkout`;
+    const url = resolveBillingCheckoutUrl();
+    if (!url) {
+      if (settingsStatus) settingsStatus.textContent = "No se pudo preparar Checkout.";
+      return;
+    }
     if (settingsStatus) settingsStatus.textContent = "Preparando Checkout seguro...";
     billingCheckoutButtons.forEach((button) => { button.disabled = true; });
     try {
@@ -810,7 +837,11 @@ function initSettings(authSession = null) {
       if (settingsStatus) settingsStatus.textContent = "Inicia sesión para gestionar tu suscripción.";
       return;
     }
-    const url = `${resolveApiBaseUrl()}/api/billing/portal`;
+    const url = resolveBillingPortalUrl();
+    if (!url) {
+      if (settingsStatus) settingsStatus.textContent = "No se pudo abrir el portal.";
+      return;
+    }
     if (settingsStatus) settingsStatus.textContent = "Abriendo portal de suscripción...";
     if (billingPortalButton) billingPortalButton.disabled = true;
     try {

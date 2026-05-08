@@ -50,12 +50,16 @@ Safety note: the same Stripe account receives non-KMFX payments. Only touch obje
 - [x] Add server-only Stripe API integration.
 - [x] Add server-only Supabase service-role billing writes.
 - [x] Implement `/api/billing/checkout`.
+- [x] Add 7-day no-card trial defaults to Checkout Sessions.
+- [x] Add generic and KMFX-prefixed checkout/subscription metadata for webhook compatibility.
 - [x] Implement `/api/billing/portal`.
 - [x] Implement `/api/billing/webhook`.
+- [x] Sync KMFX subscription state from invoice payment events.
 - [x] Implement `/api/billing/status` initial contract.
 - [x] Add entitlement helper for the backend status contract.
 - [x] Add initial UI status read by entitlement in Cuentas.
 - [x] Add hard UI guards by entitlement, not by plan name.
+- [x] Route checkout success/cancel back to Ajustes > Suscripción.
 
 ## Phase 4 - KMFX product guards
 

@@ -61,6 +61,14 @@ export function resolveBillingStatusUrl() {
   return buildApiUrl("/api/billing/status");
 }
 
+export function resolveBillingCheckoutUrl() {
+  return buildApiUrl("/api/billing/checkout");
+}
+
+export function resolveBillingPortalUrl() {
+  return buildApiUrl("/api/billing/portal");
+}
+
 export function resolveAccountsRegistryUrl() {
   return buildApiUrl("/accounts");
 }

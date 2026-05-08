@@ -1474,16 +1474,34 @@ def billing_public_app_url() -> str:
 
 def billing_success_url() -> str:
     base_url = billing_public_app_url()
-    path = _env_value("BILLING_SUCCESS_PATH") or "/ajustes?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+    path = _env_value("BILLING_SUCCESS_PATH") or "/ajustes?tab=subscription&checkout=success&session_id={CHECKOUT_SESSION_ID}"
     separator = "" if path.startswith("/") else "/"
     return f"{base_url}{separator}{path}"
 
 
 def billing_cancel_url() -> str:
     base_url = billing_public_app_url()
-    path = _env_value("BILLING_CANCEL_PATH") or "/ajustes?checkout=cancelled"
+    path = _env_value("BILLING_CANCEL_PATH") or "/ajustes?tab=subscription&checkout=cancelled"
     separator = "" if path.startswith("/") else "/"
     return f"{base_url}{separator}{path}"
+
+
+def billing_trial_period_days() -> int:
+    configured = _env_value("STRIPE_TRIAL_PERIOD_DAYS", "KMFX_STRIPE_TRIAL_PERIOD_DAYS")
+    if not configured:
+        return 7
+    try:
+        parsed = int(configured)
+    except ValueError:
+        return 7
+    return parsed if parsed >= 0 else 7
+
+
+def billing_trial_requires_card() -> bool:
+    configured = _env_value("STRIPE_TRIAL_REQUIRES_CARD", "KMFX_STRIPE_TRIAL_REQUIRES_CARD")
+    if not configured:
+        return False
+    return configured.lower() in {"1", "true", "yes", "y", "on"}
 
 
 def stripe_secret_key() -> str:
@@ -1854,7 +1872,7 @@ def stripe_subscription_belongs_to_kmfx(subscription: dict[str, Any]) -> bool:
     metadata = ensure_dict(subscription.get("metadata"))
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
         return True
-    if safe_str(metadata.get("kmfx_user_id") or metadata.get("kmfx_plan")).strip():
+    if safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or metadata.get("kmfx_plan") or metadata.get("plan_key")).strip():
         return True
     return stripe_price_belongs_to_kmfx(first_subscription_price(subscription))
 
@@ -1864,7 +1882,7 @@ def stripe_checkout_session_belongs_to_kmfx(session: dict[str, Any]) -> bool:
     metadata = ensure_dict(session.get("metadata"))
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
         return True
-    if safe_str(metadata.get("kmfx_user_id") or metadata.get("kmfx_plan")).strip():
+    if safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or metadata.get("kmfx_plan") or metadata.get("plan_key")).strip():
         return True
     return False
 
@@ -1913,6 +1931,7 @@ def ensure_billing_customer(context: dict[str, Any]) -> str:
             "email": email or None,
             "metadata": {
                 "kmfx_user_id": user_id,
+                "user_id": user_id,
                 "kmfx_user_email": email,
                 "app": "kmfx_edge",
             },
@@ -1956,6 +1975,7 @@ def stripe_subscription_to_billing_row(subscription: dict[str, Any], *, user_id:
     }
     plan_key = normalize_plan_key(
         metadata.get("kmfx_plan")
+        or metadata.get("plan_key")
         or metadata.get("plan")
         or stripe_plan_from_price(price)
     )
@@ -1964,7 +1984,7 @@ def stripe_subscription_to_billing_row(subscription: dict[str, Any], *, user_id:
     if status not in BILLING_STATUS_VALUES:
         status = "active" if status in {"paid"} else "incomplete"
     row = {
-        "user_id": user_id or safe_str(metadata.get("kmfx_user_id")).lower(),
+        "user_id": user_id or safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower(),
         "stripe_subscription_id": safe_str(subscription.get("id")),
         "stripe_customer_id": customer_id,
         "stripe_product_id": safe_str(price.get("product")),
@@ -2062,7 +2082,8 @@ def fetch_stripe_customer(customer_id: str) -> dict[str, Any]:
 
 def stripe_customer_user_id(customer_id: str) -> str:
     customer = fetch_stripe_customer(customer_id)
-    return safe_str(ensure_dict(customer.get("metadata")).get("kmfx_user_id")).lower()
+    metadata = ensure_dict(customer.get("metadata"))
+    return safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
 
 
 def fetch_stripe_subscription(subscription_id: str) -> dict[str, Any]:
@@ -2079,7 +2100,7 @@ def sync_billing_subscription(subscription: dict[str, Any], *, user_id: str = ""
     subscription = ensure_dict(subscription)
     metadata = ensure_dict(subscription.get("metadata"))
     customer_id = safe_str(subscription.get("customer"))
-    resolved_user_id = safe_str(user_id or metadata.get("kmfx_user_id")).lower()
+    resolved_user_id = safe_str(user_id or metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
     if not resolved_user_id and customer_id:
         resolved_user_id = stripe_customer_user_id(customer_id)
     if not resolved_user_id:
@@ -2192,9 +2213,9 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
     if not stripe_checkout_session_belongs_to_kmfx(session):
         return {"ignored": "non_kmfx_checkout_session"}
     metadata = ensure_dict(session.get("metadata"))
-    user_id = safe_str(metadata.get("kmfx_user_id") or session.get("client_reference_id")).lower()
+    user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or session.get("client_reference_id")).lower()
     customer_id = safe_str(session.get("customer"))
-    email = safe_str(ensure_dict(session.get("customer_details")).get("email") or metadata.get("kmfx_user_email")).lower()
+    email = safe_str(ensure_dict(session.get("customer_details")).get("email") or metadata.get("kmfx_user_email") or metadata.get("user_email")).lower()
     if not user_id:
         raise RuntimeError("checkout_session_missing_user")
     if customer_id:
@@ -2208,16 +2229,16 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
     if not subscription_id:
         email_result = send_purchase_confirmation_email(
             email=email,
-            plan=safe_str(metadata.get("kmfx_plan"), "pro"),
-            interval=safe_str(metadata.get("kmfx_interval"), "monthly"),
+            plan=safe_str(metadata.get("kmfx_plan") or metadata.get("plan_key"), "pro"),
+            interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval"), "monthly"),
         )
         return {"user_id": user_id, "subscription": "", "processed": "customer", "email": email_result}
     subscription = fetch_stripe_subscription(subscription_id)
     result = sync_billing_subscription(subscription, user_id=user_id, email=email)
     result["email"] = send_purchase_confirmation_email(
-        email=email or safe_str(metadata.get("kmfx_user_email")).lower(),
-        plan=safe_str(result.get("plan") or metadata.get("kmfx_plan"), "pro"),
-        interval=safe_str(metadata.get("kmfx_interval"), "monthly"),
+        email=email or safe_str(metadata.get("kmfx_user_email") or metadata.get("user_email")).lower(),
+        plan=safe_str(result.get("plan") or metadata.get("kmfx_plan") or metadata.get("plan_key"), "pro"),
+        interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval"), "monthly"),
     )
     return result
 
@@ -2233,7 +2254,7 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
         return sync_billing_subscription(data_object)
     if event_type == "customer.updated":
         metadata = ensure_dict(data_object.get("metadata"))
-        user_id = safe_str(metadata.get("kmfx_user_id")).lower()
+        user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
         customer_id = safe_str(data_object.get("id"))
         if user_id and customer_id:
             supabase_upsert_billing_customer(
@@ -2243,6 +2264,17 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
                 metadata={"source": "customer.updated", "stripe_livemode": bool(data_object.get("livemode"))},
             )
             return {"user_id": user_id, "customer": customer_id}
+    if event_type in {"invoice.paid", "invoice.payment_failed", "invoice.payment_action_required"}:
+        subscription_id = safe_str(data_object.get("subscription"))
+        if not subscription_id:
+            return {"ignored": event_type or "invoice_without_subscription"}
+        subscription = fetch_stripe_subscription(subscription_id)
+        if not stripe_subscription_belongs_to_kmfx(subscription):
+            return {"ignored": "non_kmfx_invoice"}
+        result = sync_billing_subscription(subscription)
+        result["invoice_event"] = event_type
+        result["invoice_id"] = safe_str(data_object.get("id"))
+        return result
     return {"ignored": event_type or "unknown"}
 
 
@@ -5377,40 +5409,57 @@ async def billing_checkout(request: Request) -> JSONResponse:
         customer_id = ensure_billing_customer(context)
         user_id = safe_str(context.get("user_id")).lower()
         email = safe_str(context.get("email")).lower()
+        checkout_metadata = {
+            "app": "kmfx_edge",
+            "kmfx_user_id": user_id,
+            "user_id": user_id,
+            "kmfx_user_email": email,
+            "user_email": email,
+            "kmfx_plan": plan,
+            "plan_key": plan,
+            "kmfx_interval": interval,
+            "interval": interval,
+            "stripe_lookup_key": price_reference.get("lookup_key") or "",
+            "price_lookup_key": price_reference.get("lookup_key") or "",
+        }
+        subscription_data: dict[str, Any] = {
+            "metadata": {
+                "app": "kmfx_edge",
+                "kmfx_user_id": user_id,
+                "user_id": user_id,
+                "kmfx_user_email": email,
+                "user_email": email,
+                "kmfx_plan": plan,
+                "plan_key": plan,
+                "kmfx_interval": interval,
+                "interval": interval,
+            },
+        }
+        trial_days = billing_trial_period_days()
+        if trial_days > 0:
+            subscription_data["trial_period_days"] = trial_days
+        checkout_params: dict[str, Any] = {
+            "mode": "subscription",
+            "customer": customer_id,
+            "client_reference_id": user_id,
+            "success_url": safe_str(payload.get("success_url") or payload.get("successUrl") or billing_success_url()),
+            "cancel_url": safe_str(payload.get("cancel_url") or payload.get("cancelUrl") or billing_cancel_url()),
+            "allow_promotion_codes": _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
+            "line_items": [
+                {
+                    "price": price_reference["price_id"],
+                    "quantity": 1,
+                }
+            ],
+            "metadata": checkout_metadata,
+            "subscription_data": subscription_data,
+        }
+        if trial_days > 0 and not billing_trial_requires_card():
+            checkout_params["payment_method_collection"] = "if_required"
         session = stripe_api_request(
             "POST",
             "/checkout/sessions",
-            {
-                "mode": "subscription",
-                "customer": customer_id,
-                "client_reference_id": user_id,
-                "success_url": safe_str(payload.get("success_url") or payload.get("successUrl") or billing_success_url()),
-                "cancel_url": safe_str(payload.get("cancel_url") or payload.get("cancelUrl") or billing_cancel_url()),
-                "allow_promotion_codes": _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
-                "line_items": [
-                    {
-                        "price": price_reference["price_id"],
-                        "quantity": 1,
-                    }
-                ],
-                "metadata": {
-                    "app": "kmfx_edge",
-                    "kmfx_user_id": user_id,
-                    "kmfx_user_email": email,
-                    "kmfx_plan": plan,
-                    "kmfx_interval": interval,
-                    "stripe_lookup_key": price_reference.get("lookup_key") or "",
-                },
-                "subscription_data": {
-                    "metadata": {
-                        "app": "kmfx_edge",
-                        "kmfx_user_id": user_id,
-                        "kmfx_user_email": email,
-                        "kmfx_plan": plan,
-                        "kmfx_interval": interval,
-                    },
-                },
-            },
+            checkout_params,
         )
     except ValueError as exc:
         return billing_json_response({"ok": False, "reason": safe_str(exc) or "invalid_request", "error": safe_str(exc) or "invalid_request"}, status_code=400)

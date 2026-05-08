@@ -9,6 +9,8 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_API_VERSION=2026-02-25.clover
 STRIPE_PRODUCT_ID=prod_UT7nzmgj3Eg3Zv
+STRIPE_TRIAL_PERIOD_DAYS=7
+STRIPE_TRIAL_REQUIRES_CARD=false
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 NEXT_PUBLIC_SUPABASE_URL=https://uuhiqreifisppqkawzif.supabase.co
@@ -16,8 +18,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 
 NEXT_PUBLIC_APP_URL=https://kmfxedge.com
-BILLING_SUCCESS_PATH=/settings/billing?checkout=success
-BILLING_CANCEL_PATH=/settings/billing?checkout=cancelled
+BILLING_SUCCESS_PATH=/ajustes?tab=subscription&checkout=success&session_id={CHECKOUT_SESSION_ID}
+BILLING_CANCEL_PATH=/ajustes?tab=subscription&checkout=cancelled
 ```
 
 Current backend endpoints:

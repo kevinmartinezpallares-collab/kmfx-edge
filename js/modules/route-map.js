@@ -97,8 +97,12 @@ const ROUTE_ALIASES = Object.freeze({
   "/glossary": "glossary",
   "/debug": "debug",
   "/ajustes": "settings",
+  "/ajustes/suscripcion": "settings",
+  "/ajustes/billing": "settings",
   "/configuracion": "settings",
-  "/settings": "settings"
+  "/settings": "settings",
+  "/settings/billing": "settings",
+  "/settings/subscription": "settings"
 });
 
 const PAGE_PARENT = Object.freeze({

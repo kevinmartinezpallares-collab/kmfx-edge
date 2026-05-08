@@ -118,7 +118,7 @@ Criterio de salida:
 
 Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 
-- [ ] Confirmar catalogo final de productos KMFX.
+- [x] Confirmar catalogo final de productos KMFX.
 - [ ] Confirmar lookup keys de Stripe:
   - `kmfx_basic_monthly`
   - `kmfx_basic_yearly`
@@ -130,19 +130,27 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Configurar webhook endpoint.
 - [ ] Revisar recibos automaticos de Stripe.
 - [ ] Confirmar emails de compra con Resend.
-- [ ] Probar checkout success/cancel.
+- [x] Probar contrato local checkout success/cancel.
 - [ ] Probar pago fallido.
 - [ ] Probar cancelacion.
 - [ ] Probar cambio de plan.
 - [ ] Probar renovacion.
 - [ ] Probar cupon comunidad 100%.
-- [ ] Asegurar que webhooks solo afectan productos KMFX.
-- [ ] Verificar idempotencia `stripe_event_id`.
-- [ ] Verificar `GET /api/billing/status`.
-- [ ] Verificar `/api/billing/checkout`.
-- [ ] Verificar `/api/billing/portal`.
-- [ ] Verificar `/api/billing/webhook`.
+- [x] Asegurar que webhooks solo afectan productos KMFX.
+- [x] Verificar idempotencia `stripe_event_id`.
+- [x] Verificar `GET /api/billing/status`.
+- [x] Verificar `/api/billing/checkout`.
+- [x] Verificar `/api/billing/portal`.
+- [x] Verificar `/api/billing/webhook`.
 - [ ] Env vars live/test revisadas en Render.
+
+Notas 2026-05-08:
+
+- Stripe read-only scan confirma el producto live `prod_UT7nzmgj3Eg3Zv` y los seis Prices KMFX esperados.
+- Stripe read-only search no devuelve lookup keys `kmfx_basic_*`/`kmfx_pro_*`; mientras se configuran, Render debe usar Price IDs.
+- Checkout queda preparado con trial de 7 dias sin tarjeta por defecto (`STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`).
+- Success/cancel vuelven a `/ajustes?tab=subscription`, y la UI muestra el estado de retorno sin caer al dashboard.
+- Webhooks de invoice (`invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required`) sincronizan la suscripcion KMFX asociada si pertenece al producto/metadata KMFX.
 
 Criterio de salida:
 
