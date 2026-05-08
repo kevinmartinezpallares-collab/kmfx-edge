@@ -221,7 +221,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 - [x] Introducir `policy_source` por limite.
 - [x] Separar `configured_policy` de `reference_assumption`.
 - [x] Eliminar rojo/bloqueo basado en defaults.
-- Permitir politica por cuenta: riesgo/trade, DD diario, DD max, heat, funding rule.
+- [x] Permitir politica por cuenta en contrato backend: riesgo/trade, DD diario, DD max, heat, funding rule.
 
 ### Fase 3 - Motor matematico
 

@@ -3036,7 +3036,93 @@ def sanitize_symbol_specs(raw_specs: Any, account_currency: str = "") -> dict[st
     return specs
 
 
-def build_policy(login: str) -> dict[str, Any]:
+def first_configured_policy_value(source: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = source.get(key)
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def extract_account_policy_config(*sources: Any) -> dict[str, Any]:
+    candidates: list[dict[str, Any]] = []
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for key in ("configured_policy", "account_policy", "risk_policy", "riskPolicy", "policy", "riskProfile"):
+            value = source.get(key)
+            if isinstance(value, dict):
+                candidates.append(value)
+        candidates.append(source)
+
+    config: dict[str, Any] = {}
+    source_label = "account"
+    for candidate in candidates:
+        candidate_source = safe_str(candidate.get("policy_source") or candidate.get("source")).lower()
+        if candidate_source in {"funding", "account", "user", "backend_config", "policy", "configured"}:
+            source_label = candidate_source
+
+        risk_per_trade = first_configured_policy_value(
+            candidate,
+            "max_risk_per_trade_pct",
+            "risk_per_trade_pct",
+            "maxTradeRiskPct",
+            "defaultRisk",
+        )
+        daily_dd = first_configured_policy_value(
+            candidate,
+            "daily_dd_hard_stop",
+            "daily_dd_limit_pct",
+            "dailyLossLimitPct",
+        )
+        max_dd = first_configured_policy_value(
+            candidate,
+            "total_dd_hard_stop",
+            "max_dd_limit_pct",
+            "maxDdLimitPct",
+            "weeklyHeatLimitPct",
+        )
+        heat = first_configured_policy_value(
+            candidate,
+            "portfolio_heat_limit_pct",
+            "portfolioHeatLimitPct",
+            "max_total_open_risk_pct",
+        )
+
+        if risk_per_trade is not None:
+            config["max_risk_per_trade_pct"] = safe_float(risk_per_trade)
+            config["max_risk_per_trade_pct_source"] = source_label
+        if daily_dd is not None:
+            config["daily_dd_hard_stop"] = safe_float(daily_dd)
+            config["daily_dd_hard_stop_source"] = source_label
+        if max_dd is not None:
+            config["total_dd_hard_stop"] = safe_float(max_dd)
+            config["total_dd_hard_stop_source"] = source_label
+        if heat is not None:
+            config["portfolio_heat_limit_pct"] = safe_float(heat)
+            config["portfolio_heat_limit_pct_source"] = source_label
+
+        max_volume = first_configured_policy_value(candidate, "max_volume", "maxVolume")
+        if max_volume is not None:
+            config["max_volume"] = safe_float(max_volume)
+        for list_key, raw_keys in (
+            ("allowed_sessions", ("allowed_sessions", "allowedSessions")),
+            ("allowed_symbols", ("allowed_symbols", "allowedSymbols")),
+        ):
+            value = first_configured_policy_value(candidate, *raw_keys)
+            if isinstance(value, list):
+                config[list_key] = [safe_str(item) for item in value if safe_str(item)]
+
+        funding_rule = first_configured_policy_value(candidate, "funding_rule", "funding_rule_id", "fundingRule")
+        if funding_rule is not None:
+            config["funding_rule"] = safe_str(funding_rule)
+
+    if config:
+        config["policy_source"] = source_label
+    return config
+
+
+def build_policy(login: str, account_policy: dict[str, Any] | None = None) -> dict[str, Any]:
     policy = {
         "enforcement_mode": "SAFE_MODE",
         "panic_lock_active": False,
@@ -3070,6 +3156,39 @@ def build_policy(login: str) -> dict[str, Any]:
         },
     }
 
+    configured_policy = account_policy if isinstance(account_policy, dict) else {}
+    if configured_policy:
+        policy_source = safe_str(configured_policy.get("policy_source"), "account")
+        policy["policy_source"] = policy_source
+        policy["policy_source_label"] = "Politica configurada por cuenta"
+        for key in (
+            "max_risk_per_trade_pct",
+            "daily_dd_hard_stop",
+            "total_dd_hard_stop",
+            "portfolio_heat_limit_pct",
+            "max_volume",
+        ):
+            if key in configured_policy:
+                policy[key] = configured_policy[key]
+        if "allowed_sessions" in configured_policy:
+            policy["allowed_sessions"] = configured_policy["allowed_sessions"]
+        if "allowed_symbols" in configured_policy:
+            policy["allowed_symbols"] = configured_policy["allowed_symbols"]
+        if "funding_rule" in configured_policy:
+            policy["funding_rule"] = configured_policy["funding_rule"]
+        policy["configured_policy"] = {
+            key: value
+            for key, value in configured_policy.items()
+            if key not in {"policy_source"}
+        }
+        policy["policy_sources"] = {
+            **policy["policy_sources"],
+            "max_risk_per_trade_pct": safe_str(configured_policy.get("max_risk_per_trade_pct_source"), policy_source),
+            "daily_dd_hard_stop": safe_str(configured_policy.get("daily_dd_hard_stop_source"), policy_source),
+            "total_dd_hard_stop": safe_str(configured_policy.get("total_dd_hard_stop_source"), policy_source),
+            "portfolio_heat_limit_pct": safe_str(configured_policy.get("portfolio_heat_limit_pct_source"), policy_source),
+        }
+
     last_sync = LAST_SYNC_BY_LOGIN.get(login)
     if last_sync:
         connector_mode = safe_str(last_sync.get("mode"))
@@ -3082,8 +3201,9 @@ def build_policy(login: str) -> dict[str, Any]:
 
 
 def build_connector_policy_response(login: str, account_state: dict[str, Any] | None = None) -> dict[str, Any]:
-    policy = build_policy(login)
     state = account_state if isinstance(account_state, dict) else {}
+    account_policy = extract_account_policy_config(state)
+    policy = build_policy(login, account_policy)
     return {
         **policy,
         "risk_status": "active_monitoring",
@@ -3423,7 +3543,8 @@ def build_dashboard_account_payload(
         safe_str(account.get("currency") or "USD"),
     )
     report_metrics = build_report_metrics(account, trades, history)
-    raw_policy = build_policy(safe_str(account.get("login")))
+    account_policy = extract_account_policy_config(previous_payload, raw_payload)
+    raw_policy = build_policy(safe_str(account.get("login")), account_policy)
     policy_snapshot, policy_warnings = build_policy_snapshot(raw_policy)
     previous_snapshot = extract_previous_risk_snapshot(previous_payload)
     metrics_snapshot = build_risk_metrics(

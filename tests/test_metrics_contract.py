@@ -211,6 +211,78 @@ class MetricsContractTests(unittest.TestCase):
         self.assertTrue(evaluation["limits_status"]["risk_per_trade"]["is_configured"])
         self.assertEqual("RISK_PER_TRADE_BREACH", evaluation["breaches"][0]["code"])
 
+    def test_account_policy_config_drives_real_limits(self) -> None:
+        raw_policy = connector_api.build_policy(
+            "policy-account",
+            connector_api.extract_account_policy_config(
+                {
+                    "configured_policy": {
+                        "risk_per_trade_pct": 0.5,
+                        "daily_dd_limit_pct": 2.0,
+                        "max_dd_limit_pct": 6.0,
+                        "portfolio_heat_limit_pct": 1.5,
+                        "funding_rule": "alpha-step-one",
+                    }
+                }
+            ),
+        )
+        policy, _ = build_policy_snapshot(raw_policy)
+        evaluation = evaluate_risk_policy(
+            {
+                "summary": {
+                    "peak_to_equity_drawdown_pct": 1.0,
+                    "daily_drawdown_pct": 1.0,
+                    "total_open_risk_pct": 1.0,
+                    "max_open_trade_risk_pct": 0.6,
+                }
+            },
+            policy,
+        )
+
+        self.assertEqual(0.5, policy["risk_per_trade_pct"])
+        self.assertEqual(2.0, policy["daily_dd_limit_pct"])
+        self.assertEqual(6.0, policy["max_dd_limit_pct"])
+        self.assertEqual(1.5, policy["portfolio_heat_limit_pct"])
+        self.assertEqual("account", policy["policy_sources"]["risk_per_trade"])
+        self.assertTrue(policy["configured_limits"]["risk_per_trade"])
+        self.assertEqual("alpha-step-one", raw_policy["funding_rule"])
+        self.assertEqual("breach", evaluation["limits_status"]["risk_per_trade"]["state"])
+        self.assertEqual("RISK_PER_TRADE_BREACH", evaluation["breaches"][0]["code"])
+
+    def test_dashboard_payload_uses_previous_account_policy(self) -> None:
+        payload = connector_api.build_dashboard_account_payload(
+            {"login": "policy-account", "broker": "Policy Broker", "server": "Policy-Live", "balance": 10000, "equity": 9900},
+            [
+                {
+                    "position_id": "policy-pos-1",
+                    "symbol": "EURUSD",
+                    "type": "BUY",
+                    "risk_pct": 0.75,
+                    "risk_amount": 75,
+                    "profit": -100,
+                    "swap": 0,
+                }
+            ],
+            [],
+            {"timestamp": "2026-05-08T08:00:00Z"},
+            {
+                "configured_policy": {
+                    "risk_per_trade_pct": 0.5,
+                    "daily_dd_limit_pct": 2.0,
+                    "max_dd_limit_pct": 6.0,
+                    "portfolio_heat_limit_pct": 1.5,
+                }
+            },
+        )
+
+        policy = payload["riskSnapshot"]["policy"]
+        evaluation = payload["riskSnapshot"]["policy_evaluation"]
+        self.assertEqual(0.5, policy["risk_per_trade_pct"])
+        self.assertEqual("account", policy["policy_sources"]["risk_per_trade"])
+        self.assertTrue(policy["configured_limits"]["risk_per_trade"])
+        self.assertEqual("breach", evaluation["limits_status"]["risk_per_trade"]["state"])
+        self.assertEqual("RISK_PER_TRADE_BREACH", evaluation["breaches"][0]["code"])
+
     def test_report_metrics_exposes_net_and_gross_profit_factor(self) -> None:
         metrics = connector_api.build_report_metrics(
             {"balance": 10000, "equity": 10020},
