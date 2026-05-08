@@ -218,7 +218,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             calendar: ["Calendario"],
             analytics: ["Patrones detectados", "Dónde se concentra el resultado"],
             portfolio: ["110", "Capital"],
-            risk: ["Risk"],
+            risk: ["Risk", "risk-exposure-stack", "risk-drawdown-area", "risk-pressure-progress"],
             "risk-ruin-var": ["Ruin / VaR", "risk-professional-card__visual", "VaR 95", "CVaR", "Muestra"],
             calculator: ["Calculadora"],
             glossary: ["Estudio de métricas", "study-metric-slider", "Métricas críticas del dashboard", "Confianza"],
@@ -238,6 +238,11 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               "risk-professional-card__visual--bar",
               "risk-professional-sample",
               "risk-professional-detail-grid",
+            ],
+            risk: [
+              "risk-exposure-stack",
+              "risk-drawdown-area",
+              "risk-pressure-progress",
             ],
             glossary: [
               "study-metric-lab",
@@ -922,6 +927,11 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                 "risk-professional-card__visual--bar",
                 "risk-professional-sample",
                 "risk-professional-detail-grid",
+            },
+            "risk": {
+                "risk-exposure-stack",
+                "risk-drawdown-area",
+                "risk-pressure-progress",
             },
             "glossary": {
                 "study-metric-lab",

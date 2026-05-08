@@ -7864,8 +7864,240 @@ html[data-theme="dark"] .risk-exposure-row strong,
 body[data-theme="dark"] .risk-exposure-row strong {
   font-size: 16px;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: var(--text-0);
+}
+
+html[data-theme="dark"] .risk-exposure-visual,
+body[data-theme="dark"] .risk-exposure-visual,
+html[data-theme="dark"] .risk-drawdown-area,
+body[data-theme="dark"] .risk-drawdown-area,
+html[data-theme="dark"] .risk-pressure-progress,
+body[data-theme="dark"] .risk-pressure-progress {
+  display: grid;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,0.055);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--layer-1-subtle) 96%, rgba(255,255,255,0.016));
+}
+
+html[data-theme="dark"] .risk-exposure-visual__head,
+body[data-theme="dark"] .risk-exposure-visual__head,
+html[data-theme="dark"] .risk-drawdown-area__copy,
+body[data-theme="dark"] .risk-drawdown-area__copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+html[data-theme="dark"] .risk-exposure-visual__head span,
+body[data-theme="dark"] .risk-exposure-visual__head span,
+html[data-theme="dark"] .risk-drawdown-area__copy span,
+body[data-theme="dark"] .risk-drawdown-area__copy span,
+html[data-theme="dark"] .risk-pressure-progress__row span,
+body[data-theme="dark"] .risk-pressure-progress__row span,
+html[data-theme="dark"] .risk-drawdown-area__axis,
+body[data-theme="dark"] .risk-drawdown-area__axis {
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+html[data-theme="dark"] .risk-exposure-visual__head strong,
+body[data-theme="dark"] .risk-exposure-visual__head strong,
+html[data-theme="dark"] .risk-drawdown-area__copy strong,
+body[data-theme="dark"] .risk-drawdown-area__copy strong,
+html[data-theme="dark"] .risk-pressure-progress__row strong,
+body[data-theme="dark"] .risk-pressure-progress__row strong {
+  color: var(--text-0);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .risk-exposure-stack,
+body[data-theme="dark"] .risk-exposure-stack {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.045);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035);
+}
+
+html[data-theme="dark"] .risk-exposure-stack__segment,
+body[data-theme="dark"] .risk-exposure-stack__segment {
+  display: block;
+  min-width: 2px;
+}
+
+html[data-theme="dark"] .risk-exposure-stack__segment--0,
+body[data-theme="dark"] .risk-exposure-stack__segment--0 {
+  background: color-mix(in srgb, var(--warning) 76%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-stack__segment--1,
+body[data-theme="dark"] .risk-exposure-stack__segment--1 {
+  background: color-mix(in srgb, var(--positive) 70%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-stack__segment--2,
+body[data-theme="dark"] .risk-exposure-stack__segment--2 {
+  background: color-mix(in srgb, var(--accent) 68%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-stack__segment--3,
+body[data-theme="dark"] .risk-exposure-stack__segment--3 {
+  background: color-mix(in srgb, var(--negative) 58%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown,
+body[data-theme="dark"] .risk-exposure-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 10px;
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__row,
+body[data-theme="dark"] .risk-exposure-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__row span,
+body[data-theme="dark"] .risk-exposure-breakdown__row span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__row strong,
+body[data-theme="dark"] .risk-exposure-breakdown__row strong {
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__dot,
+body[data-theme="dark"] .risk-exposure-breakdown__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 76%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__dot--1,
+body[data-theme="dark"] .risk-exposure-breakdown__dot--1 {
+  background: color-mix(in srgb, var(--positive) 70%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__dot--2,
+body[data-theme="dark"] .risk-exposure-breakdown__dot--2 {
+  background: color-mix(in srgb, var(--accent) 68%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-exposure-breakdown__dot--3,
+body[data-theme="dark"] .risk-exposure-breakdown__dot--3 {
+  background: color-mix(in srgb, var(--negative) 58%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-drawdown-area,
+body[data-theme="dark"] .risk-drawdown-area {
+  min-height: 138px;
+}
+
+html[data-theme="dark"] .risk-drawdown-area svg,
+body[data-theme="dark"] .risk-drawdown-area svg {
+  width: 100%;
+  height: 74px;
+  overflow: visible;
+}
+
+html[data-theme="dark"] .risk-drawdown-area__fill,
+body[data-theme="dark"] .risk-drawdown-area__fill {
+  fill: color-mix(in srgb, var(--negative) 18%, transparent);
+}
+
+html[data-theme="dark"] .risk-drawdown-area__line,
+body[data-theme="dark"] .risk-drawdown-area__line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--negative) 58%, var(--text-0));
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-theme="dark"] .risk-drawdown-area__axis,
+body[data-theme="dark"] .risk-drawdown-area__axis {
+  display: flex;
+  justify-content: space-between;
+}
+
+html[data-theme="dark"] .risk-pressure-progress,
+body[data-theme="dark"] .risk-pressure-progress {
+  padding: 12px;
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row,
+body[data-theme="dark"] .risk-pressure-progress__row {
+  display: grid;
+  gap: 7px;
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row div,
+body[data-theme="dark"] .risk-pressure-progress__row div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row em,
+body[data-theme="dark"] .risk-pressure-progress__row em {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.055);
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row i,
+body[data-theme="dark"] .risk-pressure-progress__row i {
+  display: block;
+  width: calc(var(--risk-pressure) * 1%);
+  min-width: 2px;
+  max-width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--positive) 68%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row--warn i,
+body[data-theme="dark"] .risk-pressure-progress__row--warn i {
+  background: color-mix(in srgb, var(--warning) 76%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-pressure-progress__row--danger i,
+body[data-theme="dark"] .risk-pressure-progress__row--danger i {
+  background: color-mix(in srgb, var(--negative) 70%, var(--text-0));
 }
 
 html[data-theme="dark"] .risk-professional-surface,

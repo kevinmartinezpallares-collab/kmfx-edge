@@ -775,6 +775,208 @@ function renderRiskEmptyState({ account = {}, lastSyncAt = null } = {}) {
   `;
 }
 
+function aggregateSymbolExposure(sourceRows = []) {
+  const bySymbol = new Map();
+  sourceRows.forEach((row) => {
+    if (!row || typeof row !== "object") return;
+    const symbol = String(row.symbol || row.instrument || "Cuenta").trim() || "Cuenta";
+    const current = bySymbol.get(symbol) || {
+      symbol,
+      riskPct: 0,
+      riskAmount: 0,
+      pnl: 0,
+    };
+    current.riskPct += Math.abs(safeNumber(row.risk_pct ?? row.riskPct ?? row.total_open_risk_pct, 0));
+    current.riskAmount += Math.abs(safeNumber(row.risk_amount ?? row.riskAmount ?? row.open_risk_amount, 0));
+    current.pnl += safeNumber(row.pnl ?? row.profit ?? row.floating_pnl, 0);
+    bySymbol.set(symbol, current);
+  });
+  return [...bySymbol.values()]
+    .filter((row) => row.riskPct > 0 || row.riskAmount > 0 || row.pnl !== 0)
+    .sort((a, b) => Math.max(b.riskPct, 0) - Math.max(a.riskPct, 0));
+}
+
+function buildExposureVisualModel(liveSnapshot, exposureSnapshot) {
+  const symbolRows = Array.isArray(liveSnapshot?.symbol_exposure) && liveSnapshot.symbol_exposure.length
+    ? liveSnapshot.symbol_exposure
+    : Array.isArray(liveSnapshot?.open_trade_risks)
+      ? liveSnapshot.open_trade_risks
+      : [];
+  const aggregated = aggregateSymbolExposure(symbolRows);
+  const totalRiskPct = firstFiniteRiskValue(
+    exposureSnapshot?.totalOpenRiskPct,
+    liveSnapshot?.summary?.total_open_risk_pct,
+    aggregated.reduce((sum, row) => sum + safeNumber(row.riskPct, 0), 0)
+  );
+  const heatLimitPct = firstFiniteRiskValue(
+    liveSnapshot?.summary?.portfolio_heat_limit_pct,
+    liveSnapshot?.policy?.max_total_open_risk_pct,
+    totalRiskPct,
+    1
+  );
+  const denominator = Math.max(Math.abs(heatLimitPct), Math.abs(totalRiskPct), 1);
+  const topRows = aggregated.slice(0, 4);
+  const otherRows = aggregated.slice(4);
+  if (otherRows.length) {
+    topRows.push({
+      symbol: "Otros",
+      riskPct: otherRows.reduce((sum, row) => sum + safeNumber(row.riskPct, 0), 0),
+      riskAmount: otherRows.reduce((sum, row) => sum + safeNumber(row.riskAmount, 0), 0),
+      pnl: otherRows.reduce((sum, row) => sum + safeNumber(row.pnl, 0), 0),
+    });
+  }
+  return {
+    available: aggregated.length > 0 || totalRiskPct > 0,
+    totalRiskPct: Math.max(totalRiskPct, 0),
+    heatLimitPct: Math.max(heatLimitPct, 0),
+    usagePct: denominator > 0 ? clampRiskValue((Math.max(totalRiskPct, 0) / denominator) * 100) : 0,
+    segments: topRows.map((row, index) => ({
+      ...row,
+      width: clampRiskValue((Math.max(row.riskPct, 0) / denominator) * 100),
+      tone: index % 4,
+    })),
+  };
+}
+
+function buildDrawdownAreaModel(liveSnapshot, dashboardPayload) {
+  const history = Array.isArray(dashboardPayload?.history) ? dashboardPayload.history : [];
+  const drawdownValues = [];
+  let runningPeak = -Infinity;
+  history.forEach((point) => {
+    const value = safeNumber(point.value ?? point.equity ?? point.balance, NaN);
+    if (!Number.isFinite(value) || value <= 0) return;
+    runningPeak = Math.max(runningPeak, value);
+    if (runningPeak > 0) drawdownValues.push(((runningPeak - value) / runningPeak) * 100);
+  });
+  [
+    liveSnapshot?.summary?.floating_drawdown_pct,
+    liveSnapshot?.summary?.daily_drawdown_pct,
+    liveSnapshot?.summary?.peak_to_equity_drawdown_pct,
+    liveSnapshot?.summary?.rolling_max_drawdown_pct,
+    liveSnapshot?.summary?.persisted_max_drawdown_pct,
+  ].forEach((value) => {
+    const numeric = safeNumber(value, NaN);
+    if (Number.isFinite(numeric)) drawdownValues.push(Math.max(numeric, 0));
+  });
+  const values = drawdownValues.length ? drawdownValues : [0, 0, 0];
+  while (values.length < 4) values.unshift(0);
+  const width = 240;
+  const height = 74;
+  const maxDrawdown = Math.max(...values, 1);
+  const points = values.map((value, index) => {
+    const x = values.length > 1 ? (index / (values.length - 1)) * width : 0;
+    const y = height - (Math.max(value, 0) / maxDrawdown) * (height - 10) - 4;
+    return { x, y, value };
+  });
+  const line = points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const area = `${line} L${width} ${height} L0 ${height} Z`;
+  const currentDrawdown = firstFiniteRiskValue(liveSnapshot?.summary?.peak_to_equity_drawdown_pct, values.at(-1), 0);
+  return {
+    line,
+    area,
+    maxDrawdown,
+    currentDrawdown,
+    pointsCount: points.length,
+  };
+}
+
+function buildPressureProgressModel(liveSnapshot, exposureSnapshot) {
+  const totalDdLimit = firstFiniteRiskValue(liveSnapshot?.summary?.max_drawdown_limit_pct, liveSnapshot?.policy?.max_dd_limit_pct, 0);
+  const dailyDdLimit = firstFiniteRiskValue(liveSnapshot?.policy?.daily_dd_limit_pct, 0);
+  const heatLimit = firstFiniteRiskValue(liveSnapshot?.summary?.portfolio_heat_limit_pct, liveSnapshot?.policy?.max_total_open_risk_pct, 0);
+  const maxDd = firstFiniteRiskValue(liveSnapshot?.summary?.peak_to_equity_drawdown_pct, 0);
+  const dailyDd = firstFiniteRiskValue(liveSnapshot?.summary?.daily_drawdown_pct, 0);
+  const heat = firstFiniteRiskValue(exposureSnapshot?.totalOpenRiskPct, liveSnapshot?.summary?.total_open_risk_pct, 0);
+  const rows = [
+    {
+      label: "Heat",
+      value: heat,
+      limit: heatLimit,
+    },
+    {
+      label: "Daily DD",
+      value: dailyDd,
+      limit: dailyDdLimit,
+    },
+    {
+      label: "Max DD",
+      value: maxDd,
+      limit: totalDdLimit,
+    },
+  ].map((row) => {
+    const usage = row.limit > 0 ? clampRiskValue((Math.max(row.value, 0) / row.limit) * 100) : 0;
+    return {
+      ...row,
+      usage,
+      tone: usage >= 90 ? "danger" : usage >= 70 ? "warn" : "ok",
+    };
+  });
+  return {
+    rows,
+    pressure: Math.max(...rows.map((row) => row.usage), 0),
+  };
+}
+
+function renderExposureVisual(model) {
+  if (!model.available) return "";
+  return `
+    <div class="risk-exposure-visual" style="--risk-exposure-usage:${model.usagePct.toFixed(2)}">
+      <div class="risk-exposure-visual__head">
+        <span>Uso heat</span>
+        <strong>${formatRiskPct(model.totalRiskPct)} / ${formatRiskPct(model.heatLimitPct)}</strong>
+      </div>
+      <div class="risk-exposure-stack" aria-hidden="true">
+        ${model.segments.length ? model.segments.map((segment) => `
+          <i class="risk-exposure-stack__segment risk-exposure-stack__segment--${segment.tone}" style="width:${Math.max(segment.width, 2).toFixed(2)}%" title="${escapeAttr(segment.symbol)} ${formatRiskPct(segment.riskPct)}"></i>
+        `).join("") : `<i class="risk-exposure-stack__segment risk-exposure-stack__segment--0" style="width:${Math.max(model.usagePct, 2).toFixed(2)}%"></i>`}
+      </div>
+      ${model.segments.length ? `<div class="risk-exposure-breakdown">
+        ${model.segments.map((segment) => `
+          <div class="risk-exposure-breakdown__row">
+            <span><i class="risk-exposure-breakdown__dot risk-exposure-breakdown__dot--${segment.tone}"></i>${escapeHtml(segment.symbol)}</span>
+            <strong>${formatRiskPct(segment.riskPct)}</strong>
+          </div>
+        `).join("")}
+      </div>` : ""}
+    </div>
+  `;
+}
+
+function renderDrawdownArea(model) {
+  return `
+    <div class="risk-drawdown-area">
+      <div class="risk-drawdown-area__copy">
+        <span>Drawdown path</span>
+        <strong>${formatRiskPct(model.currentDrawdown)}</strong>
+      </div>
+      <svg viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true">
+        <path class="risk-drawdown-area__fill" d="${model.area}"></path>
+        <path class="risk-drawdown-area__line" d="${model.line}"></path>
+      </svg>
+      <div class="risk-drawdown-area__axis">
+        <span>0%</span>
+        <span>Max ${formatRiskPct(model.maxDrawdown)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderPressureProgress(model) {
+  return `
+    <div class="risk-pressure-progress">
+      ${model.rows.map((row) => `
+        <div class="risk-pressure-progress__row risk-pressure-progress__row--${row.tone}" style="--risk-pressure:${row.usage.toFixed(2)}">
+          <div>
+            <span>${row.label}</span>
+            <strong>${row.limit > 0 ? `${formatRiskPct(row.value)} / ${formatRiskPct(row.limit)}` : `${formatRiskPct(row.value)} · sin límite`}</strong>
+          </div>
+          <em><i></i></em>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function syncDraftFromSnapshot(root, snapshot) {
   if (!snapshot?.policy) return;
   if (root.__riskPrefsStatus === "pending" || root.__riskPrefsStatus === "saving") return;
@@ -1045,6 +1247,9 @@ export function renderRisk(root, state) {
     exposureSnapshot.totalOpenRiskPct > 0 ||
     Number.isFinite(Number(exposureSnapshot.effectiveCorrelatedRisk))
   ));
+  const exposureVisual = buildExposureVisualModel(liveSnapshot, exposureSnapshot);
+  const drawdownArea = buildDrawdownAreaModel(liveSnapshot, dashboardPayload);
+  const pressureProgress = buildPressureProgressModel(liveSnapshot, exposureSnapshot);
   const remainingDailyLabel = liveSnapshot
     ? (Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0) <= 0 ? "Sin margen diario" : `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}% de margen diario`)
     : "—";
@@ -1447,6 +1652,7 @@ export function renderRisk(root, state) {
             </article>
           `).join("")}
         </div>
+        ${renderDrawdownArea(drawdownArea)}
       </article>
 
       <article class="tl-section-card risk-exposure-card">
@@ -1456,7 +1662,9 @@ export function renderRisk(root, state) {
             <div class="row-sub">Riesgo abierto y presión inmediata del flujo activo.</div>
           </div>
         </div>
-        ${hasExposureData ? `<div class="risk-exposure-list">
+        ${hasExposureData || exposureVisual.available ? `
+        ${renderExposureVisual(exposureVisual)}
+        <div class="risk-exposure-list">
           <div class="risk-exposure-row">
             <span>Riesgo abierto</span>
             <strong class="${exposureSnapshot.totalOpenRiskPct > 0 ? "metric-warning" : ""}">${liveSnapshot ? formatOptionalRiskPct(exposureSnapshot.totalOpenRiskPct) : "—"}</strong>
@@ -1469,7 +1677,9 @@ export function renderRisk(root, state) {
             <span>Presión</span>
             <strong class="${exposureSnapshot.pressureTone === "danger" ? "metric-negative" : exposureSnapshot.pressureTone === "warn" ? "metric-warning" : "green"}">${escapeHtml(riskDisplayText(exposureSnapshot.pressureLabel, "sin exposición").replaceAll("_", " "))}</strong>
           </div>
-        </div>` : `
+        </div>
+        ${renderPressureProgress(pressureProgress)}
+        ` : `
           <div class="risk-exposure-empty">
             <strong>Sin exposición calculada</strong>
             <p>Se mostrará cuando haya posiciones abiertas o una lectura de riesgo con exposición.</p>
