@@ -338,6 +338,8 @@ BILLING_STATUS_VALUES = {
 }
 CONNECTION_RATE_LIMIT_WINDOW_SECONDS = 60
 CONNECTION_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
+SENSITIVE_RATE_LIMIT_WINDOW_SECONDS = 60
+SENSITIVE_RATE_LIMIT_BUCKETS: dict[str, tuple[float, int]] = {}
 QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
 SENSITIVE_LOG_FIELD_NAMES = {
     "connection_key",
@@ -2448,6 +2450,115 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
     return response
 
 
+def sensitive_rate_limit_for_endpoint(endpoint: str) -> int:
+    normalized_endpoint = endpoint.lower()
+    if "billing/checkout" in normalized_endpoint:
+        return _env_int("KMFX_RATE_LIMIT_BILLING_CHECKOUT_PER_MINUTE", default=10)
+    if "billing/portal" in normalized_endpoint:
+        return _env_int("KMFX_RATE_LIMIT_BILLING_PORTAL_PER_MINUTE", default=12)
+    if "/api/admin/" in normalized_endpoint:
+        return _env_int("KMFX_RATE_LIMIT_ADMIN_PER_MINUTE", default=120)
+    if "regenerate-key" in normalized_endpoint or "revoke-key" in normalized_endpoint or endpoint.upper().startswith("DELETE "):
+        return _env_int("KMFX_RATE_LIMIT_ACCOUNT_KEY_PER_MINUTE", default=10)
+    if "accounts" in normalized_endpoint or "direct-mt5" in normalized_endpoint:
+        return _env_int("KMFX_RATE_LIMIT_ACCOUNT_WRITE_PER_MINUTE", default=20)
+    return _env_int("KMFX_RATE_LIMIT_SENSITIVE_PER_MINUTE", default=60)
+
+
+def request_ip_identity(request: Request) -> str:
+    cf_ip = safe_str(request.headers.get("cf-connecting-ip"))
+    if cf_ip:
+        return cf_ip
+    forwarded_for = safe_str(request.headers.get("x-forwarded-for"))
+    if forwarded_for:
+        return safe_str(forwarded_for.split(",", 1)[0])
+    return safe_str(getattr(request.client, "host", "") if request.client else "")
+
+
+def sensitive_rate_limit_identity(request: Request, *, user_id: str = "", email: str = "") -> tuple[str, str]:
+    normalized_user_id = safe_str(user_id).lower()
+    if normalized_user_id:
+        return "user", normalized_user_id
+    normalized_email = safe_str(email).lower()
+    if normalized_email:
+        return "email", normalized_email
+    client_ip = request_ip_identity(request)
+    return "ip", client_ip or "unknown"
+
+
+def prune_sensitive_rate_limit_buckets(now: float, *, max_buckets: int | None = None) -> None:
+    resolved_max_buckets = max_buckets if max_buckets is not None else _env_int(
+        "KMFX_RATE_LIMIT_SENSITIVE_MAX_BUCKETS",
+        default=10000,
+    )
+    expired = [
+        bucket_key
+        for bucket_key, (window_start, _count) in SENSITIVE_RATE_LIMIT_BUCKETS.items()
+        if now - window_start >= SENSITIVE_RATE_LIMIT_WINDOW_SECONDS
+    ]
+    for bucket_key in expired:
+        SENSITIVE_RATE_LIMIT_BUCKETS.pop(bucket_key, None)
+
+    if resolved_max_buckets <= 0 or len(SENSITIVE_RATE_LIMIT_BUCKETS) <= resolved_max_buckets:
+        return
+
+    overflow = len(SENSITIVE_RATE_LIMIT_BUCKETS) - resolved_max_buckets
+    oldest_keys = sorted(
+        SENSITIVE_RATE_LIMIT_BUCKETS,
+        key=lambda bucket_key: SENSITIVE_RATE_LIMIT_BUCKETS[bucket_key][0],
+    )[:overflow]
+    for bucket_key in oldest_keys:
+        SENSITIVE_RATE_LIMIT_BUCKETS.pop(bucket_key, None)
+
+
+def sensitive_rate_limit_response(
+    endpoint: str,
+    request: Request,
+    *,
+    user_id: str = "",
+    email: str = "",
+    limit: int | None = None,
+) -> JSONResponse | None:
+    resolved_limit = sensitive_rate_limit_for_endpoint(endpoint) if limit is None else limit
+    if resolved_limit <= 0:
+        return None
+    identity_kind, identity = sensitive_rate_limit_identity(request, user_id=user_id, email=email)
+    now = time.time()
+    prune_sensitive_rate_limit_buckets(now)
+    identity_hash = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    bucket_key = f"{endpoint}:{identity_kind}:{identity_hash}"
+    window_start, count = SENSITIVE_RATE_LIMIT_BUCKETS.get(bucket_key, (now, 0))
+    if now - window_start >= SENSITIVE_RATE_LIMIT_WINDOW_SECONDS:
+        window_start, count = now, 0
+    count += 1
+    SENSITIVE_RATE_LIMIT_BUCKETS[bucket_key] = (window_start, count)
+    if count <= resolved_limit:
+        return None
+    retry_after_seconds = max(1, int(SENSITIVE_RATE_LIMIT_WINDOW_SECONDS - (now - window_start)))
+    log.warning(
+        "%s rejected | reason=sensitive_rate_limited identity=%s limit=%s retry_after=%s",
+        endpoint,
+        identity_kind,
+        resolved_limit,
+        retry_after_seconds,
+    )
+    response = connector_json_response(
+        {
+            "ok": False,
+            "reason": "rate_limited",
+            "error": "rate_limited",
+            "details": {
+                "limit_per_minute": resolved_limit,
+                "retry_after_seconds": retry_after_seconds,
+            },
+            "timestamp": now_iso(),
+        },
+        status_code=429,
+    )
+    response.headers["Retry-After"] = str(retry_after_seconds)
+    return response
+
+
 def mt5_revoked_connection_key_response(endpoint: str, connection_key: str, *, sync_id: str = "", batch_id: str = "") -> JSONResponse:
     revoked_account = account_service.get_revoked_account_by_api_key_any_user(connection_key)
     payload: dict[str, Any] = {
@@ -4084,6 +4195,14 @@ async def create_account(request: Request) -> JSONResponse:
             },
             status_code=401,
         )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /accounts",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     try:
         payload = await request.json()
     except Exception:
@@ -4196,6 +4315,14 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
             },
             status_code=401,
         )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/link",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     user_id = scope_user_id
     raw_label = safe_str(payload.get("label") or payload.get("alias") or payload.get("nickname"))
     label = raw_label or "Nueva cuenta MT5"
@@ -4530,6 +4657,14 @@ async def revoke_own_account_key(account_id: str, request: Request) -> JSONRespo
             },
             status_code=401,
         )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/{account_id}/revoke-key",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = next(
         (
             item
@@ -4575,6 +4710,14 @@ async def regenerate_own_account_key(account_id: str, request: Request) -> JSONR
             },
             status_code=401,
         )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/{account_id}/regenerate-key",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     entitlement_denial = product_entitlement_denial(context=auth_context, entitlement="launcherConnection")
     if entitlement_denial is not None:
         return entitlement_denial
@@ -4631,6 +4774,14 @@ async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
             },
             status_code=401,
         )
+    rate_limited = sensitive_rate_limit_response(
+        "DELETE /api/accounts/{account_id}",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     normalized_account_id = safe_str(account_id)
     account = next(
         (
@@ -4674,9 +4825,17 @@ async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
 
 @app.get("/api/admin/accounts/{account_id}/payload")
 async def admin_account_payload(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "GET /api/admin/accounts/{account_id}/payload",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = find_account_by_id_any_user(account_id)
     if account is None:
         return connector_json_response(
@@ -4701,9 +4860,17 @@ async def admin_account_payload(account_id: str, request: Request) -> JSONRespon
 
 @app.post("/api/admin/accounts/{account_id}/primary")
 async def admin_mark_primary(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/admin/accounts/{account_id}/primary",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = find_account_by_id_any_user(account_id)
     if account is None:
         return connector_json_response(
@@ -4729,9 +4896,17 @@ async def admin_mark_primary(account_id: str, request: Request) -> JSONResponse:
 
 @app.post("/api/admin/accounts/{account_id}/regenerate-key")
 async def admin_regenerate_key(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/admin/accounts/{account_id}/regenerate-key",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = account_service.regenerate_connection_key(account_id)
     if account is None:
         return connector_json_response(
@@ -4752,9 +4927,17 @@ async def admin_regenerate_key(account_id: str, request: Request) -> JSONRespons
 
 @app.post("/api/admin/accounts/{account_id}/revoke-key")
 async def admin_revoke_key(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/admin/accounts/{account_id}/revoke-key",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = account_service.revoke_connection_key(account_id, reason="admin_revocation")
     if account is None:
         return connector_json_response(
@@ -4776,9 +4959,17 @@ async def admin_revoke_key(account_id: str, request: Request) -> JSONResponse:
 
 @app.post("/api/admin/accounts/{account_id}/archive")
 async def admin_archive_account(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/admin/accounts/{account_id}/archive",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = account_service.archive_account(account_id)
     if account is None:
         return connector_json_response(
@@ -4799,9 +4990,17 @@ async def admin_archive_account(account_id: str, request: Request) -> JSONRespon
 
 @app.delete("/api/admin/accounts/{account_id}")
 async def admin_delete_account(account_id: str, request: Request) -> JSONResponse:
-    _, forbidden = require_admin(request)
+    admin_context, forbidden = require_admin(request)
     if forbidden is not None:
         return forbidden
+    rate_limited = sensitive_rate_limit_response(
+        "DELETE /api/admin/accounts/{account_id}",
+        request,
+        user_id=safe_str(admin_context.get("user_id")),
+        email=safe_str(admin_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     account = account_service.delete_account(account_id)
     if account is None:
         return connector_json_response(
@@ -5390,6 +5589,14 @@ async def billing_checkout(request: Request) -> JSONResponse:
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
+    rate_limited = sensitive_rate_limit_response(
+        "/api/billing/checkout",
+        request,
+        user_id=safe_str(context.get("user_id")),
+        email=safe_str(context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     try:
         payload = await request.json()
     except Exception:
@@ -5488,6 +5695,14 @@ async def billing_portal(request: Request) -> JSONResponse:
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
+    rate_limited = sensitive_rate_limit_response(
+        "/api/billing/portal",
+        request,
+        user_id=safe_str(context.get("user_id")),
+        email=safe_str(context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
     try:
         customer_id = ensure_billing_customer(context)
     except RuntimeError as exc:

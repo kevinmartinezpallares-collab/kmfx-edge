@@ -160,24 +160,34 @@ Criterio de salida:
 
 Objetivo: no abrir superficie sensible sin controles.
 
-- [ ] Revisar endpoints criticos.
-- [ ] Validar auth real en backend.
-- [ ] Confirmar decisiones desde `app_metadata`/backend, no headers falsos remotos.
-- [ ] Confirmar `X-KMFX-User-*` solo se confia desde localhost si aplica.
-- [ ] Proteger creacion de conexiones MT5.
-- [ ] Rate limit por `connection_key`.
-- [ ] Rate limit complementario por usuario/IP en endpoints sensibles.
-- [ ] Logs sin keys completas, JWTs ni secrets.
+- [x] Revisar endpoints criticos.
+- [x] Validar auth real en backend.
+- [x] Confirmar decisiones desde `app_metadata`/backend, no headers falsos remotos.
+- [x] Confirmar `X-KMFX-User-*` solo se confia desde localhost si aplica.
+- [x] Proteger creacion de conexiones MT5.
+- [x] Rate limit por `connection_key`.
+- [x] Rate limit complementario por usuario/IP en endpoints sensibles.
+- [x] Logs sin keys completas, JWTs ni secrets.
 - [ ] Revisar logs historicos y rotar keys expuestas si procede.
-- [ ] Confirmar endpoints admin devuelven `403` para no-admin.
+- [x] Confirmar endpoints admin devuelven `403` para no-admin.
 - [ ] Revisar Supabase RLS.
-- [ ] Revisar Cloudflare Worker `mt5-api`.
-- [ ] Revisar CORS.
-- [ ] Revisar headers Vercel.
+- [x] Revisar Cloudflare Worker `mt5-api`.
+- [x] Revisar CORS.
+- [x] Revisar headers Vercel.
 - [ ] Activar secret scanning GitHub.
 - [ ] Activar push protection GitHub.
 - [ ] Activar Dependabot alerts/security updates.
 - [ ] Branch protection en `main`.
+
+Notas 2026-05-08:
+
+- Backend revisado para que permisos sensibles dependan de bearer verificado, `app_metadata` y decisiones server-side.
+- `X-KMFX-User-*` queda limitado a requests locales; Cloudflare Worker elimina esos headers antes de reenviar a Render.
+- MT5 remoto requiere `X-KMFX-Connection-Key` o bearer valido; keys en query string siguen bloqueadas en produccion.
+- Rate limit por `connection_key` activo en sync/journal/policy.
+- Rate limit complementario por usuario/IP anadido a checkout, portal, creacion/link de cuentas, regeneracion/revocacion/borrado de keys y endpoints admin.
+- CORS backend sin wildcard; Worker `mt5-api` mantiene allowlist de dominios KMFX y elimina headers/query sensibles.
+- Vercel mantiene CSP, HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy` y `Permissions-Policy`.
 
 Criterio de salida:
 

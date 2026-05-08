@@ -1509,6 +1509,133 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual({"recent-b", "recent-c"}, keys)
 
+    def test_sensitive_rate_limit_is_per_identity_and_endpoint(self) -> None:
+        connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+        request = self._request(host="198.51.100.23")
+        try:
+            self.assertIsNone(
+                connector_api.sensitive_rate_limit_response(
+                    "/api/billing/checkout",
+                    request,
+                    user_id="user-rate-a",
+                    limit=2,
+                )
+            )
+            self.assertIsNone(
+                connector_api.sensitive_rate_limit_response(
+                    "/api/billing/checkout",
+                    request,
+                    user_id="user-rate-a",
+                    limit=2,
+                )
+            )
+            response = connector_api.sensitive_rate_limit_response(
+                "/api/billing/checkout",
+                request,
+                user_id="user-rate-a",
+                limit=2,
+            )
+            other_endpoint = connector_api.sensitive_rate_limit_response(
+                "/api/billing/portal",
+                request,
+                user_id="user-rate-a",
+                limit=2,
+            )
+            other_user = connector_api.sensitive_rate_limit_response(
+                "/api/billing/checkout",
+                request,
+                user_id="user-rate-b",
+                limit=2,
+            )
+        finally:
+            connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+
+        self.assertIsNotNone(response)
+        self.assertEqual(429, response.status_code)
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual("rate_limited", body["reason"])
+        self.assertIn("Retry-After", response.headers)
+        self.assertNotIn("user-rate-a", body_text)
+        self.assertIsNone(other_endpoint)
+        self.assertIsNone(other_user)
+
+    def test_billing_checkout_rate_limit_blocks_second_stripe_session(self) -> None:
+        connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+        request = self._request(
+            headers={"authorization": "Bearer billing-rate-token"},
+            json_body={"plan": "pro", "interval": "monthly"},
+        )
+        user_id = "99999999-9999-4999-8999-999999999999"
+        try:
+            with patch.dict("os.environ", {"KMFX_RATE_LIMIT_BILLING_CHECKOUT_PER_MINUTE": "1"}, clear=False), patch.object(
+                connector_api,
+                "_resolve_verified_bearer_claims",
+                return_value={
+                    "sub": user_id,
+                    "email": "billing-rate@example.com",
+                    "app_metadata": {"plan": "free"},
+                    "user_metadata": {},
+                },
+            ), patch.object(
+                connector_api,
+                "resolve_stripe_price_reference",
+                return_value={"price_id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"},
+            ), patch.object(
+                connector_api,
+                "ensure_billing_customer",
+                return_value="cus_rate",
+            ), patch.object(
+                connector_api,
+                "stripe_api_request",
+                return_value={"id": "cs_rate", "url": "https://checkout.stripe.test/rate"},
+            ) as stripe_mock:
+                first = asyncio.run(connector_api.billing_checkout(request))
+                second = asyncio.run(connector_api.billing_checkout(request))
+        finally:
+            connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+
+        self.assertEqual(200, first.status_code)
+        self.assertEqual(429, second.status_code)
+        self.assertEqual(1, stripe_mock.call_count)
+        body = json.loads(second.body.decode("utf-8"))
+        self.assertEqual("rate_limited", body["reason"])
+
+    def test_link_account_rate_limit_blocks_extra_key_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+            try:
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-link-rate"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "ea_direct",
+                    },
+                )
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "KMFX_DEFAULT_CONNECTION_PLAN": "core",
+                        "KMFX_RATE_LIMIT_ACCOUNT_WRITE_PER_MINUTE": "1",
+                    },
+                    clear=False,
+                ):
+                    first = asyncio.run(connector_api.link_account(request))
+                    second = asyncio.run(connector_api.link_account(request))
+                account_count = len(connector_api.account_service.list_accounts("user-link-rate"))
+            finally:
+                connector_api.SENSITIVE_RATE_LIMIT_BUCKETS.clear()
+                connector_api.account_service = previous_service
+
+        self.assertEqual(200, first.status_code)
+        self.assertEqual(429, second.status_code)
+        self.assertEqual(1, account_count)
+        self.assertEqual("rate_limited", json.loads(second.body.decode("utf-8"))["reason"])
+
     def test_revoked_connection_key_is_rejected_at_mt5_route_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
