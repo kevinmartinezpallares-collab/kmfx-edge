@@ -234,7 +234,8 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 
 - Dashboard: 4 KPIs core arriba, chart principal, 8 KPIs profesionales debajo, y luego estado operativo/postura.
 - Cada KPI debe tener tooltip corto para lectura rapida; la formula, source y confidence completas viven en Estudio como cards de metodologia.
-- VaR/RoR con RadialChart; exposure con stacked horizontal; drawdown con AreaChart; scores con RadialBar/Progress.
+- [x] VaR/RoR con lectura radial compacta en Risk Engine sin cambiar formulas.
+- Exposure con stacked horizontal; drawdown con AreaChart; scores con RadialBar/Progress.
 - Evitar color unico: texto + icono + badge + color semantico.
 
 ### Fase 5 - QA automatico

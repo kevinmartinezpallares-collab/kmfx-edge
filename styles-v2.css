@@ -7955,14 +7955,28 @@ body[data-theme="dark"] .risk-professional-grid {
 html[data-theme="dark"] .risk-professional-card,
 body[data-theme="dark"] .risk-professional-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   align-content: start;
+  align-items: start;
   gap: 8px;
   min-width: 0;
-  min-height: 132px;
+  min-height: 144px;
   padding: 14px;
   border-radius: var(--kmfx-card-radius);
   border: 1px solid color-mix(in srgb, var(--kmfx-border) 82%, rgba(255,255,255,0.06));
   background: color-mix(in srgb, var(--kmfx-card-bg-soft) 92%, rgba(255,255,255,0.012));
+  --risk-card-accent: color-mix(in srgb, var(--text-2) 72%, transparent);
+}
+
+html[data-theme="dark"] .risk-professional-card__label,
+body[data-theme="dark"] .risk-professional-card__label,
+html[data-theme="dark"] .risk-professional-card strong,
+body[data-theme="dark"] .risk-professional-card strong,
+html[data-theme="dark"] .risk-professional-card small,
+body[data-theme="dark"] .risk-professional-card small {
+  grid-column: 1;
+  min-width: 0;
 }
 
 html[data-theme="dark"] .risk-professional-card strong,
@@ -7984,14 +7998,99 @@ body[data-theme="dark"] .risk-professional-card small {
   overflow-wrap: anywhere;
 }
 
+html[data-theme="dark"] .risk-professional-card__visual,
+body[data-theme="dark"] .risk-professional-card__visual {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  justify-self: end;
+  align-self: center;
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--radial,
+body[data-theme="dark"] .risk-professional-card__visual--radial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  background:
+    conic-gradient(var(--risk-card-accent) calc(var(--risk-visual-value, 0) * 1%), rgba(255,255,255,0.075) 0),
+    rgba(255,255,255,0.028);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.055);
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--radial::after,
+body[data-theme="dark"] .risk-professional-card__visual--radial::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 94%, rgb(8, 9, 11));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.045);
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--radial span,
+body[data-theme="dark"] .risk-professional-card__visual--radial span {
+  position: relative;
+  z-index: 1;
+  max-width: 42px;
+  color: var(--text-0);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 820;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--bar,
+body[data-theme="dark"] .risk-professional-card__visual--bar {
+  display: grid;
+  gap: 6px;
+  width: 72px;
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--bar span,
+body[data-theme="dark"] .risk-professional-card__visual--bar span {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--bar span::before,
+body[data-theme="dark"] .risk-professional-card__visual--bar span::before {
+  content: "";
+  display: block;
+  width: calc(var(--risk-visual-value, 0) * 1%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--risk-card-accent);
+}
+
+html[data-theme="dark"] .risk-professional-card__visual--bar b,
+body[data-theme="dark"] .risk-professional-card__visual--bar b {
+  color: var(--text-2);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-align: right;
+}
+
 html[data-theme="dark"] .risk-professional-card--ok,
 body[data-theme="dark"] .risk-professional-card--ok {
   border-color: color-mix(in srgb, var(--positive) 14%, var(--kmfx-border));
+  --risk-card-accent: color-mix(in srgb, var(--positive) 84%, var(--text-0));
 }
 
 html[data-theme="dark"] .risk-professional-card--warn,
 body[data-theme="dark"] .risk-professional-card--warn {
   border-color: color-mix(in srgb, var(--warning) 18%, var(--kmfx-border));
+  --risk-card-accent: color-mix(in srgb, var(--warning) 82%, var(--text-0));
 }
 
 html[data-theme="dark"] .risk-professional-card--warn strong,
@@ -8002,6 +8101,7 @@ body[data-theme="dark"] .risk-professional-card--warn strong {
 html[data-theme="dark"] .risk-professional-card--danger,
 body[data-theme="dark"] .risk-professional-card--danger {
   border-color: color-mix(in srgb, var(--negative) 24%, var(--kmfx-border));
+  --risk-card-accent: color-mix(in srgb, var(--negative) 82%, var(--text-0));
 }
 
 html[data-theme="dark"] .risk-professional-card--danger strong,

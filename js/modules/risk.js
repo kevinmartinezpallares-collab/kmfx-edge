@@ -510,6 +510,35 @@ function professionalRiskTone(value, warningAt, dangerAt) {
   return "ok";
 }
 
+function riskMetricProgress(value, referenceMax = 100) {
+  const numeric = safeNumber(value, NaN);
+  const max = safeNumber(referenceMax, 100);
+  if (!Number.isFinite(numeric) || !Number.isFinite(max) || max <= 0) return 0;
+  return clampRiskValue((numeric / max) * 100);
+}
+
+function formatRiskVisualStyle(value) {
+  return `--risk-visual-value:${clampRiskValue(value).toFixed(2)}`;
+}
+
+function renderProfessionalRiskVisual(item) {
+  const visualType = item.visual === "bar" ? "bar" : "radial";
+  const label = item.visualLabel ? escapeHtml(item.visualLabel) : "";
+  if (visualType === "bar") {
+    return `
+      <div class="risk-professional-card__visual risk-professional-card__visual--bar" style="${formatRiskVisualStyle(item.visualValue)}" aria-hidden="true">
+        <span></span>
+        ${label ? `<b>${label}</b>` : ""}
+      </div>
+    `;
+  }
+  return `
+    <div class="risk-professional-card__visual risk-professional-card__visual--radial" style="${formatRiskVisualStyle(item.visualValue)}" aria-hidden="true">
+      <span>${label}</span>
+    </div>
+  `;
+}
+
 function professionalReadout(professional) {
   if (!professional.hasMetrics) {
     return {
@@ -975,6 +1004,27 @@ export function renderRisk(root, state) {
   const var99 = safeObject(professionalMetrics.tailRisk.var_99);
   const drawdownPath = professionalMetrics.drawdownPath;
   const monteCarlo = professionalMetrics.monteCarlo;
+  const dashboardAccountPayload = safeObject(dashboardPayload.account);
+  const professionalEquity = firstFiniteRiskValue(
+    professionalMetrics.inputs.equity,
+    professionalMetrics.inputs.capital_amount,
+    liveSnapshot?.summary?.equity,
+    liveSnapshot?.summary?.balance,
+    dashboardPayload.equity,
+    dashboardAccountPayload.equity,
+    dashboardPayload.balance,
+    dashboardAccountPayload.balance,
+    account.equity,
+    account.balance,
+  );
+  const professionalEquityPct = (amount) => Number.isFinite(professionalEquity) && professionalEquity > 0
+    ? (safeNumber(amount, 0) / professionalEquity) * 100
+    : 0;
+  const ruinProbabilityPct = safeNumber(monteCarlo.ruin_probability_pct, 0);
+  const var95EquityPct = professionalEquityPct(var95.var_amount);
+  const var99EquityPct = professionalEquityPct(var99.var_amount);
+  const recoveryFactor = safeNumber(drawdownPath.recovery_factor, 0);
+  const maxDrawdownPct = safeNumber(drawdownPath.max_drawdown_pct, 0);
   const riskSimulation = professionalSimulationModel(professionalMetrics);
   const professionalActions = professionalActionAlerts(professionalMetrics, liveSnapshot);
   const professionalAssumptions = professionalAssumptionsModel(professionalMetrics, liveSnapshot, account);
@@ -1093,27 +1143,39 @@ export function renderRisk(root, state) {
       detail: professionalMetrics.hasMetrics
         ? `${safeNumber(monteCarlo.simulations, 0).toLocaleString("es-ES")} sims · límite -${formatRiskPct(monteCarlo.ruin_threshold_pct, 1)}`
         : "Monte Carlo pendiente",
-      tone: professionalMetrics.hasMetrics ? professionalRiskTone(monteCarlo.ruin_probability_pct, 3, 10) : "neutral"
+      tone: professionalMetrics.hasMetrics ? professionalRiskTone(ruinProbabilityPct, 3, 10) : "neutral",
+      visual: "radial",
+      visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(ruinProbabilityPct, 10) : 0,
+      visualLabel: professionalMetrics.hasMetrics ? formatRiskPct(ruinProbabilityPct, ruinProbabilityPct >= 1 ? 1 : 2) : "—"
     },
     {
       label: "VaR 95",
       value: professionalMetrics.hasMetrics ? formatCurrency(var95.var_amount || 0) : "—",
-      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var95.cvar_amount || 0)}` : "Histórico pendiente",
-      tone: safeNumber(var95.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral"
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var95.cvar_amount || 0)} · ${formatRiskPct(var95EquityPct)} equity` : "Histórico pendiente",
+      tone: safeNumber(var95.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral",
+      visual: "radial",
+      visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(var95EquityPct, 2.5) : 0,
+      visualLabel: professionalMetrics.hasMetrics ? formatRiskPct(var95EquityPct, var95EquityPct >= 1 ? 1 : 2) : "—"
     },
     {
       label: "VaR 99",
       value: professionalMetrics.hasMetrics ? formatCurrency(var99.var_amount || 0) : "—",
-      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var99.cvar_amount || 0)}` : "Tail risk pendiente",
-      tone: safeNumber(var99.var_amount, 0) > safeNumber(var95.var_amount, 0) ? "danger" : safeNumber(var99.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral"
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var99.cvar_amount || 0)} · ${formatRiskPct(var99EquityPct)} equity` : "Tail risk pendiente",
+      tone: safeNumber(var99.var_amount, 0) > safeNumber(var95.var_amount, 0) ? "danger" : safeNumber(var99.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral",
+      visual: "radial",
+      visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(var99EquityPct, 4) : 0,
+      visualLabel: professionalMetrics.hasMetrics ? formatRiskPct(var99EquityPct, var99EquityPct >= 1 ? 1 : 2) : "—"
     },
     {
       label: "Recovery Factor",
       value: professionalMetrics.hasMetrics ? formatRiskMultiple(drawdownPath.recovery_factor) : "—",
       detail: professionalMetrics.hasMetrics
-        ? `Max DD ${formatRiskPct(drawdownPath.max_drawdown_pct)} · ${safeNumber(drawdownPath.max_drawdown_duration_periods, 0)} periodos`
+        ? `Max DD ${formatRiskPct(maxDrawdownPct)} · ${safeNumber(drawdownPath.max_drawdown_duration_periods, 0)} periodos`
         : "Drawdown path pendiente",
-      tone: safeNumber(drawdownPath.recovery_factor, 0) >= 1 ? "ok" : safeNumber(drawdownPath.max_drawdown_pct, 0) > 0 ? "warn" : "neutral"
+      tone: recoveryFactor >= 1 ? "ok" : maxDrawdownPct > 0 ? "warn" : "neutral",
+      visual: "bar",
+      visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(recoveryFactor, 3) : 0,
+      visualLabel: professionalMetrics.hasMetrics ? `${Math.round(riskMetricProgress(recoveryFactor, 3))}/100` : "—"
     }
   ];
   const activePage = state.ui.activePage || "risk";
@@ -1210,7 +1272,8 @@ export function renderRisk(root, state) {
       <div class="risk-professional-grid">
         ${professionalCards.map((item) => `
           <article class="risk-professional-card risk-professional-card--${item.tone}">
-            <span>${item.label}</span>
+            ${renderProfessionalRiskVisual(item)}
+            <span class="risk-professional-card__label">${item.label}</span>
             <strong>${item.value}</strong>
             <small>${item.detail}</small>
           </article>

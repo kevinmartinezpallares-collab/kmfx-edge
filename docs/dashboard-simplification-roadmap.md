@@ -143,6 +143,10 @@ Buenas candidatas para Next:
 
 Ahora, en vanilla, solo aplicar graficas a KPIs si ya existe el dato y no complica el render. En caso contrario, esperar a Next.
 
+Implementado en vanilla:
+
+- Risk Engine muestra Ruin / VaR con indicadores radiales/progress compactos y mantiene la explicacion completa en Estudio.
+
 ## Propuesta KPI VNext
 
 No implementarla mezclada con hotfixes visuales. Requiere contrato de datos, cadencia de refresco y QA visual propio.

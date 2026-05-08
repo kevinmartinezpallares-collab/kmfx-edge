@@ -187,6 +187,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             ["analytics", renderAnalytics],
             ["portfolio", renderPortfolio],
             ["risk", renderRisk],
+            ["risk-ruin-var", renderRisk],
             ["calculator", renderCalculator],
             ["glossary", renderGlossary],
           ];
@@ -218,6 +219,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             analytics: ["Patrones detectados", "Dónde se concentra el resultado"],
             portfolio: ["110", "Capital"],
             risk: ["Risk"],
+            "risk-ruin-var": ["Ruin / VaR", "risk-professional-card__visual", "VaR 95", "CVaR", "Muestra"],
             calculator: ["Calculadora"],
             glossary: ["Estudio de métricas", "study-metric-slider", "Métricas críticas del dashboard", "Confianza"],
           };
@@ -863,7 +865,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
         by_page = {row["page"]: row for row in results}
 
         self.assertEqual(
-            {"dashboard", "connections", "trades", "calendar", "analytics", "portfolio", "risk", "calculator", "glossary"},
+            {"dashboard", "connections", "trades", "calendar", "analytics", "portfolio", "risk", "risk-ruin-var", "calculator", "glossary"},
             set(by_page),
         )
         for page, row in by_page.items():
