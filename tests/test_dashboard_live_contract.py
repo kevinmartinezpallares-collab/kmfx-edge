@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -212,6 +214,92 @@ class DashboardLiveContractTests(unittest.TestCase):
         self.assertEqual(1, payload["openPositionsCount"])
         self.assertIn("EURUSD", payload["symbolSpecs"])
         self.assertTrue(REQUIRED_RISK_SUMMARY.issubset(payload["riskSnapshot"]["summary"].keys()))
+
+    def test_backend_payload_feeds_dashboard_professional_kpis_contract(self) -> None:
+        account = {
+            "login": "contract-456",
+            "broker": "Contract Broker",
+            "server": "Contract-Live",
+            "currency": "USD",
+            "balance": 100000.0,
+            "equity": 101200.0,
+            "profit": 0.0,
+        }
+        trades = [
+            {"ticket": "t-1", "position_id": "p-1", "symbol": "EURUSD", "type": "BUY", "time": "2026-05-01T09:00:00Z", "profit": 850.0, "commission": -5.0, "swap": 0.0},
+            {"ticket": "t-2", "position_id": "p-2", "symbol": "EURUSD", "type": "SELL", "time": "2026-05-01T11:00:00Z", "profit": -420.0, "commission": -5.0, "swap": 0.0},
+            {"ticket": "t-3", "position_id": "p-3", "symbol": "GBPUSD", "type": "BUY", "time": "2026-05-02T10:00:00Z", "profit": 640.0, "commission": -5.0, "swap": 0.0},
+            {"ticket": "t-4", "position_id": "p-4", "symbol": "XAUUSD", "type": "SELL", "time": "2026-05-03T12:00:00Z", "profit": -980.0, "commission": -8.0, "swap": -2.0},
+            {"ticket": "t-5", "position_id": "p-5", "symbol": "AUDUSD", "type": "BUY", "time": "2026-05-04T13:00:00Z", "profit": 320.0, "commission": -4.0, "swap": 0.0},
+            {"ticket": "t-6", "position_id": "p-6", "symbol": "USDJPY", "type": "SELL", "time": "2026-05-05T14:00:00Z", "profit": -260.0, "commission": -4.0, "swap": 0.0},
+        ]
+        positions = [
+            {"position_id": "open-1", "symbol": "EURUSD", "type": "BUY", "volume": 0.5, "risk_pct": 0.35, "risk_amount": 350.0, "profit": 45.0, "swap": 0.0},
+        ]
+        raw_payload = {
+            "timestamp": "2026-05-05T14:05:00Z",
+            "history": [
+                {"timestamp": "2026-05-01T00:00:00Z", "value": 100000.0},
+                {"timestamp": "2026-05-02T00:00:00Z", "value": 100420.0},
+                {"timestamp": "2026-05-03T00:00:00Z", "value": 100060.0},
+                {"timestamp": "2026-05-04T00:00:00Z", "value": 100380.0},
+                {"timestamp": "2026-05-05T14:05:00Z", "value": 101200.0},
+            ],
+        }
+
+        payload = connector_api.build_dashboard_account_payload(account, positions, trades, raw_payload, None)
+        professional = payload["riskSnapshot"]["professional_metrics"]
+        backend_var95 = professional["tail_risk"]["var_95"]
+        backend_var99 = professional["tail_risk"]["var_99"]
+
+        script = f"""
+          import {{ selectDashboardProfessionalKpis }} from "./js/modules/dashboard-professional-kpis.js";
+
+          const payload = {json.dumps(payload)};
+          const contract = selectDashboardProfessionalKpis({{
+            model: {{
+              account: {{ equity: payload.equity, balance: payload.balance }},
+              trades: payload.trades,
+              positions: payload.positions,
+              dayStats: [],
+              dailyReturns: [],
+              drawdownCurve: [],
+              totals: {{
+                pnl: payload.reportMetrics.netProfit,
+                drawdown: {{ maxPct: payload.reportMetrics.drawdownPct }},
+                ratios: {{}},
+              }},
+            }},
+            account: {{ dashboardPayload: payload }},
+            riskSnapshot: payload.riskSnapshot,
+          }});
+          const byId = Object.fromEntries(contract.kpis.map((kpi) => [kpi.id, kpi]));
+          console.log(JSON.stringify({{
+            version: contract.version,
+            var95: byId.var_95,
+            var99: byId.var_99,
+          }}));
+        """
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", textwrap.dedent(script)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            self.fail(f"dashboard professional KPI contract failed\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
+        dashboard_contract = json.loads(result.stdout)
+
+        self.assertEqual("dashboard_professional_kpis_v1", dashboard_contract["version"])
+        self.assertEqual("professional_metrics.tail_risk", dashboard_contract["var95"]["source"])
+        self.assertEqual("professional_metrics.tail_risk", dashboard_contract["var99"]["source"])
+        self.assertAlmostEqual(backend_var95["var_amount"], dashboard_contract["var95"]["value"])
+        self.assertAlmostEqual(round(backend_var95["cvar_amount"], 2), dashboard_contract["var95"]["meta"]["cvarAmount"])
+        self.assertAlmostEqual(backend_var99["var_amount"], dashboard_contract["var99"]["value"])
+        self.assertEqual(backend_var95["sample_size"], dashboard_contract["var95"]["meta"]["sampleSize"])
+        self.assertEqual(backend_var95["sample_quality_label"], dashboard_contract["var95"]["meta"]["sampleQualityLabel"])
+        self.assertIn("Backend Risk Metrics", dashboard_contract["var95"]["explain"]["source"])
 
 
 if __name__ == "__main__":

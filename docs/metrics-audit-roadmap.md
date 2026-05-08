@@ -241,7 +241,7 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 ### Fase 5 - QA automatico
 
 - Tests unitarios por formula.
-- Contract tests EA payload -> backend -> dashboard.
+- [x] Contract test backend MT5 payload -> `riskSnapshot.professional_metrics` -> KPIs profesionales del dashboard.
 - Fixtures con datos reales anonimizados.
 - Snapshot visual desktop para cards/charts.
 - Test de no-default-policy: ningun default puede generar `breach`.
