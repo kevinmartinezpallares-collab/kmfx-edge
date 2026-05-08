@@ -243,8 +243,8 @@ Nota: el repo actual es `Manual` segun `npx shadcn@latest info`; no hay componen
 - Tests unitarios por formula.
 - [x] Contract test backend MT5 payload -> `riskSnapshot.professional_metrics` -> KPIs profesionales del dashboard.
 - Fixtures con datos reales anonimizados.
-- Snapshot visual desktop para cards/charts.
-- Test de no-default-policy: ningun default puede generar `breach`.
+- [x] Snapshot visual desktop estructural para cards/charts principales.
+- [x] Test de no-default-policy: ningun default puede generar `breach`.
 
 ### Fase 6 - Documentacion de usuario
 

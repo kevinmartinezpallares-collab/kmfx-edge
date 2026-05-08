@@ -223,6 +223,29 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             calculator: ["Calculadora"],
             glossary: ["Estudio de métricas", "study-metric-slider", "Métricas críticas del dashboard", "Confianza"],
           };
+          const visualSnapshotByPage = {
+            dashboard: [
+              "dashboard-kpi-row--primary",
+              "dashboard-professional-kpi-row",
+              "dashboard-chart-card",
+              "dashboard-professional-kpi__risk-score",
+              "dashboard-kpi-card__tooltip",
+            ],
+            "risk-ruin-var": [
+              "risk-professional-surface",
+              "risk-professional-grid",
+              "risk-professional-card__visual--radial",
+              "risk-professional-card__visual--bar",
+              "risk-professional-sample",
+              "risk-professional-detail-grid",
+            ],
+            glossary: [
+              "study-metric-lab",
+              "study-metric-slider",
+              "study-metric-card",
+              "study-metric-card__facts",
+            ],
+          };
 
           const results = pages.map(([page, render]) => {
             const root = new SmokeRoot(page);
@@ -237,6 +260,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               htmlLength: html.length,
               forbiddenHits: forbidden.filter((needle) => html.toLowerCase().includes(needle.toLowerCase())),
               requiredHits: (requiredByPage[page] || []).filter((needle) => html.includes(needle)),
+              visualHits: (visualSnapshotByPage[page] || []).filter((needle) => html.includes(needle)),
             };
           });
 
@@ -883,6 +907,34 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             }.issubset(set(by_page["dashboard"]["requiredHits"])),
             by_page["dashboard"],
         )
+        visual_expectations = {
+            "dashboard": {
+                "dashboard-kpi-row--primary",
+                "dashboard-professional-kpi-row",
+                "dashboard-chart-card",
+                "dashboard-professional-kpi__risk-score",
+                "dashboard-kpi-card__tooltip",
+            },
+            "risk-ruin-var": {
+                "risk-professional-surface",
+                "risk-professional-grid",
+                "risk-professional-card__visual--radial",
+                "risk-professional-card__visual--bar",
+                "risk-professional-sample",
+                "risk-professional-detail-grid",
+            },
+            "glossary": {
+                "study-metric-lab",
+                "study-metric-slider",
+                "study-metric-card",
+                "study-metric-card__facts",
+            },
+        }
+        for page, expected in visual_expectations.items():
+            self.assertTrue(
+                expected.issubset(set(by_page[page]["visualHits"])),
+                by_page[page],
+            )
 
     def test_connections_render_pending_stale_revoked_and_plan_limited_states(self) -> None:
         result = self.run_degraded_connections_smoke()
