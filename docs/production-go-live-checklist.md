@@ -1,6 +1,6 @@
 # KMFX Edge - Checklist Maestro de Produccion
 
-Ultima revision: 2026-05-07
+Ultima revision: 2026-05-08
 Rama objetivo: `main`
 Objetivo: cerrar KMFX Edge como SaaS usable por traders reales, lanzar produccion controlada y preparar migracion a Next.js sin romper el producto actual.
 
@@ -58,7 +58,7 @@ Criterio de salida:
 
 Objetivo: que las metricas sean fiables antes de UI nueva, billing final o Next.js.
 
-- [ ] Crear o implementar `metric_registry` con:
+- [x] Crear o implementar `metric_registry` con:
   - `id`
   - `label`
   - `source`
@@ -68,18 +68,18 @@ Objetivo: que las metricas sean fiables antes de UI nueva, billing final o Next.
   - `policy_source`
   - `refresh`
   - `visual`
-- [ ] EA emite `ticket`, `position_id`, `order_id`, `deal_id` como string.
-- [ ] EA emite precios usando `SYMBOL_DIGITS` por simbolo, no `_Digits` del grafico.
-- [ ] Posiciones sin SL se marcan como `risk_state = "unbounded"` o `missing_stop_loss`.
-- [ ] Ninguna posicion sin SL aparece como riesgo `0`.
-- [ ] `floating_pnl` por simbolo usa `floating_pnl` o `profit + swap`.
-- [ ] Separar `gross_profit_factor` y `net_profit_factor`.
-- [ ] Dashboard usa profit factor neto para evaluar edge real.
-- [ ] VaR/RoR muestran muestra, metodo y supuesto.
-- [ ] Politicas default se muestran como referencia, no como politica real.
-- [ ] Tests con IDs > `2^31` y > `2^53`.
-- [ ] Tests de parcialidades, comisiones y swaps.
-- [ ] Test de no-default-policy: ningun default genera breach real.
+- [x] EA emite `ticket`, `position_id`, `order_id`, `deal_id` como string.
+- [x] EA emite precios usando `SYMBOL_DIGITS` por simbolo, no `_Digits` del grafico.
+- [x] Posiciones sin SL se marcan como `risk_state = "unbounded"` o `missing_stop_loss`.
+- [x] Ninguna posicion sin SL aparece como riesgo `0`.
+- [x] `floating_pnl` por simbolo usa `floating_pnl` o `profit + swap`.
+- [x] Separar `gross_profit_factor` y `net_profit_factor`.
+- [x] Dashboard usa profit factor neto para evaluar edge real.
+- [x] VaR/RoR muestran muestra, metodo y supuesto.
+- [x] Politicas default se muestran como referencia, no como politica real.
+- [x] Tests con IDs > `2^31` y > `2^53`.
+- [x] Tests de parcialidades, comisiones y swaps.
+- [x] Test de no-default-policy: ningun default genera breach real.
 
 Criterio de salida:
 
@@ -90,14 +90,17 @@ Criterio de salida:
 
 Objetivo: que el producto real este gobernado por plan y permisos.
 
-- [ ] Bloquear dashboard real a usuarios sin plan activo.
-- [ ] Mostrar demo segura o pantalla de suscripcion.
-- [ ] Admin mantiene acceso completo sin plan aplicado.
-- [ ] Basic limita a 2 cuentas MT5.
-- [ ] Pro limita a 5 cuentas MT5.
-- [ ] Unlimited sin limite comercial de cuentas.
-- [ ] Bloquear creacion de keys si el plan no permite MT5.
-- [ ] Estados visibles:
+- [x] Bloquear dashboard real a usuarios sin plan activo.
+- [x] Mostrar demo segura o pantalla de suscripcion.
+- [x] Admin mantiene acceso completo sin plan aplicado.
+- [x] Basic/Core limita a 2 cuentas MT5.
+- [x] Pro limita a 5 cuentas MT5.
+- [x] Unlimited sin limite comercial de cuentas.
+- [x] Bloquear creacion de keys si el plan no permite MT5.
+- [x] Bloquear snapshot live y payloads MT5 existentes cuando el plan no permite MT5.
+- [x] Scrub de balances/PnL en registro de cuentas cuando el plan no permite MT5.
+- [x] Bloquear regeneracion de keys si no existe entitlement MT5.
+- [x] Estados visibles:
   - demo
   - sin plan
   - plan activo
@@ -105,7 +108,7 @@ Objetivo: que el producto real este gobernado por plan y permisos.
   - plan limitado
   - key revocada
   - cuenta stale
-- [ ] No mostrar datos admin/mock como si fueran datos reales de usuario.
+- [x] No mostrar datos admin/mock como si fueran datos reales de usuario.
 
 Criterio de salida:
 
@@ -398,19 +401,17 @@ Criterio de salida:
 
 ## Orden Recomendado Desde Aqui
 
-1. Fase 1 - Contrato de metricas.
-2. Fase 2 - Acceso y paywall.
-3. Fase 3 - Billing completo.
-4. Fase 5 - MT5/Launcher QA limpio.
-5. Fase 4 - Seguridad final.
-6. Fase 6 - UX de produccion.
-7. Fase 7 - Legal/confianza.
-8. Fase 8 - Observabilidad/backups.
-9. Fase 9 - QA final.
-10. Fase 10 - Go live.
-11. Fase 11 - Next.js sidecar.
+1. Fase 3 - Billing completo.
+2. Fase 5 - MT5/Launcher QA limpio.
+3. Fase 4 - Seguridad final.
+4. Fase 6 - UX de produccion.
+5. Fase 7 - Legal/confianza.
+6. Fase 8 - Observabilidad/backups.
+7. Fase 9 - QA final.
+8. Fase 10 - Go live.
+9. Fase 11 - Next.js sidecar.
 
-## Primer Paquete de Trabajo
+## Paquete de Trabajo Cerrado
 
 `METRICS-FIX-1`
 
@@ -428,4 +429,4 @@ Criterio de salida:
   - no default policy breach.
   - parcialidades y precision.
 
-Este paquete debe cerrarse antes de iniciar migracion Next.js.
+Este paquete queda cerrado antes de iniciar migracion Next.js. El siguiente paquete activo es `BILLING-QA-1`.

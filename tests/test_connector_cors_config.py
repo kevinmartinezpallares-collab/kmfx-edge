@@ -685,6 +685,149 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(0, body["entitlements"]["liveMt5Accounts"])
         self.assertFalse(body["entitlements"]["launcherConnection"])
 
+    def test_accounts_snapshot_blocks_live_payload_without_mt5_entitlement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.link_connector_sync(
+                    user_id="user-123",
+                    account_info={
+                        "broker": "IC Markets",
+                        "platform": "mt5",
+                        "login": "80571774",
+                        "server": "ICMarketsSC-Demo",
+                    },
+                    payload={
+                        "payloadSource": "mt5_sync_live",
+                        "balance": 100000,
+                        "equity": 100250,
+                        "trades": [],
+                        "positions": [],
+                        "history": [],
+                    },
+                    api_key="snapshot-free-plan-key",
+                )
+                request = self._request(headers={"authorization": "Bearer verified-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "user-123",
+                        "email": "user@example.com",
+                        "app_metadata": {"plan": "free", "billing_status": "free"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(connector_api.accounts_snapshot(request))
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["live_access_blocked"])
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual([], body["accounts"])
+        self.assertNotIn("100000", response.body.decode("utf-8"))
+
+    def test_accounts_registry_scrubs_live_metrics_without_mt5_entitlement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.link_connector_sync(
+                    user_id="user-123",
+                    account_info={
+                        "broker": "Darwinex",
+                        "platform": "mt5",
+                        "login": "4000082126",
+                        "server": "Darwinex-Live",
+                    },
+                    payload={
+                        "payloadSource": "mt5_sync_live",
+                        "balance": 105552,
+                        "equity": 105540,
+                        "totalPnl": 3099,
+                        "trades": [],
+                        "positions": [],
+                        "history": [],
+                    },
+                    api_key="registry-free-plan-key",
+                )
+                request = self._request(headers={"authorization": "Bearer verified-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "user-123",
+                        "email": "user@example.com",
+                        "app_metadata": {"plan": "free", "billing_status": "free"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(connector_api.list_accounts(request))
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["live_access_blocked"])
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual(1, len(body["accounts"]))
+        account = body["accounts"][0]
+        self.assertEqual("plan_limited", account["status"])
+        self.assertTrue(account["billing_blocked"])
+        self.assertNotIn("balance", account)
+        self.assertNotIn("equity", account)
+        self.assertNotIn("totalPnl", account)
+        self.assertNotIn("105552", response.body.decode("utf-8"))
+        self.assertNotIn("3099", response.body.decode("utf-8"))
+
+    def test_admin_accounts_snapshot_bypasses_billing_restriction(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                connector_api.account_service.link_connector_sync(
+                    user_id="admin-user",
+                    account_info={
+                        "broker": "Orion",
+                        "platform": "mt5",
+                        "login": "80571774",
+                        "server": "OGMInternational-Server",
+                    },
+                    payload={
+                        "payloadSource": "mt5_sync_live",
+                        "balance": 4838,
+                        "equity": 4838,
+                        "trades": [],
+                        "positions": [],
+                        "history": [],
+                    },
+                    api_key="admin-live-snapshot-key",
+                )
+                request = self._request(headers={"authorization": "Bearer verified-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "admin-user",
+                        "email": "admin@kmfxedge.com",
+                        "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(connector_api.accounts_snapshot(request))
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["is_admin"])
+        self.assertFalse(body.get("live_access_blocked", False))
+        self.assertEqual(1, len(body["accounts"]))
+        self.assertEqual("4838", str(body["accounts"][0]["dashboard_payload"]["balance"]))
+
     def test_billing_status_keeps_past_due_entitlements_with_attention_state(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         with patch.object(
@@ -1097,6 +1240,37 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(402, response.status_code)
         self.assertEqual("billing_past_due", body["reason"])
         self.assertEqual("billing_attention", body["details"]["billing_access"])
+
+    def test_free_plan_blocks_regenerating_connection_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                account = connector_api.account_service.create_pending_account(
+                    user_id="user-123",
+                    alias="Cuenta MT5",
+                    platform="mt5",
+                    connection_mode="launcher",
+                )
+                request = self._request(headers={"authorization": "Bearer verified-token"})
+                with patch.object(
+                    connector_api,
+                    "_resolve_verified_bearer_claims",
+                    return_value={
+                        "sub": "user-123",
+                        "email": "user@example.com",
+                        "app_metadata": {"plan": "free", "billing_status": "free"},
+                        "user_metadata": {},
+                    },
+                ):
+                    response = asyncio.run(connector_api.regenerate_own_account_key(account.account_id, request))
+            finally:
+                connector_api.account_service = previous_service
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(403, response.status_code)
+        self.assertEqual("entitlement_required", body["reason"])
+        self.assertEqual("launcherConnection", body["details"]["entitlement"])
 
     def test_product_entitlement_helper_blocks_missing_export_entitlement(self) -> None:
         response = connector_api.product_entitlement_denial(

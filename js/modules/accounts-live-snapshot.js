@@ -118,7 +118,16 @@ function liveAccessSignature(state = {}) {
 
 function hasLiveAccountAccess(state = {}) {
   const auth = authContext(state);
-  return auth.isAuthenticated && Boolean(auth.email) && (auth.hasToken || isLocalRuntime());
+  if (!(auth.isAuthenticated && Boolean(auth.email) && (auth.hasToken || isLocalRuntime()))) {
+    return false;
+  }
+  if (auth.isAdmin) return true;
+  const billing = state.billing && typeof state.billing === "object" ? state.billing : null;
+  const billingLoaded = Boolean(billing?.loadedAt || (billing?.source && billing.source !== "initial"));
+  if (!billingLoaded || billing?.loading) return true;
+  const access = String(billing?.billing?.access || "").toLowerCase();
+  if (access === "restricted" || access === "billing_attention") return false;
+  return billing?.entitlements?.launcherConnection === true;
 }
 
 function isAccountOwnedByAuth(account = {}, state = {}, snapshot = {}) {

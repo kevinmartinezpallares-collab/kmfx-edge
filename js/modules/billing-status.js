@@ -217,7 +217,7 @@ export function billingEntitlementState(state = {}, entitlement = "", { allowLim
       label,
       planName,
       title: "Pago pendiente de revisar",
-      description: "La lectura se mantiene disponible. Las acciones nuevas se pausan hasta confirmar el estado del plan.",
+      description: "Los datos live y las acciones nuevas quedan pausados hasta confirmar el estado del plan.",
     };
   }
 

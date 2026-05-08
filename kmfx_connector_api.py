@@ -1380,6 +1380,90 @@ def product_entitlement_denial(
     return None
 
 
+def live_accounts_access_denial(context: dict[str, Any]) -> dict[str, Any] | None:
+    context = {**ensure_dict(context)}
+    if context.get("is_admin"):
+        return None
+    billing_payload = billing_status_payload_for_context(context)
+    billing = ensure_dict(billing_payload.get("billing"))
+    entitlements = ensure_dict(billing_payload.get("entitlements"))
+    access = safe_str(billing.get("access"))
+    limit = connection_key_limit_from_entitlements(context, billing_payload)
+    details = connection_guard_details(
+        billing_payload=billing_payload,
+        current_count=account_service.connection_slot_count(safe_str(context.get("user_id"))),
+        limit=limit,
+        entitlement="launcherConnection",
+    )
+
+    if access == "restricted":
+        return {"reason": "billing_required", "details": details, "billing_payload": billing_payload}
+    if access == "billing_attention":
+        return {"reason": "billing_past_due", "details": details, "billing_payload": billing_payload}
+    if entitlements.get("launcherConnection") is not True:
+        return {"reason": "entitlement_required", "details": details, "billing_payload": billing_payload}
+    if limit <= 0:
+        return {"reason": "plan_limit_reached", "details": details, "billing_payload": billing_payload}
+    return None
+
+
+ACCOUNT_REGISTRY_BILLING_SCRUB_FIELDS = {
+    "balance",
+    "account_balance",
+    "equity",
+    "account_equity",
+    "open_pnl",
+    "openPnl",
+    "floating_pnl",
+    "floatingPnl",
+    "total_pnl",
+    "totalPnl",
+    "pnl",
+    "net_pnl",
+    "netPnl",
+    "closed_pnl",
+    "closedPnl",
+}
+
+
+def scrub_accounts_registry_for_billing(accounts: list[dict[str, Any]], denial: dict[str, Any]) -> list[dict[str, Any]]:
+    reason = safe_str(denial.get("reason"), "entitlement_required")
+    details = ensure_dict(denial.get("details"))
+    scrubbed: list[dict[str, Any]] = []
+    for account in accounts:
+        if not isinstance(account, dict):
+            continue
+        item = deepcopy(account)
+        for field in ACCOUNT_REGISTRY_BILLING_SCRUB_FIELDS:
+            item.pop(field, None)
+        item["billing_blocked"] = True
+        item["billing_reason"] = reason
+        item["billing_access"] = safe_str(details.get("billing_access"))
+        item["billing_plan"] = safe_str(details.get("effective_plan") or details.get("plan"))
+        item["status"] = "plan_limited"
+        item["lifecycle_status"] = "plan_limited"
+        item["last_error_code"] = reason
+        item["last_error_message"] = "Plan necesario para mostrar datos live de MT5."
+        scrubbed.append(item)
+    return scrubbed
+
+
+def billing_blocked_accounts_payload(context: dict[str, Any], denial: dict[str, Any]) -> dict[str, Any]:
+    billing_payload = ensure_dict(denial.get("billing_payload"))
+    payload = empty_accounts_payload(context)
+    payload.update(
+        {
+            "live_access_blocked": True,
+            "reason": safe_str(denial.get("reason"), "entitlement_required"),
+            "details": ensure_dict(denial.get("details")),
+            "billing": ensure_dict(billing_payload.get("billing")),
+            "entitlements": ensure_dict(billing_payload.get("entitlements")),
+            "limits": ensure_dict(billing_payload.get("limits")),
+        }
+    )
+    return payload
+
+
 STRIPE_API_BASE_URL = "https://api.stripe.com/v1"
 STRIPE_DEFAULT_API_VERSION = "2026-02-25.clover"
 
@@ -4347,10 +4431,13 @@ async def list_accounts(request: Request) -> JSONResponse:
     if not scope_user_id:
         return connector_json_response(empty_accounts_payload(admin_context))
     allowed_connection_keys = admin_launcher_connection_keys_for_context(admin_context)
+    access_denial = live_accounts_access_denial(admin_context)
     accounts = merge_admin_launcher_registry_accounts(
         account_service.build_accounts_registry(scope_user_id),
         allowed_connection_keys,
     )
+    if access_denial is not None:
+        accounts = scrub_accounts_registry_for_billing(accounts, access_denial)
     return connector_json_response(
         {
             "ok": True,
@@ -4359,6 +4446,9 @@ async def list_accounts(request: Request) -> JSONResponse:
             "auth_email": admin_context["email"],
             "scope_user_id": scope_user_id,
             "admin_launcher_bridge": bool(allowed_connection_keys),
+            "live_access_blocked": access_denial is not None,
+            "reason": safe_str(access_denial.get("reason")) if access_denial else "",
+            "details": ensure_dict(access_denial.get("details")) if access_denial else {},
             "timestamp": now_iso(),
         }
     )
@@ -4453,6 +4543,9 @@ async def regenerate_own_account_key(account_id: str, request: Request) -> JSONR
             },
             status_code=401,
         )
+    entitlement_denial = product_entitlement_denial(context=auth_context, entitlement="launcherConnection")
+    if entitlement_denial is not None:
+        return entitlement_denial
     normalized_account_id = safe_str(account_id)
     account = next(
         (
@@ -5221,6 +5314,16 @@ async def accounts_snapshot(request: Request) -> JSONResponse:
         snapshot = empty_accounts_payload(auth_context)
         log.info("Accounts snapshot denied closed | reason=auth_required")
         return connector_json_response(snapshot)
+    access_denial = live_accounts_access_denial(auth_context)
+    if access_denial is not None:
+        log.info(
+            "Accounts snapshot denied closed | reason=%s scope_user_id=%s plan=%s access=%s",
+            access_denial.get("reason", ""),
+            scope_user_id,
+            ensure_dict(access_denial.get("details")).get("effective_plan", ""),
+            ensure_dict(access_denial.get("details")).get("billing_access", ""),
+        )
+        return connector_json_response(billing_blocked_accounts_payload(auth_context, access_denial))
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
     snapshot["is_admin"] = auth_context["is_admin"]
