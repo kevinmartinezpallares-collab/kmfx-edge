@@ -221,7 +221,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             risk: ["Risk", "risk-exposure-stack", "risk-drawdown-area", "risk-pressure-progress"],
             "risk-ruin-var": ["Ruin / VaR", "risk-professional-card__visual", "VaR 95", "CVaR", "Muestra"],
             calculator: ["Calculadora"],
-            glossary: ["Estudio de métricas", "study-metric-slider", "Métricas críticas del dashboard", "Confianza"],
+            glossary: ["Estudio de métricas", "study-metric-grid", "Métricas críticas del dashboard", "Confianza"],
           };
           const visualSnapshotByPage = {
             dashboard: [
@@ -246,7 +246,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             ],
             glossary: [
               "study-metric-lab",
-              "study-metric-slider",
+              "study-metric-grid",
               "study-metric-card",
               "study-metric-card__facts",
             ],
@@ -935,7 +935,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             },
             "glossary": {
                 "study-metric-lab",
-                "study-metric-slider",
+                "study-metric-grid",
                 "study-metric-card",
                 "study-metric-card__facts",
             },

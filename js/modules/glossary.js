@@ -80,6 +80,40 @@ function resolveWhatToWatch(term) {
   return "Mira tendencia, estabilidad y si cambia una decisión concreta.";
 }
 
+function resolveTermSource(term) {
+  if (term.source) return term.source;
+  if (term.category === "Riesgo" || term.category === "Prop Firms") {
+    return "Cuenta MT5, reglas de riesgo KMFX y operaciones cerradas cuando aplica.";
+  }
+  if (term.category === "Rendimiento") {
+    return "Historial de operaciones cerradas, P&L neto, comisiones y capital de referencia.";
+  }
+  if (term.category === "Ejecución") {
+    return "Operaciones cerradas, parciales, horarios, símbolo, sesión y contexto registrado.";
+  }
+  if (term.category === "Seguimiento") {
+    return "Estado de cuenta, operaciones recientes y lecturas actualizadas del panel.";
+  }
+  return "Datos normalizados de la cuenta y contexto operativo disponible.";
+}
+
+function resolveTermConfidence(term) {
+  if (term.confidence) return term.confidence;
+  if (term.category === "Riesgo" || term.category === "Prop Firms") {
+    return "Alta cuando MT5 está sincronizado, la política de riesgo está vigente y hay historial suficiente.";
+  }
+  if (term.category === "Rendimiento") {
+    return "Mejora con más operaciones cerradas, costes completos y muestra estable por setup.";
+  }
+  if (term.category === "Ejecución") {
+    return "Depende de que cada operación tenga entrada, salida, parciales y contexto completos.";
+  }
+  if (term.category === "Seguimiento") {
+    return "Alta cuando la última sincronización es reciente y no hay datos pendientes.";
+  }
+  return "Depende de la calidad de los datos y del tamaño de muestra disponible.";
+}
+
 function escapeGlossaryHtml(value = "") {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -108,7 +142,7 @@ function renderMetricStudyCard(card, index) {
       </div>
       <dl class="study-metric-card__facts">
         <div>
-          <dt>Formula</dt>
+          <dt>Fórmula</dt>
           <dd>${escapeGlossaryHtml(formula)}</dd>
         </div>
         <div>
@@ -145,21 +179,29 @@ function renderTermStudyCard(term, index) {
       </div>
       <dl class="study-metric-card__facts">
         <div>
-          <dt>Para qué sirve</dt>
+          <dt>Para el trader</dt>
           <dd>${escapeGlossaryHtml(term.why)}</dd>
         </div>
         <div>
-          <dt>Cómo funciona</dt>
+          <dt>Fórmula</dt>
           <dd>${escapeGlossaryHtml(resolveHowItWorks(term))}</dd>
         </div>
         <div>
           <dt>Qué mirar</dt>
           <dd>${escapeGlossaryHtml(resolveWhatToWatch(term))}</dd>
         </div>
+        <div>
+          <dt>Fuente</dt>
+          <dd>${escapeGlossaryHtml(resolveTermSource(term))}</dd>
+        </div>
+        <div>
+          <dt>Confianza</dt>
+          <dd>${escapeGlossaryHtml(resolveTermConfidence(term))}</dd>
+        </div>
       </dl>
       <div class="study-metric-card__footer">
         <span>${escapeGlossaryHtml(term.category || "metric")}</span>
-        <span>Card</span>
+        <span>Guía</span>
       </div>
     </article>
   `;
@@ -176,7 +218,7 @@ function renderMetricStudyGrid() {
         </div>
         <p>Lee cada métrica con su fórmula, fuente y nivel de confianza antes de usarla para tomar decisiones.</p>
       </div>
-      <div class="study-metric-slider study-card-grid" data-study-slider aria-label="Cards de métricas críticas">
+      <div class="study-metric-grid study-card-grid" aria-label="Cards de métricas críticas">
         ${cards.map((card, index) => renderMetricStudyCard(card, index)).join("")}
       </div>
     </section>
@@ -195,8 +237,6 @@ function sortGlossaryGroups(groups) {
 }
 
 export function renderGlossary(root, state) {
-  const previousSlider = root.querySelector("[data-study-slider]");
-  const preservedScrollLeft = Number(root.__metricStudyScrollLeft ?? previousSlider?.scrollLeft ?? 0);
   const groups = state.workspace.glossary.terms.reduce((map, term) => {
     if (!map.has(term.category)) map.set(term.category, []);
     map.get(term.category).push(term);
@@ -231,12 +271,4 @@ export function renderGlossary(root, state) {
       `).join("")}
     </div>
   `;
-
-  const nextSlider = root.querySelector("[data-study-slider]");
-  if (nextSlider) {
-    nextSlider.scrollLeft = preservedScrollLeft;
-    nextSlider.addEventListener("scroll", () => {
-      root.__metricStudyScrollLeft = nextSlider.scrollLeft;
-    }, { passive: true });
-  }
 }

@@ -39,13 +39,19 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("max-height: calc(90dvh - 128px)", css)
         self.assertIn("overflow-y: auto", css)
 
-    def test_metric_study_cards_preserve_scroll_and_explain_trader_use(self) -> None:
+    def test_metric_study_cards_use_consistent_grid_and_explain_trader_use(self) -> None:
         source = read_text("js/modules/glossary.js")
         css = read_text("styles-v2.css")
 
-        self.assertIn("data-study-slider", source)
-        self.assertIn("__metricStudyScrollLeft", source)
+        self.assertIn("study-metric-grid", source)
+        self.assertNotIn("data-study-slider", source)
+        self.assertNotIn("__metricStudyScrollLeft", source)
         self.assertIn("Para el trader", source)
+        self.assertIn("Fórmula", source)
+        self.assertIn("Confianza", source)
+        self.assertIn("resolveTermConfidence", source)
+        self.assertIn("glossary-grid", css)
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", css)
         self.assertIn("overflow: hidden", css)
         self.assertIn("study-metric-card--term", source)
 
