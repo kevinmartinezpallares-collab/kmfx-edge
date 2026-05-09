@@ -46,7 +46,7 @@ Objetivo: asegurar que partimos de una base estable.
 - [x] `main` actualizado localmente.
 - [x] Worktree revisado y cambios ajenos identificados.
 - [ ] CI actual revisado.
-- [ ] Render/Vercel/Cloudflare/Supabase responden health.
+- [x] Render/Vercel/Cloudflare/Supabase responden health.
 - [x] Descargas Launcher macOS/Windows responden `200`.
 - [ ] MT5 smoke actual documentado: cuenta conecta, EA read-only y cierre de Launcher no corta sync.
 
@@ -59,6 +59,8 @@ Notas 2026-05-09:
 - Verificado en produccion: `https://kmfxedge.com/downloads/KMFX-Launcher-macOS.zip` responde `200` y descarga como attachment.
 - Verificado en produccion: `https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe` responde `200` y descarga como attachment.
 - Verificado en produccion: `https://kmfxedge.com/KMFXConnector.ex5` responde `200`.
+- Verificado en produccion tras commit `6ecd97f`: `https://kmfxedge.com/dashboard` responde `200`, `https://kmfx-edge-api.onrender.com/health` responde `ok` con `render_git_commit=6ecd97f...`, `https://mt5-api.kmfxedge.com/health` responde `ok` via Cloudflare Worker, y Supabase Auth responde protegido con `401 No API key found`, confirmando disponibilidad sin exponer datos anonimos.
+- CI queda pendiente: `gh` no esta instalado en esta maquina y el conector GitHub no devolvio workflow runs para el commit directo `6ecd97f`.
 
 ## Fase 1 - Contrato de Metricas
 
@@ -235,6 +237,11 @@ Notas 2026-05-08:
 - Scan local de secretos no encontro claves privadas obvias; aparecen la anon key publica de Supabase y placeholders documentales de Stripe.
 - No hay `package.json`/lockfile raiz en la app vanilla actual; `npm audit` queda pendiente para la migracion Next o cuando exista manifest JS.
 - Endurecido `avatar-utils`: los avatares ya no se renderizan con `innerHTML` y solo se aceptan URLs `http(s)` o data URI raster base64.
+
+Notas 2026-05-09:
+
+- Supabase Security Advisor ejecutado sobre `uuhiqreifisppqkawzif`: unico warning abierto `auth_leaked_password_protection`, pendiente de activar manualmente en Auth.
+- Supabase Performance Advisor no se pudo completar en esta sesion: el conector devolvio `401 Reauthentication required` y la CLI `supabase` no esta instalada localmente.
 
 Criterio de salida:
 
