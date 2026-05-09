@@ -12,7 +12,7 @@ from launcher.backend_client import BackendClient, BackendResponse
 from launcher.connection_keys import clean_connection_key, payload_connection_key, resolve_effective_connection_key
 from launcher.config import LauncherConfig, save_config
 from launcher.app import KMFXApi, _friendly_mt5_identity_label, _generic_mt5_label
-from launcher.mt5_detector import MT5Installation
+from launcher.mt5_detector import MT5Installation, _should_descend
 from launcher.state_store import LauncherStateStore
 
 
@@ -184,6 +184,72 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 login="80571774",
             ),
         )
+
+    def test_launcher_installation_label_uses_recent_mt5_logs_for_generic_prefixes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_path = Path(temp_dir) / "net.metaquotes.wine.metatrader5" / "drive_c" / "Program Files" / "MetaTrader 5"
+            logs_dir = data_path / "logs"
+            logs_dir.mkdir(parents=True)
+            log_text = (
+                "'4000082126': authorized on Darwinex-Live through Access Server EU\n"
+                "'4000082126': terminal synchronized with Tradeslide Trading Tech Limited: 0 positions\n"
+            )
+            (logs_dir / "20260509.log").write_bytes(log_text.encode("utf-16le"))
+
+            api = object.__new__(KMFXApi)
+            installation = MT5Installation(
+                "mac · net.metaquotes.wine.metatrader5 · MetaTrader 5",
+                "",
+                str(data_path),
+                str(data_path / "MQL5" / "Experts"),
+                "",
+                "mac",
+            )
+
+            label = api.installation_display_label(installation, {})
+
+        self.assertEqual("Darwinex MT5 · 4000082126", label)
+
+    def test_launcher_installation_label_keeps_renamed_prefixes_readable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_path = Path(temp_dir) / "KMFX_MT5_IcMarkets" / "drive_c" / "Program Files" / "MetaTrader 5"
+
+            api = object.__new__(KMFXApi)
+            installation = MT5Installation(
+                "mac · KMFX_MT5_IcMarkets · MetaTrader 5",
+                "",
+                str(data_path),
+                str(data_path / "MQL5" / "Experts"),
+                "",
+                "mac",
+            )
+
+            label = api.installation_display_label(installation, {})
+
+        self.assertEqual("IC Markets MT5", label)
+
+    def test_launcher_installation_label_recognizes_ftmo_prefix(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_path = Path(temp_dir) / "KMFX_MT5_FTMO" / "drive_c" / "Program Files" / "MetaTrader 5"
+
+            api = object.__new__(KMFXApi)
+            installation = MT5Installation(
+                "mac · KMFX_MT5_FTMO · MetaTrader 5",
+                "",
+                str(data_path),
+                str(data_path / "MQL5" / "Experts"),
+                "",
+                "mac",
+            )
+
+            label = api.installation_display_label(installation, {})
+
+        self.assertEqual("FTMO MT5", label)
+
+    def test_launcher_detector_skips_old_backup_and_tradelio_folders(self) -> None:
+        self.assertFalse(_should_descend(Path("/tmp/tradelio-launcher")))
+        self.assertFalse(_should_descend(Path("/tmp/KMFX_MT5_Funded_BROKEN_BACKUP")))
+        self.assertTrue(_should_descend(Path("/tmp/KMFX_MT5_Darwinex")))
 
     def test_launcher_get_account_connections_does_not_resurrect_deleted_cached_accounts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

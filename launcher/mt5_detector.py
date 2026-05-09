@@ -29,11 +29,15 @@ SKIPPED_SCAN_DIRS = {
     "node_modules",
     "temp",
     "tmp",
+    "tradelio-launcher",
 }
 
 
 def _should_descend(directory: Path) -> bool:
-    return directory.name.strip().lower() not in SKIPPED_SCAN_DIRS
+    name = directory.name.strip().lower()
+    if name in SKIPPED_SCAN_DIRS:
+        return False
+    return "backup" not in name and "broken" not in name
 
 
 def _iter_experts_dirs(root: Path) -> list[Path]:

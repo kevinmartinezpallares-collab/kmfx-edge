@@ -53,6 +53,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Descarga Windows desde la web propia.
 - [x] CI Windows genera y publica `downloads/KMFX-Launcher-Windows.exe`.
 - [x] Launcher muestra cuentas detectadas y sincronizadas de forma más clara.
+- [x] Launcher prioriza nombres legibles de broker/login y oculta backups/carpetas antiguas.
 - [x] Multi-cuenta probado localmente con dos cuentas MT5.
 - [x] El EA funciona con investor password en modo lectura.
 - [x] Logs del EA reducidos a mensajes de estado útiles.

@@ -239,7 +239,7 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [x] Descarga macOS correcta desde dashboard via `downloads/KMFX-Launcher-macOS.zip`.
 - [x] Descarga Windows correcta desde dashboard.
 - [x] Boton "Abrir Launcher" abre la app instalada, no descarga de nuevo.
-- [ ] Launcher detecta instalaciones por nombre legible: broker/cuenta/alias.
+- [x] Launcher detecta instalaciones por nombre legible: broker/cuenta/alias.
 - [ ] Instalar/Reinstalar conector deja `.ex5` y `kmfx_connection.conf`.
 - [ ] EA adjunto lee key desde archivo sin que el usuario la pegue si viene del Launcher.
 - [x] Flujo manual permite copiar key desde "Ver detalles".
@@ -266,6 +266,9 @@ Notas 2026-05-09:
 - El enlace publico de macOS usa `downloads/KMFX-Launcher-macOS.zip` porque el DMG local pesa ~21 MB y produccion no lo estaba sirviendo desde Vercel.
 - El ZIP de macOS conserva el `.app`, el esquema `kmfx-launcher://`, el `.ex5` empaquetado y checksum SHA-256.
 - Windows sigue usando `downloads/KMFX-Launcher-Windows.exe`; el ZIP de Windows queda como artefacto alternativo.
+- El Launcher publicado se ha regenerado para mostrar nombres legibles de instalaciones MT5 usando broker/login inferidos del registro local y para ocultar backups/carpetas antiguas.
+- Checksum actual macOS ZIP: `1a4149ef01dd70ba85f79f48e3b00a9bf7f94af28c0a8dad4b16463ef246b09f`.
+- Checksum actual Windows EXE: `71e4cabb4eb1cf9954f3738866c6a2b1e1876156ec95a8fc107abc711c2658e0`.
 
 Criterio de salida:
 

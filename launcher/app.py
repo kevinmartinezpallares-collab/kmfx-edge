@@ -97,6 +97,8 @@ def _friendly_mt5_identity_label(*, broker: str = "", server: str = "", login: s
         return "IC Markets MT5"
     if "xmuk" in identity or "xm uk" in identity:
         return "XM UK MT5"
+    if "ftmo" in identity:
+        return "FTMO MT5"
 
     broker_label = _sanitize_account_label(broker, "")
     if broker_label and not _generic_mt5_label(broker_label):
@@ -122,11 +124,67 @@ def _friendly_installation_label_from_text(value: str, fallback: str = "MetaTrad
         return "IC Markets MT5"
     if "xmuk" in lower or "xm uk" in lower:
         return "XM UK MT5"
+    if "ftmo" in lower:
+        return "FTMO MT5"
     parts = [part.strip() for part in identity.split("·") if part.strip()]
     candidate = parts[-1] if parts else identity
     if _generic_mt5_label(candidate):
         return fallback
     return _sanitize_account_label(candidate, fallback)
+
+
+def _decode_mt5_log_bytes(raw: bytes) -> str:
+    if not raw:
+        return ""
+    if raw.count(b"\x00") > max(8, len(raw) // 12):
+        decoded = raw.decode("utf-16le", errors="ignore")
+    else:
+        decoded = raw.decode("utf-8", errors="ignore")
+    return decoded.replace("\x00", "")
+
+
+def _recent_mt5_log_text(data_path: str, *, max_files: int = 3, max_bytes: int = 96_000) -> str:
+    logs_dir = Path(data_path) / "logs"
+    if not logs_dir.exists():
+        logs_dir = Path(data_path) / "Logs"
+    if not logs_dir.exists():
+        return ""
+    try:
+        log_files = sorted(
+            [path for path in logs_dir.glob("*.log") if path.is_file()],
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return ""
+    chunks: list[str] = []
+    for log_file in log_files[:max_files]:
+        try:
+            raw = log_file.read_bytes()
+        except OSError:
+            continue
+        chunks.append(_decode_mt5_log_bytes(raw[-max_bytes:]))
+    return "\n".join(chunks)
+
+
+def _infer_mt5_identity_from_logs(data_path: str) -> dict[str, str]:
+    text = _recent_mt5_log_text(data_path)
+    if not text:
+        return {}
+    login = ""
+    server = ""
+    broker = ""
+    for match in re.finditer(r"'(?P<login>\d+)':\s+authorized on\s+(?P<server>.+?)\s+through", text, flags=re.IGNORECASE):
+        login = match.group("login").strip()
+        server = match.group("server").strip()
+    for match in re.finditer(r"'(?P<login>\d+)':\s+terminal synchronized with\s+(?P<broker>.+?):", text, flags=re.IGNORECASE):
+        login = match.group("login").strip() or login
+        broker = match.group("broker").strip()
+    return {
+        "broker": _sanitize_account_label(broker, ""),
+        "server": _sanitize_account_label(server, ""),
+        "login": login,
+    }
 
 
 def _read_connector_version() -> str:
@@ -833,6 +891,13 @@ class KMFXApi:
             matching_connection.get("broker"),
             matching_connection.get("server"),
         )
+        inferred_identity = _infer_mt5_identity_from_logs(installation.data_path)
+        if inferred_identity:
+            identity = _identity_text(
+                identity,
+                inferred_identity.get("broker"),
+                inferred_identity.get("server"),
+            )
         identity_lower = identity.lower()
         if "orion" in identity_lower or "ogm" in identity_lower:
             return "KMFX MT5 Orion"
@@ -862,6 +927,11 @@ class KMFXApi:
         login = _safe_str(connection.get("login"))
         broker = _safe_str(connection.get("broker"))
         server = _safe_str(connection.get("server"))
+        if not (broker or server or login):
+            inferred_identity = _infer_mt5_identity_from_logs(installation.data_path)
+            broker = _safe_str(inferred_identity.get("broker"))
+            server = _safe_str(inferred_identity.get("server"))
+            login = _safe_str(inferred_identity.get("login"))
         if broker or server or login:
             label = _friendly_mt5_identity_label(broker=broker, server=server, login=login)
             if login:
