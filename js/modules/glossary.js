@@ -19,6 +19,10 @@ const CATEGORY_COPY = Object.freeze({
   "Prop Firms": "Métricas orientadas a cumplir reglas de fondeo sin acercarte a límites críticos.",
 });
 
+const CATEGORY_DISPLAY_LABELS = Object.freeze({
+  "Prop Firms": "Fondeo",
+});
+
 const WATCH_GUIDES = Object.freeze({
   "Win Rate": "No lo mires solo. Un win rate alto con pérdidas medias grandes puede esconder un sistema frágil.",
   "P&L Total": "Comprueba si el resultado viene de muchas operaciones consistentes o de uno o dos outliers.",
@@ -101,15 +105,58 @@ function resolveVisualLabel(visual) {
   return VISUAL_LABELS[visual] || "Ficha";
 }
 
+function resolveCategoryDisplayLabel(category = "") {
+  const normalized = String(category || "").trim();
+  return CATEGORY_DISPLAY_LABELS[normalized] || normalized || "Métrica";
+}
+
 function resolveTermDisplayLabel(label = "") {
   const normalized = String(label || "").trim();
   const labels = {
+    "Win Rate": "Tasa de acierto",
+    "P&L Total": "P&L total",
+    "Operaciones Totales": "Operaciones totales",
+    "Profit Factor": "Factor de beneficio",
+    Expectancy: "Expectativa",
     "Mejor Trade": "Mejor operación",
+    "Beneficio Bruto": "Beneficio bruto",
+    "Pérdida Bruta": "Pérdida bruta",
+    "Ganancia Media": "Ganancia media",
+    "Pérdida Media": "Pérdida media",
+    "Comisiones Estimadas": "Comisiones estimadas",
+    "Mejor Mes": "Mejor mes",
+    "Peor Mes": "Peor mes",
     "Max Drawdown": "Drawdown máximo",
     "Open P&L": "P&L abierto",
-    "Recovery Factor": "Factor de recuperación"
+    "Total Semana": "Total semanal",
+    "Días Ganadores": "Días ganadores",
+    "Días Activos": "Días activos",
+    "Retorno Semanal": "Retorno semanal",
+    "Retorno Acumulado": "Retorno acumulado",
+    "Trader Score": "Score del trader",
+    "R-Multiple": "Múltiplo R",
+    "Liquidity Sweep": "Barrido de liquidez",
+    "Posiciones Abiertas": "Posiciones abiertas",
+    "Sesión con Mejor Edge": "Sesión con mejor edge",
+    "Sharpe Ratio": "Ratio Sharpe",
+    "Sortino Ratio": "Ratio Sortino",
+    "Calmar Ratio": "Ratio Calmar",
+    "Recovery Factor": "Factor de recuperación",
+    "R:R Medio": "R:R medio",
+    "DD Diario": "DD diario",
+    "DD Máximo": "DD máximo",
+    "Fase de Fondeo": "Fase de fondeo",
   };
   return labels[normalized] || normalized;
+}
+
+function normalizeStudyText(value = "") {
+  return String(value || "")
+    .replace(/\bx\b/g, "×")
+    .replace(/\bMax drawdown\b/g, "drawdown máximo")
+    .replace(/\bMax Drawdown\b/g, "drawdown máximo")
+    .replace(/\btrades\b/g, "operaciones")
+    .replace(/\btrade\b/g, "operación");
 }
 
 function resolveHowItWorks(term) {
@@ -179,19 +226,21 @@ function escapeGlossaryHtml(value = "") {
 
 function renderMetricStudyCard(card, index) {
   const refreshLabel = resolveRefreshLabel(card.refresh);
-  const source = card.source || "Fuente pendiente";
-  const formula = card.formula || "No aplica";
-  const confidence = card.confidence || "Confianza pendiente de muestra";
-  const traderUse = card.traderUse || "Sirve para convertir datos del panel en una decisión concreta de riesgo, ejecución o seguimiento.";
+  const categoryLabel = resolveCategoryDisplayLabel(card.category);
+  const source = normalizeStudyText(card.source || "Fuente pendiente");
+  const formula = normalizeStudyText(card.formula || "No aplica");
+  const confidence = normalizeStudyText(card.confidence || "Confianza pendiente de muestra");
+  const traderUse = normalizeStudyText(card.traderUse || "Sirve para convertir datos del panel en una decisión concreta de riesgo, ejecución o seguimiento.");
+  const summary = normalizeStudyText(card.summary || "");
   return `
     <article class="study-metric-card" data-study-metric="${escapeGlossaryHtml(card.id)}" style="--study-index:${index}">
       <div class="study-metric-card__top">
-        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.category || "Métrica")}</span>
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(categoryLabel)}</span>
         <span class="study-metric-card__chip">${escapeGlossaryHtml(refreshLabel)}</span>
       </div>
       <div class="study-metric-card__body">
         <h3>${escapeGlossaryHtml(card.label)}</h3>
-        <p>${escapeGlossaryHtml(card.summary)}</p>
+        <p>${escapeGlossaryHtml(summary)}</p>
       </div>
       <dl class="study-metric-card__facts">
         <div>
@@ -221,40 +270,47 @@ function renderMetricStudyCard(card, index) {
 
 function renderTermStudyCard(term, index) {
   const displayTerm = resolveTermDisplayLabel(term.term);
+  const categoryLabel = resolveCategoryDisplayLabel(term.category);
+  const what = normalizeStudyText(term.what);
+  const why = normalizeStudyText(term.why);
+  const formula = normalizeStudyText(resolveHowItWorks(term));
+  const watch = normalizeStudyText(resolveWhatToWatch(term));
+  const source = normalizeStudyText(resolveTermSource(term));
+  const confidence = normalizeStudyText(resolveTermConfidence(term));
   return `
     <article class="study-metric-card study-metric-card--term" data-study-term="${escapeGlossaryHtml(term.term)}" style="--study-index:${index}">
       <div class="study-metric-card__top">
-        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(term.category || "Métrica")}</span>
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(categoryLabel)}</span>
         <span class="study-metric-card__chip">Guía</span>
       </div>
       <div class="study-metric-card__body">
         <h3>${escapeGlossaryHtml(displayTerm)}</h3>
-        <p>${escapeGlossaryHtml(term.what)}</p>
+        <p>${escapeGlossaryHtml(what)}</p>
       </div>
       <dl class="study-metric-card__facts">
         <div>
-          <dt>Para el trader</dt>
-          <dd>${escapeGlossaryHtml(term.why)}</dd>
+          <dt>Fórmula</dt>
+          <dd>${escapeGlossaryHtml(formula)}</dd>
         </div>
         <div>
-          <dt>Fórmula</dt>
-          <dd>${escapeGlossaryHtml(resolveHowItWorks(term))}</dd>
+          <dt>Para el trader</dt>
+          <dd>${escapeGlossaryHtml(why)}</dd>
         </div>
         <div>
           <dt>Qué mirar</dt>
-          <dd>${escapeGlossaryHtml(resolveWhatToWatch(term))}</dd>
+          <dd>${escapeGlossaryHtml(watch)}</dd>
         </div>
         <div>
           <dt>Fuente</dt>
-          <dd>${escapeGlossaryHtml(resolveTermSource(term))}</dd>
+          <dd>${escapeGlossaryHtml(source)}</dd>
         </div>
         <div>
           <dt>Confianza</dt>
-          <dd>${escapeGlossaryHtml(resolveTermConfidence(term))}</dd>
+          <dd>${escapeGlossaryHtml(confidence)}</dd>
         </div>
       </dl>
       <div class="study-metric-card__footer">
-        <span>${escapeGlossaryHtml(term.category || "Métrica")}</span>
+        <span>${escapeGlossaryHtml(categoryLabel)}</span>
         <span>Guía</span>
       </div>
     </article>
@@ -313,8 +369,8 @@ export function renderGlossary(root, state) {
         <section class="study-category-section" aria-label="${escapeGlossaryHtml(category)}">
           <div class="study-category-section__header">
             <div>
-              <p class="study-metric-lab__eyebrow">${escapeGlossaryHtml(category)}</p>
-              <h3>${escapeGlossaryHtml(category)}</h3>
+              <p class="study-metric-lab__eyebrow">${escapeGlossaryHtml(resolveCategoryDisplayLabel(category))}</p>
+              <h3>${escapeGlossaryHtml(resolveCategoryDisplayLabel(category))}</h3>
             </div>
             <p>${escapeGlossaryHtml(CATEGORY_COPY[category] || "Métricas para entender mejor el contexto operativo antes de decidir.")}</p>
           </div>
