@@ -137,10 +137,14 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Revisar recibos automaticos de Stripe.
 - [ ] Confirmar emails de compra con Resend.
 - [x] Probar contrato local checkout success/cancel.
-- [ ] Probar pago fallido.
-- [ ] Probar cancelacion.
-- [ ] Probar cambio de plan.
-- [ ] Probar renovacion.
+- [x] Probar contrato local de pago fallido.
+- [x] Probar contrato local de cancelacion.
+- [x] Probar contrato local de cambio de plan.
+- [x] Probar contrato local de renovacion.
+- [ ] Probar pago fallido end-to-end en Stripe test/live controlado.
+- [ ] Probar cancelacion end-to-end en Stripe test/live controlado.
+- [ ] Probar cambio de plan end-to-end en Stripe test/live controlado.
+- [ ] Probar renovacion end-to-end en Stripe test/live controlado.
 - [ ] Probar cupon comunidad 100%.
 - [x] Asegurar que webhooks solo afectan productos KMFX.
 - [x] Verificar idempotencia `stripe_event_id`.
@@ -166,6 +170,7 @@ Notas 2026-05-09:
 - Stripe read-only confirma los seis Prices bajo `prod_UT7nzmgj3Eg3Zv`; las lookup keys siguen pendientes en Stripe Dashboard/API.
 - Probes externos sin credenciales: `/api/billing/status` devuelve estado anonimo Free/Demo, `/api/billing/checkout` y `/api/billing/portal` devuelven `401 auth_required`, y `/api/billing/webhook` rechaza payload sin firma con `400 invalid_signature`.
 - Idempotencia webhook endurecida: el `stripe_event_id` queda reservado como reintentable hasta que el procesamiento termina, evitando marcar eventos como procesados antes de aplicar el cambio de plan. Duplicados inmediatos se ignoran durante una ventana corta para no procesar dos veces el mismo evento concurrente.
+- Contratos locales de billing ampliados para `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` y `customer.subscription.deleted`.
 
 Criterio de salida:
 
@@ -411,7 +416,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Suite local completa: 279 tests OK.
+- Suite local completa: 282 tests OK.
 
 ## Fase 10 - Go Live Controlado
 

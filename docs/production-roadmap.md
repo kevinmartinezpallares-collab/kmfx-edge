@@ -168,7 +168,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
-- `python3 -m unittest discover -s tests` pasa con 279 tests.
+- `python3 -m unittest discover -s tests` pasa con 282 tests.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -250,6 +250,11 @@ Eventos mínimos:
 - `customer.subscription.deleted`
 - `invoice.paid`
 - `invoice.payment_failed`
+
+Checkpoint 2026-05-09:
+
+- Contratos locales cubiertos con tests para `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` y `customer.subscription.deleted`.
+- Queda pendiente el replay end-to-end desde Stripe test/live controlado contra el webhook configurado.
 
 Criterio de salida:
 

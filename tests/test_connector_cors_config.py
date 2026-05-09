@@ -1319,6 +1319,111 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("invoice.payment_failed", result["invoice_event"])
         self.assertEqual("in_123", result["invoice_id"])
 
+    def test_invoice_paid_syncs_kmfx_subscription_renewal_state(self) -> None:
+        invoice = {
+            "id": "in_renewal",
+            "subscription": "sub_renewal",
+            "customer": "cus_renewal",
+        }
+        subscription = {
+            "id": "sub_renewal",
+            "customer": "cus_renewal",
+            "status": "active",
+            "metadata": {
+                "app": "kmfx_edge",
+                "user_id": "77777777-7777-4777-8777-777777777777",
+                "plan_key": "pro",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "fetch_stripe_subscription", return_value=subscription) as fetch_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "77777777-7777-4777-8777-777777777777", "plan": "pro", "status": "active"},
+        ) as sync_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_invoice_paid",
+                    "type": "invoice.paid",
+                    "data": {"object": invoice},
+                }
+            )
+
+        fetch_mock.assert_called_once_with("sub_renewal")
+        sync_mock.assert_called_once_with(subscription)
+        self.assertEqual("invoice.paid", result["invoice_event"])
+        self.assertEqual("in_renewal", result["invoice_id"])
+
+    def test_subscription_updated_plan_change_maps_to_new_entitlement(self) -> None:
+        subscription = {
+            "id": "sub_plan_change",
+            "customer": "cus_plan_change",
+            "status": "active",
+            "metadata": {
+                "kmfx_user_id": "88888888-8888-4888-8888-888888888888",
+                "kmfx_user_email": "upgrade@example.com",
+            },
+            "items": {"data": [{"price": {"id": "price_unlimited_monthly", "lookup_key": "kmfx_unlimited_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ) as subscription_mock, patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ) as metadata_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_updated",
+                    "type": "customer.subscription.updated",
+                    "data": {"object": subscription},
+                }
+            )
+
+        self.assertEqual("unlimited", result["plan"])
+        subscription_row = subscription_mock.call_args.args[0]
+        self.assertEqual("unlimited", subscription_row["plan_key"])
+        self.assertEqual("active", subscription_row["status"])
+        metadata = metadata_mock.call_args.args[1]
+        self.assertEqual("unlimited", metadata["kmfx_plan"])
+        self.assertEqual("active", metadata["kmfx_billing_status"])
+
+    def test_subscription_deleted_event_downgrades_app_metadata_to_free(self) -> None:
+        subscription = {
+            "id": "sub_cancelled",
+            "customer": "cus_cancelled",
+            "status": "canceled",
+            "metadata": {
+                "kmfx_user_id": "99999999-9999-4999-8999-999999999999",
+                "kmfx_user_email": "cancelled@example.com",
+                "plan_key": "pro",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ) as subscription_mock, patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ) as metadata_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_deleted",
+                    "type": "customer.subscription.deleted",
+                    "data": {"object": subscription},
+                }
+            )
+
+        self.assertEqual("pro", result["plan"])
+        self.assertEqual("canceled", result["status"])
+        subscription_row = subscription_mock.call_args.args[0]
+        self.assertEqual("canceled", subscription_row["status"])
+        self.assertFalse(subscription_row["is_current"])
+        metadata = metadata_mock.call_args.args[1]
+        self.assertEqual("free", metadata["kmfx_plan"])
+        self.assertEqual("canceled", metadata["kmfx_billing_status"])
+
     def test_sync_subscription_updates_billing_tables_and_app_metadata(self) -> None:
         subscription = {
             "id": "sub_123",
