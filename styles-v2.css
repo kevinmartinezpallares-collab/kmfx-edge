@@ -2053,7 +2053,7 @@ body::after {
 
 .study-metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
   gap: 16px;
   margin-inline: 0;
   padding: 0;
@@ -2062,13 +2062,13 @@ body::after {
 
 .study-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
   gap: 16px;
   align-items: stretch;
 }
 
 .study-card-grid--compact {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
   gap: 16px;
 }
 
@@ -2152,7 +2152,9 @@ body::after {
   line-height: 1;
   font-weight: 780;
   letter-spacing: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
 
 .study-metric-card__body p {
@@ -2205,6 +2207,7 @@ body::after {
 
 .glossary-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 30px;
   min-width: 0;
 }
@@ -2240,14 +2243,6 @@ body::after {
   color: var(--muted-foreground);
   font-size: 14px;
   line-height: 1.45;
-}
-
-@media (min-width: 1180px) {
-  .study-metric-grid,
-  .study-card-grid,
-  .study-card-grid--compact {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 900px) {

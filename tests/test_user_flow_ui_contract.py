@@ -51,7 +51,9 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("Confianza", source)
         self.assertIn("resolveTermConfidence", source)
         self.assertIn("glossary-grid", css)
-        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr))", css)
+        self.assertIn("grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr))", css)
+        self.assertIn("grid-template-columns: minmax(0, 1fr)", css)
+        self.assertIn("word-break: normal", css)
         self.assertIn("overflow: hidden", css)
         self.assertIn("study-metric-card--term", source)
 
