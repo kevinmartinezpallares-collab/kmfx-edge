@@ -66,7 +66,7 @@ const pageContext = {
   funded: "Seguimiento de cuenta fondeada y progreso de fases",
   "funded-rules": "Reglas, buffers y límites de cuenta fondeada",
   "funded-payouts": "Ledger económico, retiros y fees",
-  market: "Watchlist, régimen y catalizadores",
+  market: "Seguimiento, régimen y catalizadores",
   portfolio: "Gestión económica de capital y evolución por cuenta",
   glossary: "Qué significa cada métrica, cómo funciona y qué revisar",
   debug: "Diagnóstico y contexto de restauración",

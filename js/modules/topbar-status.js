@@ -10,7 +10,7 @@ export function initTopbarStatus(store) {
       <div class="topbar-user-card">
         <div class="topbar-user-avatar" data-user-avatar></div>
         <div class="topbar-user-copy">
-          <div class="topbar-user-name" data-topbar-user-name>Usuario local</div>
+          <div class="topbar-user-name" data-topbar-user-name>Usuario</div>
           <div class="topbar-user-context" data-topbar-user-email>Sin sesión</div>
         </div>
       </div>
@@ -27,7 +27,7 @@ export function initTopbarStatus(store) {
 
   const render = (state) => {
     const profile = selectVisibleUserProfile(state);
-    const traderName = profile.name || "Usuario local";
+    const traderName = profile.name || "Usuario";
     const email = profile.email || "Sin sesión";
     const initials = profile.initials || "KM";
 

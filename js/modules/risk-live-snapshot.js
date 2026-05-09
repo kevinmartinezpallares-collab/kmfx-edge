@@ -266,7 +266,7 @@ function connect(root, bridgeUrl, onChange) {
     });
 
     socket.addEventListener("error", () => {
-      state.lastError = "No se pudo abrir el bridge MT5.";
+      state.lastError = "No se pudo abrir la conexión MT5.";
       state.status = state.snapshot ? "stale" : "error";
       emitChange(root, onChange);
     });
@@ -292,7 +292,7 @@ export function ensureRiskSnapshotFeed(root, { bridgeUrl, onChange } = {}) {
 
   if (!normalizedUrl) {
     state.status = "error";
-    state.lastError = "No hay URL de bridge configurada.";
+    state.lastError = "No hay una conexión MT5 configurada.";
     return getRiskSnapshotState(root);
   }
 

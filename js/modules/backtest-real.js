@@ -389,7 +389,7 @@ export function renderBacktestVsRealSection(report) {
       ` : `
         <div class="strategies-empty-state">
           <div class="strategies-empty-state__title">Sin backtests importados</div>
-          <div class="strategies-empty-state__copy">Cuando exista un report MT5 Strategy Tester, esta sección comparará el backtest contra el ledger real por estrategia.</div>
+          <div class="strategies-empty-state__copy">Cuando importes un reporte de MT5 Strategy Tester, esta sección comparará el backtest contra la ejecución real por estrategia.</div>
         </div>
       `}
     </article>

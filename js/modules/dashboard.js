@@ -1590,8 +1590,8 @@ export function renderDashboard(root, state) {
   const chartSpecs = [];
   const heroRange = root.dataset.heroRange || "1M";
   const adminTracePanel = renderAdminTracePanel(state, {
-    title: "Panel source trace",
-    subtitle: "Resolución de cuenta y contrato usado para este render.",
+    title: "Trazabilidad del panel",
+    subtitle: "Resolución de cuenta y contrato usado para esta vista.",
     items: [
       { label: "account_id", value: account?.id || "" },
       { label: "currentAccount", value: state.currentAccount || "" },

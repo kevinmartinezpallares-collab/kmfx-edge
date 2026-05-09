@@ -1,6 +1,15 @@
 import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function renderMarket(root, state) {
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
@@ -22,8 +31,8 @@ export function renderMarket(root, state) {
 
   root.innerHTML = `
     ${pageHeaderMarkup({
-      title: "Market",
-      description: "Panel táctico de watchlist, régimen y catalizadores para la sesión actual.",
+      title: "Mercado",
+      description: "Panel táctico de seguimiento, régimen y catalizadores para la sesión actual.",
       className: "tl-page-header",
       titleClassName: "tl-page-title",
       descriptionClassName: "tl-page-sub",
@@ -32,28 +41,28 @@ export function renderMarket(root, state) {
     ${renderAuthorityNotice(authorityMeta)}
 
     <div class="tl-kpi-row five">
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Focus symbol</div><div class="tl-kpi-val">${strongestSymbol?.key || "—"}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Best PnL symbol</div><div class="tl-kpi-val green">${formatCurrency(strongestSymbol?.pnl || 0)}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Active watchlist</div><div class="tl-kpi-val">${state.workspace.market.watchlist.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Event risk</div><div class="tl-kpi-val">${state.workspace.market.events.length}</div></article>
-      <article class="tl-kpi-card"><div class="tl-kpi-label">Session bias</div><div class="tl-kpi-val">${model.sessions[0]?.key || "—"}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Símbolo foco</div><div class="tl-kpi-val">${escapeHtml(strongestSymbol?.key || "—")}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Mejor símbolo por PnL</div><div class="tl-kpi-val green">${formatCurrency(strongestSymbol?.pnl || 0)}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Seguimiento activo</div><div class="tl-kpi-val">${state.workspace.market.watchlist.length}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Eventos vigilados</div><div class="tl-kpi-val">${state.workspace.market.events.length}</div></article>
+      <article class="tl-kpi-card"><div class="tl-kpi-label">Sesión dominante</div><div class="tl-kpi-val">${escapeHtml(model.sessions[0]?.key || "—")}</div></article>
     </div>
 
     <div class="grid-2 equal">
       <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Watchlist</div></div>
+        <div class="tl-section-header"><div class="tl-section-title">Seguimiento</div></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Symbol</th><th>Bias</th><th>Regime</th><th>Change</th><th>Volatility</th><th>Session</th></tr></thead>
+            <thead><tr><th>Símbolo</th><th>Sesgo</th><th>Régimen</th><th>Cambio</th><th>Volatilidad</th><th>Sesión</th></tr></thead>
             <tbody>
               ${state.workspace.market.watchlist.map((item) => `
                 <tr>
-                  <td>${item.symbol}</td>
-                  <td>${item.bias}</td>
-                  <td>${item.regime}</td>
+                  <td>${escapeHtml(item.symbol)}</td>
+                  <td>${escapeHtml(item.bias)}</td>
+                  <td>${escapeHtml(item.regime)}</td>
                   <td class="${item.changePct >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(item.changePct)}</td>
-                  <td>${item.volatility}</td>
-                  <td>${item.session}</td>
+                  <td>${escapeHtml(item.volatility)}</td>
+                  <td>${escapeHtml(item.session)}</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -62,15 +71,15 @@ export function renderMarket(root, state) {
       </article>
 
       <article class="tl-section-card">
-        <div class="tl-section-header"><div class="tl-section-title">Catalysts</div></div>
+        <div class="tl-section-header"><div class="tl-section-title">Catalizadores</div></div>
         <div class="breakdown-list">
           ${state.workspace.market.events.map((event) => `
             <div class="list-row">
               <div>
-                <div class="row-title">${event.time} · ${event.title}</div>
-                <div class="row-sub">${event.narrative}</div>
+                <div class="row-title">${escapeHtml(event.time)} · ${escapeHtml(event.title)}</div>
+                <div class="row-sub">${escapeHtml(event.narrative)}</div>
               </div>
-              <div class="row-chip">${event.impact}</div>
+              <div class="row-chip">${escapeHtml(event.impact)}</div>
             </div>
           `).join("")}
         </div>

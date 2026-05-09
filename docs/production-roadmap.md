@@ -171,6 +171,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - `python3 -m unittest discover -s tests` pasa con 296 tests.
 - Health externo verificado tras `6ecd97f`: Vercel `/dashboard`, Render `/health`, Worker `mt5-api` `/health` y Supabase Auth protegido responden como esperado.
 - Supabase Security Advisor sigue con un unico warning abierto: activar leaked password protection en Auth. Performance Advisor requiere reautenticacion del conector o CLI local.
+- Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing

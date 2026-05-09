@@ -498,7 +498,7 @@ export function describeAccountAuthority(account, kind = "derived") {
       tone: "neutral",
       label: "Manual",
       title: "Evidencia manual vinculada a la cuenta",
-      text: "Esta vista combina la cuenta activa con registros manuales del trader. Úsala como contexto operativo, no como sustituto del ledger MT5.",
+      text: "Esta vista combina la cuenta activa con registros manuales del trader. Úsala como contexto operativo, no como sustituto del historial real de MT5.",
       authority,
     };
   }
@@ -506,20 +506,20 @@ export function describeAccountAuthority(account, kind = "derived") {
     return {
       tone: "info",
       label: "Derivado",
-      title: "Análisis derivado del ledger real",
+      title: "Análisis derivado del historial real",
       text: authority.firstTradeLabel
-        ? `Esta vista se calcula sobre el ledger real de la cuenta activa, desde ${authority.firstTradeLabel}${authority.lastTradeLabel ? ` hasta ${authority.lastTradeLabel}` : ""}.`
-        : "Esta vista se calcula sobre el ledger real disponible de la cuenta activa.",
+        ? `Esta vista se calcula sobre el historial real de la cuenta activa, desde ${authority.firstTradeLabel}${authority.lastTradeLabel ? ` hasta ${authority.lastTradeLabel}` : ""}.`
+        : "Esta vista se calcula sobre el historial real disponible de la cuenta activa.",
       authority,
     };
   }
   return {
     tone: "ok",
-    label: "Live",
-    title: "Dato live de cuenta",
+    label: "MT5",
+    title: "Dato de cuenta en tiempo real",
     text: authority.firstTradeLabel
-      ? `Esta vista usa datos live de la cuenta activa y el ledger real disponible desde ${authority.firstTradeLabel}.`
-      : "Esta vista usa datos live de la cuenta activa.",
+      ? `Esta vista usa datos de la cuenta activa y el historial real disponible desde ${authority.firstTradeLabel}.`
+      : "Esta vista usa datos en tiempo real de la cuenta activa.",
     authority,
   };
 }

@@ -242,6 +242,8 @@ Notas 2026-05-09:
 
 - Supabase Security Advisor ejecutado sobre `uuhiqreifisppqkawzif`: unico warning abierto `auth_leaked_password_protection`, pendiente de activar manualmente en Auth.
 - Supabase Performance Advisor no se pudo completar en esta sesion: el conector devolvio `401 Reauthentication required` y la CLI `supabase` no esta instalada localmente.
+- Tercera pasada de copy visible: retirados restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado en superficies de usuario.
+- Mercado ahora escapa valores dinamicos de simbolos, sesgos, eventos y narrativas antes de renderizar.
 
 Criterio de salida:
 
@@ -311,6 +313,7 @@ Objetivo: que la app parezca producto final, no panel interno.
   - `backend`
 - [ ] Copy final de usuario no tecnico.
 - Nota 2026-05-09: segunda pasada aplicada en Cuentas, wizard, Calendario y Estudio de metricas. Retirados `payload`, `sync live`, `snapshot MT5`, `Backend Risk Metrics` y "detalle tecnico" de superficies no admin. Pendiente auditoria visual ruta por ruta antes de marcarlo completo.
+- Nota 2026-05-09: tercera pasada aplicada en Utils/autoridad de datos, Analytics, Risk sync, Topbar, Dashboard admin trace, Backtest vs Real, Navegacion y Mercado. Pendiente auditoria visual ruta por ruta antes de marcarlo completo.
 - [ ] Modo admin separado y claramente oculto.
 - [ ] Desktop completo revisado.
 - [ ] Mobile basico revisado antes de go live.

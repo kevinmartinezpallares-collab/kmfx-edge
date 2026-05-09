@@ -73,6 +73,46 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("Detalle de aportes, impacto y ejecución", source)
         self.assertNotIn("Detalle técnico conservado", source)
 
+    def test_visible_user_copy_avoids_internal_runtime_terms(self) -> None:
+        utils = read_text("js/modules/utils.js")
+        analytics = read_text("js/modules/analytics.js")
+        risk_live = read_text("js/modules/risk-live-snapshot.js")
+        topbar = read_text("js/modules/topbar-status.js")
+        dashboard = read_text("js/modules/dashboard.js")
+
+        self.assertIn("historial real de MT5", utils)
+        self.assertIn("Dato de cuenta en tiempo real", utils)
+        self.assertNotIn("ledger MT5", utils)
+        self.assertNotIn("ledger real", utils)
+        self.assertIn("Activar protección automática", analytics)
+        self.assertNotIn("protección automática local", analytics)
+        self.assertNotIn("motor local", analytics)
+        self.assertNotIn("entorno local", analytics)
+        self.assertIn("No se pudo abrir la conexión MT5.", risk_live)
+        self.assertNotIn("bridge MT5", risk_live)
+        self.assertIn("data-topbar-user-name>Usuario</div>", topbar)
+        self.assertNotIn("Usuario local", topbar)
+        self.assertIn("Trazabilidad del panel", dashboard)
+        self.assertNotIn("Panel source trace", dashboard)
+        self.assertIn("ejecución real por estrategia", read_text("js/modules/backtest-real.js"))
+        self.assertNotIn("ledger real", read_text("js/modules/backtest-real.js"))
+        self.assertIn("Seguimiento, régimen y catalizadores", read_text("js/modules/navigation.js"))
+        self.assertNotIn("Watchlist, régimen", read_text("js/modules/navigation.js"))
+
+    def test_market_view_uses_spanish_copy_and_escapes_dynamic_values(self) -> None:
+        source = read_text("js/modules/market.js")
+
+        self.assertIn('title: "Mercado"', source)
+        self.assertIn("Símbolo foco", source)
+        self.assertIn("Seguimiento activo", source)
+        self.assertIn("Catalizadores", source)
+        self.assertIn("escapeHtml(item.symbol)", source)
+        self.assertIn("escapeHtml(event.title)", source)
+        self.assertNotIn("Focus symbol", source)
+        self.assertNotIn("Active watchlist", source)
+        self.assertNotIn("Watchlist", source)
+        self.assertNotIn("Catalysts", source)
+
 
 if __name__ == "__main__":
     unittest.main()
