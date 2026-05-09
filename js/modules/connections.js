@@ -790,7 +790,7 @@ function resolveAccountDataHealth(account, technicalTrace) {
   if (status === "pending" || status === "pending_setup" || status === "draft" || status === "waiting_sync") {
     return {
       label: "Esperando primer sync",
-      detail: "Abre MT5 con el EA activo. Cuando llegue el primer payload, la cuenta quedará lista en el dashboard.",
+      detail: "Abre MT5 con el EA activo. Cuando llegue el primer sync, la cuenta quedará lista en el dashboard.",
     };
   }
   if (account?.login || technicalTrace.updatedAt) {
@@ -803,6 +803,25 @@ function resolveAccountDataHealth(account, technicalTrace) {
     label: "Pendiente de datos",
     detail: "Instala el conector, pega la KMFXKey en el EA y espera el primer sync desde MetaTrader 5.",
   };
+}
+
+function accountDataSourceLabel(source) {
+  const normalized = String(source || "").trim().toLowerCase();
+  if (!normalized) return "Pendiente de datos";
+  if (normalized.includes("mt5_sync_live") || normalized.includes("mt5")) return "MT5 sincronizado";
+  if (normalized.includes("registry")) return "Registro de cuenta";
+  if (normalized.includes("direct")) return "Conexion directa";
+  if (normalized.includes("manual")) return "Dato manual";
+  return "Datos de cuenta";
+}
+
+function accountConnectionModeLabel(mode) {
+  const normalized = String(mode || "").trim().toLowerCase();
+  if (!normalized) return "Conector";
+  if (normalized.includes("launcher")) return "Launcher";
+  if (normalized.includes("direct")) return "Conexion directa";
+  if (normalized.includes("ea") || normalized.includes("connector")) return "EA Connector";
+  return "Conector";
 }
 
 function resolveAccountTechnicalTrace(account, state, activeAccount = null) {
@@ -893,19 +912,19 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <div class="connections-account-modal__guide-title">Estado de datos</div>
           <div class="connections-account-modal__technical-grid">
             <div>
-              <span>Fuente</span>
-              <strong>${escapeHtml(technicalTrace.payloadSource)}</strong>
+              <span>Origen</span>
+              <strong>${escapeHtml(accountDataSourceLabel(technicalTrace.payloadSource))}</strong>
             </div>
             <div>
               <span>Modo</span>
-              <strong>${escapeHtml(technicalTrace.connectionMode)}</strong>
+              <strong>${escapeHtml(accountConnectionModeLabel(technicalTrace.connectionMode))}</strong>
             </div>
             <div>
               <span>Muestra</span>
               <strong>${technicalTrace.sampleSize.toLocaleString("es-ES")} trades</strong>
             </div>
             <div>
-              <span>Último payload</span>
+              <span>Último dato recibido</span>
               <strong>${escapeHtml(relativeTime(technicalTrace.updatedAt))}</strong>
             </div>
           </div>

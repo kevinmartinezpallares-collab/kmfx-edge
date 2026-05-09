@@ -307,7 +307,7 @@ function openCalendarDayFocus(root, state, model, key) {
           <div class="focus-panel-section__head calendar-day-report__section-head">
             <div>
               <div class="focus-panel-section__title">Trades del día</div>
-              <div class="focus-panel-section__subtitle">Detalle técnico conservado para revisar aportes, daño y ejecución.</div>
+              <div class="focus-panel-section__subtitle">Detalle de aportes, impacto y ejecución de cada trade cerrado en el día.</div>
             </div>
           </div>
           <div class="focus-panel-trades-head calendar-day-trades__head">

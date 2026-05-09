@@ -55,7 +55,7 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Perdida maxima esperada al 95% de confianza.",
     traderUse: "Estima una perdida extrema razonable por trade o muestra. Sirve para no poner la cuenta en peligro cuando la muestra empeora.",
     formula: "Percentil 95 de perdidas cerradas normalizadas; CVaR = media de la cola.",
-    sourceLabel: "Backend Risk Metrics: tail_risk.var_95.",
+    sourceLabel: "Módulo de riesgo KMFX: pérdidas cerradas y cola estadística.",
     confidence: "Depende de la calidad de muestra; robusto desde una muestra amplia de trades cerrados.",
   },
   var_99: {
@@ -68,7 +68,7 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Perdida maxima esperada al 99% de confianza.",
     traderUse: "Mira el escenario de cola mas duro. Sirve para calibrar limites antes de aumentar lotaje o entrar en fondeo.",
     formula: "Percentil 99 de perdidas cerradas normalizadas; CVaR = media de la cola extrema.",
-    sourceLabel: "Backend Risk Metrics: tail_risk.var_99.",
+    sourceLabel: "Módulo de riesgo KMFX: pérdidas cerradas y cola extrema.",
     confidence: "Mas sensible a muestra pequena; robusto con historico amplio y limpio.",
   },
   exposure: {
@@ -107,7 +107,7 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Retorno excedente dividido por desviacion negativa.",
     traderUse: "Compara retorno frente a caidas negativas. Sirve para priorizar sistemas que ganan sin castigar tanto la cuenta.",
     formula: "Retorno medio / desviacion negativa de los retornos.",
-    sourceLabel: "Backend Risk Metrics: risk_adjusted.sortino_ratio o fallback del modelo.",
+    sourceLabel: "Métricas de riesgo KMFX o cálculo local cuando la muestra todavía es limitada.",
     confidence: "Mas fiable cuando hay suficientes retornos negativos y muestra amplia.",
   },
   dscore: {
@@ -120,7 +120,7 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Score propio de calidad y consistencia operativa.",
     traderUse: "Resume calidad operativa. Sirve para detectar cuando bajar al detalle de disciplina, riesgo o ejecucion.",
     formula: "Score compuesto KMFX de consistencia, riesgo, ejecucion y calidad de muestra.",
-    sourceLabel: "Modelo de calidad KMFX calculado en backend/dashboard payload.",
+    sourceLabel: "Modelo de calidad KMFX calculado con rendimiento, riesgo y ejecución.",
     confidence: "Complementa la revision manual; no sustituye el criterio del trader.",
   },
 });
@@ -392,7 +392,9 @@ function buildVarKpi(id, confidence, model, account, professional) {
   const status = statusFromPercent(equityPct, 1, 2.5, sampleSize, sampleQualityLabel);
   const sourceLabel = varAmount === null
     ? "Pendiente de calculo: falta historico cerrado suficiente."
-    : `Backend Risk Metrics: tail_risk.var_${confidence}.`;
+    : confidence === 99
+      ? "Módulo de riesgo KMFX: pérdidas cerradas y cola extrema."
+      : "Módulo de riesgo KMFX: pérdidas cerradas y cola estadística.";
 
   return buildKpi(id, {
     value: varAmount,
@@ -514,7 +516,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: netReturn === null ? "insufficient" : netReturn >= 0 ? "good" : "bad",
       statusLabel: netReturn === null ? "insuficiente historico" : netReturn >= 0 ? "positivo" : "negativo",
       source: model.cumulative ? "model.cumulative" : "derived",
-      sourceLabel: model.cumulative ? "Modelo de rendimiento normalizado del dashboard." : "P&L neto derivado del snapshot MT5.",
+      sourceLabel: model.cumulative ? "Modelo de rendimiento normalizado del dashboard." : "P&L neto recibido desde MT5.",
       series: dailySeries,
       microVisual: { stroke: "semantic", deltaEncoding: ["arrow", "color", "text"] },
       meta: { pnl7d: round(sevenDayPnl, 2), capital: round(capital, 2) },
@@ -524,7 +526,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: drawdownStatus.status,
       statusLabel: drawdownStatus.statusLabel,
       source: professional.drawdown_path ? "professional_metrics.drawdown_path" : "model.drawdown",
-      sourceLabel: professional.drawdown_path ? "Backend Risk Metrics: drawdown_path." : "Curva de drawdown del modelo local.",
+      sourceLabel: professional.drawdown_path ? "Métricas de riesgo KMFX: curva de drawdown." : "Curva de drawdown calculada en el dashboard.",
       explain: {
         confidence: sampleConfidence(safeArray(model.trades).length, "", "Mejora con historico continuo y trades cerrados suficientes."),
       },
@@ -539,7 +541,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: exposureStatus.status,
       statusLabel: exposureStatus.statusLabel,
       source: "riskSnapshot.summary",
-      sourceLabel: "Risk snapshot live: posiciones abiertas, riesgo bruto/neto y limite de heat.",
+      sourceLabel: "Posiciones abiertas, riesgo bruto/neto y límite de exposición.",
       explain: {
         confidence: exposureValue === null
           ? "Pendiente hasta recibir posiciones o resumen de riesgo desde MT5."
@@ -570,7 +572,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: sortinoStatus.status,
       statusLabel: sortinoStatus.statusLabel,
       source: professional.risk_adjusted ? "professional_metrics.risk_adjusted" : "model.ratios",
-      sourceLabel: professional.risk_adjusted ? "Backend Risk Metrics: risk_adjusted.sortino_ratio." : "Ratios derivados del modelo local.",
+      sourceLabel: professional.risk_adjusted ? "Métricas de riesgo KMFX: retorno ajustado." : "Ratios calculados en el dashboard.",
       explain: {
         confidence: sampleConfidence(
           finiteNumber(professional.risk_adjusted?.sample_size, dailyReturns.length, 0),
@@ -586,7 +588,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       status: dscoreStatus.status,
       statusLabel: dscoreStatus.statusLabel,
       source: dscore === null ? "missing_quality_score" : "kmfx_quality_score",
-      sourceLabel: dscore === null ? "Pendiente de score de calidad." : "Score de calidad KMFX recibido en professional_metrics/dashboard payload.",
+      sourceLabel: dscore === null ? "Pendiente de score de calidad." : "Score de calidad KMFX calculado con la muestra disponible.",
       explain: {
         confidence: dscore === null
           ? "Pendiente hasta que exista muestra suficiente y score calculado."

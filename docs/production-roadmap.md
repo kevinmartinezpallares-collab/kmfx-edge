@@ -168,7 +168,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
-- `python3 -m unittest discover -s tests` pasa con 293 tests.
+- `python3 -m unittest discover -s tests` pasa con 296 tests.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing

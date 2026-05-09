@@ -969,14 +969,14 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             set(result["requiredHits"]),
         )
 
-    def test_connections_account_details_include_technical_traceability(self) -> None:
+    def test_connections_account_details_include_user_safe_traceability(self) -> None:
         source = (ROOT / "js/modules/connections.js").read_text(encoding="utf-8")
         for needle in [
             "Estado de datos",
             "connections-account-modal__technical",
-            "Fuente",
+            "Origen",
             "Muestra",
-            "Último payload",
+            "Último dato recibido",
             "Lectura para el usuario",
             "resolveAccountTechnicalTrace",
         ]:

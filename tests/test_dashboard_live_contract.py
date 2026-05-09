@@ -361,7 +361,7 @@ class DashboardLiveContractTests(unittest.TestCase):
         self.assertAlmostEqual(backend_var99["var_amount"], dashboard_contract["var99"]["value"])
         self.assertEqual(backend_var95["sample_size"], dashboard_contract["var95"]["meta"]["sampleSize"])
         self.assertEqual(backend_var95["sample_quality_label"], dashboard_contract["var95"]["meta"]["sampleQualityLabel"])
-        self.assertIn("Backend Risk Metrics", dashboard_contract["var95"]["explain"]["source"])
+        self.assertIn("Módulo de riesgo KMFX", dashboard_contract["var95"]["explain"]["source"])
 
 
 if __name__ == "__main__":

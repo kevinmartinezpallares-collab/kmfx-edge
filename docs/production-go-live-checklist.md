@@ -303,6 +303,7 @@ Objetivo: que la app parezca producto final, no panel interno.
   - `mock`
   - `backend`
 - [ ] Copy final de usuario no tecnico.
+- Nota 2026-05-09: segunda pasada aplicada en Cuentas, wizard, Calendario y Estudio de metricas. Retirados `payload`, `sync live`, `snapshot MT5`, `Backend Risk Metrics` y "detalle tecnico" de superficies no admin. Pendiente auditoria visual ruta por ruta antes de marcarlo completo.
 - [ ] Modo admin separado y claramente oculto.
 - [ ] Desktop completo revisado.
 - [ ] Mobile basico revisado antes de go live.
@@ -419,7 +420,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Suite local completa: 293 tests OK.
+- Suite local completa: 296 tests OK.
 
 ## Fase 10 - Go Live Controlado
 

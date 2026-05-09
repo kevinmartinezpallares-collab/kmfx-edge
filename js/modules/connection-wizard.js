@@ -486,7 +486,7 @@ function renderConfirmationStep(state) {
   return `
     ${renderStepFrame(
       isDirect ? "Cuenta directa registrada" : isConnected ? "Conexión finalizada" : "Finaliza la conexión en MT5",
-      isDirectPendingSync ? "La cuenta ya está añadida, pero la sincronización directa de datos live aún no está disponible. Usa EA para sincronizar ahora." : isDirect ? "La cuenta ya está añadida a Cuentas. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización.",
+      isDirectPendingSync ? "La cuenta ya está añadida, pero la sincronización directa en tiempo real aún no está disponible. Usa EA para sincronizar ahora." : isDirect ? "La cuenta ya está añadida a Cuentas. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización.",
       `
         <div class="connection-wizard__success ${isConnected ? "connection-wizard__success--complete" : "connection-wizard__success--pending"}">
           <span class="connection-wizard__success-icon">${isConnected ? "✓" : "3"}</span>
@@ -806,10 +806,10 @@ async function createDirectConnection(card, state, options = {}, store = activeW
       status: payload.direct_sync_available ? "connected" : "waiting",
       title: payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada",
       message: payload.direct_sync_available
-        ? "La cuenta ya aparece en Cuentas y se ha recibido el primer snapshot directo."
-        : "La cuenta aparecerá en el dashboard como pendiente. Para sincronizar datos live ahora, instala el EA en MT5.",
+        ? "La cuenta ya aparece en Cuentas y se ha recibido el primer dato de MT5."
+        : "La cuenta aparecerá en el dashboard como pendiente. Para sincronizar datos en tiempo real ahora, instala el EA en MT5.",
     };
-    showToast(payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada; falta sync live", payload.direct_sync_available ? "success" : "warning");
+    showToast(payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada; esperando primera sincronización", payload.direct_sync_available ? "success" : "warning");
     window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
   } catch (error) {
     state.error = normalizeWizardError(error?.message ? error : {
