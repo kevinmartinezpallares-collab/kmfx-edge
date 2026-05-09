@@ -404,6 +404,7 @@ SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-r
 JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
 JOURNAL_TRADES_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-trades.json")
 SYNC_RECEIPT_TTL = timedelta(days=7)
+BILLING_EVENT_PROCESSING_RETRY_AFTER = timedelta(minutes=10)
 
 
 def account_store_service_role_key() -> str:
@@ -2146,34 +2147,56 @@ def verify_stripe_webhook_signature(raw_body: bytes, signature_header: str, secr
     return any(hmac.compare_digest(expected, candidate) for candidate in signatures)
 
 
-def supabase_billing_event_status(event_id: str) -> str:
+def supabase_billing_event_state(event_id: str) -> dict[str, Any]:
     rows = supabase_admin_request(
         "GET",
         "/rest/v1/billing_events",
         query={
             "stripe_event_id": f"eq.{event_id}",
-            "select": "stripe_event_id,status",
+            "select": "stripe_event_id,status,error,received_at,processed_at",
             "limit": "1",
         },
     )
     if isinstance(rows, list) and rows:
-        return safe_str(ensure_dict(rows[0]).get("status")).lower()
-    return ""
+        return ensure_dict(rows[0])
+    return {}
+
+
+def supabase_billing_event_status(event_id: str) -> str:
+    return safe_str(supabase_billing_event_state(event_id).get("status")).lower()
+
+
+def billing_event_processing_started_recently(event_state: dict[str, Any]) -> bool:
+    if safe_str(event_state.get("status")).lower() != "failed":
+        return False
+    if safe_str(event_state.get("error")) != "processing_started":
+        return False
+    marker = _parse_datetime(event_state.get("processed_at")) or _parse_datetime(event_state.get("received_at"))
+    if marker is None:
+        return False
+    return datetime.now(timezone.utc) - marker < BILLING_EVENT_PROCESSING_RETRY_AFTER
 
 
 def record_billing_event_once(event: dict[str, Any]) -> bool:
     event_id = safe_str(event.get("id"))
     if not event_id:
         raise RuntimeError("stripe_event_missing_id")
-    existing_status = supabase_billing_event_status(event_id)
+    existing_state = supabase_billing_event_state(event_id)
+    existing_status = safe_str(existing_state.get("status")).lower()
     if existing_status in {"processed", "ignored"}:
         return False
+    if billing_event_processing_started_recently(existing_state):
+        return False
+    # Reserve the Stripe event id without marking it processed yet. If the
+    # worker crashes before process_stripe_billing_event finishes, Stripe can
+    # retry and this retryable status will allow the event to run again.
     payload = {
         "stripe_event_id": event_id,
         "event_type": safe_str(event.get("type")),
         "livemode": bool(event.get("livemode")),
-        "status": "processed",
+        "status": "failed",
         "processed_at": now_iso(),
+        "error": "processing_started",
         "payload": event,
     }
     if existing_status == "failed":

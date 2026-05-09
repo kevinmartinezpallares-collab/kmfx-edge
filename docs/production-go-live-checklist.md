@@ -165,6 +165,7 @@ Notas 2026-05-09:
 - Deploy Render `dep-d7v720d0lvsc73fj4me0` quedo `live` y `/health` responde con commit `4518825`.
 - Stripe read-only confirma los seis Prices bajo `prod_UT7nzmgj3Eg3Zv`; las lookup keys siguen pendientes en Stripe Dashboard/API.
 - Probes externos sin credenciales: `/api/billing/status` devuelve estado anonimo Free/Demo, `/api/billing/checkout` y `/api/billing/portal` devuelven `401 auth_required`, y `/api/billing/webhook` rechaza payload sin firma con `400 invalid_signature`.
+- Idempotencia webhook endurecida: el `stripe_event_id` queda reservado como reintentable hasta que el procesamiento termina, evitando marcar eventos como procesados antes de aplicar el cambio de plan. Duplicados inmediatos se ignoran durante una ventana corta para no procesar dos veces el mismo evento concurrente.
 
 Criterio de salida:
 
@@ -410,7 +411,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Suite local completa: 275 tests OK.
+- Suite local completa: 279 tests OK.
 
 ## Fase 10 - Go Live Controlado
 

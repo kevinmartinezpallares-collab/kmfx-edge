@@ -168,7 +168,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
-- `python3 -m unittest discover -s tests` pasa con 275 tests.
+- `python3 -m unittest discover -s tests` pasa con 279 tests.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -234,6 +234,7 @@ Objetivo: que Stripe sea la fuente de verdad económica y Supabase refleje el ac
 - [x] Implementar `GET /api/billing/status` como contrato inicial sin Stripe live.
 - [x] Verificar firma Stripe webhook usando raw body.
 - [x] Guardar `stripe_event_id` en `billing_events` para idempotencia.
+- [x] Reservar eventos Stripe como reintentables hasta que el procesamiento final marque `processed` o `ignored`, evitando duplicados concurrentes durante la ventana de procesamiento.
 - [x] Upsert de `billing_customers`.
 - [x] Upsert de `billing_subscriptions`.
 - [x] Mapear estados Stripe a estado interno.

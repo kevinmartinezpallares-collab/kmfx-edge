@@ -1063,6 +1063,84 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("cus_456", params["customer"])
         self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
 
+    def test_billing_event_reservation_stays_retryable_until_processed(self) -> None:
+        event = {
+            "id": "evt_retryable",
+            "type": "customer.subscription.updated",
+            "livemode": False,
+            "data": {"object": {"id": "sub_retryable"}},
+        }
+        with patch.object(connector_api, "supabase_billing_event_state", return_value={}), patch.object(
+            connector_api,
+            "supabase_admin_request",
+        ) as admin_mock:
+            should_process = connector_api.record_billing_event_once(event)
+
+        self.assertTrue(should_process)
+        admin_mock.assert_called_once()
+        method, path = admin_mock.call_args.args[:2]
+        self.assertEqual("POST", method)
+        self.assertEqual("/rest/v1/billing_events", path)
+        payload = admin_mock.call_args.kwargs["payload"]
+        self.assertEqual("evt_retryable", payload["stripe_event_id"])
+        self.assertEqual("failed", payload["status"])
+        self.assertEqual("processing_started", payload["error"])
+
+    def test_billing_failed_event_can_retry_without_marking_processed_first(self) -> None:
+        event = {
+            "id": "evt_failed_retry",
+            "type": "invoice.payment_failed",
+            "livemode": True,
+            "data": {"object": {"id": "in_failed"}},
+        }
+        with patch.object(connector_api, "supabase_billing_event_state", return_value={"status": "failed"}), patch.object(
+            connector_api,
+            "supabase_admin_request",
+        ) as admin_mock:
+            should_process = connector_api.record_billing_event_once(event)
+
+        self.assertTrue(should_process)
+        admin_mock.assert_called_once()
+        method, path = admin_mock.call_args.args[:2]
+        self.assertEqual("PATCH", method)
+        self.assertEqual("/rest/v1/billing_events", path)
+        payload = admin_mock.call_args.kwargs["payload"]
+        self.assertEqual("failed", payload["status"])
+        self.assertEqual("processing_started", payload["error"])
+
+    def test_billing_event_currently_processing_is_not_started_twice(self) -> None:
+        event = {
+            "id": "evt_processing",
+            "type": "customer.subscription.updated",
+            "livemode": True,
+            "data": {"object": {"id": "sub_processing"}},
+        }
+        state = {
+            "status": "failed",
+            "error": "processing_started",
+            "processed_at": connector_api.now_iso(),
+        }
+        with patch.object(connector_api, "supabase_billing_event_state", return_value=state), patch.object(
+            connector_api,
+            "supabase_admin_request",
+        ) as admin_mock:
+            should_process = connector_api.record_billing_event_once(event)
+
+        self.assertFalse(should_process)
+        admin_mock.assert_not_called()
+
+    def test_billing_processed_or_ignored_event_is_not_reprocessed(self) -> None:
+        event = {"id": "evt_done", "type": "customer.subscription.updated", "data": {"object": {}}}
+        for status in ("processed", "ignored"):
+            with self.subTest(status=status), patch.object(
+                connector_api,
+                "supabase_billing_event_state",
+                return_value={"status": status},
+            ), patch.object(connector_api, "supabase_admin_request") as admin_mock:
+                should_process = connector_api.record_billing_event_once(event)
+                self.assertFalse(should_process)
+                admin_mock.assert_not_called()
+
     def _stripe_signature_header(self, body: bytes, secret: str, timestamp: int | None = None) -> str:
         timestamp = timestamp or int(time.time())
         signed_payload = f"{timestamp}.".encode("utf-8") + body
