@@ -13,11 +13,11 @@ const FEE_TYPES = new Set(["challenge_fee", "reset_fee", "rebuy_fee"]);
 const POSITIVE_TYPES = new Set(["discount", "refund", "payout", "withdrawal"]);
 
 export const FUNDING_TRANSACTION_TYPE_LABELS = Object.freeze({
-  challenge_fee: "Coste challenge",
-  reset_fee: "Reset",
-  rebuy_fee: "Rebuy",
+  challenge_fee: "Coste del challenge",
+  reset_fee: "Reinicio",
+  rebuy_fee: "Recompra",
   discount: "Descuento",
-  refund: "Refund",
+  refund: "Reembolso",
   payout: "Retiro",
   withdrawal: "Retirada",
   adjustment: "Ajuste",

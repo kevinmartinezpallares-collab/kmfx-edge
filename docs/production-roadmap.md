@@ -174,6 +174,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.
 - Flujo MT5 reforzado con errores orientados a usuario final: WebRequest, KMFXKey ausente/no reconocida/revocada, conector desactualizado, rate limit, plan sin permiso y servidor de KMFX temporalmente no disponible.
 - Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
+- Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing

@@ -407,7 +407,7 @@ function deriveFundedAccount(raw, linked, linkContext = {}) {
     alerts.push({
       tone: "warn",
       title: "Revisa el tamaño de cuenta configurado",
-      detail: "El tamaño configurado no coincide con el balance live recibido.",
+      detail: "El tamaño configurado no coincide con el balance sincronizado.",
     });
   }
   if (dailyUsagePct >= 100) alerts.push({ tone: "error", title: "Límite diario superado", detail: `Uso ${Math.round(dailyUsagePct)}% del límite diario.` });
@@ -725,9 +725,9 @@ function ruleAmountFromPct(account = {}, pct = 0) {
 
 function dailyResetLabel(reset = "") {
   const normalized = normalizeText(reset);
-  if (normalized === "server_time") return "Reset servidor";
-  if (normalized === "local_time") return "Reset terminal";
-  return "Reset por verificar";
+  if (normalized === "server_time") return "Reinicio servidor";
+  if (normalized === "local_time") return "Reinicio terminal";
+  return "Reinicio por verificar";
 }
 
 function maxLossBasisLabel(basis = "", drawdownType = "") {
@@ -813,13 +813,13 @@ function economicsRoiMarkup(roiOnCosts = null) {
 function fundingEconomicsMarkup(economics = {}) {
   const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
   if (!economics.hasTransactions) {
-    return `<div class="funding-economics-empty">Costes y payouts pendientes de registrar.</div>`;
+    return `<div class="funding-economics-empty">Costes y retiros pendientes de registrar.</div>`;
   }
   return `
     <div class="funding-economics-metrics">
       <div><span>Costes</span><strong>${formatCurrency(economics.totalSpent || 0)}</strong></div>
       <div><span>Pagos/Retiros</span><strong>${formatCurrency(payoutAndWithdrawals)}</strong></div>
-      <div><span>Neto funding</span><strong>${economicsAmountMarkup(economics.netFundingResult || 0)}</strong></div>
+      <div><span>Resultado neto</span><strong>${economicsAmountMarkup(economics.netFundingResult || 0)}</strong></div>
       <div><span>ROI costes</span><strong>${economicsRoiMarkup(economics.roiOnCosts)}</strong></div>
     </div>
   `;
@@ -832,7 +832,7 @@ function fundingEconomicsKpiMarkup(economics = {}) {
       <article class="funding-kpi funding-kpi--muted">
         <span class="funding-kpi__label">Costes pendientes</span>
         <strong class="funding-kpi__value">Pendiente</strong>
-        <span class="funding-kpi__meta">Costes/payouts no modelados</span>
+        <span class="funding-kpi__meta">Costes y retiros no registrados</span>
       </article>
     `;
   }
@@ -905,29 +905,29 @@ function fundingPayoutTone(value = 0) {
 function fundingPayoutsSummaryMarkup(economics = {}, transactions = []) {
   const payoutAndWithdrawals = Number(economics.totalPayouts || 0) + Number(economics.totalWithdrawals || 0);
   return `
-    <section class="funding-subpage-hero funding-subpage-hero--payouts" aria-label="Resumen de payouts">
+    <section class="funding-subpage-hero funding-subpage-hero--payouts" aria-label="Resumen de retiros">
       <div class="funding-subpage-hero__copy">
         <span>Libro de retiros</span>
         <h2>${economicsAmountMarkup(economics.netFundingResult || 0)}</h2>
-        <p>${economics.hasTransactions ? `${transactions.length} movimientos registrados en el journey seleccionado.` : "Ledger de costes, refunds, payouts y ajustes pendiente de completar."}</p>
+        <p>${economics.hasTransactions ? `${transactions.length} movimientos registrados en el proceso seleccionado.` : "Libro de costes, reembolsos, retiros y ajustes pendiente de completar."}</p>
       </div>
       <div class="funding-subpage-kpi-grid">
         ${fundingSubpageKpiMarkup({
           label: "Costes",
           value: escapeHtml(formatCurrency(economics.totalSpent || 0)),
-          meta: "Fees, resets y rebuys",
+          meta: "Costes, reinicios y recompras",
           tone: economics.totalSpent > 0 ? "warning" : "neutral",
         })}
         ${fundingSubpageKpiMarkup({
           label: "Pagos / retiros",
           value: escapeHtml(formatCurrency(payoutAndWithdrawals)),
-          meta: `${formatCurrency(economics.totalRefunds || 0)} refunds`,
+          meta: `${formatCurrency(economics.totalRefunds || 0)} reembolsos`,
           tone: payoutAndWithdrawals > 0 ? "profit" : "neutral",
         })}
         ${fundingSubpageKpiMarkup({
-          label: "Neto funding",
+          label: "Resultado neto",
           value: economicsAmountMarkup(economics.netFundingResult || 0),
-          meta: "Cashflow manual",
+          meta: "Flujo manual",
           tone: fundingPayoutTone(economics.netFundingResult || 0),
         })}
         ${fundingSubpageKpiMarkup({
@@ -952,7 +952,7 @@ function fundingLedgerRowsMarkup(transactions = []) {
     return `
       <div class="funding-ledger-empty">
         <strong>Sin movimientos registrados</strong>
-        <span>Cuando añadas costes, refunds o payouts aparecerán aquí separados del P&L de trading.</span>
+        <span>Cuando añadas costes, reembolsos o retiros aparecerán aquí separados del P&L de trading.</span>
       </div>
     `;
   }
@@ -1114,7 +1114,7 @@ function fundingCardSummaryMarkup(account = {}, economics = {}) {
       <span data-tone="${escapeHtml(drawdownTone(account.maxUsagePct, account.maxLimitPct))}">
         <strong>DD máximo</strong><em>${escapeHtml(drawdownCurrentLine(account.maxUsagePct, account.maxLimitPct, account.maxDdPct))}</em>
       </span>
-      <span><strong>Neto funding</strong><em>${fundingCardEconomicsValue(economics)}</em></span>
+      <span><strong>Resultado neto</strong><em>${fundingCardEconomicsValue(economics)}</em></span>
     </span>
   `;
 }
@@ -1169,9 +1169,9 @@ function fundingCurrentStateMarkup(account = {}, economics = {}, daysStatus = tr
           meta: daysStatus.label,
         })}
         ${currentStateValueMarkup({
-          label: "Neto funding",
+          label: "Resultado neto",
           value: fundingCardEconomicsValue(economics),
-          meta: economics.hasTransactions ? "Ledger manual" : "Pendiente de registrar",
+          meta: economics.hasTransactions ? "Registro manual" : "Pendiente de registrar",
           tone: economics.hasTransactions && economics.netFundingResult < 0 ? "warning" : "neutral",
         })}
       </div>
@@ -1340,7 +1340,7 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
     alerts.push({
       tone: "warn",
       title: "Revisa tamaño de cuenta",
-      detail: "El tamaño configurado no coincide con el balance live recibido.",
+      detail: "El tamaño configurado no coincide con el balance sincronizado.",
       badge: "Config",
     });
   }
@@ -1356,7 +1356,7 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
     alerts.push({
       tone: "warn",
       title: "Cuenta sin sincronización reciente",
-      detail: "Revisa la última conexión live antes de interpretar la fase.",
+      detail: "Revisa la última sincronización antes de interpretar la fase.",
       badge: "Sync",
     });
   }
@@ -1371,8 +1371,8 @@ function fundedReviewAlerts(account, fundingEconomics = {}) {
   if (!fundingEconomics.hasTransactions) {
     alerts.push({
       tone: "neutral",
-      title: "Costes y payouts pendientes",
-      detail: "Costes, payouts y recuperaciones todavía no están registrados.",
+      title: "Costes y retiros pendientes",
+      detail: "Costes, retiros y recuperaciones todavía no están registrados.",
       badge: "Info",
     });
   }
@@ -1598,7 +1598,7 @@ export function renderFunded(root, state) {
       <div class="funded-page-stack">
         ${pageHeaderMarkup({
           title: "Funding",
-          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y payouts.",
+          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y retiros.",
           className: "tl-page-header",
           titleClassName: "tl-page-title",
           descriptionClassName: "tl-page-sub",
@@ -1620,7 +1620,7 @@ export function renderFunded(root, state) {
       <div class="funded-page-stack">
         ${pageHeaderMarkup({
           title: "Funding",
-          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y payouts.",
+          description: "Vincula una cuenta MT5 a un challenge para seguir reglas, fases y retiros.",
           className: "tl-page-header",
           titleClassName: "tl-page-title",
           descriptionClassName: "tl-page-sub",
@@ -1790,7 +1790,7 @@ export function renderFunded(root, state) {
         ${selected.accountSizeMismatch ? `
           <div class="funded-mismatch-note" role="status">
             <strong>Revisa el tamaño de cuenta configurado.</strong>
-            <span>El tamaño configurado no coincide con el balance live recibido.</span>
+            <span>El tamaño configurado no coincide con el balance sincronizado.</span>
           </div>
         ` : ""}
 
@@ -1803,7 +1803,7 @@ export function renderFunded(root, state) {
           <div class="funding-economics-head">
             <div>
               <div class="funding-detail-kicker">Economía del fondeo</div>
-              <div class="funding-rule-note-line">Ledger manual separado del P&L de trading.</div>
+              <div class="funding-rule-note-line">Registro manual separado del P&L de trading.</div>
             </div>
           </div>
           ${fundingEconomicsMarkup(selectedFundingEconomics)}
@@ -1836,8 +1836,8 @@ export function renderFunded(root, state) {
       <article class="tl-section-card funding-payout-ledger-panel" data-tone="${safeNumber(selectedFundingEconomics.netFundingResult || 0) < 0 ? "warning" : "profit"}">
         <div class="funding-detail-header">
           <div>
-            <div class="tl-section-title">Ledger de payouts</div>
-            <div class="funding-detail-title">Cashflow separado del P&L de trading.</div>
+            <div class="tl-section-title">Registro de retiros</div>
+            <div class="funding-detail-title">Flujo separado del P&L de trading.</div>
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
           </div>
           <div class="funding-detail-actions">
