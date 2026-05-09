@@ -209,6 +209,8 @@ Notas 2026-05-08:
 
 - Backend revisado para que permisos sensibles dependan de bearer verificado, `app_metadata` y decisiones server-side.
 - `X-KMFX-User-*` queda limitado a requests locales; Cloudflare Worker elimina esos headers antes de reenviar a Render.
+- Si `SUPABASE_JWT_SECRET` y Supabase Auth devuelven identidades distintas para el mismo bearer, el backend falla cerrado y no concede identidad ni admin.
+- Cuando hay JWT firmado y Supabase Auth fresco para el mismo usuario, la metadata fresca de Auth prevalece para plan, billing y admin.
 - MT5 remoto requiere `X-KMFX-Connection-Key` o bearer valido; keys en query string siguen bloqueadas en produccion.
 - Rate limit por `connection_key` activo en sync/journal/policy.
 - Rate limit complementario por usuario/IP anadido a checkout, portal, creacion/link de cuentas, regeneracion/revocacion/borrado de keys y endpoints admin.

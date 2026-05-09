@@ -78,10 +78,10 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Payloads MT5 demasiado grandes rechazados con `413 payload_too_large`.
 - [x] Admin y plan limits mueven decisiones hacia env/app metadata.
 - [ ] Auditar env vars reales de Render, Vercel, Cloudflare y GitHub.
-- [ ] Añadir o documentar verificación JWT final: Supabase Auth remote verification vs `SUPABASE_JWT_SECRET`.
+- [x] Añadir o documentar verificación JWT final: Supabase Auth remote verification vs `SUPABASE_JWT_SECRET`.
 - [x] Añadir rate limit complementario por IP/usuario para endpoints sensibles.
 - [ ] Revisar logs históricos por si contienen keys antiguas y rotarlas si procede.
-- [ ] Confirmar que endpoints admin devuelven `403` para usuarios no-admin verificados.
+- [x] Confirmar que endpoints admin devuelven `403` para usuarios no-admin verificados.
 
 ### Billing y planes
 

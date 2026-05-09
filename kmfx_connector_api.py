@@ -888,6 +888,12 @@ def _resolve_verified_bearer_claims(request: Request) -> dict[str, Any]:
     if not auth_user_claims:
         return signed_claims
 
+    signed_sub = safe_str(signed_claims.get("sub"))
+    auth_user_sub = safe_str(auth_user_claims.get("sub"))
+    if signed_sub and auth_user_sub and signed_sub != auth_user_sub:
+        log.warning("Supabase bearer verification rejected | reason=sub_mismatch")
+        return {}
+
     merged_claims = deepcopy(signed_claims)
     for key in ("sub", "email"):
         fresh_value = safe_str(auth_user_claims.get(key))

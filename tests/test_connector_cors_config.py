@@ -603,6 +603,93 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(context["is_admin"])
         self.assertEqual("admin", context["app_metadata"]["role"])
 
+    def test_signed_bearer_uses_fresh_supabase_app_metadata_for_plan(self) -> None:
+        request = self._request(headers={"authorization": "Bearer signed-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_signed_bearer_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "trader@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "active"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "_resolve_supabase_user_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "trader@example.com",
+                "app_metadata": {"plan": "free", "billing_status": "canceled"},
+                "user_metadata": {},
+            },
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("free", context["app_metadata"]["plan"])
+        self.assertEqual("canceled", context["app_metadata"]["billing_status"])
+
+    def test_signed_bearer_sub_mismatch_fails_closed(self) -> None:
+        request = self._request(headers={"authorization": "Bearer signed-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_signed_bearer_claims",
+            return_value={
+                "sub": "admin-user",
+                "email": "admin@kmfxedge.com",
+                "app_metadata": {"role": "admin"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "_resolve_supabase_user_claims",
+            return_value={
+                "sub": "different-user",
+                "email": "admin@kmfxedge.com",
+                "app_metadata": {"role": "admin"},
+                "user_metadata": {},
+            },
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("", context["user_id"])
+        self.assertEqual("", context["email"])
+        self.assertEqual("", context["source"])
+
+    def test_remote_user_headers_do_not_create_identity(self) -> None:
+        request = self._request(
+            host="203.0.113.10",
+            headers={
+                "x-kmfx-user-id": "admin-user",
+                "x-kmfx-user-email": "admin@kmfxedge.com",
+            },
+        )
+        with patch.object(connector_api, "_resolve_verified_bearer_claims", return_value={}):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("", context["user_id"])
+        self.assertEqual("", context["email"])
+        self.assertEqual("", context["source"])
+
+    def test_local_user_headers_are_scoped_to_trusted_header_identity(self) -> None:
+        request = self._request(
+            host="127.0.0.1",
+            headers={
+                "x-kmfx-user-id": "launcher-user",
+                "x-kmfx-user-email": "launcher@example.com",
+            },
+        )
+        with patch.object(connector_api, "_resolve_verified_bearer_claims", return_value={}):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("launcher-user", context["user_id"])
+        self.assertEqual("launcher@example.com", context["email"])
+        self.assertEqual("trusted_header", context["source"])
+
     def test_admin_billing_status_gets_unlimited_effective_access(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         with patch.object(
