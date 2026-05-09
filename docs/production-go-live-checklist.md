@@ -173,6 +173,9 @@ Notas 2026-05-09:
 - Probes externos sin credenciales: `/api/billing/status` devuelve estado anonimo Free/Demo, `/api/billing/checkout` y `/api/billing/portal` devuelven `401 auth_required`, y `/api/billing/webhook` rechaza payload sin firma con `400 invalid_signature`.
 - Idempotencia webhook endurecida: el `stripe_event_id` queda reservado como reintentable hasta que el procesamiento termina, evitando marcar eventos como procesados antes de aplicar el cambio de plan. Duplicados inmediatos se ignoran durante una ventana corta para no procesar dos veces el mismo evento concurrente.
 - Contratos locales de billing ampliados para `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` y `customer.subscription.deleted`.
+- Checkpoint adicional: Stripe MCP confirma cuenta `Kevinmartinezfx`, producto `KMFX Edge` y seis Prices live. Search de lookup keys devuelve vacio; el MCP disponible no expone update de Prices y `STRIPE_SECRET_KEY` no esta presente localmente, por lo que no se aplican mutaciones live desde esta sesion.
+- Backend validado con Price IDs live como fallback: `tests.test_connector_cors_config` pasa 84 tests, incluyendo mapping de Price IDs a planes, checkout, portal, webhook, rate limit e idempotencia.
+- Probe production tras ultimo push: `/health` responde `ok` con commit `c4f2746`, y `/api/billing/checkout` sin bearer sigue rechazando `401 auth_required`.
 
 Criterio de salida:
 
@@ -334,6 +337,8 @@ Notas 2026-05-09:
 - Login con email/password no exige Turnstile para evitar falsos bloqueos anti-bot; Turnstile queda reservado para signup, recovery y reset.
 - Detalles de cuenta queda mas ancho, scrollable y con lectura de warnings orientada a usuario, no raw tecnica.
 - Estudio de métricas queda en cards estables por categoría; las explicaciones incluyen fórmula, fuente, confianza y utilidad para el trader.
+- Pasada adicional de copy/ortografía aplicada en rutas visibles: login, Cuentas, Dashboard, Calendario, Insights, Funding, Estrategias, Ejecución, Risk Engine, Capital y Estudio. Se sustituyen labels inglesas no intencionadas como `Trades`, `Net Return`, `Max Drawdown`, `Recovery Factor`, `Payout split` y copy técnico visible por lenguaje de producto.
+- Cache-bust unificado en todos los imports del dashboard vanilla para evitar mezcla de módulos antiguos y nuevos en producción.
 
 ## Fase 7 - Legal, Confianza y Soporte
 
