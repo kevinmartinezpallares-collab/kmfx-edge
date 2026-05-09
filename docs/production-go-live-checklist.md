@@ -47,12 +47,18 @@ Objetivo: asegurar que partimos de una base estable.
 - [x] Worktree revisado y cambios ajenos identificados.
 - [ ] CI actual revisado.
 - [ ] Render/Vercel/Cloudflare/Supabase responden health.
-- [ ] Descargas Launcher macOS/Windows responden `200`.
+- [x] Descargas Launcher macOS/Windows responden `200`.
 - [ ] MT5 smoke actual documentado: cuenta conecta, EA read-only y cierre de Launcher no corta sync.
 
 Criterio de salida:
 
 - Base lista para empezar fixes sin pisar otros hilos.
+
+Notas 2026-05-09:
+
+- Verificado en produccion: `https://kmfxedge.com/downloads/KMFX-Launcher-macOS.zip` responde `200` y descarga como attachment.
+- Verificado en produccion: `https://kmfxedge.com/downloads/KMFX-Launcher-Windows.exe` responde `200` y descarga como attachment.
+- Verificado en produccion: `https://kmfxedge.com/KMFXConnector.ex5` responde `200`.
 
 ## Fase 1 - Contrato de Metricas
 
