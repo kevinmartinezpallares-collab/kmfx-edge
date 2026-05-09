@@ -121,7 +121,7 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["var_95"]["meta"]["sampleQualityLabel"], "Muestra aceptable")
         self.assertIn("Percentil 95", kpis["var_95"]["explain"]["formula"])
         self.assertIn("Muestra aceptable", kpis["var_95"]["explain"]["confidence"])
-        self.assertIn("Formula:", kpis["var_95"]["tooltip"])
+        self.assertIn("Fórmula:", kpis["var_95"]["tooltip"])
 
         self.assertEqual(kpis["var_99"]["value"], 1800)
         self.assertEqual(kpis["var_99"]["status"], "warn")

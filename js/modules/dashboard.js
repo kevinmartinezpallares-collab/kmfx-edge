@@ -662,7 +662,7 @@ function dashboardKpiHelpText(help) {
   if (!help || typeof help !== "object") return String(help || "");
   return [
     help.summary,
-    help.formula ? `Formula: ${help.formula}` : "",
+    help.formula ? `Fórmula: ${help.formula}` : "",
     help.source ? `Fuente: ${help.source}` : "",
     help.confidence ? `Confianza: ${help.confidence}` : "",
   ].filter(Boolean).join(" ");
@@ -673,7 +673,7 @@ function dashboardKpiHelpContentMarkup(help) {
     return `<span class="kmfx-ui-tooltip__content">${escapeDashboardHtml(help)}</span>`;
   }
   const rows = [
-    ["Formula", help.formula],
+    ["Fórmula", help.formula],
     ["Fuente", help.source],
     ["Confianza", help.confidence],
   ].filter(([, value]) => value);

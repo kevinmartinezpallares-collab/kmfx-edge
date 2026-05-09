@@ -317,7 +317,7 @@ Objetivo: que la app parezca producto final, no panel interno.
 - [ ] Corrección ortográfica completa del dashboard en español:
   - acentos, interrogaciones iniciales, mayúsculas de producto y consistencia entre `key`, `KMFXKey`, `EA`, `Launcher`, `sincronización`, `operación` y `dashboard`.
   - revisar rutas principales y modales: login, Cuentas, Dashboard, Operaciones, Calendario, Insights, Risk Engine, Ejecución, Herramientas, Ajustes, Estudio de métricas y Billing.
-- [ ] Estudio de métricas: unificar todas las cards con el patrón visual de "Métricas críticas del dashboard".
+- [x] Estudio de métricas: unificar todas las cards con el patrón visual de "Métricas críticas del dashboard".
   - misma estructura, alto mínimo, espaciado interno, footer, badges, densidad tipográfica y estados responsivos.
   - evitar columnas vacias, cortes por scroll y saltos al cambiar de card.
   - cada métrica debe explicar qué mide, para qué sirve al trader, cómo funciona, qué mirar, fuente y confianza.
@@ -333,7 +333,7 @@ Notas 2026-05-09:
 
 - Login con email/password no exige Turnstile para evitar falsos bloqueos anti-bot; Turnstile queda reservado para signup, recovery y reset.
 - Detalles de cuenta queda mas ancho, scrollable y con lectura de warnings orientada a usuario, no raw tecnica.
-- Estudio de metricas queda en cards estables por categoria; las explicaciones incluyen formula, fuente, confianza y utilidad para el trader.
+- Estudio de métricas queda en cards estables por categoría; las explicaciones incluyen fórmula, fuente, confianza y utilidad para el trader.
 
 ## Fase 7 - Legal, Confianza y Soporte
 
