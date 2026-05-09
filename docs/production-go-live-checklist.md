@@ -240,8 +240,8 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [x] Descarga Windows correcta desde dashboard.
 - [x] Boton "Abrir Launcher" abre la app instalada, no descarga de nuevo.
 - [x] Launcher detecta instalaciones por nombre legible: broker/cuenta/alias.
-- [ ] Instalar/Reinstalar conector deja `.ex5` y `kmfx_connection.conf`.
-- [ ] EA adjunto lee key desde archivo sin que el usuario la pegue si viene del Launcher.
+- [x] Instalar/Reinstalar conector deja `.ex5` y `kmfx_connection.conf`.
+- [x] EA adjunto lee key desde archivo sin que el usuario la pegue si viene del Launcher.
 - [x] Flujo manual permite copiar key desde "Ver detalles".
 - [x] Si la cuenta se desconecta, se reutiliza la misma key.
 - [x] Regenerar key solo por revocacion/filtracion/cambio explicito.
@@ -268,7 +268,8 @@ Notas 2026-05-09:
 - Windows sigue usando `downloads/KMFX-Launcher-Windows.exe`; el ZIP de Windows queda como artefacto alternativo.
 - El Launcher publicado se ha regenerado para mostrar nombres legibles de instalaciones MT5 usando broker/login inferidos del registro local y para ocultar backups/carpetas antiguas.
 - Checksum actual macOS ZIP: `1a4149ef01dd70ba85f79f48e3b00a9bf7f94af28c0a8dad4b16463ef246b09f`.
-- Checksum actual Windows EXE: `71e4cabb4eb1cf9954f3738866c6a2b1e1876156ec95a8fc107abc711c2658e0`.
+- Checksum actual Windows EXE: `32182b50be6ff3053f5f2eaadadb896bf9cc0fffcee897746d800ab22fa8df8d`.
+- Contrato probado: el instalador copia `KMFXConnector.ex5`/`.mq5`, escribe preset y deja `MQL5/Files/kmfx_connection.conf`; el EA lee esa key en runtime.
 
 Criterio de salida:
 
