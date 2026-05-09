@@ -26,7 +26,7 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("function accountDataSourceLabel", source)
         self.assertIn("const readable = (value) =>", source)
         self.assertIn('normalized.includes("[object object]")', source)
-        self.assertIn("KMFX esta usando un limite de riesgo por defecto", source)
+        self.assertIn("KMFX está usando un límite de riesgo por defecto", source)
         self.assertIn("Último dato recibido", source)
         self.assertNotIn("Trazabilidad técnica", source)
         self.assertNotIn("Último payload", source)
@@ -63,9 +63,17 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn("esperando primera sincronización", source)
         self.assertIn("primer dato de MT5", source)
+        self.assertIn("Todavía no hay sincronización de MT5", source)
+        self.assertIn("KMFX no reconoce esta key", source)
+        self.assertIn("Por seguridad, KMFX ya no acepta keys dentro de la URL", source)
+        self.assertIn("servidor de KMFX no aceptó temporalmente la sincronización", source)
         self.assertNotIn("falta sync live", source)
         self.assertNotIn("snapshot directo", source)
         self.assertNotIn("datos live", source)
+        self.assertNotIn("Todavía no hay sync de MT5", source)
+        self.assertNotIn("Account Number", source)
+        self.assertNotIn("Provider directo", source)
+        self.assertNotIn("motor de conexión directa", source)
 
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")

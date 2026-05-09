@@ -263,10 +263,10 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [x] Flujo manual permite copiar key desde "Ver detalles".
 - [x] Si la cuenta se desconecta, se reutiliza la misma key.
 - [x] Regenerar key solo por revocacion/filtracion/cambio explicito.
-- [ ] Errores claros:
+- [x] Errores claros:
   - WebRequest no autorizado
   - key no reconocida
-  - backend temporalmente no disponible
+  - servidor de KMFX temporalmente no disponible
   - cuenta stale
   - plan sin permiso
 - [x] Primer sync convierte cuenta pendiente en activa.
@@ -314,6 +314,13 @@ Objetivo: que la app parezca producto final, no panel interno.
 - [ ] Copy final de usuario no tecnico.
 - Nota 2026-05-09: segunda pasada aplicada en Cuentas, wizard, Calendario y Estudio de metricas. Retirados `payload`, `sync live`, `snapshot MT5`, `Backend Risk Metrics` y "detalle tecnico" de superficies no admin. Pendiente auditoria visual ruta por ruta antes de marcarlo completo.
 - Nota 2026-05-09: tercera pasada aplicada en Utils/autoridad de datos, Analytics, Risk sync, Topbar, Dashboard admin trace, Backtest vs Real, Navegacion y Mercado. Pendiente auditoria visual ruta por ruta antes de marcarlo completo.
+- [ ] Corrección ortográfica completa del dashboard en español:
+  - acentos, interrogaciones iniciales, mayúsculas de producto y consistencia entre `key`, `KMFXKey`, `EA`, `Launcher`, `sincronización`, `operación` y `dashboard`.
+  - revisar rutas principales y modales: login, Cuentas, Dashboard, Operaciones, Calendario, Insights, Risk Engine, Ejecución, Herramientas, Ajustes, Estudio de métricas y Billing.
+- [ ] Estudio de métricas: unificar todas las cards con el patrón visual de "Métricas críticas del dashboard".
+  - misma estructura, alto mínimo, espaciado interno, footer, badges, densidad tipográfica y estados responsivos.
+  - evitar columnas vacias, cortes por scroll y saltos al cambiar de card.
+  - cada métrica debe explicar qué mide, para qué sirve al trader, cómo funciona, qué mirar, fuente y confianza.
 - [ ] Modo admin separado y claramente oculto.
 - [ ] Desktop completo revisado.
 - [ ] Mobile basico revisado antes de go live.

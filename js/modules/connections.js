@@ -97,7 +97,7 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
     return {
       label: "Directa registrada",
       tone: "waiting",
-      subtitle: "Pendiente de datos live",
+      subtitle: "Pendiente de datos",
       actionLabel: "Ver detalle",
       action: "none",
     };
@@ -115,7 +115,7 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
     return {
       label: "Conectando…",
       tone: "waiting",
-      subtitle: "Esperando primer sync de MT5",
+      subtitle: "Esperando primera sincronización de MT5",
       actionLabel: "Abrir o instalar conector",
       action: "launcher",
     };
@@ -124,7 +124,7 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
     return {
       label: "Pendiente",
       tone: "pending",
-      subtitle: "Instala el EA y espera primer sync",
+      subtitle: "Instala el EA y espera la primera sincronización",
       actionLabel: "Abrir o instalar conector",
       action: "launcher",
     };
@@ -536,7 +536,7 @@ function renderConnectionGuide() {
       <div class="connections-guide-card__intro">
         <div class="connections-guide-card__copy">
           <div class="dashboard-risk-block__title">Conectar cuenta paso a paso</div>
-          <div class="row-sub">Instala el conector con Launcher y deja MT5 abierto con el EA activo para el primer sync.</div>
+          <div class="row-sub">Instala el conector con Launcher y deja MT5 abierto con el EA activo para la primera sincronización.</div>
         </div>
         <div class="connections-guide-card__launcher-actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
@@ -759,7 +759,7 @@ function accountWarningToUserCopy(warning) {
     || normalized.includes("current_level")
     || normalized.includes("inferido")
   ) {
-    return "KMFX esta usando un limite de riesgo por defecto hasta que configures una politica propia.";
+    return "KMFX está usando un límite de riesgo por defecto hasta que configures una política propia.";
   }
   if (normalized.includes("fallback")) {
     return "";
@@ -769,6 +769,35 @@ function accountWarningToUserCopy(warning) {
   }
   if (normalized.includes("stale") || normalized.includes("desactualiz") || normalized.includes("last_sync")) {
     return "La cuenta lleva demasiado tiempo sin sincronizar. Abre MT5 y comprueba el EA.";
+  }
+  if (normalized.includes("webrequest") || normalized.includes("web_request")) {
+    return "MT5 no puede enviar datos. Añade la URL de KMFX en WebRequest y deja Algo Trading activo.";
+  }
+  if (
+    normalized.includes("backend")
+    || normalized.includes("service_unavailable")
+    || normalized.includes("temporarily")
+    || normalized.includes("timeout")
+    || normalized.includes("http_502")
+    || normalized.includes("http_503")
+    || normalized.includes("http_504")
+  ) {
+    return "El servidor de KMFX no respondió temporalmente. No cambies la key; el EA reintentará la sincronización.";
+  }
+  if (
+    normalized.includes("entitlement")
+    || normalized.includes("billing")
+    || normalized.includes("plan")
+    || normalized.includes("permission")
+    || normalized.includes("forbidden")
+  ) {
+    return "Tu plan o permisos no permiten sincronizar esta cuenta ahora mismo. Revisa tu suscripción o contacta con soporte.";
+  }
+  if (normalized.includes("unknown_connection_key") || normalized.includes("invalid_connection_key")) {
+    return "KMFX no reconoce la KMFXKey pegada en el EA. Copia la key de esta cuenta y pégala de nuevo.";
+  }
+  if (normalized.includes("revoked_connection_key") || normalized.includes("connection_revoked")) {
+    return "La KMFXKey está revocada. Regenera una nueva desde esta cuenta y pégala en el EA.";
   }
   if (normalized.includes("key") || normalized.includes("connection")) {
     return "La key o la conexión necesita revisión. Usa esta misma KMFXKey en el EA o regenera una nueva.";
@@ -789,8 +818,8 @@ function resolveAccountDataHealth(account, technicalTrace) {
   }
   if (status === "pending" || status === "pending_setup" || status === "draft" || status === "waiting_sync") {
     return {
-      label: "Esperando primer sync",
-      detail: "Abre MT5 con el EA activo. Cuando llegue el primer sync, la cuenta quedará lista en el dashboard.",
+      label: "Esperando primera sincronización",
+      detail: "Abre MT5 con el EA activo. Cuando llegue el primer dato, la cuenta quedará lista en el dashboard.",
     };
   }
   if (account?.login || technicalTrace.updatedAt) {
@@ -801,7 +830,7 @@ function resolveAccountDataHealth(account, technicalTrace) {
   }
   return {
     label: "Pendiente de datos",
-    detail: "Instala el conector, pega la KMFXKey en el EA y espera el primer sync desde MetaTrader 5.",
+    detail: "Instala el conector, pega la KMFXKey en el EA y espera la primera sincronización desde MetaTrader 5.",
   };
 }
 
@@ -810,7 +839,7 @@ function accountDataSourceLabel(source) {
   if (!normalized) return "Pendiente de datos";
   if (normalized.includes("mt5_sync_live") || normalized.includes("mt5")) return "MT5 sincronizado";
   if (normalized.includes("registry")) return "Registro de cuenta";
-  if (normalized.includes("direct")) return "Conexion directa";
+  if (normalized.includes("direct")) return "Conexión directa";
   if (normalized.includes("manual")) return "Dato manual";
   return "Datos de cuenta";
 }
@@ -819,7 +848,7 @@ function accountConnectionModeLabel(mode) {
   const normalized = String(mode || "").trim().toLowerCase();
   if (!normalized) return "Conector";
   if (normalized.includes("launcher")) return "Launcher";
-  if (normalized.includes("direct")) return "Conexion directa";
+  if (normalized.includes("direct")) return "Conexión directa";
   if (normalized.includes("ea") || normalized.includes("connector")) return "EA Connector";
   return "Conector";
 }
@@ -1094,7 +1123,7 @@ function renderEmptyState(root, state = {}) {
           <div class="calendar-panel-head">
             <div>
               <div class="calendar-panel-title">Conecta tu cuenta MT5</div>
-              <div class="calendar-panel-sub">Instala el conector con el Launcher y deja MT5 abierto con el EA activo. El Launcher puede cerrarse tras el primer sync.</div>
+              <div class="calendar-panel-sub">Instala el conector con el Launcher y deja MT5 abierto con el EA activo. El Launcher puede cerrarse tras la primera sincronización.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">

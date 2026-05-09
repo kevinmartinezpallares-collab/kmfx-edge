@@ -410,7 +410,7 @@ function renderEaConfigStep(state) {
           </div>
           <div class="connection-wizard__setup-step">
             <span>3</span>
-            <div><strong>Pega la key y espera sync</strong><small>Cuando MT5 conecte, el último paso te dejará finalizar el proceso.</small></div>
+            <div><strong>Pega la key y espera la sincronización</strong><small>Cuando MT5 conecte, el último paso te dejará finalizar el proceso.</small></div>
           </div>
         </div>
         <div class="connection-wizard__utility-row connection-wizard__utility-row--warning">
@@ -449,12 +449,12 @@ function renderDirectConfigStep(state) {
         </div>
         <div class="connection-wizard__form-grid">
           <label class="form-stack">
-            <span>Account Number</span>
+            <span>Número de cuenta</span>
             <input type="text" name="directLogin" inputmode="numeric" autocomplete="off" value="${escapeHtml(direct.login || "")}" placeholder="80571774">
           </label>
           <label class="form-stack">
-            <span>Investor password</span>
-            <input type="password" name="directPassword" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" value="${escapeHtml(direct.password || "")}" placeholder="Investor o master password">
+            <span>Contraseña investor</span>
+            <input type="password" name="directPassword" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" value="${escapeHtml(direct.password || "")}" placeholder="Investor o contraseña maestra">
           </label>
           <label class="form-stack">
             <span>Servidor</span>
@@ -492,7 +492,7 @@ function renderConfirmationStep(state) {
           <span class="connection-wizard__success-icon">${isConnected ? "✓" : "3"}</span>
           <div class="connection-wizard__success-copy">
             <div class="connection-wizard__success-title">${isDirectPendingSync ? "Registro preparado" : isDirect ? "Cuenta directa añadida" : isConnected ? "Cuenta MT5 conectada" : "KMFXKey lista"}</div>
-            <div class="connection-wizard__success-subtitle">${isDirectPendingSync ? "Aparecerá en dashboard como pendiente de sync. Para datos reales, instala el EA." : isDirect ? "La verás en Cuentas con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave."}</div>
+            <div class="connection-wizard__success-subtitle">${isDirectPendingSync ? "Aparecerá en Cuentas como pendiente de sincronización. Para datos reales, instala el EA." : isDirect ? "La verás en Cuentas con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave."}</div>
           </div>
         </div>
         ${key ? `<div class="connection-wizard__secret-row">
@@ -516,13 +516,13 @@ function renderConfirmationStep(state) {
           </div>
           <div class="connection-wizard__finish-step ${isConnected ? "is-complete" : ""}">
             <span>3</span>
-            <div><strong>${isDirect ? "Sincronización" : "Primer sync"}</strong><small>${isDirectPendingSync ? "Pendiente de conexión directa real. Usa EA si quieres datos ahora." : isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
+            <div><strong>${isDirect ? "Sincronización" : "Primera sincronización"}</strong><small>${isDirectPendingSync ? "Pendiente de conexión directa real. Usa EA si quieres datos ahora." : isDirect ? "Ya puedes cerrar el asistente." : isConnected ? "Recibido. El proceso queda finalizado." : "Pulsa comprobar cuando Experts muestre conectado a KMFX."}</small></div>
           </div>
         </div>
         ${isWaiting || isError || isDirectPendingSync ? `
           <div class="connection-wizard__inline-status connection-wizard__inline-status--${isError ? "danger" : "warning"}">
             <strong>${escapeHtml(syncStatus.title || (isError ? "No pude comprobar la conexión" : "Aún no veo la sincronización"))}</strong>
-            <span>${escapeHtml(syncStatus.message || (isDirectPendingSync ? "La conexión directa queda registrada, pero el dashboard necesita EA para sincronizar datos reales ahora." : "Deja MT5 abierto con el EA activo y vuelve a comprobar."))}</span>
+            <span>${escapeHtml(syncStatus.message || (isDirectPendingSync ? "La conexión directa queda registrada, pero necesitas el EA para ver datos reales ahora." : "Deja MT5 abierto con el EA activo y vuelve a comprobar."))}</span>
           </div>
         ` : ""}
       `
@@ -591,6 +591,7 @@ function renderWizardAlert(error) {
 
 function formatConnectionError(payload, fallback = "No se pudo generar la clave de conexión.") {
   const reason = String(payload?.reason || payload?.error || "").trim();
+  const normalizedReason = reason.toLowerCase();
   const details = payload?.details && typeof payload.details === "object" ? payload.details : {};
   if (reason === "connection_limit_exceeded" || reason === "plan_limit_reached") {
     const limit = Number(details.connection_limit);
@@ -648,8 +649,8 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
   if (reason === "direct_mt5_provider_unreachable" || reason === "direct_mt5_provider_error") {
     return {
       kind: "warning",
-      title: "Provider directo no disponible",
-      message: "No se pudo contactar con el motor de conexión directa.",
+      title: "Conexión directa no disponible",
+      message: "No se pudo contactar con el servicio de conexión directa.",
       hint: "Puedes usar EA ahora y reintentar conexión directa más tarde.",
     };
   }
@@ -661,11 +662,75 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       hint: "",
     };
   }
+  if (normalizedReason.includes("missing_connection_key")) {
+    return {
+      kind: "warning",
+      title: "Falta la KMFXKey",
+      message: "Pega la KMFXKey de esta cuenta en el EA o reinstala el conector desde el Launcher.",
+      hint: "No crees otra cuenta si solo necesitas reparar la conexión.",
+    };
+  }
+  if (normalizedReason.includes("unknown_connection_key") || normalizedReason.includes("invalid_connection_key")) {
+    return {
+      kind: "warning",
+      title: "KMFX no reconoce esta key",
+      message: "Comprueba que la KMFXKey pegada en el EA pertenece a esta cuenta.",
+      hint: "Si has regenerado la key, pega la nueva en MT5 y vuelve a comprobar.",
+    };
+  }
+  if (normalizedReason.includes("revoked_connection_key") || normalizedReason.includes("connection_revoked")) {
+    return {
+      kind: "warning",
+      title: "Key revocada",
+      message: "Esta KMFXKey ya no está activa.",
+      hint: "Regenera la key desde Detalles de cuenta y pégala de nuevo en el EA.",
+    };
+  }
+  if (normalizedReason.includes("query_connection_key_not_allowed")) {
+    return {
+      kind: "warning",
+      title: "Conector desactualizado",
+      message: "Actualiza KMFX Connector o reinstálalo desde el Launcher.",
+      hint: "Por seguridad, KMFX ya no acepta keys dentro de la URL.",
+    };
+  }
+  if (normalizedReason.includes("webrequest") || normalizedReason.includes("web_request")) {
+    return {
+      kind: "warning",
+      title: "MT5 no puede enviar datos",
+      message: `Añade ${MT5_WEBREQUEST_URL} en Tools > Options > Expert Advisors > WebRequest.`,
+      hint: "Después deja Algo Trading activo y vuelve a comprobar la conexión.",
+    };
+  }
+  if (normalizedReason.includes("rate_limited") || normalizedReason.includes("too_many_requests")) {
+    return {
+      kind: "warning",
+      title: "Demasiados intentos seguidos",
+      message: "KMFX ha pausado temporalmente esta conexión para proteger tu cuenta.",
+      hint: "Espera un minuto, deja MT5 abierto y vuelve a comprobar.",
+    };
+  }
+  if (
+    normalizedReason.includes("backend_unavailable")
+    || normalizedReason.includes("service_unavailable")
+    || normalizedReason.includes("temporarily_unavailable")
+    || normalizedReason.includes("timeout")
+    || normalizedReason.includes("http_502")
+    || normalizedReason.includes("http_503")
+    || normalizedReason.includes("http_504")
+  ) {
+    return {
+      kind: "warning",
+      title: "KMFX no respondió a tiempo",
+      message: "El servidor de KMFX no aceptó temporalmente la sincronización.",
+      hint: "No cambies la key. Deja MT5 abierto y el EA reintentará automáticamente.",
+    };
+  }
   return {
     kind: "warning",
     title: "No se pudo generar la clave",
-    message: reason ? reason.replaceAll("_", " ") : fallback,
-    hint: "",
+    message: reason ? "KMFX no pudo completar la acción con esta cuenta." : fallback,
+    hint: reason ? "Revisa la conexión y vuelve a intentarlo. Si se repite, contacta con soporte indicando el estado de la cuenta." : "",
   };
 }
 
@@ -743,7 +808,7 @@ async function createDirectConnection(card, state, options = {}, store = activeW
     state.error = {
       kind: "warning",
       title: "Faltan datos de conexión",
-      message: "Completa login, password y server para conectar la cuenta directa.",
+      message: "Completa número de cuenta, contraseña y servidor para conectar la cuenta directa.",
       hint: "Usa investor password si solo quieres lectura.",
     };
     mountWizard(card, state, options, store);
@@ -807,7 +872,7 @@ async function createDirectConnection(card, state, options = {}, store = activeW
       title: payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada",
       message: payload.direct_sync_available
         ? "La cuenta ya aparece en Cuentas y se ha recibido el primer dato de MT5."
-        : "La cuenta aparecerá en el dashboard como pendiente. Para sincronizar datos en tiempo real ahora, instala el EA en MT5.",
+        : "La cuenta aparecerá en Cuentas como pendiente. Para sincronizar datos en tiempo real ahora, instala el EA en MT5.",
     };
     showToast(payload.direct_sync_available ? "Cuenta directa conectada" : "Cuenta directa registrada; esperando primera sincronización", payload.direct_sync_available ? "success" : "warning");
     window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
@@ -843,7 +908,7 @@ async function checkEaSync(card, state, options = {}, store = activeWizardStore)
         title: "Aún no veo la sincronización",
         message: "Deja MT5 abierto con el EA activo, confirma WebRequest y vuelve a comprobar.",
       };
-      showToast("Todavía no hay sync de MT5", "warning");
+      showToast("Todavía no hay sincronización de MT5", "warning");
     }
   } catch {
     state.syncStatus = {

@@ -663,7 +663,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
           const html = String(root.innerHTML || "");
           const required = [
             "Pendiente",
-            "Instala el EA y espera primer sync",
+            "Instala el EA y espera la primera sincronización",
             "Sin actualizar",
             "Última actividad",
             "Key revocada",
@@ -954,7 +954,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
         self.assertEqual(
             {
                 "Pendiente",
-                "Instala el EA y espera primer sync",
+                "Instala el EA y espera la primera sincronización",
                 "Sin actualizar",
                 "Última actividad",
                 "Key revocada",

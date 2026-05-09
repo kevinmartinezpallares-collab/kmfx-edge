@@ -172,6 +172,8 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Health externo verificado tras `6ecd97f`: Vercel `/dashboard`, Render `/health`, Worker `mt5-api` `/health` y Supabase Auth protegido responden como esperado.
 - Supabase Security Advisor sigue con un unico warning abierto: activar leaked password protection en Auth. Performance Advisor requiere reautenticacion del conector o CLI local.
 - Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.
+- Flujo MT5 reforzado con errores orientados a usuario final: WebRequest, KMFXKey ausente/no reconocida/revocada, conector desactualizado, rate limit, plan sin permiso y servidor de KMFX temporalmente no disponible.
+- Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -182,6 +184,8 @@ Bloque previo obligatorio:
 
 - [x] Crear contrato inicial live de `/api/accounts/snapshot`.
 - [ ] Pasada final de textos visibles para usuario final en secciones restantes.
+- [ ] Corrección ortográfica completa del dashboard en español antes del QA final.
+- [ ] Estudio de métricas: todas las cards deben compartir patrón visual, espaciado, footer, altura y contenido didáctico de "Métricas críticas del dashboard".
 - [x] Render smoke inicial de metricas live por seccion con fixture.
 - [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.
 - [x] Render smoke de estados degradados en Risk/Funding: sin policy/snapshot, stale y funding no vinculado.
