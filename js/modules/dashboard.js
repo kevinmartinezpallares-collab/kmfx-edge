@@ -43,7 +43,7 @@ function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
       ${pageHeaderMarkup({
         eyebrow: "Dashboard",
         title: "Dashboard",
-        description: "Cuenta directa registrada, pendiente de sincronización live.",
+        description: "Cuenta directa registrada, pendiente de sincronización en tiempo real.",
         className: "calendar-screen__header dashboard-screen__header",
         contentClassName: "calendar-screen__copy",
         eyebrowClassName: "calendar-screen__eyebrow",
@@ -56,9 +56,9 @@ function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
         <div class="tl-section-header">
           <div>
             <div class="tl-section-title">La cuenta está añadida, pero aún no hay datos</div>
-            <div class="settings-section-sub">La conexión directa real todavía no está disponible. Para traer balance, equity, trades e historial ahora, instala el EA en MetaTrader 5.</div>
+            <div class="settings-section-sub">La conexión directa real todavía no está disponible. Para traer balance, equity, operaciones e historial ahora, instala el EA en MetaTrader 5.</div>
           </div>
-          <span class="meta-badge">Pendiente live</span>
+          <span class="meta-badge">Pendiente de datos</span>
         </div>
         <div class="settings-status-list">
           <div class="settings-status-card">
@@ -67,13 +67,13 @@ function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
             <small>${escapeHtml([server, login ? `Login ${login}` : ""].filter(Boolean).join(" · ") || "Identidad registrada")}</small>
           </div>
           <div class="settings-status-card">
-            <span>Datos live</span>
+            <span>Datos en tiempo real</span>
             <strong>Pendientes</strong>
-            <small>Sin balance, operaciones ni historial hasta recibir un sync real.</small>
+            <small>Sin balance, operaciones ni historial hasta recibir la primera sincronización real.</small>
           </div>
         </div>
         <div class="calendar-inline-note calendar-inline-note--warning">
-          <strong>Camino disponible ahora:</strong> abre el asistente, crea/usa una KMFXKey e instala KMFXConnector en MT5. Cuando el EA envíe el primer sync, este dashboard se llenará con los datos reales.
+          <strong>Camino disponible ahora:</strong> abre el asistente, crea o usa una KMFXKey e instala KMFXConnector en MT5. Cuando el EA envíe la primera sincronización, este dashboard se llenará con los datos reales.
         </div>
       </article>
     </section>
@@ -856,18 +856,18 @@ function dashboardProfessionalMeta(kpi = {}) {
   }
   if (kpi.kpi === "vol_ann") {
     const sampleSize = finiteDashboardNumber(meta.sampleSize);
-    return sampleSize ? `${sampleSize} sesiones medidas` : (kpi.statusLabel || "insuficiente historico");
+    return sampleSize ? `${sampleSize} sesiones medidas` : (kpi.statusLabel || "histórico insuficiente");
   }
   if (kpi.kpi === "sortino") {
     const sampleSize = finiteDashboardNumber(meta.sampleSize);
-    return sampleSize ? `${sampleSize} retornos / downside` : (kpi.statusLabel || "insuficiente historico");
+    return sampleSize ? `${sampleSize} retornos / downside` : (kpi.statusLabel || "histórico insuficiente");
   }
   if (kpi.kpi === "dscore") {
     return kpi.statusLabel || kpi.emptyReason || "score pendiente";
   }
   if (kpi.kpi === "max_drawdown") {
     const sampleSize = finiteDashboardNumber(meta.sampleSize);
-    return sampleSize ? `${sampleSize} trades / ${kpi.statusLabel || "lectura 30d"}` : (kpi.statusLabel || "lectura 30d");
+    return sampleSize ? `${sampleSize} operaciones / ${kpi.statusLabel || "lectura 30d"}` : (kpi.statusLabel || "lectura 30d");
   }
   if (kpi.kpi === "net_return") {
     const pnl7d = finiteDashboardNumber(meta.pnl7d);
@@ -1387,13 +1387,13 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
       summary: "Restricción activa por el estado de riesgo.",
       metrics: [
         {
-          label: "Distance to limit",
+          label: "Distancia al límite",
           value: formatRiskValuePct(distanceToLimitPct, 2),
           meta: riskStatus?.blockingRule || "Control crítico activo",
           tone: "blocked",
         },
         {
-          label: "Open risk",
+          label: "Riesgo abierto",
           value: formatRiskValuePct(totalOpenRiskPct, 2),
           meta: `${openPositionsCount} posiciones abiertas`,
           tone: "warning",
@@ -1408,13 +1408,13 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
       summary: "El margen diario se está estrechando.",
       metrics: [
         {
-          label: "Daily DD",
+          label: "DD diario",
           value: formatRiskValuePct(dailyDrawdownPct, 2),
           meta: `Límite ${formatRiskValuePct(dailyLimitPct, 2)}`,
           tone: "warning",
         },
         {
-          label: "Distance",
+          label: "Distancia",
           value: formatRiskValuePct(distanceToLimitPct, 2),
           meta: "Margen antes de tocar límite",
           tone: "warning",
@@ -1431,7 +1431,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
         {
           label: "Profit factor",
           value: Number.isFinite(profitFactor) && profitFactor > 0 ? profitFactor.toFixed(2) : "—",
-          meta: `${totalTrades} trades analizados`,
+          meta: `${totalTrades} operaciones analizadas`,
           tone: "ok",
         },
         {
@@ -1472,7 +1472,7 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
       {
         label: "Profit factor",
         value: Number.isFinite(profitFactor) && profitFactor > 0 ? profitFactor.toFixed(2) : "—",
-        meta: `${totalTrades} trades`,
+        meta: `${totalTrades} operaciones`,
         tone: "neutral",
       },
       {
@@ -1599,7 +1599,7 @@ export function renderDashboard(root, state) {
       { label: "sourceType", value: account?.sourceType || "" },
       { label: "payloadSource", value: authority.payloadSource || dashboardPayload?.payloadSource || "" },
       { label: "sourceUsed", value: authority.sourceUsed || performanceView.sourceUsed || "" },
-      { label: "trades", value: authority.tradeCount || model?.totals?.totalTrades || 0 },
+      { label: "operaciones", value: authority.tradeCount || model?.totals?.totalTrades || 0 },
       { label: "history", value: authority.historyPoints || 0 },
     ],
   });
@@ -1882,7 +1882,7 @@ export function renderDashboard(root, state) {
   const positionsMeta = hasOpenPositions ? exposureLeaderMeta : "Sin exposición viva";
   const totalTradesCount = Number(model?.totals?.totalTrades || 0);
   const winRateMeta = totalTradesCount > 0 ? formatPercent(Number(model?.totals?.winRate || 0) / 100) : "—";
-  const profitFactorMeta = `${totalTradesCount} trades / WR ${winRateMeta}`;
+  const profitFactorMeta = `${totalTradesCount} operaciones / WR ${winRateMeta}`;
   const dashboardSubtitle = "Capital, riesgo y estado operativo de un vistazo.";
   const professionalRiskSnapshot = account?.riskSnapshot || dashboardPayload?.riskSnapshot || { summary: riskSummary };
   const professionalKpiContract = selectDashboardProfessionalKpis({
@@ -2062,7 +2062,7 @@ export function renderDashboard(root, state) {
     pnlMeta: `Retorno ${formatPercent(currentReturnPct)}`,
     drawdownValue: Number(riskSummary.peakToEquityDrawdownPct || 0),
     drawdownTone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
-    drawdownMeta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+    drawdownMeta: `DD diario ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
     edgeValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor).toFixed(2) : "—",
     edgeNumericValue: Number(model?.totals?.profitFactor || 0) > 0 ? Number(model.totals.profitFactor) : null,
     edgeMeta: profitFactorMeta,
@@ -2135,7 +2135,7 @@ export function renderDashboard(root, state) {
           key: "dd",
           label: "Drawdown",
           value: formatRiskValuePct(riskSummary.peakToEquityDrawdownPct, 2),
-          meta: `Daily DD ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
+          meta: `DD diario ${formatRiskValuePct(riskSummary.dailyDrawdownPct, 2)} / Margen ${formatRiskValuePct(primaryDistanceToLimit, 2)}`,
           tone: Number(riskSummary.peakToEquityDrawdownPct || 0) > 2 ? "risk" : Number(riskSummary.peakToEquityDrawdownPct || 0) > 0.5 ? "warning" : "neutral",
         })}
         ${renderDashboardKpiCard({
@@ -2274,7 +2274,7 @@ export function renderDashboard(root, state) {
             <div class="calendar-panel-head">
               <div>
                 <div class="calendar-panel-title">Riesgo por posición</div>
-                <div class="calendar-panel-sub">Detalle de trades abiertos con stop, riesgo y P&amp;L.</div>
+                <div class="calendar-panel-sub">Detalle de operaciones abiertas con stop, riesgo y P&amp;L.</div>
               </div>
             </div>
             <div data-dashboard-open-trade-risk-table>${renderOpenTradeRiskTable(riskExposure.openTradeRisks)}</div>

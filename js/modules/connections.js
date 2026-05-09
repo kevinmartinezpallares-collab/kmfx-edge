@@ -765,7 +765,7 @@ function accountWarningToUserCopy(warning) {
     return "";
   }
   if (normalized.includes("sample") || normalized.includes("muestra") || normalized.includes("insufficient")) {
-    return "La muestra todavía es corta; algunas métricas ganarán precisión con más trades cerrados.";
+    return "La muestra todavía es corta; algunas métricas ganarán precisión con más operaciones cerradas.";
   }
   if (normalized.includes("stale") || normalized.includes("desactualiz") || normalized.includes("last_sync")) {
     return "La cuenta lleva demasiado tiempo sin sincronizar. Abre MT5 y comprueba el EA.";
@@ -950,7 +950,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
             </div>
             <div>
               <span>Muestra</span>
-              <strong>${technicalTrace.sampleSize.toLocaleString("es-ES")} trades</strong>
+              <strong>${technicalTrace.sampleSize.toLocaleString("es-ES")} operaciones</strong>
             </div>
             <div>
               <span>Último dato recibido</span>

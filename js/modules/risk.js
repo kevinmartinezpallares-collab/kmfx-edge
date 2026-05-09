@@ -6,6 +6,7 @@ import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260505-100000";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 
 function escapeHtml(value = "") {
@@ -429,7 +430,7 @@ function professionalAssumptionsModel(professional, snapshot, account) {
     {
       label: "Muestra",
       value: professional.sampleSize,
-      detail: "Trades cerrados",
+      detail: "Operaciones cerradas",
       format: "integer"
     }
   ];
@@ -489,18 +490,18 @@ function resolvePortfolioVarModel(state) {
     hasVar: accountsWithVar > 0,
     cards: [
       { label: "VaR 95", value: formatCurrency(totalVar95), detail: `${formatRiskPct(equityPct(totalVar95))} equity`, tone: totalVar95 > 0 ? "warn" : "neutral" },
-      { label: "CVaR 95", value: formatCurrency(totalCvar95), detail: `${formatRiskPct(equityPct(totalCvar95))} equity`, tone: totalCvar95 > totalVar95 ? "warn" : "neutral" },
-      { label: "VaR 99", value: formatCurrency(totalVar99), detail: `${formatRiskPct(equityPct(totalVar99))} equity`, tone: totalVar99 > totalVar95 && totalVar95 > 0 ? "danger" : totalVar99 > 0 ? "warn" : "neutral" },
+      { label: "CVaR 95", value: formatCurrency(totalCvar95), detail: `${formatRiskPct(equityPct(totalCvar95))} sobre equity`, tone: totalCvar95 > totalVar95 ? "warn" : "neutral" },
+      { label: "VaR 99", value: formatCurrency(totalVar99), detail: `${formatRiskPct(equityPct(totalVar99))} sobre equity`, tone: totalVar99 > totalVar95 && totalVar95 > 0 ? "danger" : totalVar99 > 0 ? "warn" : "neutral" },
       { label: "RoR máximo", value: formatRiskPct(highestRuin), detail: `${accountsWithVar}/${accounts.length || 0} cuentas con muestra`, tone: highestRuin >= 10 ? "danger" : highestRuin >= 3 ? "warn" : "neutral" }
     ]
   };
 }
 
 function professionalSampleMeta(sampleSize) {
-  if (sampleSize >= 100) return { label: "Muestra robusta", tone: "ok", detail: `${sampleSize} trades cerrados` };
-  if (sampleSize >= 30) return { label: "Muestra operativa", tone: "ok", detail: `${sampleSize} trades cerrados` };
-  if (sampleSize > 0) return { label: "Muestra temprana", tone: "warn", detail: `${sampleSize} trades cerrados` };
-  return { label: "Sin muestra", tone: "neutral", detail: "Esperando trades cerrados" };
+  if (sampleSize >= 100) return { label: "Muestra robusta", tone: "ok", detail: `${sampleSize} operaciones cerradas` };
+  if (sampleSize >= 30) return { label: "Muestra operativa", tone: "ok", detail: `${sampleSize} operaciones cerradas` };
+  if (sampleSize > 0) return { label: "Muestra temprana", tone: "warn", detail: `${sampleSize} operaciones cerradas` };
+  return { label: "Sin muestra", tone: "neutral", detail: "Esperando operaciones cerradas" };
 }
 
 function professionalRiskTone(value, warningAt, dangerAt) {
@@ -559,7 +560,7 @@ function professionalReadout(professional) {
   if (ruinProbability >= 10) {
     return {
       title: "Supervivencia bajo presión",
-      body: `Monte Carlo marca ${formatRiskPct(ruinProbability)} de probabilidad de tocar el límite. Revisa sizing antes de escalar exposición.`,
+      body: `Monte Carlo marca ${formatRiskPct(ruinProbability)} de probabilidad de tocar el límite. Revisa tamaño antes de escalar exposición.`,
       tone: "danger"
     };
   }
@@ -619,9 +620,9 @@ function professionalSimulationModel(professional) {
     simulations: safeNumber(monteCarlo.simulations, 0),
     zeroPosition: returnScale.position(0),
     returnMarkers: [
-      { label: "P05", value: p05, tone: "danger", position: returnScale.position(p05) },
+      { label: "Peor 5%", value: p05, tone: "danger", position: returnScale.position(p05) },
       { label: "Mediana", value: median, tone: median >= 0 ? "ok" : "warn", position: returnScale.position(median) },
-      { label: "P95", value: p95, tone: "ok", position: returnScale.position(p95) }
+      { label: "Mejor 5%", value: p95, tone: "ok", position: returnScale.position(p95) }
     ],
     stats: [
       { label: "Retorno P05", value: formatSignedRiskPct(p05), tone: p05 < 0 ? "danger" : "ok" },
@@ -683,13 +684,13 @@ function professionalActionAlerts(professional, snapshot) {
     alerts.push({
       tone: "warn",
       title: "Validar por estrategia",
-      detail: "Muestra menor a 30 trades: evita subir sizing hasta separar setups y sesiones."
+      detail: "Muestra menor a 30 operaciones: evita subir tamaño hasta separar setups y sesiones."
     });
   }
   if (ruinProbability >= 10) {
     alerts.push({
       tone: "danger",
-      title: "Reducir sizing",
+      title: "Reducir tamaño",
       detail: `Monte Carlo marca ${formatRiskPct(ruinProbability)} de probabilidad de tocar ruina.`
     });
   } else if (ruinProbability >= 3) {
@@ -730,18 +731,113 @@ function professionalActionAlerts(professional, snapshot) {
     alerts.push({
       tone: "warn",
       title: "Heat por encima del trade base",
-      detail: `Riesgo abierto ${formatRiskPct(openRiskPct)} frente a ${formatRiskPct(maxRiskPerTradePct)} por trade.`
+      detail: `Riesgo abierto ${formatRiskPct(openRiskPct)} frente a ${formatRiskPct(maxRiskPerTradePct)} por operación.`
     });
   }
 
   if (!alerts.length) {
     alerts.push({
       tone: "ok",
-      title: "Mantener sizing base",
+      title: "Mantener tamaño base",
       detail: "La simulación no pide recorte inmediato; sigue validando por muestra y disciplina."
     });
   }
   return alerts.slice(0, 4);
+}
+
+function professionalInterpretationNotes(professional, simulation, snapshot) {
+  if (!simulation.available) {
+    return [{
+      tone: "warn",
+      title: "Primero necesitas muestra",
+      body: "Monte Carlo empieza a ser útil cuando hay suficientes operaciones cerradas. Hasta entonces úsalo solo como una alerta temprana, no como permiso para subir riesgo."
+    }];
+  }
+
+  const notes = [];
+  const monteCarlo = professional.monteCarlo;
+  const sampleSize = safeNumber(professional.sampleSize, 0);
+  const ruinProbability = safeNumber(monteCarlo.ruin_probability_pct, 0);
+  const p05 = safeNumber(monteCarlo.p05_return_pct, 0);
+  const median = safeNumber(monteCarlo.median_return_pct, 0);
+  const p95Drawdown = safeNumber(monteCarlo.p95_max_drawdown_pct, 0);
+  const ruinThreshold = Math.max(safeNumber(monteCarlo.ruin_threshold_pct, 20), 0.1);
+  const openRiskPct = safeNumber(snapshot?.summary?.total_open_risk_pct, 0);
+  const maxRiskPerTradePct = safeNumber(snapshot?.summary?.max_risk_per_trade_pct, 0);
+
+  if (sampleSize < 30) {
+    notes.push({
+      tone: "warn",
+      title: "No escales con muestra corta",
+      body: "La simulación todavía depende demasiado de pocas operaciones. Separa por setup y sesión antes de subir tamaño."
+    });
+  }
+
+  if (ruinProbability >= 10 || p95Drawdown >= ruinThreshold) {
+    notes.push({
+      tone: "danger",
+      title: "Recorta riesgo antes de continuar",
+      body: `La simulación ve ${formatRiskPct(ruinProbability)} de probabilidad de tocar límite y un DD estrés de ${formatRiskPct(p95Drawdown)}. Baja riesgo por operación o pausa el setup más débil.`
+    });
+  } else if (ruinProbability >= 3 || p95Drawdown >= ruinThreshold * 0.7) {
+    notes.push({
+      tone: "warn",
+      title: "Mantén tamaño conservador",
+      body: `El estrés consume una parte relevante del límite. No aumentes tamaño hasta que el DD P95 vuelva a quedar lejos de -${formatRiskPct(ruinThreshold, 1)}.`
+    });
+  } else {
+    notes.push({
+      tone: "ok",
+      title: "Riesgo controlado por ahora",
+      body: "Monte Carlo no exige recorte inmediato. Mantén el tamaño base y revisa si el peor 5% sigue mejorando con más operaciones."
+    });
+  }
+
+  if (p05 < 0 && median > 0) {
+    notes.push({
+      tone: "info",
+      title: "Tu edge depende de controlar la cola",
+      body: "La mediana es positiva, pero el peor 5% sigue en pérdida. Prioriza stops reales, evitar revenge trading y reducir operaciones fuera de plan."
+    });
+  } else if (median <= 0) {
+    notes.push({
+      tone: "warn",
+      title: "La distribución central no ayuda",
+      body: "Si la mediana es plana o negativa, el problema no está solo en outliers: revisa la calidad base del setup antes de optimizar tamaño."
+    });
+  }
+
+  if (openRiskPct > 0 && maxRiskPerTradePct > 0 && openRiskPct >= maxRiskPerTradePct * 1.5) {
+    notes.push({
+      tone: "warn",
+      title: "Heat abierto por encima del trade base",
+      body: `Ahora hay ${formatRiskPct(openRiskPct)} de riesgo abierto frente a ${formatRiskPct(maxRiskPerTradePct)} permitido por operación. Evita añadir exposición correlacionada.`
+    });
+  }
+
+  return notes.slice(0, 4);
+}
+
+function renderMonteCarloNotes(notes = []) {
+  return `
+    <div class="risk-interpretation-notes">
+      <div class="risk-interpretation-notes__head">
+        <span>Notas de lectura</span>
+        <strong>Cómo actuar con estos datos</strong>
+      </div>
+      <div class="risk-interpretation-notes__grid">
+        ${notes.map((note) => `
+          <article class="risk-interpretation-note risk-interpretation-note--${note.tone}">
+            <span></span>
+            <div>
+              <strong>${escapeHtml(note.title)}</strong>
+              <p>${escapeHtml(note.body)}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderRiskStateCard(kind, title, body, detail = "") {
@@ -860,23 +956,19 @@ function buildDrawdownAreaModel(liveSnapshot, dashboardPayload) {
   });
   const values = drawdownValues.length ? drawdownValues : [0, 0, 0];
   while (values.length < 4) values.unshift(0);
-  const width = 240;
-  const height = 74;
   const maxDrawdown = Math.max(...values, 1);
-  const points = values.map((value, index) => {
-    const x = values.length > 1 ? (index / (values.length - 1)) * width : 0;
-    const y = height - (Math.max(value, 0) / maxDrawdown) * (height - 10) - 4;
-    return { x, y, value };
-  });
-  const line = points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-  const area = `${line} L${width} ${height} L0 ${height} Z`;
   const currentDrawdown = firstFiniteRiskValue(liveSnapshot?.summary?.peak_to_equity_drawdown_pct, values.at(-1), 0);
+  const series = values.map((value, index) => ({
+    label: index === values.length - 1 ? "Ahora" : `${index + 1}`,
+    value: Math.max(value, 0),
+    __live: index === values.length - 1,
+  }));
   return {
-    line,
-    area,
+    available: series.length >= 2,
+    series,
     maxDrawdown,
     currentDrawdown,
-    pointsCount: points.length,
+    pointsCount: series.length,
   };
 }
 
@@ -894,7 +986,7 @@ function buildPressureProgressModel(liveSnapshot, exposureSnapshot) {
       limit: heatLimit,
     },
     {
-      label: "Daily DD",
+      label: "DD diario",
       value: dailyDd,
       limit: dailyDdLimit,
     },
@@ -946,13 +1038,12 @@ function renderDrawdownArea(model) {
   return `
     <div class="risk-drawdown-area">
       <div class="risk-drawdown-area__copy">
-        <span>Drawdown path</span>
+        <span>Curva de drawdown</span>
         <strong>${formatRiskPct(model.currentDrawdown)}</strong>
       </div>
-      <svg viewBox="0 0 240 74" preserveAspectRatio="none" aria-hidden="true">
-        <path class="risk-drawdown-area__fill" d="${model.area}"></path>
-        <path class="risk-drawdown-area__line" d="${model.line}"></path>
-      </svg>
+      <div class="risk-drawdown-chart">
+        ${model.available ? chartCanvas("risk-drawdown-path", 148, "risk-drawdown-chart__canvas") : `<div class="risk-drawdown-empty">Esperando historial suficiente.</div>`}
+      </div>
       <div class="risk-drawdown-area__axis">
         <span>0%</span>
         <span>Max ${formatRiskPct(model.maxDrawdown)}</span>
@@ -1228,6 +1319,7 @@ export function renderRisk(root, state) {
   const recoveryFactor = safeNumber(drawdownPath.recovery_factor, 0);
   const maxDrawdownPct = safeNumber(drawdownPath.max_drawdown_pct, 0);
   const riskSimulation = professionalSimulationModel(professionalMetrics);
+  const interpretationNotes = professionalInterpretationNotes(professionalMetrics, riskSimulation, liveSnapshot);
   const professionalActions = professionalActionAlerts(professionalMetrics, liveSnapshot);
   const professionalAssumptions = professionalAssumptionsModel(professionalMetrics, liveSnapshot, account);
   const portfolioVar = resolvePortfolioVarModel(state);
@@ -1249,6 +1341,27 @@ export function renderRisk(root, state) {
   ));
   const exposureVisual = buildExposureVisualModel(liveSnapshot, exposureSnapshot);
   const drawdownArea = buildDrawdownAreaModel(liveSnapshot, dashboardPayload);
+  const chartSpecs = drawdownArea.available ? [
+    lineAreaSpec("risk-drawdown-path", drawdownArea.series, {
+      tone: "blue",
+      showXAxis: false,
+      showYAxis: true,
+      showYGrid: true,
+      maxYTicks: 4,
+      axisFormatter: (value) => `${Number(value || 0).toFixed(1)}%`,
+      formatter: (value) => `${Number(value || 0).toFixed(2)}% DD`,
+      tooltipTitle: "Drawdown",
+      fillAlphaStart: 0.18,
+      fillAlphaEnd: 0.015,
+      borderWidth: 2.1,
+      pointRadius: 0,
+      endpointPulse: { radius: 3.2, alpha: 0.12, steadyAlpha: 0.16 },
+      liveSmoothing: true,
+      layoutPaddingTop: 8,
+      layoutPaddingRight: 8,
+      layoutPaddingBottom: 0,
+    })
+  ] : [];
   const pressureProgress = buildPressureProgressModel(liveSnapshot, exposureSnapshot);
   const remainingDailyLabel = liveSnapshot
     ? (Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0) <= 0 ? "Sin margen diario" : `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}% de margen diario`)
@@ -1320,7 +1433,7 @@ export function renderRisk(root, state) {
       noteTone: "neutral"
     },
     {
-      label: "Daily DD",
+      label: "DD diario",
       value: `${Number(liveSnapshot.summary?.daily_drawdown_pct || 0).toFixed(2)}%`,
       noteLead: `${Number(liveSnapshot.summary?.distance_to_daily_dd_limit_pct || 0).toFixed(2)}%`,
       noteTail: "margen diario restante",
@@ -1334,7 +1447,7 @@ export function renderRisk(root, state) {
       noteTone: "neutral"
     },
     {
-      label: "Risk / trade",
+      label: "Riesgo/op.",
       value: `${Number(liveSnapshot.summary?.max_open_trade_risk_pct || 0).toFixed(2)}%`,
       noteLead: `${Number(liveSnapshot.summary?.max_risk_per_trade_pct || 0).toFixed(2)}%`,
       noteTail: "límite por política",
@@ -1343,7 +1456,7 @@ export function renderRisk(root, state) {
   ] : [];
   const professionalCards = [
     {
-      label: "Risk of Ruin",
+      label: "Riesgo de ruina",
       value: professionalMetrics.hasMetrics ? formatRiskPct(monteCarlo.ruin_probability_pct) : "—",
       detail: professionalMetrics.hasMetrics
         ? `${safeNumber(monteCarlo.simulations, 0).toLocaleString("es-ES")} sims · límite -${formatRiskPct(monteCarlo.ruin_threshold_pct, 1)}`
@@ -1356,7 +1469,7 @@ export function renderRisk(root, state) {
     {
       label: "VaR 95",
       value: professionalMetrics.hasMetrics ? formatCurrency(var95.var_amount || 0) : "—",
-      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var95.cvar_amount || 0)} · ${formatRiskPct(var95EquityPct)} equity` : "Histórico pendiente",
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var95.cvar_amount || 0)} · ${formatRiskPct(var95EquityPct)} sobre equity` : "Histórico pendiente",
       tone: safeNumber(var95.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral",
       visual: "radial",
       visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(var95EquityPct, 2.5) : 0,
@@ -1365,18 +1478,18 @@ export function renderRisk(root, state) {
     {
       label: "VaR 99",
       value: professionalMetrics.hasMetrics ? formatCurrency(var99.var_amount || 0) : "—",
-      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var99.cvar_amount || 0)} · ${formatRiskPct(var99EquityPct)} equity` : "Tail risk pendiente",
+      detail: professionalMetrics.hasMetrics ? `CVaR ${formatCurrency(var99.cvar_amount || 0)} · ${formatRiskPct(var99EquityPct)} sobre equity` : "Cola de riesgo pendiente",
       tone: safeNumber(var99.var_amount, 0) > safeNumber(var95.var_amount, 0) ? "danger" : safeNumber(var99.var_amount, 0) > 0 ? "warn" : professionalMetrics.hasMetrics ? "ok" : "neutral",
       visual: "radial",
       visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(var99EquityPct, 4) : 0,
       visualLabel: professionalMetrics.hasMetrics ? formatRiskPct(var99EquityPct, var99EquityPct >= 1 ? 1 : 2) : "—"
     },
     {
-      label: "Recovery Factor",
+      label: "Factor de recuperación",
       value: professionalMetrics.hasMetrics ? formatRiskMultiple(drawdownPath.recovery_factor) : "—",
       detail: professionalMetrics.hasMetrics
         ? `Max DD ${formatRiskPct(maxDrawdownPct)} · ${safeNumber(drawdownPath.max_drawdown_duration_periods, 0)} periodos`
-        : "Drawdown path pendiente",
+        : "Curva de drawdown pendiente",
       tone: recoveryFactor >= 1 ? "ok" : maxDrawdownPct > 0 ? "warn" : "neutral",
       visual: "bar",
       visualValue: professionalMetrics.hasMetrics ? riskMetricProgress(recoveryFactor, 3) : 0,
@@ -1390,7 +1503,7 @@ export function renderRisk(root, state) {
   const showExposure = activePage === "risk-exposure";
   const riskSubpageClass = showRiskCockpit ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
   const riskSubpageAttr = showRiskCockpit ? "" : ` data-kmfx-subpage="${activePage}"`;
-  const riskTitle = showRuinVar ? "Ruin / VaR" : showMonteCarlo ? "Monte Carlo" : showExposure ? "Exposición" : "Risk Engine";
+  const riskTitle = showRuinVar ? "Ruina / VaR" : showMonteCarlo ? "Monte Carlo" : showExposure ? "Exposición" : "Risk Engine";
   const riskDescription = showRuinVar
     ? "Probabilidad de ruina, VaR, CVaR, supuestos y lectura de cola."
     : showMonteCarlo
@@ -1466,8 +1579,8 @@ export function renderRisk(root, state) {
     <article class="tl-section-card risk-professional-surface risk-professional-surface--${professionalDecision.tone}">
       <div class="risk-professional-header">
         <div>
-          <div class="tl-section-title">${showMonteCarlo ? "Monte Carlo" : "Ruin / VaR"}</div>
-          <div class="row-sub">${showMonteCarlo ? "Distribución estimada de caminos, drawdown y probabilidad de tocar el límite." : "Lectura profesional de cola, supervivencia y recuperación. Estimación basada en trades cerrados."}</div>
+          <div class="tl-section-title">${showMonteCarlo ? "Monte Carlo" : "Ruina / VaR"}</div>
+          <div class="row-sub">${showMonteCarlo ? "Distribución estimada de caminos, drawdown y probabilidad de tocar el límite." : "Lectura profesional de cola, supervivencia y recuperación. Estimación basada en operaciones cerradas."}</div>
         </div>
         <div class="risk-professional-sample risk-professional-sample--${professionalSample.tone}">
           <span>${professionalSample.label}</span>
@@ -1496,7 +1609,7 @@ export function renderRisk(root, state) {
         <section class="risk-professional-detail-panel">
           <div class="risk-professional-detail-head">
             <span>Inputs medidos</span>
-            <strong>Supuestos Ruin / VaR</strong>
+            <strong>Supuestos Ruina / VaR</strong>
           </div>
           <div class="risk-assumption-grid">
             ${professionalAssumptions.map((row) => `
@@ -1530,23 +1643,24 @@ export function renderRisk(root, state) {
       <div class="risk-simulation-panel">
         <div class="risk-simulation-panel__head">
           <div>
-            <span>Simulación visual</span>
-            <strong>${riskSimulation.available ? `${riskSimulation.simulations.toLocaleString("es-ES")} caminos · ${riskSimulation.horizonTrades} trades` : "Monte Carlo pendiente"}</strong>
+            <span>Monte Carlo interpretado</span>
+            <strong>${riskSimulation.available ? `${riskSimulation.simulations.toLocaleString("es-ES")} caminos · ${riskSimulation.horizonTrades} operaciones` : "Monte Carlo pendiente"}</strong>
           </div>
-          <small>Distribución estimada, drawdown esperado y probabilidad de tocar límite.</small>
+          <small>Escenarios estimados para entender cola, mediana y estrés antes de subir riesgo.</small>
         </div>
         ${riskSimulation.available ? `
           <div class="risk-simulation-return">
             <div class="risk-simulation-return__axis">
-              <span>Peor 5%</span>
-              <span>Mediana</span>
-              <span>Mejor 5%</span>
+              <span>Escenario defensivo</span>
+              <span>Centro de la distribución</span>
+              <span>Escenario favorable</span>
             </div>
             <div class="risk-simulation-return__track">
               <i class="risk-simulation-return__zero" style="left:${riskSimulation.zeroPosition.toFixed(2)}%"></i>
               ${riskSimulation.returnMarkers.map((marker) => `
                 <div class="risk-simulation-marker risk-simulation-marker--${marker.tone}" style="left:${marker.position.toFixed(2)}%" title="${marker.label} ${formatSignedRiskPct(marker.value)}">
-                  <i></i>
+                  <span>${marker.label}</span>
+                  <strong>${formatSignedRiskPct(marker.value)}</strong>
                 </div>
               `).join("")}
             </div>
@@ -1570,8 +1684,10 @@ export function renderRisk(root, state) {
               </div>
             `).join("")}
           </div>
+          ${renderMonteCarloNotes(interpretationNotes)}
         ` : `
           <div class="risk-simulation-empty">La visualización se activa con retornos cerrados suficientes.</div>
+          ${renderMonteCarloNotes(interpretationNotes)}
         `}
       </div>
       ` : ""}
@@ -1712,7 +1828,7 @@ export function renderRisk(root, state) {
       <div class="risk-policy-numeric-grid">
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
-            <span>Riesgo por trade</span>
+            <span>Riesgo por operación</span>
             <em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${escapeHtml(defaultRiskMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
@@ -1722,7 +1838,7 @@ export function renderRisk(root, state) {
         </label>
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
-            <span>Límite daily DD</span>
+            <span>Límite DD diario</span>
             <em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${escapeHtml(dailyDdMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
@@ -1732,7 +1848,7 @@ export function renderRisk(root, state) {
         </label>
         <label class="risk-policy-field">
           <div class="risk-policy-field__head">
-            <span>Límite max DD</span>
+            <span>Límite DD máximo</span>
             <em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${escapeHtml(maxDdMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
@@ -1911,7 +2027,7 @@ export function renderRisk(root, state) {
       `}
       ${ladder.length ? `<div class="table-wrap risk-ladder-table">
         <table>
-          <thead><tr><th>Nivel</th><th>Riesgo/Trade</th><th>Condición Entrada</th><th>Condición Subida</th><th>Condición Bajada</th><th>Trades a $100k</th><th>Estado</th></tr></thead>
+          <thead><tr><th>Nivel</th><th>Riesgo/op.</th><th>Condición Entrada</th><th>Condición Subida</th><th>Condición Bajada</th><th>Operaciones a $100k</th><th>Estado</th></tr></thead>
           <tbody>
             ${ladder.map((row) => `
               <tr class="${row.level === ladderLevel ? "risk-ladder-row--current" : ""}">
@@ -1932,6 +2048,8 @@ export function renderRisk(root, state) {
 
     </div>
   `;
+
+  mountCharts(root, chartSpecs);
 
   root.querySelectorAll("[data-risk-pref-number]").forEach((input) => {
     input.addEventListener("input", () => {

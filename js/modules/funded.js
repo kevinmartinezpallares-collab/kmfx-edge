@@ -818,7 +818,7 @@ function fundingEconomicsMarkup(economics = {}) {
   return `
     <div class="funding-economics-metrics">
       <div><span>Costes</span><strong>${formatCurrency(economics.totalSpent || 0)}</strong></div>
-      <div><span>Payouts/Retiros</span><strong>${formatCurrency(payoutAndWithdrawals)}</strong></div>
+      <div><span>Pagos/Retiros</span><strong>${formatCurrency(payoutAndWithdrawals)}</strong></div>
       <div><span>Neto funding</span><strong>${economicsAmountMarkup(economics.netFundingResult || 0)}</strong></div>
       <div><span>ROI costes</span><strong>${economicsRoiMarkup(economics.roiOnCosts)}</strong></div>
     </div>
@@ -840,7 +840,7 @@ function fundingEconomicsKpiMarkup(economics = {}) {
     <article class="funding-kpi" data-tone="${Number(economics.netFundingResult || 0) < 0 ? "warning" : "profit"}">
       <span class="funding-kpi__label">Economía funding</span>
       <strong class="funding-kpi__value">${economicsAmountMarkup(economics.netFundingResult || 0)}</strong>
-      <span class="funding-kpi__meta">Costes ${formatCurrency(economics.totalSpent || 0)} · Payouts ${formatCurrency(payoutAndWithdrawals)}</span>
+      <span class="funding-kpi__meta">Costes ${formatCurrency(economics.totalSpent || 0)} · Pagos ${formatCurrency(payoutAndWithdrawals)}</span>
     </article>
   `;
 }
@@ -919,7 +919,7 @@ function fundingPayoutsSummaryMarkup(economics = {}, transactions = []) {
           tone: economics.totalSpent > 0 ? "warning" : "neutral",
         })}
         ${fundingSubpageKpiMarkup({
-          label: "Payouts / retiros",
+          label: "Pagos / retiros",
           value: escapeHtml(formatCurrency(payoutAndWithdrawals)),
           meta: `${formatCurrency(economics.totalRefunds || 0)} refunds`,
           tone: payoutAndWithdrawals > 0 ? "profit" : "neutral",
@@ -1689,11 +1689,11 @@ export function renderFunded(root, state) {
   const showChallenges = activePage === "funded";
   const showRules = activePage === "funded-rules";
   const showPayouts = activePage === "funded-payouts";
-  const fundedTitle = showRules ? "Reglas de Funding" : showPayouts ? "Payouts" : "Funding";
+  const fundedTitle = showRules ? "Reglas de Funding" : showPayouts ? "Retiros" : "Funding";
   const fundedDescription = showRules
     ? "Buffers, límites y lectura de reglas para la cuenta fondeada seleccionada."
     : showPayouts
-      ? "Economía del fondeo: costes, payouts, retiros y resultado neto."
+      ? "Economía del fondeo: costes, pagos, retiros y resultado neto."
       : "Seguimiento de cuentas fondeadas, progreso de fase y preservación de capital.";
   const fundedSubpageClass = showChallenges ? "" : ` kmfx-subpage-shell kmfx-subpage-shell--${activePage}`;
   const fundedSubpageAttr = showChallenges ? "" : ` data-kmfx-subpage="${activePage}"`;

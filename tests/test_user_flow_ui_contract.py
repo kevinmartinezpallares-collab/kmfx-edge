@@ -10,14 +10,13 @@ def read_text(relative_path: str) -> str:
 
 
 class UserFlowUiContractTests(unittest.TestCase):
-    def test_email_signin_does_not_require_turnstile_token(self) -> None:
+    def test_email_signin_uses_turnstile_token_when_enabled(self) -> None:
         source = read_text("js/modules/auth-ui.js")
 
-        self.assertIn('["signup", "forgot", "reset"].includes(mode)', source)
-        self.assertNotIn('ensureTurnstileCompleted("signin")', source)
-        self.assertNotIn('getTurnstileToken("signin")', source)
-        self.assertIn("signInWithPassword?.({ email, password })", source)
-        self.assertNotIn("signInWithPassword?.({ email, password, captchaToken })", source)
+        self.assertIn('["signin", "signup", "forgot", "reset"].includes(mode)', source)
+        self.assertIn('ensureTurnstileCompleted("signin")', source)
+        self.assertIn('getTurnstileToken("signin")', source)
+        self.assertIn("signInWithPassword?.({ email, password, captchaToken })", source)
 
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")

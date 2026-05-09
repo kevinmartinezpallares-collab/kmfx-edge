@@ -161,7 +161,7 @@ class DashboardProfessionalKpiTests(unittest.TestCase):
         self.assertEqual(kpis["var_95"]["display"], "-")
         self.assertEqual(kpis["var_95"]["status"], "insufficient")
         self.assertEqual(kpis["vol_ann"]["display"], "-")
-        self.assertEqual(kpis["vol_ann"]["emptyReason"], "insuficiente historico")
+        self.assertEqual(kpis["vol_ann"]["emptyReason"], "histórico insuficiente")
         self.assertEqual(kpis["dscore"]["source"], "missing_quality_score")
         self.assertEqual(kpis["dscore"]["emptyReason"], "score pendiente")
         self.assertIn("formula", {key.lower() for key in kpis["dscore"]["explain"].keys()})

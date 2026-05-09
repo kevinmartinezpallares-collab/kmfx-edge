@@ -164,9 +164,9 @@ class RiskContractFrontendTests(unittest.TestCase):
             hasMt5Pending: html.includes("MT5 pendiente"),
             hasManualState: html.includes("Estado manual"),
             hasPolicyControls: [
-              "Riesgo por trade",
-              "Límite daily DD",
-              "Límite max DD",
+              "Riesgo por operación",
+              "Límite DD diario",
+              "Límite DD máximo",
               "Control de volumen",
               "Horarios permitidos",
               "Símbolos permitidos",

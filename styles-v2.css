@@ -8076,14 +8076,31 @@ body[data-theme="dark"] .risk-exposure-breakdown__dot--3 {
 
 html[data-theme="dark"] .risk-drawdown-area,
 body[data-theme="dark"] .risk-drawdown-area {
-  min-height: 138px;
+  min-height: 218px;
 }
 
-html[data-theme="dark"] .risk-drawdown-area svg,
-body[data-theme="dark"] .risk-drawdown-area svg {
+html[data-theme="dark"] .risk-drawdown-chart,
+body[data-theme="dark"] .risk-drawdown-chart {
   width: 100%;
-  height: 74px;
-  overflow: visible;
+  min-height: 148px;
+}
+
+html[data-theme="dark"] .risk-drawdown-chart__canvas,
+body[data-theme="dark"] .risk-drawdown-chart__canvas {
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .risk-drawdown-empty,
+body[data-theme="dark"] .risk-drawdown-empty {
+  min-height: 148px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--layer-1-subtle) 92%, rgba(255,255,255,0.012));
 }
 
 html[data-theme="dark"] .risk-drawdown-area__fill,
@@ -8667,7 +8684,7 @@ html[data-theme="dark"] .risk-simulation-return__track,
 body[data-theme="dark"] .risk-simulation-return__track {
   position: relative;
   min-width: 0;
-  height: 78px;
+  height: 92px;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--kmfx-border) 80%, rgba(255,255,255,0.055));
   background:
@@ -8676,7 +8693,7 @@ body[data-theme="dark"] .risk-simulation-return__track {
       color-mix(in srgb, var(--warning) 12%, transparent) 44%,
       color-mix(in srgb, var(--positive) 14%, transparent) 100%),
     color-mix(in srgb, var(--kmfx-card-bg-soft) 92%, rgba(255,255,255,0.012));
-  overflow: hidden;
+  overflow: visible;
 }
 
 html[data-theme="dark"] .risk-simulation-return__zero,
@@ -8691,39 +8708,68 @@ body[data-theme="dark"] .risk-simulation-return__zero {
 html[data-theme="dark"] .risk-simulation-marker,
 body[data-theme="dark"] .risk-simulation-marker {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 12px;
+  bottom: auto;
   display: grid;
   place-items: center;
-  width: 24px;
+  gap: 2px;
+  min-width: 88px;
+  padding: 7px 9px;
   transform: translateX(-50%);
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 70%, transparent);
+  background: color-mix(in srgb, var(--layer-1-subtle) 82%, rgba(255,255,255,0.025));
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
 }
 
-html[data-theme="dark"] .risk-simulation-marker i,
-body[data-theme="dark"] .risk-simulation-marker i {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--text-1);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--text-1) 10%, transparent);
+html[data-theme="dark"] .risk-simulation-marker span,
+body[data-theme="dark"] .risk-simulation-marker span {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text-2);
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
-html[data-theme="dark"] .risk-simulation-marker--ok i,
-body[data-theme="dark"] .risk-simulation-marker--ok i {
-  background: var(--positive);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--positive) 12%, transparent);
+html[data-theme="dark"] .risk-simulation-marker strong,
+body[data-theme="dark"] .risk-simulation-marker strong {
+  color: var(--text-0);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-html[data-theme="dark"] .risk-simulation-marker--warn i,
-body[data-theme="dark"] .risk-simulation-marker--warn i {
-  background: var(--warning);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--warning) 13%, transparent);
+html[data-theme="dark"] .risk-simulation-marker--ok,
+body[data-theme="dark"] .risk-simulation-marker--ok {
+  border-color: color-mix(in srgb, var(--positive) 26%, var(--kmfx-border));
 }
 
-html[data-theme="dark"] .risk-simulation-marker--danger i,
-body[data-theme="dark"] .risk-simulation-marker--danger i {
-  background: var(--negative);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--negative) 13%, transparent);
+html[data-theme="dark"] .risk-simulation-marker--ok strong,
+body[data-theme="dark"] .risk-simulation-marker--ok strong {
+  color: color-mix(in srgb, var(--positive) 76%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-simulation-marker--warn,
+body[data-theme="dark"] .risk-simulation-marker--warn {
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--kmfx-border));
+}
+
+html[data-theme="dark"] .risk-simulation-marker--warn strong,
+body[data-theme="dark"] .risk-simulation-marker--warn strong {
+  color: color-mix(in srgb, var(--warning) 78%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-simulation-marker--danger,
+body[data-theme="dark"] .risk-simulation-marker--danger {
+  border-color: color-mix(in srgb, var(--negative) 28%, var(--kmfx-border));
+}
+
+html[data-theme="dark"] .risk-simulation-marker--danger strong,
+body[data-theme="dark"] .risk-simulation-marker--danger strong {
+  color: color-mix(in srgb, var(--negative) 78%, var(--text-0));
 }
 
 html[data-theme="dark"] .risk-simulation-stat-grid,
@@ -8973,6 +9019,104 @@ body[data-theme="dark"] .risk-policy-sync span {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--text-2);
+}
+
+html[data-theme="dark"] .risk-interpretation-notes,
+body[data-theme="dark"] .risk-interpretation-notes {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 82%, rgba(255,255,255,0.05));
+  background: color-mix(in srgb, var(--kmfx-card-bg-soft) 94%, rgba(255,255,255,0.014));
+}
+
+html[data-theme="dark"] .risk-interpretation-notes__head,
+body[data-theme="dark"] .risk-interpretation-notes__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+html[data-theme="dark"] .risk-interpretation-notes__head span,
+body[data-theme="dark"] .risk-interpretation-notes__head span {
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .risk-interpretation-notes__head strong,
+body[data-theme="dark"] .risk-interpretation-notes__head strong {
+  color: var(--text-0);
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+html[data-theme="dark"] .risk-interpretation-notes__grid,
+body[data-theme="dark"] .risk-interpretation-notes__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html[data-theme="dark"] .risk-interpretation-note,
+body[data-theme="dark"] .risk-interpretation-note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 76%, transparent);
+  background: color-mix(in srgb, var(--layer-1-subtle) 94%, transparent);
+}
+
+html[data-theme="dark"] .risk-interpretation-note > span,
+body[data-theme="dark"] .risk-interpretation-note > span {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+html[data-theme="dark"] .risk-interpretation-note strong,
+body[data-theme="dark"] .risk-interpretation-note strong {
+  color: var(--text-0);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+html[data-theme="dark"] .risk-interpretation-note p,
+body[data-theme="dark"] .risk-interpretation-note p {
+  margin: 5px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+html[data-theme="dark"] .risk-interpretation-note--ok > span,
+body[data-theme="dark"] .risk-interpretation-note--ok > span {
+  background: var(--positive);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--positive) 12%, transparent);
+}
+
+html[data-theme="dark"] .risk-interpretation-note--warn > span,
+body[data-theme="dark"] .risk-interpretation-note--warn > span {
+  background: var(--warning);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning) 13%, transparent);
+}
+
+html[data-theme="dark"] .risk-interpretation-note--danger > span,
+body[data-theme="dark"] .risk-interpretation-note--danger > span {
+  background: var(--negative);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--negative) 13%, transparent);
 }
 
 html[data-theme="dark"] .risk-policy-sync strong,

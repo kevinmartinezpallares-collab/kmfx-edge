@@ -138,7 +138,7 @@ function buildTradeTruthSummary(trades = []) {
 
   let state = "insufficient";
   let stateLabel = "Sin muestra suficiente";
-  let stateCopy = "Necesitas trades etiquetados para leer validez operativa.";
+  let stateCopy = "Necesitas operaciones etiquetadas para leer validez operativa.";
   let tone = "neutral";
 
   if (!totalTrades) {
@@ -146,18 +146,18 @@ function buildTradeTruthSummary(trades = []) {
     stateCopy = "No hay muestra activa para interpretar.";
   } else if (!completedTags) {
     state = "pending";
-    stateLabel = "Causa pendiente de tagging";
-    stateCopy = "Completa los tags post-trade para conectar resultado con reglas.";
+    stateLabel = "Etiquetado pendiente";
+    stateCopy = "Completa las etiquetas posteriores a la operación para conectar resultado con reglas.";
     tone = "warning";
   } else if (taggingCoverage < 0.5) {
     state = "pending";
     stateLabel = "Revisión pendiente";
-    stateCopy = `${pendingOrMissing} trades necesitan tagging antes de sacar conclusiones.`;
+    stateCopy = `${pendingOrMissing} operaciones necesitan etiquetado antes de sacar conclusiones.`;
     tone = "warning";
   } else if (taggingCoverage >= 0.5 && invalidTaggedTrades > 0 && dominantFailedRule) {
     state = "invalid";
     stateLabel = "Daño por reglas";
-    stateCopy = `${invalidTaggedTrades} trades etiquetados tienen reglas manuales incumplidas.`;
+    stateCopy = `${invalidTaggedTrades} operaciones etiquetadas tienen reglas manuales incumplidas.`;
     tone = "loss";
   } else if (invalidTaggedTrades > 0) {
     state = "review";
@@ -168,8 +168,8 @@ function buildTradeTruthSummary(trades = []) {
     state = "valid";
     stateLabel = "Operativa válida";
     stateCopy = completedTags
-      ? "Los trades etiquetados no muestran fallos explícitos de reglas."
-      : "La muestra existe, pero aún no tiene tags completos.";
+      ? "Las operaciones etiquetadas no muestran fallos explícitos de reglas."
+      : "La muestra existe, pero aún no tiene etiquetas completas.";
     tone = completedTags ? "profit" : "neutral";
   }
 
@@ -181,32 +181,32 @@ function buildTradeTruthSummary(trades = []) {
     : !completedTags
       ? {
           label: "Sin evidencia manual suficiente",
-          copy: "Ningún trade filtrado tiene tagging completo."
+          copy: "Ninguna operación filtrada tiene etiquetado completo."
         }
       : taggingCoverage < 0.5
         ? {
-            label: "Causa pendiente de tagging",
-            copy: `Solo ${completedTags} de ${totalTrades} trades tienen evidencia completa.`
+          label: "Etiquetado pendiente",
+          copy: `Solo ${completedTags} de ${totalTrades} operaciones tienen evidencia completa.`
           }
         : dominantFailedRule
     ? {
         label: `Principal causa: ${dominantFailedRule.label}`,
-        copy: `Falló en ${dominantFailedRule.count} ${dominantFailedRule.count === 1 ? "trade" : "trades"} etiquetados.`
+        copy: `Falló en ${dominantFailedRule.count} ${dominantFailedRule.count === 1 ? "operación" : "operaciones"} etiquetadas.`
       }
     : pendingOrMissing > completedTags
       ? {
           label: "Causa pendiente",
-          copy: `${pendingOrMissing} trades sin tagging completo.`
+          copy: `${pendingOrMissing} operaciones sin etiquetado completo.`
         }
       : worstSession && worstSession.pnl < 0
         ? {
             label: `Mayor presión: ${worstSession.key}`,
-            copy: `${worstSession.trades} trades acumulan ${formatCurrency(worstSession.pnl)}.`
+            copy: `${worstSession.trades} operaciones acumulan ${formatCurrency(worstSession.pnl)}.`
           }
         : worstSetup && worstSetup.pnl < 0
           ? {
               label: `Setup bajo presión: ${worstSetup.key}`,
-              copy: `${worstSetup.trades} trades acumulan ${formatCurrency(worstSetup.pnl)}.`
+              copy: `${worstSetup.trades} operaciones acumulan ${formatCurrency(worstSetup.pnl)}.`
             }
           : {
               label: "No hay causa dominante todavía",
@@ -214,15 +214,15 @@ function buildTradeTruthSummary(trades = []) {
             };
 
   const action = !totalTrades
-    ? "Selecciona una muestra con trades cerrados."
+    ? "Selecciona una muestra con operaciones cerradas."
     : !completedTags
-      ? "Completa los tags post-trade para conectar resultado con reglas."
+      ? "Completa las etiquetas posteriores a la operación para conectar resultado con reglas."
       : taggingCoverage < 0.5
         ? `Completa ${pendingOrMissing} ${pendingOrMissing === 1 ? "tag pendiente" : "tags pendientes"} antes de sacar conclusiones.`
     : pendingOrMissing > 0 && pendingOrMissing >= completedTags
       ? `Completa ${pendingOrMissing} ${pendingOrMissing === 1 ? "tag pendiente" : "tags pendientes"} antes de sacar conclusiones.`
       : dominantFailedRule
-        ? `Revisa los trades donde falló ${dominantFailedRule.label}.`
+        ? `Revisa las operaciones donde falló ${dominantFailedRule.label}.`
         : worstSession && worstSession.pnl < 0
           ? `Prioriza revisar la sesión ${worstSession.key} antes de ajustar el plan.`
           : "Mantén la muestra y sigue registrando reglas.";
@@ -295,8 +295,8 @@ function renderTradeTruthSummary(summary) {
         <article class="trades-truth-compact__cell trades-truth-cell" data-role="datos" data-tone="neutral">
           <span class="trades-truth-compact__label">DATOS CLAVE</span>
           <dl class="trades-truth-compact__evidence">
-            ${renderTruthMetric("Trades filtrados", String(summary.totalTrades))}
-            ${renderTruthMetric("Tags completos", String(summary.completedTags))}
+            ${renderTruthMetric("Operaciones filtradas", String(summary.totalTrades))}
+            ${renderTruthMetric("Etiquetas completas", String(summary.completedTags))}
             ${renderTruthMetric("Pendientes", String(summary.pendingOrMissing))}
             ${renderTruthMetric("Válidos / inválidos", `${summary.validTaggedTrades}/${summary.invalidTaggedTrades}`)}
             ${renderTruthMetric("P&L filtrado", pnlTextMarkup({ value: summary.pnl, text: formatSignedCurrency(summary.pnl) }), { html: true })}
@@ -323,7 +323,7 @@ function renderTradesKpiRow({
   return `
     <div class="trades-kpi-row" aria-label="Resumen de operaciones filtradas">
       ${kpiCardMarkup({
-        label: "Trades filtrados",
+        label: "Operaciones filtradas",
         value: String(filteredTradesCount),
         tone: "neutral",
         className: "trades-kpi-card",
@@ -414,7 +414,7 @@ function renderTradesOverviewSections({
             <div class="trades-symbol-row">
               <div>
                 <div class="trades-symbol-name">${escapeHtml(symbol.key)}</div>
-                <div class="trades-symbol-meta">${escapeHtml(`${symbol.trades} trades · WR ${symbol.winRate.toFixed(0)}%`)}</div>
+                <div class="trades-symbol-meta">${escapeHtml(`${symbol.trades} operaciones · WR ${symbol.winRate.toFixed(0)}%`)}</div>
               </div>
               ${pnlTextMarkup({ value: symbol.pnl, text: formatCurrency(symbol.pnl), className: "trades-symbol-value" })}
             </div>
@@ -447,7 +447,7 @@ function tradeNextStepCopy(trade) {
   const pnl = Number(trade?.pnl || 0);
   if (pnl > 0) return "Revisa si la ejecución respetó el plan antes de escalar conclusiones.";
   if (pnl < 0) return "Revisa entrada, gestión y reglas antes de repetir el setup.";
-  return "Completa la validación post-trade para cerrar el análisis.";
+  return "Completa la validación posterior a la operación para cerrar el análisis.";
 }
 
 function renderTradeFocusStat({ label, valueHtml, tone = "neutral" }) {
@@ -473,7 +473,7 @@ function tradeFocusTruthContent(tagState) {
   const contentByState = {
     untagged: {
       title: "Sin tag",
-      description: "Completa el tag post-trade para cerrar la lectura de este trade.",
+      description: "Completa la etiqueta posterior a la operación para cerrar la lectura de esta operación.",
       tone: "neutral",
       action: "Completar tag"
     },
@@ -484,13 +484,13 @@ function tradeFocusTruthContent(tagState) {
       action: "Completar validación"
     },
     valid: {
-      title: "Trade válido",
+      title: "Operación válida",
       description: "No hay reglas manuales incumplidas en el tag completado.",
       tone: "success",
       action: "Ver validación"
     },
     invalid: {
-      title: "Trade a revisar",
+      title: "Operación a revisar",
       description: "Hay reglas manuales incumplidas en el tag completado.",
       tone: "danger",
       action: "Ver validación"
@@ -511,7 +511,7 @@ function renderTradeFocusTruth(trade, summary = "") {
     <section class="trades-focus-section trades-focus-section--truth">
       <div class="trades-focus-truth" data-tone="${content.tone}">
         <div class="trades-focus-truth__main">
-          <span class="trades-focus-section__eyebrow">VERDAD DEL TRADE</span>
+          <span class="trades-focus-section__eyebrow">VERDAD DE LA OPERACIÓN</span>
           <div class="trades-focus-truth__title-row">
             <strong class="trades-focus-truth__title">${escapeHtml(content.title)}</strong>
             <button
@@ -576,7 +576,7 @@ function renderTradeExecutions(trade) {
           <div class="trades-focus-section__eyebrow">EJECUCIÓN</div>
           <div class="trades-focus-section__title">${executions.length > 1 ? "Parciales y ejecuciones" : "Ejecución"}</div>
         </div>
-        <p class="trades-focus-section__description">Cierres registrados y P&amp;L acumulado del trade.</p>
+        <p class="trades-focus-section__description">Cierres registrados y P&amp;L acumulado de la operación.</p>
       </div>
       <div class="focus-panel-executions">
         <div class="focus-panel-executions__head">

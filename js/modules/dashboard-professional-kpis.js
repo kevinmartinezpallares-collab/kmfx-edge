@@ -56,7 +56,7 @@ const KPI_DEFINITIONS = Object.freeze({
     traderUse: "Estima una pérdida extrema razonable por trade o muestra. Sirve para no poner la cuenta en peligro cuando la muestra empeora.",
     formula: "Percentil 95 de pérdidas cerradas normalizadas; CVaR = media de la cola.",
     sourceLabel: "Módulo de riesgo KMFX: pérdidas cerradas y cola estadística.",
-    confidence: "Depende de la calidad de muestra; robusto desde una muestra amplia de trades cerrados.",
+    confidence: "Depende de la calidad de muestra; robusto desde una muestra amplia de operaciones cerradas.",
   },
   var_99: {
     label: "VaR 99",
@@ -199,7 +199,7 @@ function statusToken(status, label = "") {
     : "neutral";
   return {
     status: normalized,
-    statusLabel: label || (normalized === "insufficient" ? "insuficiente historico" : normalized),
+    statusLabel: label || (normalized === "insufficient" ? "histórico insuficiente" : normalized),
   };
 }
 
@@ -217,7 +217,7 @@ function deltaToken(deltaPct) {
   };
 }
 
-function valueState(value, emptyReason = "insuficiente historico") {
+function valueState(value, emptyReason = "histórico insuficiente") {
   const parsed = finiteNumber(value);
   if (parsed === null) {
     return {
@@ -241,10 +241,10 @@ function compactText(value) {
 function sampleConfidence(sampleSize, sampleQualityLabel, fallback = "") {
   const size = finiteNumber(sampleSize);
   const label = compactText(sampleQualityLabel);
-  if (label && size !== null) return `${label} (${size} trades)`;
+  if (label && size !== null) return `${label} (${size} operaciones)`;
   if (label) return label;
-  if (size !== null && size < 30) return `Muestra insuficiente (${size} trades).`;
-  if (size !== null) return `Muestra calculada con ${size} trades.`;
+  if (size !== null && size < 30) return `Muestra insuficiente (${size} operaciones).`;
+  if (size !== null) return `Muestra calculada con ${size} operaciones.`;
   return fallback;
 }
 
@@ -348,8 +348,8 @@ function equityCapital(model, account, professional) {
 
 function statusFromPercent(value, warnAt, badAt, sampleSize = 30, sampleQualityLabel = "") {
   const qualityLabel = String(sampleQualityLabel || "").trim();
-  if (sampleSize < 30) return statusToken("insufficient", qualityLabel || "insuficiente historico");
-  if (value === null) return statusToken("insufficient", qualityLabel || "insuficiente historico");
+  if (sampleSize < 30) return statusToken("insufficient", qualityLabel || "histórico insuficiente");
+  if (value === null) return statusToken("insufficient", qualityLabel || "histórico insuficiente");
   if (value >= badAt) return statusToken("bad", "riesgo alto");
   if (value >= warnAt) return statusToken("warn", "vigilancia");
   return statusToken("good", "controlado");
@@ -391,7 +391,7 @@ function buildVarKpi(id, confidence, model, account, professional) {
   const sampleQualityLevel = String(varMetrics.sample_quality_level || "").trim();
   const status = statusFromPercent(equityPct, 1, 2.5, sampleSize, sampleQualityLabel);
   const sourceLabel = varAmount === null
-    ? "Pendiente de calculo: falta historico cerrado suficiente."
+    ? "Pendiente de cálculo: falta histórico cerrado suficiente."
     : confidence === 99
       ? "Módulo de riesgo KMFX: pérdidas cerradas y cola extrema."
       : "Módulo de riesgo KMFX: pérdidas cerradas y cola estadística.";
@@ -407,10 +407,10 @@ function buildVarKpi(id, confidence, model, account, professional) {
       confidence: sampleConfidence(
         sampleSize,
         sampleQualityLabel,
-        "Depende de la calidad de muestra; robusto desde una muestra amplia de trades cerrados.",
+        "Depende de la calidad de muestra; robusto desde una muestra amplia de operaciones cerradas.",
       ),
     },
-    emptyReason: "insuficiente historico",
+    emptyReason: "histórico insuficiente",
     microVisual: {
       confidence,
       pointerValuePct: round(equityPct, 2),
@@ -474,7 +474,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
     ? standardDeviation(dailyReturns.map((value) => value / 100)) * Math.sqrt(252) * 100
     : null;
   const volatilityStatus = volatility === null
-    ? statusToken("insufficient", "insuficiente historico")
+    ? statusToken("insufficient", "histórico insuficiente")
     : volatility >= 40
       ? statusToken("bad", "volatilidad alta")
       : volatility >= 25
@@ -483,7 +483,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
 
   const sortino = finiteNumber(professional.risk_adjusted?.sortino_ratio, model.totals?.ratios?.sortino);
   const sortinoStatus = sortino === null
-    ? statusToken("insufficient", "insuficiente historico")
+    ? statusToken("insufficient", "histórico insuficiente")
     : sortino < 0
       ? statusToken("bad", "retorno negativo")
       : sortino < 1
@@ -514,7 +514,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       value: round(netReturn, 2),
       deltaPct: delta7dPct,
       status: netReturn === null ? "insufficient" : netReturn >= 0 ? "good" : "bad",
-      statusLabel: netReturn === null ? "insuficiente historico" : netReturn >= 0 ? "positivo" : "negativo",
+      statusLabel: netReturn === null ? "histórico insuficiente" : netReturn >= 0 ? "positivo" : "negativo",
       source: model.cumulative ? "model.cumulative" : "derived",
       sourceLabel: model.cumulative ? "Modelo de rendimiento normalizado del dashboard." : "P&L neto recibido desde MT5.",
       series: dailySeries,
@@ -528,7 +528,7 @@ export function selectDashboardProfessionalKpis(input = {}) {
       source: professional.drawdown_path ? "professional_metrics.drawdown_path" : "model.drawdown",
       sourceLabel: professional.drawdown_path ? "Métricas de riesgo KMFX: curva de drawdown." : "Curva de drawdown calculada en el dashboard.",
       explain: {
-        confidence: sampleConfidence(safeArray(model.trades).length, "", "Mejora con historico continuo y trades cerrados suficientes."),
+        confidence: sampleConfidence(safeArray(model.trades).length, "", "Mejora con histórico continuo y operaciones cerradas suficientes."),
       },
       series: drawdownSeries,
       microVisual: { highlight: maxDrawdownFromSeries },
@@ -561,8 +561,8 @@ export function selectDashboardProfessionalKpis(input = {}) {
       source: "model.dailyReturns",
       explain: {
         confidence: dailyReturns.length >= 20
-          ? `Muestra operativa: ${dailyReturns.length} dias de retornos.`
-          : `Orientativa: solo ${dailyReturns.length} dias de retornos.`,
+          ? `Muestra operativa: ${dailyReturns.length} días de retornos.`
+          : `Orientativa: solo ${dailyReturns.length} días de retornos.`,
       },
       series: dailyReturns.map((value, index) => ({ label: String(index + 1), value: round(Math.abs(value), 4) })),
       meta: { sampleSize: dailyReturns.length },

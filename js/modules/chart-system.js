@@ -1775,7 +1775,7 @@ export function chartCanvas(key, height = 96, className = "") {
   `;
 }
 
-export function chartEmptyState(title = "Sin datos suficientes", note = "Todavia no hay base suficiente para leer esta grafica.") {
+export function chartEmptyState(title = "Sin datos suficientes", note = "Todavía no hay base suficiente para leer esta gráfica.") {
   return `
     <div class="kmfx-chart-empty" role="status" aria-live="polite">
       <div class="kmfx-chart-empty__title">${title}</div>

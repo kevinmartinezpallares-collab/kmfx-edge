@@ -193,22 +193,22 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
     if (unreviewedTrades.length > 0) {
       return {
         tone: "warn",
-        title: "Cola de review abierta",
-        body: `${unreviewedTrades.length} trades recientes no tienen entrada asociada. Empieza por ${unreviewedTrades[0]?.symbol || "el último trade"} y deja una lección concreta.`
+        title: "Cola de revisión abierta",
+        body: `${unreviewedTrades.length} operaciones recientes no tienen entrada asociada. Empieza por ${unreviewedTrades[0]?.symbol || "la última operación"} y deja una lección concreta.`
       };
     }
     if (setupLeak.pnl < 0) {
       return {
         tone: "warn",
-        title: "Leak principal detectado",
-        body: `${setupLeak.label} arrastra ${formatSignedCurrency(setupLeak.pnl, model.account?.currency)} en ${setupLeak.trades} trades. Conviene revisar patrón, sesión y sizing.`
+        title: "Fuga principal detectada",
+        body: `${setupLeak.label} arrastra ${formatSignedCurrency(setupLeak.pnl, model.account?.currency)} en ${setupLeak.trades} operaciones. Conviene revisar patrón, sesión y tamaño.`
       };
     }
     return {
       tone: "ok",
       title: expectancy >= 0 ? "Proceso documentado" : "Edge bajo presión",
       body: expectancy >= 0
-        ? `Expectancy ${formatSignedCurrency(expectancy, model.account?.currency)} con ${formatPlainPct(reviewedPct, 0)} de cobertura de review.`
+        ? `Expectancy ${formatSignedCurrency(expectancy, model.account?.currency)} con ${formatPlainPct(reviewedPct, 0)} de cobertura de revisión.`
         : `Expectancy negativa en la muestra. Usa el diario para aislar errores repetibles.`
     };
   })();
@@ -221,20 +221,20 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
     };
     if (unreviewedTrades.length > 0) return {
       label: "Acción",
-      title: `Review ${unreviewedTrades[0]?.symbol || "último trade"}`,
-      detail: "Asocia setup, error y lección al trade pendiente.",
+      title: `Revisar ${unreviewedTrades[0]?.symbol || "última operación"}`,
+      detail: "Asocia setup, error y lección a la operación pendiente.",
       tone: "warn"
     };
     if (setupLeak.pnl < 0) return {
       label: "Acción",
-      title: "Aislar leak",
+      title: "Aislar fuga",
       detail: `${setupLeak.label} necesita regla de entrada/salida más concreta.`,
       tone: "warn"
     };
     return {
       label: "Acción",
       title: "Mantener proceso",
-      detail: "Seguir revisando cada cierre antes de subir sizing.",
+      detail: "Seguir revisando cada cierre antes de subir tamaño.",
       tone: "ok"
     };
   })();
@@ -247,7 +247,7 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
     },
     {
       label: "Evidencia",
-      title: `${unreviewedTrades.length} reviews · ${redDays.length} días rojos`,
+      title: `${unreviewedTrades.length} revisiones · ${redDays.length} días rojos`,
       detail: setupLeak.pnl < 0
         ? `${setupLeak.label} ${formatSignedCurrency(setupLeak.pnl, model.account?.currency)}`
         : `PF ${formatMetricRatio(profitFactor)} · WR ${formatPlainPct(winRate)}`,
@@ -315,13 +315,13 @@ function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, st
     return `
       <section class="tl-section-card journal-subpage-hero journal-subpage-hero--review" aria-label="Resumen de revisión">
         <div class="journal-subpage-hero__copy">
-          <span>Review desk</span>
+          <span>Mesa de revisión</span>
           <h2>${cockpit.unreviewedTrades.length ? "Prioridad antes de volver a ejecutar" : "Cola limpia"}</h2>
-          <p>${cockpit.unreviewedTrades.length ? "La revisión se ordena por trades sin review, días rojos, reglas violadas y leaks de setup." : "La muestra actual no muestra bloqueos de revisión críticos."}</p>
+          <p>${cockpit.unreviewedTrades.length ? "La revisión se ordena por operaciones sin revisar, días rojos, reglas violadas y fugas de setup." : "La muestra actual no muestra bloqueos de revisión críticos."}</p>
         </div>
         <div class="journal-subpage-hero__grid">
           ${journalSubpageMetricCard({
-            label: "Sin review",
+            label: "Sin revisar",
             value: String(cockpit.unreviewedTrades.length),
             detail: `${cockpit.reviewedPct.toFixed(0)}% cobertura`,
             tone: cockpit.unreviewedTrades.length ? "warning" : "profit",
@@ -339,9 +339,9 @@ function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, st
             tone: cockpit.policyIssues ? "loss" : "profit",
           })}
           ${journalSubpageMetricCard({
-            label: "Leak principal",
+            label: "Fuga principal",
             value: leak.label,
-            detail: `${formatSignedCurrency(leak.pnl, currency)} · ${leak.trades} trades`,
+            detail: `${formatSignedCurrency(leak.pnl, currency)} · ${leak.trades} operaciones`,
             tone: leak.pnl < 0 ? "loss" : leak.pnl > 0 ? "profit" : "neutral",
           })}
         </div>
@@ -353,21 +353,21 @@ function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, st
     return `
       <section class="tl-section-card journal-subpage-hero journal-subpage-hero--entries" aria-label="Resumen de entradas">
         <div class="journal-subpage-hero__copy">
-          <span>Trade log</span>
+          <span>Registro operativo</span>
           <h2>${latestEntry ? `${escapeHtml(latestEntry.symbol)} · ${escapeHtml(latestEntry.grade)}` : "Sin entrada manual todavía"}</h2>
-          <p>${latestEntry ? escapeHtml(latestEntry.lesson || latestEntry.notes || "Última revisión registrada.") : "La página separa captura rápida, sizing y tabla de evidencia."}</p>
+          <p>${latestEntry ? escapeHtml(latestEntry.lesson || latestEntry.notes || "Última revisión registrada.") : "La página separa captura rápida, tamaño y tabla de evidencia."}</p>
         </div>
         <div class="journal-subpage-hero__grid">
           ${journalSubpageMetricCard({
             label: "Entradas",
             value: String(cockpit.reviewEntries.length),
-            detail: `${cockpit.trades.length} trades detectados`,
+            detail: `${cockpit.trades.length} operaciones detectadas`,
             tone: cockpit.reviewEntries.length ? "info" : "neutral",
           })}
           ${journalSubpageMetricCard({
             label: "Cobertura",
             value: `${cockpit.reviewedPct.toFixed(0)}%`,
-            detail: "Reviews sobre muestra",
+            detail: "Revisiones sobre muestra",
             tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct >= 35 ? "warning" : "neutral",
           })}
           ${journalSubpageMetricCard({
@@ -392,19 +392,19 @@ function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, st
     return `
       <section class="tl-section-card journal-subpage-hero journal-subpage-hero--ai" aria-label="Resumen de reporte externo">
         <div class="journal-subpage-hero__copy">
-          <span>AI evidence report</span>
+          <span>Reporte de evidencia IA</span>
           <h2>Reporte externo listo para revisión</h2>
           <p>El dashboard genera evidencia estructurada; la interpretación se hace fuera y la respuesta se guarda manualmente.</p>
         </div>
         <div class="journal-subpage-hero__grid">
           ${journalSubpageMetricCard({
-            label: "Trades",
+            label: "Operaciones",
             value: String(cockpit.trades.length),
             detail: "Incluidos en evidencia",
             tone: cockpit.trades.length ? "info" : "neutral",
           })}
           ${journalSubpageMetricCard({
-            label: "Reviews",
+            label: "Revisiones",
             value: String(cockpit.reviewEntries.length),
             detail: "Contexto manual",
             tone: cockpit.reviewEntries.length ? "profit" : "warning",
@@ -435,7 +435,7 @@ function leakItem(label, leak, currency) {
     <div class="journal-leak-item journal-leak-item--${tone}">
       <span>${escapeHtml(label)}</span>
       <strong>${escapeHtml(leak.label)}</strong>
-      <small>${formatSignedCurrency(leak.pnl, currency)} · ${leak.trades} trades</small>
+      <small>${formatSignedCurrency(leak.pnl, currency)} · ${leak.trades} operaciones</small>
     </div>
   `;
 }
@@ -639,7 +639,7 @@ function buildExternalAiEvidenceMarkdown(state) {
     "Uso: copiar o adjuntar este Markdown en una IA externa. KMFX no envia estos datos a ningun proveedor.",
     "",
     "## Restricciones para la IA externa",
-    "- No generar senales de compra o venta.",
+    "- No generar señales de compra o venta.",
     "- No inventar causalidad sin evidencia.",
     "- Separar datos observados, inferencias y dudas abiertas.",
     "- Marcar muestra insuficiente cuando aplique.",
@@ -656,9 +656,9 @@ function buildExternalAiEvidenceMarkdown(state) {
         ["Login", maskIdentifier(account.login || accountModel.login)],
         ["Moneda", currency],
         ["Periodo", cockpit.periodLabel],
-        ["Trades", trades.length],
-        ["Journal entries", accountEntries.length],
-        ["Trade reviews", cockpit.reviewEntries.length],
+        ["Operaciones", trades.length],
+        ["Entradas del diario", accountEntries.length],
+        ["Revisiones", cockpit.reviewEntries.length],
         ["Respuestas IA externas", cockpit.externalAiResponses.length],
         ["Fuente", cockpit.sourceLabel],
         ["Calidad de muestra", cockpit.sampleQuality.label || "Muestra pendiente"]
@@ -676,7 +676,7 @@ function buildExternalAiEvidenceMarkdown(state) {
         ["Expectancy R", markdownMetric(performance.expectancy_r ?? cockpit.averageR)],
         ["VaR 95", markdownCurrency(readPath(tailRisk, ["var_95", "var_amount"]), currency)],
         ["VaR 99", markdownCurrency(readPath(tailRisk, ["var_99", "var_amount"]), currency)],
-        ["Risk of Ruin", markdownPct(riskOfRuin.analytic_ruin_probability_pct)],
+        ["Riesgo de ruina", markdownPct(riskOfRuin.analytic_ruin_probability_pct)],
         ["Max DD", markdownPct(drawdownPath.max_drawdown_pct ?? cockpit.maxDd)],
         ["Kelly 1/4 recomendado", markdownPct(readPath(professional, ["sizing", "recommended_fractional_kelly_pct"]))]
       ]
@@ -686,54 +686,54 @@ function buildExternalAiEvidenceMarkdown(state) {
     markdownTable(
       ["Regla", "Valor"],
       [
-        ["Daily DD buffer", markdownPct(propFirm.daily_dd_buffer_pct)],
+        ["Buffer DD diario", markdownPct(propFirm.daily_dd_buffer_pct)],
         ["Max DD buffer", markdownPct(propFirm.max_dd_buffer_pct)],
-        ["Target progress", markdownPct(propFirm.profit_target_progress_pct)],
-        ["Risk allowed after open risk", markdownPct(propFirm.risk_allowed_after_open_risk_pct)],
-        ["Consistency pass", propFirm.consistency_rule_pass],
-        ["Minimum days remaining", propFirm.minimum_days_remaining],
-        ["Pass probability", markdownPct(readPath(propFirm, ["pass_probability", "pass_probability_pct"]))],
-        ["Payout ledger net", markdownCurrency(readPath(propFirm, ["payout_ledger", "net_cashflow_amount"]), currency)]
+        ["Progreso objetivo", markdownPct(propFirm.profit_target_progress_pct)],
+        ["Riesgo permitido tras riesgo abierto", markdownPct(propFirm.risk_allowed_after_open_risk_pct)],
+        ["Consistencia superada", propFirm.consistency_rule_pass],
+        ["Días mínimos restantes", propFirm.minimum_days_remaining],
+        ["Probabilidad de pasar", markdownPct(readPath(propFirm, ["pass_probability", "pass_probability_pct"]))],
+        ["Ledger neto de pagos", markdownCurrency(readPath(propFirm, ["payout_ledger", "net_cashflow_amount"]), currency)]
       ]
     ),
     "",
     "## Estrategias",
     markdownTable(
-      ["Estrategia", "Estado", "Score", "Trades", "P&L", "PF", "RoR", "DD", "Disciplina", "Cobertura"],
+      ["Estrategia", "Estado", "Score", "Operaciones", "P&L", "PF", "RoR", "DD", "Disciplina", "Cobertura"],
       buildStrategyExportRows(cockpit, currency)
     ),
     "",
     "## Backtest vs Real",
     backtestReport
       ? markdownTable(
-        ["Estrategia", "Estado", "BT PF", "Real PF", "BT Exp", "Real Exp", "BT DD", "Real DD", "Accion"],
+        ["Estrategia", "Estado", "BT PF", "Real PF", "BT Exp", "Real Exp", "BT DD", "Real DD", "Acción"],
         buildBacktestExportRows(backtestReport, currency)
       )
       : "Sin backtests importados todavía.",
     "",
     "## Peores patrones",
-    markdownTable(["Dimension", "Patron", "P&L", "Trades"], buildPatternExportRows(cockpit, currency)),
+    markdownTable(["Dimensión", "Patrón", "P&L", "Operaciones"], buildPatternExportRows(cockpit, currency)),
     "",
-    "## Review queue",
+    "## Cola de revisión",
     markdownTable(
       ["Item", "Valor", "Detalle"],
       [
-        ["Trades sin review", cockpit.unreviewedTrades.length, cockpit.unreviewedTrades[0] ? `${cockpit.unreviewedTrades[0].symbol || "Trade"} ${markdownCurrency(cockpit.unreviewedTrades[0].pnl, currency)}` : "Cola limpia"],
+        ["Operaciones sin revisar", cockpit.unreviewedTrades.length, cockpit.unreviewedTrades[0] ? `${cockpit.unreviewedTrades[0].symbol || "Operación"} ${markdownCurrency(cockpit.unreviewedTrades[0].pnl, currency)}` : "Cola limpia"],
         ["Días rojos", cockpit.redDays.length, cockpit.redDays.length ? `Peor día ${markdownCurrency(Math.min(...cockpit.redDays.map((day) => safeNumber(day.pnl, 0))), currency)}` : "Sin días rojos"],
         ["Reglas violadas", cockpit.policyIssues, cockpit.policyIssues ? "Hay señales del motor de riesgo" : "Sin alertas"],
         ["Setups degradados", cockpit.degradedSetups, cockpit.leaks.setupLeak.pnl < 0 ? cockpit.leaks.setupLeak.label : "Sin degradación clara"],
-        ["Fuera de horario", cockpit.outOfSessionTrades.length, cockpit.outOfSessionTrades.length ? "Trades fuera de sesiones permitidas" : "Dentro de sesiones configuradas"]
+        ["Fuera de horario", cockpit.outOfSessionTrades.length, cockpit.outOfSessionTrades.length ? "Operaciones fuera de sesiones permitidas" : "Dentro de sesiones configuradas"]
       ]
     ),
     "",
-    "## Trades de evidencia",
+    "## Operaciones de evidencia",
     markdownTable(["Fecha", "Símbolo", "Estrategia", "Dirección", "P&L", "Comentario"], buildTradeEvidenceRows(trades, currency)),
     "",
-    "## Journal",
+    "## Diario",
     markdownTable(["Fecha", "Símbolo", "Setup", "P&L", "Cumplimiento", "Error", "Emoción", "Lección"], buildJournalEvidenceRows(accountEntries, currency)),
     "",
     "## Prompt sugerido",
-    "Actua como analista de proceso y riesgo para trading. No des senales de compra o venta, no predigas mercado y no inventes causalidad. Usa solo la evidencia del reporte. Quiero que revises: estado general de la cuenta, peor patron operativo, estrategias que merecen capital/pausa/mas muestra, riesgos de fondeo y un plan de mejora de 7 dias. Formato: Estado / Causa probable / Evidencia / Accion."
+    "Actúa como analista de proceso y riesgo para trading. No des señales de compra o venta, no predigas mercado y no inventes causalidad. Usa solo la evidencia del reporte. Quiero que revises: estado general de la cuenta, peor patrón operativo, estrategias que merecen capital/pausa/más muestra, riesgos de fondeo y un plan de mejora de 7 días. Formato: Estado / Causa probable / Evidencia / Acción."
   ].join("\n");
 }
 
@@ -1029,19 +1029,19 @@ export function renderJournal(root, state) {
   const latestEntry = accountEntries[0];
   const activePage = state.ui.activePage || "journal";
   const pageTitle = activePage === "journal-review"
-    ? "Review Queue"
+    ? "Cola de revisión"
     : activePage === "journal-entries"
       ? "Entradas"
       : activePage === "journal-ai-review"
-        ? "AI Review"
-        : "Journal Cockpit";
+        ? "Revisión IA"
+        : "Panel del diario";
   const pageDescription = activePage === "journal-review"
-    ? "Cola de revisión, leaks y prioridades antes de volver a operar."
+    ? "Cola de revisión, fugas y prioridades antes de volver a operar."
     : activePage === "journal-entries"
-      ? "Registro manual de entradas, lecciones y evidencia post-trade."
+      ? "Registro manual de entradas, lecciones y evidencia tras operar."
       : activePage === "journal-ai-review"
-        ? "Reporte Markdown para enviar fuera del dashboard a una IA externa."
-        : "Centro diario de revisión, leaks y lectura profesional de la cuenta activa.";
+        ? "Reporte Markdown para enviar fuera del panel a una IA externa."
+        : "Centro diario de revisión, fugas y lectura profesional de la cuenta activa.";
   const showCockpit = activePage === "journal";
   const showReview = activePage === "journal" || activePage === "journal-review";
   const showEntries = activePage === "journal" || activePage === "journal-entries";
@@ -1101,7 +1101,7 @@ export function renderJournal(root, state) {
             <strong>${escapeHtml(cockpit.periodLabel)}</strong>
           </div>
           <div>
-            <span>Trades</span>
+            <span>Operaciones</span>
             <strong>${cockpit.trades.length}</strong>
           </div>
           <div class="journal-risk-state journal-risk-state--${cockpit.riskMeta.tone}">
@@ -1115,13 +1115,13 @@ export function renderJournal(root, state) {
       ${showCockpit ? `
       <section class="journal-professional-strip">
         ${[
-          { label: "P&L", value: formatSignedCurrency(cockpit.totalPnl, currency), tone: cockpit.totalPnl >= 0 ? "profit" : "loss", meta: "Neto sample" },
+          { label: "P&L", value: formatSignedCurrency(cockpit.totalPnl, currency), tone: cockpit.totalPnl >= 0 ? "profit" : "loss", meta: "Neto muestra" },
           { label: "Max DD", value: formatPlainPct(cockpit.maxDd), tone: cockpit.maxDd >= 6 ? "loss" : cockpit.maxDd >= 3 ? "warning" : "neutral", meta: "Presión curva" },
           { label: "Win rate", value: formatPlainPct(cockpit.winRate), tone: cockpit.winRate >= 50 ? "profit" : "warning", meta: "Eficiencia" },
           { label: "Profit factor", value: formatMetricRatio(cockpit.profitFactor), tone: Number.isFinite(cockpit.profitFactor) ? (cockpit.profitFactor >= 1.4 ? "profit" : cockpit.profitFactor >= 1 ? "warning" : "loss") : "neutral", meta: "Sostenibilidad" },
-          { label: "Expectancy", value: formatSignedCurrency(cockpit.expectancy, currency), tone: cockpit.expectancy >= 0 ? "profit" : "loss", meta: "Por trade" },
+          { label: "Expectancy", value: formatSignedCurrency(cockpit.expectancy, currency), tone: cockpit.expectancy >= 0 ? "profit" : "loss", meta: "Por operación" },
           { label: "R medio", value: Number.isFinite(cockpit.averageR) ? `${cockpit.averageR.toFixed(2)}R` : "—", tone: Number.isFinite(cockpit.averageR) ? (cockpit.averageR >= 0 ? "profit" : "warning") : "neutral", meta: "Edge normalizado" },
-          { label: "Revisados", value: `${cockpit.reviewEntries.length}/${cockpit.trades.length || 0}`, tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct >= 35 ? "warning" : "neutral", meta: "Cobertura journal" }
+          { label: "Revisados", value: `${cockpit.reviewEntries.length}/${cockpit.trades.length || 0}`, tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct >= 35 ? "warning" : "neutral", meta: "Cobertura diario" }
         ].map((item) => kpiCardMarkup({
           label: item.label,
           value: item.value,
@@ -1138,16 +1138,16 @@ export function renderJournal(root, state) {
         <article class="tl-section-card journal-review-queue">
           <div class="tl-section-header">
             <div>
-              <div class="tl-section-title">Review Queue</div>
+              <div class="tl-section-title">Cola de revisión</div>
               <div class="row-sub">Qué revisar primero antes de añadir más operativa.</div>
             </div>
           </div>
           <div class="journal-review-list">
-            ${reviewQueueItem("Trades sin review", String(cockpit.unreviewedTrades.length), cockpit.unreviewedTrades[0] ? `${cockpit.unreviewedTrades[0].symbol || "Trade"} · ${formatSignedCurrency(cockpit.unreviewedTrades[0].pnl, currency)}` : "Cola limpia", cockpit.unreviewedTrades.length ? "warn" : "ok")}
+            ${reviewQueueItem("Operaciones sin revisar", String(cockpit.unreviewedTrades.length), cockpit.unreviewedTrades[0] ? `${cockpit.unreviewedTrades[0].symbol || "Operación"} · ${formatSignedCurrency(cockpit.unreviewedTrades[0].pnl, currency)}` : "Cola limpia", cockpit.unreviewedTrades.length ? "warn" : "ok")}
             ${reviewQueueItem("Días rojos", String(cockpit.redDays.length), cockpit.redDays[0] ? `Peor día ${formatSignedCurrency(Math.min(...cockpit.redDays.map((day) => safeNumber(day.pnl, 0))), currency)}` : "Sin días rojos en muestra", cockpit.redDays.length ? "warn" : "ok")}
             ${reviewQueueItem("Reglas violadas", String(cockpit.policyIssues), cockpit.policyIssues ? "Hay señales del motor de riesgo" : "Sin alertas de política", cockpit.policyIssues ? "danger" : "ok")}
             ${reviewQueueItem("Setups degradados", String(cockpit.degradedSetups), cockpit.leaks.setupLeak.pnl < 0 ? cockpit.leaks.setupLeak.label : "Sin degradación clara", cockpit.degradedSetups ? "warn" : "ok")}
-            ${reviewQueueItem("Fuera de horario", String(cockpit.outOfSessionTrades.length), cockpit.outOfSessionTrades.length ? "Trades fuera de sesiones permitidas" : "Dentro de sesiones configuradas", cockpit.outOfSessionTrades.length ? "warn" : "ok")}
+            ${reviewQueueItem("Fuera de horario", String(cockpit.outOfSessionTrades.length), cockpit.outOfSessionTrades.length ? "Operaciones fuera de sesiones permitidas" : "Dentro de sesiones configuradas", cockpit.outOfSessionTrades.length ? "warn" : "ok")}
           </div>
         </article>
         ` : ""}
@@ -1164,13 +1164,13 @@ export function renderJournal(root, state) {
             <div>
               <span>Última entrada</span>
               <strong>${latestEntry ? `${escapeHtml(latestEntry.symbol)} · ${escapeHtml(latestEntry.grade)}` : "Sin entrada todavía"}</strong>
-              <small>${latestEntry ? escapeHtml(latestEntry.lesson || latestEntry.notes || "Revisión guardada") : "Empieza por el trade más reciente sin review."}</small>
+              <small>${latestEntry ? escapeHtml(latestEntry.lesson || latestEntry.notes || "Revisión guardada") : "Empieza por la operación más reciente sin revisión."}</small>
             </div>
             <button class="btn-secondary" data-journal-action="new">Abrir editor</button>
           </div>
           <div class="journal-sizing-read">
             <span>Supervivencia</span>
-            <strong>${cockpit.sizing.recommended_fractional_kelly_pct != null ? `${formatPlainPct(cockpit.sizing.recommended_fractional_kelly_pct)} Kelly 1/4` : "Sizing pendiente"}</strong>
+            <strong>${cockpit.sizing.recommended_fractional_kelly_pct != null ? `${formatPlainPct(cockpit.sizing.recommended_fractional_kelly_pct)} Kelly 1/4` : "Tamaño pendiente"}</strong>
             <small>${cockpit.sizing.weekly_risk_budget_remaining_pct != null ? `${formatPlainPct(cockpit.sizing.weekly_risk_budget_remaining_pct)} margen hasta ruina` : "Esperando política de riesgo"}</small>
           </div>
         </article>
@@ -1182,11 +1182,11 @@ export function renderJournal(root, state) {
       <article class="tl-section-card journal-ai-export-panel">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">AI Evidence Export</div>
-            <div class="row-sub">${canExportEvidence ? "Reporte Markdown para analizar fuera del dashboard, con riesgo, disciplina, journal y backtest si existe." : "La vista sigue disponible para revisar qué incluirá el reporte al actualizar."}</div>
+              <div class="tl-section-title">Exportación de evidencia IA</div>
+            <div class="row-sub">${canExportEvidence ? "Reporte Markdown para analizar fuera del panel, con riesgo, disciplina, diario y backtest si existe." : "La vista sigue disponible para revisar qué incluirá el reporte al actualizar."}</div>
           </div>
           <div class="journal-ai-export-actions">
-            <button class="btn-secondary btn-inline" type="button" data-journal-action="copy-ai-report" ${canExportEvidence ? "" : "disabled"}>Copiar report</button>
+            <button class="btn-secondary btn-inline" type="button" data-journal-action="copy-ai-report" ${canExportEvidence ? "" : "disabled"}>Copiar reporte</button>
             <button class="btn-secondary btn-inline" type="button" data-journal-action="download-ai-report" ${canExportEvidence ? "" : "disabled"}>Descargar .md</button>
             <button class="btn-secondary btn-inline" type="button" data-journal-action="save-ai-response">Pegar respuesta</button>
           </div>
@@ -1205,7 +1205,7 @@ export function renderJournal(root, state) {
           </div>
           <div class="journal-ai-export-item">
             <span>Evidencia</span>
-            <strong>${cockpit.trades.length} trades · ${cockpit.reviewEntries.length} reviews</strong>
+            <strong>${cockpit.trades.length} operaciones · ${cockpit.reviewEntries.length} revisiones</strong>
             <small>${cockpit.externalAiResponses.length} respuestas externas guardadas</small>
           </div>
           <div class="journal-ai-export-item">
@@ -1221,7 +1221,7 @@ export function renderJournal(root, state) {
       <article class="tl-section-card journal-leaks-panel">
         <div class="tl-section-header">
           <div>
-            <div class="tl-section-title">Top leaks</div>
+            <div class="tl-section-title">Fugas principales</div>
             <div class="row-sub">Mayor fuga por setup, símbolo, sesión y dirección.</div>
           </div>
         </div>

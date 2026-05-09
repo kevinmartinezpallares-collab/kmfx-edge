@@ -687,7 +687,7 @@ export function renderCalendar(root, state) {
         ${kpiCardMarkup({
           label: "Actividad",
           value: hasModel ? String(viewMode === "year" ? summary.activeMonths : calendarKpiReading.activeDays) : "—",
-          meta: hasTradingData ? `${calendarKpiReading.tradeCount} trades cerrados` : "Actividad pendiente de cargar",
+          meta: hasTradingData ? `${calendarKpiReading.tradeCount} operaciones cerradas` : "Actividad pendiente de cargar",
           tone: "neutral",
           className: "calendar-summary-card calendar-kpi-card",
         })}

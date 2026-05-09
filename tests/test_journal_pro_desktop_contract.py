@@ -79,7 +79,7 @@ class JournalProDesktopContractTests(unittest.TestCase):
 
         self.assertRegex(journal, r"const showCockpit\s*=\s*activePage === \"journal\";")
         self.assertIn('const showAiExport = activePage === "journal-ai-review";', journal)
-        self.assertIn('Reporte Markdown para enviar fuera del dashboard a una IA externa.', journal)
+        self.assertIn('Reporte Markdown para enviar fuera del panel a una IA externa.', journal)
 
     def test_funding_rules_and_payouts_are_not_duplicate_pages(self) -> None:
         funded = read_text("js/modules/funded.js")

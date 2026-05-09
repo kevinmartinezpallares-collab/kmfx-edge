@@ -9,7 +9,7 @@ const primaryItems = [
 
 const morePrimaryActions = [
   { page: "strategies", label: "Estrategias", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
-  { page: "journal", label: "Journal", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
+  { page: "journal", label: "Diario", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
   { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' }
 ];
 
@@ -26,7 +26,7 @@ const moreListSections = [
   {
     label: "Estrategias",
     items: [
-      { page: "strategies", label: "Strategy Lab", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
+      { page: "strategies", label: "Laboratorio", icon: '<path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path>' },
       { page: "strategies-backtest", label: "Backtest vs Real", icon: '<path d="M4 17V7"></path><path d="M4 17h16"></path><path d="m8 13 3-3 3 2 4-5"></path>' },
       { page: "strategies-portfolio", label: "Portafolios", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' }
     ]
@@ -38,26 +38,26 @@ const moreListSections = [
       { page: "portfolio", label: "Capital", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path>' },
       { page: "funded", label: "Funding", icon: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v8"></path><path d="M9 11.5c0-1.2 1.3-2.2 3-2.2s3 1 3 2.2-1.3 2.2-3 2.2-3 1-3 2.3 1.3 2.2 3 2.2 3-1 3-2.2"></path>' },
       { page: "funded-rules", label: "Reglas", icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>' },
-      { page: "funded-payouts", label: "Payouts", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M16 12h.01"></path><path d="M7 9h6"></path><path d="M7 15h4"></path>' }
+      { page: "funded-payouts", label: "Retiros", icon: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M16 12h.01"></path><path d="M7 9h6"></path><path d="M7 15h4"></path>' }
     ]
   },
   {
     label: "Control",
     items: [
       { page: "discipline", label: "Ejecución", icon: '<path d="M12 3v6"></path><path d="M6.5 7.5 12 12l5.5-4.5"></path><path d="M5 21h14"></path><path d="M7 17h10"></path>' },
-      { page: "risk", label: "Risk Cockpit", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' },
+      { page: "risk", label: "Risk Engine", icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"></path><path d="M12 9v4"></path><path d="M12 16h.01"></path>' },
       { page: "risk-ruin-var", label: "Ruin / VaR", icon: '<path d="M3 3v18h18"></path><path d="m7 15 3-4 3 2 5-7"></path>' },
       { page: "risk-monte-carlo", label: "Monte Carlo", icon: '<path d="M4 19c5-9 11-9 16 0"></path><path d="M4 14c5-7 11-7 16 0"></path><path d="M4 9c5-5 11-5 16 0"></path>' },
       { page: "risk-exposure", label: "Exposición", icon: '<path d="M4 12h16"></path><path d="M12 4v16"></path><circle cx="12" cy="12" r="3"></circle>' }
     ]
   },
   {
-    label: "Journal",
+    label: "Diario",
     items: [
-      { page: "journal", label: "Cockpit", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
-      { page: "journal-review", label: "Review Queue", icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>' },
+      { page: "journal", label: "Panel", icon: '<path d="M4 19.5V5a2 2 0 0 1 2-2h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-1.5Z"></path><path d="M8 7h7"></path><path d="M8 11h7"></path><path d="M8 15h4"></path>' },
+      { page: "journal-review", label: "Cola de revisión", icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>' },
       { page: "journal-entries", label: "Entradas", icon: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>' },
-      { page: "journal-ai-review", label: "AI Review", icon: '<path d="M12 3v4"></path><path d="M12 17v4"></path><path d="M3 12h4"></path><path d="M17 12h4"></path><circle cx="12" cy="12" r="4"></circle>' }
+      { page: "journal-ai-review", label: "Revisión IA", icon: '<path d="M12 3v4"></path><path d="M12 17v4"></path><path d="M3 12h4"></path><path d="M17 12h4"></path><circle cx="12" cy="12" r="4"></circle>' }
     ]
   },
   {
@@ -70,7 +70,7 @@ const moreListSections = [
   {
     label: "Soporte / Admin",
     items: [
-      { page: "debug", label: "Debug / Inspector", adminOnly: true, icon: '<path d="M9 3h6"></path><path d="M10 6h4"></path><rect x="7" y="8" width="10" height="10" rx="2"></rect><path d="M4 11h3"></path><path d="M17 11h3"></path><path d="M10 12h4"></path><path d="M10 15h4"></path>' },
+      { page: "debug", label: "Diagnóstico", adminOnly: true, icon: '<path d="M9 3h6"></path><path d="M10 6h4"></path><rect x="7" y="8" width="10" height="10" rx="2"></rect><path d="M4 11h3"></path><path d="M17 11h3"></path><path d="M10 12h4"></path><path d="M10 15h4"></path>' },
       { page: "connections", label: "Cuentas Admin", adminOnly: true, icon: '<path d="M9 12a3 3 0 0 1 3-3h3"></path><path d="M15 12a3 3 0 0 1-3 3H9"></path><path d="M7 9H5a3 3 0 0 0 0 6h2"></path><path d="M17 9h2a3 3 0 1 1 0 6h-2"></path>' },
       { page: "settings", label: "Sistema Admin", adminOnly: true, icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"></path>' }
     ]
