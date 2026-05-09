@@ -58,6 +58,45 @@ const WATCH_GUIDES = Object.freeze({
   "Fase de Fondeo": "Cada fase cambia el objetivo. Ajusta agresividad, tamaño y frecuencia según la regla activa."
 });
 
+const REFRESH_LABELS = Object.freeze({
+  realtime: "Actualización 1-10s",
+  hourly: "Actualización 1h",
+  intraday: "Actualización 6h/12h/EOD",
+  eod: "Actualización EOD",
+});
+
+const UNIT_LABELS = Object.freeze({
+  percent: "Porcentaje",
+  currency: "Importe",
+  ratio: "Ratio",
+  score: "Puntuación",
+  metric: "Métrica",
+});
+
+const VISUAL_LABELS = Object.freeze({
+  sparkline: "Tendencia",
+  area: "Área",
+  gauge: "Medidor",
+  stacked_bar: "Barras",
+  pill: "Lectura",
+  badge: "Insignia",
+  card: "Ficha",
+});
+
+function resolveRefreshLabel(refresh) {
+  if (refresh?.key && REFRESH_LABELS[refresh.key]) return REFRESH_LABELS[refresh.key];
+  if (refresh?.label) return `Actualización ${refresh.label}`;
+  return "Actualización según métrica";
+}
+
+function resolveUnitLabel(unit) {
+  return UNIT_LABELS[unit] || "Métrica";
+}
+
+function resolveVisualLabel(visual) {
+  return VISUAL_LABELS[visual] || "Ficha";
+}
+
 function resolveHowItWorks(term) {
   if (term.formula && term.formula !== "No aplica") {
     return term.formula;
@@ -124,16 +163,15 @@ function escapeGlossaryHtml(value = "") {
 }
 
 function renderMetricStudyCard(card, index) {
-  const refreshLabel = card.refresh?.label ? `Refresh ${card.refresh.label}` : "Refresh según métrica";
+  const refreshLabel = resolveRefreshLabel(card.refresh);
   const source = card.source || "Fuente pendiente";
   const formula = card.formula || "No aplica";
   const confidence = card.confidence || "Confianza pendiente de muestra";
-  const visualLabel = String(card.visual || "").replace(/_/g, " ");
   const traderUse = card.traderUse || "Sirve para convertir datos del panel en una decisión concreta de riesgo, ejecución o seguimiento.";
   return `
     <article class="study-metric-card" data-study-metric="${escapeGlossaryHtml(card.id)}" style="--study-index:${index}">
       <div class="study-metric-card__top">
-        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.category || card.period || "rolling")}</span>
+        <span class="study-metric-card__eyebrow">${escapeGlossaryHtml(card.category || "Métrica")}</span>
         <span class="study-metric-card__chip">${escapeGlossaryHtml(refreshLabel)}</span>
       </div>
       <div class="study-metric-card__body">
@@ -159,8 +197,8 @@ function renderMetricStudyCard(card, index) {
         </div>
       </dl>
       <div class="study-metric-card__footer">
-        <span>${escapeGlossaryHtml(card.unit || "metric")}</span>
-        <span>${escapeGlossaryHtml(visualLabel || "card")}</span>
+        <span>${escapeGlossaryHtml(resolveUnitLabel(card.unit))}</span>
+        <span>${escapeGlossaryHtml(resolveVisualLabel(card.visual))}</span>
       </div>
     </article>
   `;
@@ -200,7 +238,7 @@ function renderTermStudyCard(term, index) {
         </div>
       </dl>
       <div class="study-metric-card__footer">
-        <span>${escapeGlossaryHtml(term.category || "metric")}</span>
+        <span>${escapeGlossaryHtml(term.category || "Métrica")}</span>
         <span>Guía</span>
       </div>
     </article>
@@ -218,7 +256,7 @@ function renderMetricStudyGrid() {
         </div>
         <p>Lee cada métrica con su fórmula, fuente y nivel de confianza antes de usarla para tomar decisiones.</p>
       </div>
-      <div class="study-metric-grid study-card-grid" aria-label="Cards de métricas críticas">
+      <div class="study-metric-grid study-card-grid" aria-label="Fichas de métricas críticas">
         ${cards.map((card, index) => renderMetricStudyCard(card, index)).join("")}
       </div>
     </section>
