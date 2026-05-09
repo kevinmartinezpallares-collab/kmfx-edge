@@ -2358,6 +2358,10 @@ body::after {
 }
 
 @media (min-width: 1180px) {
+  #glossaryRoot .study-metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   #glossaryRoot .study-card-grid--compact {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
