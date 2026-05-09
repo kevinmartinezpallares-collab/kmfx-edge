@@ -1,7 +1,7 @@
-import { describeAccountAuthority, formatCurrency, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
-import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260504-080918";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { describeAccountAuthority, formatCurrency, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
+import { computeRecommendedRiskFromModel } from "./risk-engine.js?v=build-20260509-150500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
 const QUICK_INSTRUMENTS = [
   { symbol: "EURUSD", label: "EURUSD" },

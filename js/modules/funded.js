@@ -1,9 +1,9 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
-import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { isAdminUserId } from "./auth-session.js?v=build-20260504-080918";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500";
+import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260509-150500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
+import { isAdminUserId } from "./auth-session.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
 import {
   FUNDING_RULE_PHASES,
   availableFundingFirms,
@@ -12,20 +12,20 @@ import {
   inferFundingProgramModel,
   normalizeFundingPhase,
   resolveFundingRulePreset,
-} from "./funding-rules.js?v=build-20260504-080918";
+} from "./funding-rules.js?v=build-20260509-150500";
 import {
   buildFundingJourneys,
   fundingJourneyCurrentPhaseLine,
   fundingJourneyStatusLabel,
   fundingPhaseStatusLabel,
-} from "./funding-journeys.js?v=build-20260504-080918";
+} from "./funding-journeys.js?v=build-20260509-150500";
 import {
   FUNDING_TRANSACTION_TYPES,
   deriveFundingEconomics,
   fundingTransactionTypeLabel,
   fundingTransactionsForJourney,
   normalizeFundingTransaction,
-} from "./funding-ledger.js?v=build-20260504-080918";
+} from "./funding-ledger.js?v=build-20260509-150500";
 
 const ORION_FUNDING_LINK = {
   login: "80571774",
@@ -907,7 +907,7 @@ function fundingPayoutsSummaryMarkup(economics = {}, transactions = []) {
   return `
     <section class="funding-subpage-hero funding-subpage-hero--payouts" aria-label="Resumen de payouts">
       <div class="funding-subpage-hero__copy">
-        <span>Payout ledger</span>
+        <span>Libro de retiros</span>
         <h2>${economicsAmountMarkup(economics.netFundingResult || 0)}</h2>
         <p>${economics.hasTransactions ? `${transactions.length} movimientos registrados en el journey seleccionado.` : "Ledger de costes, refunds, payouts y ajustes pendiente de completar."}</p>
       </div>
@@ -1089,7 +1089,7 @@ function fundingRulesVisualMarkup(account = {}) {
         ${fundingRuleRowMarkup("Tipo de drawdown", drawdownTypeLabel(preset.drawdownType), "")}
         ${fundingRuleRowMarkup("Base de cálculo", maxLossBasisShortLabel(preset.maxLossBasis, preset.drawdownType), "")}
         ${fundingRuleRowMarkup("Días mínimos", minimumDaysRuleLabel(account), "")}
-        ${fundingRuleRowMarkup("Recompensa", rewardPct ? `${formatRuleValue(rewardPct)}` : "No modelado", rewardPct ? "Payout split" : "No se infiere de P&L")}
+        ${fundingRuleRowMarkup("Recompensa", rewardPct ? `${formatRuleValue(rewardPct)}` : "Reparto no modelado", rewardPct ? "Reparto de retiro" : "No se infiere de P&L")}
         ${fundingRuleRowMarkup("Fuente", presetLabel, presetMeta, fundingRuleTone(account))}
       </div>
     </div>

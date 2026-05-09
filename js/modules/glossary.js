@@ -1,5 +1,5 @@
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260509-143000";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
+import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260509-150500";
 
 const CATEGORY_ORDER = Object.freeze([
   "Rendimiento",
@@ -23,9 +23,10 @@ const WATCH_GUIDES = Object.freeze({
   "Win Rate": "No lo mires solo. Un win rate alto con pérdidas medias grandes puede esconder un sistema frágil.",
   "P&L Total": "Comprueba si el resultado viene de muchas operaciones consistentes o de uno o dos outliers.",
   "Operaciones Totales": "Busca muestra suficiente antes de sacar conclusiones. Pocas operaciones pueden distorsionar cualquier lectura.",
-  "Profit Factor": "Míralo junto a drawdown y número de trades. Un PF alto con poca muestra todavía no confirma edge.",
+  "Profit Factor": "Míralo junto a drawdown y número de operaciones. Un PF alto con poca muestra todavía no confirma edge.",
   "Expectancy": "Si es positiva y estable por setup, el sistema tiene mejor base estadística. Si cambia mucho, revisa la muestra.",
-  "Mejor Trade": "Detecta dependencia de un trade excepcional. Si al quitarlo todo cambia, el edge puede estar sobreestimado.",
+  "Mejor operación": "Detecta dependencia de una operación excepcional. Si al quitarla todo cambia, el edge puede estar sobreestimado.",
+  "Mejor Trade": "Detecta dependencia de una operación excepcional. Si al quitarla todo cambia, el edge puede estar sobreestimado.",
   "Beneficio Bruto": "Compáralo con pérdida bruta y comisiones para entender cuánto cuesta producir esa ganancia.",
   "Pérdida Bruta": "Vigila si crece más rápido que el beneficio bruto o si se concentra en pocas sesiones.",
   "Ganancia Media": "Debe tener sentido frente a la pérdida media. Si ganas poco y pierdes mucho, necesitas mucho acierto.",
@@ -33,9 +34,11 @@ const WATCH_GUIDES = Object.freeze({
   "Comisiones Estimadas": "Mira si el coste erosiona demasiado setups de bajo recorrido o estrategias muy frecuentes.",
   "Mejor Mes": "Úsalo como referencia de potencial, pero revisa si fue repetible o excepcional.",
   "Peor Mes": "Sirve para calibrar tolerancia psicológica y capital necesario para sobrevivir ciclos malos.",
+  "Drawdown máximo": "Es una de las métricas más importantes: si no puedes tolerarlo, el sistema no es viable para ti.",
   "Max Drawdown": "Es una de las métricas más importantes: si no puedes tolerarlo, el sistema no es viable para ti.",
-  "Balance": "Úsalo como referencia de capital cerrado, pero no ignores la equity si hay trades abiertos.",
+  "Balance": "Úsalo como referencia de capital cerrado, pero no ignores la equity si hay operaciones abiertas.",
   "Equity": "Es la foto real de la cuenta. Si se separa mucho del balance, hay flotante relevante que revisar.",
+  "P&L abierto": "Mira si el flotante actual amenaza límites, objetivos o disciplina de salida.",
   "Open P&L": "Mira si el flotante actual amenaza límites, objetivos o disciplina de salida.",
   "Heat": "Si el heat sube, una pequeña secuencia adversa puede afectar mucho a la cuenta.",
   "Total Semana": "Úsalo para leer momentum reciente, pero evita sobreoperar para cerrar la semana en positivo.",
@@ -51,6 +54,7 @@ const WATCH_GUIDES = Object.freeze({
   "Sharpe Ratio": "Útil para comparar estabilidad, pero puede castigar estrategias con retornos irregulares aunque rentables.",
   "Sortino Ratio": "Mejor cuando te importa penalizar solo caídas. Mira si mejora frente al Sharpe.",
   "Calmar Ratio": "Ideal para leer retorno frente a dolor. Cuanto más retorno por drawdown, más eficiente el sistema.",
+  "Factor de recuperación": "Si es bajo, el sistema gana pero recupera mal sus caídas. Eso suele sentirse pesado en real.",
   "Recovery Factor": "Si es bajo, el sistema gana pero recupera mal sus caídas. Eso suele sentirse pesado en real.",
   "R:R Medio": "Debe leerse junto al win rate. Bajo acierto necesita R:R alto; alto acierto puede tolerar R:R menor.",
   "DD Diario": "En prop firms es crítico. Vigila la distancia al límite antes de seguir operando.",
@@ -95,6 +99,17 @@ function resolveUnitLabel(unit) {
 
 function resolveVisualLabel(visual) {
   return VISUAL_LABELS[visual] || "Ficha";
+}
+
+function resolveTermDisplayLabel(label = "") {
+  const normalized = String(label || "").trim();
+  const labels = {
+    "Mejor Trade": "Mejor operación",
+    "Max Drawdown": "Drawdown máximo",
+    "Open P&L": "P&L abierto",
+    "Recovery Factor": "Factor de recuperación"
+  };
+  return labels[normalized] || normalized;
 }
 
 function resolveHowItWorks(term) {
@@ -205,6 +220,7 @@ function renderMetricStudyCard(card, index) {
 }
 
 function renderTermStudyCard(term, index) {
+  const displayTerm = resolveTermDisplayLabel(term.term);
   return `
     <article class="study-metric-card study-metric-card--term" data-study-term="${escapeGlossaryHtml(term.term)}" style="--study-index:${index}">
       <div class="study-metric-card__top">
@@ -212,7 +228,7 @@ function renderTermStudyCard(term, index) {
         <span class="study-metric-card__chip">Guía</span>
       </div>
       <div class="study-metric-card__body">
-        <h3>${escapeGlossaryHtml(term.term)}</h3>
+        <h3>${escapeGlossaryHtml(displayTerm)}</h3>
         <p>${escapeGlossaryHtml(term.what)}</p>
       </div>
       <dl class="study-metric-card__facts">

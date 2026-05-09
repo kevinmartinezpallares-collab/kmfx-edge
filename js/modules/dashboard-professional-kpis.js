@@ -20,7 +20,7 @@ export const DASHBOARD_PROFESSIONAL_KPI_REFRESH = Object.freeze({
 
 const KPI_DEFINITIONS = Object.freeze({
   net_return: {
-    label: "Net Return",
+    label: "Retorno neto",
     unit: "percent",
     period: "7d",
     visual: "sparkline",
@@ -33,7 +33,7 @@ const KPI_DEFINITIONS = Object.freeze({
     confidence: "Alta cuando el último dato MT5 está al día y el historial cerrado está completo.",
   },
   max_drawdown: {
-    label: "Max Drawdown",
+    label: "Drawdown máximo",
     unit: "percent",
     period: "30d",
     visual: "area",
@@ -72,7 +72,7 @@ const KPI_DEFINITIONS = Object.freeze({
     confidence: "Más sensible a muestra pequeña; robusto con histórico amplio y limpio.",
   },
   exposure: {
-    label: "Exposure",
+    label: "Exposición",
     unit: "percent",
     period: "live",
     visual: "stacked_bar",

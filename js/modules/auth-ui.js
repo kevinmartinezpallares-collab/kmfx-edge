@@ -456,8 +456,8 @@ export function initAuthUI(store) {
                             ${slide.tone === "panel" ? `
                               <div class="auth-carousel-visual-panel-kpis">
                                 <div><label>Equity</label><strong>$129,180</strong></div>
-                                <div><label>Return</label><strong>+3.0%</strong></div>
-                                <div><label>Trades</label><strong>142</strong></div>
+                                <div><label>Retorno</label><strong>+3.0%</strong></div>
+                                <div><label>Operaciones</label><strong>142</strong></div>
                               </div>
                               <div class="auth-carousel-visual-bars">
                                 <span style="height: 36%"></span>
@@ -472,9 +472,9 @@ export function initAuthUI(store) {
                               <div class="auth-carousel-visual-risk">
                                 <div class="auth-carousel-visual-risk-row"><label>Drawdown</label><strong>2.4%</strong></div>
                                 <div class="auth-carousel-visual-risk-track"><span style="width: 38%"></span></div>
-                                <div class="auth-carousel-visual-risk-row"><label>Exposure</label><strong>31%</strong></div>
+                                <div class="auth-carousel-visual-risk-row"><label>Exposición</label><strong>31%</strong></div>
                                 <div class="auth-carousel-visual-risk-track auth-carousel-visual-risk-track--warning"><span style="width: 54%"></span></div>
-                                <div class="auth-carousel-visual-risk-row"><label>Risk Pressure</label><strong>Low</strong></div>
+                                <div class="auth-carousel-visual-risk-row"><label>Presión</label><strong>Baja</strong></div>
                               </div>
                             ` : ""}
                             ${slide.tone === "discipline" ? `

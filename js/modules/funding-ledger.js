@@ -18,7 +18,7 @@ export const FUNDING_TRANSACTION_TYPE_LABELS = Object.freeze({
   rebuy_fee: "Rebuy",
   discount: "Descuento",
   refund: "Refund",
-  payout: "Payout",
+  payout: "Retiro",
   withdrawal: "Retirada",
   adjustment: "Ajuste",
 });

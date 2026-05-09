@@ -1,8 +1,8 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountingDayKey, getAccountingHour, getAccountingMonthKey, getAccountingWeekdayIndex, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
-import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260504-080918";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
+import { formatCompact, formatCurrency, formatPercent, getAccountingDayKey, getAccountingHour, getAccountingMonthKey, getAccountingWeekdayIndex, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-150500";
+import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260509-150500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
 
 const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -1317,8 +1317,8 @@ export function renderAnalytics(root, state) {
       title: "Riesgo",
       items: [
         { label: "Drawdown actual", value: formatCurrency(-currentDrawdownAmount), note: formatPercent(-currentDrawdownPct), tone: currentDdUsagePct >= 70 ? "negative" : currentDrawdownAmount > 0 ? "warning" : "" },
-        { label: "Max drawdown", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: model.totals.drawdown.maxAmount > 0 ? "negative" : "" },
-        { label: "Recovery factor", value: Number(model.totals.ratios?.recovery || 0).toFixed(2) }
+        { label: "Drawdown máximo", value: formatCurrency(-model.totals.drawdown.maxAmount), note: formatPercent(-maxDrawdownPct), tone: model.totals.drawdown.maxAmount > 0 ? "negative" : "" },
+        { label: "Factor de recuperación", value: Number(model.totals.ratios?.recovery || 0).toFixed(2) }
       ]
     },
     {
@@ -1835,7 +1835,7 @@ export function renderAnalytics(root, state) {
                   <strong class="${selectedDay.pnl >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(selectedDay.pnl)}</strong>
                 </div>
                 <div class="analytics-daily-detail__stat">
-                  <span>Trades</span>
+                  <span>Operaciones</span>
                   <strong>${selectedDay.trades}</strong>
                 </div>
                 <div class="analytics-daily-detail__stat">

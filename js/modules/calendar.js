@@ -1,8 +1,8 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-143000";
-import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
-import { openFocusPanel } from "./modal-system.js?v=build-20260504-080918";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
-import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-150500";
+import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
+import { openFocusPanel } from "./modal-system.js?v=build-20260509-150500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const CALENDAR_TOOLTIP_PERCENT_FORMATTER = new Intl.NumberFormat("es-ES", {
@@ -62,10 +62,10 @@ function buildDayMetrics(dayTrades) {
   const totalFees = ordered.reduce((sum, trade) => sum + resolveTradeFees(trade), 0);
   const bestValueClass = best?.pnl > 0 ? "metric-positive" : best?.pnl < 0 ? "metric-negative" : "";
   return [
-    { label: "Trades", value: String(ordered.length) },
+    { label: "Operaciones", value: String(ordered.length) },
     { label: "Win Rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
     {
-      label: "Mejor trade",
+      label: "Mejor operación",
       value: best ? pnlTextMarkup({ value: best.pnl, text: formatCurrency(best.pnl), className: bestValueClass }) : "—",
       valueClass: bestValueClass
     },
@@ -92,10 +92,10 @@ function renderCalendarDayStatBar(metrics, dayTrades) {
   const losses = ordered.filter((trade) => trade.pnl < 0).length;
   const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
   const metaByLabel = new Map([
-    ["Trades", "Cerrados"],
+    ["Operaciones", "Cerradas"],
     ["Win Rate", ordered.length ? `${wins} ganadoras · ${losses} perdedoras` : ""],
-    ["Mejor trade", best ? `${best.symbol || "—"} ${best.side || ""}`.trim() : ""],
-    ["Comisiones", ordered.length ? `${ordered.length} trades` : ""]
+    ["Mejor operación", best ? `${best.symbol || "—"} ${best.side || ""}`.trim() : ""],
+    ["Comisiones", ordered.length ? `${ordered.length} operaciones` : ""]
   ]);
 
   return `
@@ -230,7 +230,7 @@ function renderDayTradeDisclosure(trade, options = {}) {
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
             <strong>${trade.symbol}</strong>
-            ${isPrimary ? `<small class="calendar-day-primary-trade">Trade principal del día</small>` : ""}
+            ${isPrimary ? `<small class="calendar-day-primary-trade">Operación principal del día</small>` : ""}
           </div>
           <div class="focus-panel-disclosure__cell">
             <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
@@ -306,8 +306,8 @@ function openCalendarDayFocus(root, state, model, key) {
         <section class="focus-panel-section calendar-day-trades">
           <div class="focus-panel-section__head calendar-day-report__section-head">
             <div>
-              <div class="focus-panel-section__title">Trades del día</div>
-              <div class="focus-panel-section__subtitle">Detalle de aportes, impacto y ejecución de cada trade cerrado en el día.</div>
+              <div class="focus-panel-section__title">Operaciones del día</div>
+              <div class="focus-panel-section__subtitle">Detalle de aportes, impacto y ejecución de cada operación cerrada en el día.</div>
             </div>
           </div>
           <div class="focus-panel-trades-head calendar-day-trades__head">

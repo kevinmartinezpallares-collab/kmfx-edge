@@ -1,10 +1,10 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260504-080918";
-import { buildApiUrl } from "./api-config.js?v=build-20260504-080918";
-import { showToast } from "./toast.js?v=build-20260504-080918";
-import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260504-080918";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260504-080918";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500";
+import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
+import { showToast } from "./toast.js?v=build-20260509-150500";
+import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260509-150500";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
+import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
 
 function emptyForm() {
   return {
@@ -142,7 +142,7 @@ function strategyStatusLabel(status) {
       return "Descartada";
     case "testing":
     default:
-      return "Testing";
+      return "En prueba";
   }
 }
 
@@ -274,8 +274,8 @@ function buildStrategiesSetupSummary(items, setupStats) {
 
   return [
     { label: "Sistema", value: `${pluralLabel(totalStrategies, "estrategia", "estrategias")} registradas` },
-    { label: "Estado", value: `${statusCounts.testing || 0} en testing` },
-    { label: "Muestra", value: pluralLabel(totalTrades, "trade asociado", "trades asociados") },
+    { label: "Estado", value: `${statusCounts.testing || 0} en prueba` },
+    { label: "Muestra", value: pluralLabel(totalTrades, "operación asociada", "operaciones asociadas") },
     {
       label: "P&L asociado",
       value: pnlTextMarkup({
@@ -336,7 +336,7 @@ function renderStrategyEditor({ item, form, store }) {
             <label class="strategies-dialog__field">
               <span>Estado</span>
               <select name="status">${[
-                ["testing", "Testing"],
+                ["testing", "En prueba"],
                 ["active", "Activa"],
                 ["paused", "Pausada"],
                 ["retired", "Descartada"]
@@ -533,7 +533,7 @@ export function renderStrategies(root, state) {
               <div class="strategies-setup-item__sample">${sampleLabel(item.trades)}</div>
             </div>
             <div class="strategies-setup-item__stats">
-              <span class="strategies-setup-item__metric">${item.trades} trades</span>
+              <span class="strategies-setup-item__metric">${item.trades} operaciones</span>
               <span class="strategies-setup-item__metric">${percent(item.winRate)} WR</span>
               <span class="strategies-setup-item__metric strategies-setup-item__metric--pnl ${item.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: item.pnl, text: formatCurrency(item.pnl), className: item.pnl >= 0 ? "metric-positive" : "metric-negative" })}</span>
             </div>
@@ -566,7 +566,7 @@ export function renderStrategies(root, state) {
               <th>Par</th>
               <th>TF</th>
               <th>Sesión</th>
-              <th>Trades</th>
+              <th>Operaciones</th>
               <th>WR</th>
               <th>R:R</th>
               <th>P&amp;L</th>
@@ -662,12 +662,12 @@ export function renderStrategies(root, state) {
         </div>
         <div class="strategies-setup-item strategies-setup-item--info" data-tone="info">
           <div class="strategies-setup-item__head">
-            <div class="strategies-setup-item__name">Estado portfolio</div>
+            <div class="strategies-setup-item__name">Estado de cartera</div>
             <div class="strategies-setup-item__sample">${items.length} setups</div>
           </div>
           <div class="strategies-setup-item__stats">
             <span class="strategies-setup-item__metric">${activeStrategies.length} activas</span>
-            <span class="strategies-setup-item__metric">${testingStrategies.length} testing</span>
+            <span class="strategies-setup-item__metric">${testingStrategies.length} en prueba</span>
             <span class="strategies-setup-item__metric">${backtests.length} backtests</span>
           </div>
         </div>
@@ -682,7 +682,7 @@ export function renderStrategies(root, state) {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Setup</th><th>Estado</th><th>Trades</th><th>P&L</th><th>WR</th><th>Lectura</th></tr></thead>
+          <thead><tr><th>Setup</th><th>Estado</th><th>Operaciones</th><th>P&L</th><th>WR</th><th>Lectura</th></tr></thead>
           <tbody>
             ${items.length ? items.map((item) => {
               const stats = deriveStrategyStats(item, journalEntries);

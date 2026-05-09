@@ -205,7 +205,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
               "Orion Challenge 5k",
               "5061",
               "AUDUSD",
-              "Net Return",
+              "Retorno neto",
               "VaR 95",
               "Edge Score",
               "dashboard-professional-kpi__risk-score",
@@ -903,7 +903,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             self.assertGreater(len(row["requiredHits"]), 0, page)
         self.assertTrue(
             {
-                "Net Return",
+                "Retorno neto",
                 "VaR 95",
                 "Edge Score",
                 "dashboard-professional-kpi__risk-score",

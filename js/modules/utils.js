@@ -28,7 +28,7 @@ const accountingWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: ACCOUNTING_TIMEZONE,
   weekday: "short",
 });
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260504-080918";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260509-150500";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
@@ -1498,7 +1498,7 @@ function buildRiskSummary({ account, trades, dayStats, drawdown, totals, positio
         : "La curva exige modo defensivo inmediato.",
     guardrails: [
       { title: "Control de Drawdown", description: "DD total y DD diario", status: drawdown.maxPct < 8 ? "Activo" : "Alerta", value: `${(account.maxDrawdownLimit || 10).toFixed(1)}% · ${(riskProfile.dailyLossLimitPct || 1.2).toFixed(1)}%` },
-      { title: "Riesgo por Trade", description: "% máximo por operación", status: "Activo", value: `${(riskProfile.maxTradeRiskPct || 1).toFixed(2)}%` },
+      { title: "Riesgo por operación", description: "% máximo por operación", status: "Activo", value: `${(riskProfile.maxTradeRiskPct || 1).toFixed(2)}%` },
       { title: "Horarios Permitidos", description: "Ventanas operativas UTC", status: "Activo", value: `${(riskProfile.allowedSessions || ["London"]).join(" · ")} UTC` },
       { title: "Control de Volumen", description: "Lote máximo por trade", status: "Activo", value: `${riskProfile.maxVolume || 1.5} lotes` },
       { title: "Símbolos Permitidos", description: "Universo habilitado", status: "Activo", value: allowedSymbols.join(" · ") },
@@ -1521,9 +1521,9 @@ function buildRiskSummary({ account, trades, dayStats, drawdown, totals, positio
     ledger: [
       { metric: "Expectativa", value: totals.expectancy, format: "currency", note: "Resultado esperado por trade" },
       { metric: "Profit Factor", value: totals.profitFactor, format: "number", note: "Sostenibilidad de la curva" },
-      { metric: "Recovery Capacity", value: account.balance - drawdown.maxAmount, format: "currency", note: "Capital util tras DD" },
-      { metric: "Session Concentration", value: totalSessionTrades ? (sessionConcentration / totalSessionTrades) * 100 : 0, format: "percent", note: "Peso de London en el sample" },
-      { metric: "Open Exposure", value: positions.reduce((sum, item) => sum + Math.abs(item.pnl), 0), format: "currency", note: "Exposicion flotante" },
+      { metric: "Capacidad de recuperación", value: account.balance - drawdown.maxAmount, format: "currency", note: "Capital útil tras DD" },
+      { metric: "Concentración por sesión", value: totalSessionTrades ? (sessionConcentration / totalSessionTrades) * 100 : 0, format: "percent", note: "Peso de London en la muestra" },
+      { metric: "Exposición abierta", value: positions.reduce((sum, item) => sum + Math.abs(item.pnl), 0), format: "currency", note: "Exposición flotante" },
       { metric: "R:R Medio", value: totals.rr, format: "number", note: "Calidad de salida" }
     ]
   };

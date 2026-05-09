@@ -1,5 +1,5 @@
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
+import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
 
 // === DISCIPLINE SECTION ===
 export const disciplineData = {
@@ -395,7 +395,7 @@ const DEFAULT_KMFX_PROFILES = {
       name: "Orion Funded",
       type: "funded",
       color: "#2F6BFF",
-      description: "Max DD 5% · Payout mensual",
+      description: "Max DD 5% · retiro mensual",
       allowedPairs: ["EURUSD", "GBPUSD", "USDCAD", "AUDUSD"],
       rules: [
         profileRule("sl-fixed"),
@@ -3277,7 +3277,7 @@ function buildExecutionReviewItems({
   const items = [];
   if (pendingTagTrades.length) {
     items.push({
-      title: "Trades sin etiquetar",
+      title: "Operaciones sin etiquetar",
       copy: `${pendingTagTrades.length} operaciones pendientes de post-trade tag. Completa tags para validar.`,
       tone: "warn"
     });
@@ -3633,7 +3633,7 @@ function renderPostTradeModal(profile, tags = {}) {
         <div class="ptt-body">
           <section class="posttrade-quick">
             <div>
-              <strong>¿Trade ejecutado según plan?</strong>
+              <strong>¿Operación ejecutada según plan?</strong>
               <p>Usa el modo rápido si las reglas principales se cumplieron y solo quieres dejar nota.</p>
             </div>
             <div class="posttrade-quick__actions">

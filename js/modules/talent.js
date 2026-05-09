@@ -1,6 +1,6 @@
-import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260504-080918";
-import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
+import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260509-150500";
+import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
 export function renderTalent(root, state) {
   const account = selectCurrentAccount(state);
@@ -27,7 +27,7 @@ export function renderTalent(root, state) {
     { label: "Sharpe", value: ratios.sharpe || 0, note: "Calidad del retorno ajustado por volatilidad." },
     { label: "Sortino", value: ratios.sortino || 0, note: "Penaliza solo la volatilidad negativa." },
     { label: "Calmar", value: ratios.calmar || 0, note: "Retorno frente al drawdown máximo." },
-    { label: "Recovery Factor", value: ratios.recovery || 0, note: "Capacidad de recuperación tras caídas." }
+    { label: "Factor de recuperación", value: ratios.recovery || 0, note: "Capacidad de recuperación tras caídas." }
   ];
   const objectives = [
     { label: "Win Rate ≥ 50%", current: model.totals.winRate, target: 50, suffix: "%" },

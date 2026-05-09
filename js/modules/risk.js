@@ -1,12 +1,12 @@
-import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260504-080918";
-import { badgeMarkup } from "./status-badges.js?v=build-20260504-080918";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260504-080918";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260504-080918";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
-import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260505-100000";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-143000";
+import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260509-150500";
+import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260509-150500";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260509-150500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
+import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260509-150500";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-150500";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 
 function escapeHtml(value = "") {
@@ -489,7 +489,7 @@ function resolvePortfolioVarModel(state) {
     hasPortfolio: accounts.length > 1,
     hasVar: accountsWithVar > 0,
     cards: [
-      { label: "VaR 95", value: formatCurrency(totalVar95), detail: `${formatRiskPct(equityPct(totalVar95))} equity`, tone: totalVar95 > 0 ? "warn" : "neutral" },
+      { label: "VaR 95", value: formatCurrency(totalVar95), detail: `${formatRiskPct(equityPct(totalVar95))} sobre equity`, tone: totalVar95 > 0 ? "warn" : "neutral" },
       { label: "CVaR 95", value: formatCurrency(totalCvar95), detail: `${formatRiskPct(equityPct(totalCvar95))} sobre equity`, tone: totalCvar95 > totalVar95 ? "warn" : "neutral" },
       { label: "VaR 99", value: formatCurrency(totalVar99), detail: `${formatRiskPct(equityPct(totalVar99))} sobre equity`, tone: totalVar99 > totalVar95 && totalVar95 > 0 ? "danger" : totalVar99 > 0 ? "warn" : "neutral" },
       { label: "RoR máximo", value: formatRiskPct(highestRuin), detail: `${accountsWithVar}/${accounts.length || 0} cuentas con muestra`, tone: highestRuin >= 10 ? "danger" : highestRuin >= 3 ? "warn" : "neutral" }
@@ -723,7 +723,7 @@ function professionalActionAlerts(professional, snapshot) {
   if (Number.isFinite(recoveryFactor) && recoveryFactor < 1 && safeNumber(drawdownPath.max_drawdown_pct, 0) > 0) {
     alerts.push({
       tone: "warn",
-      title: "Recovery débil",
+      title: "Recuperación débil",
       detail: "El beneficio neto aún no compensa el drawdown máximo observado."
     });
   }

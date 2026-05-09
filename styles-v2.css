@@ -2060,6 +2060,7 @@ body::after {
   overflow: visible;
 }
 
+#glossaryRoot .study-card-grid,
 .study-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
@@ -2067,11 +2068,13 @@ body::after {
   align-items: stretch;
 }
 
+#glossaryRoot .study-card-grid--compact,
 .study-card-grid--compact {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr));
   gap: 16px;
 }
 
+#glossaryRoot .study-metric-card,
 .study-metric-card {
   --study-accent: var(--equity);
   display: grid;
@@ -2145,10 +2148,11 @@ body::after {
   min-width: 0;
 }
 
+#glossaryRoot .study-metric-card__body h3,
 .study-metric-card__body h3 {
   margin: 0;
   color: var(--foreground);
-  font-size: clamp(30px, 3vw, 46px);
+  font-size: clamp(30px, 2.75vw, 46px);
   line-height: 1;
   font-weight: 780;
   letter-spacing: 0;
@@ -2200,11 +2204,13 @@ body::after {
   --study-accent: var(--accent);
 }
 
+#glossaryRoot .study-metric-card--term .study-metric-card__body h3,
 .study-metric-card--term .study-metric-card__body h3 {
-  font-size: clamp(30px, 3vw, 46px);
+  font-size: clamp(30px, 2.55vw, 44px);
   line-height: 1;
 }
 
+#glossaryRoot .glossary-grid,
 .glossary-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
