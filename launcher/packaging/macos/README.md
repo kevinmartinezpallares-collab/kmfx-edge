@@ -39,6 +39,23 @@ dist/KMFX Launcher.app
 dist/KMFX Launcher.dmg
 ```
 
+## Web distribution artifact
+
+The dashboard download points to:
+
+```text
+downloads/KMFX-Launcher-macOS.zip
+```
+
+That ZIP is created from the final app bundle:
+
+```bash
+ditto -c -k --sequesterRsrc --keepParent "dist/KMFX Launcher.app" downloads/KMFX-Launcher-macOS.zip
+(cd downloads && shasum -a 256 KMFX-Launcher-macOS.zip > KMFX-Launcher-macOS.zip.sha256)
+```
+
+Keep the DMG for manual/local packaging checks. The public dashboard artifact is the ZIP because it stays small enough for static hosting and still preserves the `.app` bundle, the `kmfx-launcher://` URL scheme, and the packaged `KMFXConnector.ex5`.
+
 ## Included resources
 
 - `launcher/ui/*`

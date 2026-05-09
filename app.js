@@ -8,7 +8,7 @@ import { renderTrades } from "./js/modules/trades.js?v=build-20260505-071500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260505-071500";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260505-071500";
 import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260505-071500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260508-235500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260509-021200";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260505-071500";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260505-100000";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260505-100000";
@@ -23,7 +23,7 @@ import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-2026
 import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260505-071500";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260505-071500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260505-071500";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260505-071500";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260509-021200";
 import { hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260505-100000";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260508-235500";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260505-071500";
@@ -56,7 +56,7 @@ import {
   resolveBillingStatusUrl
 } from "./js/modules/api-config.js?v=build-20260505-071500";
 
-const BUILD_TAG = "build-20260505-083000";
+const BUILD_TAG = "build-20260509-021200";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();

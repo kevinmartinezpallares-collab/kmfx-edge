@@ -230,7 +230,7 @@ Criterio de salida:
 Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 
 - [x] Flujo dashboard: Cuentas -> Añadir cuenta -> Launcher recomendado.
-- [x] Descarga macOS correcta desde dashboard.
+- [x] Descarga macOS correcta desde dashboard via `downloads/KMFX-Launcher-macOS.zip`.
 - [x] Descarga Windows correcta desde dashboard.
 - [x] Boton "Abrir Launcher" abre la app instalada, no descarga de nuevo.
 - [ ] Launcher detecta instalaciones por nombre legible: broker/cuenta/alias.
@@ -254,6 +254,12 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [ ] Version visible de EA/Launcher.
 - [ ] Checksum visible de descargas.
 - [ ] Avisos de Gatekeeper/Windows documentados.
+
+Notas 2026-05-09:
+
+- El enlace publico de macOS usa `downloads/KMFX-Launcher-macOS.zip` porque el DMG local pesa ~21 MB y produccion no lo estaba sirviendo desde Vercel.
+- El ZIP de macOS conserva el `.app`, el esquema `kmfx-launcher://`, el `.ex5` empaquetado y checksum SHA-256.
+- Windows sigue usando `downloads/KMFX-Launcher-Windows.exe`; el ZIP de Windows queda como artefacto alternativo.
 
 Criterio de salida:
 
