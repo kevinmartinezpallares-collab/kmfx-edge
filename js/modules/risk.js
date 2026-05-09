@@ -578,29 +578,6 @@ function professionalReadout(professional) {
   };
 }
 
-function resolveSimulationScale(values = []) {
-  const finiteValues = values
-    .map((value) => safeNumber(value, NaN))
-    .filter((value) => Number.isFinite(value));
-  const baseValues = finiteValues.length ? finiteValues : [0];
-  let min = Math.min(...baseValues, 0);
-  let max = Math.max(...baseValues, 0);
-  if (min === max) {
-    min -= 1;
-    max += 1;
-  }
-  const padding = Math.max((max - min) * 0.12, 0.5);
-  min -= padding;
-  max += padding;
-  return {
-    min,
-    max,
-    position(value) {
-      return clampRiskValue(((safeNumber(value, 0) - min) / (max - min)) * 100);
-    }
-  };
-}
-
 function professionalSimulationModel(professional) {
   if (!professional.hasMetrics || professional.sampleSize <= 0) {
     return { available: false };
@@ -609,7 +586,6 @@ function professionalSimulationModel(professional) {
   const p05 = safeNumber(monteCarlo.p05_return_pct, 0);
   const median = safeNumber(monteCarlo.median_return_pct, 0);
   const p95 = safeNumber(monteCarlo.p95_return_pct, 0);
-  const returnScale = resolveSimulationScale([p05, median, p95]);
   const ruinThreshold = Math.max(safeNumber(monteCarlo.ruin_threshold_pct, 20), 0.1);
   const medianDrawdown = safeNumber(monteCarlo.median_max_drawdown_pct, 0);
   const stressDrawdown = safeNumber(monteCarlo.p95_max_drawdown_pct, 0);
@@ -618,11 +594,25 @@ function professionalSimulationModel(professional) {
     available: true,
     horizonTrades: safeNumber(monteCarlo.horizon_trades, 0),
     simulations: safeNumber(monteCarlo.simulations, 0),
-    zeroPosition: returnScale.position(0),
-    returnMarkers: [
-      { label: "Peor 5%", value: p05, tone: "danger", position: returnScale.position(p05) },
-      { label: "Mediana", value: median, tone: median >= 0 ? "ok" : "warn", position: returnScale.position(median) },
-      { label: "Mejor 5%", value: p95, tone: "ok", position: returnScale.position(p95) }
+    returnScenarios: [
+      {
+        label: "Peor 5%",
+        value: p05,
+        tone: "danger",
+        caption: "Escenario defensivo: úsalo para decidir si el tamaño actual soporta una mala racha."
+      },
+      {
+        label: "Mediana",
+        value: median,
+        tone: median >= 0 ? "ok" : "warn",
+        caption: "Resultado central: si aquí no hay ventaja, no conviene escalar."
+      },
+      {
+        label: "Mejor 5%",
+        value: p95,
+        tone: "ok",
+        caption: "Escenario favorable: sirve para comparar upside, no para justificar más riesgo."
+      }
     ],
     stats: [
       { label: "Retorno P05", value: formatSignedRiskPct(p05), tone: p05 < 0 ? "danger" : "ok" },
@@ -822,8 +812,8 @@ function renderMonteCarloNotes(notes = []) {
   return `
     <div class="risk-interpretation-notes">
       <div class="risk-interpretation-notes__head">
-        <span>Notas de lectura</span>
-        <strong>Cómo actuar con estos datos</strong>
+        <span>Notas de interpretación</span>
+        <strong>Qué mejorar con esta lectura</strong>
       </div>
       <div class="risk-interpretation-notes__grid">
         ${notes.map((note) => `
@@ -1042,7 +1032,7 @@ function renderDrawdownArea(model) {
         <strong>${formatRiskPct(model.currentDrawdown)}</strong>
       </div>
       <div class="risk-drawdown-chart">
-        ${model.available ? chartCanvas("risk-drawdown-path", 148, "risk-drawdown-chart__canvas") : `<div class="risk-drawdown-empty">Esperando historial suficiente.</div>`}
+        ${model.available ? chartCanvas("risk-drawdown-path", 172, "kmfx-chart-shell--hero risk-drawdown-chart__canvas") : `<div class="risk-drawdown-empty">Esperando historial suficiente.</div>`}
       </div>
       <div class="risk-drawdown-area__axis">
         <span>0%</span>
@@ -1351,15 +1341,16 @@ export function renderRisk(root, state) {
       axisFormatter: (value) => `${Number(value || 0).toFixed(1)}%`,
       formatter: (value) => `${Number(value || 0).toFixed(2)}% DD`,
       tooltipTitle: "Drawdown",
-      fillAlphaStart: 0.18,
-      fillAlphaEnd: 0.015,
-      borderWidth: 2.1,
+      fillAlphaStart: 0.13,
+      fillAlphaEnd: 0.012,
+      borderWidth: 2.35,
       pointRadius: 0,
-      endpointPulse: { radius: 3.2, alpha: 0.12, steadyAlpha: 0.16 },
+      pointHoverRadius: 2.4,
+      endpointPulse: { radius: 3.2, alpha: 0.14, steadyAlpha: 0.18 },
       liveSmoothing: true,
-      layoutPaddingTop: 8,
-      layoutPaddingRight: 8,
-      layoutPaddingBottom: 0,
+      layoutPaddingTop: 10,
+      layoutPaddingRight: 6,
+      layoutPaddingBottom: 2,
     })
   ] : [];
   const pressureProgress = buildPressureProgressModel(liveSnapshot, exposureSnapshot);
@@ -1649,21 +1640,21 @@ export function renderRisk(root, state) {
           <small>Escenarios estimados para entender cola, mediana y estrés antes de subir riesgo.</small>
         </div>
         ${riskSimulation.available ? `
-          <div class="risk-simulation-return">
-            <div class="risk-simulation-return__axis">
-              <span>Escenario defensivo</span>
-              <span>Centro de la distribución</span>
-              <span>Escenario favorable</span>
+          <div class="risk-simulation-scenarios" aria-label="Escenarios de retorno Monte Carlo">
+            ${riskSimulation.returnScenarios.map((scenario) => `
+              <article class="risk-simulation-scenario risk-simulation-scenario--${scenario.tone}">
+                <span>${scenario.label}</span>
+                <strong>${formatSignedRiskPct(scenario.value)}</strong>
+                <p>${scenario.caption}</p>
+              </article>
+            `).join("")}
+          </div>
+          <div class="risk-simulation-explainer">
+            <div>
+              <span>Cómo leerlo</span>
+              <strong>Compara cola, centro y estrés de drawdown antes de tocar el tamaño.</strong>
             </div>
-            <div class="risk-simulation-return__track">
-              <i class="risk-simulation-return__zero" style="left:${riskSimulation.zeroPosition.toFixed(2)}%"></i>
-              ${riskSimulation.returnMarkers.map((marker) => `
-                <div class="risk-simulation-marker risk-simulation-marker--${marker.tone}" style="left:${marker.position.toFixed(2)}%" title="${marker.label} ${formatSignedRiskPct(marker.value)}">
-                  <span>${marker.label}</span>
-                  <strong>${formatSignedRiskPct(marker.value)}</strong>
-                </div>
-              `).join("")}
-            </div>
+            <p>Monte Carlo reordena resultados históricos para estimar rangos probables. No predice el futuro: convierte tu muestra actual en una guía de supervivencia.</p>
           </div>
           <div class="risk-simulation-stat-grid">
             ${riskSimulation.stats.map((stat) => `

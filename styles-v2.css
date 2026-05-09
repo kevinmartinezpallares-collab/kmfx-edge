@@ -8082,21 +8082,24 @@ body[data-theme="dark"] .risk-exposure-breakdown__dot--3 {
 
 html[data-theme="dark"] .risk-drawdown-area,
 body[data-theme="dark"] .risk-drawdown-area {
-  min-height: 218px;
+  min-height: 238px;
 }
 
 html[data-theme="dark"] .risk-drawdown-chart,
 body[data-theme="dark"] .risk-drawdown-chart {
   width: 100%;
-  min-height: 148px;
+  min-height: 172px;
+  margin: 2px -2px 0;
 }
 
 html[data-theme="dark"] .risk-drawdown-chart__canvas,
 body[data-theme="dark"] .risk-drawdown-chart__canvas {
-  border: 0;
-  border-radius: 14px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
-  box-shadow: none;
+  min-height: 172px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .risk-drawdown-empty,
@@ -8628,6 +8631,10 @@ html[data-theme="dark"] .risk-simulation-panel__head span,
 body[data-theme="dark"] .risk-simulation-panel__head span,
 html[data-theme="dark"] .risk-professional-actions__head span,
 body[data-theme="dark"] .risk-professional-actions__head span,
+html[data-theme="dark"] .risk-simulation-scenario span,
+body[data-theme="dark"] .risk-simulation-scenario span,
+html[data-theme="dark"] .risk-simulation-explainer span,
+body[data-theme="dark"] .risk-simulation-explainer span,
 html[data-theme="dark"] .risk-simulation-stat span,
 body[data-theme="dark"] .risk-simulation-stat span,
 html[data-theme="dark"] .risk-simulation-dd-row span,
@@ -8659,123 +8666,120 @@ body[data-theme="dark"] .risk-simulation-panel__head small {
   color: var(--text-2);
 }
 
-html[data-theme="dark"] .risk-simulation-return,
-body[data-theme="dark"] .risk-simulation-return {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-html[data-theme="dark"] .risk-simulation-return__axis,
-body[data-theme="dark"] .risk-simulation-return__axis {
+html[data-theme="dark"] .risk-simulation-scenarios,
+body[data-theme="dark"] .risk-simulation-scenarios {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  font-size: 11px;
-  line-height: 1.2;
-  color: var(--text-2);
-}
-
-html[data-theme="dark"] .risk-simulation-return__axis span:nth-child(2),
-body[data-theme="dark"] .risk-simulation-return__axis span:nth-child(2) {
-  text-align: center;
-}
-
-html[data-theme="dark"] .risk-simulation-return__axis span:nth-child(3),
-body[data-theme="dark"] .risk-simulation-return__axis span:nth-child(3) {
-  text-align: right;
-}
-
-html[data-theme="dark"] .risk-simulation-return__track,
-body[data-theme="dark"] .risk-simulation-return__track {
-  position: relative;
   min-width: 0;
-  height: 92px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--kmfx-border) 80%, rgba(255,255,255,0.055));
-  background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--negative) 18%, transparent) 0%,
-      color-mix(in srgb, var(--warning) 12%, transparent) 44%,
-      color-mix(in srgb, var(--positive) 14%, transparent) 100%),
-    color-mix(in srgb, var(--kmfx-card-bg-soft) 92%, rgba(255,255,255,0.012));
-  overflow: visible;
 }
 
-html[data-theme="dark"] .risk-simulation-return__zero,
-body[data-theme="dark"] .risk-simulation-return__zero {
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  width: 1px;
-  background: color-mix(in srgb, var(--text-2) 54%, transparent);
-}
-
-html[data-theme="dark"] .risk-simulation-marker,
-body[data-theme="dark"] .risk-simulation-marker {
-  position: absolute;
-  top: 12px;
-  bottom: auto;
+html[data-theme="dark"] .risk-simulation-scenario,
+body[data-theme="dark"] .risk-simulation-scenario {
   display: grid;
-  place-items: center;
-  gap: 2px;
-  min-width: 88px;
-  padding: 7px 9px;
-  transform: translateX(-50%);
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--kmfx-border) 70%, transparent);
-  background: color-mix(in srgb, var(--layer-1-subtle) 82%, rgba(255,255,255,0.025));
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  align-content: start;
+  gap: 9px;
+  min-width: 0;
+  min-height: 148px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--kmfx-border) 76%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 74%),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.012));
 }
 
-html[data-theme="dark"] .risk-simulation-marker span,
-body[data-theme="dark"] .risk-simulation-marker span {
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1.05;
-  color: var(--text-2);
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-
-html[data-theme="dark"] .risk-simulation-marker strong,
-body[data-theme="dark"] .risk-simulation-marker strong {
+html[data-theme="dark"] .risk-simulation-scenario strong,
+body[data-theme="dark"] .risk-simulation-scenario strong {
   color: var(--text-0);
-  font-size: 13px;
+  font-size: clamp(24px, 3vw, 34px);
   font-weight: 760;
-  line-height: 1;
+  line-height: 0.96;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
-html[data-theme="dark"] .risk-simulation-marker--ok,
-body[data-theme="dark"] .risk-simulation-marker--ok {
-  border-color: color-mix(in srgb, var(--positive) 26%, var(--kmfx-border));
+html[data-theme="dark"] .risk-simulation-scenario p,
+body[data-theme="dark"] .risk-simulation-scenario p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.42;
 }
 
-html[data-theme="dark"] .risk-simulation-marker--ok strong,
-body[data-theme="dark"] .risk-simulation-marker--ok strong {
-  color: color-mix(in srgb, var(--positive) 76%, var(--text-0));
+html[data-theme="dark"] .risk-simulation-scenario--ok,
+body[data-theme="dark"] .risk-simulation-scenario--ok {
+  border-color: color-mix(in srgb, var(--positive) 24%, var(--kmfx-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--positive) 9%, transparent), transparent 72%),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.012));
 }
 
-html[data-theme="dark"] .risk-simulation-marker--warn,
-body[data-theme="dark"] .risk-simulation-marker--warn {
-  border-color: color-mix(in srgb, var(--warning) 28%, var(--kmfx-border));
+html[data-theme="dark"] .risk-simulation-scenario--ok strong,
+body[data-theme="dark"] .risk-simulation-scenario--ok strong {
+  color: color-mix(in srgb, var(--positive) 78%, var(--text-0));
 }
 
-html[data-theme="dark"] .risk-simulation-marker--warn strong,
-body[data-theme="dark"] .risk-simulation-marker--warn strong {
-  color: color-mix(in srgb, var(--warning) 78%, var(--text-0));
+html[data-theme="dark"] .risk-simulation-scenario--warn,
+body[data-theme="dark"] .risk-simulation-scenario--warn {
+  border-color: color-mix(in srgb, var(--warning) 26%, var(--kmfx-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--warning) 9%, transparent), transparent 72%),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.012));
 }
 
-html[data-theme="dark"] .risk-simulation-marker--danger,
-body[data-theme="dark"] .risk-simulation-marker--danger {
-  border-color: color-mix(in srgb, var(--negative) 28%, var(--kmfx-border));
+html[data-theme="dark"] .risk-simulation-scenario--warn strong,
+body[data-theme="dark"] .risk-simulation-scenario--warn strong {
+  color: color-mix(in srgb, var(--warning) 82%, var(--text-0));
 }
 
-html[data-theme="dark"] .risk-simulation-marker--danger strong,
-body[data-theme="dark"] .risk-simulation-marker--danger strong {
+html[data-theme="dark"] .risk-simulation-scenario--danger,
+body[data-theme="dark"] .risk-simulation-scenario--danger {
+  border-color: color-mix(in srgb, var(--negative) 24%, var(--kmfx-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--negative) 9%, transparent), transparent 72%),
+    color-mix(in srgb, var(--layer-1-subtle) 94%, rgba(255,255,255,0.012));
+}
+
+html[data-theme="dark"] .risk-simulation-scenario--danger strong,
+body[data-theme="dark"] .risk-simulation-scenario--danger strong {
   color: color-mix(in srgb, var(--negative) 78%, var(--text-0));
+}
+
+html[data-theme="dark"] .risk-simulation-explainer,
+body[data-theme="dark"] .risk-simulation-explainer {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.44fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--kmfx-border));
+  background: color-mix(in srgb, var(--accent) 5%, color-mix(in srgb, var(--layer-1-subtle) 94%, transparent));
+}
+
+html[data-theme="dark"] .risk-simulation-explainer div,
+body[data-theme="dark"] .risk-simulation-explainer div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .risk-simulation-explainer strong,
+body[data-theme="dark"] .risk-simulation-explainer strong {
+  color: var(--text-0);
+  font-size: 14px;
+  line-height: 1.24;
+}
+
+html[data-theme="dark"] .risk-simulation-explainer p,
+body[data-theme="dark"] .risk-simulation-explainer p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 html[data-theme="dark"] .risk-simulation-stat-grid,
@@ -41476,8 +41480,13 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     .risk-command-center__op-row,
     .risk-rule-card__meta-row,
     .risk-exposure-row,
+    .risk-simulation-scenarios,
+    .risk-simulation-scenario,
+    .risk-simulation-explainer,
     .risk-simulation-dd-row,
     .risk-professional-actions__list,
+    .risk-interpretation-notes__grid,
+    .risk-interpretation-note,
     .trades-overview-row,
     .trades-symbol-row,
     .trades-position-row,
@@ -41496,7 +41505,10 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     .funding-state-row,
     .risk-command-center__op-row,
     .risk-exposure-row,
+    .risk-simulation-scenarios,
+    .risk-simulation-explainer,
     .risk-simulation-dd-row,
+    .risk-interpretation-notes__grid,
     .trades-overview-row,
     .trades-symbol-row,
     .trades-position-row,
