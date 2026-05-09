@@ -4,6 +4,22 @@ Fecha: 2026-05-06
 
 Este checklist completa lo que el conector de Stripe no permite configurar con seguridad desde Codex. La cuenta Stripe tambien recibe pagos externos, asi que todos los pasos deben limitarse a `KMFX Edge`.
 
+## Auditoria automatizable
+
+Antes de cobrar, ejecutar con una key secreta de Stripe del entorno correcto:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_... python3 scripts/stripe_kmfx_setup_audit.py
+```
+
+Para completar lookup keys y metadata de los seis Prices KMFX por API, usar solo si el audit confirma que el producto es `prod_UT7nzmgj3Eg3Zv`:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_... python3 scripts/stripe_kmfx_setup_audit.py --apply-price-metadata
+```
+
+La herramienta solo toca los seis Price IDs documentados aqui. Customer Portal y webhook se auditan en modo lectura; si faltan, deben crearse en Stripe Dashboard o API antes de cobrar.
+
 ## Catalogo live creado
 
 - Product: `prod_UT7nzmgj3Eg3Zv` (`KMFX Edge`)

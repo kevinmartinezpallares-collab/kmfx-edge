@@ -38,7 +38,7 @@ Residual advisor notes after billing setup:
 - [x] Create `KMFX Edge` Product in live mode: `prod_UT7nzmgj3Eg3Zv`.
 - [x] Create Basic/Core monthly/yearly Prices in live mode.
 - [x] Create Pro monthly/yearly Prices in live mode.
-- [ ] Add lookup keys and metadata in Stripe Dashboard/API.
+- [ ] Add lookup keys and metadata in Stripe Dashboard/API or with `scripts/stripe_kmfx_setup_audit.py --apply-price-metadata`.
 - [ ] Configure Customer Portal.
 - [ ] Configure webhook endpoint.
 - [ ] Send test events.
@@ -85,3 +85,4 @@ Notes 2026-05-09:
 - Success/cancel URLs now return to `/ajustes?tab=subscription`.
 - Trial env is explicit: `STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`.
 - Stripe read-only check confirms the six KMFX Prices exist under `prod_UT7nzmgj3Eg3Zv`; lookup keys/metadata and Customer Portal remain pending in Stripe.
+- Added `scripts/stripe_kmfx_setup_audit.py` to verify Product/Prices, Customer Portal and webhook endpoint; it can also apply Price lookup keys/metadata when `STRIPE_SECRET_KEY` is available.
