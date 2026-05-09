@@ -6,7 +6,7 @@ import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import { billingEntitlementState } from "./billing-status.js?v=build-20260505-100000";
 import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260505-100000";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-143000";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 
 function escapeHtml(value = "") {

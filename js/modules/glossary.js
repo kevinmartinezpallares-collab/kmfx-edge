@@ -1,5 +1,5 @@
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260504-080918";
-import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260508-235500";
+import { selectDashboardMetricStudyCards } from "./dashboard-professional-kpis.js?v=build-20260509-143000";
 
 const CATEGORY_ORDER = Object.freeze([
   "Rendimiento",

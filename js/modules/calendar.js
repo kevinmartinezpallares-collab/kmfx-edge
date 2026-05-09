@@ -1,4 +1,4 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260504-080918";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-143000";
 import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
 import { openFocusPanel } from "./modal-system.js?v=build-20260504-080918";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260504-080918";

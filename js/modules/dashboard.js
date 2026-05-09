@@ -1,6 +1,6 @@
 import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260504-080918";
-import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-080918";
-import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260508-235500";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260509-143000";
+import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260509-143000";
 import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260504-080918";
 import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 import {
