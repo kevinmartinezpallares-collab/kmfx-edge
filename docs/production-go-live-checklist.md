@@ -313,7 +313,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Login con email/password integrado con token Turnstile para evitar falso error anti-bots cuando Supabase CAPTCHA esta activo.
+- Login con email/password no exige Turnstile para evitar falsos bloqueos anti-bot; Turnstile queda reservado para signup, recovery y reset.
 - Detalles de cuenta queda mas ancho, scrollable y con lectura de warnings orientada a usuario, no raw tecnica.
 - Estudio de metricas queda en cards estables por categoria; las explicaciones incluyen formula, fuente, confianza y utilidad para el trader.
 
@@ -419,7 +419,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Suite local completa: 282 tests OK.
+- Suite local completa: 293 tests OK.
 
 ## Fase 10 - Go Live Controlado
 

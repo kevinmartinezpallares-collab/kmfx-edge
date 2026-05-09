@@ -176,7 +176,7 @@ function renderMetricStudyGrid() {
         </div>
         <p>Lee cada métrica con su fórmula, fuente y nivel de confianza antes de usarla para tomar decisiones.</p>
       </div>
-      <div class="study-metric-slider study-card-grid" aria-label="Cards de métricas críticas">
+      <div class="study-metric-slider study-card-grid" data-study-slider aria-label="Cards de métricas críticas">
         ${cards.map((card, index) => renderMetricStudyCard(card, index)).join("")}
       </div>
     </section>
@@ -195,6 +195,8 @@ function sortGlossaryGroups(groups) {
 }
 
 export function renderGlossary(root, state) {
+  const previousSlider = root.querySelector("[data-study-slider]");
+  const preservedScrollLeft = Number(root.__metricStudyScrollLeft ?? previousSlider?.scrollLeft ?? 0);
   const groups = state.workspace.glossary.terms.reduce((map, term) => {
     if (!map.has(term.category)) map.set(term.category, []);
     map.get(term.category).push(term);
@@ -229,4 +231,12 @@ export function renderGlossary(root, state) {
       `).join("")}
     </div>
   `;
+
+  const nextSlider = root.querySelector("[data-study-slider]");
+  if (nextSlider) {
+    nextSlider.scrollLeft = preservedScrollLeft;
+    nextSlider.addEventListener("scroll", () => {
+      root.__metricStudyScrollLeft = nextSlider.scrollLeft;
+    }, { passive: true });
+  }
 }

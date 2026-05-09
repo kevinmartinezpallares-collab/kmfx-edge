@@ -2056,7 +2056,7 @@ body::after {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: 16px;
   margin-inline: 0;
-  padding: 0;
+  padding: 1px;
   overflow: visible;
   scroll-snap-type: none;
 }
@@ -2105,6 +2105,7 @@ body::after {
     0 22px 54px rgba(0, 0, 0, 0.16);
   scroll-snap-align: none;
   min-width: 0;
+  overflow: hidden;
 }
 
 .study-metric-card:nth-child(3n + 2) {
@@ -26222,8 +26223,8 @@ body[data-theme="dark"] .connections-account-modal__technical-warning strong {
 
 html[data-theme="dark"] .connections-account-modal--info,
 body[data-theme="dark"] .connections-account-modal--info {
-  width: min(96vw, 980px) !important;
-  max-height: min(90vh, 920px) !important;
+  width: min(96vw, 1080px) !important;
+  max-height: min(90dvh, 920px) !important;
   display: flex;
   flex-direction: column;
   overflow: hidden !important;
@@ -26238,6 +26239,7 @@ html[data-theme="dark"] .connections-account-modal--info .modal-body,
 body[data-theme="dark"] .connections-account-modal--info .modal-body {
   flex: 1 1 auto;
   min-height: 0;
+  max-height: calc(90dvh - 128px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;

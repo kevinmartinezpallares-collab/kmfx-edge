@@ -733,26 +733,35 @@ function resolveAccountWarnings(riskSnapshot = {}) {
 
 function normalizeAccountWarningText(warning) {
   if (!warning) return "";
+  const readable = (value) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      return String(value).trim();
+    }
+    return "";
+  };
   if (typeof warning === "object") {
-    const code = warning.code || warning.key || warning.metric || warning.field || "";
-    const message = warning.message || warning.detail || warning.reason || warning.description || "";
+    const code = readable(warning.code || warning.key || warning.metric || warning.field);
+    const message = readable(warning.message || warning.detail || warning.reason || warning.description);
     const joined = [code, message].filter(Boolean).join(": ");
     return joined || "";
   }
-  return String(warning || "").trim();
+  return readable(warning);
 }
 
 function accountWarningToUserCopy(warning) {
   const raw = normalizeAccountWarningText(warning);
   const normalized = raw.toLowerCase();
   if (!raw) return "";
+  if (normalized.includes("[object object]")) return "";
   if (
-    normalized.includes("[object object]")
-    || normalized.includes("inferido")
-    || normalized.includes("portfolio_heat")
+    normalized.includes("portfolio_heat")
     || normalized.includes("current_level")
-    || normalized.includes("fallback")
+    || normalized.includes("inferido")
   ) {
+    return "KMFX esta usando un limite de riesgo por defecto hasta que configures una politica propia.";
+  }
+  if (normalized.includes("fallback")) {
     return "";
   }
   if (normalized.includes("sample") || normalized.includes("muestra") || normalized.includes("insufficient")) {

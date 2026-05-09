@@ -163,12 +163,12 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 
 ### Checkpoint 2026-05-09
 
-- Login con email/password ya envía token Turnstile cuando Supabase CAPTCHA está activo.
+- Login con email/password no exige Turnstile para evitar falsos bloqueos anti-bot; Turnstile queda en signup, recovery y reset.
 - Estudio de métricas usa cards estables por categoría, sin slider horizontal que se corte o se reinicie.
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
-- `python3 -m unittest discover -s tests` pasa con 282 tests.
+- `python3 -m unittest discover -s tests` pasa con 293 tests.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
