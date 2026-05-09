@@ -374,8 +374,8 @@ export function initSidebarUI(store) {
             <span class="sidebar-profile-avatar-badge" aria-hidden="true">${buildSidebarChromeIcon("badge-check")}</span>
           </span>
           <div class="sidebar-profile-copy">
-            <div class="sidebar-profile-name">${traderName}</div>
-            <div class="sidebar-profile-sub" title="${email}">${email}</div>
+            <div class="sidebar-profile-name">${escapeHtml(traderName)}</div>
+            <div class="sidebar-profile-sub" title="${escapeHtml(email)}">${escapeHtml(email)}</div>
           </div>
         </div>
         <span class="sidebar-profile-menu-btn" aria-hidden="true">${buildSidebarChromeIcon("chevrons")}</span>
@@ -384,8 +384,8 @@ export function initSidebarUI(store) {
         <div class="sidebar-profile-menu__identity">
           <div class="sidebar-profile-menu__avatar" data-user-menu-avatar></div>
           <div class="sidebar-profile-menu__identity-copy">
-            <div class="sidebar-profile-menu__identity-name">${traderName}</div>
-            <div class="sidebar-profile-menu__identity-email" title="${email}">${email}</div>
+            <div class="sidebar-profile-menu__identity-name">${escapeHtml(traderName)}</div>
+            <div class="sidebar-profile-menu__identity-email" title="${escapeHtml(email)}">${escapeHtml(email)}</div>
           </div>
         </div>
         <div class="sidebar-profile-menu__divider" role="presentation"></div>

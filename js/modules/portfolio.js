@@ -2,6 +2,15 @@ import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTyp
 import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260504-080918";
 import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260504-080918";
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatCapitalPercent(value, digits = 2) {
   const numericValue = Number(value || 0);
   return `${numericValue.toLocaleString("es-ES", {
@@ -19,10 +28,10 @@ function capitalToneFromValue(value) {
 
 function renderCapitalKpi({ key, label, valueHtml, meta = "", tone = "neutral" }) {
   return `
-    <article class="capital-kpi" data-tone="${tone}" ${key ? `data-capital-kpi="${key}"` : ""}>
-      <span class="capital-kpi__label">${label}</span>
+    <article class="capital-kpi" data-tone="${escapeHtml(tone)}" ${key ? `data-capital-kpi="${escapeHtml(key)}"` : ""}>
+      <span class="capital-kpi__label">${escapeHtml(label)}</span>
       <strong class="capital-kpi__value" data-capital-kpi-value>${valueHtml}</strong>
-      ${meta ? `<span class="capital-kpi__meta" data-capital-kpi-meta>${meta}</span>` : ""}
+      ${meta ? `<span class="capital-kpi__meta" data-capital-kpi-meta>${escapeHtml(meta)}</span>` : ""}
     </article>
   `;
 }
@@ -211,7 +220,7 @@ function renderCapitalEvolution({ account, series }) {
         <div>
           <div class="capital-section__eyebrow">EVOLUCIÓN</div>
           <h2 class="capital-section__title">Evolución del capital</h2>
-          <p class="capital-section__description">Serie de equity disponible para ${display.title || "la cuenta activa"}.</p>
+          <p class="capital-section__description">Serie de equity disponible para ${escapeHtml(display.title || "la cuenta activa")}.</p>
         </div>
         <div class="capital-evolution-card__summary" data-capital-evolution-summary>
           ${renderCapitalEvolutionSummary(series)}
@@ -263,7 +272,7 @@ function accountCapitalStatus(account) {
 
 function renderCapitalChip(label, tone = "neutral") {
   if (!label) return "";
-  return `<span class="capital-account-card__chip" data-tone="${tone}">${label}</span>`;
+  return `<span class="capital-account-card__chip" data-tone="${escapeHtml(tone)}">${escapeHtml(label)}</span>`;
 }
 
 function accountCardPnlValue(account) {
@@ -355,13 +364,13 @@ function renderPortfolioAccountCard(account, isCurrent) {
   return `
     <button
       class="portfolio-account-card capital-account-card ${isCurrent ? "is-current" : ""}"
-      data-portfolio-account-id="${account.id}"
+      data-portfolio-account-id="${escapeHtml(account.id)}"
       type="button"
     >
       <div class="capital-account-card__identity">
         <div>
-          <strong class="capital-account-card__name">${display.title}</strong>
-          <span class="capital-account-card__meta">${subtitle}</span>
+          <strong class="capital-account-card__name">${escapeHtml(display.title)}</strong>
+          <span class="capital-account-card__meta">${escapeHtml(subtitle)}</span>
         </div>
         <div class="capital-account-card__chips" aria-label="Estado de cuenta">
           ${isCurrent ? renderCapitalChip("Activa", "info") : ""}
@@ -401,10 +410,10 @@ function renderPortfolioAccountCard(account, isCurrent) {
 function renderCapitalExposureRows(globalPositions) {
   return globalPositions.length ? globalPositions.map((position) => `
     <tr>
-      <td>${position.accountName}</td>
-      <td>${position.symbol}</td>
-      <td><span class="trade-side trade-side--${position.side.toLowerCase()}">${position.side}</span></td>
-      <td class="table-num">${position.volume}</td>
+      <td>${escapeHtml(position.accountName)}</td>
+      <td>${escapeHtml(position.symbol)}</td>
+      <td><span class="trade-side trade-side--${escapeHtml(String(position.side || "").toLowerCase())}">${escapeHtml(position.side)}</span></td>
+      <td class="table-num">${escapeHtml(position.volume)}</td>
       <td class="table-num">
         ${pnlTextMarkup({
           value: position.pnl,
@@ -412,7 +421,7 @@ function renderCapitalExposureRows(globalPositions) {
           className: position.pnl >= 0 ? "metric-positive" : "metric-negative",
         })}
       </td>
-      <td>${formatDateTime(position.openedAt)}</td>
+      <td>${escapeHtml(formatDateTime(position.openedAt))}</td>
     </tr>
   `).join("") : `
     <tr>

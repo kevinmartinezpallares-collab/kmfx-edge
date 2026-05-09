@@ -13,6 +13,15 @@ const accountMeshMarkup = () => `
   </div>
 `;
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function isBridgeDataPending(account) {
   if (!account || account.sourceType !== "mt5") return false;
   const authority = resolveAccountDataAuthority(account);
@@ -71,7 +80,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
   return `
     <button
       class="account-card account-hero-card ${isMain ? "account-hero-card--main" : "account-hero-card--side"} ${isActive ? "active" : ""} ${isLoading ? "is-loading" : ""}"
-      data-account-id="${account.id}"
+      data-account-id="${escapeHtml(account.id)}"
       type="button"
       style="${cardInlineStyle}"
     >
@@ -79,8 +88,8 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
       <div class="account-hero-card__content">
         <div class="account-hero-card__top" style="${topInlineStyle}">
           <div>
-            <div class="account-hero-card__name" style="${nameInlineStyle}">${display.title}</div>
-            <div class="account-hero-card__meta" style="${metaInlineStyle}">${meta}</div>
+            <div class="account-hero-card__name" style="${nameInlineStyle}">${escapeHtml(display.title)}</div>
+            <div class="account-hero-card__meta" style="${metaInlineStyle}">${escapeHtml(meta)}</div>
           </div>
           ${accountStatusBadge(account)}
         </div>
@@ -274,14 +283,14 @@ export function initAccountsUI(store) {
               >
                 ${accounts.map((account) => {
                   const label = [account.meta?.nickname || account.dashboardPayload?.nickname || "", account.broker, account.login, account.server].filter(Boolean).join(" · ");
-                  return `<option value="${account.id}" ${account.id === activeAccountId ? "selected" : ""}>${label || account.name}</option>`;
+                  return `<option value="${escapeHtml(account.id)}" ${account.id === activeAccountId ? "selected" : ""}>${escapeHtml(label || account.name)}</option>`;
                 }).join("")}
               </select>
             </div>
             <div class="account-switcher-badges">
               ${badgeMarkup(connectionMeta)}
               ${badgeMarkup(riskMeta)}
-              <span class="ui-badge ui-badge--compact">${activeAccountLabel}</span>
+              <span class="ui-badge ui-badge--compact">${escapeHtml(activeAccountLabel)}</span>
             </div>
           </div>
           <div class="account-switcher-summary">

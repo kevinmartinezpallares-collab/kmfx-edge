@@ -218,6 +218,7 @@ Notas 2026-05-08:
 - Supabase `handle_new_user` sigue como `SECURITY DEFINER` por trigger de Auth, pero con `search_path` vacio y sin `EXECUTE` para `anon`, `authenticated` ni `public`.
 - Supabase Advisor solo devuelve un warning de seguridad abierto: activar leaked password protection en Auth.
 - Supabase Performance Advisor ya no senala foreign keys sin indice; se aplico `calculator_presets_user_id_updated_at_idx`.
+- Primera pasada XSS frontend: selector de cuentas, sidebar de perfil y Capital escapan identidad de usuario/cuenta/MT5; queda revisar el resto de `innerHTML` antes de marcar la auditoria completa.
 - Supabase Performance Advisor conserva avisos `unused_index` informativos en indices recientes; se revisaran tras trafico real.
 - CORS backend sin wildcard; Worker `mt5-api` mantiene allowlist de dominios KMFX y elimina headers/query sensibles.
 - Vercel mantiene CSP, HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy` y `Permissions-Policy`.
