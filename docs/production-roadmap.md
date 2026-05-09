@@ -55,6 +55,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Launcher muestra cuentas detectadas y sincronizadas de forma más clara.
 - [x] Launcher prioriza nombres legibles de broker/login y oculta backups/carpetas antiguas.
 - [x] Instalador del Launcher deja `.ex5`, `.mq5`, preset y `kmfx_connection.conf`; el EA lee la key desde archivo.
+- [x] Cola local del Launcher probada: snapshot/journal sobreviven a backend caído y drenan al recuperarse.
 - [x] Multi-cuenta probado localmente con dos cuentas MT5.
 - [x] El EA funciona con investor password en modo lectura.
 - [x] Logs del EA reducidos a mensajes de estado útiles.
@@ -166,7 +167,8 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Estudio de métricas usa cards estables por categoría, sin slider horizontal que se corte o se reinicie.
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
-- `python3 -m unittest discover -s tests` pasa con 265 tests.
+- Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
+- `python3 -m unittest discover -s tests` pasa con 275 tests.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -397,8 +399,8 @@ Objetivo: validar un viaje real de usuario antes de cobrar.
 - [ ] Probar Checkout test success/cancel.
 - [ ] Probar Customer Portal test.
 - [ ] Probar webhook replay/idempotencia.
-- [ ] Probar launcher con backend caído: cola crece.
-- [ ] Probar launcher con backend recuperado: cola drena.
+- [x] Probar launcher con backend caído: cola crece.
+- [x] Probar launcher con backend recuperado: cola drena.
 - [ ] Probar dashboard desktop completo.
 - [ ] Probar mobile básico, aunque no sea rediseño final.
 - [ ] Revisar Terms, Privacy, Refunds y Risk disclaimer.
