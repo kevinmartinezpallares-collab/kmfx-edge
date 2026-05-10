@@ -18,6 +18,10 @@ class MemorySupabaseAccountStore(SupabaseAccountStore):
             if user_filter.startswith("eq."):
                 expected_user = user_filter.removeprefix("eq.")
                 rows = [row for row in rows if row.get("user_id") == expected_user]
+            account_id_filter = str((query or {}).get("account_id") or "")
+            if account_id_filter.startswith("eq."):
+                expected_account_id = account_id_filter.removeprefix("eq.")
+                rows = [row for row in rows if row.get("account_id") == expected_account_id]
             key_hash_filter = str((query or {}).get("connection_key_hash") or "")
             if key_hash_filter.startswith("eq."):
                 expected_hash = key_hash_filter.removeprefix("eq.")
@@ -77,6 +81,57 @@ class SupabaseAccountStoreTests(unittest.TestCase):
 
         self.assertEqual([mine.account_id], [account.account_id for account in accounts])
         self.assertEqual("eq.user-123", store.queries[0]["user_id"])
+
+    def test_mt5_sync_uses_user_filtered_registry_for_supabase_store(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        pending = service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="IC Markets",
+            connection_key="ic-key",
+        )
+        service.create_pending_account_with_key(
+            user_id="other-user",
+            alias="Other",
+            connection_key="other-key",
+        )
+
+        store.queries.clear()
+        synced = service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "IC Markets",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC-Demo",
+            },
+            connection_mode="connector",
+            payload={"balance": 1000, "equity": 1000},
+            account_id=pending.account_id,
+            api_key="ic-key",
+        )
+
+        self.assertEqual(pending.account_id, synced.account_id)
+        self.assertEqual("active", synced.status)
+        self.assertEqual("eq.user-123", store.queries[0]["user_id"])
+        self.assertFalse(any("limit" in query and query.get("limit") == "10000" for query in store.queries))
+
+    def test_policy_access_fetches_single_account_for_supabase_store(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        pending = service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Orion OGM MT5",
+            connection_key="orion-key",
+        )
+
+        store.queries.clear()
+        linked = service.record_policy_access(pending.account_id)
+
+        self.assertIsNotNone(linked)
+        self.assertEqual("linked", linked.status)
+        self.assertEqual("eq." + pending.account_id, store.queries[0]["account_id"])
+        self.assertEqual("1", store.queries[0]["limit"])
 
 
 if __name__ == "__main__":

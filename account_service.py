@@ -228,6 +228,19 @@ class AccountService:
     def __init__(self, store: AccountStore) -> None:
         self.store = store
 
+    def _supports_partial_user_mutations(self) -> bool:
+        return callable(getattr(self.store, "list_accounts_for_user", None)) and callable(
+            getattr(self.store, "save_account", None)
+        )
+
+    def _save_accounts_for_mutation(self, accounts: list[Account], *, partial: bool = False) -> None:
+        save_account = getattr(self.store, "save_account", None)
+        if partial and callable(save_account):
+            for account in accounts:
+                save_account(account)
+            return
+        self.store.save_accounts(accounts)
+
     def list_accounts(self, user_id: str = "local") -> list[Account]:
         list_for_user = getattr(self.store, "list_accounts_for_user", None)
         if callable(list_for_user):
@@ -341,11 +354,8 @@ class AccountService:
             return 0
         return sum(
             1
-            for account in self.store.list_accounts()
-            if account.user_id == normalized_user_id
-            and not _is_deleted(account)
-            and not _is_archived(account)
-            and _account_has_connection_key(account)
+            for account in self.list_accounts(normalized_user_id)
+            if not _is_archived(account) and _account_has_connection_key(account)
         )
 
     def create_pending_account(
@@ -711,7 +721,8 @@ class AccountService:
         platform = str(account_info.get("platform") or "mt5")
         login = str(account_info.get("login") or "")
         server = str(account_info.get("server") or "")
-        accounts = self.store.list_accounts()
+        partial_mutation = self._supports_partial_user_mutations()
+        accounts = self.list_accounts(user_id) if partial_mutation else self.store.list_accounts()
         resolved_account_id = account_id or _resolve_account_id(platform, broker, server, login)
         now = _now_utc()
         target = next((account for account in accounts if account.account_id == resolved_account_id and not _is_deleted(account)), None)
@@ -795,7 +806,7 @@ class AccountService:
                     account.is_default = False
                     account.is_primary = False
 
-        self.store.save_accounts(accounts)
+        self._save_accounts_for_mutation(accounts, partial=partial_mutation)
         return deepcopy(target)
 
     def link_connector_sync(
@@ -958,6 +969,20 @@ class AccountService:
         return deepcopy(target) if target else None
 
     def record_policy_access(self, account_id: str) -> Account | None:
+        find_account_by_id = getattr(self.store, "find_account_by_id", None)
+        save_account = getattr(self.store, "save_account", None)
+        if callable(find_account_by_id) and callable(save_account):
+            target = find_account_by_id(account_id)
+            if target is None or _is_deleted(target) or _is_connection_key_revoked(target):
+                return None
+            now = _now_utc()
+            if _normalize_status(target.status) in {"pending_link", "waiting_sync"}:
+                target.status = "linked"
+            target.last_policy_at = now
+            target.updated_at = now
+            save_account(target)
+            return deepcopy(target)
+
         accounts = self.store.list_accounts()
         target: Account | None = None
         now = _now_utc()
@@ -976,6 +1001,18 @@ class AccountService:
         normalized = normalize_connection_key(connection_key)
         if not normalized:
             return None
+        save_account = getattr(self.store, "save_account", None)
+        if callable(save_account):
+            target = self.get_account_by_api_key_any_user(normalized)
+            if target is None:
+                return None
+            target.status = "error"
+            target.last_error_code = error_code
+            target.last_error_message = error_message
+            target.updated_at = _now_utc()
+            save_account(target)
+            return deepcopy(target)
+
         accounts = self.store.list_accounts()
         target: Account | None = None
         now = _now_utc()

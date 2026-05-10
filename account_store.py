@@ -303,6 +303,24 @@ class SupabaseAccountStore(AccountStore):
                 records.append(record)
         return [record_to_account(record) for record in records]
 
+    def find_account_by_id(self, account_id: str) -> Account | None:
+        clean_account_id = str(account_id or "").strip()
+        if not clean_account_id:
+            return None
+        rows = self._request(
+            "GET",
+            query={
+                "select": "record",
+                "account_id": f"eq.{clean_account_id}",
+                "limit": "1",
+            },
+        )
+        if not isinstance(rows, list) or not rows:
+            return None
+        first = rows[0] if isinstance(rows[0], dict) else {}
+        record = first.get("record") if isinstance(first, dict) else None
+        return record_to_account(record) if isinstance(record, dict) else None
+
     def find_account_by_connection_key_hash(self, connection_key_hash: str) -> Account | None:
         clean_hash = str(connection_key_hash or "").strip()
         if not clean_hash:
@@ -341,23 +359,37 @@ class SupabaseAccountStore(AccountStore):
         record = first.get("record") if isinstance(first, dict) else None
         return record_to_account(record) if isinstance(record, dict) else None
 
+    def _row_for_account(self, account: Account) -> dict[str, object] | None:
+        record = account_to_record(account)
+        account_id = str(record.get("account_id") or "").strip()
+        if not account_id:
+            return None
+        return {
+            "account_id": account_id,
+            "user_id": str(record.get("user_id") or "local"),
+            "status": str(record.get("status") or "pending"),
+            "connection_key_hash": str(record.get("connection_key_hash") or ""),
+            "connection_key_preview": str(record.get("connection_key_preview") or ""),
+            "record": record,
+        }
+
+    def save_account(self, account: Account) -> None:
+        row = self._row_for_account(account)
+        if row is None:
+            return
+        self._request(
+            "POST",
+            query={"on_conflict": "account_id"},
+            payload=[row],
+            prefer="resolution=merge-duplicates,return=minimal",
+        )
+
     def save_accounts(self, accounts: Iterable[Account]) -> None:
-        rows = []
+        rows: list[dict[str, object]] = []
         for account in accounts:
-            record = account_to_record(account)
-            account_id = str(record.get("account_id") or "").strip()
-            if not account_id:
-                continue
-            rows.append(
-                {
-                    "account_id": account_id,
-                    "user_id": str(record.get("user_id") or "local"),
-                    "status": str(record.get("status") or "pending"),
-                    "connection_key_hash": str(record.get("connection_key_hash") or ""),
-                    "connection_key_preview": str(record.get("connection_key_preview") or ""),
-                    "record": record,
-                }
-            )
+            row = self._row_for_account(account)
+            if row is not None:
+                rows.append(row)
         if not rows:
             return
         self._request(
