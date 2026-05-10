@@ -3472,6 +3472,111 @@ function renderExecutionReviewQueue({
   `;
 }
 
+function executionDataMapCard({ label, value, copy, tone = "neutral" } = {}) {
+  return `
+    <article class="execution-data-map-card execution-source-${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <p>${escapeHtml(copy)}</p>
+    </article>
+  `;
+}
+
+function renderExecutionDataMap({
+  recentTrades = [],
+  pendingTagTrades = [],
+  visibleRules = [],
+  readiness = {},
+  hasEntryTracking = false,
+  canOpenPostTradeTag = false
+} = {}) {
+  const reliableRules = visibleRules.filter(isReliableRule).length;
+  const manualRules = visibleRules.filter((rule) => ruleDataSource(rule).tone === "manual").length;
+  return `
+    <section class="execution-data-map" aria-label="Origen de datos de ejecución">
+      ${executionDataMapCard({
+        label: "MT5 automático",
+        value: `${recentTrades.length} operaciones`,
+        copy: "Entrada, cierre, hora, símbolo y resultado salen del histórico sincronizado por el EA.",
+        tone: recentTrades.length ? "ok" : "pending"
+      })}
+      ${executionDataMapCard({
+        label: "Revisión posterior",
+        value: canOpenPostTradeTag ? `${pendingTagTrades.length} pendientes` : "Sin perfil manual",
+        copy: "Solo pide contexto de cierres recientes o importantes. No tienes que reconstruir todo el histórico.",
+        tone: pendingTagTrades.length ? "warn" : canOpenPostTradeTag ? "ok" : "pending"
+      })}
+      ${executionDataMapCard({
+        label: "Reglas",
+        value: `${reliableRules}/${visibleRules.length || 0} fiables`,
+        copy: manualRules ? `${manualRules} reglas usan tags manuales; el resto se infiere desde MT5.` : "Las reglas visibles se infieren desde MT5 hasta que añadas tags manuales.",
+        tone: reliableRules ? "inferred" : "pending"
+      })}
+      ${executionDataMapCard({
+        label: "Precisión de entrada",
+        value: hasEntryTracking ? "Con tracking" : "Pendiente EA",
+        copy: hasEntryTracking ? "La desviación frente a la entrada ideal ya se puede leer." : "Hasta recibir ob_price/entrada ideal, esta parte queda como lectura pendiente.",
+        tone: hasEntryTracking ? "ok" : "pending"
+      })}
+      ${executionDataMapCard({
+        label: "Lectura",
+        value: readiness.level || "Lectura parcial",
+        copy: readiness.summary || "La ejecución combina histórico MT5, reglas inferidas y revisión manual cuando exista.",
+        tone: readiness.tone || "neutral"
+      })}
+    </section>
+  `;
+}
+
+function renderExecutionActionNotes({
+  pendingTagTrades = [],
+  reviewItems = [],
+  readiness = {},
+  hasEntryTracking = false,
+  visibleRules = []
+} = {}) {
+  const principalRule = resolvePrincipalDeviation(visibleRules);
+  const topItem = reviewItems[0] || { title: "Sin acción urgente", copy: "Mantén la revisión posterior y no subas tamaño sin muestra suficiente.", tone: "ok" };
+  const guidance = [
+    {
+      title: pendingTagTrades.length ? "Empieza por la cola priorizada" : "No revises el histórico completo de memoria",
+      copy: pendingTagTrades.length
+        ? "KMFX solo te pide contexto de los cierres recientes o de impacto. Si no recuerdas algo, guarda revisión parcial."
+        : "Las métricas usan todos los trades de MT5. Los tags manuales sirven para explicar patrones futuros, no para rehacer el pasado."
+    },
+    {
+      title: "Lee el score como semáforo operativo",
+      copy: readiness.level === "Lectura operativa"
+        ? "La muestra tiene suficiente contexto para tomar decisiones de proceso: mantener, reducir riesgo o pausar setups."
+        : "Si aparece como lectura parcial, úsalo para priorizar revisión, no como diagnóstico definitivo."
+    },
+    {
+      title: hasEntryTracking ? "Usa precisión para detectar chasing" : "Precisión pendiente de datos EA",
+      copy: hasEntryTracking
+        ? "Si la desviación media sube, separa entrada tardía, FOMO y ejecución fuera de plan."
+        : "La precisión real necesita que el EA envíe la entrada ideal. Mientras tanto, evita convertir esta tarjeta en juicio."
+    }
+  ];
+  return `
+    <section class="tl-section-card execution-action-notes" aria-label="Notas de interpretación de ejecución">
+      <div class="execution-action-notes__lead">
+        <span>Interpretación</span>
+        <h3>${escapeHtml(topItem.title)}</h3>
+        <p>${escapeHtml(topItem.copy)}</p>
+        <small>Desviación principal: ${escapeHtml(ruleDisplayName(principalRule?.name || ""))}</small>
+      </div>
+      <div class="execution-action-notes__grid">
+        ${guidance.map((item) => `
+          <article>
+            <strong>${escapeHtml(item.title)}</strong>
+            <p>${escapeHtml(item.copy)}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function pendingTagKpi(pendingTagTrades = [], canOpenPostTradeTag = false) {
   const count = pendingTagTrades.length;
   return {
@@ -4247,6 +4352,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     </section>
 
     ${renderExecutionReviewQueue({ pendingTagTrades, canOpenPostTradeTag, items: reviewItems })}
+    ${renderExecutionDataMap({ recentTrades, pendingTagTrades, visibleRules, readiness, hasEntryTracking, canOpenPostTradeTag })}
 
     <section class="execution-kpi-grid">
       ${displayKpis.map((kpi) => `
@@ -4284,6 +4390,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     ${renderRuleHistory(ruleHistory, activeProfile)}
 
     ${renderEntryPrecisionCard({ hasTracking: hasEntryTracking, entryRows, entryPattern })}
+    ${renderExecutionActionNotes({ pendingTagTrades, reviewItems, readiness, hasEntryTracking, visibleRules })}
 
     ${renderProfileConfigZone(profileState, activeProfile, accountLogin)}
     ${renderPostTradeModal(activeProfile, postTradeTags)}

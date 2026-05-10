@@ -603,6 +603,173 @@ function buildJournalEvidenceRows(accountEntries, currency) {
   ]);
 }
 
+function formatMarkdownMetricValue(path, value, currency) {
+  if (typeof value === "number") {
+    const lowerPath = path.toLowerCase();
+    if (lowerPath.includes("pct") || lowerPath.includes("percent")) return markdownPct(value);
+    if (lowerPath.includes("pnl") || lowerPath.includes("amount") || lowerPath.includes("balance") || lowerPath.includes("equity") || lowerPath.includes("cashflow")) {
+      return markdownCurrency(value, currency);
+    }
+    return markdownMetric(value, Math.abs(value) >= 100 ? 0 : 2);
+  }
+  if (typeof value === "boolean") return value ? "sí" : "no";
+  return markdownValue(value);
+}
+
+function flattenMetricRows(source, currency, prefix = "", rows = [], depth = 0) {
+  if (!source || typeof source !== "object" || depth > 5) return rows;
+  Object.entries(source).forEach(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (/key|secret|token|password|jwt|authorization/i.test(path)) return;
+    if (value === null || value === undefined || value === "") return;
+    if (Array.isArray(value)) {
+      rows.push([path, `${value.length} items`]);
+      return;
+    }
+    if (typeof value === "object") {
+      flattenMetricRows(value, currency, path, rows, depth + 1);
+      return;
+    }
+    rows.push([path, formatMarkdownMetricValue(path, value, currency)]);
+  });
+  return rows;
+}
+
+function buildCompleteMetricRows(cockpit, currency) {
+  const rows = [];
+  flattenMetricRows(cockpit.professional, currency, "professional_metrics", rows);
+  flattenMetricRows(safeObject(cockpit.riskSnapshot.summary), currency, "risk_summary", rows);
+  flattenMetricRows(safeObject(cockpit.riskSnapshot.status), currency, "risk_status", rows);
+  flattenMetricRows(safeObject(cockpit.riskSnapshot.policy_evaluation), currency, "policy_evaluation", rows);
+  flattenMetricRows(cockpit.totals, currency, "account_totals", rows);
+  return rows.length ? rows : [["estado", "Sin métricas profesionales en el snapshot actual"]];
+}
+
+function resolveOpenPositions(account) {
+  const candidates = [
+    account?.model?.positions,
+    account?.model?.openPositions,
+    account?.positions,
+    account?.dashboardPayload?.positions,
+    account?.dashboardPayload?.openPositions
+  ];
+  return candidates.find((value) => Array.isArray(value)) || [];
+}
+
+function buildOpenPositionRows(account, currency) {
+  const positions = resolveOpenPositions(account);
+  return positions.slice(0, 24).map((position) => [
+    position.symbol || position.instrument || "—",
+    position.type || position.side || position.direction || "—",
+    position.volume ?? position.lots ?? position.size ?? "—",
+    markdownCurrency(position.pnl ?? position.profit ?? position.floatingPnl ?? position.floating_pnl, currency),
+    position.entryPrice ?? position.priceOpen ?? position.open_price ?? "—",
+    position.sl ?? position.stopLoss ?? position.stop_loss ?? "—",
+    position.tp ?? position.takeProfit ?? position.take_profit ?? "—"
+  ]);
+}
+
+function buildAccountSnapshotRows(account, cockpit, currency) {
+  const modelAccount = safeObject(cockpit.model.account);
+  const dashboardPayload = safeObject(account?.dashboardPayload);
+  return [
+    ["Balance", markdownCurrency(modelAccount.balance ?? account?.balance ?? dashboardPayload.balance, currency)],
+    ["Equity", markdownCurrency(modelAccount.equity ?? account?.equity ?? dashboardPayload.equity, currency)],
+    ["P&L flotante", markdownCurrency(modelAccount.floatingPnl ?? modelAccount.floating_pnl ?? dashboardPayload.floatingPnl ?? dashboardPayload.floating_pnl, currency)],
+    ["Margen usado", markdownCurrency(modelAccount.margin ?? dashboardPayload.margin, currency)],
+    ["Margen libre", markdownCurrency(modelAccount.freeMargin ?? modelAccount.free_margin ?? dashboardPayload.freeMargin ?? dashboardPayload.free_margin, currency)],
+    ["Posiciones abiertas", resolveOpenPositions(account).length],
+    ["Estado de riesgo", cockpit.riskMeta.label],
+    ["Última lectura", account?.connection?.lastSync || dashboardPayload.lastSync || dashboardPayload.updatedAt || "—"]
+  ];
+}
+
+function buildDataOriginRows(account, cockpit, authorityMeta) {
+  const authority = safeObject(authorityMeta?.authority);
+  return [
+    ["Operaciones y balance", `${cockpit.sourceLabel} · ${authority.payloadSource || "payload activo"}`],
+    ["Histórico cerrado", `${authority.tradeCount ?? cockpit.trades.length} operaciones normalizadas`],
+    ["Curva / puntos históricos", authority.historyPoints ?? safeArray(cockpit.model.history).length],
+    ["Riesgo y métricas", Object.keys(cockpit.professional).length ? "riskSnapshot.professional_metrics" : "Pendiente de snapshot profesional"],
+    ["Diario manual", `${cockpit.reviewEntries.length} entradas vinculadas a esta cuenta`],
+    ["Respuestas IA", `${cockpit.externalAiResponses.length} respuestas externas guardadas manualmente`],
+    ["Primera operación", authority.firstTradeLabel || "—"],
+    ["Última operación", authority.lastTradeLabel || "—"]
+  ];
+}
+
+function buildRiskPolicyRows(cockpit, currency) {
+  const policy = safeObject(cockpit.riskSnapshot.policy_evaluation);
+  const summary = safeObject(cockpit.riskSnapshot.summary);
+  const warnings = safeArray(policy.warnings);
+  const breaches = safeArray(policy.breaches);
+  return [
+    ["Estado", cockpit.riskMeta.label],
+    ["Warnings", warnings.length ? warnings.map((item) => markdownValue(item?.code || item?.message || item)).join(", ") : "Sin warnings"],
+    ["Breaches", breaches.length ? breaches.map((item) => markdownValue(item?.code || item?.message || item)).join(", ") : "Sin breaches"],
+    ["DD actual", markdownPct(summary.peak_to_equity_drawdown_pct ?? summary.current_drawdown_pct)],
+    ["Heat abierto", markdownPct(summary.open_risk_pct ?? summary.portfolio_heat_pct)],
+    ["Riesgo por trade", markdownPct(summary.risk_per_trade_pct ?? readPath(cockpit.professional, ["sizing", "risk_per_trade_pct"]))],
+    ["Kelly recomendado", markdownPct(readPath(cockpit.professional, ["sizing", "recommended_fractional_kelly_pct"]))],
+    ["Expectativa", markdownCurrency(cockpit.expectancy, currency)]
+  ];
+}
+
+function journalDataSourcePanelMarkup(cockpit, authorityMeta, currency) {
+  const authority = safeObject(authorityMeta?.authority);
+  const cards = [
+    {
+      label: "MT5",
+      title: `${cockpit.trades.length} operaciones`,
+      body: "Balance, equity, operaciones cerradas y posiciones llegan del último snapshot normalizado.",
+      meta: authority.payloadSource || cockpit.sourceLabel,
+      tone: cockpit.trades.length ? "info" : "warning"
+    },
+    {
+      label: "Riesgo",
+      title: cockpit.riskMeta.label,
+      body: "Política, drawdown, heat y métricas profesionales salen del riskSnapshot del backend.",
+      meta: cockpit.policyIssues ? `${cockpit.policyIssues} alertas` : "Sin alertas activas",
+      tone: cockpit.policyIssues ? "warning" : "profit"
+    },
+    {
+      label: "Diario",
+      title: `${cockpit.reviewEntries.length}/${cockpit.trades.length || 0}`,
+      body: "Las notas, errores, emociones y lecciones son revisión manual. No alteran el P&L MT5.",
+      meta: `${cockpit.reviewedPct.toFixed(0)}% cobertura`,
+      tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct ? "warning" : "neutral"
+    },
+    {
+      label: "IA externa",
+      title: `${cockpit.externalAiResponses.length} guardadas`,
+      body: "KMFX genera evidencia exportable; las respuestas externas se pegan manualmente.",
+      meta: `${formatSignedCurrency(cockpit.totalPnl, currency)} muestra`,
+      tone: cockpit.externalAiResponses.length ? "info" : "neutral"
+    }
+  ];
+  return `
+    <section class="tl-section-card journal-source-panel" aria-label="Origen de datos del diario">
+      <div class="journal-source-panel__head">
+        <div>
+          <span>Origen de datos</span>
+          <h3>Qué es automático y qué requiere criterio del trader</h3>
+        </div>
+        <p>Las métricas económicas vienen del EA/MT5. El diario añade contexto posterior para explicar el proceso, no para recalcular la cuenta.</p>
+      </div>
+      <div class="journal-source-grid">
+        ${cards.map((card) => `
+          <article class="journal-source-card" data-tone="${escapeHtml(card.tone)}">
+            <span>${escapeHtml(card.label)}</span>
+            <strong>${escapeHtml(card.title)}</strong>
+            <p>${escapeHtml(card.body)}</p>
+            <small>${escapeHtml(card.meta)}</small>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function buildExternalAiEvidenceMarkdown(state) {
   const account = selectCurrentAccount(state);
   if (!account) throw new Error("No hay cuenta activa para exportar.");
@@ -665,6 +832,15 @@ function buildExternalAiEvidenceMarkdown(state) {
       ]
     ),
     "",
+    "## Estado actual de cuenta",
+    markdownTable(["Campo", "Valor"], buildAccountSnapshotRows(account, cockpit, currency)),
+    "",
+    "## Origen y calidad de datos",
+    markdownTable(["Fuente", "Detalle"], buildDataOriginRows(account, cockpit, authorityMeta)),
+    "",
+    "## Política y riesgo activo",
+    markdownTable(["Campo", "Valor"], buildRiskPolicyRows(cockpit, currency)),
+    "",
     "## Snapshot profesional",
     markdownTable(
       ["Metrica", "Valor"],
@@ -681,6 +857,12 @@ function buildExternalAiEvidenceMarkdown(state) {
         ["Kelly 1/4 recomendado", markdownPct(readPath(professional, ["sizing", "recommended_fractional_kelly_pct"]))]
       ]
     ),
+    "",
+    "## Métricas completas normalizadas",
+    markdownTable(["Ruta", "Valor"], buildCompleteMetricRows(cockpit, currency)),
+    "",
+    "## Posiciones abiertas",
+    markdownTable(["Símbolo", "Dirección", "Volumen", "P&L flotante", "Entrada", "SL", "TP"], buildOpenPositionRows(account, currency)),
     "",
     "## Prop firm",
     markdownTable(
@@ -825,7 +1007,7 @@ export function initJournal(store) {
           <label class="form-stack"><span>Símbolo</span><input type="text" name="symbol" value="${escapeHtml(form.symbol)}"></label>
           <label class="form-stack"><span>Setup</span><input type="text" name="setup" value="${escapeHtml(form.setup)}"></label>
           <label class="form-stack"><span>PnL</span><input type="number" name="pnl" value="${escapeHtml(form.pnl)}"></label>
-          <label class="form-stack"><span>Grade</span><select name="grade">
+          <label class="form-stack"><span>Calidad</span><select name="grade">
             ${["A", "B", "C"].map((grade) => `<option value="${grade}" ${form.grade === grade ? "selected" : ""}>${grade}</option>`).join("")}
           </select></label>
           <label class="form-stack"><span>Cumplimiento</span><select name="compliance">
@@ -885,7 +1067,7 @@ export function initJournal(store) {
         <form class="modal-form-shell" data-modal-form>
         <div class="form-grid-clean">
           <label class="form-stack"><span>Fecha</span><input type="date" name="date" value="${todayInputValue()}"></label>
-          <label class="form-stack"><span>Grade</span><select name="grade">
+          <label class="form-stack"><span>Calidad</span><select name="grade">
             ${["A", "B", "C"].map((grade) => `<option value="${grade}" ${grade === "B" ? "selected" : ""}>${grade}</option>`).join("")}
           </select></label>
           <label class="form-stack form-stack-wide"><span>Respuesta de IA externa</span><textarea name="response" rows="9" placeholder="Pega aquí la respuesta externa."></textarea></label>
@@ -1073,6 +1255,7 @@ export function renderJournal(root, state) {
 
     ${renderAuthorityNotice(authorityMeta)}
     ${journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, state)}
+    ${journalDataSourcePanelMarkup(cockpit, authorityMeta, currency)}
 
     <div class="journal-cockpit">
       ${showCockpit ? `
@@ -1214,6 +1397,17 @@ export function renderJournal(root, state) {
             <small>Comparativa incluida si existe dataset</small>
           </div>
         </div>
+        <div class="journal-ai-coverage">
+          <div>
+            <span>Incluye</span>
+            <strong>Cuenta, riesgo, métricas completas, operaciones, diario y backtests</strong>
+          </div>
+          <ul>
+            <li>Snapshot actual: balance, equity, margen, posiciones abiertas y estado de riesgo.</li>
+            <li>Métricas normalizadas: professional_metrics, policy_evaluation, summary y totales de cuenta.</li>
+            <li>Evidencia operativa: peores patrones, cola de revisión, operaciones clave y entradas manuales.</li>
+          </ul>
+        </div>
       </article>
       ` : ""}
 
@@ -1244,7 +1438,7 @@ export function renderJournal(root, state) {
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Fecha</th><th>Símbolo</th><th>Setup</th><th>PnL</th><th>Grade</th><th>Lección</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Símbolo</th><th>Setup</th><th>PnL</th><th>Calidad</th><th>Lección</th><th>Acciones</th></tr></thead>
             <tbody>
               ${accountEntries.length ? accountEntries.map((entry) => `
                 <tr>
