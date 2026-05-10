@@ -93,6 +93,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Webhooks Stripe implementados en backend; falta configurar endpoint/secreto live antes de cobrar.
 - [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
 - [x] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` implementados.
+- [x] URLs de retorno de Checkout/Portal restringidas al origen público de KMFX para evitar redirecciones externas.
 - [x] El frontend consume `/api/billing/status` para Cuentas y superficies premium.
 - [x] Los guards de producto principales dependen de entitlements y no de nombre de plan.
 

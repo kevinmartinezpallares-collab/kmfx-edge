@@ -139,6 +139,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Revisar recibos automaticos de Stripe.
 - [x] Confirmar emails de compra con Resend.
 - [x] Probar contrato local checkout success/cancel.
+- [x] Checkout y Customer Portal solo aceptan URLs de retorno del origen KMFX configurado.
 - [x] Probar contrato local de pago fallido.
 - [x] Probar contrato local de cancelacion.
 - [x] Probar contrato local de cambio de plan.

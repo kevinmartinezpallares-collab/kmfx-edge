@@ -1517,6 +1517,32 @@ def billing_cancel_url() -> str:
     return f"{base_url}{separator}{path}"
 
 
+def billing_safe_return_url(value: Any, fallback: str) -> str:
+    raw_url = safe_str(value)
+    if not raw_url:
+        return fallback
+
+    base_url = billing_public_app_url()
+    parsed_base = urllib.parse.urlparse(base_url)
+    if parsed_base.scheme not in {"http", "https"} or not parsed_base.netloc:
+        return fallback
+
+    allowed_origin = f"{parsed_base.scheme}://{parsed_base.netloc}"
+    parsed_url = urllib.parse.urlparse(raw_url)
+    if not parsed_url.scheme and not parsed_url.netloc:
+        path = raw_url if raw_url.startswith("/") else f"/{raw_url}"
+        return f"{allowed_origin}{path}"
+
+    if (
+        parsed_url.scheme.lower() == parsed_base.scheme.lower()
+        and parsed_url.netloc.lower() == parsed_base.netloc.lower()
+    ):
+        return raw_url
+
+    log.warning("Billing return URL rejected | host=%s", parsed_url.netloc or "[relative-netloc]")
+    return fallback
+
+
 def billing_trial_period_days() -> int:
     configured = _env_value("STRIPE_TRIAL_PERIOD_DAYS", "KMFX_STRIPE_TRIAL_PERIOD_DAYS")
     if not configured:
@@ -5976,8 +6002,8 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "mode": "subscription",
             "customer": customer_id,
             "client_reference_id": user_id,
-            "success_url": safe_str(payload.get("success_url") or payload.get("successUrl") or billing_success_url()),
-            "cancel_url": safe_str(payload.get("cancel_url") or payload.get("cancelUrl") or billing_cancel_url()),
+            "success_url": billing_safe_return_url(payload.get("success_url") or payload.get("successUrl"), billing_success_url()),
+            "cancel_url": billing_safe_return_url(payload.get("cancel_url") or payload.get("cancelUrl"), billing_cancel_url()),
             "allow_promotion_codes": _env_flag("STRIPE_ALLOW_PROMOTION_CODES", default=True),
             "line_items": [
                 {
@@ -6048,7 +6074,7 @@ async def billing_portal(request: Request) -> JSONResponse:
             "/billing_portal/sessions",
             {
                 "customer": customer_id,
-                "return_url": safe_str(payload.get("return_url") or payload.get("returnUrl") or f"{billing_public_app_url()}/ajustes"),
+                "return_url": billing_safe_return_url(payload.get("return_url") or payload.get("returnUrl"), f"{billing_public_app_url()}/ajustes"),
             },
         )
     except RuntimeError as exc:

@@ -1011,6 +1011,49 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.billing_cancel_url(),
             )
 
+    def test_billing_checkout_rejects_external_return_urls(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-url-token"},
+            json_body={
+                "plan": "pro",
+                "interval": "monthly",
+                "success_url": "https://evil.example/steal",
+                "cancel_url": "//evil.example/cancel",
+            },
+        )
+        user_id = "33333333-3333-4333-8333-333333333333"
+        with patch.dict(os.environ, {"NEXT_PUBLIC_APP_URL": "https://kmfxedge.com"}, clear=False), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing-url@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"},
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_url",
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "cs_url", "url": "https://checkout.stripe.test/session"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        self.assertEqual(200, response.status_code)
+        _, _, params = stripe_mock.call_args.args
+        self.assertEqual(
+            "https://kmfxedge.com/ajustes?tab=subscription&checkout=success&session_id={CHECKOUT_SESSION_ID}",
+            params["success_url"],
+        )
+        self.assertEqual("https://kmfxedge.com/ajustes?tab=subscription&checkout=cancelled", params["cancel_url"])
+
     def test_billing_checkout_accepts_unlimited_plan(self) -> None:
         request = self._request(
             headers={"authorization": "Bearer billing-token"},
@@ -1148,6 +1191,38 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         _, path, params = stripe_mock.call_args.args
         self.assertEqual("/billing_portal/sessions", path)
         self.assertEqual("cus_456", params["customer"])
+        self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
+
+    def test_billing_portal_rejects_external_return_url(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-portal-url-token"},
+            json_body={"return_url": "https://evil.example/portal"},
+        )
+        user_id = "44444444-4444-4444-8444-444444444444"
+        with patch.dict(os.environ, {"NEXT_PUBLIC_APP_URL": "https://kmfxedge.com"}, clear=False), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing-portal-url@example.com",
+                "app_metadata": {"plan": "pro"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_portal_url",
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "bps_url", "url": "https://billing.stripe.test/portal"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_portal(request))
+
+        self.assertEqual(200, response.status_code)
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/billing_portal/sessions", path)
+        self.assertEqual("cus_portal_url", params["customer"])
         self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
 
     def test_billing_event_reservation_stays_retryable_until_processed(self) -> None:
