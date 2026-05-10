@@ -1,6 +1,6 @@
 # KMFX Edge - Checklist Maestro de Produccion
 
-Ultima revision: 2026-05-09
+Ultima revision: 2026-05-10
 Rama objetivo: `main`
 Objetivo: cerrar KMFX Edge como SaaS usable por traders reales, lanzar produccion controlada y preparar migracion a Next.js sin romper el producto actual.
 
@@ -330,6 +330,14 @@ Objetivo: que la app parezca producto final, no panel interno.
   - misma estructura, alto mínimo, espaciado interno, footer, badges, densidad tipográfica y estados responsivos.
   - evitar columnas vacias, cortes por scroll y saltos al cambiar de card.
   - cada métrica debe explicar qué mide, para qué sirve al trader, cómo funciona, qué mirar, fuente y confianza.
+- [ ] Claridad funcional inspirada por TradingNote antes de go live, sin abrir features grandes:
+  - onboarding tras registro con tres caminos claros: conectar MT5, importar backtest o vincular challenge/funding.
+  - dashboard con lectura ejecutiva simple: estado de cuenta, riesgo ahora, peor fuga y siguiente accion.
+  - CTAs contextuales hacia funciones ya existentes: exportar evidencia para IA, importar backtest MT5, vincular funding y revisar operaciones pendientes.
+  - Funding debe explicar de forma evidente el viaje unificado por fases/cuentas cuando una prop firm cambia login entre fase 1, fase 2 y fondeada.
+  - Journal debe priorizar Review Queue y lectura accionable antes que CRUD de entradas.
+  - cada pantalla principal debe responder una pregunta principal en 5-10 segundos.
+  - no incluir antes de produccion: mentores, afiliados, torneos, contabilidad completa fuera de funding/payouts ni rediseño grande Next.js.
 - [ ] Modo admin separado y claramente oculto.
 - [ ] Desktop completo revisado.
 - [ ] Mobile basico revisado antes de go live.
@@ -414,7 +422,7 @@ Objetivo: validar un viaje real antes de cobrar.
 
 - [x] `python3 -m unittest discover -s tests`.
 - [ ] CI GitHub verde.
-- [ ] Production Smoke verde.
+- [x] Production Smoke verde.
 - [ ] Registro nuevo.
 - [ ] Login Google.
 - [ ] Password recovery/reset.
@@ -449,6 +457,12 @@ Criterio de salida:
 Notas 2026-05-09:
 
 - Suite local completa: 296 tests OK.
+
+Notas 2026-05-10:
+
+- Smoke de produccion ejecutado con `scripts/production_smoke.py` contra `kmfxedge.com`, Render y `mt5-api.kmfxedge.com`: todos los checks verdes.
+- Verificado en produccion: rutas SPA principales, headers de seguridad, descargas macOS/Windows/EA, checksums, `/health`, billing sin auth, webhook sin firma, CORS del Worker y rechazo de sync MT5 sin key.
+- El backend publicado responde con commit `da9fdd2`.
 
 ## Fase 10 - Go Live Controlado
 
