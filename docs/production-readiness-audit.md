@@ -88,7 +88,7 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 | Operaciones | Conectado a trades normalizados | Depende de history/deals enviados por EA. |
 | Calendario | Conectado si hay trades cerrados | Deriva de trades/historial normalizado. |
 | Insights | Conectado si hay muestra | Deriva de dashboard model/trades. |
-| Ejecucion | Parcial mejorado | Usa trades MT5 normalizados y revision post-trade priorizada; pendiente persistir contexto manual por usuario fuera de localStorage. |
+| Ejecucion | Mejorado | Usa trades MT5 normalizados, revision post-trade priorizada y persistencia backend por usuario/cuenta con fallback local. |
 | Journal | Parcial | Entradas y review son workspace/manual; no todo viene del EA. |
 | Estrategias | Parcial | Setups/backtests son workspace/importaciones; no todo viene de EA live. |
 | Funding | Parcial | Compliance usa cuenta y workspace funded; falta vincular cuenta MT5 a journey. |
@@ -124,7 +124,7 @@ Si falta `reportMetrics`, el frontend calcula metricas derivadas desde trades y 
 | Herramientas | Usa `symbolSpecs` y fallback manual. | Render smoke cubierto; fixture Forex/JPY/XAUUSD con specs MT5 reales. |
 | Funding | Mezcla cuenta live con journeys workspace. | Empty state de cuenta no vinculada cubierto; falta vincular cuenta MT5 a journey Funding persistente. |
 | Estrategias | Setups/backtests son workspace; puede comparar con trades live. | Persistencia backend o etiqueta clara de datos propios del usuario. |
-| Journal | Entradas/reviews son workspace/manual; usa trades live como contexto. | Persistir journal y revisiones post-trade por usuario antes de uso comercial serio. |
+| Journal | Entradas/reviews son workspace/manual; usa trades live como contexto. | Persistir journal por usuario antes de uso comercial serio. Las revisiones post-trade de Ejecucion ya tienen backend. |
 
 ## Seguridad
 

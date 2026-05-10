@@ -228,6 +228,8 @@ function openPostTradeTagFromIntent(trade) {
       target,
       model,
       accountLogin: account?.login || "",
+      accountId: account?.id || account?.account_id || currentState.activeAccountId || "",
+      state: currentState,
       modalOnly: true
     });
   });

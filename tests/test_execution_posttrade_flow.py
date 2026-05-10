@@ -39,6 +39,17 @@ class ExecutionPostTradeFlowTests(unittest.TestCase):
         self.assertNotIn("Simular cierre", discipline)
         self.assertNotIn("Guardar tag", discipline)
 
+    def test_post_trade_reviews_have_backend_persistence_path(self) -> None:
+        discipline = read_text("js/modules/discipline.js")
+        api = read_text("kmfx_connector_api.py")
+
+        self.assertIn("/api/post-trade/reviews", discipline)
+        self.assertIn("persistPostTradeReview", discipline)
+        self.assertIn("hydrateRemotePostTradeReviews", discipline)
+        self.assertIn('@app.get("/api/post-trade/reviews")', api)
+        self.assertIn('@app.post("/api/post-trade/reviews")', api)
+        self.assertIn("account_belongs_to_scope", api)
+
 
 if __name__ == "__main__":
     unittest.main()

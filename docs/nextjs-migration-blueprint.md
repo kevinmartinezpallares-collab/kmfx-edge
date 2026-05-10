@@ -134,7 +134,7 @@ apps/web-next/
 | `/accounts` | Cuentas | `page-connections` | `connections.js`, `connection-wizard.js`, `accounts-live-snapshot.js`, `account-runtime.js`, `api-config.js`, `toast.js`. |
 | `/capital` | Capital | `page-portfolio` | `portfolio.js`, `chart-system.js`, `utils.js`. |
 | `/funding` | Funding | `page-funded` | `funded.js`, `modal-system.js`, `auth-session.js`, `utils.js`. |
-| `/execution` | Ejecucion | `page-discipline` | `discipline.js`, post-trade tags localStorage, `utils.js`. |
+| `/execution` | Ejecucion | `page-discipline` | `discipline.js`, post-trade reviews backend con fallback local, `utils.js`. |
 | `/risk` | Risk Engine | `page-risk` | `risk.js`, `risk-selectors.js`, `risk-live-snapshot.js`, `risk-panel-components.js`, `admin-mode.js`. |
 | `/tools/calculator` | Herramientas | `page-calculator` | `calculator.js`, `risk-engine.js`, `status-badges.js`, `utils.js`. |
 | `/journal` | Diario | `page-journal` | `journal.js`, `modal-system.js`, `utils.js`. |

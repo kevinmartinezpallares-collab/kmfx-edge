@@ -141,7 +141,7 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 - [x] Cuentas queda cubierta para estados `pending`, `stale`, `revoked`, `plan_limited` y `error`.
 - [x] Risk/Funding quedan cubiertos para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
 - [x] Estados bloqueados por plan cubiertos en Cuentas, Risk, Funding, Journal AI, Strategies y Exports.
-- [ ] Falta persistir o decidir producto para Journal, Estrategias, Funding journeys y revisiones post-trade, que hoy mezclan live con entrada manual del usuario.
+- [ ] Falta persistir o decidir producto para Journal, Estrategias y Funding journeys. Las revisiones post-trade ya tienen backend por usuario/cuenta con fallback local.
 - [ ] Falta completar la pasada final de textos visibles fuera de Cuentas/Estudio: no debe quedar `workspace`, `local`, `bridge`, `debug`, `mock` o copy tecnico fuera de modo admin.
 
 ## Prioridad Inmediata
@@ -485,7 +485,7 @@ Criterio de salida:
 - [ ] Completar secciones Risk Engine y Ejecucion.
   - [x] Ejecucion evita backlog historico de tags: prioriza hasta 8 cierres recientes/de impacto y mantiene metricas MT5 con todo el historico.
   - [x] Popup global de revision post-trade para nuevos cierres, aunque el usuario este en otra seccion.
-  - [ ] Persistir revisiones post-trade en backend por usuario/cuenta antes de uso comercial serio.
+  - [x] Persistir revisiones post-trade en backend por usuario/cuenta antes de uso comercial serio.
 - [ ] Pulir Funding con journeys reales.
 - [ ] Mejorar Journal/Strategies con datos live.
 - [ ] Revisar mobile.

@@ -36,6 +36,11 @@ from direct_mt5_provider import (
     list_direct_mt5_servers,
 )
 from mt5_strategy_tester_importer import parse_mt5_strategy_tester_reports
+from post_trade_review_store import (
+    JsonFilePostTradeReviewStore,
+    SupabasePostTradeReviewStore,
+    normalize_review_record,
+)
 from risk_enforcement_engine import build_risk_status
 from risk_metrics_engine import aggregate_portfolio_risk, build_risk_metrics, extract_previous_risk_snapshot
 from risk_policy_engine import build_policy_snapshot, evaluate_risk_policy
@@ -400,6 +405,7 @@ log.info(
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 VERIFIED_BEARER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
+POST_TRADE_REVIEWS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-post-trade-reviews.json")
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
 JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
 JOURNAL_TRADES_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-trades.json")
@@ -426,6 +432,22 @@ def build_account_store():
 
 account_store = build_account_store()
 account_service = AccountService(account_store)
+
+
+def build_post_trade_review_store():
+    requested_store = _env_value("KMFX_POST_TRADE_REVIEW_STORE", "KMFX_ACCOUNT_STORE", "KMFX_ACCOUNT_STORE_BACKEND").lower()
+    service_key = account_store_service_role_key()
+    should_use_supabase = requested_store in {"supabase", "postgres", "postgresql"} or (_is_production_runtime() and bool(service_key))
+    if should_use_supabase and service_key:
+        log.info("Post-trade review store configured | backend=supabase table=post_trade_reviews")
+        return SupabasePostTradeReviewStore(SUPABASE_PROJECT_URL, service_key)
+    if should_use_supabase and not service_key:
+        log.warning("Post-trade review store requested Supabase but service role key is missing; falling back to local JSON store.")
+    log.info("Post-trade review store configured | backend=json path=%s", POST_TRADE_REVIEWS_STATE_PATH)
+    return JsonFilePostTradeReviewStore(POST_TRADE_REVIEWS_STATE_PATH)
+
+
+post_trade_review_store = build_post_trade_review_store()
 
 # 1003 is our sync validation error bucket:
 # the request reached the API, but some required structural field was invalid
@@ -4812,6 +4834,139 @@ async def list_pending_accounts(request: Request) -> JSONResponse:
                 for account in pending_accounts
             ],
             "is_admin": admin_context["is_admin"],
+            "timestamp": now_iso(),
+        }
+    )
+
+
+def account_belongs_to_scope(account_id: str, user_id: str, context: dict[str, Any]) -> bool:
+    normalized_account_id = safe_str(account_id)
+    if not normalized_account_id or not user_id:
+        return False
+    if any(account.account_id == normalized_account_id for account in account_service.list_accounts(user_id)):
+        return True
+    return bool(context.get("is_admin") and find_account_by_id_any_user(normalized_account_id))
+
+
+def post_trade_review_items_payload(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        record = normalize_review_record(ensure_dict(row.get("record")))
+        trade_id = safe_str(row.get("trade_id") or record.get("tradeId"))
+        if not trade_id:
+            continue
+        record["tradeId"] = trade_id
+        items.append(
+            {
+                "account_id": safe_str(row.get("account_id")),
+                "trade_id": trade_id,
+                "review": record,
+                "updated_at": safe_str(row.get("updated_at") or record.get("updatedAt")),
+            }
+        )
+    return items
+
+
+@app.get("/api/post-trade/reviews")
+async def list_post_trade_reviews(request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {"ok": False, "reason": "auth_required", "timestamp": now_iso()},
+            status_code=401,
+        )
+    account_id = safe_str(request.query_params.get("account_id"))
+    if account_id and not account_belongs_to_scope(account_id, scope_user_id, auth_context):
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    try:
+        rows = post_trade_review_store.list_reviews(user_id=scope_user_id, account_id=account_id or None)
+    except OSError as exc:
+        log.exception("[KMFX][POST_TRADE_REVIEW] list_failed user_id=%s account_id=%s error=%s", scope_user_id, account_id, exc)
+        return connector_json_response(
+            {"ok": False, "reason": "review_store_unavailable", "timestamp": now_iso()},
+            status_code=503,
+        )
+    items = post_trade_review_items_payload(rows)
+    return connector_json_response(
+        {
+            "ok": True,
+            "items": items,
+            "reviews": {item["trade_id"]: item["review"] for item in items},
+            "account_id": account_id,
+            "is_admin": bool(auth_context.get("is_admin")),
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/post-trade/reviews")
+async def save_post_trade_review(request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {"ok": False, "reason": "auth_required", "timestamp": now_iso()},
+            status_code=401,
+        )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/post-trade/reviews",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    payload = payload if isinstance(payload, dict) else {}
+    account_id = safe_str(payload.get("account_id"))
+    trade_id = safe_str(payload.get("trade_id") or payload.get("tradeId"))
+    if not account_id or not trade_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "missing_review_scope",
+                "details": {"account_id": bool(account_id), "trade_id": bool(trade_id)},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+    if not account_belongs_to_scope(account_id, scope_user_id, auth_context):
+        return connector_json_response(
+            {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+            status_code=404,
+        )
+    review = normalize_review_record(ensure_dict(payload.get("review") or payload))
+    review["tradeId"] = trade_id
+    try:
+        row = post_trade_review_store.upsert_review(
+            user_id=scope_user_id,
+            account_id=account_id,
+            trade_id=trade_id,
+            record=review,
+        )
+    except OSError as exc:
+        log.exception("[KMFX][POST_TRADE_REVIEW] save_failed user_id=%s account_id=%s trade_id=%s error=%s", scope_user_id, account_id, trade_id, exc)
+        return connector_json_response(
+            {"ok": False, "reason": "review_store_unavailable", "timestamp": now_iso()},
+            status_code=503,
+        )
+    saved_review = normalize_review_record(ensure_dict(row.get("record")))
+    saved_review["tradeId"] = trade_id
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": account_id,
+            "trade_id": trade_id,
+            "review": saved_review,
+            "updated_at": safe_str(row.get("updated_at") or saved_review.get("updatedAt")),
+            "is_admin": bool(auth_context.get("is_admin")),
             "timestamp": now_iso(),
         }
     )

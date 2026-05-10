@@ -1,3 +1,4 @@
+import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
 
@@ -69,6 +70,7 @@ let selectedComplianceCell = null;
 let complianceLineChartInstance = null;
 let complianceBarChartInstance = null;
 let profileConfigExpanded = false;
+const remotePostTradeReviewScopes = new Set();
 
 const WEIGHT_OPTIONS = [
   {
@@ -629,6 +631,103 @@ export function savePostTradeTag(tradeId, data) {
     return true;
   } catch (error) {
     console.warn("[KMFX][POST_TRADE_TAGS] save skipped", error);
+    return false;
+  }
+}
+
+function postTradeAuthHeaders(context = {}) {
+  const state = context.state || {};
+  const auth = state.auth || context.auth || {};
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json"
+  };
+  const token = auth.session?.accessToken;
+  const email = auth.user?.email;
+  const userId = auth.user?.id;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (email) headers["X-KMFX-User-Email"] = email;
+  if (userId) headers["X-KMFX-User-ID"] = userId;
+  return headers;
+}
+
+function postTradeReviewAccountId(context = {}) {
+  return String(context.accountId || context.account_id || context.state?.activeAccountId || "").trim();
+}
+
+function canUseRemotePostTradeReviews(context = {}) {
+  return Boolean(postTradeReviewAccountId(context) && (context.state?.auth?.session?.accessToken || context.auth?.session?.accessToken));
+}
+
+function mergeRemotePostTradeReviews(items = []) {
+  const tags = loadPostTradeTags();
+  let changed = false;
+  items.forEach((item) => {
+    const tradeId = String(item?.trade_id || item?.review?.tradeId || "").trim();
+    const review = item?.review && typeof item.review === "object" ? item.review : null;
+    if (!tradeId || !review) return;
+    const existing = tags[tradeId] && typeof tags[tradeId] === "object" ? tags[tradeId] : null;
+    const existingTime = existing?.updatedAt || existing?.timestamp || "";
+    const remoteTime = review.updatedAt || item.updated_at || review.timestamp || "";
+    if (existing && existingTime && remoteTime && String(existingTime) >= String(remoteTime)) return;
+    tags[tradeId] = {
+      ...(existing || {}),
+      ...review,
+      tradeId
+    };
+    changed = true;
+  });
+  if (!changed) return false;
+  try {
+    window.localStorage?.setItem(KMFX_TAGS_STORAGE_KEY, JSON.stringify(tags));
+    return true;
+  } catch (error) {
+    console.warn("[KMFX][POST_TRADE_REVIEWS] remote merge skipped", error);
+    return false;
+  }
+}
+
+async function hydrateRemotePostTradeReviews(context = {}) {
+  if (!canUseRemotePostTradeReviews(context)) return false;
+  const accountId = postTradeReviewAccountId(context);
+  const userId = String(context.state?.auth?.user?.id || context.auth?.user?.id || "").trim();
+  const scopeKey = `${userId || "auth"}:${accountId}`;
+  if (remotePostTradeReviewScopes.has(scopeKey)) return false;
+  remotePostTradeReviewScopes.add(scopeKey);
+  const url = buildApiUrl(`/api/post-trade/reviews?account_id=${encodeURIComponent(accountId)}`);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: postTradeAuthHeaders(context)
+    });
+    if (!response.ok) throw new Error(`http_${response.status}`);
+    const payload = await response.json();
+    return mergeRemotePostTradeReviews(Array.isArray(payload?.items) ? payload.items : []);
+  } catch (error) {
+    console.warn("[KMFX][POST_TRADE_REVIEWS] remote hydration skipped", error);
+    return false;
+  }
+}
+
+async function persistPostTradeReview(context = {}, tradeId = "", review = {}) {
+  if (!canUseRemotePostTradeReviews(context) || !tradeId || !review) return false;
+  const accountId = postTradeReviewAccountId(context);
+  const url = buildApiUrl("/api/post-trade/reviews");
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: postTradeAuthHeaders(context),
+      body: JSON.stringify({
+        account_id: accountId,
+        trade_id: tradeId,
+        review
+      })
+    });
+    if (!response.ok) throw new Error(`http_${response.status}`);
+    remotePostTradeReviewScopes.delete(`${String(context.state?.auth?.user?.id || context.auth?.user?.id || "auth").trim()}:${accountId}`);
+    return true;
+  } catch (error) {
+    console.warn("[KMFX][POST_TRADE_REVIEWS] remote save skipped", error);
     return false;
   }
 }
@@ -3714,9 +3813,13 @@ export function openPostTradeModal(trade, context = {}) {
   refreshDisciplineSection(context);
 }
 
-function savePendingPostTradeTag(profile, trade) {
+function savePendingPostTradeTag(profile, trade, context = {}) {
   if (!trade) return;
-  savePostTradeTag(trade.id, buildEmptyTagData(trade, getTaggableRules(profile)));
+  const data = buildEmptyTagData(trade, getTaggableRules(profile));
+  if (savePostTradeTag(trade.id, data)) {
+    const saved = loadPostTradeTags()[trade.id] || data;
+    persistPostTradeReview(context, trade.id, saved);
+  }
 }
 
 function collectPostTradeAnswers(target, profile) {
@@ -3732,23 +3835,30 @@ function collectPostTradeAnswers(target, profile) {
   return normalizeTagAnswers(currentTagDraft.answers);
 }
 
-function saveCurrentPostTradeDraft(target, profile, { skipped = false } = {}) {
+function saveCurrentPostTradeDraft(target, profile, { skipped = false, context = {} } = {}) {
   if (!activePostTradeModal) return false;
   const rules = orderedPostTradeRules(getTaggableRules(profile));
+  let saved = false;
   if (skipped) {
-    return savePostTradeTag(activePostTradeModal.id, buildEmptyTagData(activePostTradeModal, rules));
+    saved = savePostTradeTag(activePostTradeModal.id, buildEmptyTagData(activePostTradeModal, rules));
+  } else {
+    const answers = collectPostTradeAnswers(target, profile);
+    const progress = postTradeProgress(rules);
+    saved = savePostTradeTag(activePostTradeModal.id, {
+      tradeId: activePostTradeModal.id,
+      timestamp: activePostTradeModal.timestamp,
+      tagQuestionVersion: 2,
+      answers,
+      note: currentTagDraft.note?.trim() || null,
+      tagSkipped: false,
+      tagPartial: progress.isPartial
+    });
   }
-  const answers = collectPostTradeAnswers(target, profile);
-  const progress = postTradeProgress(rules);
-  return savePostTradeTag(activePostTradeModal.id, {
-    tradeId: activePostTradeModal.id,
-    timestamp: activePostTradeModal.timestamp,
-    tagQuestionVersion: 2,
-    answers,
-    note: currentTagDraft.note?.trim() || null,
-    tagSkipped: false,
-    tagPartial: progress.isPartial
-  });
+  if (saved) {
+    const review = loadPostTradeTags()[activePostTradeModal.id];
+    persistPostTradeReview(context, activePostTradeModal.id, review);
+  }
+  return saved;
 }
 
 function updateModalUI(target, ruleId) {
@@ -3801,9 +3911,9 @@ function advancePostTradeQueue(target, context, profile, action) {
   const meta = activeQueueMeta();
   if (!meta) return;
   if (action === "skip") {
-    saveCurrentPostTradeDraft(target, profile, { skipped: true });
+    saveCurrentPostTradeDraft(target, profile, { skipped: true, context });
   } else {
-    saveCurrentPostTradeDraft(target, profile);
+    saveCurrentPostTradeDraft(target, profile, { context });
   }
   const nextIndex = action === "prev" ? meta.index - 1 : meta.index + 1;
   openQueuedPostTradeAt(nextIndex, context);
@@ -3898,7 +4008,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   });
   target.querySelectorAll("[data-posttrade-close]").forEach((button) => {
     button.addEventListener("click", () => {
-      savePendingPostTradeTag(profile, activePostTradeModal);
+      savePendingPostTradeTag(profile, activePostTradeModal, context);
       activePostTradeModal = null;
       resetCurrentTagDraft();
       resetPostTradeQueue();
@@ -3918,7 +4028,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
       updatePostTradeProgressUI(target, profile);
       return;
     }
-    saveCurrentPostTradeDraft(target, profile);
+    saveCurrentPostTradeDraft(target, profile, { context });
     const meta = activeQueueMeta();
     if (meta?.hasNext) {
       openQueuedPostTradeAt(meta.index + 1, context);
@@ -3931,7 +4041,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
   });
   target.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !activePostTradeModal) return;
-    savePendingPostTradeTag(profile, activePostTradeModal);
+    savePendingPostTradeTag(profile, activePostTradeModal, context);
     activePostTradeModal = null;
     resetCurrentTagDraft();
     resetPostTradeQueue();
@@ -4002,6 +4112,11 @@ function buildDisciplineDataFromModel(model, accountLogin = "") {
 export function renderDisciplineSection(target, data = disciplineData, context = {}) {
   if (!target) return;
   const renderContext = { ...context, target, data };
+  hydrateRemotePostTradeReviews(renderContext).then((changed) => {
+    if (changed && target.isConnected) {
+      renderDisciplineSection(target, data, context);
+    }
+  });
   let kpis = Array.isArray(data.kpis)
     ? data.kpis
     : [
@@ -4205,8 +4320,11 @@ export function renderDiscipline(root, state) {
     <section id="section-discipline" class="discipline-page-stack execution-page kmfx-page kmfx-page--spacious"></section>
   `;
   const accountLogin = account?.login || "";
+  const accountId = account?.id || account?.account_id || state.activeAccountId || "";
   renderDisciplineSection(root.querySelector("#section-discipline"), buildDisciplineDataFromModel(model, accountLogin), {
     accountLogin,
-    model
+    accountId,
+    model,
+    state
   });
 }
