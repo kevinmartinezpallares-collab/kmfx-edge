@@ -21122,8 +21122,36 @@ body[data-theme="dark"] .dashboard-screen .risk-metric-card--blocked .risk-metri
 
 html[data-theme="dark"] .app-disclaimer-footer,
 body[data-theme="dark"] .app-disclaimer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
   margin-top: auto;
   padding-top: 0;
+}
+
+html[data-theme="dark"] .app-disclaimer-links,
+body[data-theme="dark"] .app-disclaimer-links {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+html[data-theme="dark"] .app-disclaimer-links a,
+body[data-theme="dark"] .app-disclaimer-links a {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+html[data-theme="dark"] .app-disclaimer-links a:hover,
+body[data-theme="dark"] .app-disclaimer-links a:hover {
+  color: var(--text-primary);
 }
 
 html[data-theme="dark"] .dashboard-screen .risk-enforcement-panel,

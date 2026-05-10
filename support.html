@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soporte · KMFX Edge</title>
+  <meta name="description" content="Soporte de KMFX Edge para cuentas, Launcher, MT5, billing y seguridad." />
+  <link rel="icon" href="/assets/logos/kmfx-edge-favicon.svg" />
+  <link rel="stylesheet" href="/legal.css" />
+</head>
+<body>
+  <main class="legal-shell">
+    <nav class="legal-nav" aria-label="Navegación legal">
+      <a class="legal-brand" href="/"><img src="/assets/logos/kmfx-edge-icon-contained.svg" alt="" />KMFX Edge</a>
+      <div class="legal-nav-links">
+        <a href="/terms">Términos</a>
+        <a href="/privacy">Privacidad</a>
+        <a href="/refunds">Reembolsos</a>
+        <a class="legal-action" href="/dashboard">Volver al panel</a>
+      </div>
+    </nav>
+
+    <header class="legal-hero">
+      <div>
+        <div class="legal-kicker">Ayuda</div>
+        <h1>Soporte</h1>
+        <p>Para incidencias de acceso, billing, Launcher, MT5 o sincronización, envía un mensaje claro y evita compartir secretos completos.</p>
+      </div>
+      <aside class="legal-meta" aria-label="Información de soporte">
+        <div><span>Contacto</span><strong><a href="mailto:kevinmartinezpallares@gmail.com">kevinmartinezpallares@gmail.com</a></strong></div>
+        <div><span>Producto</span><strong>KMFX Edge</strong></div>
+        <div><span>Seguridad</span><strong>No envíes contraseñas ni keys completas</strong></div>
+      </aside>
+    </header>
+
+    <div class="legal-content">
+      <section class="legal-note">
+        <strong>Antes de escribir</strong>
+        <p>Si una cuenta MT5 no sincroniza, revisa que Algo Trading esté activo, WebRequest permita <code>https://mt5-api.kmfxedge.com</code> y la KMFXKey pegada sea la de esa cuenta.</p>
+      </section>
+
+      <section class="legal-section">
+        <h2>1. Qué incluir en tu mensaje</h2>
+        <ol>
+          <li>Email de tu cuenta KMFX.</li>
+          <li>Sistema operativo: macOS o Windows.</li>
+          <li>Broker/servidor MT5 y login de cuenta, si aplica.</li>
+          <li>Captura del error o mensaje exacto.</li>
+          <li>Últimos pasos realizados: instalar Launcher, reinstalar conector, pegar key, abrir MT5, etc.</li>
+        </ol>
+      </section>
+
+      <section class="legal-section">
+        <h2>2. Qué no enviar</h2>
+        <ul>
+          <li>No envíes contraseña master ni contraseña de inversor de tu broker.</li>
+          <li>No envíes KMFXKeys completas; basta con los primeros y últimos caracteres.</li>
+          <li>No envíes claves de Stripe, Supabase, Render, Cloudflare ni credenciales personales.</li>
+        </ul>
+      </section>
+
+      <section class="legal-section">
+        <h2>3. Problemas frecuentes</h2>
+        <ul>
+          <li><strong>No aparece la cuenta:</strong> confirma que el EA está activo en un gráfico y que WebRequest permite la API de KMFX.</li>
+          <li><strong>Key no reconocida:</strong> copia la KMFXKey desde Detalles de cuenta o genera una nueva si la anterior fue revocada.</li>
+          <li><strong>Launcher no abre MT5:</strong> selecciona la instalación correcta en el Launcher o reinstala el conector sobre esa instancia.</li>
+          <li><strong>Cuenta sin plan:</strong> revisa Ajustes y confirma que tu plan permite sincronización MT5.</li>
+        </ul>
+      </section>
+    </div>
+
+    <footer class="legal-footer">
+      <span>© 2026 KMFX Edge</span>
+      <span><a href="/terms">Términos</a> · <a href="/privacy">Privacidad</a> · <a href="/refunds">Reembolsos</a></span>
+    </footer>
+  </main>
+</body>
+</html>

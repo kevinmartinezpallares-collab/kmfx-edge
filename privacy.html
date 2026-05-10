@@ -1,100 +1,94 @@
-<!DOCTYPE html>
-<html lang="es" class="legal-document-root">
+<!doctype html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Política de Privacidad — KMFX Edge</title>
-  <link rel="canonical" href="https://kmfxedge.com/privacy.html">
-  <link rel="icon" type="image/svg+xml" href="./assets/logos/kmfx-edge-favicon.svg?v=favicon-optical-20260501">
-  <link rel="icon" type="image/png" sizes="32x32" href="./assets/logos/kmfx-edge-favicon-32.png?v=favicon-optical-20260501">
-  <link rel="icon" type="image/png" sizes="48x48" href="./assets/logos/kmfx-edge-favicon-48.png?v=favicon-optical-20260501">
-  <link rel="shortcut icon" href="./assets/logos/kmfx-edge-favicon.svg?v=favicon-optical-20260501">
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/logos/kmfx-edge-apple-touch-icon.png?v=install-logo-20260505">
-  <link rel="stylesheet" href="./styles.css?v=privacy-1">
-  <script>
-    (() => {
-      try {
-        const raw = localStorage.getItem("kmfx_frontend_state");
-        const parsed = raw ? JSON.parse(raw) : null;
-        const theme = parsed?.ui?.theme === "dark" ? "dark" : "light";
-        document.documentElement.setAttribute("data-theme", theme);
-      } catch (error) {
-        document.documentElement.setAttribute("data-theme", "dark");
-      }
-    })();
-  </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Política de Privacidad · KMFX Edge</title>
+  <meta name="description" content="Política de privacidad de KMFX Edge: datos de cuenta, MT5, billing, Launcher y proveedores." />
+  <link rel="icon" href="/assets/logos/kmfx-edge-favicon.svg" />
+  <link rel="stylesheet" href="/legal.css" />
 </head>
-<body class="legal-document">
-  <main class="legal-page">
-    <div class="legal-page__shell">
-      <article class="legal-page__card">
-        <div class="legal-page__brand">
-          <div class="legal-page__brand-mark">
-            <img class="brand-logo brand-logo-light" src="./assets/brand/kmfx-edge/logo/raster/kmfx-edge-symbol-transparent.png" alt="KMFX Edge">
-            <img class="brand-logo brand-logo-dark" src="./assets/brand/kmfx-edge/logo/raster/kmfx-edge-symbol-transparent.png" alt="KMFX Edge">
-          </div>
-          <div>
-            <h1 class="legal-page__title">Política de Privacidad — KMFX Edge</h1>
-            <p class="legal-page__intro">Resumen claro sobre qué información se usa dentro de la plataforma y con qué finalidad.</p>
-          </div>
-        </div>
+<body>
+  <main class="legal-shell">
+    <nav class="legal-nav" aria-label="Navegación legal">
+      <a class="legal-brand" href="/"><img src="/assets/logos/kmfx-edge-icon-contained.svg" alt="" />KMFX Edge</a>
+      <div class="legal-nav-links">
+        <a href="/terms">Términos</a>
+        <a href="/refunds">Reembolsos</a>
+        <a href="/support">Soporte</a>
+        <a class="legal-action" href="/dashboard">Volver al panel</a>
+      </div>
+    </nav>
 
-        <div class="legal-page__sections">
-          <section class="legal-page__section">
-            <h2>1. Información que recopilamos</h2>
-            <p>KMFX Edge puede recopilar información básica de usuario como:</p>
-            <ul>
-              <li>Dirección de correo electrónico (a través de Google Login)</li>
-              <li>Datos de uso de la aplicación</li>
-              <li>Datos de trading conectados (solo con fines de visualización y análisis)</li>
-            </ul>
-          </section>
+    <header class="legal-hero">
+      <div>
+        <div class="legal-kicker">Privacidad</div>
+        <h1>Política de Privacidad</h1>
+        <p>Explicamos qué datos usa KMFX Edge, por qué se necesitan y cómo se protegen al conectar tu cuenta, tu Launcher o tu suscripción.</p>
+      </div>
+      <aside class="legal-meta" aria-label="Información del documento">
+        <div><span>Última actualización</span><strong>10 de mayo de 2026</strong></div>
+        <div><span>Ámbito</span><strong>Web, backend, Launcher y MT5</strong></div>
+        <div><span>Contacto</span><strong><a href="mailto:kevinmartinezpallares@gmail.com">kevinmartinezpallares@gmail.com</a></strong></div>
+      </aside>
+    </header>
 
-          <section class="legal-page__section">
-            <h2>2. Uso de la información</h2>
-            <p>La información recopilada se utiliza exclusivamente para:</p>
-            <ul>
-              <li>Proporcionar acceso a la plataforma</li>
-              <li>Mostrar estadísticas y métricas de trading</li>
-              <li>Mejorar la experiencia del usuario</li>
-            </ul>
-          </section>
+    <div class="legal-content">
+      <section class="legal-note">
+        <strong>Principio de producto</strong>
+        <p>KMFX Edge no necesita tu contraseña del broker para el flujo recomendado. El conector MT5 envía datos operativos mediante una KMFXKey asociada a tu cuenta de KMFX.</p>
+      </section>
 
-          <section class="legal-page__section">
-            <h2>3. Compartición de datos</h2>
-            <p>KMFX Edge no vende, alquila ni comparte datos personales con terceros.</p>
-          </section>
+      <section class="legal-section">
+        <h2>1. Datos que recogemos</h2>
+        <ul>
+          <li><strong>Cuenta KMFX:</strong> email, nombre visible, proveedor de login, estado de sesión y permisos.</li>
+          <li><strong>Datos MT5:</strong> login de cuenta, servidor, broker, balance, equity, posiciones, operaciones, historial, símbolos, comisiones, swaps, precios y métricas derivadas.</li>
+          <li><strong>Conexión:</strong> estado de sincronización, última actividad, KMFXKey en forma segura para validar la cuenta y datos técnicos necesarios para diagnóstico.</li>
+          <li><strong>Billing:</strong> plan, estado de suscripción, customer/subscription IDs de Stripe, recibos y eventos de pago necesarios para habilitar acceso.</li>
+          <li><strong>Soporte:</strong> mensajes que nos envíes, capturas, logs o datos que compartas voluntariamente para resolver incidencias.</li>
+        </ul>
+      </section>
 
-          <section class="legal-page__section">
-            <h2>4. Seguridad</h2>
-            <p>Aplicamos medidas razonables para proteger la información del usuario.</p>
-          </section>
+      <section class="legal-section">
+        <h2>2. Para qué usamos los datos</h2>
+        <ul>
+          <li>Autenticar usuarios y proteger el acceso al dashboard.</li>
+          <li>Sincronizar cuentas MT5 y calcular métricas de rendimiento, riesgo, ejecución y fondeo.</li>
+          <li>Aplicar límites de plan, permisos y acceso a funciones.</li>
+          <li>Detectar errores de conexión, abuso, rate limits o payloads inválidos.</li>
+          <li>Gestionar suscripciones, facturación, soporte y seguridad del servicio.</li>
+        </ul>
+      </section>
 
-          <section class="legal-page__section">
-            <h2>5. Servicios de terceros</h2>
-            <p>Utilizamos servicios como:</p>
-            <ul>
-              <li>Google (autenticación)</li>
-              <li>Supabase (infraestructura)</li>
-            </ul>
-          </section>
+      <section class="legal-section">
+        <h2>3. Proveedores</h2>
+        <p>KMFX Edge puede usar servicios externos para operar el producto: Supabase para autenticación y base de datos, Render para backend, Vercel para hosting web, Cloudflare para proxy y protección de tráfico, Stripe para pagos y Resend u otros proveedores para emails transaccionales.</p>
+        <p>Estos proveedores solo deben recibir los datos necesarios para prestar su parte del servicio.</p>
+      </section>
 
-          <section class="legal-page__section">
-            <h2>6. Cambios</h2>
-            <p>Esta política puede actualizarse en cualquier momento.</p>
-          </section>
+      <section class="legal-section">
+        <h2>4. Datos sensibles y KMFXKeys</h2>
+        <p>Las KMFXKeys se tratan como credenciales. No deben compartirse públicamente. El sistema evita transportarlas en URLs de producción y aplica enmascarado en logs cuando se muestran referencias técnicas.</p>
+        <p>Si sospechas que una key se ha filtrado, revócala o regenera una nueva desde Cuentas y reinstala o repara el conector con esa key.</p>
+      </section>
 
-          <section class="legal-page__section">
-            <h2>7. Contacto</h2>
-            <p>kevinmartinezpallares@gmail.com</p>
-          </section>
-        </div>
+      <section class="legal-section">
+        <h2>5. Conservación y eliminación</h2>
+        <p>Conservamos los datos mientras tu cuenta esté activa o mientras sean necesarios para seguridad, soporte, obligaciones legales o continuidad del producto. Puedes solicitar eliminación o exportación escribiendo a soporte.</p>
+        <p>Al borrar una conexión MT5, puede dejar de sincronizarse, pero pueden conservarse registros mínimos para auditoría, seguridad, facturación o prevención de abuso.</p>
+      </section>
 
-        <footer class="legal-page__footer">
-          <a class="legal-page__footer-link" href="/privacy">Privacy Policy</a>
-        </footer>
-      </article>
+      <section class="legal-section">
+        <h2>6. Tus derechos</h2>
+        <p>Según tu ubicación, puedes tener derecho a acceder, corregir, exportar o eliminar datos personales. Para ejercerlos, contacta con soporte indicando el email de tu cuenta KMFX y la solicitud concreta.</p>
+      </section>
     </div>
+
+    <footer class="legal-footer">
+      <span>© 2026 KMFX Edge</span>
+      <span><a href="/terms">Términos</a> · <a href="/refunds">Reembolsos</a> · <a href="/support">Soporte</a></span>
+    </footer>
   </main>
 </body>
 </html>

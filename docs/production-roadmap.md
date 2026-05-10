@@ -417,7 +417,7 @@ Objetivo: validar un viaje real de usuario antes de cobrar.
 - [x] Probar launcher con backend recuperado: cola drena.
 - [ ] Probar dashboard desktop completo.
 - [ ] Probar mobile básico, aunque no sea rediseño final.
-- [ ] Revisar Terms, Privacy, Refunds y Risk disclaimer.
+- [x] Revisar Términos, Privacidad, Reembolsos y disclaimer de riesgo.
 
 Criterio de salida:
 
@@ -511,5 +511,5 @@ Criterio de salida:
 - [ ] Dashboard muestra datos live del usuario correcto.
 - [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
 - [ ] CI y smoke están verdes.
-- [ ] Legal mínimo está publicado.
+- [x] Legal mínimo está publicado.
 - [ ] Rollback está documentado.

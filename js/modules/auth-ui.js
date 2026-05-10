@@ -603,7 +603,7 @@ export function initAuthUI(store) {
                 </button>` : ""}
               </div>
 
-              <div class="auth-legal-links" aria-label="Legal links">
+              <div class="auth-legal-links" aria-label="Enlaces legales">
                 <span>Al continuar, aceptas nuestros</span>
                 <a class="auth-legal-link" href="/terms">Términos</a>
                 <span aria-hidden="true">y</span>

@@ -344,13 +344,13 @@ Notas 2026-05-09:
 
 Objetivo: poder cobrar y operar con minima confianza legal.
 
-- [ ] Privacy Policy publicada.
-- [ ] Terms publicados.
-- [ ] Refund Policy publicada.
-- [ ] Disclaimer financiero visible.
-- [ ] Copy claro: KMFX no da asesoramiento financiero.
-- [ ] Copy claro: KMFX Connector es read-only.
-- [ ] Soporte/contacto visible.
+- [x] Política de privacidad publicada.
+- [x] Términos publicados.
+- [x] Política de reembolsos publicada.
+- [x] Disclaimer financiero visible.
+- [x] Copy claro: KMFX no da asesoramiento financiero.
+- [x] Copy claro: KMFX Connector es read-only.
+- [x] Soporte/contacto visible.
 - [ ] Emails transaccionales revisados.
 - [ ] Email de compra.
 - [ ] Email de cancelacion.
@@ -434,7 +434,7 @@ Objetivo: validar un viaje real antes de cobrar.
 - [ ] `/api/mt5/policy` sin key rechaza.
 - [ ] Dashboard desktop completo.
 - [ ] Mobile basico.
-- [ ] Legal links.
+- [x] Enlaces legales.
 
 Criterio de salida:
 
@@ -504,7 +504,7 @@ Criterio de salida:
 - [ ] Metricas criticas tienen source/formula/confidence.
 - [ ] Sin defaults internos como politicas reales.
 - [ ] CI y smoke estan verdes.
-- [ ] Legal minimo esta publicado.
+- [x] Legal minimo esta publicado.
 - [ ] Observabilidad minima activa.
 - [ ] Rollback documentado.
 
