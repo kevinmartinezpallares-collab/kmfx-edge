@@ -178,6 +178,26 @@ class UserFlowUiContractTests(unittest.TestCase):
             for phrase in phrases:
                 self.assertNotIn(phrase, files[file_key])
 
+    def test_modal_and_settings_select_escape_dynamic_values(self) -> None:
+        modal = read_text("js/modules/modal-system.js")
+        app = read_text("app.js")
+        funded = read_text("js/modules/funded.js")
+
+        self.assertIn("function escapeHtml", modal)
+        self.assertIn("const safeTitle = escapeHtml(title || \"KMFX Edge\")", modal)
+        self.assertIn("const safeSubtitle = escapeHtml(subtitle)", modal)
+        self.assertIn("const safeTitle = escapeHtml(title || \"Detalle\")", modal)
+        self.assertIn("const safeStatus = escapeHtml(status)", modal)
+        self.assertIn("escapeHtml(metric.label)", modal)
+
+        self.assertIn("function escapeHtml", app)
+        self.assertIn('value="${escapeHtml(value)}"', app)
+        self.assertIn("${escapeHtml(label)}</option>", app)
+
+        self.assertIn('data-funded-id="${escapeHtml(account.id)}"', funded)
+        self.assertIn('${escapeHtml(linked?.name || "Sin vincular")}', funded)
+        self.assertIn("${escapeHtml(enriched.propFirm)}", funded)
+
     def test_market_view_uses_spanish_copy_and_escapes_dynamic_values(self) -> None:
         source = read_text("js/modules/market.js")
 

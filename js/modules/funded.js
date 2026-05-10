@@ -1392,25 +1392,25 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
       <div class="funding-config-modal">
         <label class="form-stack">
           <span>Firma</span>
-          <select data-funded-field="propFirm" data-funded-id="${account.id}">
-            ${firmOptions.map((firm) => `<option value="${firm}" ${firm === account.propFirm ? "selected" : ""}>${firm}</option>`).join("")}
+          <select data-funded-field="propFirm" data-funded-id="${escapeHtml(account.id)}">
+            ${firmOptions.map((firm) => `<option value="${escapeHtml(firm)}" ${firm === account.propFirm ? "selected" : ""}>${escapeHtml(firm)}</option>`).join("")}
           </select>
         </label>
         <label class="form-stack">
           <span>Modelo</span>
-          <select data-funded-field="programModel" data-funded-id="${account.id}">
-            ${modelOptions.map((model) => `<option value="${model}" ${model === account.programModel ? "selected" : ""}>${model}</option>`).join("")}
+          <select data-funded-field="programModel" data-funded-id="${escapeHtml(account.id)}">
+            ${modelOptions.map((model) => `<option value="${escapeHtml(model)}" ${model === account.programModel ? "selected" : ""}>${escapeHtml(model)}</option>`).join("")}
           </select>
         </label>
         <label class="form-stack">
           <span>Fase</span>
-          <select data-funded-field="phase" data-funded-id="${account.id}">
-            ${FUNDING_RULE_PHASES.map((phase) => `<option value="${phase}" ${phase === account.phase ? "selected" : ""}>${phase}</option>`).join("")}
+          <select data-funded-field="phase" data-funded-id="${escapeHtml(account.id)}">
+            ${FUNDING_RULE_PHASES.map((phase) => `<option value="${escapeHtml(phase)}" ${phase === account.phase ? "selected" : ""}>${escapeHtml(phase)}</option>`).join("")}
           </select>
         </label>
         <label class="form-stack">
           <span>Confirmación de reglas</span>
-          <select data-funded-field="rulesConfirmationStatus" data-funded-id="${account.id}">
+          <select data-funded-field="rulesConfirmationStatus" data-funded-id="${escapeHtml(account.id)}">
             <option value="${RULE_CONFIRMATION_STATUS.UNCONFIRMED}" ${confirmationStatus === RULE_CONFIRMATION_STATUS.UNCONFIRMED ? "selected" : ""}>Pendiente de confirmar</option>
             <option value="${RULE_CONFIRMATION_STATUS.USER_CONFIRMED}" ${confirmationStatus === RULE_CONFIRMATION_STATUS.USER_CONFIRMED ? "selected" : ""}>Confirmadas por mí</option>
             ${officialRulesAvailable ? `<option value="${RULE_CONFIRMATION_STATUS.OFFICIAL_VERIFIED}" selected>Usar preset oficial</option>` : ""}
@@ -1419,8 +1419,8 @@ function openFundedConfigModal(store, account, accountCurrencySymbol = "$") {
         <label class="form-stack">
           <span>Tamaño de cuenta</span>
           <div class="funded-size-wrap">
-            <span class="funded-size-prefix">${accountCurrencySymbol}</span>
-            <input class="funded-size-input" type="number" min="0" step="1000" value="${account.accountSize}" data-funded-field="accountSize" data-funded-id="${account.id}">
+            <span class="funded-size-prefix">${escapeHtml(accountCurrencySymbol)}</span>
+            <input class="funded-size-input" type="number" min="0" step="1000" value="${escapeHtml(account.accountSize)}" data-funded-field="accountSize" data-funded-id="${escapeHtml(account.id)}">
           </div>
         </label>
         <div class="goal-card-sub funded-preset-note">
@@ -1560,20 +1560,20 @@ export function initFunded(store) {
       maxWidth: 620,
       content: `
         <div class="info-list compact">
-          <div><strong>Cuenta</strong><span>${linked?.name || "Sin vincular"}</span></div>
+          <div><strong>Cuenta</strong><span>${escapeHtml(linked?.name || "Sin vincular")}</span></div>
           <div><strong>Cuenta live</strong><span>${escapeHtml(linkedAccountContextLabel(enriched))}</span></div>
           <div><strong>Recorrido</strong><span>${escapeHtml(fundingJourneyMetaLine(enriched) || "Recorrido derivado de la cuenta funded")}</span></div>
           <div><strong>Fase actual</strong><span>${escapeHtml(fundingPhaseMetaLine(enriched) || enriched.phase)}</span></div>
-          <div><strong>Firma</strong><span>${enriched.propFirm}</span></div>
-          <div><strong>Modelo</strong><span>${enriched.programModel}</span></div>
-          <div><strong>Fase</strong><span>${enriched.phase}</span></div>
+          <div><strong>Firma</strong><span>${escapeHtml(enriched.propFirm)}</span></div>
+          <div><strong>Modelo</strong><span>${escapeHtml(enriched.programModel)}</span></div>
+          <div><strong>Fase</strong><span>${escapeHtml(enriched.phase)}</span></div>
           <div><strong>Tamaño</strong><span>${formatCurrency(enriched.accountSize)}</span></div>
           <div><strong>Resultado actual</strong><span>${enriched.accountSizeMismatch ? "Revisar tamaño de cuenta" : `${pnlTextMarkup({ value: enriched.currentProfitUsd, text: formatCurrency(enriched.currentProfitUsd), className: enriched.currentProfitUsd >= 0 ? "metric-positive" : "metric-negative" })} / ${formatPercent(enriched.currentProfitPct)}`}</span></div>
           <div><strong>Objetivo</strong><span>${enriched.targetPct ? formatPercent(enriched.targetPct) : "Sin objetivo de challenge"}</span></div>
           <div><strong>DD diario</strong><span>${formatPercent(enriched.dailyDdPct)} / ${enriched.dailyLimitPct ? formatPercent(enriched.dailyLimitPct) : "—"}</span></div>
           <div><strong>DD máximo</strong><span>${formatPercent(enriched.maxDdPct)} / ${enriched.maxLimitPct ? formatPercent(enriched.maxLimitPct) : "—"}</span></div>
-          <div><strong>Días</strong><span>${enriched.completedDaysVsRule}</span></div>
-          <div><strong>Estado</strong><span>${enrichedStatus.label}</span></div>
+          <div><strong>Días</strong><span>${escapeHtml(enriched.completedDaysVsRule)}</span></div>
+          <div><strong>Estado</strong><span>${escapeHtml(enrichedStatus.label)}</span></div>
           <div><strong>Reglas</strong><span>${escapeHtml(`${fundingRuleDisplayLabel(enriched)} · ${fundingRuleDisplayMeta(enriched)}`)}</span></div>
           ${adminView ? `<div><strong>Última sincronización</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
         </div>

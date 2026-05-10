@@ -248,6 +248,8 @@ Notas 2026-05-09:
 - Supabase Performance Advisor no se pudo completar en esta sesion: el conector devolvio `401 Reauthentication required` y la CLI `supabase` no esta instalada localmente.
 - Tercera pasada de copy visible: retirados restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado en superficies de usuario.
 - Mercado ahora escapa valores dinamicos de simbolos, sesgos, eventos y narrativas antes de renderizar.
+- Pasada de hardening frontend añadida: títulos/subtítulos de modales, focus panels, selects de ajustes y detalles Funding escapan valores dinámicos antes de insertarse con `innerHTML`.
+- Copy visible de métricas/ejecución normalizado a español: `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto`, `Última sincronización` y `operación/operaciones`.
 
 Criterio de salida:
 

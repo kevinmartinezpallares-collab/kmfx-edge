@@ -1,6 +1,15 @@
 let modalRoot = null;
 let activeEscapeHandler = null;
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function ensureRoot() {
   if (modalRoot) return modalRoot;
   modalRoot = document.getElementById("modalRoot");
@@ -96,13 +105,15 @@ function mountModal({ maxWidth = 560, overlayClass = "", cardClass = "", content
 }
 
 export function openModal({ title, subtitle = "", maxWidth = 560, content = "", onMount } = {}) {
+  const safeTitle = escapeHtml(title || "KMFX Edge");
+  const safeSubtitle = escapeHtml(subtitle);
   mountModal({
     maxWidth,
     content: `
       <div class="modal-head">
         <div>
-          <div class="modal-title">${title || "KMFX Edge"}</div>
-          ${subtitle ? `<div class="modal-subtitle">${subtitle}</div>` : ""}
+          <div class="modal-title">${safeTitle}</div>
+          ${safeSubtitle ? `<div class="modal-subtitle">${safeSubtitle}</div>` : ""}
         </div>
         <button class="modal-close" type="button" aria-label="Cerrar">✕</button>
       </div>
@@ -127,10 +138,15 @@ export function openFocusPanel({
 } = {}) {
   const metricMarkup = metrics.map((metric) => `
     <article class="focus-panel-metric">
-      <div class="focus-panel-metric__label">${metric.label}</div>
-      <div class="focus-panel-metric__value ${metric.valueClass || ""}">${metric.value}</div>
+      <div class="focus-panel-metric__label">${escapeHtml(metric.label)}</div>
+      <div class="focus-panel-metric__value ${escapeHtml(metric.valueClass || "")}">${metric.value}</div>
     </article>
   `).join("");
+  const safeTitle = escapeHtml(title || "Detalle");
+  const safeStatus = escapeHtml(status);
+  const safeStatusTone = escapeHtml(statusTone);
+  const safeMetricStyle = escapeHtml(metricStyle);
+  const safePnlClass = escapeHtml(pnlClass);
 
   mountModal({
     maxWidth,
@@ -143,14 +159,14 @@ export function openFocusPanel({
           <header class="focus-panel__header">
             <div class="focus-panel__identity">
               <div class="focus-panel__title-row">
-                <h2 class="focus-panel__title">${title || "Detalle"}</h2>
-                ${status ? `<span class="focus-panel__status focus-panel__status--${statusTone}">${status}</span>` : ""}
+                <h2 class="focus-panel__title">${safeTitle}</h2>
+                ${safeStatus ? `<span class="focus-panel__status focus-panel__status--${safeStatusTone}">${safeStatus}</span>` : ""}
               </div>
               ${meta ? `<div class="focus-panel__meta">${meta}</div>` : ""}
             </div>
-            ${pnl ? `<div class="focus-panel__pnl ${pnlClass}">${pnl}</div>` : ""}
+            ${pnl ? `<div class="focus-panel__pnl ${safePnlClass}">${pnl}</div>` : ""}
           </header>
-          ${metricMarkup ? `<section class="focus-panel__metrics focus-panel__metrics--${metricStyle}">${metricMarkup}</section>` : ""}
+          ${metricMarkup ? `<section class="focus-panel__metrics focus-panel__metrics--${safeMetricStyle}">${metricMarkup}</section>` : ""}
           <div class="focus-panel__content">${content}</div>
         </div>
       </div>

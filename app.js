@@ -66,6 +66,15 @@ const postTradeAutoPromptState = {
   seenTradeIdsByAccount: new Map()
 };
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function ensureLightCardFlattening() {
   const styleId = "light-card-flatten-runtime";
   let style = document.getElementById(styleId);
@@ -427,7 +436,9 @@ function initSettings(authSession = null) {
 
   const populateSelect = (select, options, selectedValue) => {
     if (!select) return;
-    select.innerHTML = options.map(([value, label]) => `<option value="${value}" ${value === selectedValue ? "selected" : ""}>${label}</option>`).join("");
+    select.innerHTML = options.map(([value, label]) => (
+      `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`
+    )).join("");
   };
 
   const buildAccountOptions = () => {

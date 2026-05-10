@@ -142,7 +142,7 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 - [x] Risk/Funding quedan cubiertos para cuenta sin snapshot/policy, snapshot stale y cuenta funding no vinculada.
 - [x] Estados bloqueados por plan cubiertos en Cuentas, Risk, Funding, Journal AI, Strategies y Exports.
 - [ ] Falta persistir o decidir producto para Journal, Estrategias y Funding journeys. Las revisiones post-trade ya tienen backend por usuario/cuenta con fallback local.
-- [ ] Falta completar la pasada final de textos visibles fuera de Cuentas/Estudio: no debe quedar `workspace`, `local`, `bridge`, `debug`, `mock` o copy tecnico fuera de modo admin.
+- [x] Pasada final de textos visibles reforzada fuera de Cuentas/Estudio: se retiraron labels inglesas y copy tecnico de métricas, ejecución, cuentas, riesgo, billing, estrategias y funding.
 
 ## Prioridad Inmediata
 
@@ -175,6 +175,8 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Flujo MT5 reforzado con errores orientados a usuario final: WebRequest, KMFXKey ausente/no reconocida/revocada, conector desactualizado, rate limit, plan sin permiso y servidor de KMFX temporalmente no disponible.
 - Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
+- Copy visible reforzado tras `3f9786f`: métricas, ejecución, calendario, operaciones, diario, talento, cuentas y billing priorizan español en labels como `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto` y `Última sincronización`.
+- Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes y detalle Funding escapan valores dinámicos antes de renderizarse.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -184,8 +186,8 @@ Objetivo: poder vender Core/Pro sin improvisar permisos.
 Bloque previo obligatorio:
 
 - [x] Crear contrato inicial live de `/api/accounts/snapshot`.
-- [ ] Pasada final de textos visibles para usuario final en secciones restantes.
-- [ ] Corrección ortográfica completa del dashboard en español antes del QA final.
+- [x] Pasada final de textos visibles para usuario final en secciones restantes.
+- [x] Corrección ortográfica completa del dashboard en español antes del QA final.
 - [x] Estudio de métricas: todas las cards deben compartir patrón visual, espaciado, footer, altura y contenido didáctico de "Métricas críticas del dashboard".
 - [x] Render smoke inicial de metricas live por seccion con fixture.
 - [x] Render smoke de Cuentas para estados degradados: pending, stale, revoked, plan-limited y error.

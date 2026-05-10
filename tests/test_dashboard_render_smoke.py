@@ -852,8 +852,8 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             connections: ["Conexión MT5 no está disponible en Free / Demo", "Conectar cuenta"],
             risk: ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
             funded: ["Funding no está disponible en Free / Demo"],
-            strategies: ["Strategy Lab no está disponible en Free / Demo"],
-            journalAi: ["Export de evidencia no está disponible en Free / Demo"],
+            strategies: ["Laboratorio de estrategias no está disponible en Free / Demo"],
+            journalAi: ["Exportación de evidencia no está disponible en Free / Demo"],
           };
           const forbidden = [
             "entitlement",
@@ -1000,8 +1000,8 @@ class DashboardRenderSmokeTests(unittest.TestCase):
                 "connections": ["Conexión MT5 no está disponible en Free / Demo", "Conectar cuenta"],
                 "risk": ["Editor de política de riesgo no está disponible en Free / Demo", "Modo lectura"],
                 "funded": ["Funding no está disponible en Free / Demo"],
-                "strategies": ["Strategy Lab no está disponible en Free / Demo"],
-                "journalAi": ["Export de evidencia no está disponible en Free / Demo"],
+                "strategies": ["Laboratorio de estrategias no está disponible en Free / Demo"],
+                "journalAi": ["Exportación de evidencia no está disponible en Free / Demo"],
             }[key]), key)
 
 
