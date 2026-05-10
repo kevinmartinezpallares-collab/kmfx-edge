@@ -2466,6 +2466,8 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
         return result
     if event_type == "customer.updated":
         metadata = ensure_dict(data_object.get("metadata"))
+        if safe_str(metadata.get("app")).lower() != "kmfx_edge":
+            return {"ignored": "non_kmfx_customer"}
         user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
         customer_id = safe_str(data_object.get("id"))
         if user_id and customer_id:

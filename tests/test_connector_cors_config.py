@@ -1520,6 +1520,49 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         fetch_mock.assert_not_called()
         sync_mock.assert_not_called()
 
+    def test_customer_updated_ignores_generic_metadata_without_kmfx_app(self) -> None:
+        event = {
+            "id": "evt_customer_external",
+            "type": "customer.updated",
+            "data": {
+                "object": {
+                    "id": "cus_external",
+                    "email": "external@example.com",
+                    "metadata": {
+                        "user_id": "55555555-5555-4555-8555-555555555555",
+                    },
+                }
+            },
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock:
+            result = connector_api.process_stripe_billing_event(event)
+
+        self.assertEqual({"ignored": "non_kmfx_customer"}, result)
+        customer_mock.assert_not_called()
+
+    def test_customer_updated_accepts_kmfx_app_metadata(self) -> None:
+        event = {
+            "id": "evt_customer_kmfx",
+            "type": "customer.updated",
+            "data": {
+                "object": {
+                    "id": "cus_kmfx",
+                    "email": "buyer@example.com",
+                    "livemode": True,
+                    "metadata": {
+                        "app": "kmfx_edge",
+                        "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                    },
+                }
+            },
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock:
+            result = connector_api.process_stripe_billing_event(event)
+
+        self.assertEqual("55555555-5555-4555-8555-555555555555", result["user_id"])
+        self.assertEqual("cus_kmfx", result["customer"])
+        customer_mock.assert_called_once()
+
     def test_invoice_payment_failed_syncs_kmfx_subscription_state(self) -> None:
         invoice = {
             "id": "in_123",
