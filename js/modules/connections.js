@@ -5,6 +5,7 @@ import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260509-150
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260509-150500";
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 import { billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260509-150500";
+import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260509-150500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -545,6 +546,15 @@ function renderConnectionGuide() {
         </div>
       </div>
       <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir.</div>
+      <div class="connections-guide-card__release">
+        <div>
+          <div class="metric-label">Paquete publicado</div>
+          <div class="connections-guide-card__release-list">
+            ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+          </div>
+        </div>
+        <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-download-checksums="true">Copiar checksums</button>
+      </div>
       <div class="connections-guide-card__endpoint">
         <div>
           <div class="metric-label">URL para WebRequest en MetaTrader 5</div>
@@ -588,6 +598,10 @@ function openConnectionGuideModal() {
         const launcherButton = event.target.closest("[data-account-download-launcher]");
         if (launcherButton) {
           downloadLauncher(launcherButton.dataset.accountDownloadLauncher || "auto");
+          return;
+        }
+        if (event.target.closest("[data-copy-download-checksums]")) {
+          copyText(downloadChecksumText(), "Checksums copiados");
           return;
         }
         if (event.target.closest("[data-account-download-ea]")) {

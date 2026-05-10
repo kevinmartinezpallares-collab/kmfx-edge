@@ -283,8 +283,8 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [x] Backend recuperado: Launcher drena pendientes y registra receipt/last_sync.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
-- [ ] Version visible de EA/Launcher.
-- [ ] Checksum visible de descargas.
+- [x] Version visible de EA/Launcher.
+- [x] Checksum visible de descargas.
 - [ ] Avisos de Gatekeeper/Windows documentados.
 
 Notas 2026-05-09:
@@ -295,6 +295,7 @@ Notas 2026-05-09:
 - El Launcher publicado se ha regenerado para mostrar nombres legibles de instalaciones MT5 usando broker/login inferidos del registro local y para ocultar backups/carpetas antiguas.
 - Checksum actual macOS ZIP: `1a4149ef01dd70ba85f79f48e3b00a9bf7f94af28c0a8dad4b16463ef246b09f`.
 - Checksum actual Windows EXE: `32182b50be6ff3053f5f2eaadadb896bf9cc0fffcee897746d800ab22fa8df8d`.
+- El dashboard muestra Launcher v1.0.0, Connector v2.84 y checksums copiables en la guia de Cuentas y en el asistente de conexion.
 - Contrato probado: el instalador copia `KMFXConnector.ex5`/`.mq5`, escribe preset y deja `MQL5/Files/kmfx_connection.conf`; el EA lee esa key en runtime.
 - Contrato probado: si Render/backend no responde, el Launcher conserva `snapshot`/`journal` con `connection_key` local, aplica backoff, drena al recuperarse y solo descarta al superar `max_attempts`.
 

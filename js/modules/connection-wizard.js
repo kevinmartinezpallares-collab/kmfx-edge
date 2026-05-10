@@ -1,6 +1,7 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500";
 import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
 import { showToast } from "./toast.js?v=build-20260509-150500";
+import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260509-150500";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -384,6 +385,7 @@ function renderEaConfigStep(state) {
             <div class="connection-wizard__setup-eyebrow">Recomendado</div>
             <div class="connection-wizard__setup-title">Launcher + conector automático</div>
             <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Después puedes cerrar el Launcher cuando MT5 ya sincronice.</p>
+            <div class="connection-wizard__release-note">Launcher v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.launcher.version)} · Conector v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.connector.version)}</div>
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
               <button class="btn-primary" type="button" data-wizard-download-launcher="mac">Descargar macOS</button>
@@ -394,9 +396,21 @@ function renderEaConfigStep(state) {
             <div class="connection-wizard__setup-eyebrow">Manual</div>
             <div class="connection-wizard__setup-title">EA instalado por ti</div>
             <p>Descarga KMFXConnector.ex5, cópialo en MQL5/Experts, reinicia MT5 y arrástralo a cualquier gráfico activo.</p>
+            <div class="connection-wizard__release-note">KMFXConnector.ex5 · v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.connector.version)}</div>
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
             </div>
+          </div>
+        </div>
+        <div class="connection-wizard__utility-row connection-wizard__utility-row--release">
+          <div>
+            <div class="connection-wizard__utility-label">Versiones y checksums publicados</div>
+            <div class="connection-wizard__release-list">
+              ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+            </div>
+          </div>
+          <div class="connection-wizard__utility-actions">
+            <button class="btn-secondary" type="button" data-wizard-copy-download-checksums="true">Copiar checksums</button>
           </div>
         </div>
         <div class="connection-wizard__setup-flow">
@@ -992,6 +1006,7 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
   });
   body.querySelector("[data-wizard-download-ea='true']")?.addEventListener("click", downloadEa);
   body.querySelector("[data-wizard-copy-webrequest='true']")?.addEventListener("click", () => copyText(MT5_WEBREQUEST_URL, "URL copiada"));
+  body.querySelector("[data-wizard-copy-download-checksums='true']")?.addEventListener("click", () => copyText(downloadChecksumText(), "Checksums copiados"));
   body.querySelector("[data-wizard-create-ea-key='true']")?.addEventListener("click", () => createEaConnection(card, state, options, store));
   body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => copyText(state.ea?.connectionKey || "", "Clave copiada"));
   body.querySelector("[data-wizard-direct-submit='true']")?.addEventListener("click", () => createDirectConnection(card, state, options, store));

@@ -65,7 +65,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
 - [ ] Vincular cuenta MT5 a Funding journey existente o nuevo.
 - [ ] Mostrar límites de plan en launcher y dashboard sin borrar cola local.
-- [ ] Definir versión visible, checksum visible y estrategia de actualización del launcher.
+- [x] Definir versión visible y checksum visible del launcher.
+- [ ] Definir estrategia de actualización del launcher.
 
 ### Backend y seguridad
 
@@ -334,7 +335,7 @@ Objetivo: que un usuario no técnico conecte MT5 sin pensar en puertos, keys ni 
 - [ ] Si es Funding, permitir vincular a journey existente.
 - [x] Añadir estado de sincronización reciente, stale, key revocada y bloqueo por plan más claro en Cuentas.
 - [ ] Añadir guía breve dentro de Cuentas para WebRequest.
-- [ ] Añadir checksum visible para descargas.
+- [x] Añadir checksum visible para descargas.
 - [ ] Probar Windows launcher en Windows real.
 - [ ] Probar macOS launcher en máquina limpia.
 

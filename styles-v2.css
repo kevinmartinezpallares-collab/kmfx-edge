@@ -20086,6 +20086,14 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row
   background: color-mix(in srgb, var(--warning) 9%, rgba(255, 255, 255, 0.02)) !important;
 }
 
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row--release,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__utility-row--release {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border-subtle)) !important;
+  background:
+    linear-gradient(135deg, rgba(82, 124, 255, 0.12), rgba(69, 197, 133, 0.05)),
+    rgba(255, 255, 255, 0.02) !important;
+}
+
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-grid,
 body[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-grid {
   display: grid !important;
@@ -20134,6 +20142,14 @@ body[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-card 
   color: var(--text-secondary) !important;
   font-size: 13px !important;
   line-height: 1.45 !important;
+}
+
+html[data-theme="dark"] .connection-wizard-modal .connection-wizard__release-note,
+body[data-theme="dark"] .connection-wizard-modal .connection-wizard__release-note {
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
 }
 
 html[data-theme="dark"] .connection-wizard-modal .connection-wizard__setup-flow,
@@ -43428,6 +43444,7 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 .connections-guide-card__intro,
 .connections-guide-card__endpoint,
 .connections-guide-card__direct,
+.connections-guide-card__release,
 .connections-guide-step {
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
@@ -43464,7 +43481,8 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 }
 
 .connections-guide-card__endpoint,
-.connections-guide-card__direct {
+.connections-guide-card__direct,
+.connections-guide-card__release {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -43474,8 +43492,36 @@ body[data-theme="dark"] .modal-card.connections-guide-modal {
 }
 
 .connections-guide-card__endpoint > div,
-.connections-guide-card__direct > div {
+.connections-guide-card__direct > div,
+.connections-guide-card__release > div {
   min-width: 0;
+}
+
+.connections-guide-card__release {
+  align-items: flex-start;
+  background:
+    linear-gradient(135deg, rgba(82, 124, 255, 0.12), rgba(69, 197, 133, 0.06)),
+    color-mix(in srgb, var(--layer-2) 72%, transparent);
+}
+
+.connections-guide-card__release-list,
+.connection-wizard__release-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.connections-guide-card__release-list span,
+.connection-wizard__release-list span {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--layer-1) 72%, transparent);
+  white-space: nowrap;
 }
 
 .connections-guide-card__endpoint code {
