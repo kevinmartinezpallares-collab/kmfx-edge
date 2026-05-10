@@ -137,7 +137,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Configurar Customer Portal.
 - [ ] Configurar webhook endpoint.
 - [ ] Revisar recibos automaticos de Stripe.
-- [ ] Confirmar emails de compra con Resend.
+- [x] Confirmar emails de compra con Resend.
 - [x] Probar contrato local checkout success/cancel.
 - [x] Probar contrato local de pago fallido.
 - [x] Probar contrato local de cancelacion.
@@ -176,6 +176,7 @@ Notas 2026-05-09:
 - Checkpoint adicional: Stripe MCP confirma cuenta `Kevinmartinezfx`, producto `KMFX Edge` y seis Prices live. Search de lookup keys devuelve vacio; el MCP disponible no expone update de Prices y `STRIPE_SECRET_KEY` no esta presente localmente, por lo que no se aplican mutaciones live desde esta sesion.
 - Backend validado con Price IDs live como fallback: `tests.test_connector_cors_config` pasa 84 tests, incluyendo mapping de Price IDs a planes, checkout, portal, webhook, rate limit e idempotencia.
 - Probe production tras ultimo push: `/health` responde `ok` con commit `c4f2746`, y `/api/billing/checkout` sin bearer sigue rechazando `401 auth_required`.
+- Emails transaccionales de billing cerrados a nivel de contrato backend: compra, pago fallido/pago con accion requerida y cancelacion. Los webhooks adjuntan el resultado del envio sin bloquear la sincronizacion de plan si Resend falla o falta destinatario.
 
 Criterio de salida:
 
@@ -351,10 +352,10 @@ Objetivo: poder cobrar y operar con minima confianza legal.
 - [x] Copy claro: KMFX no da asesoramiento financiero.
 - [x] Copy claro: KMFX Connector es read-only.
 - [x] Soporte/contacto visible.
-- [ ] Emails transaccionales revisados.
-- [ ] Email de compra.
-- [ ] Email de cancelacion.
-- [ ] Email de pago fallido.
+- [x] Emails transaccionales revisados.
+- [x] Email de compra.
+- [x] Email de cancelacion.
+- [x] Email de pago fallido.
 - [ ] Flujo operativo de refunds/cancelaciones.
 - [ ] Politica de eliminacion de datos.
 

@@ -1636,6 +1636,20 @@ def transactional_email_reply_to() -> str:
     return _env_value("KMFX_EMAIL_REPLY_TO", "RESEND_REPLY_TO") or ""
 
 
+def mask_email_for_log(email: str) -> str:
+    value = safe_str(email).lower()
+    if "@" not in value:
+        return ""
+    local, domain = value.split("@", 1)
+    if not local or not domain:
+        return ""
+    if len(local) <= 2:
+        masked_local = f"{local[:1]}***"
+    else:
+        masked_local = f"{local[:2]}***{local[-1:]}"
+    return f"{masked_local}@{domain}"
+
+
 def send_transactional_email(
     *,
     to_email: str,
@@ -1735,9 +1749,125 @@ def send_purchase_confirmation_email(*, email: str, plan: str, interval: str, ev
     )
     log.info(
         "Purchase confirmation email result | email=%s plan=%s interval=%s sent=%s reason=%s",
-        email,
+        mask_email_for_log(email),
         plan,
         interval,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
+def billing_email_from_sources(*sources: dict[str, Any]) -> str:
+    for source in sources:
+        data = ensure_dict(source)
+        metadata = ensure_dict(data.get("metadata"))
+        customer_details = ensure_dict(data.get("customer_details"))
+        for value in (
+            data.get("customer_email"),
+            customer_details.get("email"),
+            metadata.get("kmfx_user_email"),
+            metadata.get("user_email"),
+            metadata.get("email"),
+        ):
+            email = safe_str(value).lower()
+            if email and "@" in email:
+                return email
+    return ""
+
+
+def build_payment_failed_email(*, email: str, plan: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Revisa tu pago de {plan_name}"
+    text = (
+        f"No hemos podido confirmar el pago de tu suscripción {plan_name} en KMFX Edge.\n\n"
+        f"Actualiza tu método de pago desde Ajustes > Suscripción: {app_url}\n\n"
+        "Mientras el pago esté pendiente, algunas funciones pueden quedar limitadas según tu plan."
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Pago pendiente</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">No hemos podido confirmar el pago de <strong style="color:#ffffff;">{safe_plan_name}</strong>. Actualiza tu método de pago para evitar que se limiten funciones de KMFX Edge.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Abrir suscripción</a>
+        <p style="margin:24px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">KMFX Edge no gestiona tarjetas directamente. El cobro y los recibos se gestionan mediante Stripe.</p>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_payment_failed_email(*, email: str, plan: str, event_id: str = "") -> dict[str, Any]:
+    message = build_payment_failed_email(email=email, plan=plan)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "payment_failed"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Payment failed email result | email=%s plan=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        plan,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
+def build_subscription_canceled_email(*, email: str, plan: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu suscripción {plan_name} se ha cancelado"
+    text = (
+        f"Tu suscripción {plan_name} se ha cancelado en KMFX Edge.\n\n"
+        f"Puedes revisar el estado de tu plan desde Ajustes > Suscripción: {app_url}\n\n"
+        "Tus datos no se eliminan automáticamente por cancelar el plan, pero el acceso a funciones puede quedar limitado."
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Suscripción cancelada</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Tu suscripción <strong style="color:#ffffff;">{safe_plan_name}</strong> se ha cancelado. Puedes revisar tu acceso, plan o reactivar desde el panel de suscripción.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Ver suscripción</a>
+        <p style="margin:24px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">Cancelar el plan no elimina automáticamente tus datos sincronizados. Para solicitudes de eliminación o exportación, contacta con soporte.</p>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_subscription_canceled_email(*, email: str, plan: str, event_id: str = "") -> dict[str, Any]:
+    message = build_subscription_canceled_email(email=email, plan=plan)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "subscription_canceled"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Subscription canceled email result | email=%s plan=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        plan,
         result.get("sent"),
         result.get("reason", ""),
     )
@@ -2282,7 +2412,14 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
     if event_type in {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"}:
         if not stripe_subscription_belongs_to_kmfx(data_object):
             return {"ignored": "non_kmfx_subscription"}
-        return sync_billing_subscription(data_object)
+        result = sync_billing_subscription(data_object)
+        if event_type == "customer.subscription.deleted":
+            result["email"] = send_subscription_canceled_email(
+                email=billing_email_from_sources(data_object),
+                plan=safe_str(result.get("plan") or ensure_dict(data_object.get("metadata")).get("kmfx_plan") or ensure_dict(data_object.get("metadata")).get("plan_key"), "pro"),
+                event_id=safe_str(event.get("id")),
+            )
+        return result
     if event_type == "customer.updated":
         metadata = ensure_dict(data_object.get("metadata"))
         user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
@@ -2305,6 +2442,12 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
         result = sync_billing_subscription(subscription)
         result["invoice_event"] = event_type
         result["invoice_id"] = safe_str(data_object.get("id"))
+        if event_type in {"invoice.payment_failed", "invoice.payment_action_required"}:
+            result["email"] = send_payment_failed_email(
+                email=billing_email_from_sources(data_object, subscription),
+                plan=safe_str(result.get("plan") or stripe_subscription_to_billing_row(subscription).get("plan_key"), "pro"),
+                event_id=safe_str(event.get("id")),
+            )
         return result
     return {"ignored": event_type or "unknown"}
 

@@ -75,8 +75,8 @@ Safety note: the same Stripe account receives non-KMFX payments. Only touch obje
 - [ ] Replace test keys with live keys.
 - [x] Confirm webhook signing secret in production.
 - [ ] Confirm tax/invoice settings.
-- [ ] Confirm refunds/cancellation copy.
-- [ ] Confirm terms/privacy mention subscriptions and data retention.
+- [x] Confirm refunds/cancellation copy.
+- [x] Confirm terms/privacy mention subscriptions and data retention.
 - [ ] Run a real $0/test-mode equivalent rehearsal before live launch.
 
 Notes 2026-05-09:
@@ -86,3 +86,9 @@ Notes 2026-05-09:
 - Trial env is explicit: `STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`.
 - Stripe read-only check confirms the six KMFX Prices exist under `prod_UT7nzmgj3Eg3Zv`; lookup keys/metadata and Customer Portal remain pending in Stripe.
 - Added `scripts/stripe_kmfx_setup_audit.py` to verify Product/Prices, Customer Portal and webhook endpoint; it can also apply Price lookup keys/metadata when `STRIPE_SECRET_KEY` is available.
+
+Notes 2026-05-10:
+
+- Billing transactional emails are implemented for purchase confirmation, payment failed/payment action required, and subscription cancellation.
+- Webhook processing records the email send result but does not block subscription sync if Resend is unavailable or the recipient is missing.
+- Email logs mask recipient addresses; Stripe event IDs are sent as Resend tags for support tracing.

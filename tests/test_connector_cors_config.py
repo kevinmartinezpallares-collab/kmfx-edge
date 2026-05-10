@@ -1384,6 +1384,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "metadata": {
                 "app": "kmfx_edge",
                 "user_id": "66666666-6666-4666-8666-666666666666",
+                "kmfx_user_email": "pastdue@example.com",
                 "plan_key": "pro",
             },
             "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
@@ -1392,7 +1393,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             connector_api,
             "sync_billing_subscription",
             return_value={"user_id": "66666666-6666-4666-8666-666666666666", "plan": "pro", "status": "past_due"},
-        ) as sync_mock:
+        ) as sync_mock, patch.object(
+            connector_api,
+            "send_payment_failed_email",
+            return_value={"sent": False, "reason": "email_not_configured"},
+        ) as email_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_invoice_failed",
@@ -1403,8 +1408,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         fetch_mock.assert_called_once_with("sub_123")
         sync_mock.assert_called_once_with(subscription)
+        email_mock.assert_called_once_with(email="pastdue@example.com", plan="pro", event_id="evt_invoice_failed")
         self.assertEqual("invoice.payment_failed", result["invoice_event"])
         self.assertEqual("in_123", result["invoice_id"])
+        self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
 
     def test_invoice_paid_syncs_kmfx_subscription_renewal_state(self) -> None:
         invoice = {
@@ -1493,7 +1500,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         ) as subscription_mock, patch.object(
             connector_api,
             "supabase_update_auth_app_metadata",
-        ) as metadata_mock:
+        ) as metadata_mock, patch.object(
+            connector_api,
+            "send_subscription_canceled_email",
+            return_value={"sent": False, "reason": "email_not_configured"},
+        ) as email_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_subscription_deleted",
@@ -1504,6 +1515,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual("pro", result["plan"])
         self.assertEqual("canceled", result["status"])
+        email_mock.assert_called_once_with(email="cancelled@example.com", plan="pro", event_id="evt_subscription_deleted")
+        self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
         subscription_row = subscription_mock.call_args.args[0]
         self.assertEqual("canceled", subscription_row["status"])
         self.assertFalse(subscription_row["is_current"])

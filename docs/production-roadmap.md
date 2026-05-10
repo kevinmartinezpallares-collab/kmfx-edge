@@ -258,11 +258,18 @@ Eventos mínimos:
 - `customer.subscription.deleted`
 - `invoice.paid`
 - `invoice.payment_failed`
+- `invoice.payment_action_required`
 
 Checkpoint 2026-05-09:
 
 - Contratos locales cubiertos con tests para `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` y `customer.subscription.deleted`.
 - Queda pendiente el replay end-to-end desde Stripe test/live controlado contra el webhook configurado.
+
+Checkpoint 2026-05-10:
+
+- Emails transaccionales de billing conectados a los webhooks: confirmacion de compra, pago fallido/pago con accion requerida y cancelacion de suscripcion.
+- El envio de email queda como side effect no bloqueante: el plan se sincroniza aunque Resend falle, y el resultado queda incluido en la respuesta interna del webhook.
+- Logs de emails enmascaran el destinatario y usan `stripe_event_id` como tag de soporte.
 
 Criterio de salida:
 
