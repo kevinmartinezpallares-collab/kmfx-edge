@@ -133,6 +133,51 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("Seguimiento, régimen y catalizadores", read_text("js/modules/navigation.js"))
         self.assertNotIn("Watchlist, régimen", read_text("js/modules/navigation.js"))
 
+    def test_visible_metric_and_execution_copy_is_spanish_first(self) -> None:
+        files = {
+            "index": read_text("index.html"),
+            "dashboard": read_text("js/modules/dashboard.js"),
+            "calendar": read_text("js/modules/calendar.js"),
+            "trades": read_text("js/modules/trades.js"),
+            "analytics": read_text("js/modules/analytics.js"),
+            "accounts": read_text("js/modules/accounts-ui.js"),
+            "journal": read_text("js/modules/journal.js"),
+            "discipline": read_text("js/modules/discipline.js"),
+            "talent": read_text("js/modules/talent.js"),
+            "risk": read_text("js/modules/risk.js"),
+        }
+
+        combined = "\n".join(files.values())
+        for expected in [
+            "PnL abierto",
+            "Última sincronización",
+            "Tasa de acierto",
+            "Factor de beneficio",
+            "Expectativa",
+            "1 operación",
+            "operaciones en rango",
+            "Revisión posterior priorizada",
+            "Revisión rápida posterior",
+            "Seguimiento EA pendiente",
+            "Progreso del trader",
+        ]:
+            self.assertIn(expected, combined)
+
+        forbidden_by_file = {
+            "dashboard": ["Open PnL", "Profit factor", "Win rate"],
+            "calendar": ['"Win Rate"', '"1 trade"', "`1 trade", "} trades`", "} trades<"],
+            "trades": ["Win Rate", "Profit factor", "Top Símbolos"],
+            "analytics": ["Expectancy", " trade en", " trades en", "} / trade"],
+            "accounts": ['"Win Rate"', "} trades"],
+            "journal": ["Expectancy", "Ledger neto de pagos", "Entrada rápida post-trade"],
+            "discipline": ["REVISIÓN POST-TRADE", "¿Este trade", "Contexto breve del trade", "Sin trade", "trades fallaron"],
+            "talent": ["Talent / Progress Tracker", "Win Rate", "Profit Factor"],
+            "risk": ["Riesgo/trade", "Heat por encima del trade"],
+        }
+        for file_key, phrases in forbidden_by_file.items():
+            for phrase in phrases:
+                self.assertNotIn(phrase, files[file_key])
+
     def test_market_view_uses_spanish_copy_and_escapes_dynamic_values(self) -> None:
         source = read_text("js/modules/market.js")
 

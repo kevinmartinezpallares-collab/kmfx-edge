@@ -41,7 +41,7 @@ function formatCompactSignedPercent(value) {
 
 function formatTradeCount(value) {
   const count = Number(value || 0);
-  return `${count} trade${count === 1 ? "" : "s"}`;
+  return count === 1 ? "1 operación" : `${count} operaciones`;
 }
 
 function toLocalDayKey(dateLike) {
@@ -175,7 +175,7 @@ function riskDrivers(model) {
   const riskAdjusted = clampPercent((Math.max(model.totals.ratios.sharpe, 0) / 2.5) * 100);
   const capital = clampPercent((model.account.equity / Math.max(model.account.balance, 1)) * 100);
   return [
-    { label: "Experiencia", value: experience, tone: "blue", display: `${model.totals.totalTrades} trades` },
+    { label: "Experiencia", value: experience, tone: "blue", display: formatTradeCount(model.totals.totalTrades) },
     { label: "Gest. Riesgo", value: riskMgmt, tone: "green", display: formatPercent(100 - model.totals.drawdown.maxPct) },
     { label: "Consistencia", value: consistency, tone: "violet", display: `${model.weekdays.filter((day) => day.pnl > 0).length}/5 días` },
     { label: "R:R", value: rr, tone: "blue", display: model.totals.rr.toFixed(2) },
@@ -327,7 +327,7 @@ function computeTrendComparisons(model) {
   const dayPeriods = slicePeriods(model.dayStats || [], 5);
 
   return [
-    buildTrendMetric("Win Rate", calcWinRate(tradePeriods.current), calcWinRate(tradePeriods.previous), {
+    buildTrendMetric("Tasa de acierto", calcWinRate(tradePeriods.current), calcWinRate(tradePeriods.previous), {
       formatter: (value) => `${Math.round(value)}%`
     }),
     buildTrendMetric("PnL", sumPnl(tradePeriods.current), sumPnl(tradePeriods.previous), {
@@ -503,7 +503,7 @@ function renderDailyPerformanceBreakdown(days, summary = null) {
       <div class="analytics-daily-breakdown-row analytics-daily-breakdown-row--${tone}">
         <div class="analytics-daily-breakdown-day">
           <strong>${day.label}</strong>
-          <span>${day.trades} trades</span>
+          <span>${formatTradeCount(day.trades)}</span>
         </div>
         <div class="analytics-daily-breakdown-rail">
           <div class="analytics-daily-breakdown-track">
@@ -823,7 +823,7 @@ export function renderAnalytics(root, state) {
       label: "DÍAS OPERADOS",
       tone: "neutral",
       value: `${operatedMonthDays.length}`,
-      meta: totalTradesInMonth === 1 ? "1 trade en el mes" : `${totalTradesInMonth} trades en el mes`,
+      meta: totalTradesInMonth === 1 ? "1 operación en el mes" : `${totalTradesInMonth} operaciones en el mes`,
       secondary: `${positiveMonthDays.length} positivos / ${negativeMonthDays.length} negativos / ${neutralMonthDays.length} neutros`
     },
     {
@@ -987,7 +987,7 @@ export function renderAnalytics(root, state) {
       </div>
       <div class="analytics-symbol-row__aux">
         <span>PF ${row.profitFactor.toFixed(2)}</span>
-        <span class="${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)} / trade</span>
+        <span class="${(row.trades ? row.pnl / row.trades : 0) >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(row.trades ? row.pnl / row.trades : 0)} / operación</span>
       </div>
     </article>
   `).join("");
@@ -1194,7 +1194,7 @@ export function renderAnalytics(root, state) {
     : inconsistencyLevel !== "stable"
       ? "Ejecución deteriorada"
       : scalingLevel !== "stable"
-        ? "Riesgo por trade elevado"
+        ? "Riesgo por operación elevado"
         : overtradingLevel !== "stable"
           ? "Frecuencia fuera de plan"
           : "Control en observación";
@@ -1247,11 +1247,11 @@ export function renderAnalytics(root, state) {
       tone: pressureLevel,
       status: pressureLevel === "critical" ? "Alta" : pressureLevel === "warning" ? "Latente" : "Contenida",
       metric: `${currentRiskPct.toFixed(2)}%`,
-      metricSuffix: `${peakTradesPerDay || 0} trades pico`,
+      metricSuffix: `${peakTradesPerDay || 0} operaciones pico`,
       note: scalingLevel !== "stable"
         ? `Riesgo por operación cerca del límite definido: ${maxTradeRiskPct.toFixed(2)}%.`
         : averageTradesPerDay
-          ? `Frecuencia pico de ${peakTradesPerDay || 0} trades frente a ${averageTradesPerDay.toFixed(1)} de media.`
+          ? `Frecuencia pico de ${peakTradesPerDay || 0} operaciones frente a ${averageTradesPerDay.toFixed(1)} de media.`
           : "Presión dentro de la zona operativa normal.",
       progress: Math.max(12, Math.min(100, Math.max(riskPerTradeUsagePct || 0, averageTradesPerDay ? (peakTradesPerDay / Math.max(averageTradesPerDay * 2.1, 1)) * 100 : 0))),
       kind: "pressure"
@@ -1308,9 +1308,9 @@ export function renderAnalytics(root, state) {
       title: "Rendimiento",
       items: [
         { label: "P&L total", value: formatCurrency(model.totals.pnl), tone: model.totals.pnl > 0 ? "positive" : model.totals.pnl < 0 ? "negative" : "" },
-        { label: "Win rate", value: formatPercent(model.totals.winRate) },
-        { label: "Profit factor", value: model.totals.profitFactor.toFixed(2), tone: model.totals.profitFactor > 1 ? "positive" : model.totals.profitFactor < 1 ? "negative" : "" },
-        { label: "Expectancy", value: formatCurrency(model.totals.expectancy), tone: model.totals.expectancy > 0 ? "positive" : model.totals.expectancy < 0 ? "negative" : "" }
+        { label: "Tasa de acierto", value: formatPercent(model.totals.winRate) },
+        { label: "Factor de beneficio", value: model.totals.profitFactor.toFixed(2), tone: model.totals.profitFactor > 1 ? "positive" : model.totals.profitFactor < 1 ? "negative" : "" },
+        { label: "Expectativa", value: formatCurrency(model.totals.expectancy), tone: model.totals.expectancy > 0 ? "positive" : model.totals.expectancy < 0 ? "negative" : "" }
       ]
     },
     {
@@ -1394,10 +1394,10 @@ export function renderAnalytics(root, state) {
       axisBorderColor: "rgba(255,255,255,0.10)",
       axisLineAlpha: 0.46,
       showYGrid: false,
-      formatter: (value) => `${value} trades`,
+      formatter: (value) => `${value} operaciones`,
       xAxisFormatter: (label, index, point) => (point?.value ? label : ""),
       tooltipTitleFormatter: (column) => column.point?.label || "",
-      tooltipBodyFormatter: (column) => `${column.value} trades`
+      tooltipBodyFormatter: (column) => `${column.value} operaciones`
     }),
     barChartSpec("analytics-profit-distribution", denseProfitDistribution.map((bin) => ({ label: bin.label, value: bin.value, tone: bin.tone })), {
       solidBars: true,
@@ -1421,10 +1421,10 @@ export function renderAnalytics(root, state) {
       axisLineAlpha: 0.46,
       showYGrid: false,
       pointTone: (point) => point.tone || "green",
-      formatter: (value, context) => `${context.label}: ${value} trades`,
+      formatter: (value, context) => `${context.label}: ${value} operaciones`,
       tooltipTitleFormatter: (column) => {
         const count = column.value;
-        return count === 1 ? "1 trade en rango" : `${count} trades en rango`;
+        return count === 1 ? "1 operación en rango" : `${count} operaciones en rango`;
       },
       tooltipBodyFormatter: (column) => `${column.point?.label || ""}`
     })
@@ -1436,7 +1436,7 @@ export function renderAnalytics(root, state) {
       { label: "account_id", value: account?.id || activeAccountId || "" },
       { label: "payloadSource", value: authority.payloadSource || "" },
       { label: "sourceUsed", value: authority.sourceUsed || "" },
-      { label: "trades", value: authority.tradeCount || model.totals?.totalTrades || 0 },
+      { label: "operaciones", value: authority.tradeCount || model.totals?.totalTrades || 0 },
       { label: "history", value: authority.historyPoints || 0 },
       { label: "sessions", value: model.sessions?.length || 0 },
       { label: "symbols", value: model.symbols?.length || 0 },
@@ -1449,7 +1449,7 @@ export function renderAnalytics(root, state) {
       ? "Edge positivo, margen estrecho"
       : "Edge bajo presión";
   const edgeHealthNote = model.totals.profitFactor >= 1.4 && model.totals.expectancy >= 0
-    ? `Profit factor ${model.totals.profitFactor.toFixed(2)} y expectancy ${formatCurrency(model.totals.expectancy)}.`
+    ? `Factor de beneficio ${model.totals.profitFactor.toFixed(2)} y expectativa ${formatCurrency(model.totals.expectancy)}.`
     : model.totals.expectancy >= 0
       ? `La distribución sigue positiva, pero el margen se estrecha.`
       : `La expectancy queda negativa en la muestra actual.`;
@@ -1581,7 +1581,7 @@ export function renderAnalytics(root, state) {
     ? "Margen todavía estrecho"
     : model.totals.expectancy >= 0
       ? "Distribución favorable"
-      : "Expectancy negativa en la muestra";
+      : "Expectativa negativa en la muestra";
   const distributionTradeTotal = winningTrades.length + losingTrades.length;
   const distributionWinRateValue = formatUnsignedPercent(model.totals.winRate);
   const distributionGaugeScore = clampPercent(model.totals.winRate);
@@ -1753,7 +1753,7 @@ export function renderAnalytics(root, state) {
                       <strong>${model.totals.profitFactor.toFixed(2)}</strong>
                     </div>
                     <div class="insights-distribution__metric">
-                      <span>Expectancy</span>
+                      <span>Expectativa</span>
                       <strong class="${model.totals.expectancy >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(model.totals.expectancy)}</strong>
                     </div>
                     <div class="insights-distribution__metric">
@@ -1802,7 +1802,7 @@ export function renderAnalytics(root, state) {
                   cell.isToday ? "is-today" : "",
                   selectedDayKey === cell.key ? "is-selected" : ""
                 ].filter(Boolean).join(" ");
-                const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+                const tradesLabel = cell.trades === 1 ? "1 operación" : `${cell.trades} operaciones`;
                 return `
                   <button class="${classes}" type="button" ${cell.trades ? `data-analytics-day="${cell.key}"` : "disabled"}>
                     <div class="calendar-day__top">

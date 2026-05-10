@@ -1426,16 +1426,16 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
   if (totalTrades >= 10 && profitFactor >= 1.5 && winRate >= 50) {
     return {
       title: "Ventaja estable",
-      summary: "Profit factor y win rate sostienen la lectura.",
+      summary: "Factor de beneficio y tasa de acierto sostienen la lectura.",
       metrics: [
         {
-          label: "Profit factor",
+          label: "Factor de beneficio",
           value: Number.isFinite(profitFactor) && profitFactor > 0 ? profitFactor.toFixed(2) : "—",
           meta: `${totalTrades} operaciones analizadas`,
           tone: "ok",
         },
         {
-          label: "Win rate",
+          label: "Tasa de acierto",
           value: formatPercent(winRate / 100),
           meta: "Sesgo de ejecución favorable",
           tone: "ok",
@@ -1470,13 +1470,13 @@ function deriveDashboardInsight({ riskStatus, riskSummary, riskLimits, model, op
     summary: "Sin señal dominante fuera del control del capital.",
     metrics: [
       {
-        label: "Profit factor",
+        label: "Factor de beneficio",
         value: Number.isFinite(profitFactor) && profitFactor > 0 ? profitFactor.toFixed(2) : "—",
         meta: `${totalTrades} operaciones`,
         tone: "neutral",
       },
       {
-        label: "Win rate",
+        label: "Tasa de acierto",
         value: totalTrades > 0 ? formatPercent(winRate / 100) : "—",
         meta: "Sin señal extrema activa",
         tone: "neutral",
@@ -1665,7 +1665,7 @@ export function renderDashboard(root, state) {
   }
   const currentPnl = Number(performanceView.openPnl || 0);
   const bannerMetricValue = Number(performanceView.mainPerformanceValue || 0);
-  const heroPnlLabel = account?.sourceType === "mt5" ? "Open PnL" : "PnL total";
+  const heroPnlLabel = account?.sourceType === "mt5" ? "PnL abierto" : "PnL total";
   const hasPanelSecondMetricFromReport = Number.isFinite(Number(performanceView?.reportMetrics?.netProfit));
   const panelSecondMetricValue = hasPanelSecondMetricFromReport
     ? Number(performanceView.reportMetrics.netProfit)
@@ -2234,7 +2234,7 @@ export function renderDashboard(root, state) {
                 metaAttr: 'data-dashboard-risk-open-meta',
               })}
               ${renderDashboardInlineRiskCard({
-                label: "Riesgo por trade",
+                label: "Riesgo por operación",
                 value: formatRiskValuePct(riskSummary.maxOpenTradeRiskPct, 2),
                 meta: `Política ${formatRiskValuePct(riskSummary.maxRiskPerTradePct, 2)}`,
                 tone: postureTone,

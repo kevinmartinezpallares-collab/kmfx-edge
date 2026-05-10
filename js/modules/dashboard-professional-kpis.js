@@ -48,12 +48,12 @@ const KPI_DEFINITIONS = Object.freeze({
   var_95: {
     label: "VaR 95",
     unit: "currency",
-    period: "1 trade",
+    period: "1 operación",
     visual: "gauge",
     refresh: "hourly",
     category: "Riesgo",
     tooltip: "Pérdida máxima esperada al 95% de confianza.",
-    traderUse: "Estima una pérdida extrema razonable por trade o muestra. Sirve para no poner la cuenta en peligro cuando la muestra empeora.",
+    traderUse: "Estima una pérdida extrema razonable por operación o muestra. Sirve para no poner la cuenta en peligro cuando la muestra empeora.",
     formula: "Percentil 95 de pérdidas cerradas normalizadas; CVaR = media de la cola.",
     sourceLabel: "Módulo de riesgo KMFX: pérdidas cerradas y cola estadística.",
     confidence: "Depende de la calidad de muestra; robusto desde una muestra amplia de operaciones cerradas.",
@@ -61,7 +61,7 @@ const KPI_DEFINITIONS = Object.freeze({
   var_99: {
     label: "VaR 99",
     unit: "currency",
-    period: "1 trade",
+    period: "1 operación",
     visual: "gauge",
     refresh: "hourly",
     category: "Riesgo",

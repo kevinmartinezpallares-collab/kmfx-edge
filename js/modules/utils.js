@@ -1500,7 +1500,7 @@ function buildRiskSummary({ account, trades, dayStats, drawdown, totals, positio
       { title: "Control de Drawdown", description: "DD total y DD diario", status: drawdown.maxPct < 8 ? "Activo" : "Alerta", value: `${(account.maxDrawdownLimit || 10).toFixed(1)}% · ${(riskProfile.dailyLossLimitPct || 1.2).toFixed(1)}%` },
       { title: "Riesgo por operación", description: "% máximo por operación", status: "Activo", value: `${(riskProfile.maxTradeRiskPct || 1).toFixed(2)}%` },
       { title: "Horarios Permitidos", description: "Ventanas operativas UTC", status: "Activo", value: `${(riskProfile.allowedSessions || ["London"]).join(" · ")} UTC` },
-      { title: "Control de Volumen", description: "Lote máximo por trade", status: "Activo", value: `${riskProfile.maxVolume || 1.5} lotes` },
+      { title: "Control de volumen", description: "Lote máximo por operación", status: "Activo", value: `${riskProfile.maxVolume || 1.5} lotes` },
       { title: "Símbolos Permitidos", description: "Universo habilitado", status: "Activo", value: allowedSymbols.join(" · ") },
       { title: "Bloqueo Automático", description: "Cierre o pausa por límites", status: riskProfile.autoBlock ? "Activo" : "Off", value: riskProfile.autoBlock ? "ON" : "OFF" }
     ],
@@ -1519,8 +1519,8 @@ function buildRiskSummary({ account, trades, dayStats, drawdown, totals, positio
       { tone: "green", text: "Objetivo diario cumplido -> stop voluntario" }
     ],
     ledger: [
-      { metric: "Expectativa", value: totals.expectancy, format: "currency", note: "Resultado esperado por trade" },
-      { metric: "Profit Factor", value: totals.profitFactor, format: "number", note: "Sostenibilidad de la curva" },
+      { metric: "Expectativa", value: totals.expectancy, format: "currency", note: "Resultado esperado por operación" },
+      { metric: "Factor de beneficio", value: totals.profitFactor, format: "number", note: "Sostenibilidad de la curva" },
       { metric: "Capacidad de recuperación", value: account.balance - drawdown.maxAmount, format: "currency", note: "Capital útil tras DD" },
       { metric: "Concentración por sesión", value: totalSessionTrades ? (sessionConcentration / totalSessionTrades) * 100 : 0, format: "percent", note: "Peso de London en la muestra" },
       { metric: "Exposición abierta", value: positions.reduce((sum, item) => sum + Math.abs(item.pnl), 0), format: "currency", note: "Exposición flotante" },

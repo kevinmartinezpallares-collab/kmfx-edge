@@ -1575,7 +1575,7 @@ export function initFunded(store) {
           <div><strong>Días</strong><span>${enriched.completedDaysVsRule}</span></div>
           <div><strong>Estado</strong><span>${enrichedStatus.label}</span></div>
           <div><strong>Reglas</strong><span>${escapeHtml(`${fundingRuleDisplayLabel(enriched)} · ${fundingRuleDisplayMeta(enriched)}`)}</span></div>
-          ${adminView ? `<div><strong>Última sync</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
+          ${adminView ? `<div><strong>Última sincronización</strong><span>${linked?.connection?.lastSync ? formatDateTime(linked.connection.lastSync) : "—"}</span></div>` : ""}
         </div>
       `
     });

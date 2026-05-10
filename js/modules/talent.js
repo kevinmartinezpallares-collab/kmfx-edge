@@ -30,15 +30,15 @@ export function renderTalent(root, state) {
     { label: "Factor de recuperación", value: ratios.recovery || 0, note: "Capacidad de recuperación tras caídas." }
   ];
   const objectives = [
-    { label: "Win Rate ≥ 50%", current: model.totals.winRate, target: 50, suffix: "%" },
-    { label: "Profit Factor ≥ 1.5", current: model.totals.profitFactor, target: 1.5, suffix: "" },
+    { label: "Tasa de acierto ≥ 50%", current: model.totals.winRate, target: 50, suffix: "%" },
+    { label: "Factor de beneficio ≥ 1.5", current: model.totals.profitFactor, target: 1.5, suffix: "" },
     { label: "Max DD ≤ 10%", current: maxDd, target: 10, suffix: "%", inverse: true },
     { label: "Sharpe ≥ 1.0", current: ratios.sharpe || 0, target: 1, suffix: "" }
   ];
 
   root.innerHTML = `
     ${pageHeaderMarkup({
-      title: "Talent / Progress Tracker",
+      title: "Progreso del trader",
       description: "Lectura de desarrollo del trader con score, radar competencial, ratios avanzados y objetivos de ejecución.",
       className: "tl-page-header",
       titleClassName: "tl-page-title",

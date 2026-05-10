@@ -63,7 +63,7 @@ function buildDayMetrics(dayTrades) {
   const bestValueClass = best?.pnl > 0 ? "metric-positive" : best?.pnl < 0 ? "metric-negative" : "";
   return [
     { label: "Operaciones", value: String(ordered.length) },
-    { label: "Win Rate", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
+    { label: "Tasa de acierto", value: ordered.length ? `${Math.round((wins / ordered.length) * 100)}%` : "—" },
     {
       label: "Mejor operación",
       value: best ? pnlTextMarkup({ value: best.pnl, text: formatCurrency(best.pnl), className: bestValueClass }) : "—",
@@ -93,7 +93,7 @@ function renderCalendarDayStatBar(metrics, dayTrades) {
   const best = ordered.reduce((top, trade) => !top || trade.pnl > top.pnl ? trade : top, null);
   const metaByLabel = new Map([
     ["Operaciones", "Cerradas"],
-    ["Win Rate", ordered.length ? `${wins} ganadoras · ${losses} perdedoras` : ""],
+    ["Tasa de acierto", ordered.length ? `${wins} ganadoras · ${losses} perdedoras` : ""],
     ["Mejor operación", best ? `${best.symbol || "—"} ${best.side || ""}`.trim() : ""],
     ["Comisiones", ordered.length ? `${ordered.length} operaciones` : ""]
   ]);
@@ -429,12 +429,12 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
                 cell.isToday ? "is-today" : ""
               ].filter(Boolean).join(" ");
               if (cell.trades && hasModel) {
-                return `<button class="${dayClasses}" type="button" data-calendar-day="${cell.key}" aria-label="${cell.date.getDate()} · ${cell.trades} trades">${cell.date.getDate()}</button>`;
+                return `<button class="${dayClasses}" type="button" data-calendar-day="${cell.key}" aria-label="${cell.date.getDate()} · ${cell.trades} operaciones">${cell.date.getDate()}</button>`;
               }
               return `<span class="${dayClasses}">${cell.date.getDate()}</span>`;
             }).join("")}
           </div>
-          <div class="calendar-year-card__footer">${tradeCount ? `${tradeCount} trades` : "Sin operativa"}</div>
+          <div class="calendar-year-card__footer">${tradeCount ? `${tradeCount} operaciones` : "Sin operativa"}</div>
         </article>
       `;
     }).join("");
@@ -767,7 +767,7 @@ export function renderCalendar(root, state) {
                   cell.isToday ? "is-today" : "",
                   root.__calendarSelectedDay === cell.key ? "is-selected" : ""
                 ].filter(Boolean).join(" ");
-                const tradesLabel = cell.trades === 1 ? "1 trade" : `${cell.trades} trades`;
+                const tradesLabel = cell.trades === 1 ? "1 operación" : `${cell.trades} operaciones`;
                 return `
                   <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
                     <div class="calendar-day__top">
@@ -793,7 +793,7 @@ export function renderCalendar(root, state) {
                       <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">
                         ${pnlTextMarkup({ value: week.pnl, text: formatCurrency(week.pnl), className: week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : "" })}
                       </div>
-                      <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} trades</div>
+                      <div class="calendar-week-chip__meta">${week.activeDays} días · ${week.trades} operaciones</div>
                     </article>
                   `).join("")}
                 </div>

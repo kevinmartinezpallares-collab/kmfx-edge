@@ -337,7 +337,7 @@ function renderTradesKpiRow({
         attrs: { "data-trades-kpi": "filtered-pnl" }
       })}
       ${kpiCardMarkup({
-        label: "Win Rate",
+        label: "Tasa de acierto",
         value: `${Math.round(filteredWinRate)}%`,
         tone: "info",
         className: "trades-kpi-card",
@@ -373,7 +373,7 @@ function renderTradesOverviewSections({
       <article class="trades-overview-card" aria-label="Resumen operativo">
         <header class="trades-overview-header">
           <div>
-            <h2 class="trades-overview-title">Resumen Operativo</h2>
+            <h2 class="trades-overview-title">Resumen operativo</h2>
             <p class="trades-overview-subtitle">Lectura rápida de edge, sesión y eficiencia.</p>
           </div>
         </header>
@@ -394,7 +394,7 @@ function renderTradesOverviewSections({
           </div>
           <div class="trades-overview-row">
             <div>
-              <span class="trades-overview-row__label">Profit factor</span>
+              <span class="trades-overview-row__label">Factor de beneficio</span>
               <span class="trades-overview-row__meta">Eficiencia media de la ejecución</span>
             </div>
             <strong class="trades-overview-row__value">${escapeHtml(profitFactor.toFixed(2))}</strong>
@@ -402,10 +402,10 @@ function renderTradesOverviewSections({
         </div>
       </article>
 
-      <article class="trades-overview-card trades-symbols-card" aria-label="Top símbolos">
+      <article class="trades-overview-card trades-symbols-card" aria-label="Símbolos principales">
         <header class="trades-overview-header">
           <div>
-            <h2 class="trades-overview-title">Top Símbolos</h2>
+            <h2 class="trades-overview-title">Símbolos principales</h2>
             <p class="trades-overview-subtitle">Ranking por rendimiento agregado.</p>
           </div>
         </header>

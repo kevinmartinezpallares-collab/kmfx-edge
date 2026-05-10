@@ -11,12 +11,12 @@ export const disciplineData = {
     offHoursTrades: { value: 0 }
   },
   rules: [
-    { name: "Fixed SL at 10 pips", pct: 73 },
-    { name: "Max 1 trade/day", pct: 96 },
-    { name: "Entry at OB candle open", pct: 88 },
-    { name: "BE activated at 20 pips", pct: 81 },
-    { name: "No trades after 17:00", pct: 100 },
-    { name: "Valid setup confirmed", pct: 92 }
+    { name: "SL fijo en 10 pips", pct: 73 },
+    { name: "Máx. 1 operación/día", pct: 96 },
+    { name: "Entrada en vela OB", pct: 88 },
+    { name: "BE activado en 20 pips", pct: 81 },
+    { name: "Sin operaciones después de 17:00", pct: 100 },
+    { name: "Setup válido confirmado", pct: 92 }
   ],
   calendar: [
     ["clean", "clean", "warn", "clean", "miss", "rest"],
@@ -42,7 +42,7 @@ export const disciplineData = {
       timing: 91,
       psychological: 68
     },
-    insight: "Mayor brecha: disciplina de SL (73%). Revisa trades de GBPUSD en las semanas 1 y 4."
+    insight: "Mayor brecha: disciplina de SL (73%). Revisa operaciones de GBPUSD en las semanas 1 y 4."
   }
 };
 
@@ -122,7 +122,7 @@ const RULE_LIBRARY = {
   },
   "max-trades-per-day": {
     id: "max-trades-per-day",
-    name: "Máx. trades por día",
+    name: "Máx. operaciones por día",
     description: "Limita la frecuencia operativa diaria.",
     source: "auto",
     weight: 1.0,
@@ -255,7 +255,7 @@ const RULE_LIBRARY = {
       { value: "neutral", label: "Neutral", color: "#888888" },
       { value: "altered", label: "Alterado", color: "#FF5C5C" }
     ],
-    tagQuestion: "¿Cómo era tu estado emocional antes de este trade?",
+    tagQuestion: "¿Cómo era tu estado emocional antes de esta operación?",
     defaultEnabled: false,
     excludeFromScore: true,
     params: {},
@@ -1009,7 +1009,7 @@ function ruleColor(value) {
 }
 
 function isIncompleteNote(note = "") {
-  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA|tag pendiente|revisión pendiente/i.test(String(note));
+  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA|seguimiento EA|tag pendiente|revisión pendiente/i.test(String(note));
 }
 
 function ruleTone(row = {}) {
@@ -1391,14 +1391,14 @@ function buildKpis(ruleRows, recentTrades, entryDeviations, fallback = disciplin
     {
       label: "Precisión de entrada",
       value: Number.isFinite(entryAverage) ? formatPips(entryAverage) : "Pendiente",
-      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "pendiente de tracking EA",
-      badge: Number.isFinite(entryAverage) ? "objetivo <2.0" : "tracking EA",
+      subcopy: Number.isFinite(entryAverage) ? "desviación media" : "seguimiento EA pendiente",
+      badge: Number.isFinite(entryAverage) ? "objetivo <2.0" : "seguimiento EA",
       tone: Number.isFinite(entryAverage) && entryAverage > 2 ? precisionColor(entryAverage) : "neutral"
     },
     {
       label: "SL a revisar",
       value: Number.isFinite(slViolations) ? String(slViolations) : "Pendiente",
-      subcopy: Number.isFinite(slViolations) ? "inferido / revisar" : "pendiente de tracking EA",
+      subcopy: Number.isFinite(slViolations) ? "inferido / revisar" : "seguimiento EA pendiente",
       badge: Number.isFinite(slViolations) && slViolations > 0 ? "señal inferida" : "sin señales",
       tone: Number.isFinite(slViolations) ? (slViolations === 0 ? "ok" : "warn") : "neutral"
     },
@@ -1454,7 +1454,7 @@ function buildExecutionHeatmap(recentTrades = [], fallback = disciplineData, pro
       const key = toDayKey(date);
       const bucket = dayMap.get(key);
       let state = "empty";
-      let label = "Sin trade";
+      let label = "Sin operación";
       if (bucket?.trades?.length) {
         const tagSummaries = profile
           ? bucket.trades.map((trade, tradeIndex) => evaluateTradePostTag(trade, tradeIndex, profile, tags)).filter(Boolean)
@@ -1767,7 +1767,7 @@ function renderRuleHistoryDetail(point, rule, weekLabel) {
         <div class="rule-history-detail__header">
           <div>
             <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
-            <p>0/${point.totalTrades ?? point.total} trades fallaron</p>
+            <p>0/${point.totalTrades ?? point.total} operaciones fallaron</p>
           </div>
           <span class="rule-history-detail__score" style="--score-bg:${scoreStyle.bg};--score-color:${scoreStyle.color};--score-border:${scoreStyle.border};">${Number.isFinite(pct) ? `${Math.round(pct)}%` : "—"}</span>
           <button type="button" data-compliance-drill-close aria-label="Cerrar detalle">×</button>
@@ -1781,7 +1781,7 @@ function renderRuleHistoryDetail(point, rule, weekLabel) {
       <div class="rule-history-detail__header">
         <div>
           <strong>${escapeHtml(headerRule)} · semana ${escapeHtml(label)}</strong>
-          <p>${point.failed}/${point.totalTrades ?? point.total} trades fallaron esta semana</p>
+          <p>${point.failed}/${point.totalTrades ?? point.total} operaciones fallaron esta semana</p>
         </div>
         <span class="rule-history-detail__score" style="--score-bg:${scoreStyle.bg};--score-color:${scoreStyle.color};--score-border:${scoreStyle.border};">${Number.isFinite(pct) ? `${Math.round(pct)}%` : "—"}</span>
         <button type="button" data-compliance-drill-close aria-label="Cerrar detalle">×</button>
@@ -1803,7 +1803,7 @@ function renderRuleHistoryDetail(point, rule, weekLabel) {
               </div>
               <strong>${escapeHtml(trade.reason || trade.failReason)}</strong>
               ${trade.traderNote || trade.note ? `<em>${escapeHtml(trade.traderNote || trade.note)}</em>` : ""}
-              <span class="rule-history-detail__link" aria-disabled="true">Ver trade →</span>
+              <span class="rule-history-detail__link" aria-disabled="true">Ver operación →</span>
             </article>
           `;
         }).join("")}
@@ -2136,7 +2136,7 @@ function buildDisciplineScore(ruleRows, recentTrades, entryDeviations, fallback 
     ? clamp(100 - (average(entryDeviations) / 6) * 100)
     : fallback.score.breakdown.precision;
   const consistency = calcConsistency(recentTrades);
-  const timing = ruleRows.find((row) => row.name === "No trades after 17:00")?.pct ?? fallback.score.breakdown.timing;
+  const timing = ruleRows.find((row) => /17:00/i.test(row.name))?.pct ?? fallback.score.breakdown.timing;
   const psychological = calcPsychologicalScore(recentTrades);
   const subscores = [
     { label: "Cumplimiento", value: compliance ?? fallback.score.breakdown.compliance },
@@ -2160,14 +2160,16 @@ function renderRuleRows(rows) {
     "según horario registrado": "según horario registrado",
     "sin operaciones": "sin operaciones",
     "requiere validación del setup": "requiere validación del setup",
-    "según post-trade tag": "según revisión post-trade",
+    "según revisión posterior": "según revisión posterior",
+    "según post-trade tag": "según revisión posterior",
     "tag pendiente": "revisión pendiente",
-    "tracking pendiente": "tracking pendiente",
+    "seguimiento pendiente": "seguimiento pendiente",
+    "tracking pendiente": "seguimiento pendiente",
     "Pendiente": "Pendiente"
   };
   return rows.map((row) => {
     const isIncomplete = isIncompleteNote(row.note);
-    const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente|revisión pendiente/i.test(String(row.note || ""));
+    const isPending = isIncomplete || /pendiente|tracking pendiente|seguimiento pendiente|sin datos suficientes|sin historial suficiente|tag pendiente|revisión pendiente/i.test(String(row.note || ""));
     const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     const source = ruleDataSource(row);
     const baseTone = ruleTone(row);
@@ -2205,8 +2207,8 @@ function ruleRowFromProfileRule(profileRuleItem, currentRows = [], tagStats = {}
     const note = !manualStats.answered
       ? "Pendiente"
       : awaitingRatio > 0.3
-        ? "tracking pendiente"
-        : "según post-trade tag";
+        ? "seguimiento pendiente"
+        : "según revisión posterior";
     return {
       ...(matchedRow || {}),
       name: executionName,
@@ -2406,7 +2408,7 @@ function renderCustomRuleForm(profileState) {
           </label>
         </div>
         <label class="rule-profile-custom-grid__wide">
-          <span>Pregunta post-trade</span>
+          <span>Pregunta de revisión</span>
           <input name="tagQuestion" maxlength="120" value="${escapeHtml(rule.tagQuestion)}" placeholder="¿Se cumplió esta regla en el trade?">
         </label>
       </div>
@@ -3089,7 +3091,7 @@ function renderHeatmap(weeks) {
         <span><i class="execution-tone-ok"></i>Limpio</span>
         <span><i class="execution-tone-warn"></i>A revisar</span>
         <span><i class="execution-tone-bad"></i>Señal crítica</span>
-        <span><i class="execution-tone-empty"></i>Sin trade</span>
+        <span><i class="execution-tone-empty"></i>Sin operación</span>
       </div>
     </div>
   `;
@@ -3097,7 +3099,7 @@ function renderHeatmap(weeks) {
 
 function renderEntryRows(rows) {
   if (!rows.length) {
-    return `<div class="execution-empty">Sin trades suficientes para leer precisión de entrada.</div>`;
+    return `<div class="execution-empty">Sin operaciones suficientes para leer precisión de entrada.</div>`;
   }
   return rows.map((row) => `
     <div class="execution-entry-row execution-tone-${row.tone}">
@@ -3135,10 +3137,10 @@ function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPa
     .map((row) => Math.abs(Number(row.deviation ?? row.dev)))
     .filter(Number.isFinite);
   const avgDeviation = trackedValues.length ? average(trackedValues) : null;
-  const headerStatus = hasTracking && Number.isFinite(avgDeviation) ? `Media: ${avgDeviation.toFixed(1)}p` : "Pendiente tracking EA";
+  const headerStatus = hasTracking && Number.isFinite(avgDeviation) ? `Media: ${avgDeviation.toFixed(1)}p` : "Seguimiento EA pendiente";
   const patternText = hasTracking
     ? entryPattern
-    : "Pendiente de tracking EA. Con datos reales se medirá desviación frente a la entrada ideal.";
+    : "Seguimiento EA pendiente. Con datos reales se medirá desviación frente a la entrada ideal.";
   if (!hasTracking) {
     return `
       <article id="entry-precision-card" class="execution-entry-card execution-entry-card--compact is-empty">
@@ -3190,13 +3192,13 @@ function renderEntryPrecisionCard({ hasTracking = false, entryRows = [], entryPa
           </div>
           <div class="execution-entry-empty-row__copy">
             <strong>Sin historial de precisión todavía</strong>
-            <p>Con tracking EA, KMFX medirá desviación frente a la entrada ideal y separará chasing de entradas tardías.</p>
+            <p>Con seguimiento EA, KMFX medirá desviación frente a la entrada ideal y separará persecución de precio de entradas tardías.</p>
           </div>
           <button type="button" class="execution-entry-config">Configurar EA →</button>
         </div>
       `}
       <div class="execution-entry-preview${hasTracking ? " is-live" : ""}">
-        <p>${hasTracking ? "Últimos trades con tracking de entrada" : "Vista previa — con datos reales se verá así"}</p>
+        <p>${hasTracking ? "Últimas operaciones con seguimiento de entrada" : "Vista previa: con datos reales se verá así"}</p>
         <div class="execution-entry-preview__head">
           <span>Fecha</span>
           <span>Par</span>
@@ -3269,8 +3271,8 @@ function hasPartialExecutionData(rules = [], entryRows = [], kpis = []) {
 
 function ruleDataSource(row = {}) {
   const note = String(row.note || "");
-  if (/post-trade tag|revisión post-trade/i.test(note)) return { label: "Revisión manual", tone: "manual" };
-  if (/tracking/i.test(note)) return { label: "EA pendiente", tone: "pending" };
+  if (/post-trade tag|revisión post-trade|revisión posterior/i.test(note)) return { label: "Revisión manual", tone: "manual" };
+  if (/tracking|seguimiento/i.test(note)) return { label: "EA pendiente", tone: "pending" };
   if (/sin historial|sin operaciones/i.test(note)) return { label: "Sin historial", tone: "pending" };
   if (/requiere configuración|pendiente|sin datos|sin historial|sin operaciones|tag pendiente|revisión pendiente/i.test(note)) {
     return { label: "Pendiente", tone: "pending" };
@@ -3315,8 +3317,8 @@ function buildExecutionReadiness({
       ? "histórico MT5 con reglas inferidas"
       : "datos de ejemplo de la app";
   const summary = recentTrades.length
-    ? `Basado en ${recentTrades.length} trades cerrados de MT5; ${source}.`
-    : "Aún no hay trades cerrados suficientes para una lectura fiable.";
+    ? `Basado en ${recentTrades.length} operaciones cerradas de MT5; ${source}.`
+    : "Aún no hay operaciones cerradas suficientes para una lectura fiable.";
 
   return {
     level,
@@ -3340,14 +3342,14 @@ function executionStatusFromRules(rules = [], readiness = {}) {
       title: "Lectura de ejecución pendiente",
       subtitle: "Aún faltan datos fiables para concluir calidad de entrada, gestión o cumplimiento.",
       issueName: "Muestra limitada",
-      issueText: "Añade contexto post-trade y tracking antes de convertir esta lectura en diagnóstico.",
+      issueText: "Añade contexto posterior y seguimiento antes de convertir esta lectura en diagnóstico.",
       tone: "neutral"
     };
   }
   if (hasReliableIssue && principalPct < 70) {
     return {
       title: "Ejecución a revisar",
-      subtitle: "Hay una desviación relevante, pero la lectura se mantiene como parcial si falta contexto manual o tracking EA.",
+      subtitle: "Hay una desviación relevante, pero la lectura se mantiene como parcial si falta contexto manual o seguimiento EA.",
       issueName,
       issueText,
       tone: "warn"
@@ -3389,7 +3391,7 @@ function buildExecutionReviewItems({
   const items = [];
   if (pendingTagTrades.length) {
     items.push({
-      title: "Revisión post-trade priorizada",
+      title: "Revisión posterior priorizada",
       copy: `${pendingTagTrades.length} cierres recientes o de impacto necesitan contexto. No hace falta reconstruir todo el histórico.`,
       tone: "warn"
     });
@@ -3398,7 +3400,7 @@ function buildExecutionReviewItems({
   if (isReliableRule(slRule) && Number(slRule.pct) < 90) {
     items.push({
       title: "SL a revisar",
-      copy: `Señal inferida (${formatPct(slRule.pct)}). Confirma con revisión manual o tracking antes de asumir incumplimiento.`,
+      copy: `Señal inferida (${formatPct(slRule.pct)}). Confirma con revisión manual o seguimiento antes de asumir incumplimiento.`,
       tone: "warn"
     });
   }
@@ -3421,7 +3423,7 @@ function buildExecutionReviewItems({
   if (recentTrades.length && !hasEntryTracking) {
     items.push({
       title: "Precisión pendiente",
-      copy: "El tracking EA aún no mide desviación frente a entrada ideal.",
+      copy: "El seguimiento EA aún no mide desviación frente a entrada ideal.",
       tone: "neutral"
     });
   }
@@ -3735,7 +3737,7 @@ function renderPostTradeModal(profile, tags = {}) {
       <article class="ptt-dialog" role="dialog" aria-modal="true" aria-labelledby="posttrade-title" tabindex="-1" data-posttrade-dialog>
         <header class="ptt-header">
           <div>
-            <span>${queueMeta ? `REVISIÓN POST-TRADE · ${queueMeta.index + 1} DE ${queueMeta.total}` : "REVISIÓN POST-TRADE"}</span>
+            <span>${queueMeta ? `REVISIÓN POSTERIOR · ${queueMeta.index + 1} DE ${queueMeta.total}` : "REVISIÓN POSTERIOR"}</span>
             <h3 id="posttrade-title">${escapeHtml(trade.symbol)} · ${escapeHtml(trade.direction)} · <b class="${resultClass}">${escapeHtml(resultLabel)}</b></h3>
             <p>${new Date(trade.timestamp).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}</p>
           </div>
@@ -3744,7 +3746,7 @@ function renderPostTradeModal(profile, tags = {}) {
         <div class="ptt-body">
           <section class="posttrade-quick">
             <div>
-              <strong>¿Este trade siguió tu plan?</strong>
+              <strong>¿Esta operación siguió tu plan?</strong>
               <p>Rellena solo el contexto que recuerdes. Si no lo sabes, puedes saltarlo; las métricas MT5 siguen siendo válidas.</p>
             </div>
             <div class="posttrade-quick__actions">
@@ -3760,13 +3762,13 @@ function renderPostTradeModal(profile, tags = {}) {
           ${rules.length ? rules.map((rule) => renderPostTradeQuestion(rule, existingTag)).join("") : `
             <div class="posttrade-empty">
               <strong>No hay reglas manuales activas</strong>
-              <p>Activa reglas manuales o mixtas en el perfil para añadir contexto post-trade.</p>
+              <p>Activa reglas manuales o mixtas en el perfil para añadir contexto posterior.</p>
             </div>
           `}
           </div>
           <label class="posttrade-note">
             <span>Nota opcional</span>
-            <textarea data-posttrade-note rows="3" placeholder="Contexto breve del trade">${escapeHtml(currentTagDraft.note || "")}</textarea>
+            <textarea data-posttrade-note rows="3" placeholder="Contexto breve de la operación">${escapeHtml(currentTagDraft.note || "")}</textarea>
           </label>
         </div>
         <footer class="ptt-footer">
@@ -4051,7 +4053,7 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
 
 function renderScorePanel(scoreValue, breakdown, insight, { isPartial = false, readiness = null } = {}) {
   const scoreLabelText = readiness?.level || "Score parcial";
-  const readingText = readiness?.summary || "La lectura actual es parcial hasta activar tracking completo desde el EA.";
+  const readingText = readiness?.summary || "La lectura actual es parcial hasta activar seguimiento completo desde el EA.";
   return `
     <article id="discipline-score-card" class="tl-section-card execution-panel execution-score-panel execution-tone-${scoreDisplayTone(scoreValue, isPartial)}">
       <div class="tl-section-header execution-section-header">
@@ -4131,7 +4133,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         label: "Precisión de entrada",
         value: formatPips(data.kpis?.entryPrecision?.value),
         subcopy: "estimación basada en histórico",
-        badge: "tracking EA",
+        badge: "seguimiento EA",
         tone: "neutral"
       },
       {
@@ -4272,7 +4274,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         <div class="tl-section-header execution-section-header">
           <div>
             <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
-            <p class="execution-panel-note">Mapa compacto inferido desde contexto post-trade y comportamiento diario.</p>
+            <p class="execution-panel-note">Mapa compacto inferido desde revisión posterior y comportamiento diario.</p>
           </div>
         </div>
         ${renderHeatmap(calendar)}

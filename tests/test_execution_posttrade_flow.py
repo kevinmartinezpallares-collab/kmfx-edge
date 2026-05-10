@@ -31,7 +31,7 @@ class ExecutionPostTradeFlowTests(unittest.TestCase):
         discipline = read_text("js/modules/discipline.js")
 
         self.assertIn("POST_TRADE_REVIEW_LIMIT = 8", discipline)
-        self.assertIn("Revisión post-trade priorizada", discipline)
+        self.assertIn("Revisión posterior priorizada", discipline)
         self.assertIn("No hace falta reconstruir todo el histórico", discipline)
         self.assertIn("las métricas MT5 siguen siendo válidas", discipline)
         self.assertIn("Revisar pendientes", discipline)

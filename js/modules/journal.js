@@ -208,8 +208,8 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
       tone: "ok",
       title: expectancy >= 0 ? "Proceso documentado" : "Edge bajo presión",
       body: expectancy >= 0
-        ? `Expectancy ${formatSignedCurrency(expectancy, model.account?.currency)} con ${formatPlainPct(reviewedPct, 0)} de cobertura de revisión.`
-        : `Expectancy negativa en la muestra. Usa el diario para aislar errores repetibles.`
+        ? `Expectativa ${formatSignedCurrency(expectancy, model.account?.currency)} con ${formatPlainPct(reviewedPct, 0)} de cobertura de revisión.`
+        : `Expectativa negativa en la muestra. Usa el diario para aislar errores repetibles.`
     };
   })();
   const nextAction = (() => {
@@ -670,10 +670,10 @@ function buildExternalAiEvidenceMarkdown(state) {
       ["Metrica", "Valor"],
       [
         ["P&L neto", markdownCurrency(performance.net_pnl ?? cockpit.totalPnl, currency)],
-        ["Win rate", markdownPct(performance.win_rate_pct ?? cockpit.winRate)],
-        ["Profit factor", markdownMetric(performance.profit_factor ?? cockpit.profitFactor)],
-        ["Expectancy", markdownCurrency(performance.expectancy_amount ?? cockpit.expectancy, currency)],
-        ["Expectancy R", markdownMetric(performance.expectancy_r ?? cockpit.averageR)],
+        ["Tasa de acierto", markdownPct(performance.win_rate_pct ?? cockpit.winRate)],
+        ["Factor de beneficio", markdownMetric(performance.profit_factor ?? cockpit.profitFactor)],
+        ["Expectativa", markdownCurrency(performance.expectancy_amount ?? cockpit.expectancy, currency)],
+        ["Expectativa R", markdownMetric(performance.expectancy_r ?? cockpit.averageR)],
         ["VaR 95", markdownCurrency(readPath(tailRisk, ["var_95", "var_amount"]), currency)],
         ["VaR 99", markdownCurrency(readPath(tailRisk, ["var_99", "var_amount"]), currency)],
         ["Riesgo de ruina", markdownPct(riskOfRuin.analytic_ruin_probability_pct)],
@@ -693,7 +693,7 @@ function buildExternalAiEvidenceMarkdown(state) {
         ["Consistencia superada", propFirm.consistency_rule_pass],
         ["Días mínimos restantes", propFirm.minimum_days_remaining],
         ["Probabilidad de pasar", markdownPct(readPath(propFirm, ["pass_probability", "pass_probability_pct"]))],
-        ["Ledger neto de pagos", markdownCurrency(readPath(propFirm, ["payout_ledger", "net_cashflow_amount"]), currency)]
+        ["Registro neto de pagos", markdownCurrency(readPath(propFirm, ["payout_ledger", "net_cashflow_amount"]), currency)]
       ]
     ),
     "",
@@ -1117,9 +1117,9 @@ export function renderJournal(root, state) {
         ${[
           { label: "P&L", value: formatSignedCurrency(cockpit.totalPnl, currency), tone: cockpit.totalPnl >= 0 ? "profit" : "loss", meta: "Neto muestra" },
           { label: "Max DD", value: formatPlainPct(cockpit.maxDd), tone: cockpit.maxDd >= 6 ? "loss" : cockpit.maxDd >= 3 ? "warning" : "neutral", meta: "Presión curva" },
-          { label: "Win rate", value: formatPlainPct(cockpit.winRate), tone: cockpit.winRate >= 50 ? "profit" : "warning", meta: "Eficiencia" },
-          { label: "Profit factor", value: formatMetricRatio(cockpit.profitFactor), tone: Number.isFinite(cockpit.profitFactor) ? (cockpit.profitFactor >= 1.4 ? "profit" : cockpit.profitFactor >= 1 ? "warning" : "loss") : "neutral", meta: "Sostenibilidad" },
-          { label: "Expectancy", value: formatSignedCurrency(cockpit.expectancy, currency), tone: cockpit.expectancy >= 0 ? "profit" : "loss", meta: "Por operación" },
+          { label: "Tasa de acierto", value: formatPlainPct(cockpit.winRate), tone: cockpit.winRate >= 50 ? "profit" : "warning", meta: "Eficiencia" },
+          { label: "Factor de beneficio", value: formatMetricRatio(cockpit.profitFactor), tone: Number.isFinite(cockpit.profitFactor) ? (cockpit.profitFactor >= 1.4 ? "profit" : cockpit.profitFactor >= 1 ? "warning" : "loss") : "neutral", meta: "Sostenibilidad" },
+          { label: "Expectativa", value: formatSignedCurrency(cockpit.expectancy, currency), tone: cockpit.expectancy >= 0 ? "profit" : "loss", meta: "Por operación" },
           { label: "R medio", value: Number.isFinite(cockpit.averageR) ? `${cockpit.averageR.toFixed(2)}R` : "—", tone: Number.isFinite(cockpit.averageR) ? (cockpit.averageR >= 0 ? "profit" : "warning") : "neutral", meta: "Edge normalizado" },
           { label: "Revisados", value: `${cockpit.reviewEntries.length}/${cockpit.trades.length || 0}`, tone: cockpit.reviewedPct >= 70 ? "profit" : cockpit.reviewedPct >= 35 ? "warning" : "neutral", meta: "Cobertura diario" }
         ].map((item) => kpiCardMarkup({
@@ -1156,7 +1156,7 @@ export function renderJournal(root, state) {
         <article class="tl-section-card journal-daily-panel">
           <div class="tl-section-header">
             <div>
-              <div class="tl-section-title">Entrada rápida post-trade</div>
+              <div class="tl-section-title">Revisión rápida posterior</div>
               <div class="row-sub">Captura decisión, error y lección sin convertir el diario en burocracia.</div>
             </div>
           </div>

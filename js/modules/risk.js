@@ -409,7 +409,7 @@ function professionalAssumptionsModel(professional, snapshot, account) {
       format: "multiple"
     },
     {
-      label: "Riesgo/trade",
+      label: "Riesgo/operación",
       value: riskPerTrade,
       detail: riskBasisLabel(inputs.risk_per_trade_basis || inputs.analytical_ruin_risk_per_trade_basis),
       format: "percent"
@@ -720,7 +720,7 @@ function professionalActionAlerts(professional, snapshot) {
   if (openRiskPct > 0 && maxRiskPerTradePct > 0 && openRiskPct >= maxRiskPerTradePct * 1.5) {
     alerts.push({
       tone: "warn",
-      title: "Heat por encima del trade base",
+      title: "Heat por encima de la operación base",
       detail: `Riesgo abierto ${formatRiskPct(openRiskPct)} frente a ${formatRiskPct(maxRiskPerTradePct)} por operación.`
     });
   }
@@ -800,7 +800,7 @@ function professionalInterpretationNotes(professional, simulation, snapshot) {
   if (openRiskPct > 0 && maxRiskPerTradePct > 0 && openRiskPct >= maxRiskPerTradePct * 1.5) {
     notes.push({
       tone: "warn",
-      title: "Heat abierto por encima del trade base",
+      title: "Heat abierto por encima de la operación base",
       body: `Ahora hay ${formatRiskPct(openRiskPct)} de riesgo abierto frente a ${formatRiskPct(maxRiskPerTradePct)} permitido por operación. Evita añadir exposición correlacionada.`
     });
   }

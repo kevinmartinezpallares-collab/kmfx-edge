@@ -47,7 +47,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
   const trades = Number(account?.model?.totals?.totalTrades || 0);
   const meta = isMain
     ? [display.subtitle || accountTypeLabel, authority.firstTradeLabel ? `desde ${authority.firstTradeLabel}` : "", "activa"].filter(Boolean).join(" · ")
-    : [display.subtitle || accountTypeLabel, authority.tradeCount > 0 ? `${authority.tradeCount} trades` : ""].filter(Boolean).join(" · ");
+    : [display.subtitle || accountTypeLabel, authority.tradeCount > 0 ? `${authority.tradeCount} operaciones` : ""].filter(Boolean).join(" · ");
   const cardInlineStyle = isMain
     ? "min-height:240px;box-shadow:none;filter:none;"
     : "min-height:240px;box-shadow:none;filter:none;";
@@ -108,7 +108,7 @@ function renderAccountCard(account, isMain, isActive, isLoading) {
             </div>
           </div>
           <div>
-            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Win Rate</div>
+            <div class="account-hero-card__stat-label" style="${statLabelInlineStyle}">Tasa de acierto</div>
             <div class="account-hero-card__stat-val" style="${statValueInlineStyle}">${formatPercent(account.model.totals.winRate)}</div>
           </div>
           ${isMain ? `

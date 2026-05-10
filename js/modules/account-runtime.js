@@ -22,10 +22,10 @@ export function evaluateCompliance(account, fundedAccounts = []) {
 
   if (currentRisk > maxTradeRisk) {
     riskStatus = "violation";
-    messages.push(`Riesgo por trade ${currentRisk.toFixed(2)}% supera límite ${maxTradeRisk.toFixed(2)}%.`);
+    messages.push(`Riesgo por operación ${currentRisk.toFixed(2)}% supera límite ${maxTradeRisk.toFixed(2)}%.`);
   } else if (currentRisk > maxTradeRisk * 0.85) {
     riskStatus = "warning";
-    messages.push(`Riesgo por trade cerca del límite (${currentRisk.toFixed(2)}%).`);
+    messages.push(`Riesgo por operación cerca del límite (${currentRisk.toFixed(2)}%).`);
   }
 
   if (maxDrawdown && drawdown > maxDrawdown) {

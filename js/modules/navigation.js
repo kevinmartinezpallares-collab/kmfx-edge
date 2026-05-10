@@ -57,7 +57,7 @@ const pageContext = {
   connections: "Gestión de cuentas conectadas y sincronización con MT5",
   calculator: "Utilidades para planificar riesgo, lotaje y escenarios antes de operar",
   journal: "Diario operativo y notas de revisión",
-  "journal-review": "Cola de revisión y prioridades post-trade",
+  "journal-review": "Cola de revisión y prioridades posteriores",
   "journal-entries": "Entradas manuales, lecciones y evidencia",
   "journal-ai-review": "Reportes para IA externa y respuestas pegadas manualmente",
   strategies: "Catálogo de setups y validación",

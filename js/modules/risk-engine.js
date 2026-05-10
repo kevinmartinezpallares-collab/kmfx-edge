@@ -104,10 +104,10 @@ export function computeRiskState({
 
   if (riskPerTradePct >= 2 && riskState !== "LOCKED") {
     riskState = riskState === "NORMAL" ? "CAUTION" : "DANGER";
-    notes.push(`Riesgo por trade alto (${riskPerTradePct.toFixed(2)}%) reduce margen de maniobra.`);
+    notes.push(`Riesgo por operación alto (${riskPerTradePct.toFixed(2)}%) reduce margen de maniobra.`);
   } else if (riskPerTradePct >= 1.25 && riskState === "NORMAL") {
     riskState = "CAUTION";
-    notes.push(`Riesgo por trade ${riskPerTradePct.toFixed(2)}% cerca de zona sensible.`);
+    notes.push(`Riesgo por operación ${riskPerTradePct.toFixed(2)}% cerca de zona sensible.`);
   }
 
   return {

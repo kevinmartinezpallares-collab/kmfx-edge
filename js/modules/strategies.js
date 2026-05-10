@@ -481,7 +481,7 @@ export function renderStrategies(root, state) {
     ? "Backtest vs Real"
     : activePage === "strategies-portfolio"
       ? "Portafolios"
-      : "Strategy Lab";
+      : "Laboratorio de estrategias";
   const strategiesDescription = activePage === "strategies-backtest"
     ? "Comparativa entre muestra importada, ejecución real y degradación del edge."
     : activePage === "strategies-portfolio"

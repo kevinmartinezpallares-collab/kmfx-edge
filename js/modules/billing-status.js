@@ -125,9 +125,9 @@ const ENTITLEMENT_LABELS = {
   liveMt5Accounts: "Cuentas MT5 reales",
   riskPolicyEditor: "Editor de política de riesgo",
   localAutoBlock: "Protección en este equipo",
-  strategies: "Strategy Lab",
+  strategies: "Laboratorio de estrategias",
   fundedChallenges: "Funding",
-  exports: "Export de evidencia",
+  exports: "Exportación de evidencia",
   rawBridgeDebug: "Diagnóstico avanzado",
 };
 
