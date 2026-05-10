@@ -255,6 +255,29 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("invalid_payload", body["reason"])
         stripe_mock.assert_not_called()
 
+    def test_backtest_import_rejects_non_object_payload(self) -> None:
+        request = self._request(json_body=["not", "an", "object"])
+        response = asyncio.run(connector_api.import_mt5_strategy_tester_reports(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("invalid_payload", body["reason"])
+        self.assertEqual("json_object_required", body["details"]["problem"])
+
+    def test_backtest_import_rejects_oversized_body_without_echoing_payload(self) -> None:
+        oversized_body = json.dumps({"content": "secret-value" * 20}).encode("utf-8")
+        request = self._request(body_bytes=oversized_body)
+        with patch.dict("os.environ", {"KMFX_BACKTEST_IMPORT_MAX_BODY_BYTES": "32"}, clear=False):
+            response = asyncio.run(connector_api.import_mt5_strategy_tester_reports(request))
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(413, response.status_code)
+        self.assertEqual("payload_too_large", body["reason"])
+        self.assertEqual(32, body["details"]["max_bytes"])
+        self.assertEqual(len(oversized_body), body["details"]["actual_bytes"])
+        self.assertNotIn("secret-value", body_text)
+
     def test_link_account_returns_key_once_and_persists_only_hash(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

@@ -4265,6 +4265,8 @@ def request_header(request: Request, name: str) -> str:
 def json_request_max_body_bytes(route: str) -> int:
     if route == "/api/post-trade/reviews":
         return _env_int("KMFX_REVIEW_JSON_MAX_BODY_BYTES", default=128 * 1024)
+    if route == "/api/backtests/mt5/import":
+        return _env_int("KMFX_BACKTEST_IMPORT_MAX_BODY_BYTES", default=2 * 1024 * 1024)
     return _env_int("KMFX_MUTATION_JSON_MAX_BODY_BYTES", default=64 * 1024)
 
 
@@ -6244,10 +6246,9 @@ async def billing_webhook(request: Request) -> JSONResponse:
 
 @app.post("/api/backtests/mt5/import")
 async def import_mt5_strategy_tester_reports(request: Request) -> JSONResponse:
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
+    payload, payload_error = await read_json_object_payload(request, "/api/backtests/mt5/import")
+    if payload_error is not None:
+        return payload_error
 
     starting_equity = safe_float(payload.get("starting_equity") or payload.get("startingEquity"), 100_000.0)
     min_real_trades = int(safe_float(payload.get("min_real_trades") or payload.get("minRealTrades"), 30))

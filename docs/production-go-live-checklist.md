@@ -218,7 +218,7 @@ Objetivo: no abrir superficie sensible sin controles.
 - [ ] Activar Dependabot alerts/security updates.
 - [x] Aplicar actualizacion Dependabot pendiente de GitHub Actions.
 - [ ] Branch protection en `main`.
-- [ ] Validacion centralizada de payloads en endpoints state-changing.
+- [x] Validacion centralizada de payloads en endpoints state-changing.
 - [ ] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5.
 - [ ] Definir postura CSRF para Next.js si se usan cookies/sesiones server-side.
 - [ ] Ejecutar audit de dependencias cuando exista manifest/lockfile del frontend Next.
@@ -260,6 +260,7 @@ Notas 2026-05-10:
 - Dependabot version updates ya esta configurado para `github-actions`, `npm` y `pip` en `.github/dependabot.yml`.
 - Aplicado el aviso de Dependabot del PR #3: todos los workflows pasan de `actions/checkout@v4` a `actions/checkout@v6`.
 - Queda pendiente confirmar en GitHub Dashboard la activacion de secret scanning, push protection, Dependabot alerts/security updates y branch protection de `main`, porque no se puede verificar desde el checkout local.
+- `/api/backtests/mt5/import` usa el helper central de JSON de mutaciones, con limite propio `KMFX_BACKTEST_IMPORT_MAX_BODY_BYTES`; payloads no-objeto o demasiado grandes se rechazan sin eco de contenido sensible. Stripe webhook conserva lectura raw intencionada para verificar firma y MT5 sync/journal usan el helper raw-body MT5.
 
 Notas 2026-05-09:
 
