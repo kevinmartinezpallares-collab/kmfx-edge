@@ -156,6 +156,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [x] Verificar `/api/billing/portal`.
 - [x] Verificar `/api/billing/webhook`.
 - [x] Env vars live/test revisadas en Render.
+- [x] Webhooks Stripe ignoran metadata generica `user_id`/`plan_key` si no viene de app/precio/producto KMFX.
 
 Notas 2026-05-08:
 

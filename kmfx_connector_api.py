@@ -2059,8 +2059,6 @@ def stripe_subscription_belongs_to_kmfx(subscription: dict[str, Any]) -> bool:
     metadata = ensure_dict(subscription.get("metadata"))
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
         return True
-    if safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or metadata.get("kmfx_plan") or metadata.get("plan_key")).strip():
-        return True
     return stripe_price_belongs_to_kmfx(first_subscription_price(subscription))
 
 
@@ -2068,8 +2066,6 @@ def stripe_checkout_session_belongs_to_kmfx(session: dict[str, Any]) -> bool:
     session = ensure_dict(session)
     metadata = ensure_dict(session.get("metadata"))
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
-        return True
-    if safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or metadata.get("kmfx_plan") or metadata.get("plan_key")).strip():
         return True
     return False
 

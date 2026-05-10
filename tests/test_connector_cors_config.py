@@ -1399,6 +1399,57 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         sync_mock.assert_not_called()
         mark_mock.assert_called_with("evt_external", "ignored")
 
+    def test_billing_webhook_ignores_generic_user_metadata_without_kmfx_product(self) -> None:
+        secret = "whsec_test_secret"
+        event = {
+            "id": "evt_external_user_metadata",
+            "type": "customer.subscription.updated",
+            "livemode": True,
+            "data": {
+                "object": {
+                    "id": "sub_external_user_metadata",
+                    "customer": "cus_external",
+                    "status": "active",
+                    "metadata": {
+                        "user_id": "33333333-3333-4333-8333-333333333333",
+                        "plan_key": "pro",
+                    },
+                    "items": {
+                        "data": [
+                            {
+                                "price": {
+                                    "id": "price_external",
+                                    "lookup_key": "external_monthly",
+                                    "product": "prod_external",
+                                    "metadata": {},
+                                }
+                            }
+                        ]
+                    },
+                }
+            },
+        }
+        body_bytes = json.dumps(event, separators=(",", ":")).encode("utf-8")
+        request = self._request(
+            headers={"stripe-signature": self._stripe_signature_header(body_bytes, secret)},
+            body_bytes=body_bytes,
+        )
+        with patch.dict(os.environ, {"STRIPE_WEBHOOK_SECRET": secret}, clear=True), patch.object(
+            connector_api,
+            "record_billing_event_once",
+            return_value=True,
+        ), patch.object(connector_api, "sync_billing_subscription") as sync_mock, patch.object(
+            connector_api,
+            "mark_billing_event_status",
+        ) as mark_mock:
+            response = asyncio.run(connector_api.billing_webhook(request))
+
+        payload = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"ignored": "non_kmfx_subscription"}, payload["result"])
+        sync_mock.assert_not_called()
+        mark_mock.assert_called_with("evt_external_user_metadata", "ignored")
+
     def test_checkout_session_completed_sends_purchase_confirmation_without_breaking_access_sync(self) -> None:
         session = {
             "id": "cs_123",
@@ -1445,6 +1496,29 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         sync_mock.assert_called_once()
         email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
+
+    def test_checkout_session_completed_ignores_generic_metadata_without_app(self) -> None:
+        session = {
+            "id": "cs_external",
+            "livemode": True,
+            "customer": "cus_external",
+            "subscription": "sub_external",
+            "customer_details": {"email": "buyer@example.com"},
+            "client_reference_id": "55555555-5555-4555-8555-555555555555",
+            "metadata": {
+                "user_id": "55555555-5555-4555-8555-555555555555",
+                "plan_key": "pro",
+            },
+        }
+        with patch.object(connector_api, "fetch_stripe_subscription") as fetch_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+        ) as sync_mock:
+            result = connector_api.process_checkout_session_completed(session)
+
+        self.assertEqual({"ignored": "non_kmfx_checkout_session"}, result)
+        fetch_mock.assert_not_called()
+        sync_mock.assert_not_called()
 
     def test_invoice_payment_failed_syncs_kmfx_subscription_state(self) -> None:
         invoice = {
