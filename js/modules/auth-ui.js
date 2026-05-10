@@ -226,8 +226,8 @@ export function initAuthUI(store) {
     if (!ensureTurnstileCompleted("signin")) return;
     const email = String(root.__authUiState.email || "").trim();
     const password = String(root.__authUiState.password || "");
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "email" });
     const captchaToken = getTurnstileToken("signin");
+    setUiState({ loading: true, error: "", notice: "", providerLoading: "email" });
     const result = await window.kmfxAuth?.signInWithPassword?.({ email, password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("signin");
@@ -257,8 +257,8 @@ export function initAuthUI(store) {
       setUiState({ error: "Las contraseñas no coinciden.", notice: "" });
       return;
     }
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "signup" });
     const captchaToken = getTurnstileToken("signup");
+    setUiState({ loading: true, error: "", notice: "", providerLoading: "signup" });
     const result = await window.kmfxAuth?.signUpWithPassword?.({ name, email, password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("signup");
@@ -305,8 +305,8 @@ export function initAuthUI(store) {
   const requestPasswordReset = async () => {
     if (!ensureTurnstileCompleted("forgot")) return;
     const email = String(root.__authUiState.email || "").trim();
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-request" });
     const captchaToken = getTurnstileToken("forgot");
+    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-request" });
     const result = await window.kmfxAuth?.requestPasswordReset?.({ email, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("forgot");
@@ -336,8 +336,8 @@ export function initAuthUI(store) {
       setUiState({ error: "Las contraseñas no coinciden.", notice: "" });
       return;
     }
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-password" });
     const captchaToken = getTurnstileToken("reset");
+    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-password" });
     const result = await window.kmfxAuth?.updatePassword?.({ password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("reset");

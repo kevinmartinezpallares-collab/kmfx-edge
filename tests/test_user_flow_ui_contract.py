@@ -36,6 +36,23 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("signInPayload.options = withCaptchaToken({}, normalizedCaptchaToken)", source)
         self.assertNotIn("signInPayload.captchaToken = normalizedCaptchaToken", source)
 
+    def test_auth_captcha_token_is_captured_before_loading_rerender(self) -> None:
+        source = read_text("js/modules/auth-ui.js")
+
+        for mode, loading_marker in [
+            ("signin", 'providerLoading: "email"'),
+            ("signup", 'providerLoading: "signup"'),
+            ("forgot", 'providerLoading: "reset-request"'),
+            ("reset", 'providerLoading: "reset-password"'),
+        ]:
+            token_index = source.index(f'const captchaToken = getTurnstileToken("{mode}")')
+            loading_index = source.index(loading_marker, token_index - 220)
+            self.assertLess(
+                token_index,
+                loading_index,
+                f"{mode} must capture the Turnstile token before setUiState re-renders and remounts the widget",
+            )
+
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")
 
