@@ -488,6 +488,10 @@ Criterio de salida:
   - [x] Ejecucion evita backlog historico de tags: prioriza hasta 8 cierres recientes/de impacto y mantiene metricas MT5 con todo el historico.
   - [x] Popup global de revision post-trade para nuevos cierres, aunque el usuario este en otra seccion.
   - [x] Persistir revisiones post-trade en backend por usuario/cuenta antes de uso comercial serio.
+- [x] Hardening de HTML dinámico en vistas críticas:
+  - [x] Modales, ajustes, Funding y selectores.
+  - [x] Operaciones y posiciones MT5.
+  - [x] Calendario y detalle diario con símbolos, sesiones, setups y parciales escapados.
 - [ ] Pulir Funding con journeys reales.
 - [ ] Mejorar Journal/Strategies con datos live.
 - [ ] Revisar mobile.

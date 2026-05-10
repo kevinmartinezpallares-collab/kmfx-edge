@@ -506,6 +506,7 @@ Criterio de salida:
 - [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
 - [ ] Metricas criticas tienen source/formula/confidence.
 - [ ] Sin defaults internos como politicas reales.
+- [x] HTML dinamico de Operaciones, Calendario, modales y Funding escapa datos MT5/usuario.
 - [ ] CI y smoke estan verdes.
 - [x] Legal minimo esta publicado.
 - [ ] Observabilidad minima activa.

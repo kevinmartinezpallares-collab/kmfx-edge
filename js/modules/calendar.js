@@ -86,6 +86,16 @@ function escapeCalendarStatText(value) {
     .replace(/'/g, "&#39;");
 }
 
+function safeCalendarToken(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
+}
+
+function formatCalendarCellText(value) {
+  return value == null || value === "" ? "—" : escapeCalendarStatText(value);
+}
+
 function renderCalendarDayStatBar(metrics, dayTrades) {
   const ordered = [...dayTrades].sort((a, b) => a.when - b.when);
   const wins = ordered.filter((trade) => trade.pnl > 0).length;
@@ -209,8 +219,8 @@ function renderTradeExecutions(trade) {
       ${executions.map((execution) => `
         <div class="focus-panel-execution">
           <span>${execution.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
-          <span>${execution.volume ?? "—"}</span>
-          <span>${execution.exit ?? "—"}</span>
+          <span>${formatCalendarCellText(execution.volume)}</span>
+          <span>${formatCalendarCellText(execution.exit)}</span>
           ${pnlTextMarkup({ value: execution.pnl, text: formatCurrency(execution.pnl), className: execution.pnl >= 0 ? "metric-positive" : "metric-negative" })}
           ${pnlTextMarkup({ value: execution.cumulativePnl, text: formatCurrency(execution.cumulativePnl), className: execution.cumulativePnl >= 0 ? "metric-positive" : "metric-negative" })}
         </div>
@@ -224,19 +234,20 @@ function renderDayTradeDisclosure(trade, options = {}) {
   const fees = resolveTradeFees(trade);
   const isPrimary = options.isPrimary === true;
   const pnlClass = trade.pnl > 0 ? "metric-positive" : trade.pnl < 0 ? "metric-negative" : "";
+  const sideToken = safeCalendarToken(trade.side);
   return `
     <details class="focus-panel-disclosure calendar-day-trades__item ${isPrimary ? "focus-panel-disclosure--primary calendar-day-trades__item--primary" : ""}">
       <summary class="focus-panel-disclosure__summary">
         <div class="focus-panel-disclosure__grid">
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--symbol">
-            <strong>${trade.symbol}</strong>
+            <strong>${formatCalendarCellText(trade.symbol)}</strong>
             ${isPrimary ? `<small class="calendar-day-primary-trade">Operación principal del día</small>` : ""}
           </div>
           <div class="focus-panel-disclosure__cell">
-            <span class="focus-panel-trade-side focus-panel-trade-side--${String(trade.side).toLowerCase()}">${trade.side}</span>
+            <span class="focus-panel-trade-side focus-panel-trade-side--${sideToken}">${formatCalendarCellText(trade.side)}</span>
           </div>
-          <div class="focus-panel-disclosure__cell">${entryTime}</div>
-          <div class="focus-panel-disclosure__cell">${exitTime}</div>
+          <div class="focus-panel-disclosure__cell">${formatCalendarCellText(entryTime)}</div>
+          <div class="focus-panel-disclosure__cell">${formatCalendarCellText(exitTime)}</div>
           <div class="focus-panel-disclosure__cell focus-panel-disclosure__cell--value ${pnlClass}">
             ${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: pnlClass })}
           </div>
@@ -244,11 +255,11 @@ function renderDayTradeDisclosure(trade, options = {}) {
       </summary>
       <div class="focus-panel-disclosure__body">
         <div class="focus-panel-pairs focus-panel-pairs--plain">
-          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${trade.entry ?? "—"}</span><strong>Salida</strong><span>${trade.exit ?? "—"}</span></div>
-          <div class="focus-panel-pair-row"><strong>SL</strong><span>${trade.sl ?? "—"}</span><strong>TP</strong><span>${trade.tp ?? "—"}</span></div>
-          <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${trade.volume ?? "—"}</span><strong>Duración</strong><span>${formatDurationHuman(trade.durationMin)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Entrada</strong><span>${formatCalendarCellText(trade.entry)}</span><strong>Salida</strong><span>${formatCalendarCellText(trade.exit)}</span></div>
+          <div class="focus-panel-pair-row"><strong>SL</strong><span>${formatCalendarCellText(trade.sl)}</span><strong>TP</strong><span>${formatCalendarCellText(trade.tp)}</span></div>
+          <div class="focus-panel-pair-row"><strong>Volumen inicial</strong><span>${formatCalendarCellText(trade.volume)}</span><strong>Duración</strong><span>${formatCalendarCellText(formatDurationHuman(trade.durationMin))}</span></div>
           <div class="focus-panel-pair-row"><strong>Comisiones</strong><span class="${fees < 0 ? "metric-negative" : ""}">${formatCurrency(fees)}</span><strong>Resultado</strong>${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: pnlClass })}</div>
-          <div class="focus-panel-pair-row"><strong>Setup</strong><span>${displayCalendarSetup(trade.setup)}</span><strong>Sesión</strong><span>${trade.session || "—"}</span></div>
+          <div class="focus-panel-pair-row"><strong>Setup</strong><span>${formatCalendarCellText(displayCalendarSetup(trade.setup))}</span><strong>Sesión</strong><span>${formatCalendarCellText(trade.session)}</span></div>
         </div>
         ${renderTradeExecutions(trade)}
       </div>
@@ -288,8 +299,8 @@ function openCalendarDayFocus(root, state, model, key) {
         <section class="focus-panel-section focus-panel-section--lead calendar-day-report__read calendar-day-reading">
           <div class="focus-panel-read calendar-day-report__read-card calendar-day-reading__card">
             <span class="calendar-day-report__eyebrow calendar-day-reading__label">Lectura del día</span>
-            <p class="focus-panel-read__summary">${executiveRead.summary}</p>
-            <p class="calendar-day-report__action calendar-day-reading__action">${reviewPrompt}</p>
+            <p class="focus-panel-read__summary">${escapeCalendarStatText(executiveRead.summary)}</p>
+            <p class="calendar-day-report__action calendar-day-reading__action">${escapeCalendarStatText(reviewPrompt)}</p>
           </div>
         </section>
         <section class="focus-panel-section calendar-day-report__chart-section">
@@ -408,7 +419,7 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
       return `
         <article class="${cardClasses}">
           <div class="calendar-year-card__head">
-            <button class="calendar-year-card__month" type="button" data-calendar-open-month="${monthRecord.key}">${monthKeyToDate(monthRecord.key).toLocaleDateString("es-ES", { month: "long" })}</button>
+            <button class="calendar-year-card__month" type="button" data-calendar-open-month="${escapeCalendarStatText(monthRecord.key)}">${escapeCalendarStatText(monthKeyToDate(monthRecord.key).toLocaleDateString("es-ES", { month: "long" }))}</button>
             <span class="calendar-year-card__badge ${monthValueClass}">
               ${hasModel ? pnlTextMarkup({ value: Number(monthRecord.pnl || 0), text: monthValue, className: monthValueClass }) : "—"}
             </span>
@@ -429,7 +440,7 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
                 cell.isToday ? "is-today" : ""
               ].filter(Boolean).join(" ");
               if (cell.trades && hasModel) {
-                return `<button class="${dayClasses}" type="button" data-calendar-day="${cell.key}" aria-label="${cell.date.getDate()} · ${cell.trades} operaciones">${cell.date.getDate()}</button>`;
+                return `<button class="${dayClasses}" type="button" data-calendar-day="${escapeCalendarStatText(cell.key)}" aria-label="${cell.date.getDate()} · ${cell.trades} operaciones">${cell.date.getDate()}</button>`;
               }
               return `<span class="${dayClasses}">${cell.date.getDate()}</span>`;
             }).join("")}
@@ -659,13 +670,13 @@ export function renderCalendar(root, state) {
       ${pageHeaderMarkup({
         eyebrow: "Calendario",
         title: "Calendario",
-        description: `Consistencia operativa y resultado diario del mes de un vistazo. ${authority.firstTradeLabel ? `Ledger real desde ${authority.firstTradeLabel}.` : ""}`,
+        description: `Consistencia operativa y resultado diario del mes de un vistazo. ${authority.firstTradeLabel ? `Historial real desde ${escapeCalendarStatText(authority.firstTradeLabel)}.` : ""}`,
         className: "calendar-screen__header",
         contentClassName: "calendar-screen__copy",
         eyebrowClassName: "calendar-screen__eyebrow",
         titleClassName: "calendar-screen__title",
         descriptionClassName: "calendar-screen__subtitle",
-        extraContentHtml: note ? `<p class="calendar-inline-note calendar-inline-note--${note.tone}">${note.text}</p>` : "",
+        extraContentHtml: note ? `<p class="calendar-inline-note calendar-inline-note--${safeCalendarToken(note.tone)}">${escapeCalendarStatText(note.text)}</p>` : "",
         actionsClassName: "calendar-month-nav calendar-month-nav--header",
         actionsHtml: calendarNavControlsHtml,
       })}
@@ -769,14 +780,14 @@ export function renderCalendar(root, state) {
                 ].filter(Boolean).join(" ");
                 const tradesLabel = cell.trades === 1 ? "1 operación" : `${cell.trades} operaciones`;
                 return `
-                  <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${cell.key}"` : "disabled"}>
+                  <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${escapeCalendarStatText(cell.key)}"` : "disabled"}>
                     <div class="calendar-day__top">
                       <span class="calendar-day__date">${cell.date.getDate()}</span>
                     </div>
                     <div class="calendar-day__body">
                       ${cell.trades && hasModel
                         ? `<div class="calendar-day__pnl ${cell.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: cell.pnl, text: formatCalendarValue(cell.pnl, valueMode, selectedMonth?.startBalance), className: cell.pnl >= 0 ? "metric-positive" : "metric-negative" })}</div>
-                           <div class="calendar-day__meta">${tradesLabel}</div>`
+                           <div class="calendar-day__meta">${escapeCalendarStatText(tradesLabel)}</div>`
                         : `<div class="calendar-day__meta">${!hasModel ? "Cargando" : cell.inMonth ? "Sin operativa" : "Fuera de mes"}</div>`}
                     </div>
                   </button>
@@ -789,7 +800,7 @@ export function renderCalendar(root, state) {
                 <div class="calendar-week-strip">
                   ${monthView.weeks.map((week) => `
                     <article class="calendar-week-chip">
-                      <div class="calendar-week-chip__label">${week.label}</div>
+                      <div class="calendar-week-chip__label">${escapeCalendarStatText(week.label)}</div>
                       <div class="calendar-week-chip__value ${week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : ""}">
                         ${pnlTextMarkup({ value: week.pnl, text: formatCurrency(week.pnl), className: week.pnl >= 0 ? "metric-positive" : week.pnl < 0 ? "metric-negative" : "" })}
                       </div>
@@ -1056,7 +1067,7 @@ function buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonthKey) {
 
   return monthlyMatrix.map((year) => `
     <tr>
-      <td>${year.year}</td>
+      <td>${escapeCalendarStatText(year.year)}</td>
       ${year.months.map((monthCell, index) => {
         const monthKey = `${year.year}-${String(index + 1).padStart(2, "0")}`;
         const classes = [
@@ -1065,11 +1076,11 @@ function buildMonthlyMatrixRows(monthlyMatrix, hasModel, selectedMonthKey) {
         ].filter(Boolean).join(" ");
         return `
         <td class="${classes}">
-          ${monthCell.pnl == null ? "—" : formatPercent(monthCell.returnPct)}
+          ${monthCell.pnl == null ? "—" : escapeCalendarStatText(formatPercent(monthCell.returnPct))}
         </td>
       `;
       }).join("")}
-      <td class="${year.totalPnl >= 0 ? "metric-positive" : "metric-negative"}">${formatPercent(year.totalReturnPct)}</td>
+      <td class="${year.totalPnl >= 0 ? "metric-positive" : "metric-negative"}">${escapeCalendarStatText(formatPercent(year.totalReturnPct))}</td>
     </tr>
   `).join("");
 }
@@ -1080,8 +1091,8 @@ function buildMonthlyMatrixFooter(monthlyMatrix, hasModel) {
   return `
     <tfoot>
       <tr>
-        <th colspan="13">Grand Total</th>
-        <th class="${grandTotal >= 0 ? "metric-positive" : "metric-negative"}">${formatCurrency(grandTotal)}</th>
+        <th colspan="13">Total general</th>
+        <th class="${grandTotal >= 0 ? "metric-positive" : "metric-negative"}">${escapeCalendarStatText(formatCurrency(grandTotal))}</th>
       </tr>
     </tfoot>
   `;

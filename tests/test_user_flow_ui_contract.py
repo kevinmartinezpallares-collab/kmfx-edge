@@ -106,6 +106,25 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn("Detalle de aportes, impacto y ejecución", source)
         self.assertNotIn("Detalle técnico conservado", source)
+        self.assertIn("Historial real desde", source)
+        self.assertNotIn("Ledger real desde", source)
+
+    def test_calendar_view_escapes_mt5_dynamic_values(self) -> None:
+        source = read_text("js/modules/calendar.js")
+
+        self.assertIn("function safeCalendarToken", source)
+        self.assertIn("function formatCalendarCellText", source)
+        self.assertIn('return value == null || value === "" ? "—" : escapeCalendarStatText(value);', source)
+        self.assertIn("<strong>${formatCalendarCellText(trade.symbol)}</strong>", source)
+        self.assertIn("focus-panel-trade-side--${sideToken}", source)
+        self.assertIn("${formatCalendarCellText(trade.side)}</span>", source)
+        self.assertIn("${formatCalendarCellText(trade.entry)}</span>", source)
+        self.assertIn("${formatCalendarCellText(displayCalendarSetup(trade.setup))}", source)
+        self.assertIn("${formatCalendarCellText(trade.session)}</span>", source)
+        self.assertIn("${escapeCalendarStatText(executiveRead.summary)}</p>", source)
+        self.assertIn('data-calendar-day="${escapeCalendarStatText(cell.key)}"', source)
+        self.assertIn("calendar-inline-note--${safeCalendarToken(note.tone)}", source)
+        self.assertIn("Total general", source)
 
     def test_visible_user_copy_avoids_internal_runtime_terms(self) -> None:
         utils = read_text("js/modules/utils.js")
