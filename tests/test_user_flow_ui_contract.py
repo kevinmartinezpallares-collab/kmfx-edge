@@ -27,7 +27,14 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('["signin", "signup", "forgot", "reset"].includes(mode)', source)
         self.assertIn('ensureTurnstileCompleted("signin")', source)
         self.assertIn('getTurnstileToken("signin")', source)
+        self.assertIn('resetTurnstileWidget("signin")', source)
         self.assertIn("signInWithPassword?.({ email, password, captchaToken })", source)
+
+    def test_email_signin_sends_captcha_token_to_supabase_options(self) -> None:
+        source = read_text("js/modules/auth-session.js")
+
+        self.assertIn("signInPayload.options = withCaptchaToken({}, normalizedCaptchaToken)", source)
+        self.assertNotIn("signInPayload.captchaToken = normalizedCaptchaToken", source)
 
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")

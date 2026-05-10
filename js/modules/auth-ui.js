@@ -230,6 +230,7 @@ export function initAuthUI(store) {
     const captchaToken = getTurnstileToken("signin");
     const result = await window.kmfxAuth?.signInWithPassword?.({ email, password, captchaToken });
     if (!result?.ok) {
+      resetTurnstileWidget("signin");
       setUiState({
         loading: false,
         providerLoading: "",
