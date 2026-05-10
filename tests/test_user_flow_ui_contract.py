@@ -10,6 +10,17 @@ def read_text(relative_path: str) -> str:
 
 
 class UserFlowUiContractTests(unittest.TestCase):
+    def test_turnstile_site_key_is_configured_for_public_auth(self) -> None:
+        source = read_text("index.html")
+        marker = '<meta name="kmfx-turnstile-site-key" content="'
+        start = source.index(marker) + len(marker)
+        end = source.index('"', start)
+        site_key = source[start:end].strip()
+
+        self.assertTrue(site_key.startswith("0x4"), "Turnstile site key must be a configured public site key")
+        self.assertGreater(len(site_key), 20)
+        self.assertNotIn("SECRET", site_key.upper())
+
     def test_email_signin_uses_turnstile_token_when_enabled(self) -> None:
         source = read_text("js/modules/auth-ui.js")
 

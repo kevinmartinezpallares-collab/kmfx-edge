@@ -17,3 +17,4 @@ __pycache__/
 # Generated launcher packaging artifacts
 build/
 dist/
+.vercel
