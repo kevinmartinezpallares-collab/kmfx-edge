@@ -176,7 +176,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
 - Copy visible reforzado tras `3f9786f`: métricas, ejecución, calendario, operaciones, diario, talento, cuentas y billing priorizan español en labels como `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto` y `Última sincronización`.
-- Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes y detalle Funding escapan valores dinámicos antes de renderizarse.
+- Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes, detalle Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de renderizarse.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing

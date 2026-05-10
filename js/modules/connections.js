@@ -1170,11 +1170,11 @@ function renderAccountAdminPanel(account, adminState) {
         <span class="kmfx-mt5-admin-panel__badge">solo admin</span>
       </div>
       <div class="kmfx-mt5-admin-actions">
-        <button class="btn-secondary" type="button" data-admin-account-primary="${accountId}">Marcar primaria</button>
-        <button class="btn-secondary" type="button" data-admin-account-inspect="${accountId}">Ver payload</button>
-        <button class="btn-secondary" type="button" data-admin-account-regenerate="${accountId}">Regenerar key</button>
-        <button class="btn-secondary" type="button" data-admin-account-archive="${accountId}">Archivar</button>
-        <button class="btn-secondary" type="button" data-admin-account-delete="${accountId}">Borrar</button>
+        <button class="btn-secondary" type="button" data-admin-account-primary="${escapeHtml(accountId)}">Marcar primaria</button>
+        <button class="btn-secondary" type="button" data-admin-account-inspect="${escapeHtml(accountId)}">Ver payload</button>
+        <button class="btn-secondary" type="button" data-admin-account-regenerate="${escapeHtml(accountId)}">Regenerar key</button>
+        <button class="btn-secondary" type="button" data-admin-account-archive="${escapeHtml(accountId)}">Archivar</button>
+        <button class="btn-secondary" type="button" data-admin-account-delete="${escapeHtml(accountId)}">Borrar</button>
       </div>
       <div class="kmfx-mt5-admin-meta">
         <div><span>Account ID</span><strong>${escapeHtml(accountId || "sin account_id")}</strong></div>

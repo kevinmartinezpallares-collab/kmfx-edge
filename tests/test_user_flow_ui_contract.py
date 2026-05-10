@@ -198,6 +198,21 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('${escapeHtml(linked?.name || "Sin vincular")}', funded)
         self.assertIn("${escapeHtml(enriched.propFirm)}", funded)
 
+    def test_trades_view_escapes_mt5_dynamic_values(self) -> None:
+        source = read_text("js/modules/trades.js")
+
+        self.assertIn('return value == null || value === "" ? "—" : escapeHtml(value);', source)
+        self.assertIn('data-position-id="${escapeHtml(positionDomId(position))}"', source)
+        self.assertIn("${escapeHtml(position.symbol)}", source)
+        self.assertIn("${escapeHtml(position.side)}", source)
+        self.assertIn('value="${escapeHtml(symbol)}"', source)
+        self.assertIn('value="${escapeHtml(session)}"', source)
+        self.assertIn('value="${escapeHtml(setup)}"', source)
+        self.assertIn('data-trade-id="${escapeHtml(trade.id)}"', source)
+        self.assertIn("<td>${escapeHtml(trade.symbol)}</td>", source)
+        self.assertIn("<td>${escapeHtml(normalizeTradeSetup(trade.setup))}</td>", source)
+        self.assertIn("<td>${escapeHtml(trade.session)}</td>", source)
+
     def test_market_view_uses_spanish_copy_and_escapes_dynamic_values(self) -> None:
         source = read_text("js/modules/market.js")
 

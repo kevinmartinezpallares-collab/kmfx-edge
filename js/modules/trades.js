@@ -3,7 +3,7 @@ import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selec
 import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
 function formatTableValue(value) {
-  return value == null || value === "" ? "—" : value;
+  return value == null || value === "" ? "—" : escapeHtml(value);
 }
 
 function normalizeTradeSetup(value) {
@@ -452,8 +452,8 @@ function tradeNextStepCopy(trade) {
 
 function renderTradeFocusStat({ label, valueHtml, tone = "neutral" }) {
   return `
-    <article class="trades-focus-stats__item" data-tone="${tone}">
-      <span class="trades-focus-stats__label">${label}</span>
+    <article class="trades-focus-stats__item" data-tone="${escapeHtml(tone)}">
+      <span class="trades-focus-stats__label">${escapeHtml(label)}</span>
       <span class="trades-focus-stats__value">${valueHtml}</span>
     </article>
   `;
@@ -461,8 +461,8 @@ function renderTradeFocusStat({ label, valueHtml, tone = "neutral" }) {
 
 function renderTradeFocusKv(label, valueHtml, tone = "neutral") {
   return `
-    <div class="trades-focus-kv__item" data-tone="${tone}">
-      <span class="trades-focus-kv__label">${label}</span>
+    <div class="trades-focus-kv__item" data-tone="${escapeHtml(tone)}">
+      <span class="trades-focus-kv__label">${escapeHtml(label)}</span>
       <span class="trades-focus-kv__value">${valueHtml}</span>
     </div>
   `;
@@ -605,6 +605,7 @@ function positionDomId(position = {}) {
 }
 
 function renderOpenPositionRow(position) {
+  const safeSideToken = String(position.side || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
   return `
     <button
       type="button"
@@ -613,12 +614,12 @@ function renderOpenPositionRow(position) {
       role="row"
     >
       <span class="trades-position-row__main" role="cell">
-        <span class="trades-position-row__symbol">${position.symbol}</span>
-        <span class="trades-position-row__meta">Vol ${position.volume} · Entrada ${position.entry}</span>
+        <span class="trades-position-row__symbol">${escapeHtml(position.symbol)}</span>
+        <span class="trades-position-row__meta">Vol ${formatTableValue(position.volume)} · Entrada ${formatTableValue(position.entry)}</span>
       </span>
-      <span class="trades-position-row__side trades-position-row__side--${String(position.side || "").toLowerCase()}" role="cell">${position.side}</span>
-      <span class="trades-position-row__value" role="cell">${position.volume}</span>
-      <span class="trades-position-row__value" role="cell">${position.entry}</span>
+      <span class="trades-position-row__side trades-position-row__side--${safeSideToken}" role="cell">${escapeHtml(position.side)}</span>
+      <span class="trades-position-row__value" role="cell">${formatTableValue(position.volume)}</span>
+      <span class="trades-position-row__value" role="cell">${formatTableValue(position.entry)}</span>
       <span class="trades-position-row__pnl-cell" role="cell">
         ${pnlTextMarkup({
           value: position.pnl,
@@ -633,7 +634,7 @@ function renderOpenPositionRow(position) {
 function renderPositionFocusKv(label, valueHtml) {
   return `
     <div class="trades-position-kv__item">
-      <span class="trades-position-kv__label">${label}</span>
+      <span class="trades-position-kv__label">${escapeHtml(label)}</span>
       <span class="trades-position-kv__value">${valueHtml}</span>
     </div>
   `;
@@ -642,7 +643,7 @@ function renderPositionFocusKv(label, valueHtml) {
 function renderPositionFocusState(label, valueHtml, tone = "neutral") {
   return `
     <div class="trades-position-state__item" data-tone="${escapeHtml(tone)}">
-      <span class="trades-position-state__label">${label}</span>
+      <span class="trades-position-state__label">${escapeHtml(label)}</span>
       <span class="trades-position-state__value">${valueHtml}</span>
     </div>
   `;
@@ -651,7 +652,7 @@ function renderPositionFocusState(label, valueHtml, tone = "neutral") {
 function renderPositionRiskItem(label, valueHtml) {
   return `
     <div class="trades-position-risk__item">
-      <span class="trades-position-risk__label">${label}</span>
+      <span class="trades-position-risk__label">${escapeHtml(label)}</span>
       <span class="trades-position-risk__value">${valueHtml}</span>
     </div>
   `;
@@ -798,8 +799,8 @@ function showTradeContextMenu(trade) {
             ${renderTradeFocusKv("SL", formatTableValue(trade.sl))}
             ${renderTradeFocusKv("TP", formatTableValue(trade.tp))}
             ${renderTradeFocusKv("Volumen", formatTableValue(trade.volume))}
-            ${renderTradeFocusKv("Setup", displayTradeSetup(trade.setup))}
-            ${renderTradeFocusKv("Sesión", trade.session || "—")}
+            ${renderTradeFocusKv("Setup", escapeHtml(displayTradeSetup(trade.setup)))}
+            ${renderTradeFocusKv("Sesión", escapeHtml(trade.session || "—"))}
           </div>
         </section>
 
@@ -1013,21 +1014,21 @@ export function renderTrades(root, state) {
           <span>Símbolo</span>
           <select data-trades-filter="symbol">
             <option value="all">Todos</option>
-            ${symbols.map((symbol) => `<option value="${symbol}" ${filters.symbol === symbol ? "selected" : ""}>${symbol}</option>`).join("")}
+            ${symbols.map((symbol) => `<option value="${escapeHtml(symbol)}" ${filters.symbol === symbol ? "selected" : ""}>${escapeHtml(symbol)}</option>`).join("")}
           </select>
         </label>
         <label class="trades-filter-field ${filters.session !== "all" ? "is-active" : ""}">
           <span>Sesión</span>
           <select data-trades-filter="session">
             <option value="all">Todas</option>
-            ${sessions.map((session) => `<option value="${session}" ${filters.session === session ? "selected" : ""}>${session}</option>`).join("")}
+            ${sessions.map((session) => `<option value="${escapeHtml(session)}" ${filters.session === session ? "selected" : ""}>${escapeHtml(session)}</option>`).join("")}
           </select>
         </label>
         <label class="trades-filter-field ${filters.setup !== "all" ? "is-active" : ""}">
           <span>Setup</span>
           <select data-trades-filter="setup">
             <option value="all">Todos</option>
-            ${setups.map((setup) => `<option value="${setup}" ${filters.setup === setup ? "selected" : ""}>${setup}</option>`).join("")}
+            ${setups.map((setup) => `<option value="${escapeHtml(setup)}" ${filters.setup === setup ? "selected" : ""}>${escapeHtml(setup)}</option>`).join("")}
           </select>
         </label>
         <label class="trades-filter-field ${filters.side !== "all" ? "is-active" : ""}">
@@ -1072,10 +1073,10 @@ export function renderTrades(root, state) {
           </thead>
           <tbody>
             ${filteredTrades.slice().reverse().map((trade) => `
-              <tr class="trade-row" data-trade-id="${trade.id}">
+              <tr class="trade-row" data-trade-id="${escapeHtml(trade.id)}">
                 <td>${trade.when.toLocaleDateString("es-ES")} ${trade.when.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</td>
-                <td>${trade.symbol}</td>
-                <td><span class="trade-side trade-side--${trade.side.toLowerCase()}">${trade.side}</span></td>
+                <td>${escapeHtml(trade.symbol)}</td>
+                <td><span class="trade-side trade-side--${escapeHtml(String(trade.side || "").toLowerCase().replace(/[^a-z0-9_-]/g, ""))}">${escapeHtml(trade.side)}</span></td>
                 <td class="table-num">${formatTableValue(trade.entry)}</td>
                 <td class="table-num">${formatTableValue(trade.exit)}</td>
                 <td class="table-num">${formatTableValue(trade.sl)}</td>
@@ -1084,8 +1085,8 @@ export function renderTrades(root, state) {
                 <td class="table-num">${pnlTextMarkup({ value: trade.pnl, text: formatCurrency(trade.pnl), className: trade.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
                 <td class="table-num">${trade.rMultiple.toFixed(1)}R</td>
                 <td class="table-num">${formatDurationHuman(trade.durationMin)}</td>
-                <td>${normalizeTradeSetup(trade.setup)}</td>
-                <td>${trade.session}</td>
+                <td>${escapeHtml(normalizeTradeSetup(trade.setup))}</td>
+                <td>${escapeHtml(trade.session)}</td>
               </tr>
             `).join("")}
             ${!filteredTrades.length ? `
