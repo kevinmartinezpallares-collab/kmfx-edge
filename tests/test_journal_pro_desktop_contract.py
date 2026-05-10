@@ -35,6 +35,7 @@ class JournalProDesktopContractTests(unittest.TestCase):
             "Autobloqueo local",
             "Bridge local",
             "Bridge profile",
+            "cálculo local",
             "Broker API",
             "Config local",
             "Configuración local",
@@ -52,6 +53,7 @@ class JournalProDesktopContractTests(unittest.TestCase):
             "snapshot MT5 del backend",
             "Sin backtests importados en el workspace.",
             "flujo local estable",
+            "instalación local",
             "workspace_journal",
             "Reset local",
             "depende de backend, launcher y EA",
@@ -96,7 +98,7 @@ class JournalProDesktopContractTests(unittest.TestCase):
         self.assertIsNotNone(payouts_block)
         self.assertIn("Matriz de reglas", rules_block.group("body"))
         self.assertNotIn("Ledger de payouts", rules_block.group("body"))
-        self.assertIn("Ledger de payouts", payouts_block.group("body"))
+        self.assertIn("Registro de retiros", payouts_block.group("body"))
         self.assertNotIn("Matriz de reglas", payouts_block.group("body"))
 
     def test_risk_subpages_keep_distinct_desktop_surfaces(self) -> None:

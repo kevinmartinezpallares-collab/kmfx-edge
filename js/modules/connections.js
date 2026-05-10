@@ -511,7 +511,7 @@ function renderConnectionGuide() {
   const steps = [
     {
       title: "Abre o instala KMFX Launcher",
-      body: "Prepara la instalación local. Si no se abre, descarga tu versión.",
+      body: "Prepara el conector en este equipo. Si no se abre, descarga tu versión.",
     },
     {
       title: "Instala el conector",

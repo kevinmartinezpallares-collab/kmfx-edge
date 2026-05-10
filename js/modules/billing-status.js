@@ -124,7 +124,7 @@ const ENTITLEMENT_LABELS = {
   launcherConnection: "Conexión MT5",
   liveMt5Accounts: "Cuentas MT5 reales",
   riskPolicyEditor: "Editor de política de riesgo",
-  localAutoBlock: "Autobloqueo local",
+  localAutoBlock: "Protección en este equipo",
   strategies: "Strategy Lab",
   fundedChallenges: "Funding",
   exports: "Export de evidencia",

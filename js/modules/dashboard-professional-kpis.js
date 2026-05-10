@@ -107,7 +107,7 @@ const KPI_DEFINITIONS = Object.freeze({
     tooltip: "Retorno excedente dividido por desviación negativa.",
     traderUse: "Compara retorno frente a caídas negativas. Sirve para priorizar sistemas que ganan sin castigar tanto la cuenta.",
     formula: "Retorno medio / desviación negativa de los retornos.",
-    sourceLabel: "Métricas de riesgo KMFX o cálculo local cuando la muestra todavía es limitada.",
+    sourceLabel: "Métricas de riesgo KMFX o cálculo de respaldo cuando la muestra todavía es limitada.",
     confidence: "Más fiable cuando hay suficientes retornos negativos y muestra amplia.",
   },
   dscore: {

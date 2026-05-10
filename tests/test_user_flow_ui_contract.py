@@ -78,7 +78,9 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn("Módulo de riesgo KMFX", source)
         self.assertIn("Score de calidad KMFX calculado con la muestra disponible", source)
+        self.assertIn("cálculo de respaldo", source)
         self.assertNotIn("Backend Risk Metrics", source)
+        self.assertNotIn("cálculo local", source)
         self.assertNotIn("dashboard payload", source)
         self.assertNotIn("snapshot MT5", source)
 
