@@ -50,6 +50,7 @@ const RULE_DEFINITIONS = disciplineData.rules.map((rule) => rule.name);
 // === RULE PROFILES ===
 const KMFX_PROFILES_STORAGE_KEY = "kmfx_profiles";
 const KMFX_TAGS_STORAGE_KEY = "kmfx_tags";
+const POST_TRADE_REVIEW_LIMIT = 8;
 
 let activePostTradeModal = null;
 let currentTagDraft = {
@@ -909,7 +910,7 @@ function ruleColor(value) {
 }
 
 function isIncompleteNote(note = "") {
-  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA|tag pendiente/i.test(String(note));
+  return /sin datos|sin historial|sin operaciones|pendiente|tracking EA|tag pendiente|revisión pendiente/i.test(String(note));
 }
 
 function ruleTone(row = {}) {
@@ -1119,13 +1120,25 @@ function getPendingTagTrades(profile, recentTrades = [], tags = {}) {
   const taggableRules = getTaggableRules(profile);
   if (!taggableRules.length) return [];
   return recentTrades
-    .map((trade, index) => normalizeTradeForTag(trade, index))
-    .filter((trade, index) => {
-      const tag = postTagForTrade(tags, trade, index);
+    .map((trade, index) => ({
+      trade: normalizeTradeForTag(trade, index),
+      source: trade,
+      index
+    }))
+    .filter(({ source, trade, index }) => {
+      const tag = postTagForTrade(tags, source || trade, index);
       if (!tag) return true;
       if (tag.tagSkipped === true || tag.tagPartial === true) return true;
       return taggableRules.some((rule) => evaluateTagAnswer(rule, getTagAnswer(tag, rule.id)) === null);
-    });
+    })
+    .sort((a, b) => {
+      const aTime = a.trade.when instanceof Date ? a.trade.when.getTime() : 0;
+      const bTime = b.trade.when instanceof Date ? b.trade.when.getTime() : 0;
+      if (bTime !== aTime) return bTime - aTime;
+      return Math.abs(Number(b.trade.pnl) || 0) - Math.abs(Number(a.trade.pnl) || 0);
+    })
+    .slice(0, POST_TRADE_REVIEW_LIMIT)
+    .map(({ trade }) => trade);
 }
 
 function buildEmptyTagData(trade, rules = []) {
@@ -2048,14 +2061,14 @@ function renderRuleRows(rows) {
     "según horario registrado": "según horario registrado",
     "sin operaciones": "sin operaciones",
     "requiere validación del setup": "requiere validación del setup",
-    "según post-trade tag": "según post-trade tag",
-    "tag pendiente": "tag pendiente",
+    "según post-trade tag": "según revisión post-trade",
+    "tag pendiente": "revisión pendiente",
     "tracking pendiente": "tracking pendiente",
     "Pendiente": "Pendiente"
   };
   return rows.map((row) => {
     const isIncomplete = isIncompleteNote(row.note);
-    const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente/i.test(String(row.note || ""));
+    const isPending = isIncomplete || /pendiente|tracking pendiente|sin datos suficientes|sin historial suficiente|tag pendiente|revisión pendiente/i.test(String(row.note || ""));
     const width = !isIncomplete && Number.isFinite(Number(row.pct)) ? clamp(row.pct, 6, 100) : 0;
     const source = ruleDataSource(row);
     const baseTone = ruleTone(row);
@@ -3157,10 +3170,10 @@ function hasPartialExecutionData(rules = [], entryRows = [], kpis = []) {
 
 function ruleDataSource(row = {}) {
   const note = String(row.note || "");
-  if (/post-trade tag/i.test(note)) return { label: "Tag manual", tone: "manual" };
+  if (/post-trade tag|revisión post-trade/i.test(note)) return { label: "Revisión manual", tone: "manual" };
   if (/tracking/i.test(note)) return { label: "EA pendiente", tone: "pending" };
   if (/sin historial|sin operaciones/i.test(note)) return { label: "Sin historial", tone: "pending" };
-  if (/requiere configuración|pendiente|sin datos|sin historial|sin operaciones|tag pendiente/i.test(note)) {
+  if (/requiere configuración|pendiente|sin datos|sin historial|sin operaciones|tag pendiente|revisión pendiente/i.test(note)) {
     return { label: "Pendiente", tone: "pending" };
   }
   if (/histórico|frecuencia|horario|setup|entrada|break even/i.test(note)) {
@@ -3187,8 +3200,8 @@ function buildExecutionReadiness({
   if (!recentTrades.length || recentTrades.length < 10) tags.push(executionReadinessTag("Muestra limitada", "warn"));
   if (isPartialData) tags.push(executionReadinessTag("Score parcial", "warn"));
   if (!hasEntryTracking) tags.push(executionReadinessTag("Tracking EA pendiente", "pending"));
-  if (pendingTagTrades.length) tags.push(executionReadinessTag("Pendiente de tags", "warn"));
-  if (hasManualScore) tags.push(executionReadinessTag("Tags manuales", "manual"));
+  if (pendingTagTrades.length) tags.push(executionReadinessTag("Revisión priorizada", "warn"));
+  if (hasManualScore) tags.push(executionReadinessTag("Revisión manual", "manual"));
   if (reliableRuleCount && !hasManualScore) tags.push(executionReadinessTag("Datos inferidos", "inferred"));
 
   const level = !recentTrades.length
@@ -3198,12 +3211,12 @@ function buildExecutionReadiness({
       : "Lectura operativa";
   const tone = !recentTrades.length || pendingTagTrades.length ? "warn" : isPartialData ? "neutral" : "ok";
   const source = hasManualScore
-    ? "histórico real y tags manuales"
+    ? "histórico MT5 y revisión manual"
     : recentTrades.length
-      ? "histórico real con reglas inferidas"
+      ? "histórico MT5 con reglas inferidas"
       : "datos de ejemplo de la app";
   const summary = recentTrades.length
-    ? `Basado en ${recentTrades.length} trades cerrados; ${source}.`
+    ? `Basado en ${recentTrades.length} trades cerrados de MT5; ${source}.`
     : "Aún no hay trades cerrados suficientes para una lectura fiable.";
 
   return {
@@ -3228,14 +3241,14 @@ function executionStatusFromRules(rules = [], readiness = {}) {
       title: "Lectura de ejecución pendiente",
       subtitle: "Aún faltan datos fiables para concluir calidad de entrada, gestión o cumplimiento.",
       issueName: "Muestra limitada",
-      issueText: "Completa tags y tracking antes de convertir esta lectura en diagnóstico.",
+      issueText: "Añade contexto post-trade y tracking antes de convertir esta lectura en diagnóstico.",
       tone: "neutral"
     };
   }
   if (hasReliableIssue && principalPct < 70) {
     return {
       title: "Ejecución a revisar",
-      subtitle: "Hay una desviación relevante, pero la lectura se mantiene como parcial si faltan tags o tracking EA.",
+      subtitle: "Hay una desviación relevante, pero la lectura se mantiene como parcial si falta contexto manual o tracking EA.",
       issueName,
       issueText,
       tone: "warn"
@@ -3277,8 +3290,8 @@ function buildExecutionReviewItems({
   const items = [];
   if (pendingTagTrades.length) {
     items.push({
-      title: "Operaciones sin etiquetar",
-      copy: `${pendingTagTrades.length} operaciones pendientes de post-trade tag. Completa tags para validar.`,
+      title: "Revisión post-trade priorizada",
+      copy: `${pendingTagTrades.length} cierres recientes o de impacto necesitan contexto. No hace falta reconstruir todo el histórico.`,
       tone: "warn"
     });
   }
@@ -3286,7 +3299,7 @@ function buildExecutionReviewItems({
   if (isReliableRule(slRule) && Number(slRule.pct) < 90) {
     items.push({
       title: "SL a revisar",
-      copy: `Señal inferida (${formatPct(slRule.pct)}). Confirma con tags o tracking antes de asumir incumplimiento.`,
+      copy: `Señal inferida (${formatPct(slRule.pct)}). Confirma con revisión manual o tracking antes de asumir incumplimiento.`,
       tone: "warn"
     });
   }
@@ -3294,7 +3307,7 @@ function buildExecutionReviewItems({
   if (isReliableRule(frequencyRule) && Number(frequencyRule.pct) < 90) {
     items.push({
       title: "Frecuencia operativa",
-      copy: "Señal de frecuencia; valida con tags antes de convertirla en fallo.",
+      copy: "Señal de frecuencia; valida con contexto manual antes de convertirla en fallo.",
       tone: "warn"
     });
   }
@@ -3302,7 +3315,7 @@ function buildExecutionReviewItems({
   if (isReliableRule(scheduleRule) && Number(scheduleRule.pct) < 100) {
     items.push({
       title: "Horario a revisar",
-      copy: "Señal inferida por horario registrado. Confirma sesión y tags.",
+      copy: "Señal inferida por horario registrado. Confirma sesión y contexto.",
       tone: "warn"
     });
   }
@@ -3334,12 +3347,12 @@ function renderExecutionReviewQueue({
       <div class="execution-review-queue__head">
         <div>
           <span>Revisión</span>
-          <strong>${count ? `${count} trades pendientes` : "Cola al día"}</strong>
+          <strong>${count ? `${count} revisiones priorizadas` : "Cola al día"}</strong>
+          ${count ? `<small>Solo cierres recientes o de impacto; las métricas MT5 siguen usando todo el histórico.</small>` : ""}
         </div>
         ${canOpenPostTradeTag ? `
           <div class="posttrade-tag-alert__actions execution-review-queue__actions">
-            ${count ? `<button type="button" data-posttrade-complete>Completar tags</button>` : ""}
-            <button type="button" data-posttrade-simulate>Simular cierre</button>
+            ${count ? `<button type="button" data-posttrade-complete>Revisar pendientes</button>` : ""}
           </div>
         ` : ""}
       </div>
@@ -3363,8 +3376,8 @@ function pendingTagKpi(pendingTagTrades = [], canOpenPostTradeTag = false) {
   return {
     label: "Pendientes de revisar",
     value: canOpenPostTradeTag ? String(count) : "Pendiente",
-    subcopy: canOpenPostTradeTag ? (count ? "trades sin etiquetar" : "cola al día") : "sin perfil manual activo",
-    badge: count ? "requiere tags" : "sin alertas críticas",
+    subcopy: canOpenPostTradeTag ? (count ? "cierres priorizados" : "cola al día") : "sin perfil manual activo",
+    badge: count ? "solo contexto" : "sin alertas críticas",
     tone: count ? "warn" : "ok"
   };
 }
@@ -3546,11 +3559,10 @@ function renderPostTradeIndicator(pendingTrades = [], canTag = true) {
     <section class="posttrade-tag-alert${count ? " has-pending" : ""}">
       <i aria-hidden="true"></i>
       <div>
-        <p>${count} ${count === 1 ? "trade sin etiquetar" : "trades sin etiquetar"} — completa las reglas manuales para un score preciso</p>
+        <p>${count} ${count === 1 ? "cierre pendiente" : "cierres pendientes"} — añade contexto si lo recuerdas; el histórico MT5 no depende de esta revisión.</p>
       </div>
       <div class="posttrade-tag-alert__actions">
-        <button type="button" data-posttrade-complete>Completar tags</button>
-        <button type="button" data-posttrade-simulate>Simular cierre trade</button>
+        <button type="button" data-posttrade-complete>Revisar pendientes</button>
       </div>
     </section>
   `;
@@ -3624,7 +3636,7 @@ function renderPostTradeModal(profile, tags = {}) {
       <article class="ptt-dialog" role="dialog" aria-modal="true" aria-labelledby="posttrade-title" tabindex="-1" data-posttrade-dialog>
         <header class="ptt-header">
           <div>
-            <span>${queueMeta ? `TAG PENDIENTE · ${queueMeta.index + 1} DE ${queueMeta.total}` : "POST-TRADE TAG"}</span>
+            <span>${queueMeta ? `REVISIÓN POST-TRADE · ${queueMeta.index + 1} DE ${queueMeta.total}` : "REVISIÓN POST-TRADE"}</span>
             <h3 id="posttrade-title">${escapeHtml(trade.symbol)} · ${escapeHtml(trade.direction)} · <b class="${resultClass}">${escapeHtml(resultLabel)}</b></h3>
             <p>${new Date(trade.timestamp).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })}</p>
           </div>
@@ -3633,23 +3645,23 @@ function renderPostTradeModal(profile, tags = {}) {
         <div class="ptt-body">
           <section class="posttrade-quick">
             <div>
-              <strong>¿Operación ejecutada según plan?</strong>
-              <p>Usa el modo rápido si las reglas principales se cumplieron y solo quieres dejar nota.</p>
+              <strong>¿Este trade siguió tu plan?</strong>
+              <p>Rellena solo el contexto que recuerdes. Si no lo sabes, puedes saltarlo; las métricas MT5 siguen siendo válidas.</p>
             </div>
             <div class="posttrade-quick__actions">
               <button type="button" data-posttrade-quick="ok">Todo correcto</button>
               <button type="button" class="${currentTagDraft.reviewMode ? "is-selected" : ""}" data-posttrade-quick="review">Revisar detalles</button>
             </div>
           </section>
-          <div class="posttrade-progress" data-posttrade-progress>${progress.answered}/${progress.total} reglas respondidas</div>
+          <div class="posttrade-progress" data-posttrade-progress>${progress.answered}/${progress.total} reglas revisadas</div>
           <div class="posttrade-partial-notice${progress.isPartial && currentTagDraft.saveAttempted ? "" : " is-hidden"}" data-posttrade-partial>
-            Tag parcial: algunas reglas quedan sin confirmar.
+            Revisión parcial: guardamos lo que sabes y dejamos el resto como contexto pendiente.
           </div>
           <div class="posttrade-question-list${currentTagDraft.reviewMode ? "" : " is-hidden"}" data-posttrade-question-list>
           ${rules.length ? rules.map((rule) => renderPostTradeQuestion(rule, existingTag)).join("") : `
             <div class="posttrade-empty">
               <strong>No hay reglas manuales activas</strong>
-              <p>Activa reglas manuales o mixtas en el perfil para alimentar el score con post-trade tags.</p>
+              <p>Activa reglas manuales o mixtas en el perfil para añadir contexto post-trade.</p>
             </div>
           `}
           </div>
@@ -3668,7 +3680,7 @@ function renderPostTradeModal(profile, tags = {}) {
           ` : ""}
           <div class="ptt-save-actions">
             <button type="button" data-posttrade-close>Cancelar</button>
-            <button type="button" class="primary" data-posttrade-save>Guardar tag</button>
+            <button type="button" class="primary" data-posttrade-save>Guardar revisión</button>
           </div>
         </footer>
       </article>
@@ -3676,8 +3688,21 @@ function renderPostTradeModal(profile, tags = {}) {
   `;
 }
 
+function renderPostTradeModalOnly(target, context = {}) {
+  if (!target) return;
+  const profileState = loadProfiles();
+  const { profile } = getProfileForAccount(profileState, context.accountLogin || "");
+  const tags = loadPostTradeTags();
+  target.innerHTML = renderPostTradeModal(profile, tags);
+  bindPostTradeControls(target, { ...context, target, modalOnly: true }, profile, []);
+}
+
 function refreshDisciplineSection(context = {}) {
   if (!context.target) return;
+  if (context.modalOnly) {
+    renderPostTradeModalOnly(context.target, context);
+    return;
+  }
   const nextData = context.model ? buildDisciplineDataFromModel(context.model, context.accountLogin || "") : context.data;
   renderDisciplineSection(context.target, nextData, context);
 }
@@ -3741,7 +3766,7 @@ function updatePostTradeProgressUI(target, profile) {
   const rules = orderedPostTradeRules(getTaggableRules(profile));
   const progress = postTradeProgress(rules);
   const progressNode = target.querySelector("[data-posttrade-progress]");
-  if (progressNode) progressNode.textContent = `${progress.answered}/${progress.total} reglas respondidas`;
+  if (progressNode) progressNode.textContent = `${progress.answered}/${progress.total} reglas revisadas`;
   target.querySelector("[data-posttrade-partial]")?.classList.toggle("is-hidden", !progress.isPartial || !currentTagDraft.saveAttempted);
 }
 
@@ -3832,18 +3857,6 @@ function bindPostTradeControls(target, context, profile, pendingTrades = []) {
     });
   }
 
-  target.querySelector("[data-posttrade-simulate]")?.addEventListener("click", () => {
-    if (!getTaggableRules(profile).length) return;
-    resetPostTradeQueue();
-    const fallbackTrade = context.data?.recentTrades?.at(-1) || {
-      symbol: "EURUSD",
-      direction: "BUY",
-      pips: 24,
-      pnl: 240,
-      when: new Date()
-    };
-    openPostTradeModal(fallbackTrade, context);
-  });
   target.querySelector("[data-posttrade-complete]")?.addEventListener("click", () => {
     if (!getTaggableRules(profile).length) return;
     if (pendingTrades[0]) {
@@ -4134,7 +4147,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         <div class="tl-section-header execution-section-header">
           <div>
             <div class="tl-section-title">Cumplimiento de reglas</div>
-            <p class="execution-panel-note">Tags manuales, reglas inferidas y señales pendientes separados.</p>
+            <p class="execution-panel-note">Revisión manual, reglas inferidas y señales pendientes se muestran por separado.</p>
           </div>
         </div>
         <div id="rule-compliance-bars" class="execution-rule-list">${renderRuleRows(visibleRules)}</div>
@@ -4144,7 +4157,7 @@ export function renderDisciplineSection(target, data = disciplineData, context =
         <div class="tl-section-header execution-section-header">
           <div>
             <div class="tl-section-title">Ejecución diaria — últimas 5 semanas</div>
-            <p class="execution-panel-note">Mapa compacto inferido desde tags y comportamiento diario.</p>
+            <p class="execution-panel-note">Mapa compacto inferido desde contexto post-trade y comportamiento diario.</p>
           </div>
         </div>
         ${renderHeatmap(calendar)}
@@ -4174,17 +4187,19 @@ export function renderDiscipline(root, state) {
   }
 
   const authority = resolveAccountDataAuthority(account);
-  console.info("[KMFX][EXECUTION_AUTHORITY]", {
-    account_id: account?.id || "",
-    login: account?.login || "",
-    broker: account?.broker || "",
-    payloadSource: authority.payloadSource,
-    tradeCount: authority.tradeCount,
-    historyPoints: authority.historyPoints,
-    firstTradeLabel: authority.firstTradeLabel,
-    lastTradeLabel: authority.lastTradeLabel,
-    sourceUsed: authority.sourceUsed,
-  });
+  if (window.__KMFX_DEBUG__ === true) {
+    console.info("[KMFX][EXECUTION_AUTHORITY]", {
+      account_id: account?.id || "",
+      login: account?.login || "",
+      broker: account?.broker || "",
+      payloadSource: authority.payloadSource,
+      tradeCount: authority.tradeCount,
+      historyPoints: authority.historyPoints,
+      firstTradeLabel: authority.firstTradeLabel,
+      lastTradeLabel: authority.lastTradeLabel,
+      sourceUsed: authority.sourceUsed,
+    });
+  }
 
   root.innerHTML = `
     <section id="section-discipline" class="discipline-page-stack execution-page kmfx-page kmfx-page--spacious"></section>

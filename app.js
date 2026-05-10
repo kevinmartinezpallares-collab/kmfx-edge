@@ -1,32 +1,32 @@
-import { createStore } from "./js/modules/store.js?v=build-20260509-150500";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260509-150500";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260509-150500";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260509-150500";
-import { openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260509-150500";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260509-150500";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260509-150500";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260509-150500";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260509-150500";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260509-150500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260509-150500";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260509-150500";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260509-150500";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260509-150500";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260509-150500";
-import { renderMarket } from "./js/modules/market.js?v=build-20260509-150500";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260509-150500";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260509-150500";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260509-150500";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260509-150500";
-import "./js/modules/modal-system.js?v=build-20260509-150500";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260509-150500";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260509-150500";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260509-150500";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260509-150500";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260509-150500";
-import { hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260509-150500";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260509-150500";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260509-150500";
+import { createStore } from "./js/modules/store.js?v=build-20260510-110500";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260510-110500";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260510-110500";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260510-110500";
+import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260510-110500";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260510-110500";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260510-110500";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260510-110500";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260510-110500";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260510-110500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260510-110500";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260510-110500";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260510-110500";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260510-110500";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260510-110500";
+import { renderMarket } from "./js/modules/market.js?v=build-20260510-110500";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260510-110500";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260510-110500";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260510-110500";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260510-110500";
+import "./js/modules/modal-system.js?v=build-20260510-110500";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260510-110500";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260510-110500";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-110500";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260510-110500";
+import { hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260510-110500";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260510-110500";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260509-150500";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260509-150500";
+} from "./js/modules/auth-session.js?v=build-20260510-110500";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260510-110500";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,8 +45,8 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260509-150500";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260509-150500";
+} from "./js/modules/supabase-user-config.js?v=build-20260510-110500";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260510-110500";
 import {
   resolveAccountsRegistryUrl,
   resolveAccountsSnapshotUrl,
@@ -54,12 +54,17 @@ import {
   resolveBillingCheckoutUrl,
   resolveBillingPortalUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260509-150500";
+} from "./js/modules/api-config.js?v=build-20260510-110500";
 
-const BUILD_TAG = "build-20260509-150500";
+const BUILD_TAG = "build-20260510-110500";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
+const POST_TRADE_PORTAL_ID = "kmfx-posttrade-portal";
+const postTradeAutoPromptState = {
+  seededAccounts: new Set(),
+  seenTradeIdsByAccount: new Map()
+};
 
 function ensureLightCardFlattening() {
   const styleId = "light-card-flatten-runtime";
@@ -213,30 +218,17 @@ function applyInitialRouteState() {
 function openPostTradeTagFromIntent(trade) {
   if (!trade) return;
   const currentState = store.getState();
-  if (currentState.ui.activePage !== "discipline") {
-    store.setState((state) => ({
-      ...state,
-      ui: {
-        ...state.ui,
-        activePage: "discipline"
-      }
-    }));
-  }
+  const account = selectCurrentAccount(currentState);
+  const model = selectCurrentModel(currentState);
+  const target = ensurePostTradePortal();
+  if (!target || !model) return;
 
   requestAnimationFrame(() => {
-    const nextState = store.getState();
-    const root = document.getElementById("disciplineRoot");
-    renderDiscipline(root, nextState);
-
-    const account = selectCurrentAccount(nextState);
-    const model = selectCurrentModel(nextState);
-    const target = root?.querySelector("#section-discipline");
-    if (!target || !model) return;
-
     openPostTradeModal(trade, {
       target,
       model,
-      accountLogin: account?.login || ""
+      accountLogin: account?.login || "",
+      modalOnly: true
     });
   });
 }
@@ -244,6 +236,84 @@ function openPostTradeTagFromIntent(trade) {
 function initPostTradeTagBridge() {
   window.addEventListener("kmfx:open-post-trade-tag", (event) => {
     openPostTradeTagFromIntent(event.detail?.trade);
+  });
+}
+
+function ensurePostTradePortal() {
+  if (typeof document === "undefined") return null;
+  let portal = document.getElementById(POST_TRADE_PORTAL_ID);
+  if (!portal) {
+    portal = document.createElement("div");
+    portal.id = POST_TRADE_PORTAL_ID;
+    portal.setAttribute("aria-live", "polite");
+    document.body.appendChild(portal);
+  }
+  return portal;
+}
+
+function stablePostTradeKey(trade = {}) {
+  const explicit = trade.id || trade.ticket || trade.ticketId || trade.dealId || trade.orderId || trade.positionId || trade.position_id;
+  if (explicit) return String(explicit);
+  return [
+    trade.symbol || trade.pair || "trade",
+    trade.direction || trade.side || trade.type || "",
+    trade.closeTime || trade.close_time || trade.time || trade.date || trade.timestamp || "",
+    trade.openTime || trade.open_time || "",
+    trade.pnl ?? trade.profit ?? trade.net ?? "",
+    trade.volume ?? ""
+  ].join(":");
+}
+
+function postTradeTimestamp(trade = {}) {
+  const raw = trade.when || trade.closeTime || trade.close_time || trade.time || trade.date || trade.timestamp;
+  const parsed = raw instanceof Date ? raw : new Date(raw || 0);
+  return Number.isFinite(parsed.getTime()) ? parsed.getTime() : 0;
+}
+
+function isClosedTradeForPostReview(trade = {}) {
+  if (!trade || typeof trade !== "object") return false;
+  if (trade.isOpen === true || trade.status === "open") return false;
+  return Boolean(trade.closeTime || trade.close_time || trade.time || trade.date || trade.when || trade.timestamp);
+}
+
+function seedSeenPostTrades(accountKey, trades = []) {
+  const seen = postTradeAutoPromptState.seenTradeIdsByAccount.get(accountKey) || new Set();
+  trades.filter(isClosedTradeForPostReview).forEach((trade) => {
+    seen.add(stablePostTradeKey(trade));
+  });
+  postTradeAutoPromptState.seenTradeIdsByAccount.set(accountKey, seen);
+  postTradeAutoPromptState.seededAccounts.add(accountKey);
+}
+
+function initPostTradeAutoPrompt() {
+  store.subscribe((state) => {
+    const account = selectCurrentAccount(state);
+    const model = selectCurrentModel(state);
+    const trades = Array.isArray(model?.trades) ? model.trades : [];
+    const accountKey = String(account?.id || account?.login || state.activeAccountId || state.currentAccount || "active");
+    if (!trades.length) return;
+    if (!postTradeAutoPromptState.seededAccounts.has(accountKey)) {
+      seedSeenPostTrades(accountKey, trades);
+      return;
+    }
+    if (document.getElementById("kmfx-posttrade-modal")) return;
+
+    const seen = postTradeAutoPromptState.seenTradeIdsByAccount.get(accountKey) || new Set();
+    const tagMap = loadPostTradeTags();
+    const reviewedIds = new Set(Object.keys(tagMap || {}));
+    const newClosedTrades = trades
+      .filter(isClosedTradeForPostReview)
+      .filter((trade) => {
+        const key = stablePostTradeKey(trade);
+        if (seen.has(key) || reviewedIds.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => postTradeTimestamp(b) - postTradeTimestamp(a));
+
+    postTradeAutoPromptState.seenTradeIdsByAccount.set(accountKey, seen);
+    if (!newClosedTrades.length) return;
+    openPostTradeTagFromIntent(newClosedTrades[0]);
   });
 }
 
@@ -974,6 +1044,7 @@ async function bootstrapApp() {
   initSidebarVNext();
   initConnectionWizard(store);
   initPostTradeTagBridge();
+  initPostTradeAutoPrompt();
   initSettings(authSession);
   startClock();
   store.subscribe(() => renderActivePage());

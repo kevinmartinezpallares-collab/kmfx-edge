@@ -36179,6 +36179,14 @@ body[data-theme="dark"] #section-discipline .execution-config-zone__head strong 
   color: var(--text-0);
 }
 
+html[data-theme="dark"] #section-discipline .execution-review-queue__head small,
+body[data-theme="dark"] #section-discipline .execution-review-queue__head small {
+  max-width: 54ch;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-3);
+}
+
 html[data-theme="dark"] #section-discipline .execution-review-queue__actions,
 body[data-theme="dark"] #section-discipline .execution-review-queue__actions {
   display: inline-flex;
