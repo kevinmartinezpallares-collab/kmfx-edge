@@ -279,6 +279,68 @@ class SupabaseAccountStore(AccountStore):
                 records.append(record)
         return [record_to_account(record) for record in records]
 
+    def list_accounts_for_user(self, user_id: str) -> list[Account]:
+        clean_user_id = str(user_id or "").strip()
+        if not clean_user_id:
+            return []
+        rows = self._request(
+            "GET",
+            query={
+                "select": "record",
+                "user_id": f"eq.{clean_user_id}",
+                "order": "updated_at.asc",
+                "limit": "1000",
+            },
+        )
+        if not isinstance(rows, list):
+            return []
+        records = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            record = row.get("record")
+            if isinstance(record, dict):
+                records.append(record)
+        return [record_to_account(record) for record in records]
+
+    def find_account_by_connection_key_hash(self, connection_key_hash: str) -> Account | None:
+        clean_hash = str(connection_key_hash or "").strip()
+        if not clean_hash:
+            return None
+        rows = self._request(
+            "GET",
+            query={
+                "select": "record",
+                "connection_key_hash": f"eq.{clean_hash}",
+                "limit": "1",
+            },
+        )
+        if not isinstance(rows, list) or not rows:
+            return None
+        first = rows[0] if isinstance(rows[0], dict) else {}
+        record = first.get("record") if isinstance(first, dict) else None
+        return record_to_account(record) if isinstance(record, dict) else None
+
+    def find_account_by_user_and_connection_key_hash(self, user_id: str, connection_key_hash: str) -> Account | None:
+        clean_user_id = str(user_id or "").strip()
+        clean_hash = str(connection_key_hash or "").strip()
+        if not clean_user_id or not clean_hash:
+            return None
+        rows = self._request(
+            "GET",
+            query={
+                "select": "record",
+                "user_id": f"eq.{clean_user_id}",
+                "connection_key_hash": f"eq.{clean_hash}",
+                "limit": "1",
+            },
+        )
+        if not isinstance(rows, list) or not rows:
+            return None
+        first = rows[0] if isinstance(rows[0], dict) else {}
+        record = first.get("record") if isinstance(first, dict) else None
+        return record_to_account(record) if isinstance(record, dict) else None
+
     def save_accounts(self, accounts: Iterable[Account]) -> None:
         rows = []
         for account in accounts:

@@ -8,10 +8,22 @@ class MemorySupabaseAccountStore(SupabaseAccountStore):
     def __init__(self):
         super().__init__("https://example.supabase.co", "service-role-test")
         self.rows = []
+        self.queries = []
 
     def _request(self, method, *, query=None, payload=None, prefer="return=representation"):
         if method == "GET":
-            return [{"record": row["record"]} for row in self.rows]
+            self.queries.append(dict(query or {}))
+            rows = list(self.rows)
+            user_filter = str((query or {}).get("user_id") or "")
+            if user_filter.startswith("eq."):
+                expected_user = user_filter.removeprefix("eq.")
+                rows = [row for row in rows if row.get("user_id") == expected_user]
+            key_hash_filter = str((query or {}).get("connection_key_hash") or "")
+            if key_hash_filter.startswith("eq."):
+                expected_hash = key_hash_filter.removeprefix("eq.")
+                rows = [row for row in rows if row.get("connection_key_hash") == expected_hash]
+            limit = int((query or {}).get("limit") or len(rows) or 0)
+            return [{"record": row["record"]} for row in rows[:limit]]
         if method == "POST":
             for incoming in payload:
                 existing = next((row for row in self.rows if row["account_id"] == incoming["account_id"]), None)
@@ -37,11 +49,34 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertNotIn("kmfx-secret-key", str(store.rows))
 
         restarted_service = AccountService(store)
+        store.queries.clear()
         matched = restarted_service.get_account_by_api_key_any_user("kmfx-secret-key")
 
         self.assertIsNotNone(matched)
         self.assertEqual(created.account_id, matched.account_id)
         self.assertEqual("user-123", matched.user_id)
+        self.assertEqual("eq." + created.connection_key_hash, store.queries[0]["connection_key_hash"])
+        self.assertEqual("1", store.queries[0]["limit"])
+
+    def test_user_account_listing_filters_in_supabase_query(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        mine = service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Mine",
+            connection_key="mine-key",
+        )
+        service.create_pending_account_with_key(
+            user_id="other-user",
+            alias="Other",
+            connection_key="other-key",
+        )
+
+        store.queries.clear()
+        accounts = service.list_accounts("user-123")
+
+        self.assertEqual([mine.account_id], [account.account_id for account in accounts])
+        self.assertEqual("eq.user-123", store.queries[0]["user_id"])
 
 
 if __name__ == "__main__":

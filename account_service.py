@@ -229,7 +229,12 @@ class AccountService:
         self.store = store
 
     def list_accounts(self, user_id: str = "local") -> list[Account]:
-        accounts = [account for account in self.store.list_accounts() if account.user_id == user_id and not _is_deleted(account)]
+        list_for_user = getattr(self.store, "list_accounts_for_user", None)
+        if callable(list_for_user):
+            source_accounts = list_for_user(user_id)
+        else:
+            source_accounts = self.store.list_accounts()
+        accounts = [account for account in source_accounts if account.user_id == user_id and not _is_deleted(account)]
         accounts.sort(key=lambda item: ((not item.is_primary and not item.is_default), item.nickname or "", item.login))
         return accounts
 
@@ -523,6 +528,17 @@ class AccountService:
         normalized = normalize_connection_key(api_key)
         if not normalized:
             return None
+        finder = getattr(self.store, "find_account_by_user_and_connection_key_hash", None)
+        if callable(finder):
+            account = finder(user_id, hash_connection_key(normalized))
+            if (
+                account is not None
+                and account.user_id == user_id
+                and _account_connection_key_matches(account, normalized)
+                and not _is_archived(account)
+                and not _is_connection_key_revoked(account)
+            ):
+                return deepcopy(account)
         account = next(
             (
                 account
@@ -540,6 +556,16 @@ class AccountService:
         normalized = normalize_connection_key(api_key)
         if not normalized:
             return None
+        finder = getattr(self.store, "find_account_by_connection_key_hash", None)
+        if callable(finder):
+            account = finder(hash_connection_key(normalized))
+            if (
+                account is not None
+                and _account_connection_key_matches(account, normalized)
+                and not _is_archived(account)
+                and not _is_connection_key_revoked(account)
+            ):
+                return deepcopy(account)
         account = next(
             (
                 account
