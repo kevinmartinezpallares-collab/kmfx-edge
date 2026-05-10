@@ -4262,6 +4262,119 @@ def request_header(request: Request, name: str) -> str:
     return ""
 
 
+def json_request_max_body_bytes(route: str) -> int:
+    if route == "/api/post-trade/reviews":
+        return _env_int("KMFX_REVIEW_JSON_MAX_BODY_BYTES", default=128 * 1024)
+    return _env_int("KMFX_MUTATION_JSON_MAX_BODY_BYTES", default=64 * 1024)
+
+
+def json_payload_error_response(
+    reason: str,
+    *,
+    route: str,
+    details: dict[str, Any] | None = None,
+    status_code: int = 400,
+) -> JSONResponse:
+    return connector_json_response(
+        {
+            "ok": False,
+            "reason": reason,
+            "error": reason,
+            "details": details or {},
+            "route": route,
+            "timestamp": now_iso(),
+        },
+        status_code=status_code,
+    )
+
+
+async def read_json_object_payload(
+    request: Request,
+    route: str,
+    *,
+    max_bytes: int | None = None,
+) -> tuple[dict[str, Any], JSONResponse | None]:
+    max_body_bytes = max_bytes or json_request_max_body_bytes(route)
+    content_length = request_header(request, "content-length")
+    if content_length:
+        try:
+            declared_bytes = int(content_length)
+        except ValueError:
+            declared_bytes = None
+        if declared_bytes is not None and declared_bytes > max_body_bytes:
+            log.warning(
+                "JSON payload rejected before read | route=%s declared_bytes=%s max_bytes=%s",
+                route,
+                declared_bytes,
+                max_body_bytes,
+            )
+            return {}, json_payload_error_response(
+                "payload_too_large",
+                route=route,
+                details={"max_bytes": max_body_bytes, "actual_bytes": declared_bytes},
+                status_code=413,
+            )
+
+    body_reader = getattr(request, "body", None)
+    if callable(body_reader):
+        try:
+            raw_body = await body_reader()
+        except Exception as exc:
+            log.exception("JSON body read failed | route=%s error=%s", route, exc)
+            return {}, json_payload_error_response(
+                "invalid_json",
+                route=route,
+                details={"field": "body", "problem": "body_read_failed"},
+                status_code=400,
+            )
+        body_bytes = raw_body.encode("utf-8") if isinstance(raw_body, str) else bytes(raw_body or b"")
+        if len(body_bytes) > max_body_bytes:
+            log.warning(
+                "JSON payload rejected after read | route=%s actual_bytes=%s max_bytes=%s",
+                route,
+                len(body_bytes),
+                max_body_bytes,
+            )
+            return {}, json_payload_error_response(
+                "payload_too_large",
+                route=route,
+                details={"max_bytes": max_body_bytes, "actual_bytes": len(body_bytes)},
+                status_code=413,
+            )
+        if not body_bytes.strip():
+            return {}, None
+        try:
+            payload = json.loads(body_bytes.decode("utf-8"))
+        except Exception as exc:
+            log.exception("JSON payload rejected | route=%s error=%s", route, exc)
+            return {}, json_payload_error_response(
+                "invalid_json",
+                route=route,
+                details={"field": "body", "problem": "invalid_json"},
+                status_code=400,
+            )
+    else:
+        try:
+            payload = await request.json()
+        except Exception as exc:
+            log.exception("JSON payload rejected | route=%s error=%s", route, exc)
+            return {}, json_payload_error_response(
+                "invalid_json",
+                route=route,
+                details={"field": "body", "problem": "invalid_json"},
+                status_code=400,
+            )
+
+    if not isinstance(payload, dict):
+        return {}, json_payload_error_response(
+            "invalid_payload",
+            route=route,
+            details={"field": "body", "problem": "json_object_required"},
+            status_code=400,
+        )
+    return payload, None
+
+
 def mt5_payload_too_large_response(
     route: str,
     max_bytes: int,
@@ -4421,10 +4534,9 @@ async def create_account(request: Request) -> JSONResponse:
     )
     if rate_limited is not None:
         return rate_limited
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
+    payload, payload_error = await read_json_object_payload(request, "/accounts")
+    if payload_error is not None:
+        return payload_error
 
     alias = safe_str(payload.get("alias"))
     platform = safe_str(payload.get("platform"), "mt5")
@@ -4504,22 +4616,19 @@ async def direct_mt5_brokers(
 
 @app.post("/api/direct-mt5/link")
 async def direct_mt5_link(request: Request) -> JSONResponse:
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-    payload = dict(payload) if isinstance(payload, dict) else {}
+    payload, payload_error = await read_json_object_payload(request, "/api/direct-mt5/link")
+    if payload_error is not None:
+        return payload_error
     payload["connection_mode"] = "direct"
     return await link_account_from_payload(request, payload)
 
 
 @app.post("/api/accounts/link")
 async def link_account(request: Request) -> JSONResponse:
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-    return await link_account_from_payload(request, payload if isinstance(payload, dict) else {})
+    payload, payload_error = await read_json_object_payload(request, "/api/accounts/link")
+    if payload_error is not None:
+        return payload_error
+    return await link_account_from_payload(request, payload)
 
 
 async def link_account_from_payload(request: Request, payload: dict[str, Any]) -> JSONResponse:
@@ -4944,11 +5053,9 @@ async def save_post_trade_review(request: Request) -> JSONResponse:
     )
     if rate_limited is not None:
         return rate_limited
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-    payload = payload if isinstance(payload, dict) else {}
+    payload, payload_error = await read_json_object_payload(request, "/api/post-trade/reviews")
+    if payload_error is not None:
+        return payload_error
     account_id = safe_str(payload.get("account_id"))
     trade_id = safe_str(payload.get("trade_id") or payload.get("tradeId"))
     if not account_id or not trade_id:
@@ -5937,6 +6044,9 @@ async def billing_status(request: Request) -> JSONResponse:
 
 @app.post("/api/billing/checkout")
 async def billing_checkout(request: Request) -> JSONResponse:
+    payload, payload_error = await read_json_object_payload(request, "/api/billing/checkout")
+    if payload_error is not None:
+        return payload_error
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
@@ -5948,13 +6058,6 @@ async def billing_checkout(request: Request) -> JSONResponse:
     )
     if rate_limited is not None:
         return rate_limited
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-    if not isinstance(payload, dict):
-        payload = {}
-
     plan = normalize_plan_key(payload.get("plan") or payload.get("plan_key") or payload.get("planKey") or "pro")
     interval = safe_str(payload.get("interval") or payload.get("cadence") or "monthly").lower()
     if interval not in {"monthly", "yearly"}:
@@ -6043,6 +6146,9 @@ async def billing_checkout(request: Request) -> JSONResponse:
 
 @app.post("/api/billing/portal")
 async def billing_portal(request: Request) -> JSONResponse:
+    payload, payload_error = await read_json_object_payload(request, "/api/billing/portal")
+    if payload_error is not None:
+        return payload_error
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
@@ -6060,12 +6166,6 @@ async def billing_portal(request: Request) -> JSONResponse:
         reason = safe_str(exc) or "billing_customer_failed"
         status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-    if not isinstance(payload, dict):
-        payload = {}
     try:
         session = stripe_api_request(
             "POST",

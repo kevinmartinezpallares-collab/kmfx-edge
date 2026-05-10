@@ -211,6 +211,50 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(len(oversized_body), body["details"]["actual_bytes"])
         self.assertNotIn("secret-value", body_text)
 
+    def test_mutation_json_payload_requires_object(self) -> None:
+        request = self._request(
+            host="127.0.0.1",
+            headers={"x-kmfx-user-id": "user-invalid-payload"},
+            json_body=["not", "an", "object"],
+        )
+        response = asyncio.run(connector_api.link_account(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("invalid_payload", body["reason"])
+        self.assertEqual("json_object_required", body["details"]["problem"])
+
+    def test_mutation_json_payload_rejects_oversized_body_without_echoing_payload(self) -> None:
+        oversized_body = json.dumps({"label": "secret-value" * 20}).encode("utf-8")
+        request = self._request(
+            host="127.0.0.1",
+            headers={"x-kmfx-user-id": "user-oversized-payload"},
+            body_bytes=oversized_body,
+        )
+        with patch.dict("os.environ", {"KMFX_MUTATION_JSON_MAX_BODY_BYTES": "32"}, clear=False):
+            response = asyncio.run(connector_api.link_account(request))
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(413, response.status_code)
+        self.assertEqual("payload_too_large", body["reason"])
+        self.assertEqual(32, body["details"]["max_bytes"])
+        self.assertEqual(len(oversized_body), body["details"]["actual_bytes"])
+        self.assertNotIn("secret-value", body_text)
+
+    def test_billing_checkout_rejects_non_object_payload_before_stripe(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-invalid-payload-token"},
+            json_body=["pro"],
+        )
+        with patch.object(connector_api, "stripe_api_request") as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("invalid_payload", body["reason"])
+        stripe_mock.assert_not_called()
+
     def test_link_account_returns_key_once_and_persists_only_hash(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
