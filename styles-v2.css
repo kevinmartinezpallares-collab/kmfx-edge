@@ -36068,7 +36068,9 @@ body[data-theme="dark"] .journal-source-panel__head span,
 html[data-theme="dark"] .journal-source-card span,
 body[data-theme="dark"] .journal-source-card span,
 html[data-theme="dark"] .journal-ai-coverage span,
-body[data-theme="dark"] .journal-ai-coverage span {
+body[data-theme="dark"] .journal-ai-coverage span,
+html[data-theme="dark"] .journal-ai-evidence-checklist__item span,
+body[data-theme="dark"] .journal-ai-evidence-checklist__item span {
   display: block;
   margin-bottom: 7px;
   color: var(--text-2);
@@ -36188,6 +36190,47 @@ body[data-theme="dark"] .journal-ai-coverage li {
   color: var(--text-2);
   font-size: 12px;
   line-height: 1.42;
+}
+
+html[data-theme="dark"] .journal-ai-evidence-checklist,
+body[data-theme="dark"] .journal-ai-evidence-checklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+html[data-theme="dark"] .journal-ai-evidence-checklist__item,
+body[data-theme="dark"] .journal-ai-evidence-checklist__item {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  min-height: 118px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--kmfx-border));
+  border-radius: var(--kmfx-card-radius);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.006)),
+    color-mix(in srgb, var(--kmfx-card-bg-soft) 92%, rgba(75, 128, 255, 0.032));
+}
+
+html[data-theme="dark"] .journal-ai-evidence-checklist__item strong,
+body[data-theme="dark"] .journal-ai-evidence-checklist__item strong {
+  color: var(--text-0);
+  font-size: 17px;
+  line-height: 1.12;
+  font-weight: 780;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-theme="dark"] .journal-ai-evidence-checklist__item small,
+body[data-theme="dark"] .journal-ai-evidence-checklist__item small {
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 /* === EXECUTION QUALITY OVERVIEW === */
@@ -42950,6 +42993,7 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     .journal-daily-panel,
     .journal-leaks-panel,
     .journal-ai-export-panel,
+    .journal-ai-evidence-checklist,
     .journal-subpage-hero,
     .journal-subpage-hero__copy,
     .strategies-table-card,
@@ -42983,6 +43027,9 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
   .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
   html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
   body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-export-grid,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
   .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
   html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
   body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-leaks-grid,
@@ -43050,7 +43097,11 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
     .journal-ai-export-item,
     .journal-ai-export-item span,
     .journal-ai-export-item strong,
-    .journal-ai-export-item small
+    .journal-ai-export-item small,
+    .journal-ai-evidence-checklist__item,
+    .journal-ai-evidence-checklist__item span,
+    .journal-ai-evidence-checklist__item strong,
+    .journal-ai-evidence-checklist__item small
   ) {
     min-width: 0 !important;
     max-width: 100% !important;
@@ -43225,6 +43276,9 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
   .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
   html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
   body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__ops,
+  .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
+  html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
+  body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-ai-evidence-checklist,
   .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
   html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,
   body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .journal-cockpit-hero__meta,

@@ -3315,7 +3315,7 @@ function buildExecutionReadiness({
     ? "histórico MT5 y revisión manual"
     : recentTrades.length
       ? "histórico MT5 con reglas inferidas"
-      : "datos de ejemplo de la app";
+      : "sin histórico suficiente";
   const summary = recentTrades.length
     ? `Basado en ${recentTrades.length} operaciones cerradas de MT5; ${source}.`
     : "Aún no hay operaciones cerradas suficientes para una lectura fiable.";
@@ -3497,7 +3497,7 @@ function renderExecutionDataMap({
       ${executionDataMapCard({
         label: "MT5 automático",
         value: `${recentTrades.length} operaciones`,
-        copy: "Entrada, cierre, hora, símbolo y resultado salen del histórico sincronizado por el EA.",
+        copy: "Entrada, cierre, hora, símbolo y resultado salen del histórico real sincronizado por el EA.",
         tone: recentTrades.length ? "ok" : "pending"
       })}
       ${executionDataMapCard({
@@ -3509,13 +3509,13 @@ function renderExecutionDataMap({
       ${executionDataMapCard({
         label: "Reglas",
         value: `${reliableRules}/${visibleRules.length || 0} fiables`,
-        copy: manualRules ? `${manualRules} reglas usan tags manuales; el resto se infiere desde MT5.` : "Las reglas visibles se infieren desde MT5 hasta que añadas tags manuales.",
+        copy: manualRules ? `${manualRules} reglas usan revisión manual; el resto se infiere desde MT5.` : "Las reglas visibles se leen desde MT5 hasta que añadas contexto manual.",
         tone: reliableRules ? "inferred" : "pending"
       })}
       ${executionDataMapCard({
         label: "Precisión de entrada",
         value: hasEntryTracking ? "Con tracking" : "Pendiente EA",
-        copy: hasEntryTracking ? "La desviación frente a la entrada ideal ya se puede leer." : "Hasta recibir ob_price/entrada ideal, esta parte queda como lectura pendiente.",
+        copy: hasEntryTracking ? "La desviación frente a la entrada ideal ya se puede leer." : "Hasta que el EA envíe entrada ideal, esta tarjeta queda como pendiente y no penaliza el score.",
         tone: hasEntryTracking ? "ok" : "pending"
       })}
       ${executionDataMapCard({

@@ -82,6 +82,19 @@ class JournalProDesktopContractTests(unittest.TestCase):
         self.assertRegex(journal, r"const showCockpit\s*=\s*activePage === \"journal\";")
         self.assertIn('const showAiExport = activePage === "journal-ai-review";', journal)
         self.assertIn('Reporte Markdown para enviar fuera del panel a una IA externa.', journal)
+        self.assertIn("journalAiEvidenceChecklistMarkup", journal)
+        self.assertIn("Métricas completas", journal)
+        self.assertIn("professional_metrics, policy_evaluation, summary y totales", journal)
+
+    def test_journal_production_copy_keeps_debug_logs_and_review_coverage_safe(self) -> None:
+        journal = read_text("js/modules/journal.js")
+
+        self.assertIn("Math.min(100, (reviewEntries.length / trades.length) * 100)", journal)
+        debug_guard = journal.find("if (window.__KMFX_DEBUG__ === true) {")
+        debug_log = journal.find('console.info("[KMFX][JOURNAL_AUTHORITY]"')
+        self.assertGreaterEqual(debug_guard, 0)
+        self.assertGreater(debug_log, debug_guard)
+        self.assertIn('cockpit.model.account?.currency || account.currency || "USD"', journal)
 
     def test_funding_rules_and_payouts_are_not_duplicate_pages(self) -> None:
         funded = read_text("js/modules/funded.js")

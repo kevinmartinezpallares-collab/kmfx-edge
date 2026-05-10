@@ -38,6 +38,15 @@ class ExecutionPostTradeFlowTests(unittest.TestCase):
         self.assertNotIn("Completar tags", discipline)
         self.assertNotIn("Simular cierre", discipline)
         self.assertNotIn("Guardar tag", discipline)
+        self.assertNotIn("datos de ejemplo de la app", discipline)
+
+    def test_execution_data_map_explains_real_mt5_manual_and_pending_ea_sources(self) -> None:
+        discipline = read_text("js/modules/discipline.js")
+
+        self.assertIn("histórico real sincronizado por el EA", discipline)
+        self.assertIn("Las reglas visibles se leen desde MT5", discipline)
+        self.assertIn("esta tarjeta queda como pendiente y no penaliza el score", discipline)
+        self.assertIn("sin histórico suficiente", discipline)
 
     def test_post_trade_reviews_have_backend_persistence_path(self) -> None:
         discipline = read_text("js/modules/discipline.js")

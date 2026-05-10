@@ -181,7 +181,7 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
   const winRate = safeNumber(performance.win_rate_pct, safeNumber(totals.winRate, 0));
   const maxDd = safeNumber(riskSummary.peak_to_equity_drawdown_pct, safeNumber(drawdown.maxPct, 0));
   const averageR = safeNumber(performance.expectancy_r, NaN);
-  const reviewedPct = trades.length ? (reviewEntries.length / trades.length) * 100 : 0;
+  const reviewedPct = trades.length ? Math.min(100, (reviewEntries.length / trades.length) * 100) : 0;
   const dailyRead = (() => {
     if (policyIssues > 0) {
       return {
@@ -770,6 +770,55 @@ function journalDataSourcePanelMarkup(cockpit, authorityMeta, currency) {
   `;
 }
 
+function journalAiEvidenceChecklistMarkup(cockpit, state) {
+  const backtestCount = safeArray(state.workspace?.strategies?.backtests).length;
+  const openPositions = resolveOpenPositions(selectCurrentAccount(state)).length;
+  const items = [
+    {
+      label: "Snapshot de cuenta",
+      value: "Balance, equity, margen y posiciones",
+      detail: `${openPositions} posiciones abiertas incluidas si MT5 las envía`
+    },
+    {
+      label: "Métricas completas",
+      value: "Rendimiento, riesgo, sizing y política",
+      detail: "professional_metrics, policy_evaluation, summary y totales"
+    },
+    {
+      label: "Operaciones MT5",
+      value: `${cockpit.trades.length} trades normalizados`,
+      detail: "Cierres, P&L, símbolos, sesiones, parciales y patrones"
+    },
+    {
+      label: "Diario y revisión",
+      value: `${cockpit.reviewEntries.length} revisiones manuales`,
+      detail: "Errores, emociones, lecciones y cola de revisión"
+    },
+    {
+      label: "Estrategias y backtest",
+      value: backtestCount ? `${backtestCount} datasets vinculados` : "Sin backtest vinculado",
+      detail: backtestCount ? "Incluye comparativa backtest vs real" : "El reporte lo marca como muestra pendiente"
+    },
+    {
+      label: "Prop firm y riesgo",
+      value: cockpit.riskMeta.label,
+      detail: "Drawdown, buffers, heat, límites y alertas si existen"
+    }
+  ];
+
+  return `
+    <div class="journal-ai-evidence-checklist" aria-label="Cobertura del reporte IA">
+      ${items.map((item) => `
+        <article class="journal-ai-evidence-checklist__item">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <small>${escapeHtml(item.detail)}</small>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
 function buildExternalAiEvidenceMarkdown(state) {
   const account = selectCurrentAccount(state);
   if (!account) throw new Error("No hay cuenta activa para exportar.");
@@ -1195,19 +1244,21 @@ export function renderJournal(root, state) {
     return;
   }
   const authorityMeta = describeAccountAuthority(account, "workspace");
-  console.info("[KMFX][JOURNAL_AUTHORITY]", {
-    account_id: account?.id || "",
-    login: account?.login || "",
-    broker: account?.broker || "",
-    payloadSource: authorityMeta.authority.payloadSource,
-    tradeCount: authorityMeta.authority.tradeCount,
-    sourceUsed: "manual_journal",
-  });
+  if (window.__KMFX_DEBUG__ === true) {
+    console.info("[KMFX][JOURNAL_AUTHORITY]", {
+      account_id: account?.id || "",
+      login: account?.login || "",
+      broker: account?.broker || "",
+      payloadSource: authorityMeta.authority.payloadSource,
+      tradeCount: authorityMeta.authority.tradeCount,
+      sourceUsed: "manual_journal",
+    });
+  }
 
   const { entries } = state.workspace.journal;
   const accountEntries = entries.filter((entry) => entry.accountId === account.id);
   const cockpit = buildJournalCockpit(account, accountEntries, authorityMeta);
-  const currency = cockpit.model.account?.currency;
+  const currency = cockpit.model.account?.currency || account.currency || "USD";
   const latestEntry = accountEntries[0];
   const activePage = state.ui.activePage || "journal";
   const pageTitle = activePage === "journal-review"
@@ -1408,6 +1459,7 @@ export function renderJournal(root, state) {
             <li>Evidencia operativa: peores patrones, cola de revisión, operaciones clave y entradas manuales.</li>
           </ul>
         </div>
+        ${journalAiEvidenceChecklistMarkup(cockpit, state)}
       </article>
       ` : ""}
 
