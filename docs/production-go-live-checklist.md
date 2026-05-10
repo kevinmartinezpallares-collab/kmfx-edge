@@ -134,6 +134,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
   - `kmfx_pro_yearly`
   - `kmfx_unlimited_monthly`
   - `kmfx_unlimited_yearly`
+- [x] Confirmar fallback production por Price IDs live en Render.
 - [ ] Configurar Customer Portal.
 - [ ] Configurar webhook endpoint.
 - [ ] Revisar recibos automaticos de Stripe.
@@ -149,6 +150,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Probar cambio de plan end-to-end en Stripe test/live controlado.
 - [ ] Probar renovacion end-to-end en Stripe test/live controlado.
 - [ ] Probar cupon comunidad 100%.
+- [x] Confirmar cupon comunidad 100% creado en Stripe.
 - [x] Asegurar que webhooks solo afectan productos KMFX.
 - [x] Verificar idempotencia `stripe_event_id`.
 - [x] Verificar `GET /api/billing/status`.
@@ -179,6 +181,14 @@ Notas 2026-05-09:
 - Backend validado con Price IDs live como fallback: `tests.test_connector_cors_config` pasa 84 tests, incluyendo mapping de Price IDs a planes, checkout, portal, webhook, rate limit e idempotencia.
 - Probe production tras ultimo push: `/health` responde `ok` con commit `c4f2746`, y `/api/billing/checkout` sin bearer sigue rechazando `401 auth_required`.
 - Emails transaccionales de billing cerrados a nivel de contrato backend: compra, pago fallido/pago con accion requerida y cancelacion. Los webhooks adjuntan el resultado del envio sin bloquear la sincronizacion de plan si Resend falla o falta destinatario.
+
+Notas 2026-05-10:
+
+- Stripe MCP confirma cuenta `Kevinmartinezfx`, producto live `prod_UT7nzmgj3Eg3Zv` y los seis Prices KMFX esperados.
+- Stripe MCP sigue devolviendo vacio para las lookup keys `kmfx_basic_*`, `kmfx_pro_*` y `kmfx_unlimited_*`. No bloquea el flujo actual porque Render usa Price IDs live como referencia server-side.
+- Render API confirma sin exponer secretos que `kmfx-edge-api` tiene `STRIPE_SECRET_KEY` live, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRODUCT_ID`, los seis `STRIPE_PRICE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, trial 7 dias y `NEXT_PUBLIC_APP_URL=https://kmfxedge.com`.
+- Render API confirma que los seis `STRIPE_PRICE_*` coinciden exactamente con el catalogo live documentado. No hay `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, no bloqueante mientras el frontend use Checkout redirigido y no Stripe Elements.
+- Stripe MCP confirma el cupon `KMFX Comunidad Privada` con `percent_off=100`, duracion `forever`. Falta probar su aplicacion en una compra real/controlada.
 
 Criterio de salida:
 

@@ -53,6 +53,8 @@ STRIPE_PRICE_UNLIMITED_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
 STRIPE_PRICE_UNLIMITED_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
 ```
 
+Production checkpoint 2026-05-10: Render `kmfx-edge-api` has these six live Price IDs configured and matching the Stripe catalog. Lookup keys remain preferred for future maintainability, but Price IDs are the active production contract until Stripe Dashboard/API metadata is completed.
+
 Use either lookup keys or Price IDs, never client-provided prices.
 
 ## Security rules
