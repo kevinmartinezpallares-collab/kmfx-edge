@@ -216,6 +216,7 @@ Objetivo: no abrir superficie sensible sin controles.
 - [ ] Activar secret scanning GitHub.
 - [ ] Activar push protection GitHub.
 - [ ] Activar Dependabot alerts/security updates.
+- [x] Aplicar actualizacion Dependabot pendiente de GitHub Actions.
 - [ ] Branch protection en `main`.
 - [ ] Validacion centralizada de payloads en endpoints state-changing.
 - [ ] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5.
@@ -253,6 +254,12 @@ Notas 2026-05-08:
 - Scan local de secretos no encontro claves privadas obvias; aparecen la anon key publica de Supabase y placeholders documentales de Stripe.
 - No hay `package.json`/lockfile raiz en la app vanilla actual; `npm audit` queda pendiente para la migracion Next o cuando exista manifest JS.
 - Endurecido `avatar-utils`: los avatares ya no se renderizan con `innerHTML` y solo se aceptan URLs `http(s)` o data URI raster base64.
+
+Notas 2026-05-10:
+
+- Dependabot version updates ya esta configurado para `github-actions`, `npm` y `pip` en `.github/dependabot.yml`.
+- Aplicado el aviso de Dependabot del PR #3: todos los workflows pasan de `actions/checkout@v4` a `actions/checkout@v6`.
+- Queda pendiente confirmar en GitHub Dashboard la activacion de secret scanning, push protection, Dependabot alerts/security updates y branch protection de `main`, porque no se puede verificar desde el checkout local.
 
 Notas 2026-05-09:
 
