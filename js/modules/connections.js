@@ -948,6 +948,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
             ${connectionKey ? `
               <button class="btn-secondary" type="button" data-account-modal-toggle-key="true">Mostrar</button>
               <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar key</button>
+              <button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar key</button>
             ` : `<button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar y copiar key</button>`}
           </div>
         </div>
@@ -998,6 +999,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       const toggleButton = card?.querySelector("[data-account-modal-toggle-key='true']");
       const copyButton = card?.querySelector("[data-account-copy-key='true']");
       const regenerateButton = card?.querySelector("[data-account-regenerate-key='true']");
+      const regenerateDefaultText = regenerateButton?.textContent || "Regenerar y copiar key";
       toggleButton?.addEventListener("click", () => {
         if (!connectionKey || !valueNode) return;
         revealed = !revealed;
@@ -1009,7 +1011,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       });
       regenerateButton?.addEventListener("click", async () => {
         if (!accountId) return;
-        const confirmed = window.confirm("Regenerar la KMFXKey sustituye la key actual. MT5 dejará de sincronizar hasta que pegues la nueva key en el EA. ¿Continuar?");
+        const confirmed = window.confirm("Regenerar la KMFXKey sustituye la key actual. MT5 dejará de sincronizar hasta que pegues la nueva key en el EA o reinstales el conector desde el Launcher. ¿Continuar?");
         if (!confirmed) return;
         let regeneratedOk = false;
         regenerateButton.disabled = true;
@@ -1047,7 +1049,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           showToast("No pude conectar con el servidor de KMFX.", "error");
         } finally {
           regenerateButton.disabled = false;
-          if (!regeneratedOk) regenerateButton.textContent = "Regenerar y copiar key";
+          if (!regeneratedOk) regenerateButton.textContent = regenerateDefaultText;
         }
       });
       card?.querySelector("[data-account-open-launcher='true']")?.addEventListener("click", () => {

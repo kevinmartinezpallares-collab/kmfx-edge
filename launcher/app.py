@@ -48,11 +48,27 @@ APP_ICON_PATH = resource_path("assets", "logos", "kmfx-edge-glass-mark-1024.png"
 STATUS_CACHE_TTL_SECONDS = 18
 INSTALLED_LINK_SYNC_TTL_SECONDS = 45
 DASHBOARD_RECOVERY_URL = os.getenv("KMFX_DASHBOARD_RECOVERY_URL", "https://kmfxedge.com?auth=recovery")
+UNUSABLE_CONNECTION_KEY_REASONS = {
+    "connection_key_already_linked",
+    "connection_key_not_available",
+    "connection_revoked",
+    "revoked_connection_key",
+    "unknown_connection_key",
+}
 
 
 def _safe_str(value: Any, fallback: str = "") -> str:
     text = str(value or "").strip()
     return text or fallback
+
+
+def _backend_response_reason(response: BackendResponse) -> str:
+    body = response.body if isinstance(response.body, dict) else {}
+    return _safe_str(body.get("reason") or body.get("error")).lower()
+
+
+def _connection_key_is_unusable(response: BackendResponse) -> bool:
+    return _backend_response_reason(response) in UNUSABLE_CONNECTION_KEY_REASONS
 
 
 def _sanitize_account_label(value: str, fallback: str = "Cuenta MT5") -> str:
@@ -471,6 +487,7 @@ class KMFXApi:
             and self.config.connection_key_user_id
             and self.config.connection_key_user_id == self.config.auth_user_id
         )
+        rotated_local_link = False
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
         response = self.link_account_with_session(
@@ -478,9 +495,21 @@ class KMFXApi:
             label="KMFX Connector MT5",
             connection_key=self.config.connection_key if has_local_link else "",
         )
+        if not response.ok and has_local_link and _connection_key_is_unusable(response):
+            rotated_local_link = True
+            self.logger.warning(
+                "[KMFX][AUTH][LINK] local launcher key rejected; requesting fresh account key old_key=%s reason=%s",
+                mask_connection_key(self.config.connection_key),
+                _backend_response_reason(response),
+            )
+            response = self.link_account_with_session(
+                user_id=self.config.auth_user_id,
+                label="KMFX Connector MT5",
+                connection_key="",
+            )
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
-            if has_local_link:
+            if has_local_link and not rotated_local_link:
                 save_bridge_config(self.config, user_id=self.config.auth_user_id)
                 self.fetch_json("/bridge/reload-config")
                 return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
@@ -539,6 +568,11 @@ class KMFXApi:
             return "Actualiza el pago de tu suscripción para crear conexiones MT5."
         if reason == "auth_required":
             return "Inicia sesión de nuevo para crear una conexión MT5."
+        if reason in UNUSABLE_CONNECTION_KEY_REASONS:
+            return (
+                "La key instalada en MT5 ya no es válida. Pulsa Reinstalar conector para escribir "
+                "una key nueva en esta instalación."
+            )
         if reason == "connection_key_already_linked":
             return "Esta clave ya está vinculada a otra cuenta."
         if response.status_code == 0:
@@ -699,6 +733,18 @@ class KMFXApi:
                     label=label,
                     connection_key=connection_key,
                 )
+                if not response.ok and _connection_key_is_unusable(response):
+                    self.logger.warning(
+                        "[KMFX][LAUNCHER][INSTALL] installed key rejected; creating fresh MT5 connection target=%s key=%s reason=%s",
+                        installation.label,
+                        mask_connection_key(connection_key),
+                        _backend_response_reason(response),
+                    )
+                    response = self.link_account_with_session(
+                        user_id=self.config.auth_user_id,
+                        label=label,
+                        connection_key="",
+                    )
             else:
                 if connection_key:
                     self.logger.warning(
@@ -1132,8 +1178,13 @@ class KMFXApi:
         normalized_raw = raw.lower()
         if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
             return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
+        if "captcha" in normalized_raw or "turnstile" in normalized_raw or "anti-bot" in normalized_raw:
+            return (
+                "La protección anti-bots bloqueó este acceso por email. Entra con Google o crea/restablece "
+                "tu contraseña desde kmfxedge.com."
+            )
         if response.status_code == 0:
-            return "No se pudo conectar con el servidor"
+            return "No se pudo conectar con Supabase Auth. Revisa internet, firewall o usa Entrar con Google."
         if response.status_code in {400, 401, 403}:
             return "No se pudo iniciar sesión. Revisa tus credenciales."
         return "No se pudo conectar con el servidor"

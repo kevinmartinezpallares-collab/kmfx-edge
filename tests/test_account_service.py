@@ -306,6 +306,24 @@ class AccountServiceTests(unittest.TestCase):
         self.assertIsNone(self.service.get_account_by_api_key_any_user("old-key"))
         self.assertIsNotNone(self.service.get_account_by_api_key_any_user(regenerated.api_key))
 
+    def test_regenerate_connection_key_recovers_revoked_account(self) -> None:
+        created = self.service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="Cuenta MT5",
+            connection_key="revoked-key",
+        )
+        self.service.revoke_connection_key(created.account_id, reason="manual_rotation")
+
+        regenerated = self.service.regenerate_connection_key(created.account_id)
+
+        self.assertIsNotNone(regenerated)
+        self.assertFalse(regenerated.connection_key_revoked_at)
+        self.assertFalse(regenerated.connection_key_revocation_reason)
+        self.assertEqual("pending_link", regenerated.status)
+        self.assertTrue(self.service.is_connection_key_revoked_any_user("revoked-key"))
+        self.assertIsNone(self.service.get_account_by_api_key_any_user("revoked-key"))
+        self.assertIsNotNone(self.service.get_account_by_api_key_any_user(regenerated.api_key))
+
     def test_connection_keys_are_hashed_at_rest(self) -> None:
         created = self.service.create_pending_account_with_key(
             user_id="user-123",
