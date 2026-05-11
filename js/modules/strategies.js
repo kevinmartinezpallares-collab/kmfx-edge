@@ -37,6 +37,20 @@ function percent(value) {
   return `${safeNumber(value).toFixed(1)}%`;
 }
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function safeToken(value = "", fallback = "neutral") {
+  const normalized = String(value || fallback).trim().toLowerCase();
+  return /^[a-z0-9_-]+$/.test(normalized) ? normalized : fallback;
+}
+
 function scoreLabel(score) {
   if (score >= 8) return "Alta";
   if (score >= 6) return "Media";
@@ -529,7 +543,7 @@ export function renderStrategies(root, state) {
         ${setupStats.map((item) => `
           <div class="strategies-setup-item">
             <div class="strategies-setup-item__head">
-              <div class="strategies-setup-item__name">${item.name}</div>
+              <div class="strategies-setup-item__name">${escapeHtml(item.name)}</div>
               <div class="strategies-setup-item__sample">${sampleLabel(item.trades)}</div>
             </div>
             <div class="strategies-setup-item__stats">
@@ -581,16 +595,16 @@ export function renderStrategies(root, state) {
                 <tr class="strategies-table-row">
                   <td>
                     <div class="table-primary-cell strategy-primary-cell">
-                      <strong>${item.name}</strong>
+                      <strong>${escapeHtml(item.name)}</strong>
                       <div class="strategy-primary-cell__meta">
-                        <span class="strategy-status-chip strategy-status-chip--${item.status || "testing"}">${strategyStatusLabel(item.status)}</span>
+                        <span class="strategy-status-chip strategy-status-chip--${safeToken(item.status || "testing", "testing")}">${escapeHtml(strategyStatusLabel(item.status))}</span>
                       </div>
-                      <div class="row-sub">${item.description || "Sin descripción operativa."}</div>
+                      <div class="row-sub">${escapeHtml(item.description || "Sin descripción operativa.")}</div>
                     </div>
                   </td>
-                  <td>${item.market || "—"}</td>
-                  <td>${item.timeframe || "—"}</td>
-                  <td>${item.session || "—"}</td>
+                  <td>${escapeHtml(item.market || "—")}</td>
+                  <td>${escapeHtml(item.timeframe || "—")}</td>
+                  <td>${escapeHtml(item.session || "—")}</td>
                   <td class="num">${stats.trades}</td>
                   <td class="num">${percent(stats.winRate)}</td>
                   <td class="num">${stats.rr ? stats.rr.toFixed(2) : "—"}</td>
@@ -607,8 +621,8 @@ export function renderStrategies(root, state) {
                   </td>
                   <td>
                     <div class="table-actions strategies-table-actions">
-                      <button class="btn-secondary btn-inline strategies-action-btn" data-strategy-action="edit" data-strategy-id="${item.id}">Editar</button>
-                      <button class="btn-secondary btn-inline strategies-action-btn strategies-action-btn--danger" data-strategy-action="delete" data-strategy-id="${item.id}">Eliminar</button>
+                      <button class="btn-secondary btn-inline strategies-action-btn" data-strategy-action="edit" data-strategy-id="${escapeHtml(item.id)}">Editar</button>
+                      <button class="btn-secondary btn-inline strategies-action-btn strategies-action-btn--danger" data-strategy-action="delete" data-strategy-id="${escapeHtml(item.id)}">Eliminar</button>
                     </div>
                   </td>
                 </tr>
@@ -644,7 +658,7 @@ export function renderStrategies(root, state) {
             <div class="strategies-setup-item__sample">${strongestSetup ? sampleLabel(strongestSetup.trades) : "Sin muestra"}</div>
           </div>
           <div class="strategies-setup-item__stats">
-            <span class="strategies-setup-item__metric">${strongestSetup?.name || "—"}</span>
+            <span class="strategies-setup-item__metric">${escapeHtml(strongestSetup?.name || "—")}</span>
             <span class="strategies-setup-item__metric">${strongestSetup ? percent(strongestSetup.winRate) : "—"} WR</span>
             <span class="strategies-setup-item__metric ${safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${strongestSetup ? pnlTextMarkup({ value: strongestSetup.pnl, text: formatCurrency(strongestSetup.pnl), className: safeNumber(strongestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative" }) : "—"}</span>
           </div>
@@ -655,7 +669,7 @@ export function renderStrategies(root, state) {
             <div class="strategies-setup-item__sample">${weakestSetup ? sampleLabel(weakestSetup.trades) : "Sin muestra"}</div>
           </div>
           <div class="strategies-setup-item__stats">
-            <span class="strategies-setup-item__metric">${weakestSetup?.name || "—"}</span>
+            <span class="strategies-setup-item__metric">${escapeHtml(weakestSetup?.name || "—")}</span>
             <span class="strategies-setup-item__metric">${weakestSetup ? percent(weakestSetup.winRate) : "—"} WR</span>
             <span class="strategies-setup-item__metric ${safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative"}">${weakestSetup ? pnlTextMarkup({ value: weakestSetup.pnl, text: formatCurrency(weakestSetup.pnl), className: safeNumber(weakestSetup?.pnl) >= 0 ? "metric-positive" : "metric-negative" }) : "—"}</span>
           </div>
@@ -689,12 +703,12 @@ export function renderStrategies(root, state) {
               const decision = stats.trades < 12 ? "Acumular muestra" : stats.pnl < 0 ? "Reducir o pausar" : stats.score >= 7 ? "Candidato a más capital" : "Mantener controlado";
               return `
                 <tr data-tone="${stats.trades < 12 ? "warning" : stats.pnl < 0 ? "loss" : stats.score >= 7 ? "profit" : "neutral"}">
-                  <td><strong>${item.name}</strong></td>
-                  <td><span class="strategy-status-chip strategy-status-chip--${item.status || "testing"}">${strategyStatusLabel(item.status)}</span></td>
+                  <td><strong>${escapeHtml(item.name)}</strong></td>
+                  <td><span class="strategy-status-chip strategy-status-chip--${safeToken(item.status || "testing", "testing")}">${escapeHtml(strategyStatusLabel(item.status))}</span></td>
                   <td class="num">${stats.trades}</td>
                   <td class="num ${stats.pnl >= 0 ? "metric-positive" : "metric-negative"}">${pnlTextMarkup({ value: stats.pnl, text: formatCurrency(stats.pnl), className: stats.pnl >= 0 ? "metric-positive" : "metric-negative" })}</td>
                   <td class="num">${percent(stats.winRate)}</td>
-                  <td>${decision}</td>
+                  <td>${escapeHtml(decision)}</td>
                 </tr>
               `;
             }).join("") : `<tr><td colspan="6">Sin estrategias registradas todavía.</td></tr>`}

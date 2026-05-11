@@ -10,6 +10,20 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, value));
 }
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function safeClassToken(value = "", fallback = "neutral") {
+  const normalized = String(value || fallback).trim().toLowerCase();
+  return /^[a-z0-9_-]+$/.test(normalized) ? normalized : fallback;
+}
+
 function inRange(value, start, end) {
   return value >= start && value <= end;
 }
@@ -1562,16 +1576,16 @@ export function renderAnalytics(root, state) {
       tone: damageDriver ? "negative" : "neutral",
       value: damageDriver ? `Mayor daño: ${damageDriver.name}` : "Evidencia parcial",
       meta: damageDriver ? "Mayor daño de la muestra" : "Evidencia todavía parcial",
-      secondary: damageDriver ? `${formatSignedCurrency(damageDriver.pnl)}<br>${formatTradeCount(damageDriver.trades)}` : formatTradeCount(totalTrades),
+      secondary: damageDriver ? `${formatSignedCurrency(damageDriver.pnl)} · ${formatTradeCount(damageDriver.trades)}` : formatTradeCount(totalTrades),
       secondaryTone: damageDriver ? "negative" : ""
     }
   ].slice(0, 5);
   const patternInsightsMarkup = patternInsights.map((item) => `
-    <article class="insights-pattern-kpi insights-pattern-kpi--${item.tone}">
-      <span class="insights-pattern-kpi__label">${item.label}</span>
-      <strong class="insights-pattern-kpi__value">${item.value}</strong>
-      <span class="insights-pattern-kpi__meta ${item.metaTone ? `insights-pattern-kpi__meta--${item.metaTone}` : ""}">${item.meta}</span>
-      <small class="insights-pattern-kpi__secondary ${item.secondaryTone ? `insights-pattern-kpi__secondary--${item.secondaryTone}` : ""}">${item.secondary}</small>
+    <article class="insights-pattern-kpi insights-pattern-kpi--${safeClassToken(item.tone)}">
+      <span class="insights-pattern-kpi__label">${escapeHtml(item.label)}</span>
+      <strong class="insights-pattern-kpi__value">${escapeHtml(item.value)}</strong>
+      <span class="insights-pattern-kpi__meta ${item.metaTone ? `insights-pattern-kpi__meta--${safeClassToken(item.metaTone)}` : ""}">${escapeHtml(item.meta)}</span>
+      <small class="insights-pattern-kpi__secondary ${item.secondaryTone ? `insights-pattern-kpi__secondary--${safeClassToken(item.secondaryTone)}` : ""}">${escapeHtml(item.secondary)}</small>
     </article>
   `).join("");
   const summaryReviewTitle = summaryDrain.value;
@@ -1623,10 +1637,10 @@ export function renderAnalytics(root, state) {
   ];
   const concentrationCardsMarkup = concentrationCards.map((item) => `
     <article class="insights-variable-card">
-      <span class="insights-variable-card__label">${item.label}</span>
-      <strong class="insights-variable-card__value">${item.value}</strong>
-      <span class="insights-variable-card__meta ${item.metaTone ? `insights-variable-card__meta--${item.metaTone}` : ""}">${item.meta}</span>
-      <small class="insights-variable-card__secondary">${item.secondary}</small>
+      <span class="insights-variable-card__label">${escapeHtml(item.label)}</span>
+      <strong class="insights-variable-card__value">${escapeHtml(item.value)}</strong>
+      <span class="insights-variable-card__meta ${item.metaTone ? `insights-variable-card__meta--${safeClassToken(item.metaTone)}` : ""}">${escapeHtml(item.meta)}</span>
+      <small class="insights-variable-card__secondary">${escapeHtml(item.secondary)}</small>
     </article>
   `).join("");
   root.innerHTML = `
@@ -1657,10 +1671,10 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="insights-concentration__review">
               <span class="insights-concentration__review-label">Horario a revisar</span>
-              <strong>${summaryReviewTitle}</strong>
+              <strong>${escapeHtml(summaryReviewTitle)}</strong>
               <small>
-                <span class="analytics-value-${summaryDrain.noteTone}">${summaryDrain.noteLead}</span>
-                <span>${summaryReviewMeta}</span>
+                <span class="analytics-value-${safeClassToken(summaryDrain.noteTone)}">${escapeHtml(summaryDrain.noteLead)}</span>
+                <span>${escapeHtml(summaryReviewMeta)}</span>
               </small>
             </div>
           </div>
@@ -1974,24 +1988,24 @@ export function renderAnalytics(root, state) {
 
     <section class="analytics-panel ${state.ui.analyticsTab === "risk" ? "active" : ""}" data-tab="risk">
       <div class="analytics-risk-layout insights-control">
-        <article class="tl-section-card analytics-risk-hero insights-control__status analytics-risk-hero--${riskHeroTone}">
+        <article class="tl-section-card analytics-risk-hero insights-control__status analytics-risk-hero--${safeClassToken(riskHeroTone)}">
           <div class="analytics-risk-hero__copy">
             <div class="eyebrow">Estado de control</div>
-            <h3>${riskHeroTitle}</h3>
-            <p>${riskHeroContext}</p>
+            <h3>${escapeHtml(riskHeroTitle)}</h3>
+            <p>${escapeHtml(riskHeroContext)}</p>
             <div class="insights-control__evidence">
               ${controlEvidenceBadges.map((badge) => `
-                <span class="insights-control__badge insights-control__badge--${badge.tone}">
-                  <small>${badge.label}</small>
-                  <strong>${badge.value}</strong>
+                <span class="insights-control__badge insights-control__badge--${safeClassToken(badge.tone)}">
+                  <small>${escapeHtml(badge.label)}</small>
+                  <strong>${escapeHtml(badge.value)}</strong>
                 </span>
               `).join("")}
             </div>
           </div>
           <div class="analytics-risk-hero__signal ${lossStreak >= 4 ? "is-loss-streak" : ""}">
             <span class="analytics-risk-hero__signal-label">Señal dominante</span>
-            <strong class="${lossStreak >= 4 || dominantRiskIssue.tone === "critical" ? "metric-negative" : dominantRiskIssue.tone === "warning" ? "text-warning" : ""}">${heroSignalTitle}</strong>
-            <small>${heroSignalNote}</small>
+            <strong class="${lossStreak >= 4 || dominantRiskIssue.tone === "critical" ? "metric-negative" : dominantRiskIssue.tone === "warning" ? "text-warning" : ""}">${escapeHtml(heroSignalTitle)}</strong>
+            <small>${escapeHtml(heroSignalNote)}</small>
           </div>
         </article>
 
@@ -2005,14 +2019,14 @@ export function renderAnalytics(root, state) {
           <div class="insights-control-metrics__grid">
             ${controlMetricGroups.map((group) => `
               <article class="insights-control-metrics__group">
-                <h4>${group.title}</h4>
+                <h4>${escapeHtml(group.title)}</h4>
                 <div class="insights-control-metrics__list">
                   ${group.items.map((item) => `
                     <div class="insights-control-metric">
-                      <span>${item.label}</span>
+                      <span>${escapeHtml(item.label)}</span>
                       <div class="insights-control-metric__value">
-                        <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : item.tone === "warning" ? "insights-control-metric__text--warning" : ""}">${item.value}</strong>
-                        ${item.note ? `<small>${item.note}</small>` : ""}
+                        <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : item.tone === "warning" ? "insights-control-metric__text--warning" : ""}">${escapeHtml(item.value)}</strong>
+                        ${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}
                       </div>
                     </div>
                   `).join("")}
@@ -2032,17 +2046,17 @@ export function renderAnalytics(root, state) {
             </div>
             <div class="analytics-risk-behavior__list">
               ${riskBehaviorRows.map((row) => `
-                <div class="analytics-risk-behavior-row analytics-risk-behavior-row--${row.tone} ${row.kind === dominantRiskIssue.kind ? "is-dominant" : ""}">
+                <div class="analytics-risk-behavior-row analytics-risk-behavior-row--${safeClassToken(row.tone)} ${row.kind === dominantRiskIssue.kind ? "is-dominant" : ""}">
                   <div class="analytics-risk-behavior-row__copy">
-                    <strong>${row.title}</strong>
-                    <span>${row.note}</span>
+                    <strong>${escapeHtml(row.title)}</strong>
+                    <span>${escapeHtml(row.note)}</span>
                   </div>
                   <div class="analytics-risk-behavior-row__metric">
-                    <strong>${row.metric}${row.metricSuffix ? ` <span>${row.metricSuffix}</span>` : ""}</strong>
-                    <small>${row.status}</small>
+                    <strong>${escapeHtml(row.metric)}${row.metricSuffix ? ` <span>${escapeHtml(row.metricSuffix)}</span>` : ""}</strong>
+                    <small>${escapeHtml(row.status)}</small>
                   </div>
                   <div class="analytics-risk-behavior-row__track" aria-hidden="true">
-                    <span style="width:${row.progress}%"></span>
+                    <span style="width:${clampPercent(Number(row.progress || 0))}%"></span>
                   </div>
                 </div>
               `).join("")}
@@ -2056,12 +2070,12 @@ export function renderAnalytics(root, state) {
                   <div class="tl-section-title">Lectura de control</div>
                 </div>
               </div>
-              <p>${riskInsight}</p>
+              <p>${escapeHtml(riskInsight)}</p>
               <div class="insights-control-reading__evidence">
                 ${controlReadingEvidence.map((item) => `
                   <div>
-                    <span>${item.label}</span>
-                    <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${item.value}</strong>
+                    <span>${escapeHtml(item.label)}</span>
+                    <strong class="${item.tone === "positive" ? "metric-positive" : item.tone === "negative" ? "metric-negative" : ""}">${escapeHtml(item.value)}</strong>
                   </div>
                 `).join("")}
               </div>
@@ -2075,14 +2089,14 @@ export function renderAnalytics(root, state) {
               </div>
               <div class="analytics-risk-engine">
                 <div class="analytics-risk-engine__meta">
-                  <span class="analytics-risk-engine__state analytics-risk-engine__state--${riskProtection.tone}">${riskProtection.state}</span>
-                  <small>${riskProtection.note}</small>
+                  <span class="analytics-risk-engine__state analytics-risk-engine__state--${safeClassToken(riskProtection.tone)}">${escapeHtml(riskProtection.state)}</span>
+                  <small>${escapeHtml(riskProtection.note)}</small>
                 </div>
                 <div class="insights-control-risk-engine__evidence">
                   ${riskProtectionEvidence.map((item) => `
                     <div>
-                      <span>${item.label}</span>
-                      <strong>${item.value}</strong>
+                      <span>${escapeHtml(item.label)}</span>
+                      <strong>${escapeHtml(item.value)}</strong>
                     </div>
                   `).join("")}
                 </div>
