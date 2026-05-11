@@ -412,8 +412,9 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
+- [x] Cache backend corto para `view=summary`: TTL 5s, invalida con cada sync MT5 y nunca cachea snapshots completos.
 - [x] Monitor recurrente creado para revisar uso de salida Supabase tras deploy.
-- [ ] Decidir si hace falta mover historial/trades a tabla dedicada o cache server-side si el uso vuelve a subir antes de beta abierta.
+- [ ] Decidir si hace falta mover historial/trades a tabla dedicada si el uso vuelve a subir antes de beta abierta.
 - [ ] Eventos de auditoria:
   - login
   - crear key
