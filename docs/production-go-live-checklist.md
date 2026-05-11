@@ -405,7 +405,8 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Alerta sync MT5 rechazado anormal.
 - [ ] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
-- [ ] Auditar payload de `/api/accounts/snapshot` para separar resumen ligero de historial MT5 pesado antes de beta abierta.
+- [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
+- [ ] Monitorizar uso de salida Supabase tras deploy y decidir si hace falta mover historial/trades a tabla dedicada o cache server-side antes de beta abierta.
 - [ ] Eventos de auditoria:
   - login
   - crear key

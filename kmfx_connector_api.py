@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from account_keys import hash_connection_key as storage_connection_key_hash
-from account_service import AccountService, account_summary_fields_from_payload
+from account_service import AccountService, account_summary_fields_from_payload, compact_dashboard_payload_from_payload
 from account_store import JsonFileAccountStore, SupabaseAccountStore
 from ai_evidence_report import build_ai_evidence_report
 from backtest_real_engine import build_backtest_vs_real_report
@@ -2842,8 +2842,9 @@ def remember_journal_trades(identity_key: str, trades: list[dict[str, Any]]) -> 
     save_journal_trade_store(JOURNAL_TRADES_BY_IDENTITY)
 
 
-def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
+def build_live_snapshot_entry(account: Any, *, source: str, summary_only: bool = False) -> dict[str, Any]:
     latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
+    dashboard_payload = compact_dashboard_payload_from_payload(latest_payload) if summary_only else latest_payload
     connection_key_preview = getattr(account, "connection_key_preview", "") or mask_connection_key(getattr(account, "api_key", ""))
     connection_key_hash = getattr(account, "connection_key_hash", "")
     return {
@@ -2873,7 +2874,8 @@ def build_live_snapshot_entry(account: Any, *, source: str) -> dict[str, Any]:
         "connector_version": getattr(account, "connector_version", ""),
         "nickname": getattr(account, "nickname", "") or "",
         "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
-        "dashboard_payload": latest_payload,
+        "dashboard_payload": dashboard_payload,
+        "snapshot_payload_shape": "summary" if summary_only else "full",
         "source": source,
     }
 
@@ -2897,7 +2899,7 @@ def forget_live_account_snapshot(account_id: str) -> None:
     RECENT_LIVE_ACCOUNTS.pop(normalized, None)
 
 
-def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
+def build_registry_entry_for_account(account: Any, *, summary_only: bool = False) -> dict[str, Any]:
     latest_payload = deepcopy(getattr(account, "latest_payload", {}) or {})
     connection_key_preview = getattr(account, "connection_key_preview", "") or mask_connection_key(getattr(account, "api_key", ""))
     return {
@@ -2927,6 +2929,7 @@ def build_registry_entry_for_account(account: Any) -> dict[str, Any]:
         "updated_at": getattr(account, "updated_at", None).isoformat() if getattr(account, "updated_at", None) else "",
         "display_name": getattr(account, "alias", "") or getattr(account, "nickname", "") or getattr(account, "login", "") or getattr(account, "account_id", ""),
         "source": "admin_connection_key_bridge",
+        "snapshot_payload_shape": "summary" if summary_only else "full",
         **account_summary_fields_from_payload(latest_payload),
     }
 
@@ -2943,7 +2946,12 @@ def merge_admin_launcher_registry_accounts(accounts: list[dict[str, Any]], allow
     return merged
 
 
-def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys: set[str] | None = None) -> dict[str, Any]:
+def build_live_accounts_snapshot(
+    user_id: str = "local",
+    allowed_connection_keys: set[str] | None = None,
+    *,
+    summary_only: bool = False,
+) -> dict[str, Any]:
     raw_allowed_connection_keys = {
         safe_str(connection_key)
         for connection_key in (allowed_connection_keys or set())
@@ -2957,7 +2965,7 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         storage_connection_key_hash(connection_key)
         for connection_key in raw_allowed_connection_keys
     }
-    persisted_snapshot = account_service.build_accounts_snapshot(user_id)
+    persisted_snapshot = account_service.build_accounts_snapshot(user_id, summary_only=summary_only)
     merged_accounts: dict[str, dict[str, Any]] = {}
 
     for entry in persisted_snapshot.get("accounts") or []:
@@ -2970,7 +2978,7 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         merged_entry["source"] = merged_entry.get("source") or "store"
         merged_accounts[account_id] = merged_entry
 
-    for entry in account_service.build_accounts_registry(user_id):
+    for entry in account_service.build_accounts_registry(user_id, summary_only=summary_only):
         if not isinstance(entry, dict):
             continue
         account_id = safe_str(entry.get("account_id"))
@@ -3012,7 +3020,7 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         account = resolve_account_by_connection_key(connection_key)
         if account is None:
             continue
-        entry = build_live_snapshot_entry(account, source="admin_connection_key_bridge")
+        entry = build_live_snapshot_entry(account, source="admin_connection_key_bridge", summary_only=summary_only)
         account_id = safe_str(entry.get("account_id"))
         if account_id:
             merged_accounts[account_id] = entry
@@ -3024,7 +3032,11 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         cached_last_sync = _parse_datetime(entry.get("last_sync_at"))
         persisted_last_sync = _parse_datetime((merged_accounts.get(account_id) or {}).get("last_sync_at"))
         if account_id not in merged_accounts or (cached_last_sync and (persisted_last_sync is None or cached_last_sync >= persisted_last_sync)):
-            merged_accounts[account_id] = deepcopy(entry)
+            cached_entry = deepcopy(entry)
+            if summary_only and isinstance(cached_entry.get("dashboard_payload"), dict):
+                cached_entry["dashboard_payload"] = compact_dashboard_payload_from_payload(cached_entry.get("dashboard_payload"))
+                cached_entry["snapshot_payload_shape"] = "summary"
+            merged_accounts[account_id] = cached_entry
 
     accounts = list(merged_accounts.values())
     accounts.sort(key=lambda item: ((not bool(item.get("is_default"))), item.get("display_name", ""), item.get("login", "")))
@@ -3049,6 +3061,7 @@ def build_live_accounts_snapshot(user_id: str = "local", allowed_connection_keys
         "accounts": accounts,
         "active_account_id": active_account_id,
         "portfolio_risk": aggregate_portfolio_risk(accounts),
+        "snapshot_mode": "summary" if summary_only else "full",
         "updated_at": now_iso(),
     }
 
@@ -5999,7 +6012,10 @@ async def mt5_policy(
 
 
 @app.get("/api/accounts/snapshot")
-async def accounts_snapshot(request: Request) -> JSONResponse:
+async def accounts_snapshot(
+    request: Request,
+    view: str = Query("full", pattern="^(full|summary)$"),
+) -> JSONResponse:
     scope_user_id, auth_context = resolve_account_scope(request)
     if not scope_user_id:
         snapshot = empty_accounts_payload(auth_context)
@@ -6016,16 +6032,23 @@ async def accounts_snapshot(request: Request) -> JSONResponse:
         )
         return connector_json_response(billing_blocked_accounts_payload(auth_context, access_denial))
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
-    snapshot = build_live_accounts_snapshot(scope_user_id, allowed_connection_keys=allowed_connection_keys)
+    normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
+    summary_only = normalized_view == "summary"
+    snapshot = build_live_accounts_snapshot(
+        scope_user_id,
+        allowed_connection_keys=allowed_connection_keys,
+        summary_only=summary_only,
+    )
     snapshot["is_admin"] = auth_context["is_admin"]
     snapshot["auth_email"] = auth_context["email"]
     snapshot["scope_user_id"] = scope_user_id
     snapshot["admin_launcher_bridge"] = bool(allowed_connection_keys)
     log.info(
-        "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s",
+        "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s view=%s",
         scope_user_id,
         len(snapshot.get("accounts") or []),
         snapshot.get("active_account_id") or "",
+        normalized_view,
     )
     return connector_json_response(snapshot)
 

@@ -53,8 +53,10 @@ export function buildApiUrl(pathname = "") {
   return resolved;
 }
 
-export function resolveAccountsSnapshotUrl() {
-  return buildApiUrl("/api/accounts/snapshot");
+export function resolveAccountsSnapshotUrl({ view = "full" } = {}) {
+  const normalizedView = String(view || "full").toLowerCase() === "summary" ? "summary" : "full";
+  const query = normalizedView === "summary" ? "?view=summary" : "";
+  return buildApiUrl(`/api/accounts/snapshot${query}`);
 }
 
 export function resolveBillingStatusUrl() {

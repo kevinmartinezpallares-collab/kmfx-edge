@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 import urllib.error
@@ -12,6 +13,9 @@ from typing import Iterable
 
 from account_keys import hash_connection_key, mask_connection_key, normalize_connection_key
 from account_models import Account
+
+
+log = logging.getLogger("kmfx.account_store")
 
 
 def _now_utc() -> datetime:
@@ -51,6 +55,100 @@ def _unique_text(values: Iterable[object]) -> list[str]:
         result.append(text)
         seen.add(text)
     return result
+
+
+def _bool_from_value(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "yes", "on"}
+
+
+def _first_text(*values: object) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _first_present(*values: object) -> object:
+    for value in values:
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _projected_account_record(row: dict) -> dict:
+    account_payload = row.get("payload_account") if isinstance(row.get("payload_account"), dict) else {}
+    positions = row.get("payload_positions") if isinstance(row.get("payload_positions"), list) else []
+    risk_summary = row.get("payload_risk_summary") if isinstance(row.get("payload_risk_summary"), dict) else {}
+    risk_status = row.get("payload_risk_status") if isinstance(row.get("payload_risk_status"), dict) else {}
+    latest_report_metrics = row.get("latest_report_metrics") if isinstance(row.get("latest_report_metrics"), dict) else {}
+    latest_payload = {
+        "payloadSource": row.get("payload_source") or "mt5_sync_live",
+        "payloadShape": "summary",
+        "data_status": row.get("payload_data_status") or "",
+        "timestamp": _first_text(row.get("payload_timestamp"), row.get("payload_updated_at"), row.get("last_sync_at")),
+        "updated_at": _first_text(row.get("payload_updated_at"), row.get("last_sync_at")),
+        "last_sync_at": row.get("last_sync_at") or "",
+        "name": _first_text(row.get("payload_name"), row.get("payload_account_name"), row.get("alias")),
+        "accountName": _first_text(row.get("payload_account_name"), row.get("payload_name"), row.get("alias")),
+        "broker": _first_text(row.get("payload_broker"), row.get("broker"), account_payload.get("broker")),
+        "server": _first_text(row.get("payload_server"), row.get("server"), account_payload.get("server")),
+        "login": _first_text(row.get("payload_login"), row.get("login"), row.get("mt5_login"), account_payload.get("login")),
+        "currency": _first_text(row.get("payload_currency"), account_payload.get("currency")),
+        "balance": _first_present(row.get("payload_balance"), account_payload.get("balance")),
+        "equity": _first_present(row.get("payload_equity"), account_payload.get("equity")),
+        "openPnl": _first_present(row.get("payload_open_pnl"), account_payload.get("profit")),
+        "floatingPnl": _first_present(row.get("payload_open_pnl"), account_payload.get("profit")),
+        "closedPnl": row.get("payload_closed_pnl"),
+        "totalPnl": row.get("payload_total_pnl"),
+        "pnl": row.get("payload_total_pnl"),
+        "openPositionsCount": _first_present(row.get("payload_open_positions_count"), len(positions)),
+        "positions": positions,
+        "account": account_payload,
+        "riskSnapshot": {
+            "summary": risk_summary,
+            "status": risk_status,
+        },
+    }
+    latest_payload = {key: value for key, value in latest_payload.items() if value not in ("", None)}
+    return {
+        "account_id": row.get("account_id") or "",
+        "user_id": row.get("user_id") or "local",
+        "alias": row.get("alias") or "",
+        "broker": row.get("broker") or "",
+        "platform": row.get("platform") or "mt5",
+        "login": row.get("login") or "",
+        "server": row.get("server") or "",
+        "connection_mode": row.get("connection_mode") or "bridge",
+        "status": row.get("status") or "pending",
+        "api_key": "",
+        "connection_key_hash": row.get("connection_key_hash") or "",
+        "connection_key_preview": row.get("connection_key_preview") or "",
+        "last_sync_at": row.get("last_sync_at") or "",
+        "mt5_login": row.get("mt5_login") or row.get("login") or "",
+        "is_primary": _bool_from_value(row.get("is_primary")),
+        "linked_at": row.get("linked_at") or "",
+        "first_sync_at": row.get("first_sync_at") or "",
+        "last_policy_at": row.get("last_policy_at") or "",
+        "last_error_code": row.get("last_error_code") or "",
+        "last_error_message": row.get("last_error_message") or "",
+        "latest_report_metrics": latest_report_metrics,
+        "connector_version": row.get("connector_version") or "",
+        "connection_key_revoked_at": row.get("connection_key_revoked_at") or "",
+        "connection_key_revocation_reason": row.get("connection_key_revocation_reason") or "",
+        "revoked_connection_keys": [],
+        "revoked_connection_key_hashes": [],
+        "archived_at": row.get("archived_at") or "",
+        "deleted_at": row.get("deleted_at") or "",
+        "is_default": _bool_from_value(row.get("is_default")),
+        "nickname": row.get("nickname") or None,
+        "latest_payload": latest_payload,
+        "created_at": row.get("created_at") or "",
+        "updated_at": row.get("updated_at") or "",
+    }
 
 
 def account_to_record(account: Account) -> dict:
@@ -215,6 +313,60 @@ class JsonFileAccountStore(AccountStore):
 
 
 class SupabaseAccountStore(AccountStore):
+    SUMMARY_SELECT = ",".join(
+        [
+            "account_id",
+            "user_id",
+            "status",
+            "connection_key_hash",
+            "connection_key_preview",
+            "created_at",
+            "updated_at",
+            "alias:record->>alias",
+            "broker:record->>broker",
+            "platform:record->>platform",
+            "login:record->>login",
+            "server:record->>server",
+            "connection_mode:record->>connection_mode",
+            "mt5_login:record->>mt5_login",
+            "is_primary:record->>is_primary",
+            "is_default:record->>is_default",
+            "linked_at:record->>linked_at",
+            "first_sync_at:record->>first_sync_at",
+            "last_sync_at:record->>last_sync_at",
+            "last_policy_at:record->>last_policy_at",
+            "last_error_code:record->>last_error_code",
+            "last_error_message:record->>last_error_message",
+            "connector_version:record->>connector_version",
+            "connection_key_revoked_at:record->>connection_key_revoked_at",
+            "connection_key_revocation_reason:record->>connection_key_revocation_reason",
+            "archived_at:record->>archived_at",
+            "deleted_at:record->>deleted_at",
+            "nickname:record->>nickname",
+            "latest_report_metrics:record->latest_report_metrics",
+            "payload_source:record->latest_payload->>payloadSource",
+            "payload_data_status:record->latest_payload->>data_status",
+            "payload_timestamp:record->latest_payload->>timestamp",
+            "payload_updated_at:record->latest_payload->>updated_at",
+            "payload_name:record->latest_payload->>name",
+            "payload_account_name:record->latest_payload->>accountName",
+            "payload_broker:record->latest_payload->>broker",
+            "payload_server:record->latest_payload->>server",
+            "payload_login:record->latest_payload->>login",
+            "payload_currency:record->latest_payload->>currency",
+            "payload_balance:record->latest_payload->>balance",
+            "payload_equity:record->latest_payload->>equity",
+            "payload_open_pnl:record->latest_payload->>openPnl",
+            "payload_closed_pnl:record->latest_payload->>closedPnl",
+            "payload_total_pnl:record->latest_payload->>totalPnl",
+            "payload_open_positions_count:record->latest_payload->>openPositionsCount",
+            "payload_account:record->latest_payload->account",
+            "payload_positions:record->latest_payload->positions",
+            "payload_risk_summary:record->latest_payload->riskSnapshot->summary",
+            "payload_risk_status:record->latest_payload->riskSnapshot->status",
+        ]
+    )
+
     def __init__(self, project_url: str, service_role_key: str, table: str = "mt5_account_registry") -> None:
         self.project_url = str(project_url or "").strip().rstrip("/")
         self.service_role_key = str(service_role_key or "").strip()
@@ -301,6 +453,28 @@ class SupabaseAccountStore(AccountStore):
             record = row.get("record")
             if isinstance(record, dict):
                 records.append(record)
+        return [record_to_account(record) for record in records]
+
+    def list_account_summaries_for_user(self, user_id: str) -> list[Account]:
+        clean_user_id = str(user_id or "").strip()
+        if not clean_user_id:
+            return []
+        try:
+            rows = self._request(
+                "GET",
+                query={
+                    "select": self.SUMMARY_SELECT,
+                    "user_id": f"eq.{clean_user_id}",
+                    "order": "updated_at.asc",
+                    "limit": "1000",
+                },
+            )
+        except OSError as exc:
+            log.warning("Supabase account summary projection failed; falling back to full records: %s", exc)
+            return self.list_accounts_for_user(clean_user_id)
+        if not isinstance(rows, list):
+            return []
+        records = [_projected_account_record(row) for row in rows if isinstance(row, dict)]
         return [record_to_account(record) for record in records]
 
     def find_account_by_id(self, account_id: str) -> Account | None:

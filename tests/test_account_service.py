@@ -113,6 +113,46 @@ class AccountServiceTests(unittest.TestCase):
             {account["account_id"] for account in snapshot["accounts"]},
         )
 
+    def test_summary_accounts_snapshot_strips_heavy_mt5_history(self) -> None:
+        ingested = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "payloadSource": "mt5_sync_live",
+                "balance": 105552,
+                "equity": 105700,
+                "openPnl": 148,
+                "trades": [{"ticket": str(index), "pnl": index} for index in range(100)],
+                "history": [{"value": index} for index in range(100)],
+                "positions": [{"ticket": "open-1", "profit": 12.5}],
+                "riskSnapshot": {
+                    "summary": {"daily_drawdown_pct": 0.2},
+                    "status": {"risk_status": "ok"},
+                    "debug": {"large": ["x"] * 100},
+                },
+            },
+            api_key="darwinex-key",
+        )
+
+        snapshot = self.service.build_accounts_snapshot("user-123", summary_only=True)
+        payload = snapshot["accounts"][0]["dashboard_payload"]
+
+        self.assertEqual(ingested.account_id, snapshot["active_account_id"])
+        self.assertEqual("summary", snapshot["snapshot_mode"])
+        self.assertEqual("summary", snapshot["accounts"][0]["snapshot_payload_shape"])
+        self.assertEqual(105552, payload["balance"])
+        self.assertEqual(105700, payload["equity"])
+        self.assertEqual([{"ticket": "open-1", "profit": 12.5}], payload["positions"])
+        self.assertNotIn("trades", payload)
+        self.assertNotIn("history", payload)
+        self.assertNotIn("debug", payload["riskSnapshot"])
+
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
         local = self.service.ingest_account_snapshot(
             user_id="local",

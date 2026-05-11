@@ -1,9 +1,11 @@
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260509-150500";
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260509-150500";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260509-150500";
+import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260511-071500";
 import { isAdminIdentity } from "./auth-session.js?v=build-20260509-150500";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS = 5 * 60 * 1000;
+const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 function isLocalRuntime() {
   const hostname = window.location.hostname || "";
@@ -18,6 +20,10 @@ function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions =
   if (isHidden) return isLocal ? 15000 : 60000;
   if (isLocal) return hasOpenPositions ? 1000 : 5000;
   return hasOpenPositions ? 8000 : 30000;
+}
+
+function resolveAccountsFullSnapshotRefreshMs({ isLocal = false } = {}) {
+  return isLocal ? LOCAL_FULL_SNAPSHOT_REFRESH_MS : PRODUCTION_FULL_SNAPSHOT_REFRESH_MS;
 }
 
 function toFiniteNumber(value, fallback = null) {
@@ -89,6 +95,47 @@ function chooseMostReliablePayload(...candidates) {
     return String(right.timestamp).localeCompare(String(left.timestamp));
   });
   return validCandidates[0]?.payload || {};
+}
+
+function mergeSummaryPayloadWithPrevious(summaryPayload = {}, previousPayload = {}) {
+  const summary = summaryPayload && typeof summaryPayload === "object" ? summaryPayload : {};
+  const previous = previousPayload && typeof previousPayload === "object" ? previousPayload : {};
+  const merged = {
+    ...previous,
+    ...summary,
+    payloadShape: "full-with-summary-refresh",
+  };
+  if (previous.account || summary.account) {
+    merged.account = {
+      ...(previous.account && typeof previous.account === "object" ? previous.account : {}),
+      ...(summary.account && typeof summary.account === "object" ? summary.account : {}),
+    };
+  }
+  if (previous.riskSnapshot || summary.riskSnapshot) {
+    const previousRisk = previous.riskSnapshot && typeof previous.riskSnapshot === "object" ? previous.riskSnapshot : {};
+    const summaryRisk = summary.riskSnapshot && typeof summary.riskSnapshot === "object" ? summary.riskSnapshot : {};
+    merged.riskSnapshot = {
+      ...previousRisk,
+      ...summaryRisk,
+      summary: {
+        ...(previousRisk.summary && typeof previousRisk.summary === "object" ? previousRisk.summary : {}),
+        ...(summaryRisk.summary && typeof summaryRisk.summary === "object" ? summaryRisk.summary : {}),
+      },
+      status: {
+        ...(previousRisk.status && typeof previousRisk.status === "object" ? previousRisk.status : {}),
+        ...(summaryRisk.status && typeof summaryRisk.status === "object" ? summaryRisk.status : {}),
+      },
+    };
+  }
+  ["trades", "history", "journalEntries", "symbolSpecs", "executions"].forEach((key) => {
+    if (!Array.isArray(summary[key]) && Array.isArray(previous[key])) {
+      merged[key] = previous[key];
+    }
+  });
+  if (!Array.isArray(summary.positions) && Array.isArray(previous.positions)) {
+    merged.positions = previous.positions;
+  }
+  return merged;
 }
 
 function buildAuthHeaders(state) {
@@ -258,7 +305,13 @@ function normalizeAccountEntry(entry = {}) {
     displayName: String(safe.display_name || safe.nickname || `${safe.broker || "MT5"} · ${safe.login || "Cuenta"}`),
     dashboardPayload,
     payloadSignature: payloadSignature(dashboardPayload),
+    snapshotPayloadShape: String(safe.snapshot_payload_shape || safe.snapshotPayloadShape || snapshotModeFromPayload(dashboardPayload)),
   };
+}
+
+function snapshotModeFromPayload(payload = {}) {
+  const shape = String(payload?.payloadShape || payload?.snapshot_payload_shape || "").toLowerCase();
+  return shape === "summary" ? "summary" : "full";
 }
 
 function mergeLiveAccounts(store, snapshot) {
@@ -319,7 +372,9 @@ function mergeLiveAccounts(store, snapshot) {
     const previousPayload = previousAccount?.dashboardPayload && typeof previousAccount.dashboardPayload === "object"
       ? previousAccount.dashboardPayload
       : {};
-    const resolvedPayload = chooseMostReliablePayload(accountEntry.dashboardPayload, previousPayload);
+    const resolvedPayload = accountEntry.snapshotPayloadShape === "summary"
+      ? mergeSummaryPayloadWithPrevious(accountEntry.dashboardPayload, previousPayload)
+      : chooseMostReliablePayload(accountEntry.dashboardPayload, previousPayload);
     const liveRecord = adaptMt5Account({
       ...accountEntry,
       account_id: accountEntry.accountId,
@@ -437,6 +492,7 @@ export function initAccountsLiveSnapshot(store) {
   let reconnectTimer = null;
   let httpPollTimer = null;
   let lastNonEmptyHttpSnapshotAt = 0;
+  let lastFullHttpSnapshotAt = 0;
 
   const clearHttpPollTimer = () => {
     clearTimeout(httpPollTimer);
@@ -465,6 +521,13 @@ export function initAccountsLiveSnapshot(store) {
     });
   };
 
+  const getFullSnapshotRefreshMs = () => resolveAccountsFullSnapshotRefreshMs({ isLocal: isLocalRuntime() });
+
+  const shouldUseFullSnapshot = () => {
+    if (!lastFullHttpSnapshotAt) return true;
+    return Date.now() - lastFullHttpSnapshotAt >= getFullSnapshotRefreshMs();
+  };
+
   const scheduleNextHttpPoll = () => {
     clearHttpPollTimer();
     const intervalMs = getHttpPollIntervalMs();
@@ -476,13 +539,14 @@ export function initAccountsLiveSnapshot(store) {
       isHidden: isDocumentHidden(),
     });
     httpPollTimer = window.setTimeout(async () => {
-      await pollHttpSnapshot();
+      await pollHttpSnapshot({ view: shouldUseFullSnapshot() ? "full" : "summary" });
       scheduleNextHttpPoll();
     }, intervalMs);
   };
 
-  const pollHttpSnapshot = async () => {
-    const url = resolveAccountsSnapshotUrl();
+  const pollHttpSnapshot = async ({ view = "full" } = {}) => {
+    const normalizedView = String(view || "full").toLowerCase() === "summary" ? "summary" : "full";
+    const url = resolveAccountsSnapshotUrl({ view: normalizedView });
     if (!hasLiveAccountAccess(store.getState())) {
       clearLiveAccounts(store, "missing_authenticated_user");
       return { ok: false, count: 0, reason: "missing_authenticated_user" };
@@ -506,10 +570,14 @@ export function initAccountsLiveSnapshot(store) {
         return { ok: false, count: 0, status: response.status };
       }
       const payload = await response.json();
+      if (normalizedView === "full") {
+        lastFullHttpSnapshotAt = Date.now();
+      }
       applyAdminAccess(store, payload?.is_admin);
       console.log("[KMFX][ACCOUNTS] http snapshot received", {
         count: Array.isArray(payload?.accounts) ? payload.accounts.length : 0,
         activeAccountId: payload?.active_account_id || "",
+        view: payload?.snapshot_mode || normalizedView,
       });
       if (!payload || !Array.isArray(payload.accounts)) {
         clearLiveAccounts(store, "invalid_snapshot");
@@ -628,7 +696,7 @@ export function initAccountsLiveSnapshot(store) {
       label: "live-refresh",
       reason,
     });
-    const result = await pollHttpSnapshot();
+    const result = await pollHttpSnapshot({ view: "full" });
     if (hasLiveAccountAccess(store.getState())) {
       connect();
     } else {

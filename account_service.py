@@ -124,6 +124,53 @@ def account_summary_fields_from_payload(payload: dict[str, Any] | None) -> dict[
     return summary
 
 
+def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Keep only the fields needed for live status refreshes.
+
+    The full MT5 payload can contain hundreds of closed trades and history points.
+    Polling that blob is expensive in Supabase egress, so the regular refresh path
+    uses this compact shape and keeps the heavy payload for explicit/full loads.
+    """
+    safe_payload = payload if isinstance(payload, dict) else {}
+    account_payload = safe_payload.get("account") if isinstance(safe_payload.get("account"), dict) else {}
+    positions = safe_payload.get("positions") if isinstance(safe_payload.get("positions"), list) else []
+    risk_snapshot = safe_payload.get("riskSnapshot") if isinstance(safe_payload.get("riskSnapshot"), dict) else {}
+    risk_summary = risk_snapshot.get("summary") if isinstance(risk_snapshot.get("summary"), dict) else {}
+    risk_status = risk_snapshot.get("status") if isinstance(risk_snapshot.get("status"), dict) else {}
+
+    compact: dict[str, Any] = {
+        "payloadSource": safe_payload.get("payloadSource") or "mt5_sync_live",
+        "payloadShape": "summary",
+        "data_status": safe_payload.get("data_status") or safe_payload.get("dataStatus") or "",
+        "timestamp": safe_payload.get("timestamp") or safe_payload.get("updated_at") or safe_payload.get("updatedAt") or "",
+        "updated_at": safe_payload.get("updated_at") or safe_payload.get("updatedAt") or "",
+        "last_sync_at": safe_payload.get("last_sync_at") or safe_payload.get("lastSyncAt") or "",
+        "name": _first_text(safe_payload.get("name"), safe_payload.get("accountName"), account_payload.get("name")),
+        "accountName": _first_text(safe_payload.get("accountName"), safe_payload.get("name"), account_payload.get("name")),
+        "broker": _first_text(safe_payload.get("broker"), account_payload.get("broker")),
+        "server": _first_text(safe_payload.get("server"), account_payload.get("server")),
+        "login": _first_text(safe_payload.get("login"), account_payload.get("login")),
+        "currency": _first_text(safe_payload.get("currency"), account_payload.get("currency")),
+        "positions": positions,
+        "openPositionsCount": _first_finite_number(safe_payload.get("openPositionsCount"), len(positions)) or 0,
+        "account": {
+            "broker": _first_text(account_payload.get("broker"), safe_payload.get("broker")),
+            "server": _first_text(account_payload.get("server"), safe_payload.get("server")),
+            "login": _first_text(account_payload.get("login"), safe_payload.get("login")),
+            "currency": _first_text(account_payload.get("currency"), safe_payload.get("currency")),
+            "balance": _first_finite_number(account_payload.get("balance"), safe_payload.get("balance")),
+            "equity": _first_finite_number(account_payload.get("equity"), safe_payload.get("equity")),
+            "profit": _first_finite_number(account_payload.get("profit"), safe_payload.get("openPnl"), safe_payload.get("floatingPnl")),
+        },
+        "riskSnapshot": {
+            "summary": risk_summary,
+            "status": risk_status,
+        },
+    }
+    compact.update(account_summary_fields_from_payload(safe_payload))
+    return {key: value for key, value in compact.items() if value not in ("", None)}
+
+
 def _resolve_account_id(platform: str, broker: str, server: str, login: str) -> str:
     return _stable_account_id(platform, broker, server, login)
 
@@ -1028,13 +1075,19 @@ class AccountService:
         self.store.save_accounts(accounts)
         return deepcopy(target) if target else None
 
-    def build_accounts_snapshot(self, user_id: str = "local") -> dict[str, Any]:
-        selected = self.resolve_operational_account(user_id)
+    def build_accounts_snapshot(self, user_id: str = "local", *, summary_only: bool = False) -> dict[str, Any]:
+        list_summary_for_user = getattr(self.store, "list_account_summaries_for_user", None)
+        if summary_only and callable(list_summary_for_user):
+            source_accounts = list_summary_for_user(user_id)
+        else:
+            source_accounts = self.list_accounts(user_id)
         accounts = [
             account
-            for account in self.list_accounts(user_id)
+            for account in source_accounts
             if _is_operational(account)
         ]
+        primary = next((account for account in accounts if account.is_primary or account.is_default), None)
+        selected = primary or max(accounts, key=lambda account: account.last_sync_at or account.updated_at, default=None)
         return {
             "accounts": [
                 {
@@ -1066,17 +1119,28 @@ class AccountService:
                     "is_primary": bool(account.is_default or account.is_primary),
                     "nickname": account.nickname or "",
                     "display_name": _display_name(account),
-                    "dashboard_payload": deepcopy(account.latest_payload or {}),
+                    "dashboard_payload": (
+                        compact_dashboard_payload_from_payload(account.latest_payload)
+                        if summary_only
+                        else deepcopy(account.latest_payload or {})
+                    ),
+                    "snapshot_payload_shape": "summary" if summary_only else "full",
                     "latest_report_metrics": deepcopy(account.latest_report_metrics or {}),
                 }
                 for account in accounts
             ],
             "active_account_id": selected.account_id if selected else "",
+            "snapshot_mode": "summary" if summary_only else "full",
             "updated_at": _now_utc().isoformat(),
         }
 
-    def build_accounts_registry(self, user_id: str = "local") -> list[dict[str, Any]]:
-        accounts = [account for account in self.list_accounts(user_id) if not _is_deleted(account) and not _is_archived(account)]
+    def build_accounts_registry(self, user_id: str = "local", *, summary_only: bool = False) -> list[dict[str, Any]]:
+        list_summary_for_user = getattr(self.store, "list_account_summaries_for_user", None)
+        if summary_only and callable(list_summary_for_user):
+            source_accounts = list_summary_for_user(user_id)
+        else:
+            source_accounts = self.list_accounts(user_id)
+        accounts = [account for account in source_accounts if not _is_deleted(account) and not _is_archived(account)]
         return [
             {
                 "account_id": account.account_id,
