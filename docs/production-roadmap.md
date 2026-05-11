@@ -1,6 +1,6 @@
 # Roadmap de Producción KMFX Edge
 
-Última revisión: 2026-05-09
+Última revisión: 2026-05-11
 Rama revisada: `main`
 Commit base: `2ac0eb9 Fix auth captcha and metric study UX`
 Auditoria actualizada: `docs/production-readiness-audit.md`
@@ -181,7 +181,8 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
 - Copy visible reforzado tras `3f9786f`: métricas, ejecución, calendario, operaciones, diario, talento, cuentas y billing priorizan español en labels como `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto` y `Última sincronización`.
 - Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes, detalle Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de renderizarse.
-- Mitigacion inicial por aviso de Supabase Fair Use: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas y hace backoff cuando la pestana esta oculta. Queda pendiente separar snapshot ligero de payload MT5 historico para reducir egress estructuralmente.
+- Mitigacion por aviso de Supabase Fair Use cerrada en dos capas: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas, hace backoff cuando la pestana esta oculta y usa `view=summary` para refrescos ligeros sin arrastrar el payload MT5 historico completo.
+- Monitor recurrente creado para revisar egress Supabase cada 6 horas; si el uso vuelve a subir, el siguiente paso es cache server-side o tabla de resumen dedicada antes de beta abierta.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing

@@ -1,6 +1,6 @@
 # KMFX Edge - Checklist Maestro de Produccion
 
-Ultima revision: 2026-05-10
+Ultima revision: 2026-05-11
 Rama objetivo: `main`
 Objetivo: cerrar KMFX Edge como SaaS usable por traders reales, lanzar produccion controlada y preparar migracion a Next.js sin romper el producto actual.
 
@@ -45,7 +45,7 @@ Objetivo: asegurar que partimos de una base estable.
 
 - [x] `main` actualizado localmente.
 - [x] Worktree revisado y cambios ajenos identificados.
-- [ ] CI actual revisado.
+- [x] CI actual revisado.
 - [x] Render/Vercel/Cloudflare/Supabase responden health.
 - [x] Descargas Launcher macOS/Windows responden `200`.
 - [ ] MT5 smoke actual documentado: cuenta conecta, EA read-only y cierre de Launcher no corta sync.
@@ -61,6 +61,12 @@ Notas 2026-05-09:
 - Verificado en produccion: `https://kmfxedge.com/KMFXConnector.ex5` responde `200`.
 - Verificado en produccion tras commit `6ecd97f`: `https://kmfxedge.com/dashboard` responde `200`, `https://kmfx-edge-api.onrender.com/health` responde `ok` con `render_git_commit=6ecd97f...`, `https://mt5-api.kmfxedge.com/health` responde `ok` via Cloudflare Worker, y Supabase Auth responde protegido con `401 No API key found`, confirmando disponibilidad sin exponer datos anonimos.
 - CI queda pendiente: `gh` no esta instalado en esta maquina y el conector GitHub no devolvio workflow runs para el commit directo `6ecd97f`.
+
+Notas 2026-05-11:
+
+- CI del commit `bcc677c` revisado en GitHub Actions: `Backend and connector tests` y `Static app checks` finalizaron en verde.
+- Render ya sirve `render_git_commit=bcc677c9da94a5e380be4a31ecaa84a650e7a30d`.
+- Se crea monitor recurrente `Monitor Supabase egress KMFX` cada 6 horas para vigilar si el consumo de salida vuelve a crecer.
 
 ## Fase 1 - Contrato de Metricas
 
@@ -406,7 +412,8 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
-- [ ] Monitorizar uso de salida Supabase tras deploy y decidir si hace falta mover historial/trades a tabla dedicada o cache server-side antes de beta abierta.
+- [x] Monitor recurrente creado para revisar uso de salida Supabase tras deploy.
+- [ ] Decidir si hace falta mover historial/trades a tabla dedicada o cache server-side si el uso vuelve a subir antes de beta abierta.
 - [ ] Eventos de auditoria:
   - login
   - crear key
