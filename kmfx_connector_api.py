@@ -404,6 +404,9 @@ log.info(
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 VERIFIED_BEARER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+ACCOUNTS_SUMMARY_SNAPSHOT_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS", default=5)
+ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_MAX_ENTRIES = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES", default=128)
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
 POST_TRADE_REVIEWS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-post-trade-reviews.json")
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
@@ -576,6 +579,49 @@ PROCESSED_SYNC_RECEIPTS: dict[str, dict[str, Any]] = load_sync_receipts()
 PROCESSED_JOURNAL_RECEIPTS: dict[str, dict[str, Any]] = load_journal_receipts()
 JOURNAL_TRADES_BY_IDENTITY: dict[str, list[dict[str, Any]]] = load_journal_trade_store()
 RECENT_LIVE_ACCOUNTS: dict[str, dict[str, Any]] = {}
+
+
+def accounts_summary_snapshot_cache_key(scope_user_id: str, allowed_connection_keys: set[str] | None = None) -> str:
+    normalized_user_id = safe_str(scope_user_id, "local").lower()
+    key_hashes = [
+        storage_connection_key_hash(safe_str(connection_key).lower())
+        for connection_key in (allowed_connection_keys or set())
+        if safe_str(connection_key)
+    ]
+    key_signature = hashlib.sha256("|".join(sorted(key_hashes)).encode("utf-8")).hexdigest()[:16]
+    return f"{normalized_user_id}:{key_signature}"
+
+
+def clear_accounts_summary_snapshot_cache() -> None:
+    ACCOUNTS_SUMMARY_SNAPSHOT_CACHE.clear()
+
+
+def cached_accounts_summary_snapshot(cache_key: str) -> dict[str, Any] | None:
+    if ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS <= 0:
+        return None
+    record = ACCOUNTS_SUMMARY_SNAPSHOT_CACHE.get(cache_key)
+    if not record:
+        return None
+    expires_at, snapshot = record
+    if expires_at <= time.time():
+        ACCOUNTS_SUMMARY_SNAPSHOT_CACHE.pop(cache_key, None)
+        return None
+    return deepcopy(snapshot)
+
+
+def remember_accounts_summary_snapshot(cache_key: str, snapshot: dict[str, Any]) -> None:
+    if ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS <= 0:
+        return
+    if len(ACCOUNTS_SUMMARY_SNAPSHOT_CACHE) >= ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_MAX_ENTRIES:
+        oldest_key = min(
+            ACCOUNTS_SUMMARY_SNAPSHOT_CACHE,
+            key=lambda key: ACCOUNTS_SUMMARY_SNAPSHOT_CACHE[key][0],
+        )
+        ACCOUNTS_SUMMARY_SNAPSHOT_CACHE.pop(oldest_key, None)
+    ACCOUNTS_SUMMARY_SNAPSHOT_CACHE[cache_key] = (
+        time.time() + ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS,
+        deepcopy(snapshot),
+    )
 
 
 def purge_expired_sync_receipts() -> None:
@@ -2883,6 +2929,7 @@ def build_live_snapshot_entry(account: Any, *, source: str, summary_only: bool =
 def remember_live_account_snapshot(account: Any) -> None:
     entry = build_live_snapshot_entry(account, source="sync_memory")
     RECENT_LIVE_ACCOUNTS[entry["account_id"]] = entry
+    clear_accounts_summary_snapshot_cache()
     log.info(
         "LIVE account cached | source=sync_memory account_id=%s login=%s broker=%s last_sync_at=%s",
         entry["account_id"],
@@ -2897,6 +2944,7 @@ def forget_live_account_snapshot(account_id: str) -> None:
     if not normalized:
         return
     RECENT_LIVE_ACCOUNTS.pop(normalized, None)
+    clear_accounts_summary_snapshot_cache()
 
 
 def build_registry_entry_for_account(account: Any, *, summary_only: bool = False) -> dict[str, Any]:
@@ -6034,21 +6082,38 @@ async def accounts_snapshot(
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
     summary_only = normalized_view == "summary"
-    snapshot = build_live_accounts_snapshot(
-        scope_user_id,
-        allowed_connection_keys=allowed_connection_keys,
-        summary_only=summary_only,
-    )
+    cache_status = "bypass"
+    if summary_only:
+        cache_key = accounts_summary_snapshot_cache_key(scope_user_id, allowed_connection_keys)
+        cached_snapshot = cached_accounts_summary_snapshot(cache_key)
+        if cached_snapshot is not None:
+            snapshot = cached_snapshot
+            cache_status = "hit"
+        else:
+            snapshot = build_live_accounts_snapshot(
+                scope_user_id,
+                allowed_connection_keys=allowed_connection_keys,
+                summary_only=True,
+            )
+            remember_accounts_summary_snapshot(cache_key, snapshot)
+            cache_status = "miss"
+    else:
+        snapshot = build_live_accounts_snapshot(
+            scope_user_id,
+            allowed_connection_keys=allowed_connection_keys,
+            summary_only=False,
+        )
     snapshot["is_admin"] = auth_context["is_admin"]
     snapshot["auth_email"] = auth_context["email"]
     snapshot["scope_user_id"] = scope_user_id
     snapshot["admin_launcher_bridge"] = bool(allowed_connection_keys)
     log.info(
-        "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s view=%s",
+        "Accounts snapshot built | scope_user_id=%s accounts=%s active_account_id=%s view=%s cache=%s",
         scope_user_id,
         len(snapshot.get("accounts") or []),
         snapshot.get("active_account_id") or "",
         normalized_view,
+        cache_status,
     )
     return connector_json_response(snapshot)
 

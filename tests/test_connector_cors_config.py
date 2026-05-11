@@ -982,6 +982,53 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(1, len(body["accounts"]))
         self.assertEqual("4838", str(body["accounts"][0]["dashboard_payload"]["balance"]))
 
+    def test_accounts_summary_snapshot_uses_short_cache_without_caching_full_snapshot(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        calls: list[bool] = []
+
+        def fake_snapshot(user_id, allowed_connection_keys=None, *, summary_only=False):
+            calls.append(summary_only)
+            return {
+                "accounts": [
+                    {
+                        "account_id": "acc-1",
+                        "user_id": user_id,
+                        "display_name": "IC Markets",
+                        "dashboard_payload": {
+                            "payloadShape": "summary" if summary_only else "full",
+                            "balance": 100000,
+                        },
+                    }
+                ],
+                "active_account_id": "acc-1",
+                "portfolio_risk": {},
+                "snapshot_mode": "summary" if summary_only else "full",
+                "updated_at": "2026-05-11T07:00:00Z",
+            }
+
+        connector_api.clear_accounts_summary_snapshot_cache()
+        try:
+            with patch.object(
+                connector_api,
+                "_resolve_verified_bearer_claims",
+                return_value={
+                    "sub": "admin-user",
+                    "email": "admin@kmfxedge.com",
+                    "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
+                    "user_metadata": {},
+                },
+            ), patch.object(connector_api, "build_live_accounts_snapshot", side_effect=fake_snapshot):
+                first = asyncio.run(connector_api.accounts_snapshot(request, view="summary"))
+                second = asyncio.run(connector_api.accounts_snapshot(request, view="summary"))
+                full = asyncio.run(connector_api.accounts_snapshot(request, view="full"))
+        finally:
+            connector_api.clear_accounts_summary_snapshot_cache()
+
+        self.assertEqual([True, False], calls)
+        self.assertEqual("summary", json.loads(first.body.decode("utf-8"))["snapshot_mode"])
+        self.assertEqual("summary", json.loads(second.body.decode("utf-8"))["snapshot_mode"])
+        self.assertEqual("full", json.loads(full.body.decode("utf-8"))["snapshot_mode"])
+
     def test_billing_status_keeps_past_due_entitlements_with_attention_state(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         with patch.object(
