@@ -404,6 +404,8 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Alerta webhooks Stripe fallidos.
 - [ ] Alerta sync MT5 rechazado anormal.
 - [ ] Logs utiles sin secretos.
+- [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
+- [ ] Auditar payload de `/api/accounts/snapshot` para separar resumen ligero de historial MT5 pesado antes de beta abierta.
 - [ ] Eventos de auditoria:
   - login
   - crear key

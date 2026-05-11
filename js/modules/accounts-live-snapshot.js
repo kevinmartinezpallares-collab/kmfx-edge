@@ -10,6 +10,16 @@ function isLocalRuntime() {
   return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
+function isDocumentHidden() {
+  return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
+function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
+  if (isHidden) return isLocal ? 15000 : 60000;
+  if (isLocal) return hasOpenPositions ? 1000 : 5000;
+  return hasOpenPositions ? 8000 : 30000;
+}
+
 function toFiniteNumber(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -448,8 +458,11 @@ export function initAccountsLiveSnapshot(store) {
 
   const getHttpPollIntervalMs = () => {
     const hasOpenPositions = getActiveOpenPositionsCount() > 0;
-    if (isLocalRuntime()) return hasOpenPositions ? 1000 : 5000;
-    return hasOpenPositions ? 3000 : 15000;
+    return resolveAccountsHttpPollIntervalMs({
+      isLocal: isLocalRuntime(),
+      hasOpenPositions,
+      isHidden: isDocumentHidden(),
+    });
   };
 
   const scheduleNextHttpPoll = () => {
@@ -460,6 +473,7 @@ export function initAccountsLiveSnapshot(store) {
       intervalMs,
       mode: isLocalRuntime() ? "local" : "production",
       hasOpenPositions: getActiveOpenPositionsCount() > 0,
+      isHidden: isDocumentHidden(),
     });
     httpPollTimer = window.setTimeout(async () => {
       await pollHttpSnapshot();

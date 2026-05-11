@@ -181,6 +181,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
 - Copy visible reforzado tras `3f9786f`: métricas, ejecución, calendario, operaciones, diario, talento, cuentas y billing priorizan español en labels como `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto` y `Última sincronización`.
 - Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes, detalle Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de renderizarse.
+- Mitigacion inicial por aviso de Supabase Fair Use: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas y hace backoff cuando la pestana esta oculta. Queda pendiente separar snapshot ligero de payload MT5 historico para reducir egress estructuralmente.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
