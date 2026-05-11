@@ -81,6 +81,20 @@ def _identity_text(*values: Any) -> str:
     return " ".join(str(value or "") for value in values if str(value or "").strip()).replace("_", " ")
 
 
+def _identity_norm(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def _identity_contains(haystack: Any, needle: Any) -> bool:
+    normalized_haystack = f" {_identity_norm(haystack)} "
+    normalized_needle = _identity_norm(needle)
+    return bool(normalized_needle and f" {normalized_needle} " in normalized_haystack)
+
+
+def _identity_has_any_marker(value: Any, markers: tuple[str, ...]) -> bool:
+    return any(_identity_contains(value, marker) for marker in markers)
+
+
 def _generic_mt5_label(value: Any) -> bool:
     cleaned = re.sub(r"\s+", " ", str(value or "").replace("_", " ")).strip().lower()
     if not cleaned:
@@ -104,16 +118,16 @@ def _generic_mt5_label(value: Any) -> bool:
 
 
 def _friendly_mt5_identity_label(*, broker: str = "", server: str = "", login: str = "", fallback: str = "MetaTrader 5") -> str:
-    identity = _identity_text(broker, server).lower()
-    if "orion" in identity or "ogminternational" in identity or "ogm international" in identity:
+    identity = _identity_text(broker, server)
+    if _identity_has_any_marker(identity, ("orion", "ogminternational", "ogm international", "ogm")):
         return "Orion OGM MT5"
-    if "darwinex" in identity or "tradeslide" in identity:
+    if _identity_has_any_marker(identity, ("darwinex", "tradeslide")):
         return "Darwinex MT5"
-    if "icmarkets" in identity or "ic markets" in identity:
+    if _identity_has_any_marker(identity, ("icmarkets", "ic markets")):
         return "IC Markets MT5"
-    if "xmuk" in identity or "xm uk" in identity:
+    if _identity_has_any_marker(identity, ("xmuk", "xm uk")):
         return "XM UK MT5"
-    if "ftmo" in identity:
+    if _identity_has_any_marker(identity, ("ftmo",)):
         return "FTMO MT5"
 
     broker_label = _sanitize_account_label(broker, "")
@@ -131,16 +145,15 @@ def _friendly_mt5_identity_label(*, broker: str = "", server: str = "", login: s
 
 def _friendly_installation_label_from_text(value: str, fallback: str = "MetaTrader 5") -> str:
     identity = _identity_text(value)
-    lower = identity.lower()
-    if "orion" in lower or "ogm" in lower:
+    if _identity_has_any_marker(identity, ("orion", "ogminternational", "ogm international", "ogm")):
         return "Orion OGM MT5"
-    if "darwinex" in lower or "tradeslide" in lower:
+    if _identity_has_any_marker(identity, ("darwinex", "tradeslide")):
         return "Darwinex MT5"
-    if "icmarkets" in lower or "ic markets" in lower:
+    if _identity_has_any_marker(identity, ("icmarkets", "ic markets")):
         return "IC Markets MT5"
-    if "xmuk" in lower or "xm uk" in lower:
+    if _identity_has_any_marker(identity, ("xmuk", "xm uk")):
         return "XM UK MT5"
-    if "ftmo" in lower:
+    if _identity_has_any_marker(identity, ("ftmo",)):
         return "FTMO MT5"
     parts = [part.strip() for part in identity.split("·") if part.strip()]
     candidate = parts[-1] if parts else identity
@@ -502,11 +515,28 @@ class KMFXApi:
             self.logger.warning("[KMFX][AUTH] force refresh failed status=%s", response.status_code)
         return False
 
-    def link_account_with_session(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+    def link_account_with_session(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
         self.ensure_session()
-        response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+        response = self.backend.link_account(
+            user_id=user_id,
+            label=label,
+            account_id=account_id,
+            connection_key=connection_key,
+        )
         if response.status_code == 401 and self._force_refresh_session("link_account_401"):
-            response = self.backend.link_account(user_id=user_id, label=label, connection_key=connection_key)
+            response = self.backend.link_account(
+                user_id=user_id,
+                label=label,
+                account_id=account_id,
+                connection_key=connection_key,
+            )
         return response
 
     def ensure_remote_account_link(self) -> dict[str, Any]:
@@ -734,6 +764,83 @@ class KMFXApi:
             return None
         return next((connection for connection in self.get_account_connections() if connection.get("account_id") == normalized), None)
 
+    def installation_identity_score(self, installation: MT5Installation, connection: dict[str, Any]) -> int:
+        connection_key = _safe_str(connection.get("connection_key"))
+        installed_key = self.installed_connection_key(installation)
+        if connection_key and installed_key == connection_key:
+            return 1000
+
+        inferred_identity = _infer_mt5_identity_from_logs(installation.data_path)
+        installation_text = _identity_text(
+            installation.label,
+            installation.data_path,
+            inferred_identity.get("broker"),
+            inferred_identity.get("server"),
+            inferred_identity.get("login"),
+            self.installed_connection_label(installation),
+        )
+        score = 0
+        login = _safe_str(connection.get("login"))
+        server = _safe_str(connection.get("server"))
+        broker = _safe_str(connection.get("broker"))
+        label = _safe_str(connection.get("label") or connection.get("display_label"))
+
+        if login and login == _safe_str(inferred_identity.get("login")):
+            score += 160
+        if server and _identity_contains(installation_text, server):
+            score += 110
+        if broker and _identity_contains(installation_text, broker):
+            score += 90
+
+        marker_sets = (
+            ("darwinex", "tradeslide"),
+            ("orion", "ogm", "ogminternational"),
+            ("icmarkets", "ic markets", "raw trading"),
+            ("xmuk", "xm uk"),
+            ("ftmo",),
+        )
+        connection_text = _identity_text(label, broker, server)
+        for markers in marker_sets:
+            connection_has_marker = _identity_has_any_marker(connection_text, markers)
+            installation_has_marker = _identity_has_any_marker(installation_text, markers)
+            if connection_has_marker and installation_has_marker:
+                score += 80
+                break
+
+        friendly_label = _friendly_mt5_identity_label(broker=broker, server=server, login=login, fallback="")
+        if friendly_label and _identity_contains(installation_text, friendly_label):
+            score += 40
+
+        return score
+
+    def installation_for_connection(
+        self,
+        connection: dict[str, Any],
+        selected_installation: str | None = None,
+    ) -> MT5Installation | None:
+        if not self.installations:
+            return None
+
+        scored = [
+            (self.installation_identity_score(installation, connection), installation)
+            for installation in self.installations
+        ]
+        scored.sort(key=lambda item: item[0], reverse=True)
+        best_score, best_installation = scored[0]
+        if best_score >= 100:
+            selected = self.selected_installation(selected_installation)
+            if selected and selected.label != best_installation.label:
+                self.logger.info(
+                    "[KMFX][LAUNCHER][INSTALL] account identity selected MT5 target=%s over selected=%s score=%s account_id=%s",
+                    best_installation.label,
+                    selected.label,
+                    best_score,
+                    connection.get("account_id", ""),
+                )
+            return best_installation
+
+        return self.selected_installation(selected_installation)
+
     def get_installations(self) -> list[dict[str, Any]]:
         serialized = [self.serialize_installation(installation) for installation in self.installations]
         return sorted(
@@ -825,7 +932,30 @@ class KMFXApi:
             connection_key = _safe_str(connection.get("connection_key"))
             if not connection_key:
                 return {"ok": False, "message": "Esta cuenta aún no tiene conexión preparada."}
-            installation = self.selected_installation(selected_installation)
+            label = _sanitize_account_label(connection.get("label") or connection.get("display_label") or "Cuenta MT5")
+            link_response = self.link_account_with_session(
+                user_id=self.config.auth_user_id,
+                label=label,
+                account_id=_safe_str(connection.get("account_id")),
+                connection_key="",
+            )
+            if link_response.ok:
+                linked = self.cache_linked_account_connection(link_response.body, label=label)
+                fresh_key = _safe_str(link_response.body.get("connection_key") or linked.get("connection_key"))
+                if fresh_key:
+                    connection_key = fresh_key
+                    connection["connection_key"] = fresh_key
+                    connection["connection_key_masked"] = mask_connection_key(fresh_key)
+            else:
+                self.logger.warning(
+                    "[KMFX][LAUNCHER][INSTALL] account key refresh failed before repair account_id=%s status=%s reason=%s",
+                    connection.get("account_id", ""),
+                    link_response.status_code,
+                    _backend_response_reason(link_response),
+                )
+                return {"ok": False, "message": self.link_account_error_message(link_response)}
+
+            installation = self.installation_for_connection(connection, selected_installation)
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
 
@@ -976,12 +1106,11 @@ class KMFXApi:
                 inferred_identity.get("broker"),
                 inferred_identity.get("server"),
             )
-        identity_lower = identity.lower()
-        if "orion" in identity_lower or "ogm" in identity_lower:
+        if _identity_has_any_marker(identity, ("orion", "ogminternational", "ogm international", "ogm")):
             return "KMFX MT5 Orion"
-        if "darwinex" in identity_lower or "tradeslide" in identity_lower:
+        if _identity_has_any_marker(identity, ("darwinex", "tradeslide")):
             return "KMFX MT5 Darwinex"
-        if "icmarkets" in identity_lower or "ic markets" in identity_lower:
+        if _identity_has_any_marker(identity, ("icmarkets", "ic markets")):
             return "KMFX MT5 IC Markets"
         login = _safe_str(matching_connection.get("login"))
         if login:

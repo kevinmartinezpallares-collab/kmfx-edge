@@ -40,7 +40,14 @@ class ExpiredThenFreshBackend:
         self.link_calls = 0
         self.refresh_calls = 0
 
-    def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+    def link_account(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
         self.link_calls += 1
         if self.link_calls == 1:
             return BackendResponse(ok=False, status_code=401, body={"reason": "auth_required"})
@@ -84,7 +91,14 @@ class RevokedThenFreshBackend:
         self.config = config
         self.connection_keys: list[str] = []
 
-    def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+    def link_account(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
         key = str(connection_key or "")
         self.connection_keys.append(key)
         if key:
@@ -482,6 +496,96 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(["revoked-key", ""], api.backend.connection_keys)
         self.assertEqual("fresh-key", captured["connection_key"])
+
+    def test_launcher_repair_account_prefers_identity_match_over_selected_installation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir)
+                darwinex = root / "Darwinex"
+                orion = root / "Orion"
+                for data_path in (darwinex, orion):
+                    (data_path / "MQL5" / "Experts").mkdir(parents=True)
+                    (data_path / "MQL5" / "Files").mkdir(parents=True)
+                    (data_path / "logs").mkdir(parents=True)
+                (darwinex / "MQL5" / "Files" / "kmfx_connection.conf").write_text(
+                    "connection_key=old-revoked-darwinex-key\n",
+                    encoding="utf-8",
+                )
+                (orion / "MQL5" / "Files" / "kmfx_connection.conf").write_text(
+                    "connection_key=orion-key\n",
+                    encoding="utf-8",
+                )
+                (darwinex / "logs" / "20260511.log").write_bytes(
+                    (
+                        "'4000082126': authorized on Darwinex-Live through Access Server EU\n"
+                        "'4000082126': terminal synchronized with Tradeslide Trading Tech Limited: 0 positions\n"
+                    ).encode("utf-16le")
+                )
+                (orion / "logs" / "20260511.log").write_bytes(
+                    (
+                        "'80571774': authorized on OGMInternational-Server through Access Server EU\n"
+                        "'80571774': terminal synchronized with OGM International Ltd.: 0 positions\n"
+                    ).encode("utf-16le")
+                )
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = object()
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api._lock = threading.RLock()
+                api.installations = [
+                    MT5Installation("Darwinex", "", str(darwinex), str(darwinex / "MQL5" / "Experts"), "", "test"),
+                    MT5Installation("Orion", "", str(orion), str(orion / "MQL5" / "Experts"), "", "test"),
+                ]
+                api.get_session = lambda: {"authenticated": True}
+                api.account_connection_by_id = lambda _account_id: {
+                    "account_id": "darwinex-account",
+                    "label": "Darwinex MT5",
+                    "broker": "Tradeslide Trading Tech Limited",
+                    "server": "Darwinex-Live",
+                    "login": "4000082126",
+                    "connection_key": "old-revoked-darwinex-key",
+                }
+                api.link_account_with_session = lambda **_kwargs: BackendResponse(
+                    ok=True,
+                    status_code=200,
+                    body={
+                        "account_id": "darwinex-account",
+                        "connection_key": "fresh-darwinex-key",
+                        "status": "active",
+                        "alias": "Darwinex MT5",
+                    },
+                )
+                api.refresh_installations = lambda: api.installations
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_status = lambda: {}
+                api.get_installations = lambda: []
+                api.get_account_connections = lambda: []
+
+                captured: dict[str, str] = {}
+
+                def fake_install_connector(installation: MT5Installation, install_config: LauncherConfig) -> dict[str, object]:
+                    captured["label"] = installation.label
+                    captured["connection_key"] = install_config.connection_key
+                    return {"ok": True}
+
+                with patch("launcher.app.install_connector", fake_install_connector):
+                    result = api.install_connector_for_connection("darwinex-account", "Orion")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual("Darwinex", captured["label"])
+        self.assertEqual("fresh-darwinex-key", captured["connection_key"])
 
     def test_launcher_detects_shared_installed_connection_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

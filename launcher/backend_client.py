@@ -291,10 +291,20 @@ class BackendClient:
     def get_accounts_registry(self) -> BackendResponse:
         return self._request("GET", "/accounts")
 
-    def link_account(self, *, user_id: str = "", label: str = "", connection_key: str | None = None) -> BackendResponse:
+    def link_account(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
+        payload: dict[str, Any] = {"user_id": user_id, "label": label}
+        if account_id:
+            payload["account_id"] = account_id
         return self._request(
             "POST",
             "/api/accounts/link",
-            payload={"user_id": user_id, "label": label},
+            payload=payload,
             connection_key=connection_key,
         )
