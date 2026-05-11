@@ -4,7 +4,9 @@ import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260511-071
 import { isAdminIdentity } from "./auth-session.js?v=build-20260509-150500";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS = 5 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 5 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 15 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 30 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 function isLocalRuntime() {
@@ -22,8 +24,10 @@ function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions =
   return hasOpenPositions ? 8000 : 30000;
 }
 
-function resolveAccountsFullSnapshotRefreshMs({ isLocal = false } = {}) {
-  return isLocal ? LOCAL_FULL_SNAPSHOT_REFRESH_MS : PRODUCTION_FULL_SNAPSHOT_REFRESH_MS;
+function resolveAccountsFullSnapshotRefreshMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
+  if (isLocal) return LOCAL_FULL_SNAPSHOT_REFRESH_MS;
+  if (isHidden) return PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN;
+  return hasOpenPositions ? PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE : PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE;
 }
 
 function toFiniteNumber(value, fallback = null) {
@@ -521,7 +525,12 @@ export function initAccountsLiveSnapshot(store) {
     });
   };
 
-  const getFullSnapshotRefreshMs = () => resolveAccountsFullSnapshotRefreshMs({ isLocal: isLocalRuntime() });
+  const getFullSnapshotRefreshMs = () =>
+    resolveAccountsFullSnapshotRefreshMs({
+      isLocal: isLocalRuntime(),
+      hasOpenPositions: getActiveOpenPositionsCount() > 0,
+      isHidden: isDocumentHidden(),
+    });
 
   const shouldUseFullSnapshot = () => {
     if (!lastFullHttpSnapshotAt) return true;
