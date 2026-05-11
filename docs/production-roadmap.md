@@ -167,6 +167,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 ### Checkpoint 2026-05-09
 
 - Login con email/password, signup, recovery y reset usan Turnstile; `index.html` ya incluye la site key publica para que Supabase Auth reciba `captchaToken`.
+- El submit de email/password mantiene el widget Turnstile montado durante la peticion a Supabase para no invalidar el token antes de que Auth lo valide.
 - Estudio de métricas usa cards estables por categoría, sin slider horizontal que se corte o se reinicie.
 - Cada card de métrica muestra fórmula, fuente, confianza y para qué sirve al trader.
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.

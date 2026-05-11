@@ -36,21 +36,24 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("signInPayload.options = withCaptchaToken({}, normalizedCaptchaToken)", source)
         self.assertNotIn("signInPayload.captchaToken = normalizedCaptchaToken", source)
 
-    def test_auth_captcha_token_is_captured_before_loading_rerender(self) -> None:
+    def test_auth_captcha_token_is_kept_stable_during_pending_request(self) -> None:
         source = read_text("js/modules/auth-ui.js")
 
-        for mode, loading_marker in [
-            ("signin", 'providerLoading: "email"'),
-            ("signup", 'providerLoading: "signup"'),
-            ("forgot", 'providerLoading: "reset-request"'),
-            ("reset", 'providerLoading: "reset-password"'),
+        self.assertIn("const setAuthRequestPending", source)
+        self.assertIn("{ rerender: false }", source)
+
+        for mode, pending_marker in [
+            ("signin", 'setAuthRequestPending("email", "Entrando...")'),
+            ("signup", 'setAuthRequestPending("signup", "Creando cuenta...")'),
+            ("forgot", 'setAuthRequestPending("reset-request", "Enviando...")'),
+            ("reset", 'setAuthRequestPending("reset-password", "Actualizando...")'),
         ]:
             token_index = source.index(f'const captchaToken = getTurnstileToken("{mode}")')
-            loading_index = source.index(loading_marker, token_index - 220)
+            loading_index = source.index(pending_marker, token_index)
             self.assertLess(
                 token_index,
                 loading_index,
-                f"{mode} must capture the Turnstile token before setUiState re-renders and remounts the widget",
+                f"{mode} must capture the Turnstile token before setting pending auth state",
             )
 
     def test_account_detail_warnings_are_user_safe(self) -> None:

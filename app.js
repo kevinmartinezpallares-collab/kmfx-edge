@@ -25,7 +25,7 @@ import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-11050
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260510-110500";
 import { hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260510-110500";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260510-110500";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
 import {
   DEFAULT_AUTH_PROFILE,

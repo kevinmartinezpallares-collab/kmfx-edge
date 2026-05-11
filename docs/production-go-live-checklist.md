@@ -367,7 +367,7 @@ Criterio de salida:
 
 Notas 2026-05-09:
 
-- Login con email/password, signup, recovery y reset usan Turnstile; la site key publica queda servida por el frontend y el secret permanece solo en Supabase Auth.
+- Login con email/password, signup, recovery y reset usan Turnstile; la site key publica queda servida por el frontend y el secret permanece solo en Supabase Auth. El widget permanece montado durante el submit para evitar invalidar el token antes de enviarlo a Supabase.
 - Detalles de cuenta queda mas ancho, scrollable y con lectura de warnings orientada a usuario, no raw tecnica.
 - Estudio de métricas queda en cards estables por categoría; las explicaciones incluyen fórmula, fuente, confianza y utilidad para el trader.
 - Pasada adicional de copy/ortografía aplicada en rutas visibles: login, Cuentas, Dashboard, Calendario, Insights, Funding, Estrategias, Ejecución, Risk Engine, Capital y Estudio. Se sustituyen labels inglesas no intencionadas como `Trades`, `Net Return`, `Max Drawdown`, `Recovery Factor`, `Payout split` y copy técnico visible por lenguaje de producto.

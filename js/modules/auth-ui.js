@@ -188,6 +188,26 @@ export function initAuthUI(store) {
     });
   };
 
+  const setAuthRequestPending = (providerLoading, submitLabel) => {
+    setUiState({
+      loading: true,
+      error: "",
+      notice: "",
+      providerLoading
+    }, { rerender: false });
+
+    root.querySelector(".auth-feedback")?.remove();
+    root.querySelectorAll("[data-auth-field], [data-auth-mode], [data-auth-google], [data-auth-secondary-action], [data-auth-submit]")
+      ?.forEach((control) => {
+        control.disabled = true;
+      });
+
+    const submitButton = root.querySelector("[data-auth-submit]");
+    if (submitButton && submitLabel) {
+      submitButton.textContent = submitLabel;
+    }
+  };
+
   const authSlides = [
     {
       section: "Panel",
@@ -227,7 +247,7 @@ export function initAuthUI(store) {
     const email = String(root.__authUiState.email || "").trim();
     const password = String(root.__authUiState.password || "");
     const captchaToken = getTurnstileToken("signin");
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "email" });
+    setAuthRequestPending("email", "Entrando...");
     const result = await window.kmfxAuth?.signInWithPassword?.({ email, password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("signin");
@@ -258,7 +278,7 @@ export function initAuthUI(store) {
       return;
     }
     const captchaToken = getTurnstileToken("signup");
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "signup" });
+    setAuthRequestPending("signup", "Creando cuenta...");
     const result = await window.kmfxAuth?.signUpWithPassword?.({ name, email, password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("signup");
@@ -306,7 +326,7 @@ export function initAuthUI(store) {
     if (!ensureTurnstileCompleted("forgot")) return;
     const email = String(root.__authUiState.email || "").trim();
     const captchaToken = getTurnstileToken("forgot");
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-request" });
+    setAuthRequestPending("reset-request", "Enviando...");
     const result = await window.kmfxAuth?.requestPasswordReset?.({ email, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("forgot");
@@ -337,7 +357,7 @@ export function initAuthUI(store) {
       return;
     }
     const captchaToken = getTurnstileToken("reset");
-    setUiState({ loading: true, error: "", notice: "", providerLoading: "reset-password" });
+    setAuthRequestPending("reset-password", "Actualizando...");
     const result = await window.kmfxAuth?.updatePassword?.({ password, captchaToken });
     if (!result?.ok) {
       resetTurnstileWidget("reset");
