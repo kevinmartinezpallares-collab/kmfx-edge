@@ -170,6 +170,15 @@ class Smoke:
         status = self.request("GET", self.backend_url + "/api/billing/status")
         self.check("billing_status_public_contract", status.status == 200, f"status={status.status}")
 
+        snapshot = self.request("GET", self.backend_url + "/api/accounts/snapshot?view=summary")
+        accounts = json_field(snapshot.body, "accounts")
+        self.check("accounts_snapshot_public_contract", snapshot.status == 200, f"status={snapshot.status}")
+        self.check(
+            "accounts_snapshot_requires_auth",
+            json_field(snapshot.body, "auth_required") is True and accounts == [],
+            body_preview(snapshot.body),
+        )
+
         for endpoint in ("/api/billing/checkout", "/api/billing/portal"):
             response = self.request(
                 "POST",
