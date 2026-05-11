@@ -4856,7 +4856,13 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
         if existing is not None:
             account_id = safe_str(existing.get("account_id"))
             connection_key = safe_str(existing.get("connection_key"))
-            if not connection_key:
+            existing_key_revoked = bool(
+                existing.get("connection_key_revoked")
+                or safe_str(existing.get("connection_key_revoked_at"))
+            )
+            if connection_key and account_service.is_connection_key_revoked_any_user(connection_key):
+                existing_key_revoked = True
+            if not connection_key or existing_key_revoked:
                 regenerated = account_service.regenerate_connection_key(account_id)
                 if regenerated is None or not regenerated.api_key:
                     return connector_json_response(

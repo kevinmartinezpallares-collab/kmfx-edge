@@ -324,6 +324,51 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_link_account_regenerates_revoked_existing_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                created = connector_api.account_service.create_pending_account_with_key(
+                    user_id="user-123",
+                    alias="Cuenta MT5 EA",
+                    connection_key="revoked-darwinex-key",
+                    platform="mt5",
+                    connection_mode="launcher",
+                )
+                revoked = connector_api.account_service.revoke_connection_key(
+                    created.account_id,
+                    reason="test",
+                )
+                self.assertIsNotNone(revoked)
+                self.assertTrue(connector_api.account_service.is_connection_key_revoked_any_user("revoked-darwinex-key"))
+
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={
+                        "label": "Cuenta MT5 EA",
+                        "alias": "Cuenta MT5 EA",
+                        "platform": "mt5",
+                        "connection_mode": "launcher",
+                    },
+                )
+
+                with patch.dict("os.environ", {"KMFX_DEFAULT_CONNECTION_PLAN": "core"}, clear=False):
+                    response = asyncio.run(connector_api.link_account(request))
+                body = json.loads(response.body.decode("utf-8"))
+                new_key = body["connection_key"]
+
+                self.assertEqual(200, response.status_code)
+                self.assertEqual(created.account_id, body["account_id"])
+                self.assertTrue(new_key)
+                self.assertNotEqual("revoked-darwinex-key", new_key)
+                self.assertTrue(connector_api.account_service.is_connection_key_revoked_any_user("revoked-darwinex-key"))
+                self.assertIsNotNone(connector_api.account_service.get_account_by_api_key_any_user(new_key))
+            finally:
+                connector_api.account_service = previous_service
+
     def test_link_account_blocks_authenticated_free_live_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

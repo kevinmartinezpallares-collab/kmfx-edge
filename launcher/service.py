@@ -28,6 +28,7 @@ LOCAL_OAUTH_ALLOWED_REDIRECT_URLS = (
     "http://127.0.0.1:8766/auth/callback",
 )
 QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
+KMFX_BACKEND_HEALTH_TTL_SECONDS = 60.0
 
 
 def now_iso() -> str:
@@ -150,6 +151,8 @@ class LauncherServiceRuntime:
         self.worker_thread: threading.Thread | None = None
         self.oauth_state: dict[str, Any] = {"status": "idle", "message": ""}
         self.oauth_lock = threading.RLock()
+        self._backend_health_cache: dict[str, Any] = {"ok": False, "status_code": 0}
+        self._backend_health_checked_at = 0.0
 
     def auth_session_payload(self) -> dict[str, Any]:
         self.config = load_config().ensure_runtime_values()
@@ -647,15 +650,28 @@ class LauncherServiceRuntime:
         if self.worker_thread and self.worker_thread.is_alive():
             self.worker_thread.join(timeout=2)
 
-    def status(self) -> dict[str, Any]:
+    def backend_health_status(self) -> dict[str, Any]:
+        now_value = time.time()
+        if now_value - self._backend_health_checked_at < KMFX_BACKEND_HEALTH_TTL_SECONDS:
+            return dict(self._backend_health_cache)
+
         backend_health = self.backend.healthcheck()
+        self._backend_health_cache = {
+            "ok": backend_health.ok,
+            "status_code": backend_health.status_code,
+        }
+        self._backend_health_checked_at = now_value
+        return dict(self._backend_health_cache)
+
+    def status(self) -> dict[str, Any]:
+        backend_health = self.backend_health_status()
         snapshot = self.store.snapshot()
         return {
             "ok": True,
             "service": "kmfx_launcher_service",
             "service_running": True,
-            "backend_reachable": backend_health.ok,
-            "backend_status_code": backend_health.status_code,
+            "backend_reachable": bool(backend_health.get("ok")),
+            "backend_status_code": int(backend_health.get("status_code") or 0),
             "backend_base_url": self.config.backend_base_url,
             "queue_depth": {
                 "snapshot": len(snapshot["queue"]["snapshot"]),
@@ -690,7 +706,14 @@ async def on_shutdown() -> None:
 
 @app.get("/health")
 async def health() -> JSONResponse:
-    return json_response(runtime.status())
+    return json_response(
+        {
+            "ok": True,
+            "service": "kmfx_launcher_service",
+            "service_running": True,
+            "timestamp": now_iso(),
+        }
+    )
 
 
 @app.get("/status")

@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.84                                              |
+//| KMFXConnector v2.85                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.84"
+#property version   "2.85"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.84"
+#define KMFX_CONNECTOR_VERSION "2.85"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -555,7 +555,7 @@ void KMFXInitializeRuntimeConnectionKey()
 void KMFXRefreshRuntimeConnectionConfig()
   {
    datetime now=KMFXNow();
-   if(g_last_connection_config_file_check_at>0 && (now-g_last_connection_config_file_check_at)<60)
+   if(g_last_connection_config_file_check_at>0 && (now-g_last_connection_config_file_check_at)<5)
       return;
    g_last_connection_config_file_check_at=now;
 
@@ -571,6 +571,40 @@ void KMFXRefreshRuntimeConnectionConfig()
       if(KMFXVerboseLog)
          PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",KMFXMaskConnectionKey(previous_key),KMFXMaskConnectionKey(g_runtime_connection_key));
      }
+  }
+
+bool KMFXBackendRejectSuggestsKeyReload(int status_code,string reason)
+  {
+   string normalized_reason=reason;
+   StringToLower(normalized_reason);
+
+   if(StringFind(normalized_reason,"revoked_connection_key")>=0 ||
+      StringFind(normalized_reason,"unknown_connection_key")>=0 ||
+      StringFind(normalized_reason,"missing_connection_key")>=0)
+      return true;
+
+   return status_code==401;
+  }
+
+bool KMFXForceReloadConnectionConfig(string context)
+  {
+   string previous_key=KMFXConnectionKeyValue();
+
+   g_last_connection_config_file_check_at=0;
+   KMFXApplyConnectionConfigFromFile();
+
+   string file_key=KMFXLoadConnectionKeyFromFile();
+   if(StringLen(file_key)<=0)
+      return false;
+   if(file_key==previous_key)
+      return false;
+
+   g_runtime_connection_key=file_key;
+   g_last_connection_config_file_check_at=KMFXNow();
+   KMFXLogStatus("KMFXKey actualizada desde Launcher. Reintentando sincronizacion.",60);
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][RUNTIME][KEY_FORCE_REFRESH] context=%s previous=%s current=%s",context,KMFXMaskConnectionKey(previous_key),KMFXMaskConnectionKey(g_runtime_connection_key));
+   return true;
   }
 
 string KMFXBuildSyncId()
@@ -2195,6 +2229,32 @@ void KMFXProcessPendingSyncQueue()
 
       if(status_code>=300)
         {
+         string backend_reason=KMFXExtractBackendReason(response);
+         if(KMFXBackendRejectSuggestsKeyReload(status_code,backend_reason) && KMFXForceReloadConnectionConfig("pending_sync:"+backend_reason))
+           {
+            response="";
+            status_code=0;
+            transport_error=0;
+            Sleep(100);
+            request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXSyncPath,item.payload,response,status_code,transport_error);
+            if(!request_ok && !(status_code==1003 || status_code<=0))
+              {
+               processed=true;
+               break;
+              }
+            if(status_code==1003 || status_code<=0)
+              {
+               Policy.backend_connected=false;
+               Policy.degraded_mode=true;
+               KMFXHandlePendingSyncFailure(file_name,item,status_code,transport_error);
+               processed=true;
+               break;
+              }
+           }
+        }
+
+      if(status_code>=300)
+        {
          KMFXDeletePendingSyncFile(file_name);
          if(KMFXVerboseLog)
             PrintFormat("[KMFX][SYNC][BACKEND_REJECT] sync_id=%s status=%d", item.sync_id, status_code);
@@ -2341,6 +2401,42 @@ bool KMFXPushState()
    if(status_code>=300)
      {
       string backend_reason=KMFXExtractBackendReason(response);
+      if(KMFXBackendRejectSuggestsKeyReload(status_code,backend_reason) && KMFXForceReloadConnectionConfig("sync:"+backend_reason))
+        {
+         int original_status=status_code;
+         int original_transport=transport_error;
+         string original_response=response;
+         string retry_sync_id=KMFXBuildSyncId();
+         string retry_body=KMFXBuildSyncPayload(retry_sync_id);
+         string retry_response="";
+         int retry_status=0;
+         int retry_transport=0;
+         bool retry_ok=false;
+
+         Sleep(100);
+         retry_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXSyncPath,retry_body,retry_response,retry_status,retry_transport);
+         if(retry_ok && retry_status>=200 && retry_status<300)
+           {
+            sync_id=retry_sync_id;
+            body=retry_body;
+            response=retry_response;
+            status_code=retry_status;
+            transport_error=retry_transport;
+            recovered_after_retry=true;
+            backend_reason="";
+           }
+         else
+           {
+            status_code=original_status;
+            transport_error=original_transport;
+            response=original_response;
+           }
+        }
+     }
+
+   if(status_code>=300)
+     {
+      string backend_reason=KMFXExtractBackendReason(response);
       bool keep_connected=KMFXKeepConnectionForBackendReject(status_code,backend_reason);
       bool temporary_reject=keep_connected || KMFXIsTemporarySyncReject(status_code,backend_reason);
       bool surface_reject=temporary_reject ? KMFXShouldSurfaceSyncReject() : true;
@@ -2431,6 +2527,36 @@ bool KMFXSendJournalBatch(string batch_id,string trade_ids_csv,string payload,st
 
    if(status_code>=300)
      {
+      string backend_reason=KMFXExtractBackendReason(response);
+      if(KMFXBackendRejectSuggestsKeyReload(status_code,backend_reason) && KMFXForceReloadConnectionConfig("journal:"+backend_reason))
+        {
+         int original_status=status_code;
+         int original_transport=transport_error;
+         string original_response=response;
+         string retry_response="";
+         int retry_status=0;
+         int retry_transport=0;
+         bool retry_ok=false;
+
+         Sleep(100);
+         retry_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,payload,retry_response,retry_status,retry_transport);
+         if(retry_ok && retry_status>=200 && retry_status<300)
+           {
+            response=retry_response;
+            status_code=retry_status;
+            transport_error=retry_transport;
+           }
+         else
+           {
+            status_code=original_status;
+            transport_error=original_transport;
+            response=original_response;
+           }
+        }
+     }
+
+   if(status_code>=300)
+     {
       if(KMFXVerboseLog)
          PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", batch_id, status_code);
       return false;
@@ -2498,6 +2624,28 @@ void KMFXProcessPendingJournalQueue()
 
       if(status_code>=300)
         {
+         string backend_reason=KMFXExtractBackendReason(response);
+         if(KMFXBackendRejectSuggestsKeyReload(status_code,backend_reason) && KMFXForceReloadConnectionConfig("pending_journal:"+backend_reason))
+           {
+            response="";
+            status_code=0;
+            transport_error=0;
+            Sleep(100);
+            request_ok=KMFXSendHttpRequest("POST",KMFXBackendBaseUrl+KMFXJournalPath,item.payload,response,status_code,transport_error);
+            if(!request_ok && !(status_code==1003 || status_code<=0))
+               break;
+            if(status_code==1003 || status_code<=0)
+              {
+               item.attempts++;
+               item.next_retry_at=KMFXNow()+(datetime)KMFXPendingSyncBackoffSeconds(item.attempts);
+               KMFXSavePendingJournalBatch(item);
+               break;
+              }
+           }
+        }
+
+      if(status_code>=300)
+        {
          KMFXDeletePendingJournalFile(file_name);
          if(KMFXVerboseLog)
             PrintFormat("[KMFX][JOURNAL][BACKEND_REJECT] batch_id=%s status=%d", item.batch_id, status_code);
@@ -2561,21 +2709,45 @@ bool KMFXFetchPolicy()
    if(status_code<200 || status_code>=300)
      {
       string backend_reason=KMFXExtractBackendReason(response);
-      if(KMFXKeepConnectionForBackendReject(status_code,backend_reason))
+      if(KMFXBackendRejectSuggestsKeyReload(status_code,backend_reason) && KMFXForceReloadConnectionConfig("policy:"+backend_reason))
         {
-         Policy.backend_connected=true;
-         Policy.degraded_mode=true;
-         string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
-         KMFXLogStatus("KMFX conectado. Reintentando politica de riesgo temporal."+reason_suffix,120);
-         Runtime.last_policy_poll_at=KMFXNow();
-         return false;
+         url=KMFXBackendBaseUrl+KMFXPolicyPath+"?login="+policy_login;
+         response="";
+         status_code=0;
+         transport_error=0;
+         Sleep(100);
+         if(!KMFXSendHttpRequest("GET",url,"",response,status_code,transport_error))
+            return false;
+         if(KMFXVerboseLog)
+            PrintFormat("[KMFX][POLICY][DEBUG] retry_after_key_reload status_code=%d response=%s", status_code, response);
+
+         if(status_code>=200 && status_code<300)
+           {
+            Policy.backend_connected=true;
+            Policy.degraded_mode=false;
+           }
+         else
+            backend_reason=KMFXExtractBackendReason(response);
         }
 
-      Policy.backend_connected=false;
-      Policy.degraded_mode=true;
-      string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
-      KMFXSetError("Policy fetch rechazada por backend. HTTP="+IntegerToString(status_code)+reason_suffix);
-      return false;
+      if(status_code<200 || status_code>=300)
+        {
+         if(KMFXKeepConnectionForBackendReject(status_code,backend_reason))
+           {
+            Policy.backend_connected=true;
+            Policy.degraded_mode=true;
+            string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
+            KMFXLogStatus("KMFX conectado. Reintentando politica de riesgo temporal."+reason_suffix,120);
+            Runtime.last_policy_poll_at=KMFXNow();
+            return false;
+           }
+
+         Policy.backend_connected=false;
+         Policy.degraded_mode=true;
+         string reason_suffix=StringLen(backend_reason)>0 ? " reason="+backend_reason : "";
+         KMFXSetError("Policy fetch rechazada por backend. HTTP="+IntegerToString(status_code)+reason_suffix);
+         return false;
+        }
      }
 
    KMFXPolicyCache next_policy=Policy;

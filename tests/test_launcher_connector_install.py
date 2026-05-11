@@ -58,6 +58,28 @@ class LauncherConnectorInstallTests(unittest.TestCase):
         self.assertIn("g_runtime_connection_key=KMFXLoadConnectionKeyFromFile()", source)
         self.assertIn("KMFXRefreshRuntimeConnectionConfig()", source)
 
+    def test_ea_reloads_launcher_key_after_backend_reject(self) -> None:
+        source = (ROOT / "KMFXConnector.mq5").read_text(encoding="utf-8")
+
+        self.assertIn("bool KMFXBackendRejectSuggestsKeyReload", source)
+        self.assertIn("bool KMFXForceReloadConnectionConfig", source)
+        self.assertIn("revoked_connection_key", source)
+        self.assertIn("unknown_connection_key", source)
+        self.assertIn("missing_connection_key", source)
+        self.assertIn('KMFXForceReloadConnectionConfig("sync:"+backend_reason)', source)
+        self.assertIn('KMFXForceReloadConnectionConfig("journal:"+backend_reason)', source)
+        self.assertIn('KMFXForceReloadConnectionConfig("policy:"+backend_reason)', source)
+        self.assertIn("(now-g_last_connection_config_file_check_at)<5", source)
+
+    def test_launcher_health_is_local_and_backend_health_is_cached(self) -> None:
+        source = (ROOT / "launcher" / "service.py").read_text(encoding="utf-8")
+
+        self.assertIn("KMFX_BACKEND_HEALTH_TTL_SECONDS = 60.0", source)
+        self.assertIn("def backend_health_status", source)
+        self.assertIn("return json_response(", source)
+        self.assertIn('"service_running": True', source)
+        self.assertIn("backend_health = self.backend_health_status()", source)
+
 
 if __name__ == "__main__":
     unittest.main()

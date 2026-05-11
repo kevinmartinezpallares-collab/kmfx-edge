@@ -612,7 +612,11 @@ class KMFXApi:
                     continue
                 hydrated = dict(account)
                 cached = cached_by_id.get(_safe_str(hydrated.get("account_id")))
-                if cached and not _safe_str(hydrated.get("connection_key")):
+                backend_marks_key_revoked = bool(
+                    hydrated.get("connection_key_revoked")
+                    or _safe_str(hydrated.get("connection_key_revoked_at"))
+                )
+                if cached and not _safe_str(hydrated.get("connection_key")) and not backend_marks_key_revoked:
                     hydrated["connection_key"] = _safe_str(cached.get("connection_key"))
                     hydrated["connection_key_masked"] = mask_connection_key(hydrated["connection_key"])
                 hydrated_accounts.append(hydrated)
