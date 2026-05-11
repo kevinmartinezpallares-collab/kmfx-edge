@@ -417,6 +417,7 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
 - [x] Cache backend corto para `view=summary`: TTL 5s, invalida con cada sync MT5 y nunca cachea snapshots completos.
 - [x] Monitor recurrente creado para revisar uso de salida Supabase tras deploy.
+- [x] Rollback operativo documentado en `docs/production-rollback-runbook.md` para web, backend, Worker, Launcher/EA, billing, Supabase y MT5.
 - [ ] Decidir si hace falta mover historial/trades a tabla dedicada si el uso vuelve a subir antes de beta abierta.
 - [ ] Eventos de auditoria:
   - login
@@ -560,7 +561,7 @@ Criterio de salida:
 - [ ] CI y smoke estan verdes.
 - [x] Legal minimo esta publicado.
 - [ ] Observabilidad minima activa.
-- [ ] Rollback documentado.
+- [x] Rollback documentado.
 
 ## Orden Recomendado Desde Aqui
 

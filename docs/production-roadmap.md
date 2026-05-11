@@ -406,7 +406,7 @@ Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 - [ ] Revisar Cloudflare Worker y DNS.
 - [ ] Revisar Supabase Auth providers, redirect URLs y RLS.
 - [ ] Configurar alerta mínima de Render/API caído.
-- [ ] Documentar rollback web, backend, launcher y billing.
+- [x] Documentar rollback web, backend, launcher, Worker, billing, Supabase y MT5 en `docs/production-rollback-runbook.md`.
 
 Criterio de salida:
 
@@ -537,4 +537,4 @@ Criterio de salida:
 - [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
 - [ ] CI y smoke están verdes.
 - [x] Legal mínimo está publicado.
-- [ ] Rollback está documentado.
+- [x] Rollback está documentado.

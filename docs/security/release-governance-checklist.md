@@ -36,6 +36,23 @@ Status checks obligatorios:
 - `Static app checks`
 - `Build Windows launcher`
 
+## Rollback operativo
+
+- Mantener `docs/production-rollback-runbook.md` actualizado antes de cada
+  release.
+- Cada release debe tener un ultimo deploy bueno identificado para:
+  - Vercel web;
+  - Render backend;
+  - Cloudflare Worker `mt5-api`;
+  - Launcher macOS/Windows;
+  - `KMFXConnector.ex5`;
+  - Stripe billing;
+  - Supabase Auth/schema.
+- Tras cualquier rollback, ejecutar `python3 scripts/production_smoke.py`.
+- No borrar datos reales, rotar secrets, cancelar suscripciones ni revocar keys
+  sin aprobacion explicita.
+- Documentar incidente, commit/deploy restaurado, smoke y fix definitivo.
+
 ## Ajustes de despliegue en Vercel
 
 - La rama de producción debe ser `main`.
