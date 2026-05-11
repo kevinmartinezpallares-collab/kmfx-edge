@@ -2,7 +2,7 @@
 
 Última revisión: 2026-05-11
 Rama revisada: `main`
-Commit base: `2ac0eb9 Fix auth captcha and metric study UX`
+Commit base: `cd9c383 Document production rollback runbook`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
@@ -185,6 +185,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Mitigacion por aviso de Supabase Fair Use cerrada en tres capas: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas, hace backoff cuando la pestana esta oculta, usa `view=summary` para refrescos ligeros y cachea ese resumen 5s en backend sin cachear snapshots completos.
 - Monitor recurrente creado para revisar egress Supabase cada 6 horas; si el uso vuelve a subir, el siguiente paso es tabla de resumen dedicada antes de beta abierta.
 - Runbook de smoke MT5 creado para validar con evidencia el flujo usuario final: descargas, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
+- Checkpoint de release documentado en `docs/production-release-evidence.md`: CI y smoke de produccion verdes para `cd9c383`, descargas/headers/CORS/auth gates verificados, y `www`/`dashboard` redirigen a `kmfxedge.com`.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -419,15 +420,15 @@ Criterio de salida:
 Objetivo: validar un viaje real de usuario antes de cobrar.
 
 - [ ] Ejecutar `python3 -m unittest discover -s tests`.
-- [ ] Ejecutar CI en GitHub y confirmar verde.
-- [ ] Ejecutar `Production Smoke`.
-- [ ] Probar `https://kmfxedge.com`.
-- [ ] Probar redirección desde `www` y `dashboard`.
+- [x] Ejecutar CI en GitHub y confirmar verde.
+- [x] Ejecutar `Production Smoke`.
+- [x] Probar `https://kmfxedge.com`.
+- [x] Probar redirección desde `www` y `dashboard`.
 - [ ] Probar login Google.
 - [ ] Probar recovery/password reset.
-- [ ] Probar `/api/accounts/snapshot` sin auth: debe requerir auth.
-- [ ] Probar `/api/mt5/policy` sin key: debe rechazar.
-- [ ] Probar `/api/mt5/sync` sin key: debe rechazar.
+- [x] Probar `/api/accounts/snapshot` sin auth: debe requerir auth.
+- [x] Probar `/api/mt5/policy` sin key: debe rechazar.
+- [x] Probar `/api/mt5/sync` sin key: debe rechazar.
 - [ ] Probar Checkout test success/cancel.
 - [ ] Probar Customer Portal test.
 - [ ] Probar webhook replay/idempotencia.
@@ -535,6 +536,6 @@ Criterio de salida:
 - [ ] EA sincroniza con `mt5-api.kmfxedge.com`.
 - [ ] Dashboard muestra datos live del usuario correcto.
 - [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
-- [ ] CI y smoke están verdes.
+- [x] CI y smoke están verdes.
 - [x] Legal mínimo está publicado.
 - [x] Rollback está documentado.

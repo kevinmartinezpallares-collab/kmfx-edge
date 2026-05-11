@@ -69,6 +69,9 @@ Notas 2026-05-11:
 - Render ya sirve `render_git_commit=bcc677c9da94a5e380be4a31ecaa84a650e7a30d`.
 - Se crea monitor recurrente `Monitor Supabase egress KMFX` cada 6 horas para vigilar si el consumo de salida vuelve a crecer.
 - Se crea `docs/mt5-production-smoke-runbook.md` para repetir el smoke MT5 real con evidencia: descarga, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
+- CI del commit `cd9c383` revisado en GitHub Actions: `CI` y `Push on main` finalizaron en verde.
+- Smoke de produccion ejecutado contra `kmfxedge.com`, Render y `mt5-api.kmfxedge.com`: todos los checks verdes con `render_git_commit=cd9c383`.
+- Evidencia de release registrada en `docs/production-release-evidence.md`.
 
 ## Fase 1 - Contrato de Metricas
 
@@ -455,7 +458,7 @@ Criterio de salida:
 Objetivo: validar un viaje real antes de cobrar.
 
 - [x] `python3 -m unittest discover -s tests`.
-- [ ] CI GitHub verde.
+- [x] CI GitHub verde.
 - [x] Production Smoke verde.
 - [ ] Registro nuevo.
 - [ ] Login Google.
@@ -477,9 +480,9 @@ Objetivo: validar un viaje real antes de cobrar.
 - [ ] Cerrar Launcher y mantener sync.
 - [ ] Cuenta stale.
 - [ ] Key revocada.
-- [ ] Sin auth no hay snapshot privado.
-- [ ] `/api/mt5/sync` sin key rechaza.
-- [ ] `/api/mt5/policy` sin key rechaza.
+- [x] Sin auth no hay snapshot privado.
+- [x] `/api/mt5/sync` sin key rechaza.
+- [x] `/api/mt5/policy` sin key rechaza.
 - [ ] Dashboard desktop completo.
 - [ ] Mobile basico.
 - [x] Enlaces legales.
@@ -497,6 +500,14 @@ Notas 2026-05-10:
 - Smoke de produccion ejecutado con `scripts/production_smoke.py` contra `kmfxedge.com`, Render y `mt5-api.kmfxedge.com`: todos los checks verdes.
 - Verificado en produccion: rutas SPA principales, headers de seguridad, descargas macOS/Windows/EA, checksums, `/health`, billing sin auth, webhook sin firma, CORS del Worker y rechazo de sync MT5 sin key.
 - El backend publicado responde con commit `da9fdd2`.
+
+Notas 2026-05-11:
+
+- CI de GitHub en `main` confirmado verde para `cd9c383`.
+- `python3 scripts/production_smoke.py` confirmado verde contra `kmfxedge.com`, Render y Worker `mt5-api`.
+- `www.kmfxedge.com/dashboard` y `dashboard.kmfxedge.com/dashboard` resuelven a `kmfxedge.com/dashboard`.
+- `/api/mt5/policy` sin `X-KMFX-Connection-Key` rechaza `401 missing_connection_key`.
+- La evidencia queda centralizada en `docs/production-release-evidence.md`.
 
 ## Fase 10 - Go Live Controlado
 
@@ -558,7 +569,7 @@ Criterio de salida:
 - [ ] Metricas criticas tienen source/formula/confidence.
 - [ ] Sin defaults internos como politicas reales.
 - [x] HTML dinamico de Operaciones, Calendario, modales y Funding escapa datos MT5/usuario.
-- [ ] CI y smoke estan verdes.
+- [x] CI y smoke estan verdes.
 - [x] Legal minimo esta publicado.
 - [ ] Observabilidad minima activa.
 - [x] Rollback documentado.
