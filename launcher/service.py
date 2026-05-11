@@ -281,6 +281,11 @@ class LauncherServiceRuntime:
         normalized_raw = raw.lower()
         if code == "invalid_credentials" or "invalid login credentials" in normalized_raw:
             return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
+        if "captcha" in normalized_raw or "turnstile" in normalized_raw or "anti-bot" in normalized_raw:
+            return (
+                "La protección anti-bots bloqueó este acceso por email. Entra con Google o crea/restablece "
+                "tu contraseña desde kmfxedge.com."
+            )
         if response.status_code == 0:
             return "No se pudo conectar con el servidor"
         if response.status_code in {400, 401, 403}:
