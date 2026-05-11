@@ -59,6 +59,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Multi-cuenta probado localmente con dos cuentas MT5.
 - [x] El EA funciona con investor password en modo lectura.
 - [x] Logs del EA reducidos a mensajes de estado útiles.
+- [x] Runbook de smoke MT5 de produccion creado en `docs/mt5-production-smoke-runbook.md`.
 - [ ] Probar launcher Windows real en Windows 10/11 limpio.
 - [ ] Probar launcher macOS en máquina limpia, sin tus instancias previas.
 - [ ] Añadir confirmación de primera sincronización: nombre, tipo de cuenta y broker.
@@ -183,6 +184,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes, detalle Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de renderizarse.
 - Mitigacion por aviso de Supabase Fair Use cerrada en tres capas: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas, hace backoff cuando la pestana esta oculta, usa `view=summary` para refrescos ligeros y cachea ese resumen 5s en backend sin cachear snapshots completos.
 - Monitor recurrente creado para revisar egress Supabase cada 6 horas; si el uso vuelve a subir, el siguiente paso es tabla de resumen dedicada antes de beta abierta.
+- Runbook de smoke MT5 creado para validar con evidencia el flujo usuario final: descargas, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -323,6 +325,7 @@ Criterio de salida:
 
 Objetivo: que un usuario no técnico conecte MT5 sin pensar en puertos, keys ni logs.
 
+- [x] Documentar runbook de smoke MT5 de produccion con pasos, errores, evidencia y criterio de aprobacion.
 - [ ] Probar flujo completo en producción:
   - login
   - abrir Cuentas

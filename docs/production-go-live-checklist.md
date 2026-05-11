@@ -48,6 +48,7 @@ Objetivo: asegurar que partimos de una base estable.
 - [x] CI actual revisado.
 - [x] Render/Vercel/Cloudflare/Supabase responden health.
 - [x] Descargas Launcher macOS/Windows responden `200`.
+- [x] Runbook de MT5 smoke documentado en `docs/mt5-production-smoke-runbook.md`.
 - [ ] MT5 smoke actual documentado: cuenta conecta, EA read-only y cierre de Launcher no corta sync.
 
 Criterio de salida:
@@ -67,6 +68,7 @@ Notas 2026-05-11:
 - CI del commit `bcc677c` revisado en GitHub Actions: `Backend and connector tests` y `Static app checks` finalizaron en verde.
 - Render ya sirve `render_git_commit=bcc677c9da94a5e380be4a31ecaa84a650e7a30d`.
 - Se crea monitor recurrente `Monitor Supabase egress KMFX` cada 6 horas para vigilar si el consumo de salida vuelve a crecer.
+- Se crea `docs/mt5-production-smoke-runbook.md` para repetir el smoke MT5 real con evidencia: descarga, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
 
 ## Fase 1 - Contrato de Metricas
 
@@ -310,7 +312,7 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [ ] QA Windows 10/11 limpio.
 - [x] Version visible de EA/Launcher.
 - [x] Checksum visible de descargas.
-- [ ] Avisos de Gatekeeper/Windows documentados.
+- [x] Avisos de Gatekeeper/Windows documentados en `docs/mt5-production-smoke-runbook.md`.
 
 Notas 2026-05-09:
 
@@ -323,6 +325,7 @@ Notas 2026-05-09:
 - El dashboard muestra Launcher v1.0.0, Connector v2.84 y checksums copiables en la guia de Cuentas y en el asistente de conexion.
 - Contrato probado: el instalador copia `KMFXConnector.ex5`/`.mq5`, escribe preset y deja `MQL5/Files/kmfx_connection.conf`; el EA lee esa key en runtime.
 - Contrato probado: si Render/backend no responde, el Launcher conserva `snapshot`/`journal` con `connection_key` local, aplica backoff, drena al recuperarse y solo descarta al superar `max_attempts`.
+- Runbook de smoke MT5 de produccion creado: define preflight, flujo Launcher, flujo manual, errores esperados, evidencia, cierre de Launcher y criterios de aprobacion sin exponer keys completas.
 
 Criterio de salida:
 
