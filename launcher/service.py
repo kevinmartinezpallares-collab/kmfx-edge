@@ -318,7 +318,7 @@ class LauncherServiceRuntime:
         with self.oauth_lock:
             safe_state = {key: value for key, value in self.oauth_state.items() if key not in {"state", "code_verifier"}}
         safe_state.setdefault("status", "idle")
-        safe_state["session"] = self.auth_session_payload()
+        safe_state["session"] = self.ensure_auth_session()
         return safe_state
 
     def complete_google_oauth(self, *, code: str, state: str, error: str = "", error_description: str = "") -> dict[str, Any]:

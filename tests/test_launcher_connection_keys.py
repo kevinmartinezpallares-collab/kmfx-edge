@@ -60,6 +60,16 @@ class ExpiredThenFreshBackend:
         )
 
 
+class RejectedRefreshBackend:
+    def __init__(self, config: LauncherConfig) -> None:
+        self.config = config
+        self.refresh_calls = 0
+
+    def refresh_auth_session(self, *, refresh_token: str) -> BackendResponse:
+        self.refresh_calls += 1
+        return BackendResponse(ok=False, status_code=401, body={"reason": "invalid_refresh_token"})
+
+
 class RegistryBackend:
     def __init__(self, config: LauncherConfig, accounts: list[dict[str, object]]) -> None:
         self.config = config
@@ -344,6 +354,52 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual(2, api.backend.link_calls)
         self.assertEqual(1, api.backend.refresh_calls)
         self.assertEqual("fresh-access-token", api.config.backend_token)
+
+    def test_launcher_get_session_refreshes_expired_saved_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="expired-access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) - 10,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="expired-access-token",
+                )
+                save_config(config)
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = ExpiredThenFreshBackend(config)
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+
+                session = api.get_session()
+
+        self.assertTrue(session["authenticated"])
+        self.assertEqual("fresh-access-token", api.config.backend_token)
+        self.assertEqual(1, api.backend.refresh_calls)
+
+    def test_launcher_get_session_clears_rejected_expired_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="expired-access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) - 10,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="expired-access-token",
+                )
+                save_config(config)
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = RejectedRefreshBackend(config)
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+
+                session = api.get_session()
+
+        self.assertFalse(session["authenticated"])
+        self.assertEqual("", api.config.backend_token)
+        self.assertEqual(1, api.backend.refresh_calls)
 
     def test_launcher_rotates_revoked_saved_key_on_remote_link(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -347,9 +347,7 @@ class KMFXApi:
                 "status_code": service_status.get("backend_status_code", 0),
             }
 
-    def get_session(self) -> dict[str, Any]:
-        self.config = load_config().ensure_runtime_values()
-        self.backend.config = self.config
+    def _session_payload(self) -> dict[str, Any]:
         authenticated = bool(self.config.auth_access_token and self.config.auth_email)
         return {
             "authenticated": authenticated,
@@ -359,6 +357,34 @@ class KMFXApi:
                 "name": self.config.auth_name or self._name_from_email(self.config.auth_email),
             },
         }
+
+    def _session_requires_refresh(self) -> bool:
+        expires_at = int(self.config.auth_expires_at or 0)
+        return bool(
+            self.config.auth_access_token
+            and self.config.auth_refresh_token
+            and expires_at
+            and expires_at <= int(time.time()) + 90
+        )
+
+    def _session_is_expired_without_refresh(self) -> bool:
+        expires_at = int(self.config.auth_expires_at or 0)
+        return bool(
+            self.config.auth_access_token
+            and not self.config.auth_refresh_token
+            and expires_at
+            and expires_at <= int(time.time())
+        )
+
+    def get_session(self) -> dict[str, Any]:
+        self.config = load_config().ensure_runtime_values()
+        self.backend.config = self.config
+        if self._session_requires_refresh():
+            return self.ensure_session()
+        if self._session_is_expired_without_refresh():
+            self.logger.warning("[KMFX][AUTH] launcher session expired without refresh token; clearing session")
+            self._clear_expired_auth_session()
+        return self._session_payload()
 
     def login(self, email: str, password: str) -> dict[str, Any]:
         normalized_email = str(email or "").strip().lower()
@@ -444,6 +470,8 @@ class KMFXApi:
         self.backend.config = self.config
 
     def ensure_session(self) -> dict[str, Any]:
+        self.config = load_config().ensure_runtime_values()
+        self.backend.config = self.config
         if self.config.auth_access_token:
             self.config.backend_token = self.config.auth_access_token
         expires_at = int(self.config.auth_expires_at or 0)
@@ -456,7 +484,7 @@ class KMFXApi:
                 self._clear_expired_auth_session()
             else:
                 self.logger.warning("[KMFX][AUTH] refresh failed; keeping launcher session until logout")
-        return self.get_session()
+        return self._session_payload()
 
     def _force_refresh_session(self, reason: str) -> bool:
         if not self.config.auth_refresh_token:
