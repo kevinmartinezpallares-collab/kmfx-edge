@@ -147,3 +147,42 @@ Smoke de produccion:
 - `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
 - `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
 - `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+## 2026-05-12 - Stripe Billing Read-Only Scan
+
+Contexto:
+
+- Plugin usado: Stripe MCP en modo lectura/busqueda.
+- Producto revisado: `prod_UT7nzmgj3Eg3Zv`.
+- Objetivo: confirmar el estado del catalogo antes de cerrar billing operativo.
+
+Resultado:
+
+- Producto live encontrado: `KMFX Edge`.
+- Prices activos encontrados:
+  - Basic/Core monthly: 15 EUR.
+  - Basic/Core yearly: 150 EUR.
+  - Pro monthly: 25 EUR.
+  - Pro yearly: 250 EUR.
+  - Unlimited monthly: 39 EUR.
+  - Unlimited yearly: 390 EUR.
+- Lookup keys buscadas y no encontradas:
+  - `kmfx_basic_monthly`
+  - `kmfx_basic_yearly`
+  - `kmfx_pro_monthly`
+  - `kmfx_pro_yearly`
+  - `kmfx_unlimited_monthly`
+  - `kmfx_unlimited_yearly`
+
+Limitacion:
+
+- El conector disponible permite listar, buscar y crear algunos objetos, pero no
+  expone actualizacion de Prices ni configuracion de Customer Portal.
+- `STRIPE_SECRET_KEY` no esta presente localmente, asi que no se ejecutan
+  mutaciones Stripe desde esta maquina.
+
+Impacto:
+
+- El backend puede seguir usando los Price IDs live configurados en Render.
+- Antes de cobrar publicamente queda pendiente completar lookup keys/metadata,
+  Customer Portal y webhook endpoint final en Stripe Dashboard/API.

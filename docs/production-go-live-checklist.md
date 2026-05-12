@@ -208,6 +208,13 @@ Notas 2026-05-10:
 - Render API confirma que los seis `STRIPE_PRICE_*` coinciden exactamente con el catalogo live documentado. No hay `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, no bloqueante mientras el frontend use Checkout redirigido y no Stripe Elements.
 - Stripe MCP confirma el cupon `KMFX Comunidad Privada` con `percent_off=100`, duracion `forever`. Falta probar su aplicacion en una compra real/controlada.
 
+Notas 2026-05-12:
+
+- Stripe MCP confirma de nuevo producto live `prod_UT7nzmgj3Eg3Zv` y seis Prices activos en EUR: 15/150, 25/250 y 39/390.
+- Busqueda directa de lookup keys `kmfx_basic_monthly`, `kmfx_basic_yearly`, `kmfx_pro_monthly`, `kmfx_pro_yearly`, `kmfx_unlimited_monthly` y `kmfx_unlimited_yearly` sigue devolviendo vacio.
+- El conector Stripe disponible en esta sesion permite listar/buscar/crear objetos, pero no expone update de Prices ni configuracion de Customer Portal. Tampoco hay `STRIPE_SECRET_KEY` local para ejecutar una mutacion auditada por CLI.
+- Estado operativo: el backend sigue funcionando por Price IDs live configurados en Render; antes de cobrar publicamente hay que completar lookup keys/metadata y Customer Portal desde Stripe Dashboard/API con credenciales live.
+
 Criterio de salida:
 
 - Un usuario puede pagar en test mode y su plan/entitlements cambian correctamente.
