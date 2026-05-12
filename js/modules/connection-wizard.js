@@ -697,7 +697,7 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       kind: "warning",
       title: "Falta la KMFXKey",
       message: "Pega la KMFXKey de esta cuenta en el EA o reinstala el conector desde el Launcher.",
-      hint: "No crees otra cuenta si solo necesitas reparar la conexión.",
+      hint: "No crees otra cuenta si solo necesitas reinstalar el conector.",
     };
   }
   if (normalizedReason.includes("unknown_connection_key") || normalizedReason.includes("invalid_connection_key")) {

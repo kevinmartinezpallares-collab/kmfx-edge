@@ -660,7 +660,6 @@ class KMFXApi:
         with self._lock:
             if not self.get_session().get("authenticated"):
                 return []
-            self.ensure_installed_account_links()
             cached_connections = self.store.list_account_connections()
             cached_by_id = {
                 _safe_str(account.get("account_id")): account
@@ -749,31 +748,32 @@ class KMFXApi:
             return
         self._last_installed_link_sync_at = now
 
+        remote_connections = self.remote_account_connections()
         seen_keys: set[str] = set()
         for installation in self.installations:
             connection_key = self.installed_connection_key(installation)
             if not connection_key or connection_key in seen_keys:
                 continue
             seen_keys.add(connection_key)
-            label = self.installed_connection_label(installation)
-            response = self.link_account_with_session(
-                user_id=self.config.auth_user_id,
-                label=label,
-                connection_key=connection_key,
-            )
-            if response.ok:
-                self.cache_linked_account_connection(response.body, label=label)
+            remote_connection = self.remote_connection_for_key(connection_key, remote_connections)
+            if not remote_connection:
                 self.logger.info(
-                    "[KMFX][LAUNCHER][LINK] installed MT5 connection synced target=%s key=%s",
+                    "[KMFX][LAUNCHER][LINK] installed MT5 key not linked automatically target=%s key=%s",
                     installation.label,
                     mask_connection_key(connection_key),
                 )
-            else:
-                self.logger.warning(
-                    "[KMFX][LAUNCHER][LINK] installed MT5 connection sync failed target=%s status=%s",
-                    installation.label,
-                    response.status_code,
-                )
+                continue
+
+            cached = dict(remote_connection)
+            cached["connection_key"] = connection_key
+            cached["connection_key_masked"] = mask_connection_key(connection_key)
+            self.store.save_account_connection(cached)
+            self.logger.info(
+                "[KMFX][LAUNCHER][LINK] installed MT5 key matched existing account target=%s account_id=%s key=%s",
+                installation.label,
+                cached.get("account_id", ""),
+                mask_connection_key(connection_key),
+            )
 
     def installed_key_occurrences(self) -> dict[str, int]:
         occurrences: dict[str, int] = {}
@@ -813,6 +813,38 @@ class KMFXApi:
             for account in accounts
             if isinstance(account, dict) and self.account_has_connection_key(account) and self.should_show_account_connection(account)
         ]
+
+    def remote_connection_for_key(
+        self,
+        connection_key: str,
+        connections: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        normalized = _safe_str(connection_key)
+        if not normalized:
+            return {}
+        candidates = connections if connections is not None else self.remote_account_connections()
+        masked = mask_connection_key(normalized)
+        return next(
+            (
+                item
+                for item in candidates
+                if _safe_str(item.get("connection_key")) == normalized
+                or _safe_str(item.get("connection_key_masked")) == masked
+                or _safe_str(item.get("server_connection_key_masked")) == masked
+            ),
+            {},
+        )
+
+    def remote_connection_for_installation(self, installation: MT5Installation) -> dict[str, Any]:
+        candidates = self.remote_account_connections()
+        scored = [
+            (self.installation_identity_score(installation, candidate), candidate)
+            for candidate in candidates
+        ]
+        scored.sort(key=lambda item: item[0], reverse=True)
+        if scored and scored[0][0] >= 100:
+            return scored[0][1]
+        return {}
 
     def installation_identity_score(self, installation: MT5Installation, connection: dict[str, Any]) -> int:
         connection_key = _safe_str(connection.get("connection_key"))
@@ -917,26 +949,32 @@ class KMFXApi:
             connection_key = self.installed_connection_key(installation)
             label = self.installed_connection_label(installation)
             if connection_key and not self.installation_has_shared_connection_key(installation):
-                response = self.link_account_with_session(
-                    user_id=self.config.auth_user_id,
-                    label=label,
-                    connection_key=connection_key,
-                )
-                if not response.ok and _connection_key_is_unusable(response):
-                    self.logger.warning(
-                        "[KMFX][LAUNCHER][INSTALL] installed key rejected; refusing silent rotation target=%s key=%s reason=%s",
+                existing_connection = self.remote_connection_for_key(connection_key) or self.account_connection_for_key(connection_key)
+                if existing_connection.get("account_id"):
+                    return self.install_connector_for_connection(existing_connection["account_id"], installation.label)
+
+                identity_connection = self.remote_connection_for_installation(installation)
+                if identity_connection.get("account_id"):
+                    self.logger.info(
+                        "[KMFX][LAUNCHER][INSTALL] replacing stale local key with dashboard account key target=%s account_id=%s old_key=%s",
                         installation.label,
+                        identity_connection.get("account_id", ""),
                         mask_connection_key(connection_key),
-                        _backend_response_reason(response),
                     )
-                    return {
-                        "ok": False,
-                        "message": (
-                            "Ese MT5 ya tiene una KMFXKey distinta o revocada. "
-                            "Abre la cuenta correcta en Cuentas > Detalles y usa esa misma key. "
-                            "Añade otra cuenta solo si realmente es otro MT5."
-                        ),
-                    }
+                    return self.install_connector_for_connection(identity_connection["account_id"], installation.label)
+
+                self.logger.info(
+                    "[KMFX][LAUNCHER][INSTALL] installed key is unknown to dashboard; refusing silent account creation target=%s old_key=%s",
+                    installation.label,
+                    mask_connection_key(connection_key),
+                )
+                return {
+                    "ok": False,
+                    "message": (
+                        "Esta instalación MT5 tiene una KMFXKey que no existe en tu dashboard. "
+                        "Abre Cuentas > Ver detalles, copia la KMFXKey correcta y reinstala el conector sobre esa misma cuenta."
+                    ),
+                }
             else:
                 if connection_key:
                     self.logger.warning(
@@ -1236,7 +1274,7 @@ class KMFXApi:
         normalized = _safe_str(connection_key)
         if not normalized:
             return {}
-        connections = self._last_account_connections
+        connections = getattr(self, "_last_account_connections", [])
         if not connections:
             connections = self.get_account_connections()
         matched = next(

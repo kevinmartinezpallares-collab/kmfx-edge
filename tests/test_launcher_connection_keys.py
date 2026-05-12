@@ -86,6 +86,23 @@ class RegistryBackend:
         return BackendResponse(ok=True, status_code=200, body={"accounts": self.accounts})
 
 
+class RegistryBackendWithLinkTrap(RegistryBackend):
+    def __init__(self, config: LauncherConfig, accounts: list[dict[str, object]]) -> None:
+        super().__init__(config, accounts)
+        self.link_calls = 0
+
+    def link_account(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
+        self.link_calls += 1
+        return BackendResponse(ok=False, status_code=500, body={"reason": "unexpected_link"})
+
+
 class RevokedThenFreshBackend:
     def __init__(self, config: LauncherConfig) -> None:
         self.config = config
@@ -546,6 +563,120 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertFalse(account["connection_key_mismatch"])
         self.assertTrue(account["can_copy_connection_key"])
 
+    def test_launcher_does_not_auto_link_unknown_installed_local_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir) / "Darwinex"
+                experts_path = root / "MQL5" / "Experts"
+                files_path = root / "MQL5" / "Files"
+                files_path.mkdir(parents=True)
+                experts_path.mkdir(parents=True)
+                (files_path / "kmfx_connection.conf").write_text(
+                    "connection_key=stale-local-key\n",
+                    encoding="utf-8",
+                )
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                backend = RegistryBackendWithLinkTrap(config, [])
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = backend
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api.installations = [
+                    MT5Installation("Darwinex", "", str(root), str(experts_path), "", "test")
+                ]
+                api._last_installed_link_sync_at = 0
+
+                api.ensure_installed_account_links(force=True)
+                cached = api.store.list_account_connections()
+
+        self.assertEqual(0, backend.link_calls)
+        self.assertEqual([], cached)
+
+    def test_launcher_install_connector_replaces_stale_local_key_with_dashboard_key_by_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir) / "Darwinex"
+                experts_path = root / "MQL5" / "Experts"
+                files_path = root / "MQL5" / "Files"
+                logs_path = root / "logs"
+                files_path.mkdir(parents=True)
+                experts_path.mkdir(parents=True)
+                logs_path.mkdir(parents=True)
+                (files_path / "kmfx_connection.conf").write_text(
+                    "connection_key=old-local-key\n",
+                    encoding="utf-8",
+                )
+                (logs_path / "20260511.log").write_bytes(
+                    (
+                        "'4000082126': authorized on Darwinex-Live through Access Server EU\n"
+                        "'4000082126': terminal synchronized with Tradeslide Trading Tech Limited: 0 positions\n"
+                    ).encode("utf-16le")
+                )
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                backend = RegistryBackendWithLinkTrap(
+                    config,
+                    [
+                        {
+                            "account_id": "darwinex-account",
+                            "alias": "Darwinex MT5",
+                            "broker": "Tradeslide Trading Tech Limited",
+                            "server": "Darwinex-Live",
+                            "login": "4000082126",
+                            "status": "active",
+                            "connection_key": "dashboard-stable-key",
+                            "connection_key_masked": mask_connection_key("dashboard-stable-key"),
+                        }
+                    ],
+                )
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = backend
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api._lock = threading.RLock()
+                api.installations = [
+                    MT5Installation("Darwinex", "", str(root), str(experts_path), "", "test")
+                ]
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.get_session = lambda: {"authenticated": True}
+                api.refresh_installations = lambda: api.installations
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_status = lambda: {}
+                api.get_installations = lambda: []
+
+                captured: dict[str, str] = {}
+
+                def fake_install_connector(_installation: MT5Installation, install_config: LauncherConfig) -> dict[str, object]:
+                    captured["connection_key"] = install_config.connection_key
+                    return {"ok": True}
+
+                with patch("launcher.app.install_connector", fake_install_connector):
+                    result = api.install_connector("Darwinex")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(0, backend.link_calls)
+        self.assertEqual("dashboard-stable-key", captured["connection_key"])
+
     def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
@@ -695,7 +826,8 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.install_connector("Darwinex")
 
         self.assertFalse(result["ok"])
-        self.assertEqual(["revoked-key"], api.backend.connection_keys)
+        self.assertEqual([], api.backend.connection_keys)
+        self.assertIn("no existe en tu dashboard", result["message"])
         self.assertNotIn("connection_key", captured)
 
     def test_launcher_repair_account_prefers_identity_match_over_selected_installation(self) -> None:
@@ -1049,10 +1181,14 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
     def test_launcher_ui_uses_reinstall_copy_for_existing_connector(self) -> None:
         ui_source = (Path(__file__).resolve().parents[1] / "launcher" / "ui" / "app.js").read_text(encoding="utf-8")
+        ui_html = (Path(__file__).resolve().parents[1] / "launcher" / "ui" / "index.html").read_text(encoding="utf-8")
 
         self.assertIn('"repair_connector"', ui_source)
         self.assertIn("state.status?.connector_installed", ui_source)
         self.assertIn('installed ? "Reinstalar" : "Instalar"', ui_source)
+        self.assertIn('performAction("refresh", "Cuentas actualizadas.")', ui_source)
+        self.assertNotIn('performAction("create_account_connection"', ui_source)
+        self.assertNotIn("Añadir cuenta MT5", ui_html)
         self.assertNotIn("Reparar conector", ui_source)
         self.assertNotIn("Copiar key", ui_source)
 

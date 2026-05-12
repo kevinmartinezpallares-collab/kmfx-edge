@@ -295,7 +295,7 @@ function renderAccountConnections() {
   lastConnectionsSignature = nextSignature;
 
   if (!state.accountConnections.length) {
-    container.innerHTML = `<div class="empty-state">Añade una cuenta MT5 solo si es una cuenta nueva. Si ya tenías una, usa Reinstalar conector sobre esa misma cuenta.</div>`;
+    container.innerHTML = `<div class="empty-state">Instala el conector en MetaTrader 5. Cuando MT5 envíe el primer sync, la cuenta aparecerá aquí y en el dashboard.</div>`;
     return;
   }
 
@@ -326,6 +326,7 @@ function renderAccountConnections() {
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
+            <span class="connection-meta">KMFXKey disponible en Cuentas &gt; Ver detalles.</span>
           </div>
           <div class="connection-state-card">
             <span>Estado</span>
@@ -658,7 +659,7 @@ function bindEvents() {
     performAction(method, method === "repair_connector" ? "Conector reinstalado." : "Conector instalado.", state.selectedInstallationLabel);
   });
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel));
-  $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));
+  $("#create-connection-button")?.addEventListener("click", () => performAction("refresh", "Cuentas actualizadas."));
   document.addEventListener("click", (event) => {
     const installAccountButton = event.target.closest("[data-install-account]");
     if (installAccountButton) {
