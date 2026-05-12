@@ -887,10 +887,10 @@ function accountWarningToUserCopy(warning) {
     return "KMFX no reconoce la KMFXKey pegada en el EA. Copia la key de esta cuenta y pégala de nuevo.";
   }
   if (normalized.includes("revoked_connection_key") || normalized.includes("connection_revoked")) {
-    return "La KMFXKey está revocada. Regenera una nueva desde esta cuenta y pégala en el EA.";
+    return "La KMFXKey guardada en MT5 ya no es válida. Copia la key actual desde Detalles y reinstala el conector en esa misma instancia.";
   }
   if (normalized.includes("key") || normalized.includes("connection")) {
-    return "La key o la conexión necesita revisión. Usa esta misma KMFXKey en el EA o regenera una nueva.";
+    return "La key o la conexión necesita revisión. Usa la misma KMFXKey de esta cuenta y reinstala el conector en esa instancia.";
   }
   return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
 }
@@ -1024,7 +1024,6 @@ function openAccountInfoModal(account, state, activeAccount = null) {
             ${canManageKey ? `
               <button class="btn-secondary" type="button" data-account-modal-toggle-key="true">Mostrar</button>
               <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar key</button>
-              <button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar key</button>
             ` : ``}
           </div>
         </div>
@@ -1059,7 +1058,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <ol class="connections-account-modal__guide-list">
             <li>Abre MT5 y comprueba que Algo Trading está activo.</li>
             <li>Usa esta misma KMFXKey y reinstala el conector en el mismo MT5.</li>
-            <li>Crea una key nueva solo si has eliminado o revocado la conexión, o si añades otra cuenta MT5.</li>
+            <li>No hace falta crear otra cuenta ni otra key para repararla: recupérala desde aquí y vuelve a pegarla en el EA.</li>
           </ol>
         </div>
         <div class="connections-account-modal__actions">
@@ -1074,15 +1073,13 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       const valueNode = card?.querySelector("[data-account-key-value]");
       const toggleButton = card?.querySelector("[data-account-modal-toggle-key='true']");
       const copyButton = card?.querySelector("[data-account-copy-key='true']");
-      const regenerateButton = card?.querySelector("[data-account-regenerate-key='true']");
-      const regenerateDefaultText = regenerateButton?.textContent || "Regenerar y copiar key";
       async function ensureConnectionKeyLoaded() {
         if (connectionKey) return true;
         if (!accountId) return false;
         const result = await fetchOwnAccountConnectionKey(accountId, state);
         if (!result.ok || !result.connectionKey) {
           if (result.reason === "connection_key_revoked") {
-            showToast("La KMFXKey fue revocada. Regénérala desde aquí para volver a usarla.", "error");
+            showToast("No pude recuperar la KMFXKey actual de esta cuenta. Si la conexión fue revocada, vuelve a vincularla desde Cuentas.", "error");
           } else if (result.reason === "network_error") {
             showToast("No pude conectar con el servidor de KMFX.", "error");
           } else {
@@ -1125,49 +1122,6 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           copyText(connectionKey, "Clave copiada");
           void recordAccountAuditEvent({ accountId, event: "copy_key", state });
         })();
-      });
-      regenerateButton?.addEventListener("click", async () => {
-        if (!accountId) return;
-        const confirmed = window.confirm("Regenerar la KMFXKey sustituye la key actual. MT5 dejará de sincronizar hasta que pegues la nueva key en el EA o reinstales el conector desde el Launcher. ¿Continuar?");
-        if (!confirmed) return;
-        let regeneratedOk = false;
-        regenerateButton.disabled = true;
-        regenerateButton.textContent = "Generando...";
-        try {
-          const response = await fetch(resolveOwnAccountUrl(accountId, "regenerate-key"), {
-            method: "POST",
-            headers: buildAuthHeaders(state),
-          });
-          const payload = await response.json();
-          if (!response.ok || payload?.ok === false || !payload?.connection_key) {
-            showToast(payload?.reason || "No pude regenerar la key.", "error");
-            return;
-          }
-          regeneratedOk = true;
-          connectionKey = payload.connection_key;
-          connectionPreview = maskConnectionKeyForDisplay(connectionKey);
-          persistLocalConnectionKey({
-            accountId,
-            connectionKey,
-            label: account.alias || account.display_name || account.login || "",
-            state,
-          });
-          revealed = true;
-          if (valueNode) valueNode.textContent = connectionKey;
-          if (toggleButton) {
-            toggleButton.disabled = false;
-            toggleButton.textContent = "Ocultar";
-          }
-          if (copyButton) copyButton.disabled = false;
-          copyText(connectionKey, "Key nueva copiada. Pégala en el EA.");
-          window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh"));
-          regenerateButton.textContent = "Key regenerada";
-        } catch {
-          showToast("No pude conectar con el servidor de KMFX.", "error");
-        } finally {
-          regenerateButton.disabled = false;
-          if (!regeneratedOk) regenerateButton.textContent = regenerateDefaultText;
-        }
       });
       card?.querySelector("[data-account-open-launcher='true']")?.addEventListener("click", () => {
         openLauncher();
