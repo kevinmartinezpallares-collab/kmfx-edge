@@ -103,3 +103,47 @@ Smoke de produccion:
 - `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
 - `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
 - `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+## 2026-05-12 - Checkpoint `c63ebd9`
+
+Contexto:
+
+- Rama: `main`
+- Commit local: `c63ebd9 Document MT5 key repair flow`.
+- Commit desplegado en Render durante el smoke:
+  `be77dd92adf0ba073981e96985faad8e56650332`.
+- Nota: `c63ebd9` solo modifica documentacion; por eso Render mantiene el commit backend anterior.
+
+Cambio documentado:
+
+- Flujo de reparacion para KMFXKeys revocadas:
+  - descargar de nuevo el Launcher hasta que exista auto-update;
+  - reparar/reinstalar conector sobre la cuenta existente;
+  - no crear una cuenta duplicada salvo que sea otra cuenta MT5;
+  - regenerar key solo por revocacion, filtracion o cambio explicito;
+  - validar que MT5 vuelve a `Conectado a KMFX`.
+
+Smoke de produccion:
+
+- `python3 scripts/production_smoke.py`: verde.
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Descargas verificadas:
+  - `downloads/KMFX-Launcher-macOS.zip`
+  - `downloads/KMFX-Launcher-Windows.exe`
+  - `KMFXConnector.ex5`
+- Checksums de launcher coinciden con repo:
+  - macOS ZIP: `d97e74a09488f730971abd4ac06fc36f8dfd17ff7582833b41eecfbd31766a1b`
+  - Windows EXE: `32f26a0395a725a39baf5ed9c48daf5023ed298118b919d4b565644ce80dbac1`
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- CORS del Worker permite `X-KMFX-Connection-Key`, no permite headers de
+  usuario y bloquea origenes desconocidos.
+- `/api/billing/checkout` y `/api/billing/portal` sin bearer rechazan
+  `401 auth_required`.
+- `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
+- `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
+- `/api/mt5/sync` con key en query sigue rechazado en produccion.
