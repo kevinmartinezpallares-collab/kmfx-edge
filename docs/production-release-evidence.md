@@ -116,9 +116,9 @@ Contexto:
 
 Cambio documentado:
 
-- Flujo de reparacion para KMFXKeys revocadas:
+- Flujo de reinstalacion para KMFXKeys antiguas o incorrectas:
   - descargar de nuevo el Launcher hasta que exista auto-update;
-  - reparar/reinstalar conector sobre la cuenta existente;
+  - reinstalar conector sobre la cuenta existente;
   - no crear una cuenta duplicada salvo que sea otra cuenta MT5;
   - regenerar key solo por revocacion, filtracion o cambio explicito;
   - validar que MT5 vuelve a `Conectado a KMFX`.

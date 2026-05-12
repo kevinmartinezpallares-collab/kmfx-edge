@@ -33,7 +33,7 @@ def required_connector_sources() -> list[Path]:
     sources = connector_sources()
     if not any(path.name == "KMFXConnector.ex5" for path in sources):
         raise ConnectorInstallError(
-            "No se encontró KMFXConnector.ex5 dentro del Launcher. Descarga de nuevo KMFX Launcher y vuelve a reparar el conector."
+            "No se encontró KMFXConnector.ex5 dentro del Launcher. Descarga de nuevo KMFX Launcher y vuelve a reinstalar el conector."
         )
     return sources
 

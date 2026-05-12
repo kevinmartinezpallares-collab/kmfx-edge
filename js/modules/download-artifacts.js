@@ -4,12 +4,12 @@ export const KMFX_DOWNLOAD_ARTIFACTS = Object.freeze({
     macos: Object.freeze({
       label: "macOS",
       file: "KMFX-Launcher-macOS.zip",
-      sha256: "0680e52814afa96b31d49d603f92a1991315384a4621513bb06b3dfcd6b38b07",
+      sha256: "22ec9a1ddadaeae0189f0f6cdb534e57b68d9987c3a32a1bde729e21dfee8224",
     }),
     windows: Object.freeze({
       label: "Windows",
       file: "KMFX-Launcher-Windows.exe",
-      sha256: "c4cc90c71e418cddef19c16e866782a168a67940d3982361581a3960f0a242b9",
+      sha256: "f48cb1b995c2849a87d8efec6d3483c52d5982499517c49a3578e461c064759b",
     }),
   }),
   connector: Object.freeze({

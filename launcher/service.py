@@ -247,10 +247,18 @@ class LauncherServiceRuntime:
         )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
+        if not has_local_link:
+            save_bridge_config(self.config, user_id=self.config.auth_user_id)
+            self.reload_bridge_config(force_log=True)
+            self.logger.info("[KMFX][AUTH][LINK] launcher service session ready without creating MT5 account")
+            return {
+                "ok": True,
+                "message": "Sesión lista. Crea o copia la KMFXKey desde Cuentas.",
+            }
         response = self.link_account_with_session(
             user_id=self.config.auth_user_id,
             label="KMFX Connector MT5",
-            connection_key=self.config.connection_key if has_local_link else "",
+            connection_key=self.config.connection_key,
         )
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)

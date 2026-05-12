@@ -1058,7 +1058,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <ol class="connections-account-modal__guide-list">
             <li>Abre MT5 y comprueba que Algo Trading está activo.</li>
             <li>Usa esta misma KMFXKey y reinstala el conector en el mismo MT5.</li>
-            <li>No hace falta crear otra cuenta ni otra key para repararla: recupérala desde aquí y vuelve a pegarla en el EA.</li>
+            <li>No crees otra cuenta para el mismo MT5: recupérala desde aquí y vuelve a pegarla en el EA.</li>
           </ol>
         </div>
         <div class="connections-account-modal__actions">
@@ -1079,7 +1079,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
         const result = await fetchOwnAccountConnectionKey(accountId, state);
         if (!result.ok || !result.connectionKey) {
           if (result.reason === "connection_key_revoked") {
-            showToast("No pude recuperar la KMFXKey actual de esta cuenta. Si la conexión fue revocada, vuelve a vincularla desde Cuentas.", "error");
+            showToast("No pude recuperar la KMFXKey actual. Si fue eliminada o revocada, crea una cuenta nueva solo para ese MT5.", "error");
           } else if (result.reason === "network_error") {
             showToast("No pude conectar con el servidor de KMFX.", "error");
           } else {
@@ -1260,7 +1260,6 @@ function renderAccountAdminPanel(account, adminState) {
       <div class="kmfx-mt5-admin-actions">
         <button class="btn-secondary" type="button" data-admin-account-primary="${escapeHtml(accountId)}">Marcar primaria</button>
         <button class="btn-secondary" type="button" data-admin-account-inspect="${escapeHtml(accountId)}">Ver payload</button>
-        <button class="btn-secondary" type="button" data-admin-account-regenerate="${escapeHtml(accountId)}">Regenerar key</button>
         <button class="btn-secondary" type="button" data-admin-account-archive="${escapeHtml(accountId)}">Archivar</button>
         <button class="btn-secondary" type="button" data-admin-account-delete="${escapeHtml(accountId)}">Borrar</button>
       </div>
@@ -1572,38 +1571,6 @@ export function initConnections(store) {
         }
         await fetchAccountsRegistry(store);
         showToast("Cuenta marcada como primaria", "success");
-        renderConnections(root, store.getState());
-      } catch {
-        showToast("No pude conectar con el endpoint admin.", "error");
-      }
-      return;
-    }
-
-    const regenerateButton = event.target.closest("[data-admin-account-regenerate]");
-    if (regenerateButton) {
-      const accountId = regenerateButton.dataset.adminAccountRegenerate;
-      if (!accountId) return;
-      try {
-        const response = await fetch(resolveAdminAccountUrl(accountId, "regenerate-key"), {
-          method: "POST",
-          headers: buildAuthHeaders(store.getState()),
-        });
-        const payload = await response.json();
-        if (!response.ok || payload?.ok === false) {
-          showToast(payload?.reason || "No pude regenerar la key.", "error");
-          return;
-        }
-        if (payload?.connection_key) {
-          persistLocalConnectionKey({
-            accountId,
-            connectionKey: payload.connection_key,
-            label: registryAccounts.find((item) => item.account_id === accountId)?.alias || "",
-            state: store.getState(),
-          });
-          uiState.revealedKeyAccountId = accountId;
-        }
-        await fetchAccountsRegistry(store);
-        showToast(payload?.connection_key ? "Key regenerada y lista para copiar" : "Key regenerada. Vuelve a vincular el Launcher.", "success");
         renderConnections(root, store.getState());
       } catch {
         showToast("No pude conectar con el endpoint admin.", "error");
