@@ -811,6 +811,39 @@ def redact_sensitive_data(value: Any) -> Any:
     return value
 
 
+def audit_event_details(details: dict[str, Any] | None = None) -> str:
+    safe_details = redact_sensitive_data(ensure_dict(details))
+    try:
+        return json.dumps(safe_details, ensure_ascii=True, sort_keys=True)
+    except (TypeError, ValueError):
+        return "{}"
+
+
+def emit_audit_event(
+    event: str,
+    *,
+    context: dict[str, Any] | None = None,
+    user_id: str = "",
+    account_id: str = "",
+    status: str = "ok",
+    details: dict[str, Any] | None = None,
+) -> None:
+    safe_context = ensure_dict(context)
+    actor_user_id = safe_str(safe_context.get("user_id") or user_id)
+    actor_email = mask_email_for_log(safe_str(safe_context.get("email")))
+    actor_role = "admin" if safe_context.get("is_admin") else "user"
+    log.info(
+        "[KMFX][AUDIT] event=%s status=%s user_id=%s account_id=%s actor_role=%s actor_email=%s details=%s",
+        safe_str(event, "unknown"),
+        safe_str(status, "ok"),
+        actor_user_id,
+        safe_str(account_id),
+        actor_role,
+        actor_email,
+        audit_event_details(details),
+    )
+
+
 def allow_query_connection_key_compat() -> bool:
     return _env_flag("KMFX_ALLOW_QUERY_CONNECTION_KEY", default=False) and not _is_production_runtime()
 
@@ -4780,6 +4813,9 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
 
     existing: dict[str, Any] | None = None
     claimed_account = None
+    created_new_account = False
+    regenerated_existing_key = False
+    claimed_launcher_key = False
     if launcher_connection_key:
         try:
             claimed_account = account_service.claim_account_by_api_key(
@@ -4787,6 +4823,7 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
                 api_key=launcher_connection_key,
                 alias=label,
             )
+            claimed_launcher_key = claimed_account is not None
             if claimed_account is None:
                 claimed_account = account_service.create_pending_account_with_key(
                     user_id=user_id,
@@ -4798,6 +4835,7 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
                     login=direct_login,
                     server=direct_server,
                 )
+                created_new_account = claimed_account is not None
             if claimed_account is None:
                 return connector_json_response(
                     {
@@ -4879,6 +4917,7 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
                         status_code=409,
                     )
                 connection_key = regenerated.api_key
+                regenerated_existing_key = True
         else:
             try:
                 created = account_service.create_pending_account(
@@ -4902,6 +4941,7 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
                 )
             connection_key = created.api_key
             account_id = created.account_id
+            created_new_account = True
 
     direct_sync_result: dict[str, Any] | None = None
     direct_password = safe_str(payload.get("password") or payload.get("investor_password") or payload.get("investorPassword"))
@@ -4965,6 +5005,45 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
         ),
         {},
     )
+    emit_audit_event(
+        "create_account" if created_new_account else "link_account",
+        context=auth_context,
+        user_id=user_id,
+        account_id=account_id,
+        details={
+            "source": "accounts_link",
+            "created_new_account": created_new_account,
+            "claimed_launcher_key": claimed_launcher_key,
+            "connection_mode": connection_mode,
+            "platform": platform,
+            "login": direct_login,
+            "server": direct_server,
+        },
+    )
+    if created_new_account:
+        emit_audit_event(
+            "create_key",
+            context=auth_context,
+            user_id=user_id,
+            account_id=account_id,
+            details={
+                "source": "accounts_link",
+                "connection_mode": connection_mode,
+                "connection_key_preview": mask_connection_key(connection_key),
+            },
+        )
+    if regenerated_existing_key:
+        emit_audit_event(
+            "regenerate_key",
+            context=auth_context,
+            user_id=user_id,
+            account_id=account_id,
+            details={
+                "source": "accounts_link",
+                "reason": "existing_key_revoked_or_missing",
+                "connection_key_preview": mask_connection_key(connection_key),
+            },
+        )
     return connector_json_response(
         {
             "ok": True,
@@ -5216,6 +5295,17 @@ async def revoke_own_account_key(account_id: str, request: Request) -> JSONRespo
             status_code=404,
         )
     forget_live_account_snapshot(revoked.account_id)
+    emit_audit_event(
+        "revoke_key",
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=revoked.account_id,
+        details={
+            "source": "account_detail",
+            "reason": "user_revocation",
+            "connection_key_preview": revoked.connection_key_preview or mask_connection_key(revoked.api_key),
+        },
+    )
     return connector_json_response(
         {
             "ok": True,
@@ -5280,6 +5370,16 @@ async def regenerate_own_account_key(account_id: str, request: Request) -> JSONR
             status_code=404,
         )
     forget_live_account_snapshot(regenerated.account_id)
+    emit_audit_event(
+        "regenerate_key",
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=regenerated.account_id,
+        details={
+            "source": "account_detail",
+            "connection_key_preview": regenerated.connection_key_preview or mask_connection_key(regenerated.api_key),
+        },
+    )
     return connector_json_response(
         {
             "ok": True,
@@ -5342,6 +5442,17 @@ async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
             status_code=404,
         )
     forget_live_account_snapshot(archived.account_id)
+    emit_audit_event(
+        "delete_account",
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=archived.account_id,
+        details={
+            "source": "accounts_list",
+            "reason": "user_delete",
+            "connection_key_preview": archived.connection_key_preview or mask_connection_key(archived.api_key),
+        },
+    )
     return connector_json_response(
         {
             "ok": True,
@@ -5349,6 +5460,84 @@ async def delete_own_account(account_id: str, request: Request) -> JSONResponse:
             "deleted": True,
             "archived": True,
             "status": archived.status,
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/accounts/{account_id}/audit-event")
+async def record_own_account_audit_event(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/{account_id}/audit-event",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+        limit=60,
+    )
+    if rate_limited is not None:
+        return rate_limited
+    payload, payload_error = await read_json_object_payload(request, "POST /api/accounts/{account_id}/audit-event")
+    if payload_error is not None:
+        return payload_error
+    normalized_account_id = safe_str(account_id)
+    event = safe_str(payload.get("event")).lower()
+    allowed_events = {"copy_key", "show_key", "open_launcher", "view_details"}
+    if event not in allowed_events:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "invalid_audit_event",
+                "details": {"event": event or "missing"},
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == normalized_account_id
+        ),
+        None,
+    )
+    if account is None:
+        if not auth_context.get("is_admin"):
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+        account = find_account_by_id_any_user(normalized_account_id)
+        if account is None:
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+    emit_audit_event(
+        event,
+        context=auth_context,
+        user_id=scope_user_id,
+        account_id=account.account_id,
+        details={
+            "source": safe_str(payload.get("source"), "dashboard"),
+            "connection_key_preview": account.connection_key_preview or mask_connection_key(account.api_key),
+            "status": account.status,
+        },
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": account.account_id,
+            "event": event,
             "timestamp": now_iso(),
         }
     )
@@ -5445,6 +5634,16 @@ async def admin_regenerate_key(account_id: str, request: Request) -> JSONRespons
             status_code=404,
         )
     forget_live_account_snapshot(account.account_id)
+    emit_audit_event(
+        "regenerate_key",
+        context=admin_context,
+        user_id=account.user_id,
+        account_id=account.account_id,
+        details={
+            "source": "admin_accounts",
+            "connection_key_preview": account.connection_key_preview or mask_connection_key(account.api_key),
+        },
+    )
     return connector_json_response(
         {
             "ok": True,
@@ -5476,6 +5675,17 @@ async def admin_revoke_key(account_id: str, request: Request) -> JSONResponse:
             status_code=404,
         )
     forget_live_account_snapshot(account.account_id)
+    emit_audit_event(
+        "revoke_key",
+        context=admin_context,
+        user_id=account.user_id,
+        account_id=account.account_id,
+        details={
+            "source": "admin_accounts",
+            "reason": "admin_revocation",
+            "connection_key_preview": account.connection_key_preview or mask_connection_key(account.api_key),
+        },
+    )
     return connector_json_response(
         {
             "ok": True,
@@ -5508,6 +5718,16 @@ async def admin_archive_account(account_id: str, request: Request) -> JSONRespon
             status_code=404,
         )
     forget_live_account_snapshot(account.account_id)
+    emit_audit_event(
+        "archive_account",
+        context=admin_context,
+        user_id=account.user_id,
+        account_id=account.account_id,
+        details={
+            "source": "admin_accounts",
+            "status": account.status,
+        },
+    )
     return connector_json_response(
         {
             "ok": True,

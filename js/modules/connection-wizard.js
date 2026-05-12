@@ -108,6 +108,22 @@ function buildAuthHeaders(store, extra = {}) {
   return headers;
 }
 
+async function recordWizardAccountAuditEvent({ accountId = "", event = "", store = activeWizardStore, source = "connection_wizard" } = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  const normalizedEvent = String(event || "").trim();
+  if (!normalizedAccountId || !normalizedEvent) return;
+  try {
+    await fetch(buildApiUrl(`/api/accounts/${encodeURIComponent(normalizedAccountId)}/audit-event`), {
+      method: "POST",
+      headers: buildAuthHeaders(store, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ event: normalizedEvent, source }),
+      keepalive: true,
+    });
+  } catch {
+    // Audit telemetry must never block the connection wizard.
+  }
+}
+
 function copyText(value, label = "Copiado") {
   if (!value) return;
   const complete = () => showToast(label, "success");
@@ -1000,7 +1016,10 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
       setWizardStep(card, state, method === "direct" ? "directConfig" : "eaConfig", options, store);
     });
   });
-  body.querySelector("[data-wizard-open-launcher='true']")?.addEventListener("click", openLauncher);
+  body.querySelector("[data-wizard-open-launcher='true']")?.addEventListener("click", () => {
+    openLauncher();
+    void recordWizardAccountAuditEvent({ accountId: state.ea?.accountId || "", event: "open_launcher", store });
+  });
   body.querySelectorAll("[data-wizard-download-launcher]").forEach((button) => {
     button.addEventListener("click", () => downloadLauncher(button.dataset.wizardDownloadLauncher || "auto"));
   });
@@ -1008,12 +1027,18 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
   body.querySelector("[data-wizard-copy-webrequest='true']")?.addEventListener("click", () => copyText(MT5_WEBREQUEST_URL, "URL copiada"));
   body.querySelector("[data-wizard-copy-download-checksums='true']")?.addEventListener("click", () => copyText(downloadChecksumText(), "Checksums copiados"));
   body.querySelector("[data-wizard-create-ea-key='true']")?.addEventListener("click", () => createEaConnection(card, state, options, store));
-  body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => copyText(state.ea?.connectionKey || "", "Clave copiada"));
+  body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => {
+    copyText(state.ea?.connectionKey || "", "Clave copiada");
+    void recordWizardAccountAuditEvent({ accountId: state.ea?.accountId || "", event: "copy_key", store });
+  });
   body.querySelector("[data-wizard-direct-submit='true']")?.addEventListener("click", () => createDirectConnection(card, state, options, store));
   body.querySelector("[data-wizard-check-ea-sync='true']")?.addEventListener("click", () => checkEaSync(card, state, options, store));
   body.querySelector("[data-wizard-finish-connection='true']")?.addEventListener("click", finishConnection);
   body.querySelector("[data-wizard-toggle-key='true']")?.addEventListener("click", () => {
     state.showKey = !state.showKey;
+    if (state.showKey) {
+      void recordWizardAccountAuditEvent({ accountId: state.ea?.accountId || "", event: "show_key", store });
+    }
     mountWizard(card, state, options, store);
   });
 

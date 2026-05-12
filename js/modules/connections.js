@@ -395,6 +395,22 @@ function resolveOwnAccountUrl(accountId, action = "") {
   return url.toString();
 }
 
+async function recordAccountAuditEvent({ accountId = "", event = "", state = {}, source = "dashboard_connections" } = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  const normalizedEvent = String(event || "").trim();
+  if (!normalizedAccountId || !normalizedEvent) return;
+  try {
+    await fetch(resolveOwnAccountUrl(normalizedAccountId, "audit-event"), {
+      method: "POST",
+      headers: buildAuthHeaders(state, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ event: normalizedEvent, source }),
+      keepalive: true,
+    });
+  } catch {
+    // Audit telemetry must never block the account workflow.
+  }
+}
+
 function updateManagedAccountLocally(store, accountId, nextFields) {
   store.setState((state) => {
     const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
@@ -1005,9 +1021,13 @@ function openAccountInfoModal(account, state, activeAccount = null) {
         revealed = !revealed;
         valueNode.textContent = revealed ? connectionKey : connectionPreview;
         toggleButton.textContent = revealed ? "Ocultar" : "Mostrar";
+        if (revealed) {
+          void recordAccountAuditEvent({ accountId, event: "show_key", state });
+        }
       });
       copyButton?.addEventListener("click", () => {
         copyText(connectionKey, "Clave copiada");
+        void recordAccountAuditEvent({ accountId, event: "copy_key", state });
       });
       regenerateButton?.addEventListener("click", async () => {
         if (!accountId) return;
@@ -1054,6 +1074,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       });
       card?.querySelector("[data-account-open-launcher='true']")?.addEventListener("click", () => {
         openLauncher();
+        void recordAccountAuditEvent({ accountId, event: "open_launcher", state });
       });
     },
   });

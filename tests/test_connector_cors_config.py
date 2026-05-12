@@ -173,6 +173,59 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("[masked]", redacted["nested"]["authorization"])
         self.assertEqual("123456", redacted["nested"]["login"])
 
+    def test_audit_event_details_masks_connection_keys(self) -> None:
+        raw_key = "abcdefghijklmnopqrstuvwxyz7890"
+        details = connector_api.audit_event_details(
+            {
+                "connection_key": raw_key,
+                "nested": {"api_key": raw_key, "login": "123456"},
+            }
+        )
+
+        self.assertIn("abcdef...7890", details)
+        self.assertIn("123456", details)
+        self.assertNotIn(raw_key, details)
+
+    def test_account_copy_key_audit_event_is_authenticated_and_masked(self) -> None:
+        raw_key = "abcdefghijklmnopqrstuvwxyz7890"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
+            try:
+                created = connector_api.account_service.create_pending_account_with_key(
+                    user_id="user-123",
+                    alias="Cuenta MT5 EA",
+                    connection_key=raw_key,
+                    platform="mt5",
+                    connection_mode="ea_direct",
+                )
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123", "x-kmfx-user-email": "trader@example.com"},
+                    json_body={"event": "copy_key", "source": "unit_test"},
+                )
+                with patch.object(connector_api.log, "info") as info_mock:
+                    response = asyncio.run(connector_api.record_own_account_audit_event(created.account_id, request))
+            finally:
+                connector_api.account_service = previous_service
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("copy_key", body["event"])
+        audit_calls = [
+            call
+            for call in info_mock.call_args_list
+            if call.args and "[KMFX][AUDIT]" in str(call.args[0])
+        ]
+        self.assertEqual(1, len(audit_calls))
+        audit_args = audit_calls[0].args
+        self.assertEqual("copy_key", audit_args[1])
+        self.assertEqual("user-123", audit_args[3])
+        self.assertEqual(created.account_id, audit_args[4])
+        self.assertIn("abcdef...7890", audit_args[-1])
+        self.assertNotIn(raw_key, audit_args[-1])
+
     def test_payload_without_connection_key_removes_legacy_secret_fields(self) -> None:
         cleaned = connector_api.payload_without_connection_key(
             {

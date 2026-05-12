@@ -428,17 +428,19 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [x] Monitor recurrente `Monitor producción KMFX` creado cada 6 horas para web, Render `/health`, Worker `mt5-api` y smoke básico de seguridad.
 - [x] Rollback operativo documentado en `docs/production-rollback-runbook.md` para web, backend, Worker, Launcher/EA, billing, Supabase y MT5.
 - [ ] Decidir si hace falta mover historial/trades a tabla dedicada si el uso vuelve a subir antes de beta abierta.
-- [ ] Eventos de auditoria:
-  - login
+- [x] Eventos de auditoria de cuentas y KMFXKeys:
+  - crear cuenta
   - crear key
+  - mostrar key
   - copiar key
   - revocar key
   - regenerar key
-  - crear cuenta
   - eliminar cuenta
+- [ ] Eventos de auditoria pendientes:
+  - login
   - cambio de plan
   - pago fallido
-  - sync rechazado
+  - sync rechazado anormal
 - [ ] Backups Supabase confirmados.
 - [ ] Restore documentado o probado.
 - [ ] Retencion de datos definida:

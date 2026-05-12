@@ -412,6 +412,7 @@ Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 - [ ] Revisar Cloudflare Worker y DNS.
 - [ ] Revisar Supabase Auth providers, redirect URLs y RLS.
 - [x] Configurar alerta mínima de Render/API caído.
+- [x] Registrar eventos auditables de Cuentas/KMFXKeys sin exponer claves completas: crear cuenta, crear key, mostrar/copiar key, revocar, regenerar y eliminar.
 - [x] Documentar rollback web, backend, launcher, Worker, billing, Supabase y MT5 en `docs/production-rollback-runbook.md`.
 
 Criterio de salida:
