@@ -411,7 +411,7 @@ Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 - [ ] Revisar env vars en Render: secretos solo backend.
 - [ ] Revisar Cloudflare Worker y DNS.
 - [ ] Revisar Supabase Auth providers, redirect URLs y RLS.
-- [ ] Configurar alerta mínima de Render/API caído.
+- [x] Configurar alerta mínima de Render/API caído.
 - [x] Documentar rollback web, backend, launcher, Worker, billing, Supabase y MT5 en `docs/production-rollback-runbook.md`.
 
 Criterio de salida:
