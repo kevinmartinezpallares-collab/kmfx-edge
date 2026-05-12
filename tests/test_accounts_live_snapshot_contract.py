@@ -19,8 +19,9 @@ class AccountsLiveSnapshotContractTests(unittest.TestCase):
 
         self.assertIn("function resolveAccountsHttpPollIntervalMs", source)
         self.assertIn("function resolveAccountsFullSnapshotRefreshMs", source)
-        self.assertIn("PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 15 * 60 * 1000", source)
-        self.assertIn("PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 30 * 60 * 1000", source)
+        self.assertIn("PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 10 * 60 * 1000", source)
+        self.assertIn("PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 30 * 60 * 1000", source)
+        self.assertIn("PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 60 * 60 * 1000", source)
         self.assertIn('pollHttpSnapshot({ view: shouldUseFullSnapshot() ? "full" : "summary" })', source)
         self.assertIn('resolveAccountsSnapshotUrl({ view: normalizedView })', source)
         self.assertIn("mergeSummaryPayloadWithPrevious", source)
@@ -39,7 +40,8 @@ class AccountsLiveSnapshotContractTests(unittest.TestCase):
         self.assertIn('def build_accounts_registry(self, user_id: str = "local", *, summary_only: bool = False)', account_service)
         self.assertIn("list_account_summaries_for_user", account_store)
         self.assertIn("SUMMARY_SELECT", account_store)
-        self.assertIn("payload_positions:record->latest_payload->positions", account_store)
+        self.assertNotIn("payload_positions:record->latest_payload->positions", account_store)
+        self.assertNotIn("latest_report_metrics:record->latest_report_metrics", account_store)
         self.assertNotIn("return hasOpenPositions ? 3000 : 15000", source)
 
 

@@ -81,10 +81,9 @@ def _first_present(*values: object) -> object:
 
 def _projected_account_record(row: dict) -> dict:
     account_payload = row.get("payload_account") if isinstance(row.get("payload_account"), dict) else {}
-    positions = row.get("payload_positions") if isinstance(row.get("payload_positions"), list) else []
     risk_summary = row.get("payload_risk_summary") if isinstance(row.get("payload_risk_summary"), dict) else {}
     risk_status = row.get("payload_risk_status") if isinstance(row.get("payload_risk_status"), dict) else {}
-    latest_report_metrics = row.get("latest_report_metrics") if isinstance(row.get("latest_report_metrics"), dict) else {}
+    positions_count = _first_present(row.get("payload_open_positions_count"), 0)
     latest_payload = {
         "payloadSource": row.get("payload_source") or "mt5_sync_live",
         "payloadShape": "summary",
@@ -105,8 +104,8 @@ def _projected_account_record(row: dict) -> dict:
         "closedPnl": row.get("payload_closed_pnl"),
         "totalPnl": row.get("payload_total_pnl"),
         "pnl": row.get("payload_total_pnl"),
-        "openPositionsCount": _first_present(row.get("payload_open_positions_count"), len(positions)),
-        "positions": positions,
+        "openPositionsCount": positions_count,
+        "positionsCount": positions_count,
         "account": account_payload,
         "riskSnapshot": {
             "summary": risk_summary,
@@ -135,7 +134,7 @@ def _projected_account_record(row: dict) -> dict:
         "last_policy_at": row.get("last_policy_at") or "",
         "last_error_code": row.get("last_error_code") or "",
         "last_error_message": row.get("last_error_message") or "",
-        "latest_report_metrics": latest_report_metrics,
+        "latest_report_metrics": {},
         "connector_version": row.get("connector_version") or "",
         "connection_key_revoked_at": row.get("connection_key_revoked_at") or "",
         "connection_key_revocation_reason": row.get("connection_key_revocation_reason") or "",
@@ -343,7 +342,6 @@ class SupabaseAccountStore(AccountStore):
             "archived_at:record->>archived_at",
             "deleted_at:record->>deleted_at",
             "nickname:record->>nickname",
-            "latest_report_metrics:record->latest_report_metrics",
             "payload_source:record->latest_payload->>payloadSource",
             "payload_data_status:record->latest_payload->>data_status",
             "payload_timestamp:record->latest_payload->>timestamp",
@@ -361,7 +359,6 @@ class SupabaseAccountStore(AccountStore):
             "payload_total_pnl:record->latest_payload->>totalPnl",
             "payload_open_positions_count:record->latest_payload->>openPositionsCount",
             "payload_account:record->latest_payload->account",
-            "payload_positions:record->latest_payload->positions",
             "payload_risk_summary:record->latest_payload->riskSnapshot->summary",
             "payload_risk_status:record->latest_payload->riskSnapshot->status",
         ]

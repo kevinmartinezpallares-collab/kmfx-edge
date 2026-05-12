@@ -151,8 +151,8 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
         "server": _first_text(safe_payload.get("server"), account_payload.get("server")),
         "login": _first_text(safe_payload.get("login"), account_payload.get("login")),
         "currency": _first_text(safe_payload.get("currency"), account_payload.get("currency")),
-        "positions": positions,
         "openPositionsCount": _first_finite_number(safe_payload.get("openPositionsCount"), len(positions)) or 0,
+        "positionsCount": _first_finite_number(safe_payload.get("openPositionsCount"), len(positions)) or 0,
         "account": {
             "broker": _first_text(account_payload.get("broker"), safe_payload.get("broker")),
             "server": _first_text(account_payload.get("server"), safe_payload.get("server")),
