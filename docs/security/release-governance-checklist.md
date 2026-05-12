@@ -6,6 +6,13 @@ No contiene secretos.
 
 ## Ajustes del repositorio en GitHub
 
+Auditoria reproducible:
+
+- Ejecutar `python3 scripts/github_release_governance_audit.py`.
+- Ejecutar `python3 scripts/github_release_governance_audit.py --strict` con
+  `GITHUB_TOKEN` administrativo antes de cerrar este bloque.
+- Ver detalle operativo en `docs/security/github-release-governance.md`.
+
 - Activar secret scanning.
 - Activar push protection.
 - Activar Dependabot alerts.

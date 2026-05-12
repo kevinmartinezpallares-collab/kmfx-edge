@@ -106,6 +106,8 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Workflow `Production Smoke` existe.
 - [x] Workflow Windows launcher existe.
 - [x] `CODEOWNERS` existe.
+- [x] Auditoria reproducible de release governance anadida en `scripts/github_release_governance_audit.py`.
+- [x] Runbook GitHub release governance creado en `docs/security/github-release-governance.md`.
 - [ ] Activar branch protection real en GitHub.
 - [ ] Activar secret scanning y push protection.
 - [ ] Exigir checks de CI antes de merge cuando el flujo esté estable.
@@ -397,6 +399,8 @@ Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 - [ ] Activar push protection en GitHub.
 - [ ] Activar Dependabot alerts/security updates.
 - [ ] Configurar branch protection para `main`.
+- [x] Dejar auditoria ejecutable para validar branch protection, secret scanning,
+  push protection y Dependabot con token administrativo.
 - [ ] Exigir checks:
   - `Backend and connector tests`
   - `Static app checks`

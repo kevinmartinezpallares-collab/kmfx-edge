@@ -228,6 +228,8 @@ Objetivo: no abrir superficie sensible sin controles.
 - [ ] Activar push protection GitHub.
 - [ ] Activar Dependabot alerts/security updates.
 - [x] Aplicar actualizacion Dependabot pendiente de GitHub Actions.
+- [x] Auditoria reproducible de GitHub governance creada:
+  `python3 scripts/github_release_governance_audit.py`.
 - [ ] Branch protection en `main`.
 - [x] Validacion centralizada de payloads en endpoints state-changing.
 - [ ] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5.
@@ -270,6 +272,7 @@ Notas 2026-05-10:
 
 - Dependabot version updates ya esta configurado para `github-actions`, `npm` y `pip` en `.github/dependabot.yml`.
 - Aplicado el aviso de Dependabot del PR #3: todos los workflows pasan de `actions/checkout@v4` a `actions/checkout@v6`.
+- Se crea `docs/security/github-release-governance.md` y `scripts/github_release_governance_audit.py` para validar de forma repetible la configuracion GitHub con un token administrativo.
 - Queda pendiente confirmar en GitHub Dashboard la activacion de secret scanning, push protection, Dependabot alerts/security updates y branch protection de `main`, porque no se puede verificar desde el checkout local.
 - `/api/backtests/mt5/import` usa el helper central de JSON de mutaciones, con limite propio `KMFX_BACKTEST_IMPORT_MAX_BODY_BYTES`; payloads no-objeto o demasiado grandes se rechazan sin eco de contenido sensible. Stripe webhook conserva lectura raw intencionada para verificar firma y MT5 sync/journal usan el helper raw-body MT5.
 - Segunda pasada XSS de seguridad: Estrategias escapa nombres, descripciones, mercado, timeframe, sesion, ids y estados definidos por usuario; Analytics escapa tarjetas de patrones, concentracion, resumen y control antes de insertarlas con `innerHTML`. Quedan solo revisiones de cierre ruta por ruta antes de marcar completa la auditoria global.
