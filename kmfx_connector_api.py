@@ -404,6 +404,10 @@ log.info(
 
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 VERIFIED_BEARER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+VERIFIED_BEARER_CACHE_TTL_SECONDS = _env_int(
+    "KMFX_VERIFIED_BEARER_CACHE_TTL_SECONDS",
+    default=300 if _is_production_runtime() else 60,
+)
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS", default=5)
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_MAX_ENTRIES = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES", default=128)
@@ -973,7 +977,7 @@ def _resolve_supabase_user_claims(request: Request) -> dict[str, Any]:
         "app_metadata": ensure_dict(payload.get("app_metadata")),
         "source": "supabase_auth_user",
     }
-    VERIFIED_BEARER_CACHE[cache_key] = (time.time() + 60, claims)
+    VERIFIED_BEARER_CACHE[cache_key] = (time.time() + VERIFIED_BEARER_CACHE_TTL_SECONDS, claims)
     return deepcopy(claims)
 
 

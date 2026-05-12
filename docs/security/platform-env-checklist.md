@@ -24,6 +24,9 @@ header and CORS changes.
 | `VERCEL_TOKEN` / Vercel tokens | No | Yes | Local password manager or CI secret only | Yes |
 | `GITHUB_TOKEN` / PATs | No | Yes | GitHub Actions generated token or scoped secret only | Yes |
 | `CLOUDFLARE_API_TOKEN` | No | Yes | Local password manager or CI secret only | Yes |
+| `KMFX_VERIFIED_BEARER_CACHE_TTL_SECONDS` | No | Yes | Render backend only | No |
+| `KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS` | No | Yes | Render backend only | No |
+| `KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES` | No | Yes | Render backend only | No |
 
 ## Vercel manual checks
 

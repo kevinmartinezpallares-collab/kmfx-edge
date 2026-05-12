@@ -210,3 +210,37 @@ Pendiente por credenciales de plataforma:
 - Secret scanning, push protection, Dependabot security updates y branch
   protection de `main` no se pueden verificar desde este checkout sin token con
   permisos de administracion/seguridad.
+
+## 2026-05-12 - Supabase Egress Guard Checkpoint
+
+Contexto:
+
+- Rama local: `main`
+- Commit base antes del siguiente deploy: `375a2c2 Publish Windows launcher artifact`
+- Objetivo: reducir llamadas repetidas a `supabase/auth/v1/user` sin cambiar el
+  contrato funcional del dashboard ni el aislamiento de cuentas.
+
+Cambios validados localmente:
+
+- `kmfx_connector_api.py` usa TTL configurable para `VERIFIED_BEARER_CACHE`
+  mediante `KMFX_VERIFIED_BEARER_CACHE_TTL_SECONDS`.
+- `.env.example` documenta:
+  - `KMFX_VERIFIED_BEARER_CACHE_TTL_SECONDS=300`
+  - `KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS=5`
+  - `KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES=128`
+- `tests/test_connector_cors_config.py` cubre que el cache de bearer:
+  - reutiliza la respuesta verificada dentro del TTL;
+  - evita una segunda llamada remota innecesaria;
+  - persiste la expiracion esperada.
+
+Validacion:
+
+- `python3 -m py_compile kmfx_connector_api.py`: OK.
+- `python3 -m unittest tests.test_connector_cors_config`: 101 tests OK.
+- `python3 scripts/production_smoke.py`: verde antes del deploy del ajuste.
+
+Impacto esperado:
+
+- Menor egress contra Supabase Auth en dashboards con polling y varias
+  peticiones autenticadas consecutivas.
+- Sin tocar snapshots completos de cuenta ni el flujo MT5/Launcher.

@@ -795,6 +795,55 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("free", context["app_metadata"]["plan"])
         self.assertEqual("canceled", context["app_metadata"]["billing_status"])
 
+    def test_supabase_bearer_claims_cache_uses_configured_ttl(self) -> None:
+        class FakeAuthResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "id": "user-123",
+                        "email": "trader@example.com",
+                        "app_metadata": {"plan": "pro"},
+                        "user_metadata": {"name": "Trader"},
+                    }
+                ).encode("utf-8")
+
+        request = self._request(headers={"authorization": "Bearer token-for-cache"})
+        cache_key = hashlib.sha256("token-for-cache".encode("utf-8")).hexdigest()
+        connector_api.VERIFIED_BEARER_CACHE.clear()
+        try:
+            with patch.object(connector_api, "SUPABASE_PROJECT_URL", "https://supabase.test"), patch.object(
+                connector_api,
+                "SUPABASE_ANON_KEY",
+                "anon",
+            ), patch.object(
+                connector_api,
+                "VERIFIED_BEARER_CACHE_TTL_SECONDS",
+                300,
+            ), patch.object(
+                connector_api.urllib.request,
+                "urlopen",
+                return_value=FakeAuthResponse(),
+            ) as urlopen, patch.object(
+                connector_api.time,
+                "time",
+                side_effect=[1000, 1001],
+            ):
+                first = connector_api._resolve_supabase_user_claims(request)
+                second = connector_api._resolve_supabase_user_claims(request)
+
+            self.assertEqual(first, second)
+            self.assertEqual("user-123", first["sub"])
+            self.assertEqual(1, urlopen.call_count)
+            self.assertEqual(1300, connector_api.VERIFIED_BEARER_CACHE[cache_key][0])
+        finally:
+            connector_api.VERIFIED_BEARER_CACHE.clear()
+
     def test_signed_bearer_sub_mismatch_fails_closed(self) -> None:
         request = self._request(headers={"authorization": "Bearer signed-token"})
         with patch.object(
