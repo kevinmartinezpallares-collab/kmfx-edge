@@ -255,6 +255,7 @@ Cambios:
   - `scripts/github_release_governance_audit.py`
   - `scripts/production_smoke.py`
   - `tests.test_connector_cors_config`
+  - `tests.test_auth_session_contract`
 - Modo ampliado:
   - añade `python3 -m unittest discover -s tests`
 
@@ -264,6 +265,27 @@ Uso recomendado:
 python3 scripts/production_gate.py
 python3 scripts/production_gate.py --full-tests
 ```
+
+## 2026-05-12 - App metadata como fuente de permisos
+
+Contexto:
+
+- Objetivo: cerrar el checkpoint de permisos para que ni el frontend ni el backend
+  puedan elevar rol/plan desde `user_metadata`.
+
+Cambios:
+
+- `js/modules/auth-session.js` deja de derivar `role` desde
+  `user.user_metadata.role`.
+- `user_metadata` se mantiene solo para datos de perfil visibles como nombre o
+  avatar.
+- Nuevo test `tests/test_auth_session_contract.py` verifica que, si
+  `user_metadata.role=admin` pero `app_metadata.role=user`, el estado final del
+  frontend sigue siendo `user`.
+
+Validacion:
+
+- `python3 -m unittest tests.test_auth_session_contract`
 
 Impacto esperado:
 

@@ -308,7 +308,7 @@ function buildAuthStateFromSupabaseSession(session, currentAuth = DEFAULT_AUTH_S
       avatar: avatarUrl,
       initials: getInitialsFromAuthName(fullName),
       provider,
-      role: metadata.role || user.app_metadata?.role || currentAuth.user?.role || "user"
+      role: user.app_metadata?.role || currentAuth.user?.role || "user"
     },
     profile: {
       ...(currentAuth.profile || {})

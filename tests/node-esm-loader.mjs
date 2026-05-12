@@ -1,5 +1,8 @@
 const SUPABASE_STUB = `
 export function createClient() {
+  if (globalThis.__kmfxSupabaseClient) {
+    return globalThis.__kmfxSupabaseClient;
+  }
   return {
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),

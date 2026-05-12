@@ -91,7 +91,13 @@ def build_checks(*, full_tests: bool) -> list[Check]:
         Check("production_smoke", [python, "scripts/production_smoke.py"]),
         Check(
             "connector_security_regressions",
-            [python, "-m", "unittest", "tests.test_connector_cors_config"],
+            [
+                python,
+                "-m",
+                "unittest",
+                "tests.test_connector_cors_config",
+                "tests.test_auth_session_contract",
+            ],
         ),
     ]
 

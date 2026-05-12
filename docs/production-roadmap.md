@@ -43,7 +43,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Dominio personalizado de Supabase Auth queda aplazado por coste mensual.
 - [ ] Probar de nuevo login Google, magic link y recovery desde producción tras cada cambio de auth.
 - [ ] Revisar manualmente que `dashboard.kmfxedge.com` solo queda como alias temporal autorizado mientras interese.
-- [ ] Confirmar que decisiones de permisos se leen desde `app_metadata`, no desde `user_metadata`.
+- [x] Confirmar que decisiones de permisos se leen desde `app_metadata`, no desde `user_metadata`.
 
 ### MT5, EA y Launcher
 
@@ -178,10 +178,11 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
 - `python3 -m unittest discover -s tests` pasa con 298 tests.
-- `python3 scripts/production_gate.py --full-tests` deja en un único reporte el diff check, compilación crítica, governance audit, smoke de producción y la suite completa.
+- `python3 scripts/production_gate.py --full-tests` deja en un único reporte el diff check, compilación crítica, governance audit, smoke de producción, la regresión de auth (`tests.test_auth_session_contract`) y la suite completa.
 - Health externo verificado tras `6ecd97f`: Vercel `/dashboard`, Render `/health`, Worker `mt5-api` `/health` y Supabase Auth protegido responden como esperado.
 - Supabase Security Advisor sigue con un unico warning abierto: activar leaked password protection en Auth. Performance Advisor requiere reautenticacion del conector o CLI local.
 - Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.
+- Permisos y entitlements auditados de nuevo el `2026-05-12`: backend sigue resolviendo plan/billing/admin desde `app_metadata`, y el frontend ya no eleva `role` desde `user_metadata`. Regression cubierta en `tests/test_auth_session_contract.py`.
 - Flujo MT5 reforzado con errores orientados a usuario final: WebRequest, KMFXKey ausente/no reconocida/revocada, conector desactualizado, rate limit, plan sin permiso y servidor de KMFX temporalmente no disponible.
 - Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
