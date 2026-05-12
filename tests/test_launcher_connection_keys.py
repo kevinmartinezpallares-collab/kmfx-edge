@@ -419,6 +419,110 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual("Darwinex MT5", connections[0]["label"])
         self.assertEqual(["active-account"], [item["account_id"] for item in cached_after_sync])
 
+    def test_launcher_does_not_hydrate_stale_cached_key_over_server_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+                store = LauncherStateStore()
+                store.save_account_connection(
+                    {"account_id": "darwinex-account", "label": "Darwinex MT5", "connection_key": "stale-local-key"}
+                )
+                server_key = "server-canonical-key"
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = RegistryBackend(
+                    config,
+                    [
+                        {
+                            "account_id": "darwinex-account",
+                            "alias": "Darwinex MT5",
+                            "broker": "Tradeslide Trading Tech Limited",
+                            "server": "Darwinex-Live",
+                            "login": "4000082126",
+                            "status": "active",
+                            "connection_key_preview": mask_connection_key(server_key),
+                            "has_connection_key": True,
+                        }
+                    ],
+                )
+                api.store = store
+                api.installations = []
+                api._lock = threading.RLock()
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.config.connection_key = ""
+                api.get_session = lambda: {"authenticated": True}
+                api.ensure_installed_account_links = lambda force=False: None
+
+                connections = api.get_account_connections()
+
+        self.assertEqual(1, len(connections))
+        account = connections[0]
+        self.assertEqual("", account["connection_key"])
+        self.assertEqual(mask_connection_key(server_key), account["connection_key_masked"])
+        self.assertEqual(mask_connection_key(server_key), account["server_connection_key_masked"])
+        self.assertEqual(mask_connection_key("stale-local-key"), account["local_connection_key_masked"])
+        self.assertTrue(account["connection_key_mismatch"])
+        self.assertFalse(account["can_copy_connection_key"])
+
+    def test_launcher_hydrates_cached_key_only_when_it_matches_server_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+                store = LauncherStateStore()
+                server_key = "server-canonical-key"
+                store.save_account_connection(
+                    {"account_id": "darwinex-account", "label": "Darwinex MT5", "connection_key": server_key}
+                )
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = RegistryBackend(
+                    config,
+                    [
+                        {
+                            "account_id": "darwinex-account",
+                            "alias": "Darwinex MT5",
+                            "broker": "Tradeslide Trading Tech Limited",
+                            "server": "Darwinex-Live",
+                            "login": "4000082126",
+                            "status": "active",
+                            "connection_key_preview": mask_connection_key(server_key),
+                            "has_connection_key": True,
+                        }
+                    ],
+                )
+                api.store = store
+                api.installations = []
+                api._lock = threading.RLock()
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.config.connection_key = ""
+                api.get_session = lambda: {"authenticated": True}
+                api.ensure_installed_account_links = lambda force=False: None
+
+                connections = api.get_account_connections()
+
+        self.assertEqual(1, len(connections))
+        account = connections[0]
+        self.assertEqual(server_key, account["connection_key"])
+        self.assertEqual(mask_connection_key(server_key), account["connection_key_masked"])
+        self.assertFalse(account["connection_key_mismatch"])
+        self.assertTrue(account["can_copy_connection_key"])
+
     def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
@@ -582,7 +686,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     (data_path / "MQL5" / "Files").mkdir(parents=True)
                     (data_path / "logs").mkdir(parents=True)
                 (darwinex / "MQL5" / "Files" / "kmfx_connection.conf").write_text(
-                    "connection_key=old-revoked-darwinex-key\n",
+                    "connection_key=darwinex-stable-key\n",
                     encoding="utf-8",
                 )
                 (orion / "MQL5" / "Files" / "kmfx_connection.conf").write_text(
@@ -629,18 +733,8 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     "broker": "Tradeslide Trading Tech Limited",
                     "server": "Darwinex-Live",
                     "login": "4000082126",
-                    "connection_key": "old-revoked-darwinex-key",
+                    "connection_key": "darwinex-stable-key",
                 }
-                api.link_account_with_session = lambda **_kwargs: BackendResponse(
-                    ok=True,
-                    status_code=200,
-                    body={
-                        "account_id": "darwinex-account",
-                        "connection_key": "fresh-darwinex-key",
-                        "status": "active",
-                        "alias": "Darwinex MT5",
-                    },
-                )
                 api.refresh_installations = lambda: api.installations
                 api.ensure_installed_account_links = lambda force=False: None
                 api.get_status = lambda: {}
@@ -659,9 +753,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual("Darwinex", captured["label"])
-        self.assertEqual("fresh-darwinex-key", captured["connection_key"])
+        self.assertEqual("darwinex-stable-key", captured["connection_key"])
 
-    def test_launcher_repair_account_rotates_same_installed_key_before_writing(self) -> None:
+    def test_launcher_reinstall_account_reuses_canonical_installed_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 root = Path(temp_dir) / "Darwinex"
@@ -712,11 +806,11 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.install_connector_for_connection("darwinex-account")
 
         self.assertTrue(result["ok"])
-        self.assertEqual(1, api.backend.link_calls)
-        self.assertEqual(1, api.backend.regenerate_calls)
-        self.assertEqual("fresh-key", captured["connection_key"])
+        self.assertEqual(0, api.backend.link_calls)
+        self.assertEqual(0, api.backend.regenerate_calls)
+        self.assertEqual("stale-key", captured["connection_key"])
 
-    def test_launcher_repair_connector_resolves_revoked_key_from_remote_preview(self) -> None:
+    def test_launcher_reinstall_connector_reuses_installed_key_from_remote_preview(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 root = Path(temp_dir) / "Darwinex"
@@ -780,10 +874,10 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual("Darwinex", captured["label"])
-        self.assertEqual("fresh-darwinex-key", captured["connection_key"])
-        self.assertEqual(1, api.backend.regenerate_calls)
+        self.assertEqual(revoked_key, captured["connection_key"])
+        self.assertEqual(0, api.backend.regenerate_calls)
 
-    def test_launcher_repair_connector_resolves_account_by_mt5_identity_when_key_is_revoked(self) -> None:
+    def test_launcher_reinstall_connector_resolves_account_by_mt5_identity_with_stable_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 root = Path(temp_dir) / "Darwinex"
@@ -794,7 +888,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 experts_path.mkdir(parents=True)
                 logs_path.mkdir(parents=True)
                 (files_path / "kmfx_connection.conf").write_text(
-                    "connection_key=unlisted-revoked-key\n",
+                    "connection_key=unlisted-local-key\n",
                     encoding="utf-8",
                 )
                 (logs_path / "20260511.log").write_bytes(
@@ -826,6 +920,8 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                             "server": "Darwinex-Live",
                             "login": "4000082126",
                             "status": "pending_link",
+                            "connection_key": "darwinex-stable-key",
+                            "connection_key_masked": mask_connection_key("darwinex-stable-key"),
                         }
                     ],
                 )
@@ -854,14 +950,82 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.repair_connector("Darwinex")
 
         self.assertTrue(result["ok"])
-        self.assertEqual("fresh-darwinex-key", captured["connection_key"])
-        self.assertEqual(1, api.backend.regenerate_calls)
+        self.assertEqual("darwinex-stable-key", captured["connection_key"])
+        self.assertEqual(0, api.backend.regenerate_calls)
 
-    def test_launcher_ui_repairs_instead_of_reinstalling_when_connector_is_present(self) -> None:
+    def test_launcher_reinstall_connector_does_not_regenerate_missing_raw_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir) / "Darwinex"
+                experts_path = root / "MQL5" / "Experts"
+                logs_path = root / "logs"
+                experts_path.mkdir(parents=True)
+                logs_path.mkdir(parents=True)
+                (logs_path / "20260511.log").write_bytes(
+                    (
+                        "'4000082126': authorized on Darwinex-Live through Access Server EU\n"
+                        "'4000082126': terminal synchronized with Tradeslide Trading Tech Limited: 0 positions\n"
+                    ).encode("utf-16le")
+                )
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = RegistryThenRegeneratedBackend(
+                    config,
+                    [
+                        {
+                            "account_id": "darwinex-account",
+                            "alias": "Darwinex MT5",
+                            "broker": "Tradeslide Trading Tech Limited",
+                            "server": "Darwinex-Live",
+                            "login": "4000082126",
+                            "status": "pending_link",
+                            "has_connection_key": True,
+                            "connection_key_masked": mask_connection_key("darwinex-stable-key"),
+                        }
+                    ],
+                )
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api._lock = threading.RLock()
+                api.installations = [
+                    MT5Installation("Darwinex", "", str(root), str(experts_path), "", "test")
+                ]
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.config.connection_key = ""
+                api.get_session = lambda: {"authenticated": True}
+                api.refresh_installations = lambda: api.installations
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_status = lambda: {}
+                api.get_installations = lambda: []
+
+                with patch("launcher.app.install_connector") as install_mock:
+                    result = api.repair_connector("Darwinex")
+
+        self.assertFalse(result["ok"])
+        self.assertIn("KMFXKey completa", result["message"])
+        install_mock.assert_not_called()
+        self.assertEqual(0, api.backend.regenerate_calls)
+
+    def test_launcher_ui_uses_reinstall_copy_for_existing_connector(self) -> None:
         ui_source = (Path(__file__).resolve().parents[1] / "launcher" / "ui" / "app.js").read_text(encoding="utf-8")
 
         self.assertIn('"repair_connector"', ui_source)
         self.assertIn("state.status?.connector_installed", ui_source)
+        self.assertIn("Reinstalar conector", ui_source)
+        self.assertNotIn("Reparar conector", ui_source)
+        self.assertNotIn("Copiar key", ui_source)
 
     def test_launcher_detects_shared_installed_connection_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

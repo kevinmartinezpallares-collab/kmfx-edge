@@ -979,8 +979,13 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             "Último dato recibido",
             "Lectura para el usuario",
             "resolveAccountTechnicalTrace",
+            "resolveServerConnectionPreview",
+            "connectionKeyMatchesPreview",
+            "connection_key_preview",
+            "forgetLocalConnectionKey(account.account_id)",
         ]:
             self.assertIn(needle, source)
+        self.assertNotIn("Reparar conexión", source)
 
     def test_risk_and_funding_render_degraded_states_without_internal_copy(self) -> None:
         result = self.run_risk_funding_degraded_smoke()

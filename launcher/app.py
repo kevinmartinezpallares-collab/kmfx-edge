@@ -72,6 +72,22 @@ def _connection_key_is_unusable(response: BackendResponse) -> bool:
     return _backend_response_reason(response) in UNUSABLE_CONNECTION_KEY_REASONS
 
 
+def _connection_key_preview(account: dict[str, Any]) -> str:
+    return _safe_str(
+        account.get("server_connection_key_masked")
+        or account.get("connection_key_preview")
+        or account.get("connectionKeyPreview")
+        or account.get("connection_key_masked")
+        or account.get("api_key_preview")
+    )
+
+
+def _connection_key_matches_preview(connection_key: str, preview: str) -> bool:
+    normalized_key = _safe_str(connection_key)
+    normalized_preview = _safe_str(preview)
+    return bool(normalized_key and (not normalized_preview or mask_connection_key(normalized_key) == normalized_preview))
+
+
 def _sanitize_account_label(value: str, fallback: str = "Cuenta MT5") -> str:
     cleaned = re.sub(r"[^\w\s.\-·]", " ", str(value or ""), flags=re.UNICODE)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
@@ -636,8 +652,9 @@ class KMFXApi:
             return "Inicia sesión de nuevo para crear una conexión MT5."
         if reason in UNUSABLE_CONNECTION_KEY_REASONS:
             return (
-                "La key instalada en MT5 ya no es válida. Pulsa Reinstalar conector para escribir "
-                "una key nueva en esta instalación."
+                "La KMFXKey de esa cuenta no está disponible para reinstalar desde el Launcher. "
+                "Abre Cuentas > Detalles, copia la KMFXKey y pégala en el EA. "
+                "Genera una nueva solo si quieres sustituir la anterior."
             )
         if reason == "connection_key_already_linked":
             return "Esta clave ya está vinculada a otra cuenta."
@@ -682,14 +699,24 @@ class KMFXApi:
                     hydrated.get("connection_key_revoked")
                     or _safe_str(hydrated.get("connection_key_revoked_at"))
                 )
-                if cached and not _safe_str(hydrated.get("connection_key")) and not backend_marks_key_revoked:
-                    hydrated["connection_key"] = _safe_str(cached.get("connection_key"))
-                    hydrated["connection_key_masked"] = mask_connection_key(hydrated["connection_key"])
+                server_preview = _connection_key_preview(hydrated)
+                cached_key = _safe_str(cached.get("connection_key")) if cached else ""
+                if cached_key and not _safe_str(hydrated.get("connection_key")) and not backend_marks_key_revoked:
+                    if _connection_key_matches_preview(cached_key, server_preview):
+                        hydrated["connection_key"] = cached_key
+                        hydrated["connection_key_masked"] = mask_connection_key(cached_key)
+                        hydrated["local_connection_key_masked"] = mask_connection_key(cached_key)
+                    else:
+                        hydrated["connection_key_mismatch"] = True
+                        hydrated["needs_key_reinstall"] = True
+                        hydrated["local_connection_key_masked"] = mask_connection_key(cached_key)
+                        if server_preview:
+                            hydrated["connection_key_masked"] = server_preview
                 hydrated_accounts.append(hydrated)
             connections = [
                 self.serialize_account_connection(account)
                 for account in hydrated_accounts
-                if _safe_str(account.get("connection_key"))
+                if self.account_has_connection_key(account)
                 and self.should_show_account_connection(account)
             ]
             present_ids = {_safe_str(connection.get("account_id")) for connection in connections}
@@ -790,7 +817,7 @@ class KMFXApi:
         return [
             self.serialize_account_connection(account)
             for account in accounts
-            if isinstance(account, dict) and self.should_show_account_connection(account)
+            if isinstance(account, dict) and self.account_has_connection_key(account) and self.should_show_account_connection(account)
         ]
 
     def installation_identity_score(self, installation: MT5Installation, connection: dict[str, Any]) -> int:
@@ -883,7 +910,7 @@ class KMFXApi:
     def install_connector(self, selected_installation: str | None = None) -> dict[str, Any]:
         with self._lock:
             if not self.get_session().get("authenticated"):
-                return {"ok": False, "message": "Inicia sesión para instalar el connector."}
+                return {"ok": False, "message": "Inicia sesión para instalar el conector."}
             installation = self.selected_installation(selected_installation)
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
@@ -948,7 +975,7 @@ class KMFXApi:
             self.refresh_installations()
             return {
                 "ok": True,
-                "message": "Connector instalado correctamente.",
+                "message": "Conector instalado correctamente.",
                 "result": result,
                 "status": self.get_status(),
                 "installations": self.get_installations(),
@@ -963,69 +990,52 @@ class KMFXApi:
             if not connection:
                 return {"ok": False, "message": "No encuentro esa cuenta MT5 en el launcher."}
             connection_key = _safe_str(connection.get("connection_key"))
-            original_connection_key = connection_key
             label = _sanitize_account_label(connection.get("label") or connection.get("display_label") or "Cuenta MT5")
             normalized_account_id = _safe_str(connection.get("account_id"))
-            if connection_key:
-                link_response = self.link_account_with_session(
-                    user_id=self.config.auth_user_id,
-                    label=label,
-                    account_id=normalized_account_id,
-                    connection_key="",
-                )
-                if link_response.ok:
-                    linked = self.cache_linked_account_connection(link_response.body, label=label)
-                    fresh_key = _safe_str(link_response.body.get("connection_key") or linked.get("connection_key"))
-                    if fresh_key:
-                        connection_key = fresh_key
-                        connection["connection_key"] = fresh_key
-                        connection["connection_key_masked"] = mask_connection_key(fresh_key)
-                else:
-                    self.logger.warning(
-                        "[KMFX][LAUNCHER][INSTALL] account key refresh failed before repair account_id=%s status=%s reason=%s",
-                        connection.get("account_id", ""),
-                        link_response.status_code,
-                        _backend_response_reason(link_response),
-                    )
-                    return {"ok": False, "message": self.link_account_error_message(link_response)}
-            else:
-                self.logger.info(
-                    "[KMFX][LAUNCHER][INSTALL] account has no local raw key; regenerating before repair account_id=%s",
-                    normalized_account_id,
-                )
-                regenerate_response = self.regenerate_account_key_with_session(normalized_account_id)
-                if not regenerate_response.ok:
-                    return {"ok": False, "message": self.link_account_error_message(regenerate_response)}
-                linked = self.cache_linked_account_connection(regenerate_response.body, label=label)
-                fresh_key = _safe_str(regenerate_response.body.get("connection_key") or linked.get("connection_key"))
-                if not fresh_key:
-                    return {"ok": False, "message": "No se pudo regenerar la key de esta cuenta MT5."}
-                connection_key = fresh_key
-                connection["connection_key"] = fresh_key
-                connection["connection_key_masked"] = mask_connection_key(fresh_key)
-
+            key_mismatch = bool(
+                connection.get("connection_key_mismatch")
+                or connection.get("needs_key_reinstall")
+            )
+            key_revoked = bool(
+                connection.get("connection_key_revoked")
+                or _safe_str(connection.get("connection_key_revoked_at"))
+            )
             installation = self.installation_for_connection(connection, selected_installation)
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
 
+            server_preview = _connection_key_preview(connection)
             installed_key = self.installed_connection_key(installation)
-            if original_connection_key and connection_key == original_connection_key and installed_key == original_connection_key:
-                self.logger.warning(
-                    "[KMFX][LAUNCHER][INSTALL] repair received same account key; forcing rotation account_id=%s target=%s key=%s",
-                    connection.get("account_id", ""),
-                    installation.label,
-                    mask_connection_key(connection_key),
+            if not connection_key and server_preview and _connection_key_matches_preview(installed_key, server_preview):
+                connection_key = installed_key
+                connection["connection_key"] = installed_key
+                connection["connection_key_masked"] = mask_connection_key(installed_key)
+
+            if key_revoked or (key_mismatch and not _connection_key_matches_preview(connection_key, server_preview)):
+                self.logger.info(
+                    "[KMFX][LAUNCHER][INSTALL] account key is not canonical; refusing automatic rotation account_id=%s",
+                    normalized_account_id,
                 )
-                regenerate_response = self.regenerate_account_key_with_session(_safe_str(connection.get("account_id")))
-                if not regenerate_response.ok:
-                    return {"ok": False, "message": self.link_account_error_message(regenerate_response)}
-                linked = self.cache_linked_account_connection(regenerate_response.body, label=label)
-                fresh_key = _safe_str(regenerate_response.body.get("connection_key") or linked.get("connection_key"))
-                if not fresh_key:
-                    return {"ok": False, "message": "No se pudo regenerar la key de esta cuenta MT5."}
-                connection_key = fresh_key
-                connection["connection_key"] = fresh_key
-                connection["connection_key_masked"] = mask_connection_key(fresh_key)
+                return {
+                    "ok": False,
+                    "message": (
+                        "La KMFXKey instalada no coincide con la cuenta o fue revocada. "
+                        "Abre Cuentas > Detalles y usa la KMFXKey de esa cuenta. "
+                        "Regenera la key solo si quieres reemplazarla."
+                    ),
+                }
+            if not connection_key:
+                self.logger.info(
+                    "[KMFX][LAUNCHER][INSTALL] account has no recoverable raw key; dashboard owns key copy account_id=%s",
+                    normalized_account_id,
+                )
+                return {
+                    "ok": False,
+                    "message": (
+                        "La KMFXKey completa se copia desde Cuentas > Detalles. "
+                        "Pégala en el EA o vuelve a crear la conexión solo si es una cuenta nueva."
+                    ),
+                }
 
             self.config.selected_mt5_terminal_path = installation.terminal_path
             self.config.selected_mt5_data_path = installation.data_path
@@ -1292,12 +1302,10 @@ class KMFXApi:
 
     def serialize_account_connection(self, account: dict[str, Any]) -> dict[str, Any]:
         connection_key = _safe_str(account.get("connection_key"))
-        connection_key_masked = _safe_str(
-            account.get("connection_key_masked")
-            or account.get("connection_key_preview")
-            or account.get("api_key_preview")
-            or mask_connection_key(connection_key)
-        )
+        server_connection_key_masked = _connection_key_preview(account)
+        connection_key_masked = _safe_str(server_connection_key_masked or mask_connection_key(connection_key))
+        local_connection_key_masked = _safe_str(account.get("local_connection_key_masked"))
+        key_mismatch = bool(account.get("connection_key_mismatch") or account.get("needs_key_reinstall"))
         broker = _safe_str(account.get("broker"))
         login = _safe_str(account.get("login") or account.get("mt5_login"))
         server = _safe_str(account.get("server"))
@@ -1329,11 +1337,23 @@ class KMFXApi:
             "status_order": status_order,
             "connection_key": connection_key,
             "connection_key_masked": connection_key_masked,
+            "server_connection_key_masked": server_connection_key_masked or connection_key_masked,
+            "local_connection_key_masked": local_connection_key_masked,
+            "connection_key_mismatch": key_mismatch,
+            "needs_key_reinstall": key_mismatch,
+            "can_copy_connection_key": bool(connection_key and not key_mismatch),
             "endpoint_base": base_url,
             "sync_url": f"{base_url}{MT5_CLOUD_SYNC_PATH}",
             "policy_url": f"{base_url}{MT5_CLOUD_POLICY_PATH}",
             "last_sync_label": last_sync_label,
         }
+
+    def account_has_connection_key(self, account: dict[str, Any]) -> bool:
+        return bool(
+            _safe_str(account.get("connection_key"))
+            or _connection_key_preview(account)
+            or account.get("has_connection_key")
+        )
 
     def should_show_account_connection(self, account: dict[str, Any]) -> bool:
         connection_key = _safe_str(account.get("connection_key"))

@@ -223,7 +223,7 @@ function renderHome() {
     element.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
   });
 
-  const badgeText = installed ? (needsRepair ? "Reparación recomendada" : "Instalado") : "No instalado";
+  const badgeText = installed ? (needsRepair ? "Reinstalación recomendada" : "Instalado") : "No instalado";
   const badgeKind = installed ? (needsRepair ? "warning" : "success") : "neutral";
   setPill("#install-badge", badgeText, badgeKind);
   setText("#hero-service-status", status.service_on ? "Activo" : "Pendiente");
@@ -236,7 +236,7 @@ function renderHome() {
   const installButton = $("#install-button");
   const openButton = $("#open-mt5-button");
   if (installButton) {
-    installButton.textContent = installed ? (needsRepair ? "Reparar conector" : "Reinstalar conector") : "Instalar conector";
+    installButton.textContent = installed ? "Reinstalar conector" : "Instalar conector";
     installButton.className = `button ${installed && !needsRepair ? "secondary" : "primary"}`;
   }
   if (openButton) openButton.disabled = state.busy || !hasMt5;
@@ -295,7 +295,7 @@ function renderAccountConnections() {
   lastConnectionsSignature = nextSignature;
 
   if (!state.accountConnections.length) {
-    container.innerHTML = `<div class="empty-state">Añade una cuenta MT5 solo si es una cuenta nueva. Si ya tenías una, usa Reparar conector sobre esa misma cuenta.</div>`;
+    container.innerHTML = `<div class="empty-state">Añade una cuenta MT5 solo si es una cuenta nueva. Si ya tenías una, usa Reinstalar conector sobre esa misma cuenta.</div>`;
     return;
   }
 
@@ -308,15 +308,20 @@ function renderAccountConnections() {
         .filter(Boolean)
         .join(" · ");
       const primaryMeta = meta || "Sin datos de broker hasta que MT5 sincronice";
-      const keyLabel = connection.connection_key_masked ? `Key ${connection.connection_key_masked}` : "";
+      const keyPreview = connection.server_connection_key_masked || connection.connection_key_masked || "";
+      const keyLabel = keyPreview ? `Key ${keyPreview}` : "";
+      const keyMismatch = Boolean(connection.connection_key_mismatch || connection.needs_key_reinstall);
       const installation = installationForConnection(connection);
       const title = friendlyConnectionTitle(connection, installation);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
       const actionDisabled = state.busy || !targetInstallationLabel;
-      const actionLabel = isActive ? "Reinstalar conector" : "Reparar conector";
+      const actionLabel = "Reinstalar conector";
       const actionTitle = installation
         ? `Instalación vinculada: ${installationDisplayLabel(installation)}`
         : "Elige una instalación de MetaTrader arriba para continuar.";
+      const helpText = keyMismatch
+        ? "La key instalada no coincide con Cuentas. Copia la KMFXKey desde Detalles y pégala en el EA."
+        : "Si se desconecta, reinstala el conector en el mismo MT5. La KMFXKey se consulta desde Cuentas.";
       return `
         <article class="connection-row ${statusKind}">
           <div class="connection-symbol" aria-hidden="true">MT5</div>
@@ -328,7 +333,7 @@ function renderAccountConnections() {
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
             ${keyLabel ? `<span class="connection-meta connection-meta--key">${escapeHtml(keyLabel)}</span>` : ""}
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
-            <span class="connection-help">Si se desconecta, conserva esta key y repara el conector. Añade otra cuenta solo para otro MT5.</span>
+            <span class="connection-help">${escapeHtml(helpText)}</span>
           </div>
           <div class="connection-state-card">
             <span>Estado</span>
@@ -338,9 +343,6 @@ function renderAccountConnections() {
           <div class="connection-row-actions">
             <button class="button ${isActive ? "secondary" : "primary"} small" type="button" data-install-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               ${escapeHtml(actionLabel)}
-            </button>
-            <button class="button secondary small" type="button" data-copy-value="${escapeHtml(connection.connection_key || "")}" data-copy-label="Key copiada" ${connection.connection_key ? "" : "disabled"}>
-              Copiar key
             </button>
             <button class="button secondary small" type="button" data-open-mt5-account="${escapeHtml(connection.account_id || "")}" data-installation-label="${escapeHtml(targetInstallationLabel)}" title="${escapeHtml(actionTitle)}" ${actionDisabled ? "disabled" : ""}>
               Abrir MT5
@@ -661,7 +663,7 @@ function bindEvents() {
   });
   $("#install-button")?.addEventListener("click", () => {
     const method = state.status?.connector_installed ? "repair_connector" : "install_connector";
-    performAction(method, method === "repair_connector" ? "Conector reparado." : "Conector instalado.", state.selectedInstallationLabel);
+    performAction(method, method === "repair_connector" ? "Conector reinstalado." : "Conector instalado.", state.selectedInstallationLabel);
   });
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel));
   $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));

@@ -40,6 +40,17 @@ function registrySignature(accounts = []) {
       broker: account?.broker || "",
       login: account?.login || "",
       server: account?.server || "",
+      connection_key_preview: (
+        account?.connection_key_preview ||
+        account?.connectionKeyPreview ||
+        account?.connection_key_masked ||
+        account?.server_connection_key_masked ||
+        account?.api_key_preview ||
+        ""
+      ),
+      has_connection_key: Boolean(account?.has_connection_key),
+      connection_key_revoked: Boolean(account?.connection_key_revoked),
+      connection_key_revoked_at: account?.connection_key_revoked_at || "",
       last_sync_at: account?.last_sync_at || "",
       updated_at: account?.updated_at || "",
     }))
@@ -166,8 +177,8 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
     return {
       label: "Sin actualizar",
       tone: "stale",
-      subtitle: lastSyncAt ? `Sin actualizar. Última actividad ${relative}. Repara esta cuenta si no vuelve a sincronizar.` : "Sin actualizar. Abre MT5 o repara el conector de esta cuenta.",
-      actionLabel: "Reparar conexión",
+      subtitle: lastSyncAt ? `Sin actualizar. Última actividad ${relative}. Abre el Launcher y reinstala el conector si no vuelve a sincronizar.` : "Sin actualizar. Abre MT5 o reinstala el conector de esta cuenta.",
+      actionLabel: "Abrir Launcher",
       action: "launcher",
     };
   }
@@ -176,15 +187,15 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
       label: "Error de conexión",
       tone: "error",
       subtitle: "Error de conexión. Revisa la conexión en Launcher antes de crear otra.",
-      actionLabel: "Reparar conexión",
+      actionLabel: "Abrir Launcher",
       action: "launcher",
     };
   }
   return {
     label: "Desconectada",
     tone: "neutral",
-    subtitle: "Conserva la KMFXKey y repara el conector de esta cuenta.",
-    actionLabel: "Reparar conexión",
+    subtitle: "Conserva la KMFXKey y reinstala el conector de esta cuenta.",
+    actionLabel: "Abrir Launcher",
     action: "launcher",
   };
 }
@@ -252,7 +263,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null, conn
   return pageHeaderMarkup({
     eyebrow: "Cuentas",
     title: "Cuentas",
-    description: "Administra tus cuentas MT5 conectadas. Si una deja de sincronizar, repara esa cuenta antes de crear otra.",
+    description: "Administra tus cuentas MT5 conectadas. Si una deja de sincronizar, reinstala el conector de esa cuenta antes de crear otra.",
     className: "calendar-screen__header",
     contentClassName: "calendar-screen__copy",
     eyebrowClassName: "calendar-screen__eyebrow",
@@ -524,6 +535,23 @@ function maskConnectionKeyForDisplay(value = "") {
   return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
 }
 
+function resolveServerConnectionPreview(account = {}) {
+  return String(
+    account.connection_key_preview ||
+    account.connectionKeyPreview ||
+    account.connection_key_masked ||
+    account.server_connection_key_masked ||
+    account.api_key_preview ||
+    ""
+  ).trim();
+}
+
+function connectionKeyMatchesPreview(connectionKey = "", preview = "") {
+  const normalizedKey = String(connectionKey || "").trim();
+  const normalizedPreview = String(preview || "").trim();
+  return Boolean(normalizedKey && (!normalizedPreview || maskConnectionKeyForDisplay(normalizedKey) === normalizedPreview));
+}
+
 function renderConnectionGuide() {
   const steps = [
     {
@@ -692,31 +720,39 @@ function openAccountEditModal({ account, store, root }) {
 
 function resolveAccountConnectionKey(account, state, activeAccount = null) {
   const directoryAccount = state?.accountDirectory?.[account.account_id];
+  const serverPreview = resolveServerConnectionPreview(account);
   const activeAccountMatches = Boolean(
     activeAccount
       && account?.account_id
       && (activeAccount.id === account.account_id || activeAccount.accountId === account.account_id)
   );
-  return (
-    account.connection_key ||
-    account.connectionKey ||
-    account.api_key ||
-    account.apiKey ||
-    directoryAccount?.apiKey ||
-    directoryAccount?.api_key ||
-    resolveLocalConnectionKey(account.account_id, state) ||
-    (activeAccountMatches ? (
+  const directCandidates = [
+    account.connection_key,
+    account.connectionKey,
+    account.api_key,
+    account.apiKey,
+    directoryAccount?.apiKey,
+    directoryAccount?.api_key,
+    activeAccountMatches ? (
       activeAccount?.apiKey ||
       activeAccount?.model?.account?.apiKey ||
       activeAccount?.dashboardPayload?.apiKey
-    ) : "") ||
-    ""
-  );
+    ) : "",
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+  const directMatch = directCandidates.find((candidate) => connectionKeyMatchesPreview(candidate, serverPreview));
+  if (directMatch) return directMatch;
+
+  const localKey = resolveLocalConnectionKey(account.account_id, state);
+  if (connectionKeyMatchesPreview(localKey, serverPreview)) return localKey;
+  if (localKey && serverPreview) forgetLocalConnectionKey(account.account_id);
+  return "";
 }
 
 function resolveAccountConnectionPreview(account, connectionKey = "") {
+  const serverPreview = resolveServerConnectionPreview(account);
+  if (serverPreview) return serverPreview;
   if (connectionKey) return maskConnectionKeyForDisplay(connectionKey);
-  return String(account.connection_key_preview || account.connectionKeyPreview || "").trim();
+  return "";
 }
 
 function finiteAccountNumber(value, fallback = 0) {
@@ -998,7 +1034,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <div class="connections-account-modal__guide-title">Si esta cuenta se desconecta</div>
           <ol class="connections-account-modal__guide-list">
             <li>Abre MT5 y comprueba que Algo Trading está activo.</li>
-            <li>Usa esta misma KMFXKey y repara o reinstala el conector.</li>
+            <li>Usa esta misma KMFXKey y reinstala el conector en el mismo MT5.</li>
             <li>Crea una key nueva solo si has eliminado o revocado la conexión, o si añades otra cuenta MT5.</li>
           </ol>
         </div>
@@ -1322,7 +1358,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
   const metaLine = resolveAccountMetaLine(account, activeAccount);
   const lastSyncLabel = relativeTime(account.last_sync_at || account.lastSyncAt || "");
   const accountId = account.account_id || "";
-  const repairLabel = meta.action === "launcher" && !isConnectedStatus(account.status) ? "Reparar conexión" : "Abrir Launcher";
+  const launcherLabel = "Abrir Launcher";
   return `
     <article class="widget-card connections-account-card ${menuOpen ? "connections-account-card--menu-open" : ""} ${menuOpen && menuOpenAbove ? "connections-account-card--menu-above" : ""}">
       <div class="connections-account-card__layout">
@@ -1370,7 +1406,7 @@ function renderAccountCard(account, { isActive, activeAccount = null, menuOpen =
             <div class="connections-account-card__menu" role="menu" aria-label="Acciones de cuenta" ${menuOpenAbove ? `style="top:auto;bottom:calc(100% + 10px);"` : ""}>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-edit="${escapeHtml(accountId)}">Editar</button>
               <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-info="${escapeHtml(accountId)}">Ver detalles</button>
-              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-open-launcher="true">${escapeHtml(repairLabel)}</button>
+              <button class="connections-account-card__menu-item" type="button" role="menuitem" data-account-open-launcher="true">${escapeHtml(launcherLabel)}</button>
               <button class="connections-account-card__menu-item connections-account-card__menu-item--danger" type="button" role="menuitem" data-account-delete="${escapeHtml(accountId)}">Eliminar</button>
             </div>
           ` : ""}
