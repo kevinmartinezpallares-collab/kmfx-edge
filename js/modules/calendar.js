@@ -289,7 +289,7 @@ function openCalendarDayFocus(root, state, model, key) {
   openFocusPanel({
     title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
     meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
-    pnl: pnlTextMarkup({ value: dayPnl, text: formatCurrency(dayPnl), className: dayPnl >= 0 ? "metric-positive" : "metric-negative" }),
+    pnlHtml: pnlTextMarkup({ value: dayPnl, text: formatCurrency(dayPnl), className: dayPnl >= 0 ? "metric-positive" : "metric-negative" }),
     pnlClass: "calendar-day-panel__pnl",
     metrics: [],
     maxWidth: "84vw",

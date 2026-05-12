@@ -128,7 +128,9 @@ export function openFocusPanel({
   status = "",
   statusTone = "neutral",
   meta = "",
+  metaHtml = "",
   pnl = "",
+  pnlHtml = "",
   pnlClass = "",
   metrics = [],
   metricStyle = "grid",
@@ -139,7 +141,7 @@ export function openFocusPanel({
   const metricMarkup = metrics.map((metric) => `
     <article class="focus-panel-metric">
       <div class="focus-panel-metric__label">${escapeHtml(metric.label)}</div>
-      <div class="focus-panel-metric__value ${escapeHtml(metric.valueClass || "")}">${metric.value}</div>
+      <div class="focus-panel-metric__value ${escapeHtml(metric.valueClass || "")}">${metric.valueHtml || escapeHtml(metric.value)}</div>
     </article>
   `).join("");
   const safeTitle = escapeHtml(title || "Detalle");
@@ -147,6 +149,8 @@ export function openFocusPanel({
   const safeStatusTone = escapeHtml(statusTone);
   const safeMetricStyle = escapeHtml(metricStyle);
   const safePnlClass = escapeHtml(pnlClass);
+  const resolvedMeta = metaHtml || escapeHtml(meta);
+  const resolvedPnl = pnlHtml || escapeHtml(pnl);
 
   mountModal({
     maxWidth,
@@ -162,9 +166,9 @@ export function openFocusPanel({
                 <h2 class="focus-panel__title">${safeTitle}</h2>
                 ${safeStatus ? `<span class="focus-panel__status focus-panel__status--${safeStatusTone}">${safeStatus}</span>` : ""}
               </div>
-              ${meta ? `<div class="focus-panel__meta">${meta}</div>` : ""}
+              ${resolvedMeta ? `<div class="focus-panel__meta">${resolvedMeta}</div>` : ""}
             </div>
-            ${pnl ? `<div class="focus-panel__pnl ${safePnlClass}">${pnl}</div>` : ""}
+            ${resolvedPnl ? `<div class="focus-panel__pnl ${safePnlClass}">${resolvedPnl}</div>` : ""}
           </header>
           ${metricMarkup ? `<section class="focus-panel__metrics focus-panel__metrics--${safeMetricStyle}">${metricMarkup}</section>` : ""}
           <div class="focus-panel__content">${content}</div>
