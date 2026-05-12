@@ -563,13 +563,19 @@ class KMFXApi:
             response = self.backend.regenerate_account_key(account_id=account_id)
         return response
 
+    def get_account_key_with_session(self, account_id: str) -> BackendResponse:
+        self.ensure_session()
+        response = self.backend.get_account_key(account_id=account_id)
+        if response.status_code == 401 and self._force_refresh_session("get_account_key_401"):
+            response = self.backend.get_account_key(account_id=account_id)
+        return response
+
     def ensure_remote_account_link(self) -> dict[str, Any]:
         has_local_link = (
             self.config.connection_key
             and self.config.connection_key_user_id
             and self.config.connection_key_user_id == self.config.auth_user_id
         )
-        rotated_local_link = False
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
         response = self.link_account_with_session(
@@ -577,21 +583,9 @@ class KMFXApi:
             label="KMFX Connector MT5",
             connection_key=self.config.connection_key if has_local_link else "",
         )
-        if not response.ok and has_local_link and _connection_key_is_unusable(response):
-            rotated_local_link = True
-            self.logger.warning(
-                "[KMFX][AUTH][LINK] local launcher key rejected; requesting fresh account key old_key=%s reason=%s",
-                mask_connection_key(self.config.connection_key),
-                _backend_response_reason(response),
-            )
-            response = self.link_account_with_session(
-                user_id=self.config.auth_user_id,
-                label="KMFX Connector MT5",
-                connection_key="",
-            )
         if not response.ok:
             self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
-            if has_local_link and not rotated_local_link:
+            if has_local_link:
                 save_bridge_config(self.config, user_id=self.config.auth_user_id)
                 self.fetch_json("/bridge/reload-config")
                 return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
@@ -930,16 +924,19 @@ class KMFXApi:
                 )
                 if not response.ok and _connection_key_is_unusable(response):
                     self.logger.warning(
-                        "[KMFX][LAUNCHER][INSTALL] installed key rejected; creating fresh MT5 connection target=%s key=%s reason=%s",
+                        "[KMFX][LAUNCHER][INSTALL] installed key rejected; refusing silent rotation target=%s key=%s reason=%s",
                         installation.label,
                         mask_connection_key(connection_key),
                         _backend_response_reason(response),
                     )
-                    response = self.link_account_with_session(
-                        user_id=self.config.auth_user_id,
-                        label=label,
-                        connection_key="",
-                    )
+                    return {
+                        "ok": False,
+                        "message": (
+                            "Ese MT5 ya tiene una KMFXKey distinta o revocada. "
+                            "Abre la cuenta correcta en Cuentas > Detalles y usa esa misma key. "
+                            "Añade otra cuenta solo si realmente es otro MT5."
+                        ),
+                    }
             else:
                 if connection_key:
                     self.logger.warning(
@@ -1011,29 +1008,38 @@ class KMFXApi:
                 connection["connection_key"] = installed_key
                 connection["connection_key_masked"] = mask_connection_key(installed_key)
 
-            if key_revoked or (key_mismatch and not _connection_key_matches_preview(connection_key, server_preview)):
+            if not connection_key and normalized_account_id:
+                key_response = self.get_account_key_with_session(normalized_account_id)
+                if key_response.ok:
+                    connection_key = _safe_str(key_response.body.get("connection_key"))
+                    if connection_key:
+                        connection["connection_key"] = connection_key
+                        connection["connection_key_masked"] = mask_connection_key(connection_key)
+                elif _backend_response_reason(key_response) == "connection_key_revoked":
+                    key_revoked = True
+
+            if key_revoked:
                 self.logger.info(
-                    "[KMFX][LAUNCHER][INSTALL] account key is not canonical; refusing automatic rotation account_id=%s",
+                    "[KMFX][LAUNCHER][INSTALL] account key revoked account_id=%s",
                     normalized_account_id,
                 )
                 return {
                     "ok": False,
                     "message": (
-                        "La KMFXKey instalada no coincide con la cuenta o fue revocada. "
-                        "Abre Cuentas > Detalles y usa la KMFXKey de esa cuenta. "
-                        "Regenera la key solo si quieres reemplazarla."
+                        "La KMFXKey de esta cuenta fue revocada. "
+                        "Regénérala desde Cuentas > Detalles y vuelve a reinstalar el conector."
                     ),
                 }
             if not connection_key:
                 self.logger.info(
-                    "[KMFX][LAUNCHER][INSTALL] account has no recoverable raw key; dashboard owns key copy account_id=%s",
+                    "[KMFX][LAUNCHER][INSTALL] account has no recoverable raw key account_id=%s",
                     normalized_account_id,
                 )
                 return {
                     "ok": False,
                     "message": (
-                        "La KMFXKey completa se copia desde Cuentas > Detalles. "
-                        "Pégala en el EA o vuelve a crear la conexión solo si es una cuenta nueva."
+                        "No pude recuperar la KMFXKey de esa cuenta desde KMFX. "
+                        "Abre Cuentas > Detalles y vuelve a intentarlo."
                     ),
                 }
 

@@ -319,3 +319,13 @@ class BackendClient:
             payload={},
             connection_key="",
         )
+
+    def get_account_key(self, *, account_id: str) -> BackendResponse:
+        normalized_account_id = str(account_id or "").strip()
+        if not normalized_account_id:
+            return BackendResponse(ok=False, status_code=400, body={"reason": "missing_account_id"})
+        return self._request(
+            "GET",
+            f"/api/accounts/{urllib.parse.quote(normalized_account_id, safe='')}/connection-key",
+            connection_key="",
+        )

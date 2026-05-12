@@ -188,6 +188,29 @@ class RegistryThenRegeneratedBackend:
             },
         )
 
+    def get_account_key(self, *, account_id: str) -> BackendResponse:
+        account = next(
+            (
+                item
+                for item in self.accounts
+                if str(item.get("account_id") or "").strip() == str(account_id or "").strip()
+            ),
+            None,
+        )
+        if not account:
+            return BackendResponse(ok=False, status_code=404, body={"reason": "account_not_found"})
+        connection_key = str(account.get("connection_key") or "darwinex-stable-key").strip()
+        return BackendResponse(
+            ok=True,
+            status_code=200,
+            body={
+                "ok": True,
+                "account_id": account_id,
+                "connection_key": connection_key,
+                "connection_key_preview": mask_connection_key(connection_key),
+            },
+        )
+
 
 class LauncherConnectionKeyTests(unittest.TestCase):
     def test_explicit_connection_key_wins_over_bridge_key(self) -> None:
@@ -593,7 +616,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual("", api.config.backend_token)
         self.assertEqual(1, api.backend.refresh_calls)
 
-    def test_launcher_rotates_revoked_saved_key_on_remote_link(self) -> None:
+    def test_launcher_keeps_saved_key_when_remote_link_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 config = LauncherConfig(
@@ -618,10 +641,10 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 result = api.ensure_remote_account_link()
 
         self.assertTrue(result["ok"])
-        self.assertEqual(["revoked-key", ""], api.backend.connection_keys)
-        self.assertEqual("fresh-key", api.config.connection_key)
+        self.assertEqual(["revoked-key"], api.backend.connection_keys)
+        self.assertEqual("revoked-key", api.config.connection_key)
 
-    def test_launcher_install_rotates_revoked_installed_key_before_writing(self) -> None:
+    def test_launcher_install_does_not_rotate_revoked_installed_key_before_writing(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 root = Path(temp_dir) / "Darwinex"
@@ -671,9 +694,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 with patch("launcher.app.install_connector", fake_install_connector):
                     result = api.install_connector("Darwinex")
 
-        self.assertTrue(result["ok"])
-        self.assertEqual(["revoked-key", ""], api.backend.connection_keys)
-        self.assertEqual("fresh-key", captured["connection_key"])
+        self.assertFalse(result["ok"])
+        self.assertEqual(["revoked-key"], api.backend.connection_keys)
+        self.assertNotIn("connection_key", captured)
 
     def test_launcher_repair_account_prefers_identity_match_over_selected_installation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -953,7 +976,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual("darwinex-stable-key", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
-    def test_launcher_reinstall_connector_does_not_regenerate_missing_raw_key(self) -> None:
+    def test_launcher_reinstall_connector_fetches_existing_raw_key_without_regeneration(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 root = Path(temp_dir) / "Darwinex"
@@ -1009,13 +1032,19 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 api.ensure_installed_account_links = lambda force=False: None
                 api.get_status = lambda: {}
                 api.get_installations = lambda: []
+                api.get_account_connections = lambda: []
 
-                with patch("launcher.app.install_connector") as install_mock:
+                captured: dict[str, str] = {}
+
+                def fake_install_connector(_installation: MT5Installation, install_config: LauncherConfig) -> dict[str, object]:
+                    captured["connection_key"] = install_config.connection_key
+                    return {"ok": True}
+
+                with patch("launcher.app.install_connector", fake_install_connector):
                     result = api.repair_connector("Darwinex")
 
-        self.assertFalse(result["ok"])
-        self.assertIn("KMFXKey completa", result["message"])
-        install_mock.assert_not_called()
+        self.assertTrue(result["ok"])
+        self.assertEqual("darwinex-stable-key", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
     def test_launcher_ui_uses_reinstall_copy_for_existing_connector(self) -> None:

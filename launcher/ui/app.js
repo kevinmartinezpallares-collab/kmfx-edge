@@ -308,9 +308,6 @@ function renderAccountConnections() {
         .filter(Boolean)
         .join(" · ");
       const primaryMeta = meta || "Sin datos de broker hasta que MT5 sincronice";
-      const keyPreview = connection.server_connection_key_masked || connection.connection_key_masked || "";
-      const keyLabel = keyPreview ? `Key ${keyPreview}` : "";
-      const keyMismatch = Boolean(connection.connection_key_mismatch || connection.needs_key_reinstall);
       const installation = installationForConnection(connection);
       const title = friendlyConnectionTitle(connection, installation);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
@@ -319,9 +316,6 @@ function renderAccountConnections() {
       const actionTitle = installation
         ? `Instalación vinculada: ${installationDisplayLabel(installation)}`
         : "Elige una instalación de MetaTrader arriba para continuar.";
-      const helpText = keyMismatch
-        ? "La key instalada no coincide con Cuentas. Copia la KMFXKey desde Detalles y pégala en el EA."
-        : "Si se desconecta, reinstala el conector en el mismo MT5. La KMFXKey se consulta desde Cuentas.";
       return `
         <article class="connection-row ${statusKind}">
           <div class="connection-symbol" aria-hidden="true">MT5</div>
@@ -331,9 +325,7 @@ function renderAccountConnections() {
               <span class="status-badge ${statusKind}">${escapeHtml(connection.status_label || "Pendiente")}</span>
             </div>
             <span class="connection-meta">${escapeHtml(primaryMeta)}</span>
-            ${keyLabel ? `<span class="connection-meta connection-meta--key">${escapeHtml(keyLabel)}</span>` : ""}
             <span class="connection-meta">${escapeHtml(connection.last_sync_label || "")}</span>
-            <span class="connection-help">${escapeHtml(helpText)}</span>
           </div>
           <div class="connection-state-card">
             <span>Estado</span>

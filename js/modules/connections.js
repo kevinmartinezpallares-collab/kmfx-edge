@@ -755,6 +755,30 @@ function resolveAccountConnectionPreview(account, connectionKey = "") {
   return "";
 }
 
+async function fetchOwnAccountConnectionKey(accountId, state) {
+  const normalizedAccountId = String(accountId || "").trim();
+  if (!normalizedAccountId) {
+    return { ok: false, reason: "missing_account_id" };
+  }
+  try {
+    const response = await fetch(resolveOwnAccountUrl(normalizedAccountId, "connection-key"), {
+      method: "GET",
+      headers: buildAuthHeaders(state),
+    });
+    const payload = await response.json();
+    if (!response.ok || payload?.ok === false) {
+      return { ok: false, reason: payload?.reason || "request_failed", payload };
+    }
+    const connectionKey = String(payload?.connection_key || "").trim();
+    if (!connectionKey) {
+      return { ok: false, reason: "connection_key_not_available", payload };
+    }
+    return { ok: true, connectionKey, payload };
+  } catch {
+    return { ok: false, reason: "network_error" };
+  }
+}
+
 function finiteAccountNumber(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
@@ -956,7 +980,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
   let connectionKey = resolveAccountConnectionKey(account, state, activeAccount);
   let connectionPreview = resolveAccountConnectionPreview(account, connectionKey) || "No disponible";
   const accountId = account.account_id || "";
-  const hasRecoverableKey = Boolean(connectionKey);
+  const canManageKey = Boolean(accountId);
   const unavailableCopy = account.has_connection_key || account.connection_key_preview || account.connectionKeyPreview;
   const technicalTrace = resolveAccountTechnicalTrace(account, state, activeAccount);
   const dataHealth = resolveAccountDataHealth(account, technicalTrace);
@@ -988,20 +1012,20 @@ function openAccountInfoModal(account, state, activeAccount = null) {
           <div>
             <div class="connections-account-modal__label">KMFXKey</div>
             <div class="connections-account-modal__key-value" data-account-key-value="${escapeHtml(connectionPreview)}">${escapeHtml(connectionPreview)}</div>
-            ${hasRecoverableKey ? "" : `
+            ${canManageKey ? "" : `
               <div class="connections-account-modal__key-note">
                 ${unavailableCopy
-                  ? "Por seguridad, la key completa solo se muestra al crearla o regenerarla. Si la has perdido, genera una nueva y pégala en el EA."
+                  ? "La cuenta conserva su KMFXKey. Si la has perdido, entra desde tu panel y recupérala desde aquí."
                   : "Esta cuenta todavía no tiene una KMFXKey lista para copiar."}
               </div>
             `}
           </div>
           <div class="connections-account-modal__key-actions">
-            ${connectionKey ? `
+            ${canManageKey ? `
               <button class="btn-secondary" type="button" data-account-modal-toggle-key="true">Mostrar</button>
               <button class="btn-secondary" type="button" data-account-copy-key="true">Copiar key</button>
               <button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar key</button>
-            ` : `<button class="btn-secondary" type="button" data-account-regenerate-key="true">Regenerar y copiar key</button>`}
+            ` : ``}
           </div>
         </div>
         <div class="connections-account-modal__technical">
@@ -1052,18 +1076,55 @@ function openAccountInfoModal(account, state, activeAccount = null) {
       const copyButton = card?.querySelector("[data-account-copy-key='true']");
       const regenerateButton = card?.querySelector("[data-account-regenerate-key='true']");
       const regenerateDefaultText = regenerateButton?.textContent || "Regenerar y copiar key";
-      toggleButton?.addEventListener("click", () => {
-        if (!connectionKey || !valueNode) return;
-        revealed = !revealed;
-        valueNode.textContent = revealed ? connectionKey : connectionPreview;
-        toggleButton.textContent = revealed ? "Ocultar" : "Mostrar";
-        if (revealed) {
-          void recordAccountAuditEvent({ accountId, event: "show_key", state });
+      async function ensureConnectionKeyLoaded() {
+        if (connectionKey) return true;
+        if (!accountId) return false;
+        const result = await fetchOwnAccountConnectionKey(accountId, state);
+        if (!result.ok || !result.connectionKey) {
+          if (result.reason === "connection_key_revoked") {
+            showToast("La KMFXKey fue revocada. Regénérala desde aquí para volver a usarla.", "error");
+          } else if (result.reason === "network_error") {
+            showToast("No pude conectar con el servidor de KMFX.", "error");
+          } else {
+            showToast("No pude recuperar la KMFXKey de esta cuenta.", "error");
+          }
+          return false;
         }
+        connectionKey = result.connectionKey;
+        connectionPreview = maskConnectionKeyForDisplay(connectionKey);
+        persistLocalConnectionKey({
+          accountId,
+          connectionKey,
+          label: account.alias || account.display_name || account.login || "",
+          state,
+        });
+        return true;
+      }
+      void (async () => {
+        const loaded = await ensureConnectionKeyLoaded();
+        if (!loaded || !valueNode) return;
+        valueNode.textContent = revealed ? connectionKey : connectionPreview;
+      })();
+      toggleButton?.addEventListener("click", () => {
+        void (async () => {
+          if (!valueNode) return;
+          const loaded = await ensureConnectionKeyLoaded();
+          if (!loaded) return;
+          revealed = !revealed;
+          valueNode.textContent = revealed ? connectionKey : connectionPreview;
+          toggleButton.textContent = revealed ? "Ocultar" : "Mostrar";
+          if (revealed) {
+            void recordAccountAuditEvent({ accountId, event: "show_key", state });
+          }
+        })();
       });
       copyButton?.addEventListener("click", () => {
-        copyText(connectionKey, "Clave copiada");
-        void recordAccountAuditEvent({ accountId, event: "copy_key", state });
+        void (async () => {
+          const loaded = await ensureConnectionKeyLoaded();
+          if (!loaded) return;
+          copyText(connectionKey, "Clave copiada");
+          void recordAccountAuditEvent({ accountId, event: "copy_key", state });
+        })();
       });
       regenerateButton?.addEventListener("click", async () => {
         if (!accountId) return;
