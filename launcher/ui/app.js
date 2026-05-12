@@ -659,7 +659,10 @@ function bindEvents() {
     state.selectedInstallationLabel = select.value || "";
     renderHome();
   });
-  $("#install-button")?.addEventListener("click", () => performAction("install_connector", "Conector instalado.", state.selectedInstallationLabel));
+  $("#install-button")?.addEventListener("click", () => {
+    const method = state.status?.connector_installed ? "repair_connector" : "install_connector";
+    performAction(method, method === "repair_connector" ? "Conector reparado." : "Conector instalado.", state.selectedInstallationLabel);
+  });
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel));
   $("#create-connection-button")?.addEventListener("click", () => performAction("create_account_connection", "Conexión MT5 creada."));
   document.addEventListener("click", (event) => {
