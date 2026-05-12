@@ -115,6 +115,45 @@ class RevokedThenFreshBackend:
         )
 
 
+class SameKeyThenRotatedBackend:
+    def __init__(self, config: LauncherConfig) -> None:
+        self.config = config
+        self.link_calls = 0
+        self.regenerate_calls = 0
+
+    def link_account(
+        self,
+        *,
+        user_id: str = "",
+        label: str = "",
+        account_id: str = "",
+        connection_key: str | None = None,
+    ) -> BackendResponse:
+        self.link_calls += 1
+        return BackendResponse(
+            ok=True,
+            status_code=200,
+            body={
+                "account_id": account_id or "darwinex-account",
+                "connection_key": "stale-key",
+                "status": "active",
+                "alias": label,
+            },
+        )
+
+    def regenerate_account_key(self, *, account_id: str) -> BackendResponse:
+        self.regenerate_calls += 1
+        return BackendResponse(
+            ok=True,
+            status_code=200,
+            body={
+                "account_id": account_id,
+                "connection_key": "fresh-key",
+                "status": "pending_link",
+            },
+        )
+
+
 class LauncherConnectionKeyTests(unittest.TestCase):
     def test_explicit_connection_key_wins_over_bridge_key(self) -> None:
         key, source = resolve_effective_connection_key(
@@ -586,6 +625,61 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual("Darwinex", captured["label"])
         self.assertEqual("fresh-darwinex-key", captured["connection_key"])
+
+    def test_launcher_repair_account_rotates_same_installed_key_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir) / "Darwinex"
+                experts_path = root / "MQL5" / "Experts"
+                files_path = root / "MQL5" / "Files"
+                files_path.mkdir(parents=True)
+                experts_path.mkdir(parents=True)
+                (files_path / "kmfx_connection.conf").write_text("connection_key=stale-key\n", encoding="utf-8")
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = SameKeyThenRotatedBackend(config)
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api._lock = threading.RLock()
+                api.installations = [
+                    MT5Installation("Darwinex", "", str(root), str(experts_path), "", "test")
+                ]
+                api.get_session = lambda: {"authenticated": True}
+                api.account_connection_by_id = lambda _account_id: {
+                    "account_id": "darwinex-account",
+                    "label": "Darwinex MT5",
+                    "connection_key": "stale-key",
+                }
+                api.refresh_installations = lambda: api.installations
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_status = lambda: {}
+                api.get_installations = lambda: []
+                api.get_account_connections = lambda: []
+
+                captured: dict[str, str] = {}
+
+                def fake_install_connector(_installation: MT5Installation, install_config: LauncherConfig) -> dict[str, object]:
+                    captured["connection_key"] = install_config.connection_key
+                    return {"ok": True}
+
+                with patch("launcher.app.install_connector", fake_install_connector):
+                    result = api.install_connector_for_connection("darwinex-account")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(1, api.backend.link_calls)
+        self.assertEqual(1, api.backend.regenerate_calls)
+        self.assertEqual("fresh-key", captured["connection_key"])
 
     def test_launcher_detects_shared_installed_connection_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

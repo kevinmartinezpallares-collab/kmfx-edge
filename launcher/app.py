@@ -26,6 +26,7 @@ except ImportError as exc:  # pragma: no cover - depends on local runtime setup
 from .config import LauncherConfig, load_config, mask_connection_key, save_bridge_config, save_config
 from .backend_client import BackendClient, BackendResponse
 from .connector_installer import (
+    ConnectorInstallError,
     MT5_CLOUD_BASE_URL,
     MT5_CLOUD_POLICY_PATH,
     MT5_CLOUD_SYNC_PATH,
@@ -539,6 +540,13 @@ class KMFXApi:
             )
         return response
 
+    def regenerate_account_key_with_session(self, account_id: str) -> BackendResponse:
+        self.ensure_session()
+        response = self.backend.regenerate_account_key(account_id=account_id)
+        if response.status_code == 401 and self._force_refresh_session("regenerate_account_key_401"):
+            response = self.backend.regenerate_account_key(account_id=account_id)
+        return response
+
     def ensure_remote_account_link(self) -> dict[str, Any]:
         has_local_link = (
             self.config.connection_key
@@ -905,7 +913,11 @@ class KMFXApi:
 
             install_config = replace(self.config)
             install_config.connection_key = connection_key
-            result = install_connector(installation, install_config)
+            try:
+                result = install_connector(installation, install_config)
+            except ConnectorInstallError as exc:
+                self.logger.error("[KMFX][LAUNCHER][INSTALL] connector resource missing: %s", exc)
+                return {"ok": False, "message": str(exc)}
             self.logger.info(
                 "[KMFX][LAUNCHER][INSTALL] connector installed target=%s account_id=%s key=%s",
                 installation.label,
@@ -932,6 +944,7 @@ class KMFXApi:
             connection_key = _safe_str(connection.get("connection_key"))
             if not connection_key:
                 return {"ok": False, "message": "Esta cuenta aún no tiene conexión preparada."}
+            original_connection_key = connection_key
             label = _sanitize_account_label(connection.get("label") or connection.get("display_label") or "Cuenta MT5")
             link_response = self.link_account_with_session(
                 user_id=self.config.auth_user_id,
@@ -959,6 +972,25 @@ class KMFXApi:
             if installation is None:
                 return {"ok": False, "message": "No se ha detectado una instalación de MetaTrader 5."}
 
+            installed_key = self.installed_connection_key(installation)
+            if original_connection_key and connection_key == original_connection_key and installed_key == original_connection_key:
+                self.logger.warning(
+                    "[KMFX][LAUNCHER][INSTALL] repair received same account key; forcing rotation account_id=%s target=%s key=%s",
+                    connection.get("account_id", ""),
+                    installation.label,
+                    mask_connection_key(connection_key),
+                )
+                regenerate_response = self.regenerate_account_key_with_session(_safe_str(connection.get("account_id")))
+                if not regenerate_response.ok:
+                    return {"ok": False, "message": self.link_account_error_message(regenerate_response)}
+                linked = self.cache_linked_account_connection(regenerate_response.body, label=label)
+                fresh_key = _safe_str(regenerate_response.body.get("connection_key") or linked.get("connection_key"))
+                if not fresh_key:
+                    return {"ok": False, "message": "No se pudo regenerar la key de esta cuenta MT5."}
+                connection_key = fresh_key
+                connection["connection_key"] = fresh_key
+                connection["connection_key_masked"] = mask_connection_key(fresh_key)
+
             self.config.selected_mt5_terminal_path = installation.terminal_path
             self.config.selected_mt5_data_path = installation.data_path
             self.config.selected_mt5_experts_path = installation.experts_path
@@ -966,7 +998,11 @@ class KMFXApi:
 
             install_config = replace(self.config)
             install_config.connection_key = connection_key
-            result = install_connector(installation, install_config)
+            try:
+                result = install_connector(installation, install_config)
+            except ConnectorInstallError as exc:
+                self.logger.error("[KMFX][LAUNCHER][INSTALL] connector resource missing: %s", exc)
+                return {"ok": False, "message": str(exc)}
             self.logger.info(
                 "[KMFX][LAUNCHER][INSTALL] connector installed target=%s account_id=%s key=%s",
                 installation.label,

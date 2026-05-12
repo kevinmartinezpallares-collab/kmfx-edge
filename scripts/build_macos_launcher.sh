@@ -8,6 +8,25 @@ ICONSET_DIR="$ROOT_DIR/build/macos/KMFXLauncher.iconset"
 ICON_FILE="$ROOT_DIR/launcher/packaging/macos/KMFXLauncher.icns"
 APP_PATH="$ROOT_DIR/dist/KMFX Launcher.app"
 DMG_PATH="$ROOT_DIR/dist/KMFX Launcher.dmg"
+ZIP_PATH="$ROOT_DIR/downloads/KMFX-Launcher-macOS.zip"
+ZIP_SHA_PATH="$ROOT_DIR/downloads/KMFX-Launcher-macOS.zip.sha256"
+
+BUILD_DMG=0
+BUILD_ZIP=0
+for arg in "$@"; do
+  case "$arg" in
+    --dmg)
+      BUILD_DMG=1
+      ;;
+    --zip)
+      BUILD_ZIP=1
+      ;;
+    *)
+      echo "[KMFX][BUILD][ERROR] Unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 cd "$ROOT_DIR"
 
@@ -17,7 +36,8 @@ if [[ ! -f "$ICON_SOURCE" ]]; then
 fi
 
 if [[ ! -f "$ROOT_DIR/KMFXConnector.ex5" ]]; then
-  echo "[KMFX][BUILD][WARN] KMFXConnector.ex5 not found; the bundle will include KMFXConnector.mq5 only." >&2
+  echo "[KMFX][BUILD][ERROR] KMFXConnector.ex5 not found; build the public EA before packaging the launcher." >&2
+  exit 1
 fi
 
 if ! command -v sips >/dev/null 2>&1 || ! command -v iconutil >/dev/null 2>&1; then
@@ -75,6 +95,7 @@ python3 -m PyInstaller --clean --noconfirm "$SPEC_FILE"
 
 SIGN_WORK_DIR=""
 SIGN_APP_PATH=""
+DIST_APP_PATH="$APP_PATH"
 if command -v codesign >/dev/null 2>&1; then
   SIGN_WORK_DIR="$(mktemp -d)"
   SIGN_APP_PATH="$SIGN_WORK_DIR/KMFX Launcher.app"
@@ -83,6 +104,8 @@ if command -v codesign >/dev/null 2>&1; then
   if codesign --force --deep --sign - "$SIGN_APP_PATH" && codesign --verify --deep --strict "$SIGN_APP_PATH"; then
     rm -rf "$APP_PATH"
     ditto --noextattr --noqtn "$SIGN_APP_PATH" "$APP_PATH"
+    xattr -cr "$APP_PATH" 2>/dev/null || true
+    DIST_APP_PATH="$SIGN_APP_PATH"
     echo "[KMFX][BUILD] app ad-hoc signed"
   else
     echo "[KMFX][BUILD][WARN] ad-hoc codesign failed; sign/notarize manually before distribution." >&2
@@ -91,9 +114,18 @@ if command -v codesign >/dev/null 2>&1; then
 fi
 echo "[KMFX][BUILD] app ready: $APP_PATH"
 
-if [[ "${1:-}" == "--dmg" ]]; then
+if [[ "$BUILD_ZIP" == "1" ]]; then
+  mkdir -p "$(dirname "$ZIP_PATH")"
+  rm -f "$ZIP_PATH" "$ZIP_SHA_PATH"
+  COPYFILE_DISABLE=1 ditto -c -k --sequesterRsrc --keepParent "$DIST_APP_PATH" "$ZIP_PATH"
+  (cd "$(dirname "$ZIP_PATH")" && shasum -a 256 "$(basename "$ZIP_PATH")" > "$(basename "$ZIP_SHA_PATH")")
+  echo "[KMFX][BUILD] zip ready: $ZIP_PATH"
+  cat "$ZIP_SHA_PATH"
+fi
+
+if [[ "$BUILD_DMG" == "1" ]]; then
   rm -f "$DMG_PATH"
-  hdiutil create -volname "KMFX Launcher" -srcfolder "${SIGN_APP_PATH:-$APP_PATH}" -ov -format UDZO "$DMG_PATH"
+  hdiutil create -volname "KMFX Launcher" -srcfolder "$DIST_APP_PATH" -ov -format UDZO "$DMG_PATH"
   echo "[KMFX][BUILD] dmg ready: $DMG_PATH"
 fi
 

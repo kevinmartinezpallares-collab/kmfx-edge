@@ -17,12 +17,39 @@ MT5_CLOUD_JOURNAL_PATH = "/api/mt5/journal"
 MT5_CLOUD_POLICY_PATH = "/api/mt5/policy"
 
 
+class ConnectorInstallError(RuntimeError):
+    pass
+
+
 def connector_sources() -> list[Path]:
     candidates = [
         resource_path("KMFXConnector.ex5"),
         resource_path("KMFXConnector.mq5"),
     ]
     return [path for path in candidates if path.exists()]
+
+
+def required_connector_sources() -> list[Path]:
+    sources = connector_sources()
+    if not any(path.name == "KMFXConnector.ex5" for path in sources):
+        raise ConnectorInstallError(
+            "No se encontró KMFXConnector.ex5 dentro del Launcher. Descarga de nuevo KMFX Launcher y vuelve a reparar el conector."
+        )
+    return sources
+
+
+def resolve_presets_path(installation: MT5Installation) -> Path:
+    configured_path = Path(installation.presets_path)
+    data_path = Path(installation.data_path)
+    candidates = [
+        data_path / "profiles" / "Presets",
+        configured_path,
+        data_path / "Profiles" / "Presets",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return configured_path
 
 
 def preset_contents(config: LauncherConfig) -> str:
@@ -69,14 +96,14 @@ def connection_config_contents(config: LauncherConfig) -> str:
 
 def install_connector(installation: MT5Installation, config: LauncherConfig) -> dict[str, str]:
     experts_path = Path(installation.experts_path)
-    presets_path = Path(installation.presets_path)
+    presets_path = resolve_presets_path(installation)
     files_path = Path(installation.data_path) / "MQL5" / "Files"
     experts_path.mkdir(parents=True, exist_ok=True)
     presets_path.mkdir(parents=True, exist_ok=True)
     files_path.mkdir(parents=True, exist_ok=True)
 
     copied_files: list[str] = []
-    for source in connector_sources():
+    for source in required_connector_sources():
         target = experts_path / source.name
         shutil.copy2(source, target)
         copied_files.append(str(target))

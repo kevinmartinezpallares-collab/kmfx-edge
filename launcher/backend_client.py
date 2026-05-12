@@ -308,3 +308,14 @@ class BackendClient:
             payload=payload,
             connection_key=connection_key,
         )
+
+    def regenerate_account_key(self, *, account_id: str) -> BackendResponse:
+        normalized_account_id = str(account_id or "").strip()
+        if not normalized_account_id:
+            return BackendResponse(ok=False, status_code=400, body={"reason": "missing_account_id"})
+        return self._request(
+            "POST",
+            f"/api/accounts/{urllib.parse.quote(normalized_account_id, safe='')}/regenerate-key",
+            payload={},
+            connection_key="",
+        )

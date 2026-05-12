@@ -3,9 +3,11 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from launcher.config import LauncherConfig
-from launcher.connector_installer import install_connector
+
+from launcher.connector_installer import ConnectorInstallError, install_connector
 from launcher.mt5_detector import MT5Installation
 
 
@@ -48,6 +50,43 @@ class LauncherConnectorInstallTests(unittest.TestCase):
             self.assertIn("KMFXBackendBaseUrl=https://mt5-api.kmfxedge.com||0||0||0||N", preset)
             self.assertIn("KMFXVerboseLog=false||0||0||0||N", preset)
             self.assertIn("KMFXEnableEnforce=false||0||0||0||N", preset)
+
+    def test_installer_requires_compiled_ex5_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_path = Path(temp_dir) / "Terminal"
+            installation = MT5Installation(
+                label="Test MT5",
+                terminal_path="",
+                data_path=str(data_path),
+                experts_path=str(data_path / "MQL5" / "Experts"),
+                presets_path=str(data_path / "Profiles" / "Presets"),
+                platform_name="test",
+            )
+            config = LauncherConfig(connection_key="kmfx_test_key")
+
+            with patch("launcher.connector_installer.connector_sources", return_value=[ROOT / "KMFXConnector.mq5"]):
+                with self.assertRaises(ConnectorInstallError):
+                    install_connector(installation, config)
+
+    def test_installer_prefers_existing_lowercase_wine_presets_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_path = Path(temp_dir) / "Terminal"
+            lowercase_presets = data_path / "profiles" / "Presets"
+            lowercase_presets.mkdir(parents=True)
+            installation = MT5Installation(
+                label="Test MT5",
+                terminal_path="",
+                data_path=str(data_path),
+                experts_path=str(data_path / "MQL5" / "Experts"),
+                presets_path=str(data_path / "Profiles" / "Presets"),
+                platform_name="test",
+            )
+            config = LauncherConfig(connection_key="kmfx_test_key")
+
+            result = install_connector(installation, config)
+
+            self.assertEqual(str(lowercase_presets / "KMFXConnector_Launcher.set"), result["preset_path"])
+            self.assertTrue((lowercase_presets / "KMFXConnector_Launcher.set").is_file())
 
     def test_ea_reads_launcher_connection_file_at_runtime(self) -> None:
         source = (ROOT / "KMFXConnector.mq5").read_text(encoding="utf-8")
