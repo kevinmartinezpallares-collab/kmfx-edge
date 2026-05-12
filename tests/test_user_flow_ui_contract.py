@@ -90,15 +90,22 @@ class UserFlowUiContractTests(unittest.TestCase):
 
     def test_mt5_account_key_flow_copy_keeps_stable_key_language(self) -> None:
         source = read_text("js/modules/connections.js")
+        wizard = read_text("js/modules/connection-wizard.js")
         connector = read_text("KMFXConnector.mq5")
 
         self.assertIn("Copia la KMFXKey actual desde Detalles y reinstala el conector", source)
         self.assertIn("usa Ver detalles para copiar la misma KMFXKey", source)
+        self.assertIn("Obtén la KMFXKey", wizard)
+        self.assertIn("Crear KMFXKey para esta cuenta", wizard)
+        self.assertIn("Si reinstalas, usa esta misma key desde Cuentas > Ver detalles", wizard)
+        self.assertIn("Usa esta misma key si reinstalas el EA en esta cuenta", wizard)
         self.assertIn("Copia la KMFXKey actual desde Cuentas > Ver detalles", connector)
         self.assertIn("Copiar key", source)
         self.assertIn("Usa esta misma KMFXKey y reinstala el conector en el mismo MT5", source)
         self.assertNotIn("Regenerar key", source)
         self.assertNotIn("Regenerar y copiar key", source)
+        self.assertNotIn("Regenerar key", wizard)
+        self.assertNotIn("Regenerar y copiar key", wizard)
         self.assertNotIn("Crea una nueva conexión para volver a sincronizar", source)
         self.assertNotIn("tendrá que conectarse con una key nueva", source)
         self.assertNotIn("Genera una nueva key desde Cuentas", connector)

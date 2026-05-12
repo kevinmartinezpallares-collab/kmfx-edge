@@ -436,7 +436,7 @@ function renderEaConfigStep(state) {
           </div>
           <div class="connection-wizard__setup-step">
             <span>2</span>
-            <div><strong>Crea la KMFXKey</strong><small>Cada cuenta MT5 tiene su propia key. Para otra instancia de la misma cuenta, reutiliza esa key.</small></div>
+            <div><strong>Obtén la KMFXKey</strong><small>Cada cuenta MT5 tiene una key estable. Si reinstalas el EA, reutiliza la misma desde Cuentas > Ver detalles.</small></div>
           </div>
           <div class="connection-wizard__setup-step">
             <span>3</span>
@@ -457,7 +457,7 @@ function renderEaConfigStep(state) {
     )}
     <div class="connection-wizard__actions">
       <button class="btn-secondary" type="button" data-wizard-step="method">Atrás</button>
-      <button class="btn-primary" type="button" data-wizard-create-ea-key="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Creando..." : "Crear KMFXKey"}</button>
+      <button class="btn-primary" type="button" data-wizard-create-ea-key="true" ${state.loading ? "disabled" : ""}>${state.loading ? "Creando..." : "Crear KMFXKey para esta cuenta"}</button>
     </div>
   `;
 }
@@ -516,13 +516,13 @@ function renderConfirmationStep(state) {
   return `
     ${renderStepFrame(
       isDirect ? "Cuenta directa registrada" : isConnected ? "Conexión finalizada" : "Finaliza la conexión en MT5",
-      isDirectPendingSync ? "La cuenta ya está añadida, pero la sincronización directa en tiempo real aún no está disponible. Usa EA para sincronizar ahora." : isDirect ? "La cuenta ya está añadida a Cuentas. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización.",
+      isDirectPendingSync ? "La cuenta ya está añadida, pero la sincronización directa en tiempo real aún no está disponible. Usa EA para sincronizar ahora." : isDirect ? "La cuenta ya está añadida a Cuentas. Puedes cerrar este asistente." : isConnected ? "MT5 ya ha sincronizado con KMFX. Puedes cerrar este asistente." : "Copia la KMFXKey, pégala en el EA y comprueba la primera sincronización. Si reinstalas, usa esta misma key desde Cuentas > Ver detalles.",
       `
         <div class="connection-wizard__success ${isConnected ? "connection-wizard__success--complete" : "connection-wizard__success--pending"}">
           <span class="connection-wizard__success-icon">${isConnected ? "✓" : "3"}</span>
           <div class="connection-wizard__success-copy">
             <div class="connection-wizard__success-title">${isDirectPendingSync ? "Registro preparado" : isDirect ? "Cuenta directa añadida" : isConnected ? "Cuenta MT5 conectada" : "KMFXKey lista"}</div>
-            <div class="connection-wizard__success-subtitle">${isDirectPendingSync ? "Aparecerá en Cuentas como pendiente de sincronización. Para datos reales, instala el EA." : isDirect ? "La verás en Cuentas con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Nunca compartas esta clave."}</div>
+            <div class="connection-wizard__success-subtitle">${isDirectPendingSync ? "Aparecerá en Cuentas como pendiente de sincronización. Para datos reales, instala el EA." : isDirect ? "La verás en Cuentas con el login y servidor registrados." : isConnected ? "La cuenta aparecerá en Cuentas y Dashboard tras el refresco." : "Pégala en el campo KMFXKey del Expert Advisor. Guárdala en Cuentas > Ver detalles y nunca la compartas."}</div>
           </div>
         </div>
         ${key ? `<div class="connection-wizard__secret-row">
@@ -538,7 +538,7 @@ function renderConfirmationStep(state) {
         <div class="connection-wizard__finish-grid">
           <div class="connection-wizard__finish-step is-complete">
             <span>1</span>
-            <div><strong>${isDirect ? "Datos recibidos" : "Copiar KMFXKey"}</strong><small>${isDirect ? "Login, servidor y método directo preparados." : "Usa esta misma key para otra instancia de la misma cuenta."}</small></div>
+            <div><strong>${isDirect ? "Datos recibidos" : "Copiar KMFXKey"}</strong><small>${isDirect ? "Login, servidor y método directo preparados." : "Usa esta misma key si reinstalas el EA en esta cuenta."}</small></div>
           </div>
           <div class="connection-wizard__finish-step ${isConnected ? "is-complete" : "is-current"}">
             <span>2</span>
