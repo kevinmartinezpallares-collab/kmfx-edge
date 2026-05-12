@@ -514,6 +514,12 @@ Notas 2026-05-11:
 - `/api/mt5/policy` sin `X-KMFX-Connection-Key` rechaza `401 missing_connection_key`.
 - La evidencia queda centralizada en `docs/production-release-evidence.md`.
 
+Notas 2026-05-12:
+
+- Suite local completa ejecutada: `python3 -m unittest discover -s tests` con 349 tests OK.
+- Smoke de produccion ejecutado de nuevo tras endurecer consola frontend: `scripts/production_smoke.py` verde contra `kmfxedge.com`, Render y Worker `mt5-api`.
+- Verificados de nuevo: rutas SPA principales, descargas macOS/Windows/EA, checksums, headers de seguridad, CORS del Worker, auth requerida en billing/checkout/portal y rechazo MT5 sin key.
+
 ## Fase 10 - Go Live Controlado
 
 Objetivo: pasar a produccion con control.
