@@ -2096,7 +2096,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("billing_past_due", body["reason"])
         self.assertEqual("billing_attention", body["details"]["billing_access"])
 
-    def test_free_plan_blocks_regenerating_connection_key(self) -> None:
+    def test_user_plan_cannot_regenerate_stable_connection_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -2114,7 +2114,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     return_value={
                         "sub": "user-123",
                         "email": "user@example.com",
-                        "app_metadata": {"plan": "free", "billing_status": "free"},
+                        "app_metadata": {"plan": "pro", "billing_status": "active"},
                         "user_metadata": {},
                     },
                 ):
@@ -2124,8 +2124,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(403, response.status_code)
-        self.assertEqual("entitlement_required", body["reason"])
-        self.assertEqual("launcherConnection", body["details"]["entitlement"])
+        self.assertEqual("stable_key_recovery_required", body["reason"])
 
     def test_product_entitlement_helper_blocks_missing_export_entitlement(self) -> None:
         response = connector_api.product_entitlement_denial(

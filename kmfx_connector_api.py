@@ -5424,6 +5424,16 @@ async def regenerate_own_account_key(account_id: str, request: Request) -> JSONR
     )
     if rate_limited is not None:
         return rate_limited
+    if not auth_context.get("is_admin"):
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "stable_key_recovery_required",
+                "message": "La KMFXKey es estable por cuenta MT5. Copia la key actual desde Detalles de cuenta en lugar de regenerarla.",
+                "timestamp": now_iso(),
+            },
+            status_code=403,
+        )
     entitlement_denial = product_entitlement_denial(context=auth_context, entitlement="launcherConnection")
     if entitlement_denial is not None:
         return entitlement_denial
