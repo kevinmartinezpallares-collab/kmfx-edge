@@ -73,6 +73,13 @@ Notas 2026-05-11:
 - Smoke de produccion ejecutado contra `kmfxedge.com`, Render y `mt5-api.kmfxedge.com`: todos los checks verdes con `render_git_commit=cd9c383`.
 - Evidencia de release registrada en `docs/production-release-evidence.md`.
 
+Notas 2026-05-12:
+
+- Cerrado el bloqueo de KMFXKeys revocadas en el Launcher: `Reinstalar/Reparar conector` puede localizar la cuenta por preview de key o identidad MT5, pedir una key nueva al backend y escribirla en `MQL5/Files/kmfx_connection.conf` sin crear una cuenta duplicada.
+- Artefactos macOS y Windows reconstruidos con el fix de reparacion. Hasta que exista auto-update, usuarios y alumnos deben descargar de nuevo el Launcher desde el dashboard para recibir este comportamiento.
+- El runbook MT5 documenta el flujo correcto: reparar la cuenta existente si la key fue revocada, regenerar key solo por revocacion/filtracion/cambio explicito, y crear una cuenta nueva solo si se conecta otra cuenta MT5.
+- Sigue pendiente el smoke limpio macOS/Windows con usuario no-admin y plan valido para marcar la fase como cerrada.
+
 ## Fase 1 - Contrato de Metricas
 
 Objetivo: que las metricas sean fiables antes de UI nueva, billing final o Next.js.
@@ -334,6 +341,12 @@ Notas 2026-05-09:
 - Contrato probado: el instalador copia `KMFXConnector.ex5`/`.mq5`, escribe preset y deja `MQL5/Files/kmfx_connection.conf`; el EA lee esa key en runtime.
 - Contrato probado: si Render/backend no responde, el Launcher conserva `snapshot`/`journal` con `connection_key` local, aplica backoff, drena al recuperarse y solo descarta al superar `max_attempts`.
 - Runbook de smoke MT5 de produccion creado: define preflight, flujo Launcher, flujo manual, errores esperados, evidencia, cierre de Launcher y criterios de aprobacion sin exponer keys completas.
+
+Notas 2026-05-12:
+
+- Reparacion de conector endurecida para el caso de key revocada: el Launcher actualizado puede reutilizar la cuenta existente, regenerar la KMFXKey y reinstalar `kmfx_connection.conf` aunque la key local antigua ya no sea valida.
+- Accion operativa para soporte: si un usuario ve `La clave de conexion de KMFX fue revocada`, primero debe instalar el Launcher actualizado y pulsar reparar/reinstalar sobre la cuenta correcta. No debe crear una cuenta nueva salvo que sea otra cuenta MT5.
+- Artefactos publicados reconstruidos: macOS ZIP y Windows EXE/ZIP. El aviso Gatekeeper/SmartScreen sigue documentado y aceptado por decision de producto.
 
 Criterio de salida:
 

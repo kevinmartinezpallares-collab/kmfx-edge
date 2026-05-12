@@ -190,12 +190,76 @@ Resultado esperado:
 - la key no viaja en query string;
 - la key no aparece completa en logs.
 
+## Reparar Una KMFXKey Revocada O Antigua
+
+Este es el flujo correcto cuando MT5 muestra:
+
+```text
+[KMFX][ERROR] La clave de conexion de KMFX fue revocada. Genera una nueva key desde Cuentas.
+```
+
+No crear otra cuenta nueva salvo que el usuario este conectando otra cuenta MT5 distinta. En una reparacion normal se mantiene la misma cuenta del dashboard y se sustituye la KMFXKey instalada en MT5.
+
+### Precondicion
+
+1. Descargar de nuevo el Launcher desde `kmfxedge.com`.
+2. Reemplazar la app anterior por la nueva.
+3. Abrir el Launcher actualizado e iniciar sesion con la misma cuenta KMFX.
+
+Hasta que exista auto-update, una app antigua no recibe este fix automaticamente.
+
+### Reparacion Recomendada Con Launcher
+
+1. En el Launcher, seleccionar la instalacion MT5 correcta.
+2. Buscar la tarjeta de la cuenta que coincida por login/servidor/broker.
+3. Pulsar `Reinstalar conector`, `Reparar conector` o el boton equivalente.
+4. El Launcher debe:
+
+- localizar la cuenta aunque la key local este revocada;
+- pedir al backend una KMFXKey nueva para esa cuenta;
+- escribir la key nueva en `MQL5/Files/kmfx_connection.conf`;
+- mantener la cuenta existente en el dashboard;
+- no crear una cuenta duplicada.
+
+5. En MT5, quitar y volver a adjuntar el EA si el error persiste mas de un ciclo de sync, o reiniciar MT5.
+6. Esperar hasta 60 segundos.
+
+Resultado esperado en Experts:
+
+```text
+[KMFX][STATUS] Conectado a KMFX. Cuenta sincronizada correctamente.
+```
+
+Resultado esperado en Dashboard:
+
+- la misma cuenta vuelve a estar `Conectada` o `Activa`;
+- la ultima sincronizacion vuelve a segundos recientes;
+- no aparece una cuenta duplicada para el mismo login/servidor.
+
+### Reparacion Manual
+
+Usar solo si el Launcher no puede reparar.
+
+1. Ir a `Cuentas > Ver detalles`.
+2. Regenerar la KMFXKey de esa cuenta solo si la anterior esta revocada o filtrada.
+3. Copiar la nueva KMFXKey.
+4. Pegarla en el input visible del EA o en `MQL5/Files/kmfx_connection.conf`.
+5. Quitar y volver a adjuntar el EA, o reiniciar MT5.
+
+Fallo si:
+
+- el dashboard obliga a crear otra cuenta para reparar la misma instalacion;
+- el Launcher sigue escribiendo una key revocada;
+- MT5 alterna indefinidamente entre `clave revocada` y `no acepto temporalmente`;
+- el usuario no puede recuperar o regenerar una key desde `Ver detalles`.
+
 ## Errores Y Accion Correcta
 
 | Mensaje | Causa probable | Accion |
 | --- | --- | --- |
 | `No se pudo conectar con KMFX` | WebRequest no autorizado, red bloqueada o API caida | Revisar URL permitida y ejecutar smoke HTTP |
-| `KMFX no reconoce la clave` | Key revocada, copiada de otra cuenta o archivo config antiguo | Copiar la KMFXKey de `Ver detalles` y reinstalar/reparar |
+| `KMFX no reconoce la clave` | Key copiada de otra cuenta, archivo config antiguo o cuenta eliminada | Copiar la KMFXKey de `Ver detalles` y reinstalar/reparar |
+| `La clave de conexion de KMFX fue revocada` | La key instalada ya no es valida | Usar Launcher actualizado y reparar la cuenta existente; no crear otra cuenta salvo que sea otra cuenta MT5 |
 | `KMFX no acepto temporalmente la sincronizacion` | Rate limit, backend temporal o payload rechazado | Esperar, revisar ultima version del EA y backend logs |
 | `Plan sin permiso` | Entitlement no permite MT5 | Revisar plan o admin override |
 | Cuenta pendiente sin sync | EA no adjunto, Algo Trading apagado o WebRequest falta | Revisar MT5 Experts y Journal |

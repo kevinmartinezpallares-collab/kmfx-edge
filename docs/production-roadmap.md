@@ -60,6 +60,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] El EA funciona con investor password en modo lectura.
 - [x] Logs del EA reducidos a mensajes de estado útiles.
 - [x] Runbook de smoke MT5 de produccion creado en `docs/mt5-production-smoke-runbook.md`.
+- [x] Launcher repara/reinstala el conector cuando la KMFXKey instalada fue revocada, sin obligar a crear otra cuenta.
 - [ ] Probar launcher Windows real en Windows 10/11 limpio.
 - [ ] Probar launcher macOS en máquina limpia, sin tus instancias previas.
 - [ ] Añadir confirmación de primera sincronización: nombre, tipo de cuenta y broker.
@@ -190,6 +191,13 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Runbook de smoke MT5 creado para validar con evidencia el flujo usuario final: descargas, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
 - Checkpoint de release documentado en `docs/production-release-evidence.md`: CI y smoke de produccion verdes para `cd9c383`, descargas/headers/CORS/auth gates verificados, y `www`/`dashboard` redirigen a `kmfxedge.com`.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.
+
+### Checkpoint 2026-05-12
+
+- Bloqueo de KMFXKeys revocadas cerrado en el Launcher: reparar/reinstalar conector reutiliza la cuenta existente, resuelve la cuenta por preview de key o identidad MT5 y escribe una KMFXKey nueva en `MQL5/Files/kmfx_connection.conf`.
+- Los artefactos descargables macOS y Windows se reconstruyeron con el fix. Hasta que haya auto-update, quien tenga un Launcher antiguo debe descargarlo de nuevo desde el dashboard.
+- El runbook `docs/mt5-production-smoke-runbook.md` documenta el flujo de soporte: no crear cuentas duplicadas para reparar una key revocada, regenerar key solo por revocacion/filtracion/cambio explicito y validar que el EA vuelve a `Conectado a KMFX`.
+- Siguiente cierre MT5: ejecutar smoke en macOS limpio y Windows real con usuario no-admin, plan valido, WebRequest autorizado, primer sync, cierre de Launcher y cuenta visible en dashboard.
 
 ## Fase 1 - Cierre de Producto y Billing
 
@@ -489,6 +497,10 @@ Criterio de salida:
 - [ ] Instalador `.msi` o `.exe` con Inno/WiX.
 - [ ] Auto-update o aviso de nueva versión.
 - [ ] `downloads.kmfxedge.com` o bucket dedicado.
+
+Nota operativa:
+
+- Mientras no exista auto-update, cada fix del Launcher exige descargar de nuevo la app desde el dashboard y reemplazar la instalacion anterior.
 
 ### Conexión directa MT5
 
