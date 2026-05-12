@@ -983,6 +983,17 @@ body[data-theme="dark"] .auth-screen {
   max-width: 100%;
 }
 
+.auth-turnstile-loading {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: rgba(243, 242, 238, 0.52);
+  font-size: 12px;
+}
+
 .auth-disclaimer {
   margin-top: 2px;
   font-size: 11px;

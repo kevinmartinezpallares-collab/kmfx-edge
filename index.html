@@ -107,7 +107,9 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script>
-    window.__kmfxTurnstileOnload = window.__kmfxTurnstileOnload || function () {};
+    window.__kmfxTurnstileOnload = window.__kmfxTurnstileOnload || function () {
+      window.dispatchEvent(new Event("kmfx:turnstile-ready"));
+    };
   </script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=__kmfxTurnstileOnload" async defer></script>
 </head>

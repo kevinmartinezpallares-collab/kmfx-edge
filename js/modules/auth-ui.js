@@ -18,7 +18,10 @@ export function initAuthUI(store) {
   root.__turnstile = root.__turnstile || {
     widgets: {},
     tokens: {},
-    ready: false
+    ready: false,
+    renderAttempts: {},
+    renderRetryTimer: null,
+    lastMode: ""
   };
 
   root.__authUiState = root.__authUiState || {
@@ -112,48 +115,88 @@ export function initAuthUI(store) {
     return String(root.__turnstile?.tokens?.[mode] || "").trim();
   };
 
+  const scheduleTurnstileRender = (mode, reason = "not_ready") => {
+    if (!isProtectedTurnstileMode(mode)) return;
+    const attempts = Number(root.__turnstile?.renderAttempts?.[mode] || 0);
+    if (attempts >= 12) {
+      logBotProtectionIssue(mode, reason);
+      setUiState({ error: BOT_PROTECTION_MESSAGES.failed, notice: "" });
+      return;
+    }
+    root.__turnstile.renderAttempts[mode] = attempts + 1;
+    if (root.__turnstile.renderRetryTimer) {
+      window.clearTimeout(root.__turnstile.renderRetryTimer);
+    }
+    root.__turnstile.renderRetryTimer = window.setTimeout(() => {
+      mountTurnstileWidget(mode);
+    }, 350);
+  };
+
   const mountTurnstileWidget = (mode) => {
     if (!isProtectedTurnstileMode(mode)) return;
     const siteKey = getTurnstileSiteKey();
     const slot = root.querySelector('[data-turnstile-slot]');
-    if (!slot || !siteKey || !window.turnstile?.render) return;
+    if (!slot || !siteKey) return;
+    root.__turnstile.lastMode = mode;
+    if (!window.turnstile?.render) {
+      slot.innerHTML = '<span class="auth-turnstile-loading">Cargando verificación anti-bots...</span>';
+      scheduleTurnstileRender(mode, "script_not_ready");
+      return;
+    }
 
     slot.innerHTML = "";
     root.__turnstile.tokens[mode] = "";
-    root.__turnstile.widgets[mode] = window.turnstile.render(slot, {
-      sitekey: siteKey,
-      theme: getTurnstileTheme(),
-      language: "es",
-      appearance: "always",
-      action: getTurnstileAction(mode),
-      callback: (token) => {
-        root.__turnstile.tokens[mode] = token || "";
-        if (Object.values(BOT_PROTECTION_MESSAGES).includes(root.__authUiState.error)) {
-          setUiState({ error: "" });
+    try {
+      root.__turnstile.widgets[mode] = window.turnstile.render(slot, {
+        sitekey: siteKey,
+        theme: getTurnstileTheme(),
+        language: "es",
+        appearance: "always",
+        action: getTurnstileAction(mode),
+        callback: (token) => {
+          root.__turnstile.tokens[mode] = token || "";
+          if (Object.values(BOT_PROTECTION_MESSAGES).includes(root.__authUiState.error)) {
+            setUiState({ error: "" });
+          }
+        },
+        "error-callback": () => {
+          root.__turnstile.tokens[mode] = "";
+          logBotProtectionIssue(mode, "widget_error");
+          setUiState({ error: BOT_PROTECTION_MESSAGES.failed, notice: "" });
+        },
+        "expired-callback": () => {
+          root.__turnstile.tokens[mode] = "";
+          logBotProtectionIssue(mode, "token_expired");
+          setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
+        },
+        "timeout-callback": () => {
+          root.__turnstile.tokens[mode] = "";
+          logBotProtectionIssue(mode, "token_timeout");
+          setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
         }
-      },
-      "error-callback": () => {
-        root.__turnstile.tokens[mode] = "";
-        logBotProtectionIssue(mode, "widget_error");
-        setUiState({ error: BOT_PROTECTION_MESSAGES.failed, notice: "" });
-      },
-      "expired-callback": () => {
-        root.__turnstile.tokens[mode] = "";
-        logBotProtectionIssue(mode, "token_expired");
-        setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
-      },
-      "timeout-callback": () => {
-        root.__turnstile.tokens[mode] = "";
-        logBotProtectionIssue(mode, "token_timeout");
-        setUiState({ error: BOT_PROTECTION_MESSAGES.expired, notice: "" });
-      }
-    });
+      });
+      root.__turnstile.renderAttempts[mode] = 0;
+    } catch (error) {
+      root.__turnstile.tokens[mode] = "";
+      logBotProtectionIssue(mode, "render_failed");
+      scheduleTurnstileRender(mode, "render_failed");
+    }
   };
 
   window.__kmfxTurnstileOnload = () => {
     root.__turnstile.ready = true;
     render(store.getState());
   };
+
+  window.addEventListener("kmfx:turnstile-ready", () => {
+    root.__turnstile.ready = true;
+    const mode = root.__turnstile.lastMode || resolveTurnstileMode({
+      isSignUpMode: root.__authUiState.mode === "signup",
+      isForgotMode: root.__authUiState.mode === "forgot",
+      isResetMode: root.__authUiState.mode === "reset"
+    });
+    mountTurnstileWidget(mode);
+  });
 
   const escapeHtml = (value = "") => String(value)
     .replaceAll("&", "&amp;")

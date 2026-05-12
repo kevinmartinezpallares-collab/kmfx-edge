@@ -30,6 +30,18 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('resetTurnstileWidget("signin")', source)
         self.assertIn("signInWithPassword?.({ email, password, captchaToken })", source)
 
+    def test_turnstile_mount_retries_until_cloudflare_script_is_ready(self) -> None:
+        source = read_text("js/modules/auth-ui.js")
+        html = read_text("index.html")
+        css = read_text("styles.css")
+
+        self.assertIn("scheduleTurnstileRender", source)
+        self.assertIn("script_not_ready", source)
+        self.assertIn("Cargando verificación anti-bots", source)
+        self.assertIn('window.addEventListener("kmfx:turnstile-ready"', source)
+        self.assertIn('window.dispatchEvent(new Event("kmfx:turnstile-ready"))', html)
+        self.assertIn(".auth-turnstile-loading", css)
+
     def test_email_signin_sends_captcha_token_to_supabase_options(self) -> None:
         source = read_text("js/modules/auth-session.js")
 
