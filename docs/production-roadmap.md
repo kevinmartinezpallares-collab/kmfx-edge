@@ -424,7 +424,7 @@ Criterio de salida:
 
 Objetivo: validar un viaje real de usuario antes de cobrar.
 
-- [ ] Ejecutar `python3 -m unittest discover -s tests`.
+- [x] Ejecutar `python3 -m unittest discover -s tests`.
 - [x] Ejecutar CI en GitHub y confirmar verde.
 - [x] Ejecutar `Production Smoke`.
 - [x] Probar `https://kmfxedge.com`.
