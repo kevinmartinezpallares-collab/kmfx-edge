@@ -277,6 +277,7 @@ Notas 2026-05-10:
 - `/api/backtests/mt5/import` usa el helper central de JSON de mutaciones, con limite propio `KMFX_BACKTEST_IMPORT_MAX_BODY_BYTES`; payloads no-objeto o demasiado grandes se rechazan sin eco de contenido sensible. Stripe webhook conserva lectura raw intencionada para verificar firma y MT5 sync/journal usan el helper raw-body MT5.
 - Segunda pasada XSS de seguridad: Estrategias escapa nombres, descripciones, mercado, timeframe, sesion, ids y estados definidos por usuario; Analytics escapa tarjetas de patrones, concentracion, resumen y control antes de insertarlas con `innerHTML`. Quedan solo revisiones de cierre ruta por ruta antes de marcar completa la auditoria global.
 - Tercera pasada XSS: `openFocusPanel` escapa por defecto `meta`, `pnl` y valores de metricas; solo acepta HTML cuando se pasa explicitamente como `metaHtml`, `pnlHtml` o `valueHtml`.
+- Consola frontend endurecida para produccion: `log`, `info` y `debug` quedan silenciados salvo `window.__KMFX_DEBUG__`, `?kmfx_debug=1` o storage `kmfx.debug=1`; `warn` y `error` siguen visibles para incidencias reales.
 
 Notas 2026-05-09:
 
