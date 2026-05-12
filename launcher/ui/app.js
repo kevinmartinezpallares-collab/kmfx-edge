@@ -236,7 +236,7 @@ function renderHome() {
   const installButton = $("#install-button");
   const openButton = $("#open-mt5-button");
   if (installButton) {
-    installButton.textContent = installed ? "Reinstalar conector" : "Instalar conector";
+    installButton.textContent = installed ? "Reinstalar" : "Instalar";
     installButton.className = `button ${installed && !needsRepair ? "secondary" : "primary"}`;
   }
   if (openButton) openButton.disabled = state.busy || !hasMt5;
@@ -249,14 +249,14 @@ function renderHome() {
       const installation = state.installations[0];
       picker.innerHTML = `
         <div class="installation-picker__single">
-          <span>MetaTrader detectado</span>
+          <span>Instancia MT5 detectada</span>
           <strong>${escapeHtml(installationDisplayLabel(installation))}</strong>
         </div>
       `;
     } else {
       picker.innerHTML = `
         <label class="installation-picker__select">
-          <span>MetaTrader detectado</span>
+          <span>Instancia MT5 detectada</span>
           <select id="selected-installation">
             ${state.installations.map((installation) => `
               <option value="${escapeHtml(installation.label || "")}" ${installation.label === state.selectedInstallationLabel ? "selected" : ""}>
@@ -274,11 +274,11 @@ function renderHome() {
   if (!hasMt5) {
     message.textContent = "No se ha detectado MetaTrader 5.";
   } else if (!installed) {
-    message.textContent = "MetaTrader detectado. Instala el conector para preparar la cuenta.";
+    message.textContent = "Selecciona una instancia MT5 e instala el conector para dejar el EA preparado.";
   } else if (recentSync) {
-    message.textContent = "Conector instalado. MT5 sincroniza con KMFX; puedes cerrar el Launcher.";
+    message.textContent = "EA instalado en la instancia MT5. La sincronización ya la hace MetaTrader con KMFX.";
   } else {
-    message.textContent = "Conector instalado. Abre MT5 y espera el primer sync; después puedes cerrar el Launcher.";
+    message.textContent = "EA instalado en la instancia MT5. Abre MetaTrader y espera el primer sync; después puedes cerrar el Launcher.";
   }
 }
 
@@ -312,7 +312,7 @@ function renderAccountConnections() {
       const title = friendlyConnectionTitle(connection, installation);
       const targetInstallationLabel = installation?.label || state.selectedInstallationLabel || "";
       const actionDisabled = state.busy || !targetInstallationLabel;
-      const actionLabel = "Reinstalar conector";
+      const actionLabel = isActive ? "Reinstalar" : "Instalar";
       const actionTitle = installation
         ? `Instalación vinculada: ${installationDisplayLabel(installation)}`
         : "Elige una instalación de MetaTrader arriba para continuar.";

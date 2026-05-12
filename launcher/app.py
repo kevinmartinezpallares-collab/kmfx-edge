@@ -1027,7 +1027,7 @@ class KMFXApi:
                     "ok": False,
                     "message": (
                         "La KMFXKey de esta cuenta fue revocada. "
-                        "Regénérala desde Cuentas > Detalles y vuelve a reinstalar el conector."
+                        "Vuelve a vincular esta cuenta desde Cuentas y luego reinstala el conector en esa misma instancia MT5."
                     ),
                 }
             if not connection_key:

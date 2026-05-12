@@ -705,7 +705,7 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       kind: "warning",
       title: "KMFX no reconoce esta key",
       message: "Comprueba que la KMFXKey pegada en el EA pertenece a esta cuenta.",
-      hint: "Si has regenerado la key, pega la nueva en MT5 y vuelve a comprobar.",
+      hint: "Copia la KMFXKey desde Detalles de cuenta, pégala de nuevo en MT5 y vuelve a comprobar.",
     };
   }
   if (normalizedReason.includes("revoked_connection_key") || normalizedReason.includes("connection_revoked")) {
@@ -713,7 +713,7 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
       kind: "warning",
       title: "Key revocada",
       message: "Esta KMFXKey ya no está activa.",
-      hint: "Regenera la key desde Detalles de cuenta y pégala de nuevo en el EA.",
+      hint: "Si esa cuenta fue eliminada o revocada, vuelve a vincularla desde Cuentas antes de instalar el EA otra vez.",
     };
   }
   if (normalizedReason.includes("query_connection_key_not_allowed")) {

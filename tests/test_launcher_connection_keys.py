@@ -1052,7 +1052,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertIn('"repair_connector"', ui_source)
         self.assertIn("state.status?.connector_installed", ui_source)
-        self.assertIn("Reinstalar conector", ui_source)
+        self.assertIn('installed ? "Reinstalar" : "Instalar"', ui_source)
         self.assertNotIn("Reparar conector", ui_source)
         self.assertNotIn("Copiar key", ui_source)
 
