@@ -920,7 +920,7 @@ string KMFXPublicErrorMessage(string message)
    if(StringFind(message,"payload_too_large")>=0 || StringFind(message,"HTTP=413")>=0)
       return "La sincronizacion MT5 es demasiado grande. Reduce el historico enviado o actualiza el conector.";
    if(StringFind(message,"revoked_connection_key")>=0)
-      return "La clave de conexion de KMFX fue revocada. Genera una nueva key desde Cuentas.";
+      return "La KMFXKey de MT5 no esta activa. Copia la KMFXKey actual desde Cuentas > Ver detalles y reinstala el conector.";
    if(StringFind(message,"missing_connection_key")>=0)
       return "KMFX no ha recibido la key de conexion. Revisa que este pegada en el EA.";
    if(StringFind(message,"unknown_connection_key")>=0 || StringFind(message,"HTTP=401")>=0)

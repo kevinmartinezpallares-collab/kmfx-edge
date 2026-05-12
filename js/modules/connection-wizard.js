@@ -711,7 +711,7 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
   if (normalizedReason.includes("revoked_connection_key") || normalizedReason.includes("connection_revoked")) {
     return {
       kind: "warning",
-      title: "Key revocada",
+      title: "KMFXKey no activa",
       message: "Esta KMFXKey ya no está activa.",
       hint: "Abre Cuentas > Ver detalles y copia la KMFXKey actual. Crea otra cuenta solo si realmente vas a conectar otro MT5.",
     };

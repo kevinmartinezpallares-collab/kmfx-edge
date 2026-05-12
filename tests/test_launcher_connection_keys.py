@@ -1290,6 +1290,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertIn("state.status?.connector_installed", ui_source)
         self.assertIn('installed ? "Reinstalar" : "Instalar"', ui_source)
         self.assertIn('performAction("refresh", "Cuentas actualizadas.")', ui_source)
+        self.assertEqual(1, ui_source.count('id="selected-installation"'))
         self.assertNotIn('performAction("create_account_connection"', ui_source)
         self.assertNotIn("Añadir cuenta MT5", ui_html)
         self.assertNotIn("Reparar conector", ui_source)

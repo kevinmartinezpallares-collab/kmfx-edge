@@ -152,9 +152,9 @@ function accountStatusMeta(status = "", lastSyncAt = "", connectionMode = "") {
   }
   if (normalizedStatus === "revoked" || normalizedStatus === "key_revoked" || normalizedStatus === "connection_revoked") {
     return {
-      label: "Key revocada",
+      label: "KMFXKey no activa",
       tone: "error",
-      subtitle: "Crea una nueva conexión para volver a sincronizar",
+      subtitle: "Copia la KMFXKey actual desde Detalles y reinstala el conector en ese mismo MT5",
       actionLabel: "Ver detalle",
       action: "none",
     };
@@ -1079,7 +1079,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
         const result = await fetchOwnAccountConnectionKey(accountId, state);
         if (!result.ok || !result.connectionKey) {
           if (result.reason === "connection_key_revoked") {
-            showToast("No pude recuperar la KMFXKey actual. Si fue eliminada o revocada, crea una cuenta nueva solo para ese MT5.", "error");
+            showToast("No pude recuperar la KMFXKey actual. Abre Detalles y usa la key estable de esta cuenta; crea otra cuenta solo para otro MT5.", "error");
           } else if (result.reason === "network_error") {
             showToast("No pude conectar con el servidor de KMFX.", "error");
           } else {
@@ -1133,7 +1133,7 @@ function openAccountInfoModal(account, state, activeAccount = null) {
 
 async function deleteManagedAccount({ store, root, accountId }) {
   if (!accountId) return;
-  if (!window.confirm("Eliminar esta cuenta del dashboard? La KMFXKey actual quedará revocada y MT5 tendrá que conectarse con una key nueva si quieres volver a usarla.")) return;
+  if (!window.confirm("Eliminar esta cuenta del dashboard? Hazlo solo si ya no usarás este MT5 en KMFX. Si solo se desconectó, cancela y usa Ver detalles para copiar la misma KMFXKey o reinstalar el conector.")) return;
   try {
     const response = await fetch(resolveOwnAccountUrl(accountId), {
       method: "DELETE",
@@ -1145,6 +1145,13 @@ async function deleteManagedAccount({ store, root, accountId }) {
       return;
     }
     forgetLocalConnectionKey(accountId);
+    store.setState((state) => ({
+      ...state,
+      managedAccounts: (state.managedAccounts || []).filter((account) => account.account_id !== accountId),
+      accountDirectory: Object.fromEntries(
+        Object.entries(state.accountDirectory || {}).filter(([key]) => key !== accountId)
+      ),
+    }));
     await fetchAccountsRegistry(store);
     showToast("Cuenta eliminada", "success");
     renderConnections(root, store.getState());

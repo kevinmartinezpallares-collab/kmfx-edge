@@ -88,6 +88,17 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("max-height: calc(90dvh - 128px)", css)
         self.assertIn("overflow-y: auto", css)
 
+    def test_mt5_account_key_flow_copy_keeps_stable_key_language(self) -> None:
+        source = read_text("js/modules/connections.js")
+        connector = read_text("KMFXConnector.mq5")
+
+        self.assertIn("Copia la KMFXKey actual desde Detalles y reinstala el conector", source)
+        self.assertIn("usa Ver detalles para copiar la misma KMFXKey", source)
+        self.assertIn("Copia la KMFXKey actual desde Cuentas > Ver detalles", connector)
+        self.assertNotIn("Crea una nueva conexión para volver a sincronizar", source)
+        self.assertNotIn("tendrá que conectarse con una key nueva", source)
+        self.assertNotIn("Genera una nueva key desde Cuentas", connector)
+
     def test_metric_study_cards_use_consistent_grid_and_explain_trader_use(self) -> None:
         source = read_text("js/modules/glossary.js")
         css = read_text("styles-v2.css")
