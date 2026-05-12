@@ -239,6 +239,32 @@ Validacion:
 - `python3 -m unittest tests.test_connector_cors_config`: 101 tests OK.
 - `python3 scripts/production_smoke.py`: verde antes del deploy del ajuste.
 
+## 2026-05-12 - Gate local de producción
+
+Contexto:
+
+- Rama: `main`
+- Objetivo: reducir fricción antes de release agrupando en un único comando los checks críticos del go live.
+
+Cambios:
+
+- Nuevo script `scripts/production_gate.py`.
+- Modo estándar:
+  - `git diff --check`
+  - compilación Python de backend/scripts críticos
+  - `scripts/github_release_governance_audit.py`
+  - `scripts/production_smoke.py`
+  - `tests.test_connector_cors_config`
+- Modo ampliado:
+  - añade `python3 -m unittest discover -s tests`
+
+Uso recomendado:
+
+```bash
+python3 scripts/production_gate.py
+python3 scripts/production_gate.py --full-tests
+```
+
 Impacto esperado:
 
 - Menor egress contra Supabase Auth en dashboards con polling y varias

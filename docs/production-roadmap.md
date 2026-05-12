@@ -108,6 +108,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Workflow Windows launcher existe.
 - [x] `CODEOWNERS` existe.
 - [x] Auditoria reproducible de release governance anadida en `scripts/github_release_governance_audit.py`.
+- [x] Gate local de producción en un solo comando añadido en `scripts/production_gate.py`.
 - [x] Runbook GitHub release governance creado en `docs/security/github-release-governance.md`.
 - [ ] Activar branch protection real en GitHub.
 - [ ] Activar secret scanning y push protection.
@@ -177,6 +178,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Detalles de cuenta es más ancho, permite scroll y oculta warnings técnicos crudos para usuario final.
 - Launcher mantiene cola local de snapshot/journal con backend caído y la drena al recuperarse.
 - `python3 -m unittest discover -s tests` pasa con 298 tests.
+- `python3 scripts/production_gate.py --full-tests` deja en un único reporte el diff check, compilación crítica, governance audit, smoke de producción y la suite completa.
 - Health externo verificado tras `6ecd97f`: Vercel `/dashboard`, Render `/health`, Worker `mt5-api` `/health` y Supabase Auth protegido responden como esperado.
 - Supabase Security Advisor sigue con un unico warning abierto: activar leaked password protection en Auth. Performance Advisor requiere reautenticacion del conector o CLI local.
 - Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.

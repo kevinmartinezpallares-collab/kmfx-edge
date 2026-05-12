@@ -24,6 +24,12 @@ Ejecutar sin token:
 python3 scripts/github_release_governance_audit.py
 ```
 
+O dentro del gate local de release:
+
+```bash
+python3 scripts/production_gate.py
+```
+
 Esto valida los archivos locales y avisa de que los ajustes privados de GitHub
 no pueden confirmarse.
 
