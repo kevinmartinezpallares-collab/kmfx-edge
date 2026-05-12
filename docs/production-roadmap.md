@@ -184,6 +184,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Seguridad frontend reforzada: títulos/subtítulos de modales, títulos de focus panels, opciones de ajustes, detalle Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de renderizarse.
 - Mitigacion por aviso de Supabase Fair Use cerrada en tres capas: `/api/accounts/snapshot` baja frecuencia de polling en produccion, diferencia cuentas con posiciones abiertas, hace backoff cuando la pestana esta oculta, usa `view=summary` para refrescos ligeros y cachea ese resumen 5s en backend sin cachear snapshots completos.
 - Monitor recurrente creado para revisar egress Supabase cada 6 horas; si el uso vuelve a subir, el siguiente paso es tabla de resumen dedicada antes de beta abierta.
+- Billing endurecido para evitar dependencia accidental de lookup keys no configuradas: backend defaults y `.env.example` usan los seis Price IDs live como contrato operativo, mientras Stripe Dashboard/API completa lookup keys/metadata.
 - Runbook de smoke MT5 creado para validar con evidencia el flujo usuario final: descargas, Launcher, EA read-only, WebRequest, primer sync, cierre de Launcher y cuenta visible en dashboard.
 - Checkpoint de release documentado en `docs/production-release-evidence.md`: CI y smoke de produccion verdes para `cd9c383`, descargas/headers/CORS/auth gates verificados, y `www`/`dashboard` redirigen a `kmfxedge.com`.
 - Quedan fuera del commit artefactos duplicados no relacionados en `downloads/`.

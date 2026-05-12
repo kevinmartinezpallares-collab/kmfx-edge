@@ -29,20 +29,9 @@ Current backend endpoints:
 - `POST /api/billing/webhook`: verifies Stripe signature, records `billing_events`, upserts customer/subscription rows and updates Supabase `app_metadata`.
 - `GET /api/billing/status`: reads current plan/status from trusted `app_metadata`.
 
-## Price lookup keys
+## Price configuration
 
-Preferred once lookup keys are configured in Stripe:
-
-```bash
-STRIPE_PRICE_CORE_MONTHLY=kmfx_basic_monthly
-STRIPE_PRICE_CORE_YEARLY=kmfx_basic_yearly
-STRIPE_PRICE_PRO_MONTHLY=kmfx_pro_monthly
-STRIPE_PRICE_PRO_YEARLY=kmfx_pro_yearly
-STRIPE_PRICE_UNLIMITED_MONTHLY=kmfx_unlimited_monthly
-STRIPE_PRICE_UNLIMITED_YEARLY=kmfx_unlimited_yearly
-```
-
-Live Price IDs currently created under the isolated `KMFX Edge` product:
+Current production-safe contract. Use these live Price IDs until lookup keys are configured in Stripe:
 
 ```bash
 STRIPE_PRICE_CORE_MONTHLY=price_1TUBYUEoC6e7wNItXEGCdVZ4
@@ -53,7 +42,18 @@ STRIPE_PRICE_UNLIMITED_MONTHLY=price_1TUC5uEoC6e7wNItcPyjGy5Z
 STRIPE_PRICE_UNLIMITED_YEARLY=price_1TUC65EoC6e7wNItBfoMCblt
 ```
 
-Production checkpoint 2026-05-10: Render `kmfx-edge-api` has these six live Price IDs configured and matching the Stripe catalog. Lookup keys remain preferred for future maintainability, but Price IDs are the active production contract until Stripe Dashboard/API metadata is completed.
+Preferred future contract once lookup keys are configured in Stripe:
+
+```bash
+STRIPE_PRICE_CORE_MONTHLY=kmfx_basic_monthly
+STRIPE_PRICE_CORE_YEARLY=kmfx_basic_yearly
+STRIPE_PRICE_PRO_MONTHLY=kmfx_pro_monthly
+STRIPE_PRICE_PRO_YEARLY=kmfx_pro_yearly
+STRIPE_PRICE_UNLIMITED_MONTHLY=kmfx_unlimited_monthly
+STRIPE_PRICE_UNLIMITED_YEARLY=kmfx_unlimited_yearly
+```
+
+Production checkpoint 2026-05-12: Render `kmfx-edge-api` has these six live Price IDs configured and matching the Stripe catalog. Stripe MCP still returns no lookup keys, so Price IDs are the active production contract until Stripe Dashboard/API metadata is completed.
 
 Use either lookup keys or Price IDs, never client-provided prices.
 

@@ -138,7 +138,10 @@ def list_all(path: str, params: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def expected_price_id(price: ExpectedPrice) -> str:
-    return env_value(price.env_name, f"KMFX_{price.env_name}") or price.price_id
+    configured = env_value(price.env_name, f"KMFX_{price.env_name}")
+    if configured.startswith("price_"):
+        return configured
+    return price.price_id
 
 
 def audit_prices(product_id: str, *, apply: bool = False) -> list[str]:

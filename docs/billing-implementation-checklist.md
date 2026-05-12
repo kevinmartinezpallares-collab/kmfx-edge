@@ -92,3 +92,11 @@ Notes 2026-05-10:
 - Billing transactional emails are implemented for purchase confirmation, payment failed/payment action required, and subscription cancellation.
 - Webhook processing records the email send result but does not block subscription sync if Resend is unavailable or the recipient is missing.
 - Email logs mask recipient addresses; Stripe event IDs are sent as Resend tags for support tracing.
+
+Notes 2026-05-12:
+
+- Stripe MCP confirms account `Kevinmartinezfx`, product `prod_UT7nzmgj3Eg3Zv` and the six live recurring Prices.
+- Stripe MCP still returns no lookup keys for `kmfx_basic_*`, `kmfx_pro_*` or `kmfx_unlimited_*`.
+- Local `STRIPE_SECRET_KEY` is not present, so this session cannot mutate Stripe Price metadata or Customer Portal safely.
+- Backend defaults and `.env.example` now use live Price IDs as the production-safe fallback. Lookup keys remain a maintenance improvement, not a launch blocker while Render uses Price IDs.
+- `scripts/stripe_kmfx_setup_audit.py` now ignores lookup-key env values when auditing live Price IDs, so it can be run before and after lookup keys are applied without false `missing_price` results.

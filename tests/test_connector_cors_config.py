@@ -1282,6 +1282,32 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.stripe_plan_from_price({"id": "price_1TUC65EoC6e7wNItBfoMCblt", "metadata": {}}),
             )
 
+    def test_billing_price_defaults_use_live_ids_until_lookup_keys_exist(self) -> None:
+        empty_price_env = {
+            name: ""
+            for name in (
+                "STRIPE_PRICE_CORE_MONTHLY",
+                "STRIPE_PRICE_CORE_YEARLY",
+                "STRIPE_PRICE_PRO_MONTHLY",
+                "STRIPE_PRICE_PRO_YEARLY",
+                "STRIPE_PRICE_UNLIMITED_MONTHLY",
+                "STRIPE_PRICE_UNLIMITED_YEARLY",
+                "KMFX_STRIPE_PRICE_CORE_MONTHLY",
+                "KMFX_STRIPE_PRICE_CORE_YEARLY",
+                "KMFX_STRIPE_PRICE_PRO_MONTHLY",
+                "KMFX_STRIPE_PRICE_PRO_YEARLY",
+                "KMFX_STRIPE_PRICE_UNLIMITED_MONTHLY",
+                "KMFX_STRIPE_PRICE_UNLIMITED_YEARLY",
+            )
+        }
+        with patch.dict(os.environ, empty_price_env, clear=False):
+            self.assertEqual("price_1TUBYUEoC6e7wNItXEGCdVZ4", connector_api.billing_plan_price_reference("core", "monthly"))
+            self.assertEqual("price_1TULXwEoC6e7wNItP3e4pCh4", connector_api.billing_plan_price_reference("pro", "monthly"))
+            self.assertEqual(
+                "price_1TUC65EoC6e7wNItBfoMCblt",
+                connector_api.billing_plan_price_reference("unlimited", "yearly"),
+            )
+
     def test_stripe_plan_from_price_accepts_plan_key_metadata(self) -> None:
         self.assertEqual(
             "core",

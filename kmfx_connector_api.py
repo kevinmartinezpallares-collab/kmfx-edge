@@ -2009,6 +2009,16 @@ def supabase_admin_request(
         raise RuntimeError("supabase_request_failed") from exc
 
 
+LIVE_STRIPE_PRICE_REFERENCES = {
+    ("core", "monthly"): "price_1TUBYUEoC6e7wNItXEGCdVZ4",
+    ("core", "yearly"): "price_1TUC1ZEoC6e7wNItpQF7UGPA",
+    ("pro", "monthly"): "price_1TULXwEoC6e7wNItP3e4pCh4",
+    ("pro", "yearly"): "price_1TULY0EoC6e7wNItYVKQKHIi",
+    ("unlimited", "monthly"): "price_1TUC5uEoC6e7wNItcPyjGy5Z",
+    ("unlimited", "yearly"): "price_1TUC65EoC6e7wNItBfoMCblt",
+}
+
+
 def billing_plan_price_reference(plan: str, interval: str) -> str:
     plan = normalize_plan_key(plan)
     interval = safe_str(interval, "monthly").lower()
@@ -2018,13 +2028,7 @@ def billing_plan_price_reference(plan: str, interval: str) -> str:
     configured = _env_value(env_name, f"KMFX_{env_name}")
     if configured:
         return configured
-    if plan == "core":
-        return f"kmfx_basic_{interval}"
-    if plan == "pro":
-        return f"kmfx_{plan}_{interval}"
-    if plan == "unlimited":
-        return f"kmfx_unlimited_{interval}"
-    return ""
+    return LIVE_STRIPE_PRICE_REFERENCES.get((plan, interval), "")
 
 
 def stripe_price_plan_candidates() -> dict[str, str]:
