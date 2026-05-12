@@ -293,6 +293,11 @@ Notas 2026-05-10:
 - Tercera pasada XSS: `openFocusPanel` escapa por defecto `meta`, `pnl` y valores de metricas; solo acepta HTML cuando se pasa explicitamente como `metaHtml`, `pnlHtml` o `valueHtml`.
 - Consola frontend endurecida para produccion: `log`, `info` y `debug` quedan silenciados salvo `window.__KMFX_DEBUG__`, `?kmfx_debug=1` o storage `kmfx.debug=1`; `warn` y `error` siguen visibles para incidencias reales.
 
+Notas 2026-05-12:
+
+- `scripts/github_release_governance_audit.py` ejecutado sin token administrativo: checks locales OK para `CODEOWNERS`, Dependabot version updates y workflows `ci`, `production-smoke` y `windows-launcher`.
+- Sigue pendiente verificar/activar en GitHub con credenciales admin: secret scanning, push protection, Dependabot security updates y branch protection de `main`.
+
 Notas 2026-05-09:
 
 - Supabase Security Advisor ejecutado sobre `uuhiqreifisppqkawzif`: unico warning abierto `auth_leaked_password_protection`, pendiente de activar manualmente en Auth.

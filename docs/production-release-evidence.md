@@ -186,3 +186,27 @@ Impacto:
 - El backend puede seguir usando los Price IDs live configurados en Render.
 - Antes de cobrar publicamente queda pendiente completar lookup keys/metadata,
   Customer Portal y webhook endpoint final en Stripe Dashboard/API.
+
+## 2026-05-12 - GitHub Governance Local Audit
+
+Comando:
+
+```bash
+python3 scripts/github_release_governance_audit.py --repo kevinmartinezpallares-collab/kmfx-edge --branch main
+```
+
+Resultado local:
+
+- `CODEOWNERS`: OK.
+- Dependabot version updates: OK para `github-actions`, `npm` y `pip`.
+- Workflows presentes:
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/production-smoke.yml`
+  - `.github/workflows/windows-launcher.yml`
+
+Pendiente por credenciales de plataforma:
+
+- `GITHUB_TOKEN` admin no esta presente localmente.
+- Secret scanning, push protection, Dependabot security updates y branch
+  protection de `main` no se pueden verificar desde este checkout sin token con
+  permisos de administracion/seguridad.
