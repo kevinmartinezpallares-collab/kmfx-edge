@@ -2,7 +2,7 @@
 
 Ultima revision: 2026-05-13
 Rama revisada: `main`
-Commit base local: `bdd4ec1 Fix email sign-in bot protection flow [skip render]`
+Commit base local: `9d6d835 Record production smoke evidence [skip render]`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
@@ -79,7 +79,8 @@ No se recomienda abrir produccion comercial amplia hasta completar la auditoria 
 
 3. Descargas Launcher.
    - macOS y Windows estan publicados.
-   - Falta mostrar checksum/version de forma mas clara y documentar avisos de sistema operativo.
+   - Versiones visibles para usuario final; checksums reservados a admin/soporte para no generar ruido.
+   - Avisos de sistema operativo documentados en el runbook MT5.
 
 ## Matriz de datos MT5 vs dashboard
 
@@ -144,12 +145,12 @@ Fortalezas actuales:
 
 Riesgos pendientes:
 
-- Branch protection de `main` sigue pendiente; el resto de controles principales de seguridad del repo en GitHub ya esta activo y verificado por API.
 - Revisar env vars reales en Vercel, Render, Cloudflare y Supabase.
 - Confirmar `SUPABASE_JWT_SECRET` o verificacion remota JWT final en Render.
 - Admin defaults/envs eliminados: solo `kevinmartinezpallares@gmail.com` conserva admin antes de abrir usuarios.
 - Rotar keys antiguas que hayan podido salir en logs previos.
 - No lanzar conexion directa con password hasta tener vault y permisos por plan.
+- GitHub queda cubierto: branch protection, secret scanning, push protection y Dependabot security updates verificados por API.
 
 ## Validaciones ejecutadas
 
@@ -168,8 +169,8 @@ Riesgos pendientes:
 
 Resultado:
 
-- Ultimo bloque propio OK.
-- El workspace actual contiene cambios ajenos no commiteados y no se consideran certificados en esta auditoria.
+- Ultimo smoke publico OK contra web, Render y Worker.
+- El unico cambio local no certificado pertenece al checklist manual de billing y no se modifica desde esta auditoria.
 
 ## Roadmap actualizado por prioridad
 
@@ -207,7 +208,7 @@ Resultado:
 
 ### Paso 5 - Seguridad y gobierno
 
-- Ejecutar auditoria completa con `codex-security:security-scan` sobre bridge localhost, Supabase/Auth, Cloudflare proxy MT5, CORS, account keys, billing/entitlements y endpoints admin.
+- Ejecutar auditoria completa final con `codex-security:security-scan` sobre bridge localhost, Supabase/Auth, Cloudflare proxy MT5, CORS, account keys, billing/entitlements y endpoints admin.
 - Ejecutar auditoria UX con `audit`, `harden`, `polish` y `adapt` para estados vacios/error/bloqueados, accesibilidad, responsive y copy final.
 - Ejecutar auditoria launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`. La notarizacion Apple puede seguir aplazada, pero no la validacion del paquete.
 - Ejecutar revision Cloudflare con `cloudflare:workers-best-practices` para `cloudflare/mt5-api-proxy.js`.
@@ -228,7 +229,7 @@ Resultado:
 
 No pasaria todavia a produccion comercial abierta.
 
-Si pasaria a beta privada controlada cuando se resuelvan:
+Pasaria a beta privada controlada cuando se resuelvan:
 
 1. Auditoria E2E final como usuario normal con credenciales/cuenta real.
 2. Compra live controlada con recibo y plan aplicado en dashboard.
@@ -237,3 +238,7 @@ Si pasaria a beta privada controlada cuando se resuelvan:
 5. Revisión final de plataforma y smoke verde.
 
 Para produccion de pago, el siguiente bloque obligatorio es QA real + facturacion live controlada, no nuevas features.
+
+## Cierre operativo pendiente
+
+Antes de go-live, Codex ejecutara `docs/final-user-go-live-audit.md` con un usuario normal y una cuenta MT5 real/demo controlada aportada por Kevin. Esa auditoria es la puerta final: debe probar login, plan, descarga Launcher/EA, instalacion, primer sync, cierre del Launcher, dashboard completo, ocultacion admin y reconciliacion de metricas contra MT5.
