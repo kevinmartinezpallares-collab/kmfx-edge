@@ -18,13 +18,13 @@ import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260510-1105
 import { renderGlossary } from "./js/modules/glossary.js?v=build-20260510-110500";
 import { renderDebug } from "./js/modules/debug.js?v=build-20260510-110500";
 import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260510-110500";
-import "./js/modules/modal-system.js?v=build-20260510-110500";
+import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260510-110500";
 import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260510-110500";
 import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260510-110500";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-110500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-071500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260509-150500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
@@ -949,6 +949,129 @@ function initSettings(authSession = null) {
     }
   };
 
+  const openSubscriptionSettings = () => {
+    closeModal();
+    window.history.pushState({}, "", "/ajustes?tab=subscription");
+    store.setState((state) => ({
+      ...state,
+      ui: {
+        ...state.ui,
+        activePage: "settings"
+      }
+    }));
+    activateSettingsTab("subscription");
+  };
+
+  const shouldOpenSubscriptionPrompt = (state = store.getState()) => {
+    if (state.auth?.status !== "authenticated") return false;
+    const billingState = selectBillingStatus(state);
+    if (billingState.loading || !billingState.loadedAt || billingState.error) return false;
+    if (billingState.isAdmin === true) return false;
+    const access = String(billingState.billing?.access || "").toLowerCase();
+    if (access === "active") return false;
+    if (!["free", "restricted", "billing_attention"].includes(access)) return false;
+    const activePage = parentPageForPage(state.ui?.activePage || "dashboard");
+    if (activePage === "settings") return false;
+    if (document.body.classList.contains("modal-open")) return false;
+    return true;
+  };
+
+  let lastSubscriptionPromptKey = "";
+  const maybeOpenSubscriptionPrompt = (state = store.getState()) => {
+    if (!shouldOpenSubscriptionPrompt(state)) return;
+    const billingState = selectBillingStatus(state);
+    const access = String(billingState.billing?.access || "").toLowerCase();
+    const status = String(billingState.billing?.status || "").toLowerCase();
+    const email = state.auth?.user?.email || "user";
+    const promptKey = `kmfx:subscription-prompt:${email}:${access}:${status}`;
+    if (lastSubscriptionPromptKey === promptKey || sessionStorage.getItem(promptKey) === "dismissed") return;
+    lastSubscriptionPromptKey = promptKey;
+
+    const isPaused = isBillingPaused(state);
+    const title = isPaused ? "Reanuda KMFX Edge" : "Activa KMFX Edge";
+    const subtitle = isPaused
+      ? PAUSED_SUBSCRIPTION_COPY
+      : "Conecta MT5 live, conserva tus métricas y desbloquea el seguimiento completo.";
+    const primaryCopy = isPaused
+      ? PAUSED_SUBSCRIPTION_CTA
+      : "Elige el plan que encaja con tu operativa. Puedes empezar con Basic y ampliar cuando tengas más cuentas.";
+
+    openModal({
+      title,
+      subtitle,
+      maxWidth: 980,
+      content: `
+        <section style="display:grid;gap:18px">
+          <div class="tl-section-card" style="padding:18px;border-radius:18px">
+            <strong style="display:block;color:var(--text-0);font-size:18px;line-height:1.2">${escapeHtml(primaryCopy)}</strong>
+            <p style="margin:8px 0 0;color:var(--text-2);font-size:14px;line-height:1.45">Sin un plan activo puedes explorar la demo, pero las conexiones MT5 reales y las nuevas cuentas quedan bloqueadas para proteger datos y límites de uso.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+            <article class="settings-billing-plan settings-billing-plan--basic">
+              <div class="settings-plan-topline"><span>Edge Basic</span><em>Base operativa</em></div>
+              <div class="settings-plan-price"><strong>15 €<small>/mes</small></strong><p>150 €/año</p></div>
+              <p class="settings-plan-description">Para medir una operativa principal con datos live y calendario.</p>
+              <ul class="settings-plan-features">
+                <li>Hasta 2 cuentas MT5</li>
+                <li>Dashboard y métricas core</li>
+                <li>Journal limitado</li>
+              </ul>
+              <div class="settings-billing-plan__actions">
+                <button class="btn-primary btn-inline" type="button" data-paywall-checkout data-plan="core" data-interval="monthly">Mensual</button>
+                <button class="btn-secondary btn-inline" type="button" data-paywall-checkout data-plan="core" data-interval="yearly">150 €/año</button>
+              </div>
+            </article>
+            <article class="settings-billing-plan settings-billing-plan--pro">
+              <div class="settings-plan-topline"><span>Edge Pro</span><em class="settings-plan-badge--popular"><span aria-hidden="true">★</span> Más elegido</em></div>
+              <div class="settings-plan-price"><strong>25 €<small>/mes</small></strong><p>250 €/año</p></div>
+              <p class="settings-plan-description">Para comparar cuentas, fondeo y estrategias con más profundidad.</p>
+              <ul class="settings-plan-features">
+                <li>Hasta 5 cuentas MT5</li>
+                <li>Funding y analítica avanzada</li>
+                <li>Exports y journal completo</li>
+              </ul>
+              <div class="settings-billing-plan__actions">
+                <button class="btn-primary btn-inline" type="button" data-paywall-checkout data-plan="pro" data-interval="monthly">Mensual</button>
+                <button class="btn-secondary btn-inline" type="button" data-paywall-checkout data-plan="pro" data-interval="yearly">250 €/año</button>
+              </div>
+            </article>
+            <article class="settings-billing-plan settings-billing-plan--featured">
+              <div class="settings-plan-topline"><span>Edge Unlimited</span><em>Acceso total</em></div>
+              <div class="settings-plan-price"><strong>39 €<small>/mes</small></strong><p>390 €/año</p></div>
+              <p class="settings-plan-description">Para multi-cuenta, mentores o equipos sin límite operativo.</p>
+              <ul class="settings-plan-features">
+                <li>Cuentas MT5 ilimitadas</li>
+                <li>Acceso completo</li>
+                <li>Soporte prioritario</li>
+              </ul>
+              <div class="settings-billing-plan__actions">
+                <button class="btn-primary btn-inline" type="button" data-paywall-checkout data-plan="unlimited" data-interval="monthly">Mensual</button>
+                <button class="btn-secondary btn-inline" type="button" data-paywall-checkout data-plan="unlimited" data-interval="yearly">390 €/año</button>
+              </div>
+            </article>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-secondary btn-inline" type="button" data-paywall-dismiss>Ahora no</button>
+            <button class="btn-secondary btn-inline" type="button" data-paywall-settings>Ver suscripción en ajustes</button>
+          </div>
+        </section>
+      `,
+      onMount: (card) => {
+        card.querySelectorAll("[data-paywall-checkout]").forEach((button) => {
+          button.addEventListener("click", () => {
+            closeModal();
+            startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly");
+          });
+        });
+        card.querySelector("[data-paywall-settings]")?.addEventListener("click", openSubscriptionSettings);
+        card.querySelector("[data-paywall-dismiss]")?.addEventListener("click", () => {
+          sessionStorage.setItem(promptKey, "dismissed");
+          closeModal();
+        });
+      }
+    });
+  };
+
   billingCheckoutButtons.forEach((button) => {
     button.addEventListener("click", () => startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly"));
   });
@@ -988,6 +1111,7 @@ function initSettings(authSession = null) {
     syncSessionReadout(state);
     syncBillingReadout(state);
     syncAdminUI(state);
+    requestAnimationFrame(() => maybeOpenSubscriptionPrompt(state));
     const nextAuthSignature = JSON.stringify(state.auth || {});
     if (nextAuthSignature !== lastAuthSignature) {
       lastAuthSignature = nextAuthSignature;
