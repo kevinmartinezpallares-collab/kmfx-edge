@@ -11,6 +11,55 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class AuthSessionContractTests(unittest.TestCase):
+    def run_node_identity_contract(self) -> dict[str, object]:
+        script = r"""
+          globalThis.window = {
+            location: { origin: "https://kmfxedge.test", pathname: "/", search: "", hash: "" },
+            localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+            addEventListener() {},
+            removeEventListener() {},
+          };
+          globalThis.localStorage = window.localStorage;
+          globalThis.document = {
+            addEventListener() {},
+            removeEventListener() {},
+            visibilityState: "visible",
+          };
+          Object.defineProperty(globalThis, "navigator", {
+            value: { userAgent: "node-auth-identity-contract" },
+            configurable: true,
+          });
+          globalThis.__kmfxSupabaseClient = {
+            auth: {
+              async getSession() { return { data: { session: null } }; },
+              onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; },
+            },
+          };
+
+          const { isAdminIdentity } = await import("./js/modules/auth-session.js");
+          console.log(JSON.stringify({
+            owner: isAdminIdentity("any-user-id", "kevinmartinezpallares@gmail.com"),
+            hotmail: isAdminIdentity("owner-looking-id", "kevinmartinezpallares@hotmail.com"),
+            idOnly: isAdminIdentity("kevinmartinezpallares-gmail", "trader@example.com"),
+          }));
+        """
+        proc = subprocess.run(
+            [
+                "node",
+                "--experimental-loader",
+                "./tests/node-esm-loader.mjs",
+                "--input-type=module",
+                "-e",
+                textwrap.dedent(script),
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        if proc.returncode != 0:
+            self.fail(f"node auth identity contract failed\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        return json.loads(proc.stdout.splitlines()[-1])
+
     def run_node_contract(self) -> dict[str, object]:
         script = r"""
           const storage = new Map();
@@ -145,6 +194,12 @@ class AuthSessionContractTests(unittest.TestCase):
         result = self.run_node_contract()
         self.assertEqual("user", result["role"])
         self.assertEqual("Trader User", result["name"])
+
+    def test_frontend_admin_identity_is_owner_email_only(self) -> None:
+        result = self.run_node_identity_contract()
+        self.assertTrue(result["owner"])
+        self.assertFalse(result["hotmail"])
+        self.assertFalse(result["idOnly"])
 
 
 if __name__ == "__main__":

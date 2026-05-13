@@ -1033,6 +1033,63 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertNotEqual(connector_api.DEFAULT_CONNECTION_PLAN_LIMITS["admin"], body["limits"]["connectionKeyLimit"])
         self.assertFalse(body["entitlements"]["rawBridgeDebug"])
 
+    def test_billing_status_reconciles_active_stripe_customer_by_email(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        user_id = "99999999-9999-4999-8999-999999999999"
+        synced_row = {
+            "user_id": user_id,
+            "stripe_customer_id": "cus_hotmail",
+            "stripe_subscription_id": "sub_hotmail",
+            "plan": "pro",
+            "status": "trialing",
+            "current_period_end": "2026-05-20T00:00:00Z",
+            "trial_end": "2026-05-20T00:00:00Z",
+            "cancel_at_period_end": False,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "kevinmartinezpallares@hotmail.com",
+                "app_metadata": {"plan": "free", "billing_status": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_current_billing_subscription",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_billing_customer",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "stripe_customers_for_email",
+            return_value=[{"id": "cus_hotmail", "email": "kevinmartinezpallares@hotmail.com"}],
+        ) as email_customers_mock, patch.object(
+            connector_api,
+            "sync_latest_kmfx_subscription_for_customer",
+            return_value=synced_row,
+        ) as sync_mock:
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(body["is_admin"])
+        self.assertEqual("pro", body["billing"]["plan"])
+        self.assertEqual("pro", body["billing"]["effectivePlan"])
+        self.assertEqual("trialing", body["billing"]["status"])
+        self.assertEqual("active", body["billing"]["access"])
+        self.assertEqual("billing_subscription", body["source"])
+        self.assertEqual(5, body["limits"]["connectionKeyLimit"])
+        email_customers_mock.assert_called_once_with("kevinmartinezpallares@hotmail.com")
+        sync_mock.assert_called_once_with(
+            "cus_hotmail",
+            user_id=user_id,
+            email="kevinmartinezpallares@hotmail.com",
+        )
+
     def test_billing_status_anonymous_returns_free_limited_entitlements(self) -> None:
         response = asyncio.run(connector_api.billing_status(self._request()))
         body = json.loads(response.body.decode("utf-8"))

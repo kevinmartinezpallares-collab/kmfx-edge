@@ -2513,7 +2513,7 @@ def supabase_update_auth_app_metadata(user_id: str, metadata: dict[str, Any]) ->
 
 
 def subscription_app_metadata(row: dict[str, Any]) -> dict[str, Any]:
-    plan_key = normalize_plan_key(row.get("plan_key"))
+    plan_key = normalize_plan_key(row.get("plan_key") or row.get("plan") or row.get("kmfx_plan"))
     status = safe_str(row.get("status"), "free").lower()
     if status not in BILLING_STATUS_VALUES:
         status = "active"

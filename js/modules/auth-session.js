@@ -35,12 +35,11 @@ export const DEFAULT_AUTH_STATE = {
   profile: { ...DEFAULT_AUTH_PROFILE }
 };
 
-const ADMIN_USER_IDS = new Set();
 const ADMIN_EMAILS = new Set(["kevinmartinezpallares@gmail.com"]);
 
 export function isAdminUserId(userId = "") {
-  const normalized = String(userId || "").trim().toLowerCase();
-  return Boolean(normalized && ADMIN_USER_IDS.has(normalized));
+  void userId;
+  return false;
 }
 
 export function isAdminEmail(email = "") {
@@ -49,7 +48,8 @@ export function isAdminEmail(email = "") {
 }
 
 export function isAdminIdentity(userId = "", email = "") {
-  return isAdminUserId(userId) || isAdminEmail(email);
+  void userId;
+  return isAdminEmail(email);
 }
 
 const DEFAULT_RECOVERY_STATE = {
