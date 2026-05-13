@@ -2,6 +2,15 @@ function safeObject(value) {
   return value && typeof value === "object" ? value : {};
 }
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function resolveLiveContext(context = {}) {
   const account = safeObject(context.account);
   const dashboardPayload = safeObject(account.dashboardPayload || context.dashboardPayload);
@@ -91,5 +100,5 @@ export function getWorkspaceStatusMeta(source = "mock") {
 export function badgeMarkup(meta, extraClass = "") {
   const tone = meta?.tone || "neutral";
   const label = meta?.label || "Sin dato";
-  return `<span class="ui-badge ui-badge--${tone}${extraClass ? ` ${extraClass}` : ""}"><span class="ui-badge__dot"></span>${label}</span>`;
+  return `<span class="ui-badge ui-badge--${escapeHtml(tone)}${extraClass ? ` ${escapeHtml(extraClass)}` : ""}"><span class="ui-badge__dot"></span>${escapeHtml(label)}</span>`;
 }

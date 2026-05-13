@@ -221,11 +221,15 @@ Cambio validado:
   direccion y lado de posicion antes de pintar datos MT5.
 - Las cards de riesgo escapan labels, meta y clases de tono derivadas de estado.
 - La vista Talent escapa labels y notas dinamicas antes de renderizar.
+- Los badges comunes y la vista Diagnostico/admin escapan labels, valores de
+  runtime, nombres de cuenta y mensajes de error.
 
 Validacion local:
 
 - `node --check js/modules/risk-panel-components.js`: verde.
 - `node --check js/modules/talent.js`: verde.
+- `node --check js/modules/status-badges.js`: verde.
+- `node --check js/modules/debug.js`: verde.
 - `git diff --check`: verde.
 
 Pendiente:
