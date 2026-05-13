@@ -217,14 +217,13 @@ function renderHome() {
   const installed = Boolean(status.connector_installed);
   const hasMt5 = Number(status.mt5_count || 0) > 0;
   const recentSync = Boolean(status.has_recent_sync);
-  const needsRepair = Boolean(status.repair_recommended);
   const activeCount = activeAccountCount();
   $$('[data-tool="mt5"]').forEach((element) => {
     element.hidden = !(state.toolFilter === "all" || state.toolFilter === "mt5");
   });
 
-  const badgeText = installed ? (needsRepair ? "Reinstalación recomendada" : "Instalado") : "No instalado";
-  const badgeKind = installed ? (needsRepair ? "warning" : "success") : "neutral";
+  const badgeText = installed ? "Instalado" : "No instalado";
+  const badgeKind = installed ? "success" : "neutral";
   setPill("#install-badge", badgeText, badgeKind);
   setText("#hero-service-status", status.service_on ? "Activo" : "Pendiente");
   setText("#hero-active-accounts", String(activeCount));
@@ -237,7 +236,7 @@ function renderHome() {
   const openButton = $("#open-mt5-button");
   if (installButton) {
     installButton.textContent = installed ? "Reinstalar" : "Instalar";
-    installButton.className = `button ${installed && !needsRepair ? "secondary" : "primary"}`;
+    installButton.className = `button ${installed ? "secondary" : "primary"}`;
   }
   if (openButton) openButton.disabled = state.busy || !hasMt5;
 
@@ -655,8 +654,8 @@ function bindEvents() {
     renderHome();
   });
   $("#install-button")?.addEventListener("click", () => {
-    const method = state.status?.connector_installed ? "repair_connector" : "install_connector";
-    performAction(method, method === "repair_connector" ? "Conector reinstalado." : "Conector instalado.", state.selectedInstallationLabel);
+    const installed = Boolean(state.status?.connector_installed);
+    performAction("install_connector", installed ? "Conector reinstalado." : "Conector instalado.", state.selectedInstallationLabel);
   });
   $("#open-mt5-button")?.addEventListener("click", () => performAction("open_mt5", "MetaTrader abierto.", state.selectedInstallationLabel));
   $("#create-connection-button")?.addEventListener("click", () => performAction("refresh", "Cuentas actualizadas."));

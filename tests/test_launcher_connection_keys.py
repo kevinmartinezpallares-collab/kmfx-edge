@@ -1325,8 +1325,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         ui_source = (Path(__file__).resolve().parents[1] / "launcher" / "ui" / "app.js").read_text(encoding="utf-8")
         ui_html = (Path(__file__).resolve().parents[1] / "launcher" / "ui" / "index.html").read_text(encoding="utf-8")
 
-        self.assertIn('"repair_connector"', ui_source)
-        self.assertIn("state.status?.connector_installed", ui_source)
+        self.assertNotIn('"repair_connector"', ui_source)
+        self.assertIn("Boolean(state.status?.connector_installed)", ui_source)
+        self.assertIn('performAction("install_connector", installed ? "Conector reinstalado." : "Conector instalado."', ui_source)
         self.assertIn('installed ? "Reinstalar" : "Instalar"', ui_source)
         self.assertIn('performAction("refresh", "Cuentas actualizadas.")', ui_source)
         self.assertEqual(1, ui_source.count('id="selected-installation"'))
