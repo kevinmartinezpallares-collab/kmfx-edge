@@ -183,8 +183,8 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
   - `kmfx_unlimited_yearly`
 - [x] Confirmar fallback production por Price IDs live en Render.
 - [x] Configurar Customer Portal.
-- [ ] Configurar webhook endpoint.
-- [ ] Revisar recibos automaticos de Stripe.
+- [x] Configurar webhook endpoint.
+- [ ] Revisar recibos automaticos de Stripe en compra live controlada.
 - [x] Confirmar emails de compra con Resend.
 - [x] Probar contrato local checkout success/cancel.
 - [x] Checkout y Customer Portal solo aceptan URLs de retorno del origen KMFX configurado.
@@ -270,6 +270,13 @@ Notas 2026-05-13:
   - mantener `STRIPE_TRIAL_REQUIRES_CARD=false`
   - al finalizar el trial sin metodo de pago, el comportamiento deseado pasa a ser `pause`, no `cancel` ni `past_due`
   - el checkout/backend debe enviar explicitamente `subscription_data.trial_settings.end_behavior.missing_payment_method = pause`
+
+Notas 2026-05-13 cierre tecnico:
+
+- Webhook endpoint de Stripe queda implementado y desplegado en Render; rechaza payloads sin firma y sincroniza eventos KMFX por producto/precio/metadata controlada.
+- Checkout crea trial de 7 dias sin tarjeta y envia `subscription_data.trial_settings.end_behavior.missing_payment_method = pause`.
+- Reconciliacion de checkout/portal/endpoints endurecida para que el dashboard no dependa solo del retorno del navegador.
+- Queda pendiente una compra live controlada para validar recibo real de Stripe/Resend en bandeja de entrada y limpiar una suscripcion trial duplicada del usuario de prueba `kevinmartinezpallares@hotmail.com` si Kevin lo aprueba.
 
 Criterio de salida:
 
@@ -360,7 +367,7 @@ Notas 2026-05-12:
 Notas 2026-05-13:
 
 - Verificado por API de GitHub con `gh` autenticado: `secret scanning`, `secret_scanning_push_protection` y `dependabot_security_updates` estan activos en `kevinmartinezpallares-collab/kmfx-edge`.
-- `main` sigue sin branch protection (`gh api repos/kevinmartinezpallares-collab/kmfx-edge/branches/main/protection` devuelve `404 Branch not protected`), decision mantenida temporalmente para no bloquear cambios directos mientras siga abierto el cierre del roadmap.
+- Branch protection de `main` queda activado: checks requeridos, historial lineal, force-push y borrado bloqueados. Se permite bypass admin durante el cierre tecnico para no frenar fixes criticos.
 
 Notas 2026-05-09:
 
@@ -408,7 +415,7 @@ Objetivo: que un usuario conecte MT5 sin entender puertos ni backend.
 - [ ] QA macOS limpio.
 - [ ] QA Windows 10/11 limpio.
 - [x] Version visible de EA/Launcher.
-- [x] Checksum visible de descargas.
+- [x] Checksum/version disponibles solo para admin/soporte.
 - [x] Avisos de Gatekeeper/Windows documentados en `docs/mt5-production-smoke-runbook.md`.
 
 Notas 2026-05-09:
@@ -435,6 +442,7 @@ Notas 2026-05-13:
 - Flujo de Launcher reducido a la version de producto final: seleccionar instalacion MT5, instalar/reinstalar conector y abrir MT5. Sin accion separada de reparar y sin gestion local de keys.
 - La KMFXKey de cada cuenta queda visible y copiable desde el dashboard. El Launcher solo la escribe en `MQL5/Files/kmfx_connection.conf` al instalar/reinstalar.
 - Tests de contrato del Launcher pasan y las descargas publicas macOS/Windows coinciden con los checksums publicados tras `0c13fd7`.
+- En UI de usuario final no se muestran checksums ni controles tecnicos; quedan reservados para admin/soporte.
 
 Criterio de salida:
 
@@ -638,6 +646,7 @@ Notas 2026-05-13:
   borrado de rama desactivado. No se exige PR todavia para mantener velocidad
   durante el cierre tecnico del MVP.
 - Se anade como condicion de salida una auditoria final hecha por Codex como usuario normal con credenciales y cuenta de trading reales aportadas por Kevin antes de go-live.
+- Auditoria final E2E acordada: Codex ejecutara el flujo como usuario normal con credenciales y cuenta de trading reales aportadas por Kevin, comprobando compra/plan, Launcher/EA, MT5, cierre de Launcher, permisos no-admin, reconciliacion de metricas y navegacion completa del dashboard.
 
 Notas 2026-05-12:
 
@@ -712,15 +721,15 @@ Criterio de salida:
 
 ## Orden Recomendado Desde Aqui
 
-1. Fase 3 - Billing completo.
-2. Fase 5 - MT5/Launcher QA limpio.
-3. Fase 4 - Seguridad final.
-4. Fase 6 - UX de produccion.
-5. Fase 7 - Legal/confianza.
-6. Fase 8 - Observabilidad/backups.
-7. Fase 9 - QA final.
-8. Fase 10 - Go live.
-9. Fase 11 - Next.js sidecar.
+1. Cerrar QA final como usuario normal con cuenta MT5 real.
+2. Validar compra live controlada, recibo real y estado de plan aplicado.
+3. Limpiar duplicados de suscripcion trial si Kevin aprueba cancelacion.
+4. Completar QA Launcher macOS/Windows limpio.
+5. Activar/confirmar guardrails manuales de plataforma: Supabase leaked password protection, backups y limite de minutos Render.
+6. Ejecutar smoke final y congelar `main`.
+7. Crear tag `v0.1.0-production-mvp`.
+8. Go live controlado.
+9. Next.js sidecar.
 
 ## Paquete de Trabajo Cerrado
 

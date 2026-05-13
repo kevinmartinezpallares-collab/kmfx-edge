@@ -2,14 +2,14 @@
 
 Ultima revision: 2026-05-13
 Rama revisada: `main`
-Commit base local: `daaae24 Add dashboard live data contract fixture`
+Commit base local: `bdd4ec1 Fix email sign-in bot protection flow [skip render]`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
 
-KMFX Edge esta cerca de una beta de produccion controlada, pero todavia no esta listo para abrir a usuarios de pago sin restricciones.
+KMFX Edge esta en tramo final de produccion tecnica minima viable. La base critica ya esta cerrada para una beta privada controlada: seguridad de keys, flujo MT5/Launcher, billing server-side, paywall, admin unico, descargas, smoke de produccion y metricas live tienen contrato y tests.
 
-El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, rechazo de escrituras sin key, snapshot autenticado, multi-cuenta y calculos principales conectados. Los bloqueos reales para produccion son billing/entitlements, QA en maquinas limpias, cierre de plataforma de GitHub sobre `main` y limpieza final de mensajes/documentacion legacy.
+No se recomienda abrir produccion comercial amplia hasta completar la auditoria E2E como usuario normal con credenciales/cuenta real, la validacion live de recibos/plan aplicado, QA limpia macOS/Windows y guardrails manuales de plataforma para evitar costes inesperados.
 
 ## Estado probado
 
@@ -23,26 +23,30 @@ El nucleo MT5 ya tiene buena base: dominio activo, proxy MT5, backend Render, re
 | Snapshot sin auth | Cerrado por datos | `/api/accounts/snapshot` devuelve `accounts: []` y `auth_required: true`. No filtra cuentas. |
 | JS dashboard | OK sintaxis | 62 archivos JS revisados con `node --check`. |
 | Backend/launcher | OK compilacion | `py_compile` pasa en API, launcher, bridge y account service. |
-| Tests criticos | OK en ultimo commit propio | Pasaron contrato live, smoke render de dashboard, sidebar, account service, calculadora Forex pips y CORS. Hay cambios ajenos en otras worktrees que no forman parte de esta certificacion. |
+| Tests criticos | OK | Pasaron contratos de billing, auth/admin, Launcher/keys, account service, render smoke, calculadora Forex pips, CORS y production smoke. |
 | GitHub security del repo | OK | `secret scanning`, `push protection`, Dependabot alerts y security updates verificados por API con `gh` autenticado. |
-| Branch protection `main` | Pendiente operativo | `gh api repos/kevinmartinezpallares-collab/kmfx-edge/branches/main/protection` devuelve `404 Branch not protected`; se mantiene asi temporalmente para no bloquear cambios directos mientras siga abierto el cierre del roadmap. |
+| Branch protection `main` | OK | Activado con checks requeridos, historial lineal, force-push y borrado bloqueados; bypass admin permitido durante cierre tecnico. |
 
 ## Hallazgos principales
 
 ### P0 antes de produccion comercial
 
-1. Billing y entitlements aun no cierran el acceso real.
-   - Sin Checkout, webhooks, `/api/billing/status` y guards por plan, no hay forma segura de limitar cuentas MT5, debug, exports, Risk editor o features premium.
-   - La produccion puede funcionar tecnicamente, pero no como SaaS de pago.
+1. Falta auditoria E2E final como usuario normal.
+   - Debe cubrir registro/login, compra, plan aplicado, descarga Launcher/EA, MT5 real, cierre de Launcher, dashboard completo, admin oculto, limites por plan y reconciliacion de metricas.
+   - Kevin aportara credenciales de prueba y cuenta de trading para ejecutar el flujo real antes de go-live.
 
 2. Falta QA real en maquina limpia.
    - Multi-cuenta funciona en tu Mac, pero falta verificar usuario nuevo en macOS limpio y Windows 10/11 limpio.
    - El build Windows existe y descarga, pero necesita prueba funcional real: login, deteccion MT5, instalacion EA, primer sync y cuenta visible.
 
-3. Cierre de plataforma pendiente antes de produccion comercial abierta.
-   - La seguridad base del repo en GitHub ya esta activa: `secret scanning`, `push protection`, Dependabot alerts y security updates.
-   - El gate que sigue pendiente es proteger `main` cuando deje de ser necesario empujar cambios directos.
-   - Mientras `main` siga sin proteccion, el riesgo no esta en falta de escaneo sino en disciplina operativa de merge/publicacion.
+3. Billing live necesita ultima prueba de realidad.
+   - Checkout, portal, webhook, trial pause, Price IDs y lookup keys estan implementados/configurados.
+   - Falta comprobar en una compra live controlada que el recibo/confirmacion llega al usuario y que el dashboard actualiza el plan sin intervencion manual.
+   - Existe una duplicidad de trial en `kevinmartinezpallares@hotmail.com`; cancelarla requiere aprobacion explicita para no borrar una prueba util.
+
+4. Guardrails manuales de coste/plataforma.
+   - Supabase esta en periodo de gracia por exceso de salida; ya se redujo polling y se creo monitor, pero hay que confirmar leaked password protection, backups y limites de uso.
+   - Render aviso de minutos de build: fijar limite personalizado desde Dashboard si se quiere cortar cargos automaticos.
 
 ### P1 antes de beta publica
 
@@ -190,11 +194,9 @@ Resultado:
 
 ### Paso 3 - Billing MVP + entitlements
 
-- Mantener la auditoria de Billing QA en modo no destructivo hasta cerrar plataforma Stripe.
-- Completar lookup keys/metadata, Customer Portal y webhook endpoint final en Stripe Dashboard/API con credenciales live controladas.
-- `GET /api/billing/status` ya existe como contrato inicial con plan, estado y entitlements desde `app_metadata`; falta cerrar pruebas end-to-end reales/controladas.
-- Cuentas ya consume ese contrato como lectura suave: muestra plan, acceso y avisos sin activar todavia bloqueos duros de pago fuera de los guards ya implementados.
-- Probar cupon comunidad, pago fallido, cancelacion, cambio de plan y renovacion de punta a punta.
+- Checkout, Customer Portal, webhook endpoint, status, guards por plan, trial pause y lookup keys quedan cerrados a nivel tecnico.
+- Cuentas y Dashboard bloquean `Añadir cuenta` si el entitlement no lo permite; admin solo es `kevinmartinezpallares@gmail.com`.
+- Pendiente antes de abrir cobro publico: compra live controlada con recibo, plan aplicado sin refresco manual, cancelacion/cambio/pago fallido en Stripe y limpieza de duplicados aprobada.
 
 ### Paso 4 - QA Launcher usuario nuevo
 
@@ -210,7 +212,7 @@ Resultado:
 - Ejecutar auditoria launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`. La notarizacion Apple puede seguir aplazada, pero no la validacion del paquete.
 - Ejecutar revision Cloudflare con `cloudflare:workers-best-practices` para `cloudflare/mt5-api-proxy.js`.
 - Ejecutar revision Supabase con `supabase:supabase-postgres-best-practices` para migrations, RLS, indices y billing/accounts.
-- Activar branch protection cuando termine la fase de cambios directos en `main`.
+- Branch protection ya esta activa en `main`; mantener bypass admin solo hasta congelar el MVP.
 - Revisar secrets/env vars.
 - Ejecutar Production Smoke despues de cada deploy.
 - Documentar rollback web/backend/launcher.
@@ -226,11 +228,12 @@ Resultado:
 
 No pasaria todavia a produccion comercial abierta.
 
-Si pasaria a una beta privada controlada cuando se resuelvan:
+Si pasaria a beta privada controlada cuando se resuelvan:
 
-1. Textos no-productivos visibles eliminados.
-2. QA macOS/Windows limpio.
-3. Billing y entitlements definidos para limitar uso real.
-4. Revisión final de plataforma con `main` listo para protegerse.
+1. Auditoria E2E final como usuario normal con credenciales/cuenta real.
+2. Compra live controlada con recibo y plan aplicado en dashboard.
+3. QA macOS/Windows limpio del Launcher.
+4. Guardrails manuales de Supabase/Render confirmados.
+5. Revisión final de plataforma y smoke verde.
 
-Para produccion de pago, el siguiente bloque obligatorio sigue siendo billing + entitlements.
+Para produccion de pago, el siguiente bloque obligatorio es QA real + facturacion live controlada, no nuevas features.
