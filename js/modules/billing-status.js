@@ -1,4 +1,5 @@
 import { resolveBillingStatusUrl } from "./api-config.js?v=build-20260509-150500";
+import { isAdminIdentity } from "./auth-session.js?v=build-20260509-150500";
 
 export const DEFAULT_BILLING_STATUS = {
   loading: false,
@@ -342,6 +343,8 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
       return { ok: false, reason };
     }
     const normalized = normalizeBillingStatus(payload);
+    const currentUser = store.getState()?.auth?.user || {};
+    normalized.isAdmin = normalized.isAdmin === true && isAdminIdentity(currentUser.id, currentUser.email);
     store.setState((current) => ({
       ...current,
       billing: normalized,

@@ -1457,6 +1457,64 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("cus_existing", params["customer"])
         self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
 
+    def test_billing_checkout_reconciles_existing_email_customer_subscription(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-email-token"},
+            json_body={"plan": "pro", "interval": "monthly", "return_url": "https://kmfxedge.com/ajustes"},
+        )
+        user_id = "12121212-1212-4121-8121-121212121212"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing-existing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_new",
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_current_billing_subscription",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "sync_latest_kmfx_subscription_for_customer",
+            side_effect=[
+                {},
+                {
+                    "user_id": user_id,
+                    "stripe_subscription_id": "sub_existing",
+                    "stripe_customer_id": "cus_existing",
+                    "plan_key": "pro",
+                    "status": "trialing",
+                    "current_period_end": "2026-05-20T00:00:00Z",
+                },
+            ],
+        ) as sync_mock, patch.object(
+            connector_api,
+            "stripe_customers_for_email",
+            return_value=[{"id": "cus_existing"}],
+        ), patch.object(connector_api, "resolve_stripe_price_reference") as price_mock, patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "bps_existing", "url": "https://billing.stripe.test/portal"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("subscription_already_exists", body["reason"])
+        price_mock.assert_not_called()
+        self.assertEqual(["cus_new", "cus_existing"], [call.args[0] for call in sync_mock.call_args_list])
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/billing_portal/sessions", path)
+        self.assertEqual("cus_existing", params["customer"])
+
     def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:
         response = asyncio.run(connector_api.billing_checkout(self._request(json_body={"plan": "pro"})))
         body = json.loads(response.body.decode("utf-8"))
@@ -1700,6 +1758,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             return_value="cus_456",
         ), patch.object(
             connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={},
+        ), patch.object(
+            connector_api,
             "stripe_api_request",
             return_value={"id": "bps_123", "url": "https://billing.stripe.test/portal"},
         ) as stripe_mock:
@@ -1713,6 +1775,63 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("/billing_portal/sessions", path)
         self.assertEqual("cus_456", params["customer"])
         self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
+
+    def test_billing_portal_reconciles_existing_email_customer_subscription(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-portal-token"},
+            json_body={"return_url": "https://kmfxedge.com/ajustes"},
+        )
+        user_id = "22222222-2222-4222-8222-222222222222"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_new_portal",
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_current_billing_subscription",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "sync_latest_kmfx_subscription_for_customer",
+            side_effect=[
+                {},
+                {
+                    "user_id": user_id,
+                    "stripe_subscription_id": "sub_existing",
+                    "stripe_customer_id": "cus_existing_portal",
+                    "plan_key": "unlimited",
+                    "status": "active",
+                    "current_period_end": "2026-06-20T00:00:00Z",
+                },
+            ],
+        ) as sync_mock, patch.object(
+            connector_api,
+            "stripe_customers_for_email",
+            return_value=[{"id": "cus_existing_portal"}],
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "bps_existing", "url": "https://billing.stripe.test/portal"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_portal(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("https://billing.stripe.test/portal", body["portal_url"])
+        self.assertEqual(["cus_new_portal", "cus_existing_portal"], [call.args[0] for call in sync_mock.call_args_list])
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/billing_portal/sessions", path)
+        self.assertEqual("cus_existing_portal", params["customer"])
 
     def test_billing_portal_rejects_external_return_url(self) -> None:
         request = self._request(
@@ -2017,6 +2136,57 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         sync_mock.assert_called_once()
         email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
+
+    def test_subscription_created_sends_purchase_email_from_customer(self) -> None:
+        event = {
+            "id": "evt_sub_created",
+            "type": "customer.subscription.created",
+            "data": {
+                "object": {
+                    "id": "sub_created",
+                    "customer": "cus_email",
+                    "status": "trialing",
+                    "metadata": {
+                        "app": "kmfx_edge",
+                        "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                        "kmfx_plan": "pro",
+                    },
+                    "items": {
+                        "data": [
+                            {
+                                "price": {
+                                    "id": "price_pro_monthly",
+                                    "lookup_key": "kmfx_pro_monthly",
+                                    "recurring": {"interval": "month"},
+                                }
+                            }
+                        ]
+                    },
+                }
+            },
+        }
+        with patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "55555555-5555-4555-8555-555555555555", "plan": "pro", "status": "trialing"},
+        ), patch.object(
+            connector_api,
+            "fetch_stripe_customer",
+            return_value={"id": "cus_email", "email": "buyer@example.com"},
+        ), patch.object(
+            connector_api,
+            "send_purchase_confirmation_email",
+            return_value={"sent": True},
+        ) as email_mock, patch.object(connector_api, "emit_billing_audit_event"):
+            result = connector_api.process_stripe_billing_event(event)
+
+        self.assertEqual({"sent": True}, result["email"])
+        email_mock.assert_called_once_with(
+            email="buyer@example.com",
+            plan="pro",
+            interval="monthly",
+            event_id="evt_sub_created",
+        )
 
     def test_checkout_session_completed_ignores_generic_metadata_without_app(self) -> None:
         session = {

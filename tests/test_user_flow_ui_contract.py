@@ -177,13 +177,25 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("if (!shouldShowReleaseChecksums(state)) return \"\";", source)
         self.assertNotIn("if (!isAdminUser(state)) return \"\";", source)
 
-    def test_live_snapshot_admin_access_comes_from_billing_only(self) -> None:
+    def test_live_snapshot_admin_access_requires_verified_admin_identity(self) -> None:
         source = read_text("js/modules/accounts-live-snapshot.js")
 
-        self.assertNotIn("isAdminIdentity", source)
-        self.assertIn("const billingIsAdmin = state?.billing?.isAdmin === true", source)
-        self.assertIn("isAdmin: billingIsAdmin", source)
+        self.assertIn('import { isAdminMode } from "./admin-mode.js', source)
+        self.assertIn("isAdmin: isAdminMode(state)", source)
+        self.assertNotIn("const billingIsAdmin = state?.billing?.isAdmin === true", source)
         self.assertNotIn("auth.user?.email),", source)
+
+    def test_admin_identity_is_limited_to_owner_gmail(self) -> None:
+        auth_source = read_text("js/modules/auth-session.js")
+        billing_source = read_text("js/modules/billing-status.js")
+        connections_source = read_text("js/modules/connections.js")
+        debug_source = read_text("js/modules/debug.js")
+
+        self.assertIn('"kevinmartinezpallares@gmail.com"', auth_source)
+        self.assertNotIn("kevinmartinezpallares@hotmail.com", auth_source)
+        self.assertIn("isAdminIdentity(currentUser.id, currentUser.email)", billing_source)
+        self.assertIn("isAdminMode(state)", connections_source)
+        self.assertIn("isAdminMode(state)", debug_source)
 
     def test_dynamic_admin_navigation_is_hidden_from_billing_state(self) -> None:
         source = read_text("app.js")

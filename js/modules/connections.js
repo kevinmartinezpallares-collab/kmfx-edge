@@ -6,6 +6,7 @@ import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-2026050
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260513-071500";
 import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260509-150500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260513-071500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -362,7 +363,7 @@ function renderConnectionAccessState(connectionAccess) {
 }
 
 function isAdminUser(state) {
-  return state?.billing?.isAdmin === true;
+  return isAdminMode(state);
 }
 
 function shouldShowReleaseChecksums(state = {}) {
@@ -392,7 +393,8 @@ function buildAuthHeaders(state, extra = {}) {
 function applyAdminAccess(store, isAdmin) {
   if (typeof isAdmin !== "boolean") return;
   store.setState((state) => {
-    if (state.auth?.user?.is_admin === isAdmin && state.auth?.user?.role === (isAdmin ? "admin" : "user")) {
+    const effectiveAdmin = isAdmin === true && isAdminMode(state);
+    if (state.auth?.user?.is_admin === effectiveAdmin && state.auth?.user?.role === (effectiveAdmin ? "admin" : "user")) {
       return state;
     }
     return {
@@ -401,8 +403,8 @@ function applyAdminAccess(store, isAdmin) {
         ...(state.auth || {}),
         user: {
           ...(state.auth?.user || {}),
-          is_admin: isAdmin,
-          role: isAdmin ? "admin" : "user",
+          is_admin: effectiveAdmin,
+          role: effectiveAdmin ? "admin" : "user",
         },
       },
     };

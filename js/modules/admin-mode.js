@@ -1,5 +1,8 @@
+import { isAdminIdentity } from "./auth-session.js?v=build-20260509-150500";
+
 export function isAdminMode(state) {
-  return state?.billing?.isAdmin === true;
+  const user = state?.auth?.user || {};
+  return state?.billing?.isAdmin === true && isAdminIdentity(user.id, user.email);
 }
 
 function escapeAdminText(value) {

@@ -1,6 +1,7 @@
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260509-150500";
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260509-150500";
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260511-071500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260513-071500";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 10 * 60 * 1000;
@@ -156,12 +157,11 @@ function buildAuthHeaders(state) {
 function authContext(state = {}) {
   const auth = state.auth || {};
   const userId = String(auth.user?.id || "").trim().toLowerCase();
-  const billingIsAdmin = state?.billing?.isAdmin === true;
   return {
     isAuthenticated: auth.status === "authenticated",
     userId,
     email: String(auth.user?.email || "").trim().toLowerCase(),
-    isAdmin: billingIsAdmin,
+    isAdmin: isAdminMode(state),
     hasToken: Boolean(auth.session?.accessToken),
   };
 }
@@ -249,7 +249,8 @@ function keepLiveAccountsDuringTransientSnapshotFailure(store, reason = "http_er
 function applyAdminAccess(store, isAdmin) {
   if (typeof isAdmin !== "boolean") return;
   store.setState((state) => {
-    if (state.auth?.user?.is_admin === isAdmin && state.auth?.user?.role === (isAdmin ? "admin" : "user")) {
+    const effectiveAdmin = isAdmin === true && isAdminMode(state);
+    if (state.auth?.user?.is_admin === effectiveAdmin && state.auth?.user?.role === (effectiveAdmin ? "admin" : "user")) {
       return state;
     }
     return {
@@ -258,8 +259,8 @@ function applyAdminAccess(store, isAdmin) {
         ...(state.auth || {}),
         user: {
           ...(state.auth?.user || {}),
-          is_admin: isAdmin,
-          role: isAdmin ? "admin" : "user",
+          is_admin: effectiveAdmin,
+          role: effectiveAdmin ? "admin" : "user",
         },
       },
     };

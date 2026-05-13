@@ -1,4 +1,5 @@
 import { analyticsTabForPage, navigationParentForPage } from "./route-map.js?v=build-20260509-150500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260513-071500";
 
 const primaryItems = [
   { page: "dashboard", label: "Dashboard", icon: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>' },
@@ -128,7 +129,7 @@ export function initMobileNav(store) {
 
   const render = (state) => {
     const activePage = state.ui.activePage;
-    const isAdmin = state.billing?.isAdmin === true;
+    const isAdmin = isAdminMode(state);
     const visibleMoreListSections = visibleSectionsFor(moreListSections, isAdmin);
     const hasPrimaryMatch = primaryItems.some((item) => isPageActive(activePage, item.page));
     const moreOpen = Boolean(root.__mobileNavState.moreOpen);

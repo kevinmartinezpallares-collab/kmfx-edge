@@ -2035,6 +2035,7 @@ def billing_email_from_sources(*sources: dict[str, Any]) -> str:
         customer_details = ensure_dict(data.get("customer_details"))
         for value in (
             data.get("customer_email"),
+            data.get("email"),
             customer_details.get("email"),
             metadata.get("kmfx_user_email"),
             metadata.get("user_email"),
@@ -2286,6 +2287,16 @@ def stripe_subscription_belongs_to_kmfx(subscription: dict[str, Any]) -> bool:
     if safe_str(metadata.get("app")).lower() == "kmfx_edge":
         return True
     return stripe_price_belongs_to_kmfx(first_subscription_price(subscription))
+
+
+def stripe_interval_from_price(price: dict[str, Any]) -> str:
+    recurring = ensure_dict(ensure_dict(price).get("recurring"))
+    interval = safe_str(recurring.get("interval")).lower()
+    if interval == "year":
+        return "yearly"
+    if interval == "month":
+        return "monthly"
+    return "monthly"
 
 
 def stripe_checkout_session_belongs_to_kmfx(session: dict[str, Any]) -> bool:
@@ -2640,6 +2651,23 @@ def existing_kmfx_subscription_for_checkout(context: dict[str, Any], customer_id
         row = {}
     if billing_row_blocks_new_checkout(row):
         return row
+    checked_customer_ids = {customer_id} if customer_id else set()
+    if email:
+        try:
+            email_customers = stripe_customers_for_email(email)
+        except RuntimeError:
+            email_customers = []
+        for customer in email_customers:
+            email_customer_id = safe_str(ensure_dict(customer).get("id"))
+            if not email_customer_id or email_customer_id in checked_customer_ids:
+                continue
+            checked_customer_ids.add(email_customer_id)
+            try:
+                row = sync_latest_kmfx_subscription_for_customer(email_customer_id, user_id=user_id, email=email)
+            except RuntimeError:
+                row = {}
+            if billing_row_blocks_new_checkout(row):
+                return row
     return {}
 
 
@@ -2889,6 +2917,24 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
         if not stripe_subscription_belongs_to_kmfx(data_object):
             return {"ignored": "non_kmfx_subscription"}
         result = sync_billing_subscription(data_object)
+        if event_type == "customer.subscription.created":
+            metadata = ensure_dict(data_object.get("metadata"))
+            price = first_subscription_price(data_object)
+            email = billing_email_from_sources(data_object)
+            if not email:
+                customer_id = safe_str(data_object.get("customer"))
+                if customer_id:
+                    try:
+                        email = billing_email_from_sources(fetch_stripe_customer(customer_id))
+                    except RuntimeError:
+                        email = ""
+            if email:
+                result["email"] = send_purchase_confirmation_email(
+                    email=email,
+                    plan=safe_str(result.get("plan") or metadata.get("kmfx_plan") or metadata.get("plan_key") or stripe_plan_from_price(price), "pro"),
+                    interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval") or stripe_interval_from_price(price), "monthly"),
+                    event_id=safe_str(event.get("id")),
+                )
         if event_type == "customer.subscription.deleted":
             result["email"] = send_subscription_canceled_email(
                 email=billing_email_from_sources(data_object),
@@ -6969,6 +7015,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
         email = safe_str(context.get("email")).lower()
         existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
         if existing_subscription:
+            portal_customer_id = safe_str(existing_subscription.get("stripe_customer_id")) or customer_id
             portal_return_url = billing_safe_return_url(
                 payload.get("return_url")
                 or payload.get("returnUrl")
@@ -6976,7 +7023,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
                 or payload.get("successUrl"),
                 f"{billing_public_app_url()}/ajustes?tab=subscription",
             )
-            portal_session = stripe_create_billing_portal_session(customer_id, portal_return_url)
+            portal_session = stripe_create_billing_portal_session(portal_customer_id, portal_return_url)
             portal_url = safe_str(portal_session.get("url"))
             return billing_json_response(
                 {
@@ -7094,13 +7141,15 @@ async def billing_portal(request: Request) -> JSONResponse:
         return rate_limited
     try:
         customer_id = ensure_billing_customer(context)
+        existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
+        portal_customer_id = safe_str(existing_subscription.get("stripe_customer_id")) or customer_id
     except RuntimeError as exc:
         reason = safe_str(exc) or "billing_customer_failed"
         status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
     try:
         session = stripe_create_billing_portal_session(
-            customer_id,
+            portal_customer_id,
             billing_safe_return_url(payload.get("return_url") or payload.get("returnUrl"), f"{billing_public_app_url()}/ajustes"),
         )
     except RuntimeError as exc:

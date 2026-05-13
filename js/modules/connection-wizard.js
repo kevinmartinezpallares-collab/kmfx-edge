@@ -3,6 +3,7 @@ import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
 import { showToast } from "./toast.js?v=build-20260509-150500";
 import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260509-150500";
 import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260513-071500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260513-071500";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -1104,7 +1105,7 @@ export function openConnectionWizard(options = {}) {
     loading: false,
     checking: false,
     showKey: false,
-    isAdmin: initialStoreState?.billing?.isAdmin === true,
+    isAdmin: isAdminMode(initialStoreState),
     syncStatus: { status: "", title: "", message: "" },
     ea: {
       label: "",
