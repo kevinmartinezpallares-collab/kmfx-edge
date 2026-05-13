@@ -194,6 +194,9 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('"kevinmartinezpallares@gmail.com"', auth_source)
         self.assertNotIn("kevinmartinezpallares@hotmail.com", auth_source)
         self.assertIn("isAdminIdentity(currentUser.id, currentUser.email)", billing_source)
+        self.assertIn("export function isEffectiveBillingAdmin", billing_source)
+        self.assertIn("if (isEffectiveBillingAdmin(state)) return true;", billing_source)
+        self.assertNotIn("if (billingState.isAdmin === true) return true;", billing_source)
         self.assertIn("isAdminMode(state)", connections_source)
         self.assertIn("isAdminMode(state)", debug_source)
 
@@ -202,7 +205,19 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn("const syncAdminUI = (state = store.getState()) =>", source)
         self.assertIn('document.querySelectorAll("[data-admin-only]")', source)
+        self.assertIn("isEffectiveBillingAdmin(state)", source)
+        self.assertNotIn("if (billingState.isAdmin === true) return false;", source)
         self.assertNotIn("const adminOnlyNodes = [...document.querySelectorAll", source)
+
+    def test_feature_modules_do_not_trust_raw_billing_admin_flag(self) -> None:
+        funded = read_text("js/modules/funded.js")
+        risk = read_text("js/modules/risk.js")
+
+        self.assertIn('import { isAdminMode } from "./admin-mode.js', funded)
+        self.assertIn("return isAdminMode(state);", funded)
+        self.assertIn("isAdminMode(state) ? `<div class=\"risk-lock-meta\"", risk)
+        self.assertNotIn("state.billing?.isAdmin === true", funded)
+        self.assertNotIn("state.billing?.isAdmin === true", risk)
 
     def test_add_account_entrypoints_use_billing_entitlement_gate(self) -> None:
         dashboard = read_text("js/modules/dashboard.js")

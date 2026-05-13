@@ -109,10 +109,16 @@ export function selectBillingStatus(state = {}) {
   return state.billing && typeof state.billing === "object" ? state.billing : DEFAULT_BILLING_STATUS;
 }
 
+export function isEffectiveBillingAdmin(state = {}) {
+  const billingState = selectBillingStatus(state);
+  const currentUser = state?.auth?.user || {};
+  return billingState.isAdmin === true && isAdminIdentity(currentUser.id, currentUser.email);
+}
+
 export function hasBillingEntitlement(state = {}, entitlement = "", { allowLimited = true } = {}) {
   if (!entitlement) return false;
   const billingState = selectBillingStatus(state);
-  if (billingState.isAdmin === true) return true;
+  if (isEffectiveBillingAdmin(state)) return true;
   const value = billingState.entitlements?.[entitlement];
   if (value === true) return true;
   const normalized = String(value ?? "").toLowerCase();

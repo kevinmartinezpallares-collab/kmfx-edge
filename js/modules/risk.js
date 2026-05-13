@@ -2,7 +2,7 @@ import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveAct
 import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
 import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260509-150500";
 import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260509-150500";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
+import { isAdminMode, renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
 import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260509-150500";
@@ -1716,7 +1716,7 @@ export function renderRisk(root, state) {
           <strong>Panic lock activo</strong>
           <span>La operativa está congelada mientras el enforcement mantenga bloqueo sobre nuevas entradas.</span>
         </div>
-        ${state.billing?.isAdmin === true ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
+        ${isAdminMode(state) ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
       </article>
     ` : ""}
     ` : ""}

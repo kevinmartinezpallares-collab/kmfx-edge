@@ -24,7 +24,7 @@ import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260510
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-110500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-071500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260509-150500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
@@ -1003,7 +1003,7 @@ function initSettings(authSession = null) {
     if (state.auth?.status !== "authenticated") return false;
     const billingState = selectBillingStatus(state);
     if (billingState.loading || !billingState.loadedAt || billingState.error) return false;
-    if (billingState.isAdmin === true) return false;
+    if (isEffectiveBillingAdmin(state)) return false;
     const access = String(billingState.billing?.access || "").toLowerCase();
     if (access === "active") return false;
     if (!["free", "restricted", "billing_attention"].includes(access)) return false;
