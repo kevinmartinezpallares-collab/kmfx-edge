@@ -276,7 +276,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260513-121500",
+                        f"{module}.js?v=build-20260514-013000",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -285,11 +285,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260513-121500"', html)
-        self.assertIn('const BUILD_TAG = "build-20260513-121500";', app)
+        self.assertIn('src="./app.js?v=build-20260514-013000"', html)
+        self.assertIn('const BUILD_TAG = "build-20260514-013000";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260513-121500",
+                f"./js/modules/{module}.js?v=build-20260514-013000",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )

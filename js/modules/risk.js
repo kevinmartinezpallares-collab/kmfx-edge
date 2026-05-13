@@ -1,12 +1,12 @@
-import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260509-150500";
-import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
-import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260513-121500";
-import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260509-150500";
-import { isAdminMode, renderAdminTracePanel } from "./admin-mode.js?v=build-20260513-121500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260513-121500";
-import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260509-150500";
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-150500";
+import { formatCurrency, formatDateTime, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount } from "./utils.js?v=build-20260514-013000";
+import { badgeMarkup } from "./status-badges.js?v=build-20260514-013000";
+import { selectVisibleUserProfile } from "./auth-session.js?v=build-20260514-013000";
+import { persistLocalPreferences, readLocalPreferences, saveSupabaseUserConfig } from "./supabase-user-config.js?v=build-20260514-013000";
+import { isAdminMode, renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-013000";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-013000";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-013000";
+import { normalizeRiskSnapshot } from "./risk-live-snapshot.js?v=build-20260514-013000";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260514-013000";
 const RISK_PANEL_STORAGE_KEY = "kmfx.risk.panel.config.v1";
 
 function escapeHtml(value = "") {

@@ -1,4 +1,4 @@
-import { formatCurrency, formatPercent } from "./utils.js?v=build-20260509-150500";
+import { formatCurrency, formatPercent } from "./utils.js?v=build-20260514-013000";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

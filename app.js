@@ -1,33 +1,33 @@
-import { createStore } from "./js/modules/store.js?v=build-20260513-121500";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260513-121500";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260513-121500";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260513-121500";
-import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260513-121500";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260513-121500";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260513-121500";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260513-121500";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260513-121500";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260513-121500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260513-121500";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260513-121500";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260513-121500";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260513-121500";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260513-121500";
-import { renderMarket } from "./js/modules/market.js?v=build-20260513-121500";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260513-121500";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260513-121500";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260513-121500";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260513-121500";
-import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260513-121500";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260513-121500";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260513-121500";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260513-121500";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260513-121500";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-121500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-121500";
-import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260513-121500";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260513-121500";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260513-121500";
+import { createStore } from "./js/modules/store.js?v=build-20260514-013000";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260514-013000";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260514-013000";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260514-013000";
+import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260514-013000";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260514-013000";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260514-013000";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260514-013000";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260514-013000";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260514-013000";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260514-013000";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260514-013000";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260514-013000";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260514-013000";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260514-013000";
+import { renderMarket } from "./js/modules/market.js?v=build-20260514-013000";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260514-013000";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260514-013000";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260514-013000";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260514-013000";
+import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260514-013000";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260514-013000";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514-013000";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-013000";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-013000";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-013000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-013000";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-013000";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-013000";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-013000";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260513-121500";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260513-121500";
+} from "./js/modules/auth-session.js?v=build-20260514-013000";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260514-013000";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,8 +45,8 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260513-121500";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260513-121500";
+} from "./js/modules/supabase-user-config.js?v=build-20260514-013000";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260514-013000";
 import {
   resolveAccountsRegistryUrl,
   resolveAccountsSnapshotUrl,
@@ -54,9 +54,9 @@ import {
   resolveBillingCheckoutUrl,
   resolveBillingPortalUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260513-121500";
+} from "./js/modules/api-config.js?v=build-20260514-013000";
 
-const BUILD_TAG = "build-20260513-121500";
+const BUILD_TAG = "build-20260514-013000";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();

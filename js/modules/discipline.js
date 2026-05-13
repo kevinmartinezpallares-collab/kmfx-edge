@@ -1,6 +1,6 @@
-import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
-import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
+import { buildApiUrl } from "./api-config.js?v=build-20260514-013000";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-013000";
+import { getAccountingDayKey, getAccountingHour, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-013000";
 
 // === DISCIPLINE SECTION ===
 export const disciplineData = {
