@@ -982,7 +982,7 @@ class DashboardRenderSmokeTests(unittest.TestCase):
             "resolveServerConnectionPreview",
             "connectionKeyMatchesPreview",
             "connection_key_preview",
-            "forgetLocalConnectionKey(account.account_id)",
+            "fetchOwnAccountConnectionKey(accountId, state)",
         ]:
             self.assertIn(needle, source)
         self.assertNotIn("Reparar conexión", source)

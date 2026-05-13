@@ -11,7 +11,6 @@ const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
-const LOCAL_CONNECTION_KEYS_STORAGE_KEY = "kmfx.connectionKeys.v1";
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -476,58 +475,6 @@ function copyText(value, successLabel = "Copiado") {
   complete();
 }
 
-function readLocalConnectionKeys() {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY) || "{}");
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function persistLocalConnectionKey({ accountId = "", connectionKey = "", label = "", state = {} } = {}) {
-  const normalizedAccountId = String(accountId || "").trim();
-  const normalizedKey = String(connectionKey || "").trim();
-  if (!normalizedAccountId || !normalizedKey) return;
-  try {
-    const cache = readLocalConnectionKeys();
-    cache[normalizedAccountId] = {
-      accountId: normalizedAccountId,
-      connectionKey: normalizedKey,
-      label: String(label || "").trim(),
-      userId: state?.auth?.user?.id || "",
-      updatedAt: new Date().toISOString(),
-    };
-    window.localStorage.setItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY, JSON.stringify(cache));
-  } catch {
-    // The account still works if browser storage is unavailable.
-  }
-}
-
-function forgetLocalConnectionKey(accountId = "") {
-  const normalizedAccountId = String(accountId || "").trim();
-  if (!normalizedAccountId) return;
-  try {
-    const cache = readLocalConnectionKeys();
-    if (!Object.prototype.hasOwnProperty.call(cache, normalizedAccountId)) return;
-    delete cache[normalizedAccountId];
-    window.localStorage.setItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY, JSON.stringify(cache));
-  } catch {
-    // Browser storage is best-effort only.
-  }
-}
-
-function resolveLocalConnectionKey(accountId = "", state = {}) {
-  const normalizedAccountId = String(accountId || "").trim();
-  if (!normalizedAccountId) return "";
-  const cached = readLocalConnectionKeys()[normalizedAccountId];
-  if (!cached || typeof cached !== "object") return "";
-  const currentUserId = String(state?.auth?.user?.id || "").trim();
-  const cachedUserId = String(cached.userId || "").trim();
-  if (cachedUserId && currentUserId && cachedUserId !== currentUserId) return "";
-  return String(cached.connectionKey || "").trim();
-}
-
 function maskConnectionKeyForDisplay(value = "") {
   const normalized = String(value || "").trim();
   if (!normalized) return "";
@@ -742,9 +689,6 @@ function resolveAccountConnectionKey(account, state, activeAccount = null) {
   const directMatch = directCandidates.find((candidate) => connectionKeyMatchesPreview(candidate, serverPreview));
   if (directMatch) return directMatch;
 
-  const localKey = resolveLocalConnectionKey(account.account_id, state);
-  if (connectionKeyMatchesPreview(localKey, serverPreview)) return localKey;
-  if (localKey && serverPreview) forgetLocalConnectionKey(account.account_id);
   return "";
 }
 
@@ -1089,12 +1033,6 @@ function openAccountInfoModal(account, state, activeAccount = null) {
         }
         connectionKey = result.connectionKey;
         connectionPreview = maskConnectionKeyForDisplay(connectionKey);
-        persistLocalConnectionKey({
-          accountId,
-          connectionKey,
-          label: account.alias || account.display_name || account.login || "",
-          state,
-        });
         return true;
       }
       void (async () => {
@@ -1144,7 +1082,6 @@ async function deleteManagedAccount({ store, root, accountId }) {
       showToast(payload?.reason || "No pude borrar la cuenta.", "error");
       return;
     }
-    forgetLocalConnectionKey(accountId);
     store.setState((state) => ({
       ...state,
       managedAccounts: (state.managedAccounts || []).filter((account) => account.account_id !== accountId),

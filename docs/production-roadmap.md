@@ -1,9 +1,10 @@
 # Roadmap de Producción KMFX Edge
 
-Última revisión: 2026-05-11
+Última revisión: 2026-05-12
 Rama revisada: `main`
-Commit base: `cd9c383 Document production rollback runbook`
+Commit base: `44248f3 Record full production gate evidence`
 Auditoria actualizada: `docs/production-readiness-audit.md`
+Auditoria seguridad preproduccion: `docs/security/preproduction-security-scan-2026-05-12.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
 
 ## Resumen Ejecutivo
@@ -120,9 +121,10 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 
 Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para reducir riesgo antes de usuarios reales.
 
-- [ ] Ejecutar `codex-security:security-scan` repository-wide o sobre el diff final antes de go live.
+- [x] Ejecutar `codex-security:security-scan` enfocado sobre superficies criticas antes de go live.
   - Alcance: bridge localhost, Supabase/Auth, Cloudflare proxy MT5, CORS, account keys, billing/entitlements, endpoints admin y lógica financiera.
-  - Salida esperada: threat model, finding discovery, validacion, attack-path analysis y reporte markdown con hallazgos P0/P1/P2.
+  - Salida: `docs/security/preproduction-security-scan-2026-05-12.md`.
+  - Resultado: sin P0/P1 nuevo validado en codigo; quedan bloqueos operativos en GitHub governance, Supabase egress, clean-machine QA y conexion directa MT5 bloqueada.
 - [ ] Ejecutar auditoria UX con `audit` + `harden` + `polish` + `adapt`.
   - Alcance: dashboard desktop completo, estados vacios/error/bloqueados, accesibilidad, responsive final antes de produccion, consistencia KMFX/shadcn/Apple HIG.
   - Salida esperada: issues priorizados y correcciones aplicadas solo cuando esten validadas.
@@ -201,6 +203,8 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Bloqueo de KMFXKeys antiguas cerrado en el Launcher: reinstalar conector reutiliza la cuenta existente, resuelve la cuenta por preview de key o identidad MT5 y escribe la KMFXKey estable del dashboard en `MQL5/Files/kmfx_connection.conf`.
 - Los artefactos descargables macOS y Windows se reconstruyeron con el fix. Hasta que haya auto-update, quien tenga un Launcher antiguo debe descargarlo de nuevo desde el dashboard.
 - El runbook `docs/mt5-production-smoke-runbook.md` documenta el flujo de soporte: no crear cuentas duplicadas para reinstalar una cuenta, regenerar key solo por revocacion/filtracion/cambio explicito y validar que el EA vuelve a `Conectado a KMFX`.
+- Auditoria `codex-security:security-scan` cerrada sobre backend, Worker, Cuentas/keys, Launcher, billing y controles Supabase documentados; no aparece P0/P1 nuevo en codigo.
+- Riesgos operativos restantes de seguridad: activar GitHub branch protection/secret scanning/push protection, controlar o subir plan de Supabase por egress, mantener conexion directa MT5 bloqueada para usuario normal y ejecutar QA clean-machine del Launcher.
 - Siguiente cierre MT5: ejecutar smoke en macOS limpio y Windows real con usuario no-admin, plan valido, WebRequest autorizado, primer sync, cierre de Launcher y cuenta visible en dashboard.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -371,12 +375,17 @@ Criterio de salida:
 
 Objetivo: cerrar los riesgos que no se ven en el smoke funcional.
 
-- [ ] Seguridad completa con `codex-security:security-scan`.
+- [x] Seguridad enfocada preproduccion con `codex-security:security-scan`.
   - Bridge localhost y launcher.
   - Supabase Auth, RLS, app_metadata/user_metadata y billing.
   - Cloudflare proxy MT5.
   - CORS, headers, account keys, revocacion y rate limits.
   - Endpoints admin y rutas de ingest MT5.
+  - Evidencia: `docs/security/preproduction-security-scan-2026-05-12.md`.
+- [ ] Seguridad completa final antes de beta abierta con permisos externos confirmados.
+  - Reejecutar governance de GitHub con token admin.
+  - Confirmar Supabase egress controlado o plan actualizado.
+  - Confirmar clean-machine QA de Launcher.
 - [ ] UX y robustez con `audit`, `harden`, `polish` y `adapt`.
   - Estados vacios, carga, error, bloqueado y sin permisos.
   - Accesibilidad, foco, contraste, scroll y desktop/responsive.
@@ -532,10 +541,10 @@ Nota operativa:
 ## Orden de Trabajo Recomendado Desde Aquí
 
 1. Cerrar configuración operativa Stripe: lookup keys/metadata, Customer Portal, webhook endpoint y env vars Render.
-2. QA del flujo MT5/Launcher con usuario final: macOS limpio, Windows real, descarga, apertura, key, primer sync y cuenta visible.
-3. Pasada final desktop de UX/copy en secciones restantes, sin tocar el rediseño mobile profundo hasta preproducción.
-4. Ejecutar auditorias especializadas: seguridad, UX, launcher, Cloudflare y Supabase.
-5. Activar branch protection, secret scanning, push protection y release governance.
+2. Activar branch protection, secret scanning, push protection y release governance.
+3. QA del flujo MT5/Launcher con usuario final: macOS limpio, Windows real, descarga, apertura, key, primer sync y cuenta visible.
+4. Pasada final desktop de UX/copy en secciones restantes, sin tocar el rediseño mobile profundo hasta preproducción.
+5. Ejecutar auditorias restantes: UX, launcher packaging, Cloudflare y Supabase.
 6. Ejecutar smoke completo: auth, billing, MT5, métricas, legal, descargas y errores.
 7. Tag `v0.1.0-production-mvp`.
 8. Lanzamiento controlado.
