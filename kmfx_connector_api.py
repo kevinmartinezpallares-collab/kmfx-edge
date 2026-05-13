@@ -2872,10 +2872,16 @@ def _is_idempotent_conflict_error(exc: BaseException) -> bool:
     seen: set[int] = set()
     while current is not None and id(current) not in seen:
         seen.add(id(current))
+        message = safe_str(current)
+        if "idempotent" in message.lower() and "409" in message:
+            return True
         if isinstance(current, urllib.error.HTTPError) and getattr(current, "code", None) == 409:
-            return True
-        if isinstance(current, RuntimeError) and safe_str(current) == "supabase_http_409":
-            return True
+            try:
+                body = current.read().decode("utf-8", errors="replace")
+            except Exception:
+                body = ""
+            body_lower = body.lower()
+            return "duplicate" in body_lower or "billing_events" in body_lower or "stripe_event_id" in body_lower
         current = getattr(current, "__cause__", None) or getattr(current, "__context__", None)
     return False
 

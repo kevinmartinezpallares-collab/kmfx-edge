@@ -6,7 +6,9 @@ import unittest
 import os
 import tempfile
 import time
+import urllib.error
 from types import SimpleNamespace
+from io import BytesIO
 from unittest.mock import patch
 
 from account_keys import hash_connection_key, mask_connection_key
@@ -1971,6 +1973,24 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         payload = admin_mock.call_args.kwargs["payload"]
         self.assertEqual("failed", payload["status"])
         self.assertEqual("processing_started", payload["error"])
+
+    def test_billing_webhook_does_not_treat_foreign_key_409_as_idempotent(self) -> None:
+        self.assertFalse(connector_api._is_idempotent_conflict_error(RuntimeError("supabase_http_409")))
+
+    def test_billing_webhook_treats_billing_event_duplicate_409_as_idempotent(self) -> None:
+        body = BytesIO(
+            b'{"code":"23505","message":"duplicate key value violates unique constraint '
+            b'\\"billing_events_stripe_event_id_key\\""}'
+        )
+        error = urllib.error.HTTPError(
+            url="https://supabase.test/rest/v1/billing_events",
+            code=409,
+            msg="Conflict",
+            hdrs={},
+            fp=body,
+        )
+
+        self.assertTrue(connector_api._is_idempotent_conflict_error(error))
 
     def test_billing_event_currently_processing_is_not_started_twice(self) -> None:
         event = {
