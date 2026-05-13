@@ -141,6 +141,28 @@ El Launcher funciona en la maquina de desarrollo, pero produccion necesita evide
 - Primer sync visible en dashboard.
 - Launcher cerrado sin cortar la sincronizacion.
 
+### P2 - Supabase schema drift de configuracion de usuario
+
+Riesgo detectado:
+
+- El frontend usa tablas de configuracion (`user_profiles`,
+  `user_preferences`, `risk_rules`, `calculator_presets`,
+  `dashboard_objectives`) que no estaban completamente versionadas en
+  migraciones locales.
+
+Mitigacion aplicada:
+
+- Se añade migracion reproducible para esas tablas con RLS por usuario,
+  indices de ownership y grants solo a `authenticated`.
+- La migracion antigua de indice de presets queda tolerante si la tabla no
+  existe todavia.
+
+Riesgo restante:
+
+- Si Supabase produccion ya tenia tablas manuales con tipos incompatibles, hay
+  que aplicar primero en staging o revisar el plan de migracion antes del push
+  remoto.
+
 ### P3 - Gatekeeper/notarizacion
 
 El aviso de Apple es esperado porque se decidio no notarizar ahora. No bloquea la beta si esta documentado, pero soporte debe saber explicar `Abrir` desde Finder/context menu.

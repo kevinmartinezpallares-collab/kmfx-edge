@@ -449,3 +449,41 @@ Pendiente operativo:
 - Desplegar el Worker si Cloudflare no publica automáticamente desde `main`.
 - Tras deploy, ejecutar smoke externo y comprobar que una ruta ajena al flujo
   MT5 no llega a Render.
+
+## 2026-05-12 - Supabase user config schema
+
+Contexto:
+
+- Skill usado: `supabase:supabase-postgres-best-practices`.
+- Objetivo: que perfiles, preferencias, reglas, presets y objetivos del
+  dashboard queden reproducibles por migraciones y no dependan de tablas
+  creadas manualmente en Supabase.
+
+Cambios:
+
+- Nueva migracion `20260512112000_user_config_tables.sql`.
+- Tablas versionadas:
+  - `user_profiles`
+  - `user_preferences`
+  - `trading_accounts`
+  - `calculator_presets`
+  - `risk_rules`
+  - `dashboard_objectives`
+- RLS activado en todas las tablas.
+- Politicas por ownership con `(select auth.uid())` para evitar reevaluacion por
+  fila.
+- Indices de `user_id`, cuenta y ultimo preset para las consultas actuales del
+  dashboard.
+- La migracion antigua de indice de `calculator_presets` pasa a ser tolerante si
+  la tabla aun no existe en entornos antiguos.
+
+Validacion local:
+
+- `git diff --check`.
+- Revision estatica de RLS: sin grants a `anon` y sin `auth.uid()` directo.
+
+Pendiente operativo:
+
+- Aplicar migraciones en Supabase antes de beta abierta.
+- Si el entorno remoto ya tenia tablas creadas manualmente con tipos distintos,
+  revisar el diff en staging antes de aplicar en produccion.

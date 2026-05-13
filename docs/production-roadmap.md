@@ -547,6 +547,8 @@ Nota operativa:
 3. QA del flujo MT5/Launcher con usuario final: macOS limpio, Windows real, descarga, apertura, key, primer sync y cuenta visible.
 4. Pasada final desktop de UX/copy en secciones restantes, sin tocar el rediseño mobile profundo hasta preproducción.
 5. Ejecutar auditorias restantes: UX, launcher packaging, Cloudflare y Supabase.
+   - [x] Cloudflare Worker limitado a rutas MT5 permitidas.
+   - [x] Supabase: tablas de configuracion de usuario versionadas con RLS e indices de ownership.
 6. Ejecutar smoke completo: auth, billing, MT5, métricas, legal, descargas y errores.
 7. Tag `v0.1.0-production-mvp`.
 8. Lanzamiento controlado.
@@ -569,6 +571,7 @@ Nota operativa:
 - [ ] EA sincroniza con `mt5-api.kmfxedge.com`.
 - [ ] Dashboard muestra datos live del usuario correcto.
 - [ ] Usuarios normales no ven cuentas admin ni de otros usuarios.
+- [x] Configuracion de usuario en Supabase es reproducible por migraciones, no por tablas manuales.
 - [x] CI y smoke están verdes.
 - [x] Legal mínimo está publicado.
 - [x] Rollback está documentado.
