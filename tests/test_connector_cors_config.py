@@ -1465,6 +1465,9 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             params["subscription_data"]["trial_settings"],
         )
         self.assertEqual("if_required", params["payment_method_collection"])
+        self.assertRegex(stripe_mock.call_args.kwargs.get("idempotency_key", ""), r"^kmfx_checkout_[a-f0-9]{32}$")
+        self.assertNotIn(user_id, stripe_mock.call_args.kwargs.get("idempotency_key", ""))
+        self.assertNotIn("billing@example.com", stripe_mock.call_args.kwargs.get("idempotency_key", ""))
 
     def test_billing_checkout_opens_portal_when_subscription_already_exists(self) -> None:
         request = self._request(
@@ -2926,6 +2929,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(429, second.status_code)
         checkout_calls = [call for call in stripe_mock.call_args_list if call.args[1] == "/checkout/sessions"]
         self.assertEqual(1, len(checkout_calls))
+        self.assertRegex(checkout_calls[0].kwargs.get("idempotency_key", ""), r"^kmfx_checkout_[a-f0-9]{32}$")
         body = json.loads(second.body.decode("utf-8"))
         self.assertEqual("rate_limited", body["reason"])
 

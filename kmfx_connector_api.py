@@ -8,6 +8,7 @@ import html as html_lib
 import json
 import logging
 import os
+import re
 import tempfile
 import time
 import traceback
@@ -1874,7 +1875,20 @@ def read_json_http_response(response: Any) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def stripe_api_request(method: str, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+def stripe_idempotency_key(prefix: str, *parts: str) -> str:
+    material = "|".join(safe_str(part).lower() for part in parts if safe_str(part))
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest() if material else hashlib.sha256(prefix.encode("utf-8")).hexdigest()
+    normalized_prefix = re.sub(r"[^a-zA-Z0-9_-]+", "_", safe_str(prefix) or "kmfx")
+    return f"{normalized_prefix}_{digest[:32]}"
+
+
+def stripe_api_request(
+    method: str,
+    path: str,
+    params: dict[str, Any] | None = None,
+    *,
+    idempotency_key: str = "",
+) -> dict[str, Any]:
     secret = stripe_secret_key()
     if not secret:
         raise RuntimeError("stripe_not_configured")
@@ -1892,6 +1906,8 @@ def stripe_api_request(method: str, path: str, params: dict[str, Any] | None = N
         "Authorization": f"Bearer {secret}",
         "Stripe-Version": stripe_api_version(),
     }
+    if idempotency_key and method != "GET":
+        headers["Idempotency-Key"] = safe_str(idempotency_key)[:255]
     if body is not None:
         headers["Content-Type"] = "application/x-www-form-urlencoded"
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
@@ -7111,6 +7127,7 @@ async def billing_checkout(request: Request) -> JSONResponse:
             "POST",
             "/checkout/sessions",
             checkout_params,
+            idempotency_key=stripe_idempotency_key("kmfx_checkout", user_id, plan, interval),
         )
     except ValueError as exc:
         return billing_json_response({"ok": False, "reason": safe_str(exc) or "invalid_request", "error": safe_str(exc) or "invalid_request"}, status_code=400)
