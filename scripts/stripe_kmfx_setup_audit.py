@@ -144,6 +144,25 @@ def expected_price_id(price: ExpectedPrice) -> str:
     return price.price_id
 
 
+def expected_price_ids() -> set[str]:
+    return {expected_price_id(price) for price in EXPECTED_PRICES}
+
+
+def audit_product(product_id: str) -> list[str]:
+    issues: list[str] = []
+    product = stripe_request("GET", f"/products/{urllib.parse.quote(product_id)}")
+    metadata = product.get("metadata") or {}
+    if product.get("id") != product_id:
+        issues.append(f"product:mismatched_id:{product_id}")
+    if product.get("active") is not True:
+        issues.append(f"product:not_active:{product_id}")
+    if metadata.get("app") != "kmfx_edge":
+        issues.append(f"product_mismatch:{product_id}:metadata.app")
+    if metadata.get("billing_model") != "subscription":
+        issues.append(f"product_mismatch:{product_id}:metadata.billing_model")
+    return issues
+
+
 def audit_prices(product_id: str, *, apply: bool = False) -> list[str]:
     issues: list[str] = []
     prices = {price.get("id"): price for price in list_all("/prices", {"product": product_id, "limit": 100})}
@@ -193,12 +212,62 @@ def audit_prices(product_id: str, *, apply: bool = False) -> list[str]:
     return issues
 
 
-def audit_customer_portal() -> list[str]:
+def feature_enabled(config: dict[str, Any], feature_name: str) -> bool:
+    features = config.get("features") or {}
+    feature = features.get(feature_name) or {}
+    return feature.get("enabled") is True
+
+
+def subscription_update_products(config: dict[str, Any]) -> list[dict[str, Any]]:
+    features = config.get("features") or {}
+    subscription_update = features.get("subscription_update") or {}
+    products = subscription_update.get("products")
+    if isinstance(products, list):
+        return [product for product in products if isinstance(product, dict)]
+    return []
+
+
+def audit_customer_portal(product_id: str) -> list[str]:
     issues: list[str] = []
     configs = list_all("/billing_portal/configurations", {"limit": 100})
     active = [config for config in configs if config.get("active")]
     if not active:
         issues.append("customer_portal:no_active_configuration")
+        return issues
+
+    required_features = [
+        "invoice_history",
+        "payment_method_update",
+        "subscription_cancel",
+        "subscription_update",
+    ]
+    for feature_name in required_features:
+        if not any(feature_enabled(config, feature_name) for config in active):
+            issues.append(f"customer_portal:feature_disabled:{feature_name}")
+
+    product_entries: list[dict[str, Any]] = []
+    for config in active:
+        product_entries.extend(subscription_update_products(config))
+    if not product_entries:
+        issues.append("customer_portal:subscription_update:no_products_configured")
+        return issues
+
+    expected_ids = expected_price_ids()
+    kmfx_prices: set[str] = set()
+    for product_entry in product_entries:
+        entry_product_id = str(product_entry.get("product") or "")
+        if entry_product_id != product_id:
+            issues.append(f"customer_portal:subscription_update:external_product:{entry_product_id or 'unknown'}")
+            continue
+        prices = product_entry.get("prices")
+        if isinstance(prices, list):
+            kmfx_prices.update(str(price_id) for price_id in prices if isinstance(price_id, str))
+
+    if not kmfx_prices:
+        issues.append(f"customer_portal:subscription_update:missing_product:{product_id}")
+    else:
+        for missing_price_id in sorted(expected_ids - kmfx_prices):
+            issues.append(f"customer_portal:subscription_update:missing_price:{missing_price_id}")
     return issues
 
 
@@ -234,8 +303,9 @@ def main() -> int:
     args = parser.parse_args()
 
     issues = []
+    issues.extend(audit_product(args.product_id))
     issues.extend(audit_prices(args.product_id, apply=args.apply_price_metadata))
-    issues.extend(audit_customer_portal())
+    issues.extend(audit_customer_portal(args.product_id))
     issues.extend(audit_webhook(args.webhook_url))
 
     result = {

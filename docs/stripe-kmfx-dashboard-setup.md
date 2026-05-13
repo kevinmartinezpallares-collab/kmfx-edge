@@ -18,7 +18,7 @@ Para completar lookup keys y metadata de los seis Prices KMFX por API, usar solo
 STRIPE_SECRET_KEY=sk_live_... python3 scripts/stripe_kmfx_setup_audit.py --apply-price-metadata
 ```
 
-La herramienta solo toca los seis Price IDs documentados aqui. Customer Portal y webhook se auditan en modo lectura; si faltan, deben crearse en Stripe Dashboard o API antes de cobrar.
+La herramienta solo toca los seis Price IDs documentados aqui cuando se usa `--apply-price-metadata`. Producto, Customer Portal y webhook se auditan en modo lectura; si faltan, deben corregirse en Stripe Dashboard o API antes de cobrar.
 
 ## Catalogo live creado
 
@@ -59,6 +59,8 @@ Configurar portal sin afectar productos externos:
 - no incluir productos/precios externos;
 - mostrar cancelacion al final del periodo pagado.
 
+El audit marca fallo si el portal no tiene `invoice_history`, `payment_method_update`, `subscription_cancel` y `subscription_update` activos, o si `subscription_update` incluye productos externos o no incluye los seis Prices de KMFX.
+
 ## Webhook KMFX exclusivo
 
 Crear un endpoint exclusivo para KMFX:
@@ -74,6 +76,7 @@ Eventos minimos:
 - `customer.subscription.deleted`
 - `invoice.paid`
 - `invoice.payment_failed`
+- `invoice.payment_action_required`
 
 Copiar el signing secret `whsec_...` a Render como `STRIPE_WEBHOOK_SECRET`.
 

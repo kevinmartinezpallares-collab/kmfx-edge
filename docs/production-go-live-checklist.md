@@ -91,7 +91,7 @@ Notas 2026-05-13:
 - Launcher simplificado en `0c13fd7`: la accion local vuelve a ser solo instalar/reinstalar el conector en MT5. La app local no repara, crea ni regenera KMFXKeys; la key estable se consulta en `Cuentas > Ver detalles`.
 - Artefactos reconstruidos y smokeados tras `0c13fd7`:
   - macOS ZIP `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
-  - Windows EXE `aadb5b79c4bc9bb1625394624d99bc00ad805efc69596c7dfd97743b489ba320`
+  - Windows EXE `8909c79d57c56976f0073a9fe44a32e51cf58ea7296394a323876eaa4a47f12b`
 
 ## Fase 1 - Contrato de Metricas
 

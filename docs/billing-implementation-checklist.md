@@ -100,3 +100,8 @@ Notes 2026-05-12:
 - Local `STRIPE_SECRET_KEY` is not present, so this session cannot mutate Stripe Price metadata or Customer Portal safely.
 - Backend defaults and `.env.example` now use live Price IDs as the production-safe fallback. Lookup keys remain a maintenance improvement, not a launch blocker while Render uses Price IDs.
 - `scripts/stripe_kmfx_setup_audit.py` now ignores lookup-key env values when auditing live Price IDs, so it can be run before and after lookup keys are applied without false `missing_price` results.
+
+Notes 2026-05-13:
+
+- `scripts/stripe_kmfx_setup_audit.py` now also validates Product metadata, required Customer Portal features, Customer Portal subscription-update product scope, the six KMFX Price IDs and the `invoice.payment_action_required` webhook event.
+- The audit remains read-only unless `--apply-price-metadata` is passed; that flag only applies lookup keys/metadata to the six documented KMFX Prices.

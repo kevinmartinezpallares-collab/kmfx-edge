@@ -233,9 +233,9 @@ Artefactos publicados:
   - macOS ZIP:
     `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
   - Windows EXE:
-    `aadb5b79c4bc9bb1625394624d99bc00ad805efc69596c7dfd97743b489ba320`
+    `8909c79d57c56976f0073a9fe44a32e51cf58ea7296394a323876eaa4a47f12b`
   - Windows ZIP:
-    `543d15b6c27ba69899db02bba62e8f2768df9c4fa9845a0b2e92fa814f8e28b2`
+    `b5f00e62a971ee358aedf54382a02f1acf8534398dc62da7f9bd96e06bf9e8ae`
 
 Validacion local:
 
