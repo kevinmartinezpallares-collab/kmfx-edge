@@ -174,7 +174,7 @@ Criterio de salida:
 Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 
 - [x] Confirmar catalogo final de productos KMFX.
-- [ ] Confirmar lookup keys de Stripe:
+- [x] Confirmar lookup keys de Stripe:
   - `kmfx_basic_monthly`
   - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
@@ -182,7 +182,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
   - `kmfx_unlimited_monthly`
   - `kmfx_unlimited_yearly`
 - [x] Confirmar fallback production por Price IDs live en Render.
-- [ ] Configurar Customer Portal.
+- [x] Configurar Customer Portal.
 - [ ] Configurar webhook endpoint.
 - [ ] Revisar recibos automaticos de Stripe.
 - [x] Confirmar emails de compra con Resend.
@@ -196,7 +196,7 @@ Objetivo: que Stripe sea fuente economica y Supabase refleje acceso.
 - [ ] Probar cancelacion end-to-end en Stripe test/live controlado.
 - [ ] Probar cambio de plan end-to-end en Stripe test/live controlado.
 - [ ] Probar renovacion end-to-end en Stripe test/live controlado.
-- [ ] Probar cupon comunidad 100%.
+- [x] Probar cupon comunidad 100%.
 - [x] Confirmar cupon comunidad 100% creado en Stripe.
 - [x] Asegurar que webhooks solo afectan productos KMFX.
 - [x] Verificar idempotencia `stripe_event_id`.

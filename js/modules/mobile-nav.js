@@ -128,7 +128,7 @@ export function initMobileNav(store) {
 
   const render = (state) => {
     const activePage = state.ui.activePage;
-    const isAdmin = state.auth?.user?.is_admin === true || state.auth?.user?.role === "admin";
+    const isAdmin = state.billing?.isAdmin === true;
     const visibleMoreListSections = visibleSectionsFor(moreListSections, isAdmin);
     const hasPrimaryMatch = primaryItems.some((item) => isPageActive(activePage, item.page));
     const moreOpen = Boolean(root.__mobileNavState.moreOpen);

@@ -1,6 +1,5 @@
 export function isAdminMode(state) {
-  const user = state?.auth?.user || {};
-  return user.is_admin === true || user.role === "admin";
+  return state?.billing?.isAdmin === true;
 }
 
 function escapeAdminText(value) {

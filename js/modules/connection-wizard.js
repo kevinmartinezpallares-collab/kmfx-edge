@@ -2,7 +2,7 @@ import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500
 import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
 import { showToast } from "./toast.js?v=build-20260509-150500";
 import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260509-150500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260513-071500";
+import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260513-071500";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -1069,6 +1069,27 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
 
 export function openConnectionWizard(options = {}) {
   const initialStoreState = options.store?.getState?.() || {};
+  const connectionAccess = billingEntitlementState(initialStoreState, "launcherConnection", {
+    allowLimited: false,
+    allowPending: false,
+  });
+  if (!connectionAccess.allowed) {
+    openModal({
+      title: connectionAccess.reason === "auth_required" ? "Inicia sesión para conectar MT5" : "Activa KMFX Edge",
+      subtitle: connectionAccess.title || "Conexión MT5 no disponible",
+      maxWidth: 720,
+      content: `
+        <div class="connection-wizard__paywall">
+          <p>${escapeHtml(connectionAccess.description || "El plan actual no permite añadir cuentas MT5 live.")}</p>
+          <div class="connection-wizard__inline-actions">
+            <a class="btn-primary" href="/ajustes?tab=subscription">Ver planes</a>
+            <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
+          </div>
+        </div>
+      `,
+    });
+    return;
+  }
   const state = {
     step: resolveInitialStep(options),
     platform: options.platform || "mt5",
@@ -1077,7 +1098,7 @@ export function openConnectionWizard(options = {}) {
     loading: false,
     checking: false,
     showKey: false,
-    isAdmin: initialStoreState?.auth?.user?.is_admin === true,
+    isAdmin: initialStoreState?.billing?.isAdmin === true,
     syncStatus: { status: "", title: "", message: "" },
     ea: {
       label: "",

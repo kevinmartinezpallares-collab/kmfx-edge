@@ -362,7 +362,7 @@ function renderConnectionAccessState(connectionAccess) {
 }
 
 function isAdminUser(state) {
-  return state?.auth?.user?.is_admin === true;
+  return state?.billing?.isAdmin === true;
 }
 
 function buildAuthHeaders(state, extra = {}) {

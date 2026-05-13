@@ -2,7 +2,6 @@ import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500
 import { describeAccountAuthority, formatCurrency, formatDateTime, formatPercent, selectCurrentAccount } from "./utils.js?v=build-20260509-150500";
 import { badgeMarkup } from "./status-badges.js?v=build-20260509-150500";
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
-import { isAdminUserId } from "./auth-session.js?v=build-20260509-150500";
 import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
 import {
   FUNDING_RULE_PHASES,
@@ -61,8 +60,7 @@ function normalizeText(value = "") {
 }
 
 function isAdminState(state = {}) {
-  const user = state.auth?.user || {};
-  return Boolean(user.is_admin || user.role === "admin" || isAdminUserId(user.id));
+  return state.billing?.isAdmin === true;
 }
 
 function accountLogin(account = {}) {
@@ -1552,7 +1550,7 @@ export function initFunded(store) {
     if (!enriched) return;
     const linked = enriched.linked;
     const enrichedStatus = fundedStatusMeta(enriched.globalStatus);
-    const adminView = currentState.auth?.user?.role === "admin";
+    const adminView = isAdminState(currentState);
 
     openModal({
       title: `${enriched.propFirm} · ${linked?.name || enriched.label}`,

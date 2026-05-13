@@ -1716,7 +1716,7 @@ export function renderRisk(root, state) {
           <strong>Panic lock activo</strong>
           <span>La operativa está congelada mientras el enforcement mantenga bloqueo sobre nuevas entradas.</span>
         </div>
-        ${state.auth?.user?.role === "admin" ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
+        ${state.billing?.isAdmin === true ? `<div class="risk-lock-meta">Última lectura: ${formatDateTime(lastSyncAt)}</div>` : ""}
       </article>
     ` : ""}
     ` : ""}

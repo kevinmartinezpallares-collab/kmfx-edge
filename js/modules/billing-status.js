@@ -111,7 +111,7 @@ export function selectBillingStatus(state = {}) {
 export function hasBillingEntitlement(state = {}, entitlement = "", { allowLimited = true } = {}) {
   if (!entitlement) return false;
   const billingState = selectBillingStatus(state);
-  if (billingState.isAdmin === true || state.auth?.user?.is_admin === true) return true;
+  if (billingState.isAdmin === true) return true;
   const value = billingState.entitlements?.[entitlement];
   if (value === true) return true;
   const normalized = String(value ?? "").toLowerCase();
@@ -349,8 +349,8 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
         ...(current.auth || {}),
         user: {
           ...(current.auth?.user || {}),
-          is_admin: current.auth?.user?.is_admin === true || normalized.isAdmin,
-          role: normalized.isAdmin ? "admin" : current.auth?.user?.role || "user",
+          is_admin: normalized.isAdmin === true,
+          role: normalized.isAdmin === true ? "admin" : "user",
         },
       },
     }));

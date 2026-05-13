@@ -1400,8 +1400,28 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
             "timestamp": now_iso(),
         }
 
-    app_metadata = ensure_dict(context.get("app_metadata"))
+    app_metadata = dict(ensure_dict(context.get("app_metadata")))
+    billing_source = "app_metadata"
+    if not context.get("is_admin"):
+        try:
+            billing_row = backfill_billing_subscription_for_context(context)
+        except RuntimeError as exc:
+            log.warning(
+                "Billing backfill skipped | scope_user_id=%s reason=%s",
+                user_id,
+                safe_str(exc) or "billing_backfill_failed",
+            )
+            billing_row = {}
+        if billing_row:
+            app_metadata.update(subscription_app_metadata(billing_row))
+            billing_source = "billing_subscription"
     plan = normalize_plan_key(connection_plan_for_context(context))
+    plan = normalize_plan_key(
+        app_metadata.get("kmfx_plan")
+        or app_metadata.get("plan")
+        or app_metadata.get("billing_plan")
+        or plan
+    )
     status = billing_status_from_metadata(app_metadata, plan)
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
     if context.get("is_admin"):
@@ -1461,7 +1481,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         },
         "is_admin": bool(context.get("is_admin")),
         "scope_user_id": user_id,
-        "source": "app_metadata",
+        "source": billing_source,
         "timestamp": now_iso(),
     }
 
@@ -2291,6 +2311,48 @@ def supabase_fetch_billing_customer(user_id: str) -> dict[str, Any]:
     return {}
 
 
+def supabase_fetch_billing_customer_by_stripe_customer_id(stripe_customer_id: str) -> dict[str, Any]:
+    stripe_customer_id = safe_str(stripe_customer_id)
+    if not stripe_customer_id:
+        return {}
+    rows = supabase_admin_request(
+        "GET",
+        "/rest/v1/billing_customers",
+        query={
+            "stripe_customer_id": f"eq.{stripe_customer_id}",
+            "select": "user_id,stripe_customer_id,email,metadata",
+            "limit": "1",
+        },
+    )
+    if isinstance(rows, list) and rows:
+        return ensure_dict(rows[0])
+    return {}
+
+
+def supabase_fetch_current_billing_subscription(user_id: str) -> dict[str, Any]:
+    user_id = safe_str(user_id).lower()
+    if not user_id:
+        return {}
+    rows = supabase_admin_request(
+        "GET",
+        "/rest/v1/billing_subscriptions",
+        query={
+            "user_id": f"eq.{user_id}",
+            "is_current": "eq.true",
+            "select": (
+                "user_id,stripe_subscription_id,stripe_customer_id,stripe_product_id,"
+                "stripe_price_id,plan_key,status,current_period_start,current_period_end,"
+                "cancel_at_period_end,trial_end,is_current,metadata"
+            ),
+            "order": "current_period_end.desc.nullslast",
+            "limit": "1",
+        },
+    )
+    if isinstance(rows, list) and rows:
+        return ensure_dict(rows[0])
+    return {}
+
+
 def supabase_upsert_billing_customer(user_id: str, stripe_customer_id: str, email: str = "", metadata: dict[str, Any] | None = None) -> None:
     supabase_admin_request(
         "POST",
@@ -2469,10 +2531,22 @@ def fetch_stripe_customer(customer_id: str) -> dict[str, Any]:
     return stripe_api_request("GET", f"/customers/{urllib.parse.quote(customer_id)}")
 
 
+def stripe_customers_for_email(email: str) -> list[dict[str, Any]]:
+    email = safe_str(email).lower()
+    if not email:
+        return []
+    payload = stripe_api_request("GET", "/customers", {"email": email, "limit": 10})
+    data = payload.get("data")
+    return [ensure_dict(item) for item in data] if isinstance(data, list) else []
+
+
 def stripe_customer_user_id(customer_id: str) -> str:
     customer = fetch_stripe_customer(customer_id)
     metadata = ensure_dict(customer.get("metadata"))
-    return safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
+    resolved_user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id")).lower()
+    if resolved_user_id:
+        return resolved_user_id
+    return safe_str(supabase_fetch_billing_customer_by_stripe_customer_id(customer_id).get("user_id")).lower()
 
 
 def fetch_stripe_subscription(subscription_id: str) -> dict[str, Any]:
@@ -2483,6 +2557,75 @@ def fetch_stripe_subscription(subscription_id: str) -> dict[str, Any]:
         f"/subscriptions/{urllib.parse.quote(subscription_id)}",
         {"expand": ["items.data.price"]},
     )
+
+
+def list_stripe_customer_subscriptions(customer_id: str) -> list[dict[str, Any]]:
+    customer_id = safe_str(customer_id)
+    if not customer_id:
+        return []
+    payload = stripe_api_request(
+        "GET",
+        "/subscriptions",
+        {
+            "customer": customer_id,
+            "status": "all",
+            "limit": 20,
+            "expand": ["data.items.data.price"],
+        },
+    )
+    data = payload.get("data")
+    return [ensure_dict(item) for item in data] if isinstance(data, list) else []
+
+
+def subscription_priority(subscription: dict[str, Any]) -> tuple[int, int]:
+    status = safe_str(subscription.get("status")).lower()
+    status_rank = {
+        "active": 5,
+        "trialing": 4,
+        "paused": 3,
+        "past_due": 2,
+        "unpaid": 1,
+    }.get(status, 0)
+    try:
+        period_end = int(subscription.get("current_period_end") or subscription.get("trial_end") or 0)
+    except (TypeError, ValueError):
+        period_end = 0
+    return status_rank, period_end
+
+
+def sync_latest_kmfx_subscription_for_customer(customer_id: str, *, user_id: str, email: str = "") -> dict[str, Any]:
+    subscriptions = [
+        subscription
+        for subscription in list_stripe_customer_subscriptions(customer_id)
+        if stripe_subscription_belongs_to_kmfx(subscription)
+    ]
+    if not subscriptions:
+        return {}
+    subscription = sorted(subscriptions, key=subscription_priority, reverse=True)[0]
+    sync_billing_subscription(subscription, user_id=user_id, email=email)
+    return stripe_subscription_to_billing_row(subscription, user_id=user_id)
+
+
+def backfill_billing_subscription_for_context(context: dict[str, Any]) -> dict[str, Any]:
+    user_id = safe_str(context.get("user_id")).lower()
+    email = safe_str(context.get("email")).lower()
+    if not user_id:
+        return {}
+    row = supabase_fetch_current_billing_subscription(user_id)
+    if row:
+        return row
+    billing_customer = supabase_fetch_billing_customer(user_id)
+    customer_id = safe_str(billing_customer.get("stripe_customer_id"))
+    if customer_id:
+        row = sync_latest_kmfx_subscription_for_customer(customer_id, user_id=user_id, email=email)
+        if row:
+            return row
+    for customer in stripe_customers_for_email(email):
+        customer_id = safe_str(customer.get("id"))
+        row = sync_latest_kmfx_subscription_for_customer(customer_id, user_id=user_id, email=email)
+        if row:
+            return row
+    return {}
 
 
 def sync_billing_subscription(subscription: dict[str, Any], *, user_id: str = "", email: str = "") -> dict[str, Any]:

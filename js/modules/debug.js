@@ -11,7 +11,7 @@ function escapeHtml(value = "") {
 }
 
 export function renderDebug(root, state) {
-  if (state?.auth?.user?.role !== "admin") {
+  if (state?.billing?.isAdmin !== true) {
     root.innerHTML = "";
     return;
   }

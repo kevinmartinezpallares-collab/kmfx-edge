@@ -25,13 +25,13 @@ import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-11050
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-071500";
 import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260509-150500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
   initAuthSession,
-  isAdminUser,
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
@@ -190,7 +190,7 @@ function logBootState(label, state = store.getState(), extra = {}) {
 }
 
 function canUseDebugPage(state) {
-  return isAdminUser(state) || hasBillingEntitlement(state, "rawBridgeDebug", { allowLimited: false });
+  return isAdminMode(state) || hasBillingEntitlement(state, "rawBridgeDebug", { allowLimited: false });
 }
 
 function renderActivePage() {
@@ -411,7 +411,7 @@ function initSettings(authSession = null) {
   const densitySelect = document.querySelector('[data-settings-field="density"]');
 
   const syncAdminUI = (state = store.getState()) => {
-    const isAdmin = isAdminUser(state);
+    const isAdmin = isAdminMode(state);
     document.documentElement.dataset.adminMode = isAdmin ? "true" : "false";
     adminOnlyNodes.forEach((node) => {
       node.hidden = !isAdmin;
@@ -548,7 +548,7 @@ function initSettings(authSession = null) {
           : "Sin conexión";
     if (connectionStatus) connectionStatus.textContent = friendlyStatus;
     if (connectionSource) {
-      connectionSource.textContent = isAdminUser(state)
+      connectionSource.textContent = isAdminMode(state)
         ? (account.connection.source || "Conexión avanzada")
         : "Estado general de sincronización";
     }
