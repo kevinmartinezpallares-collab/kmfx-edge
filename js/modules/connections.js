@@ -4,7 +4,7 @@ import { showToast } from "./toast.js?v=build-20260509-150500";
 import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260509-150500";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260509-150500";
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
-import { billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260509-150500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260513-071500";
 import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260509-150500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -316,16 +316,24 @@ function renderBillingNotice(state = {}) {
   const billingState = selectBillingStatus(state);
   if (!isBillingRestricted(state) && !isBillingAttention(state) && !billingState.error) return "";
   const isRestricted = isBillingRestricted(state);
+  const isPaused = isBillingPaused(state);
   const title = billingState.error
     ? "No pude comprobar el plan"
-    : isRestricted
+    : isPaused
+      ? PAUSED_SUBSCRIPTION_TITLE
+      : isRestricted
       ? "Plan con acceso restringido"
       : "Pago pendiente de revisar";
   const copy = billingState.error
     ? "Puedes seguir usando el panel. KMFX volverá a comprobar el estado del plan automáticamente."
-    : isRestricted
+    : isPaused
+      ? PAUSED_SUBSCRIPTION_COPY
+      : isRestricted
       ? "Tus cuentas siguen visibles. La creación de nuevas conexiones queda pausada hasta regularizar el plan."
       : "Tus cuentas siguen visibles durante el periodo de gracia. La creación de nuevas conexiones puede pausarse hasta confirmar el pago.";
+  const actionHtml = isPaused
+    ? `<a class="btn-primary connections-shell__utility-btn" href="/ajustes?tab=subscription">${escapeHtml(PAUSED_SUBSCRIPTION_CTA)}</a>`
+    : "";
   return `
     <article class="widget-card connections-billing-notice connections-billing-notice--${isRestricted ? "restricted" : "attention"}">
       <div class="calendar-panel-head">
@@ -335,6 +343,7 @@ function renderBillingNotice(state = {}) {
         </div>
         <span class="risk-status-badge risk-status-badge--${isRestricted ? "blocked" : "warning"}">${escapeHtml(billingAccessLabel(state))}</span>
       </div>
+      ${actionHtml}
     </article>
   `;
 }
@@ -343,7 +352,7 @@ function renderConnectionAccessState(connectionAccess) {
   if (connectionAccess.allowed) return "";
   const actionHtml = connectionAccess.reason === "auth_required"
     ? ""
-    : `<a class="btn-secondary connections-shell__utility-btn" href="/ajustes">Revisar plan</a>`;
+    : `<a class="btn-secondary connections-shell__utility-btn" href="/ajustes?tab=subscription">${escapeHtml(connectionAccess.cta || "Revisar plan")}</a>`;
   return emptyStateMarkup({
     title: connectionAccess.title,
     description: connectionAccess.description,

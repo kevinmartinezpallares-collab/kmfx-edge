@@ -2,6 +2,7 @@ import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500
 import { buildApiUrl } from "./api-config.js?v=build-20260509-150500";
 import { showToast } from "./toast.js?v=build-20260509-150500";
 import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260509-150500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260513-071500";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -652,6 +653,15 @@ function formatConnectionError(payload, fallback = "No se pudo generar la clave 
     };
   }
   if (reason === "billing_required") {
+    const billingStatus = String(details.billing_status || details.status || "").toLowerCase();
+    if (billingStatus === "paused") {
+      return {
+        kind: "warning",
+        title: PAUSED_SUBSCRIPTION_TITLE,
+        message: PAUSED_SUBSCRIPTION_COPY,
+        hint: PAUSED_SUBSCRIPTION_CTA,
+      };
+    }
     return {
       kind: "warning",
       title: "Suscripción necesaria",

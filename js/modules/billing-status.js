@@ -131,9 +131,18 @@ const ENTITLEMENT_LABELS = {
   rawBridgeDebug: "Diagnóstico avanzado",
 };
 
+export const PAUSED_SUBSCRIPTION_TITLE = "Suscripción en pausa";
+export const PAUSED_SUBSCRIPTION_CTA = "Reanuda ahora y no pierdas tus métricas, tu historial ni tu progreso";
+export const PAUSED_SUBSCRIPTION_COPY = "Tu suscripción está en pausa. Añade un método de pago para recuperar el acceso completo y conservar todo tu seguimiento en KMFX Edge.";
+
 function isBillingPending(billingState = {}) {
   const source = String(billingState.source || "").toLowerCase();
   return Boolean(billingState.loading || (!billingState.loadedAt && (!source || source === "initial")));
+}
+
+export function isBillingPaused(state = {}) {
+  const billingState = selectBillingStatus(state);
+  return String(billingState.billing?.status || "").toLowerCase() === "paused";
 }
 
 export function billingEntitlementState(state = {}, entitlement = "", { allowLimited = true, allowPending = true } = {}) {
@@ -196,6 +205,19 @@ export function billingEntitlementState(state = {}, entitlement = "", { allowLim
   }
 
   if (access === "restricted") {
+    if (isBillingPaused(state)) {
+      return {
+        allowed: false,
+        pending: false,
+        reason: "billing_paused",
+        tone: "blocked",
+        label,
+        planName,
+        title: PAUSED_SUBSCRIPTION_TITLE,
+        description: PAUSED_SUBSCRIPTION_COPY,
+        cta: PAUSED_SUBSCRIPTION_CTA,
+      };
+    }
     return {
       allowed: false,
       pending: false,
@@ -249,6 +271,7 @@ export function billingAccessLabel(state = {}) {
   if (billingState.loading) return "Comprobando plan";
   if (billingState.error) return "Estado no disponible";
   const access = String(billingState.billing?.access || "").toLowerCase();
+  if (isBillingPaused(state)) return PAUSED_SUBSCRIPTION_TITLE;
   if (access === "restricted") return "Acceso restringido";
   if (access === "billing_attention") return "Pago pendiente";
   if (access === "active") return "Activo";
