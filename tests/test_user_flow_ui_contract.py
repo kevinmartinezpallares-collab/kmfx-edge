@@ -21,14 +21,17 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertGreater(len(site_key), 20)
         self.assertNotIn("SECRET", site_key.upper())
 
-    def test_email_signin_uses_turnstile_token_when_enabled(self) -> None:
+    def test_email_signin_does_not_require_turnstile_but_sensitive_auth_flows_do(self) -> None:
         source = read_text("js/modules/auth-ui.js")
 
-        self.assertIn('["signin", "signup", "forgot", "reset"].includes(mode)', source)
-        self.assertIn('ensureTurnstileCompleted("signin")', source)
-        self.assertIn('getTurnstileToken("signin")', source)
-        self.assertIn('resetTurnstileWidget("signin")', source)
-        self.assertIn("signInWithPassword?.({ email, password, captchaToken })", source)
+        self.assertIn('["signup", "forgot", "reset"].includes(mode)', source)
+        self.assertNotIn('ensureTurnstileCompleted("signin")', source)
+        self.assertNotIn('getTurnstileToken("signin")', source)
+        self.assertNotIn('resetTurnstileWidget("signin")', source)
+        self.assertIn("signInWithPassword?.({ email, password })", source)
+        self.assertIn('ensureTurnstileCompleted("signup")', source)
+        self.assertIn('ensureTurnstileCompleted("forgot")', source)
+        self.assertIn('ensureTurnstileCompleted("reset")', source)
 
     def test_turnstile_mount_retries_until_cloudflare_script_is_ready(self) -> None:
         source = read_text("js/modules/auth-ui.js")
@@ -42,10 +45,15 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('window.dispatchEvent(new Event("kmfx:turnstile-ready"))', html)
         self.assertIn(".auth-turnstile-loading", css)
 
-    def test_email_signin_sends_captcha_token_to_supabase_options(self) -> None:
+    def test_email_signin_does_not_send_captcha_token_to_supabase_options(self) -> None:
         source = read_text("js/modules/auth-session.js")
 
-        self.assertIn("signInPayload.options = withCaptchaToken({}, normalizedCaptchaToken)", source)
+        signin_start = source.index("signInWithPassword: async")
+        signup_start = source.index("signUpWithPassword: async", signin_start)
+        signin_source = source[signin_start:signup_start]
+        self.assertNotIn("captchaToken", signin_source)
+        self.assertNotIn("signInPayload.options", signin_source)
+        self.assertIn("signUpOptions.captchaToken = normalizedCaptchaToken", source)
         self.assertNotIn("signInPayload.captchaToken = normalizedCaptchaToken", source)
 
     def test_auth_captcha_token_is_kept_stable_during_pending_request(self) -> None:
@@ -55,7 +63,6 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("{ rerender: false }", source)
 
         for mode, pending_marker in [
-            ("signin", 'setAuthRequestPending("email", "Entrando...")'),
             ("signup", 'setAuthRequestPending("signup", "Creando cuenta...")'),
             ("forgot", 'setAuthRequestPending("reset-request", "Enviando...")'),
             ("reset", 'setAuthRequestPending("reset-password", "Actualizando...")'),
@@ -269,7 +276,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260513-234440",
+                        f"{module}.js?v=build-20260513-121500",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -278,11 +285,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260513-234440"', html)
-        self.assertIn('const BUILD_TAG = "build-20260513-234440";', app)
+        self.assertIn('src="./app.js?v=build-20260513-121500"', html)
+        self.assertIn('const BUILD_TAG = "build-20260513-121500";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260513-234440",
+                f"./js/modules/{module}.js?v=build-20260513-121500",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )
