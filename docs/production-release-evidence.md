@@ -351,6 +351,14 @@ Pendiente:
 - Confirmar desde Supabase Dashboard si el egress baja tras las mitigaciones de
   polling/cache.
 
+Actualizacion 2026-05-13:
+
+- Monitor recurrente ampliado para revisar tambien Render build pipeline
+  minutes/coste cada 6 horas junto al uso de Supabase.
+- Regla operativa anadida: commits solo de documentacion deben usar
+  `[skip render]` cuando no requieran deploy, para evitar consumo innecesario de
+  minutos de build.
+
 ## 2026-05-13 - Alertas operativas minimas
 
 Contexto:

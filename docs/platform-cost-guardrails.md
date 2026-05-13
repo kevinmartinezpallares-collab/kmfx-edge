@@ -15,6 +15,8 @@ Riesgo actual:
 Medidas operativas:
 
 - Agrupar cambios antes de hacer `git push` a `main`.
+- Si el cambio es solo documentacion, runbooks o checklist y no necesita
+  deploy, usar `[skip render]` en el mensaje de commit.
 - Ejecutar validacion local antes de cada push:
 
 ```bash
@@ -26,18 +28,29 @@ python3 scripts/production_gate.py
 - Usar commits de documentacion en bloque cuando no requieran deploy urgente.
 - Configurar un limite mensual personalizado de minutos de build en Render si
   se quiere cortar gasto automatico.
+- Mantener el monitor recurrente de costes para revisar Supabase y Render cada
+  6 horas durante la preparacion de beta.
 
 Decision manual recomendada:
 
 - En Render Dashboard, abrir `Workspace Settings > Build Pipeline` y usar
   `Set spend limit` / `Edit` para configurar un limite mensual de gasto en
   minutos de pipeline.
-- Valor sugerido durante beta cerrada: un limite bajo que permita emergencias,
-  por ejemplo 600-800 minutos/mes.
+- Para cero facturas sorpresa por build pipeline, configurar el limite en el
+  minimo que no permita comprar minutos adicionales fuera de los incluidos.
+- Si se acepta margen operativo controlado durante beta cerrada, usar un limite
+  bajo que permita emergencias, por ejemplo 600-800 minutos/mes.
 - Si el limite se alcanza, los deploys quedan pausados hasta el siguiente ciclo;
   el servicio ya desplegado deberia seguir funcionando.
 - El limite cubre pipeline/build minutes. El outbound bandwidth de Render se
   vigila aparte en la pagina de Billing/usage.
+
+Referencia operativa:
+
+- Render permite saltar un auto-deploy con `[skip render]` o `[render skip]` en
+  el mensaje de commit.
+- Render compra minutos suplementarios automaticamente al agotar los incluidos
+  salvo que se alcance el limite mensual de gasto o no haya metodo de pago.
 
 ## Supabase
 
@@ -67,6 +80,7 @@ Medidas operativas:
 ## Regla de despliegue
 
 - Push a `main` solo tras validar localmente.
-- Si un cambio no requiere deploy inmediato, acumularlo con el siguiente lote.
+- Si un cambio no requiere deploy inmediato, acumularlo con el siguiente lote o
+  usar `[skip render]`.
 - No activar planes/add-ons ni cambiar limites de facturacion sin aprobacion
   explicita del owner.
