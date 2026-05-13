@@ -207,6 +207,32 @@ Pendiente por credenciales de plataforma:
   protection, Dependabot security updates y branch protection de `main` siguen
   pendientes de confirmar desde GitHub Dashboard/API autenticada.
 
+## 2026-05-13 - XSS pass en vistas de riesgo MT5
+
+Contexto:
+
+- Rama: `main`.
+- Objetivo: cerrar otra superficie de `innerHTML` sin cambiar flujo ni diseno
+  visible.
+
+Cambio validado:
+
+- Las tablas de exposicion por simbolo y riesgo abierto escapan simbolo,
+  direccion y lado de posicion antes de pintar datos MT5.
+- Las cards de riesgo escapan labels, meta y clases de tono derivadas de estado.
+- La vista Talent escapa labels y notas dinamicas antes de renderizar.
+
+Validacion local:
+
+- `node --check js/modules/risk-panel-components.js`: verde.
+- `node --check js/modules/talent.js`: verde.
+- `git diff --check`: verde.
+
+Pendiente:
+
+- La auditoria XSS global sigue abierta hasta revisar todos los sinks restantes
+  de `innerHTML` ruta por ruta.
+
 ## 2026-05-13 - Checkpoint `ae26c85`
 
 Contexto:

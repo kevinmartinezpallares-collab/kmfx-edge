@@ -1,5 +1,14 @@
 import { formatCurrency, formatPercent } from "./utils.js?v=build-20260509-150500";
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatPlainPercent(value, digits = 2) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return "0,0%";
@@ -49,15 +58,15 @@ function formatEnforcementValue(value) {
 
 export function renderRiskStatusBadge(status = "unavailable", severity = "info") {
   const tone = riskToneFromStatus(status, severity);
-  return `<span class="risk-status-badge risk-status-badge--${tone}">${riskStatusLabel(status)}</span>`;
+  return `<span class="risk-status-badge risk-status-badge--${escapeHtml(tone)}">${escapeHtml(riskStatusLabel(status))}</span>`;
 }
 
 export function renderRiskMetricCard({ label, value, meta = "", tone = "neutral" }) {
   return `
-    <article class="risk-metric-card risk-metric-card--${tone}">
-      <div class="risk-metric-card__label">${label}</div>
+    <article class="risk-metric-card risk-metric-card--${escapeHtml(tone)}">
+      <div class="risk-metric-card__label">${escapeHtml(label)}</div>
       <div class="risk-metric-card__value">${value}</div>
-      ${meta ? `<div class="risk-metric-card__meta">${meta}</div>` : ""}
+      ${meta ? `<div class="risk-metric-card__meta">${escapeHtml(meta)}</div>` : ""}
     </article>
   `;
 }
@@ -69,11 +78,11 @@ export function renderRiskLimitBar({ label, currentPct, limitPct, distancePct, s
   return `
     <div class="risk-limit-bar">
       <div class="risk-limit-bar__top">
-        <span>${label}</span>
+        <span>${escapeHtml(label)}</span>
         <strong>${formatPlainPercent(safeCurrent)} / ${formatPlainPercent(safeLimit)}</strong>
       </div>
       <div class="risk-limit-bar__track">
-        <div class="risk-limit-bar__fill risk-limit-bar__fill--${state}" style="width:${clampWidth(usageRatio)}%"></div>
+        <div class="risk-limit-bar__fill risk-limit-bar__fill--${escapeHtml(state)}" style="width:${clampWidth(usageRatio)}%"></div>
       </div>
       <div class="risk-limit-bar__meta">
         <span>Uso ${formatPlainPercent(usageRatio, 1)}</span>
@@ -94,7 +103,7 @@ export function renderEnforcementPanel(status) {
     <div class="risk-enforcement-panel">
       ${items.map(([label, value]) => `
         <div class="risk-enforcement-panel__item">
-          <span>${label}</span>
+          <span>${escapeHtml(label)}</span>
           <strong class="${value ? "is-on" : "is-off"}">${formatEnforcementValue(value)}</strong>
         </div>
       `).join("")}
@@ -117,10 +126,10 @@ export function renderSymbolExposureTable(exposure = []) {
       </div>
       ${exposure.map((item) => `
         <div class="risk-exposure-table__row">
-          <strong>${item.symbol || "—"}</strong>
+          <strong>${escapeHtml(item.symbol || "—")}</strong>
           <span>${Number(item.unbounded_positions || 0) > 0 ? `${formatPlainPercent(item.risk_pct, 2)} · ${Number(item.unbounded_positions)} sin SL` : formatPlainPercent(item.risk_pct, 2)}</span>
           <span class="${Number(item.open_pnl || 0) >= 0 ? "is-positive" : "is-negative"}">${formatCurrency(item.open_pnl || 0)}</span>
-          <span>${item.direction || "—"}</span>
+          <span>${escapeHtml(item.direction || "—")}</span>
         </div>
       `).join("")}
     </div>
@@ -142,7 +151,7 @@ export function renderOpenTradeRiskTable(trades = []) {
       </div>
       ${trades.map((item) => `
         <div class="risk-exposure-table__row">
-          <strong>${item.symbol || "—"} · ${item.side || "—"}</strong>
+          <strong>${escapeHtml(item.symbol || "—")} · ${escapeHtml(item.side || "—")}</strong>
           <span>${formatRiskCell(item)}</span>
           <span>${Number.isFinite(Number(item.stop_loss)) ? Number(item.stop_loss).toLocaleString("es-ES", { maximumFractionDigits: 5 }) : "—"}</span>
           <span class="${Number(item.open_pnl || 0) >= 0 ? "is-positive" : "is-negative"}">${formatCurrency(item.open_pnl || 0)}</span>

@@ -2,6 +2,15 @@ import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260509-150
 import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
 import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
+function escapeHtml(value = "") {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function renderTalent(root, state) {
   const account = selectCurrentAccount(state);
   const model = selectCurrentModel(state);
@@ -72,9 +81,9 @@ export function renderTalent(root, state) {
         <div class="detail-metrics-grid talent-ratios-grid">
           ${advancedRatios.map((ratio) => `
             <div class="metric-item">
-              <div class="metric-label">${ratio.label}</div>
+              <div class="metric-label">${escapeHtml(ratio.label)}</div>
               <div class="metric-value">${Number(ratio.value).toFixed(2)}</div>
-              <div class="goal-card-sub">${ratio.note}</div>
+              <div class="goal-card-sub">${escapeHtml(ratio.note)}</div>
             </div>
           `).join("")}
         </div>
@@ -90,7 +99,7 @@ export function renderTalent(root, state) {
             : Math.max(0, Math.min(100, (goal.current / goal.target) * 100));
           return `
             <article class="goal-card">
-              <div class="goal-card-value">${goal.label}</div>
+              <div class="goal-card-value">${escapeHtml(goal.label)}</div>
               <div class="goal-card-sub">Actual ${formatGoalValue(goal.current, goal.suffix)} · Objetivo ${formatGoalValue(goal.target, goal.suffix)}</div>
               <div class="score-bar-row talent-goal-row">
                 <span>Progreso</span>

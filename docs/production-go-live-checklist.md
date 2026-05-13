@@ -306,6 +306,7 @@ Notas 2026-05-12:
 
 - `scripts/github_release_governance_audit.py` ejecutado sin token administrativo: checks locales OK para `CODEOWNERS`, Dependabot version updates y workflows `ci`, `production-smoke` y `windows-launcher`.
 - Sigue pendiente verificar/activar en GitHub con credenciales admin: secret scanning, push protection, Dependabot security updates y branch protection de `main`.
+- Nueva pasada XSS focalizada: las tablas de exposicion/riesgo con datos MT5 y la vista Talent escapan simbolos, direcciones, labels y notas antes de renderizar con `innerHTML`.
 
 Notas 2026-05-09:
 
