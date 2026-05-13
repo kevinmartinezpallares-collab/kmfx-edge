@@ -1036,3 +1036,51 @@ Auditoria final:
 - La auditoria final queda pendiente de credenciales de usuario normal, cuenta
   MT5 real/demo controlada y aprobacion explicita para cualquier limpieza de
   suscripciones o conexiones reales.
+
+## 2026-05-13 - Cache frontend, admin unico y limpieza Stripe
+
+Contexto:
+
+- Rama: `main`.
+- Commit local: `1c19515 Refresh frontend cache for billing gates [skip render]`.
+- Objetivo: evitar mezcla de modulos frontend antiguos en produccion y cerrar
+  el estado duplicado del usuario de prueba `kevinmartinezpallares@hotmail.com`.
+
+Cambios verificados:
+
+- `index.html`, `app.js`, modulos `js/**` y contratos de UI comparten el mismo
+  tag de cache `build-20260514-013000`.
+- La app mantiene admin unico por contrato:
+  `kevinmartinezpallares@gmail.com`.
+- `kevinmartinezpallares@hotmail.com` queda como usuario normal de prueba y no
+  debe recibir paneles admin, checksums ni bypass de plan.
+- El commit usa `[skip render]` para no consumir minutos de build Render.
+
+Stripe:
+
+- Cliente revisado: `cus_UVWuC0JWs5W70n`.
+- Suscripcion que se conserva: `sub_1TWYq4EoC6e7wNItR0TKxm5R`
+  (`kmfx_unlimited_yearly`, trialing).
+- Suscripcion duplicada cancelada:
+  `sub_1TWW4sEoC6e7wNIt1oQfN1XE`.
+- Verificacion posterior: Stripe devuelve una suscripcion `trialing` y una
+  `canceled` para ese customer.
+
+Validacion local:
+
+- `python3 -m unittest tests.test_user_flow_ui_contract tests.test_auth_session_contract`
+  pasa con 30 tests.
+- `python3 -m unittest tests.test_dashboard_render_smoke tests.test_user_flow_ui_contract tests.test_auth_session_contract`
+  pasa con 35 tests.
+- `node --check` pasa en `app.js`, `js/modules/auth-session.js`,
+  `js/modules/billing-status.js`, `js/modules/admin-mode.js`,
+  `js/modules/connections.js` y `js/modules/connection-wizard.js`.
+- `git diff --check` pasa.
+
+Pendiente:
+
+- Verificado por `curl` que `https://kmfxedge.com` ya sirve
+  `styles.css`, `styles-v2.css`, `app.js` y `reloadKey` con
+  `build-20260514-013000`.
+- Validar recibo real de Stripe/Resend y plan aplicado sin refresco manual en la
+  auditoria final con usuario normal.

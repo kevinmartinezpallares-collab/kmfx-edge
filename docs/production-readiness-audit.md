@@ -2,7 +2,7 @@
 
 Ultima revision: 2026-05-13
 Rama revisada: `main`
-Commit base local: `9d6d835 Record production smoke evidence [skip render]`
+Commit base local: `1c19515 Refresh frontend cache for billing gates [skip render]`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
@@ -42,7 +42,7 @@ No se recomienda abrir produccion comercial amplia hasta completar la auditoria 
 3. Billing live necesita ultima prueba de realidad.
    - Checkout, portal, webhook, trial pause, Price IDs y lookup keys estan implementados/configurados.
    - Falta comprobar en una compra live controlada que el recibo/confirmacion llega al usuario y que el dashboard actualiza el plan sin intervencion manual.
-   - Existe una duplicidad de trial en `kevinmartinezpallares@hotmail.com`; cancelarla requiere aprobacion explicita para no borrar una prueba util.
+   - La duplicidad de trial del usuario de prueba `kevinmartinezpallares@hotmail.com` ya fue limpiada en Stripe: se conserva `sub_1TWYq4EoC6e7wNItR0TKxm5R` y se cancelo `sub_1TWW4sEoC6e7wNIt1oQfN1XE`.
 
 4. Guardrails manuales de coste/plataforma.
    - Supabase esta en periodo de gracia por exceso de salida; ya se redujo polling y se creo monitor, pero hay que confirmar leaked password protection, backups y limites de uso.
@@ -197,7 +197,7 @@ Resultado:
 
 - Checkout, Customer Portal, webhook endpoint, status, guards por plan, trial pause y lookup keys quedan cerrados a nivel tecnico.
 - Cuentas y Dashboard bloquean `Añadir cuenta` si el entitlement no lo permite; admin solo es `kevinmartinezpallares@gmail.com`.
-- Pendiente antes de abrir cobro publico: compra live controlada con recibo, plan aplicado sin refresco manual, cancelacion/cambio/pago fallido en Stripe y limpieza de duplicados aprobada.
+- Pendiente antes de abrir cobro publico: compra live controlada con recibo, plan aplicado sin refresco manual, cancelacion/cambio/pago fallido en Stripe y verificacion final del portal tras la limpieza de duplicados.
 
 ### Paso 4 - QA Launcher usuario nuevo
 

@@ -276,7 +276,8 @@ Notas 2026-05-13 cierre tecnico:
 - Webhook endpoint de Stripe queda implementado y desplegado en Render; rechaza payloads sin firma y sincroniza eventos KMFX por producto/precio/metadata controlada.
 - Checkout crea trial de 7 dias sin tarjeta y envia `subscription_data.trial_settings.end_behavior.missing_payment_method = pause`.
 - Reconciliacion de checkout/portal/endpoints endurecida para que el dashboard no dependa solo del retorno del navegador.
-- Queda pendiente una compra live controlada para validar recibo real de Stripe/Resend en bandeja de entrada y limpiar una suscripcion trial duplicada del usuario de prueba `kevinmartinezpallares@hotmail.com` si Kevin lo aprueba.
+- La suscripcion trial duplicada del usuario de prueba `kevinmartinezpallares@hotmail.com` queda limpiada en Stripe: se conserva `sub_1TWYq4EoC6e7wNItR0TKxm5R` y se cancela `sub_1TWW4sEoC6e7wNIt1oQfN1XE`.
+- Queda pendiente una compra live controlada final para validar recibo real de Stripe/Resend en bandeja de entrada, plan aplicado sin refresco manual y portal con una sola suscripcion activa.
 
 Criterio de salida:
 
