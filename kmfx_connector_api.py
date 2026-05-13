@@ -97,6 +97,38 @@ def _is_production_runtime() -> bool:
     return _env_flag("KMFX_PRODUCTION") or _env_flag("RENDER")
 
 
+def _env_bool_override(name: str) -> bool | None:
+    value = str(os.getenv(name) or "").strip().lower()
+    if not value:
+        return None
+    if value in {"1", "true", "yes", "y", "on", "enabled"}:
+        return True
+    if value in {"0", "false", "no", "n", "off", "disabled"}:
+        return False
+    return None
+
+
+FEATURE_FLAG_ENV = {
+    "direct_mt5": ("KMFX_FEATURE_DIRECT_MT5", "KMFX_ENABLE_DIRECT_MT5"),
+    "billing": ("KMFX_FEATURE_BILLING", "KMFX_ENABLE_BILLING"),
+    "exports": ("KMFX_FEATURE_EXPORTS", "KMFX_ENABLE_EXPORTS"),
+    "journal_ai": ("KMFX_FEATURE_JOURNAL_AI", "KMFX_ENABLE_JOURNAL_AI"),
+    "risk_editor": ("KMFX_FEATURE_RISK_EDITOR", "KMFX_ENABLE_RISK_EDITOR"),
+}
+
+
+def kmfx_feature_enabled(feature: str, *, default: bool = True) -> bool:
+    normalized = safe_str(feature).lower().replace("-", "_")
+    disabled = _env_bool_override(f"KMFX_DISABLE_{normalized.upper()}")
+    if disabled is True:
+        return False
+    for name in FEATURE_FLAG_ENV.get(normalized, (f"KMFX_FEATURE_{normalized.upper()}",)):
+        override = _env_bool_override(name)
+        if override is not None:
+            return override
+    return default
+
+
 def _split_env_list(value: str) -> list[str]:
     seen: set[str] = set()
     items: list[str] = []
@@ -471,6 +503,21 @@ def connector_json_response(content: Any, status_code: int = 200) -> JSONRespons
         status_code=status_code,
         content=content,
         headers={"Connection": "close"},
+    )
+
+
+def feature_disabled_response(feature: str, *, status_code: int = 503) -> JSONResponse:
+    normalized = safe_str(feature, "feature").lower().replace("-", "_")
+    return connector_json_response(
+        {
+            "ok": False,
+            "reason": "feature_disabled",
+            "error": "feature_disabled",
+            "feature": normalized,
+            "message": "Esta funcionalidad esta desactivada temporalmente.",
+            "timestamp": now_iso(),
+        },
+        status_code=status_code,
     )
 
 
@@ -4815,6 +4862,8 @@ async def direct_mt5_brokers(
             },
             status_code=401,
         )
+    if not kmfx_feature_enabled("direct_mt5", default=not _is_production_runtime()):
+        return feature_disabled_response("direct_mt5")
     return connector_json_response(
         {
             "ok": True,
@@ -4831,6 +4880,8 @@ async def direct_mt5_link(request: Request) -> JSONResponse:
     payload, payload_error = await read_json_object_payload(request, "/api/direct-mt5/link")
     if payload_error is not None:
         return payload_error
+    if not kmfx_feature_enabled("direct_mt5", default=not _is_production_runtime()):
+        return feature_disabled_response("direct_mt5")
     payload["connection_mode"] = "direct"
     return await link_account_from_payload(request, payload)
 
@@ -4873,6 +4924,8 @@ async def link_account_from_payload(request: Request, payload: dict[str, Any]) -
         connection_mode = "ea_direct"
     else:
         connection_mode = "launcher"
+    if connection_mode == "direct" and not kmfx_feature_enabled("direct_mt5", default=not _is_production_runtime()):
+        return feature_disabled_response("direct_mt5")
     direct_login = safe_str(payload.get("login") or payload.get("account_number") or payload.get("accountNumber"))
     direct_server = safe_str(payload.get("server"))
     direct_broker = safe_str(payload.get("broker"))
@@ -6583,6 +6636,8 @@ async def billing_checkout(request: Request) -> JSONResponse:
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
+    if not kmfx_feature_enabled("billing", default=True):
+        return feature_disabled_response("billing")
     rate_limited = sensitive_rate_limit_response(
         "/api/billing/checkout",
         request,
@@ -6685,6 +6740,8 @@ async def billing_portal(request: Request) -> JSONResponse:
     context, denial = billing_user_context(request)
     if denial is not None:
         return denial
+    if not kmfx_feature_enabled("billing", default=True):
+        return feature_disabled_response("billing")
     rate_limited = sensitive_rate_limit_response(
         "/api/billing/portal",
         request,
@@ -6888,6 +6945,8 @@ async def account_ai_evidence_report(
             },
             status_code=401,
         )
+    if not kmfx_feature_enabled("exports", default=True):
+        return feature_disabled_response("exports")
     entitlement_denial = product_entitlement_denial(context=auth_context, entitlement="exports")
     if entitlement_denial is not None:
         return entitlement_denial

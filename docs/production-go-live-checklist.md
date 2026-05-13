@@ -87,7 +87,11 @@ Notas 2026-05-13:
   - macOS ZIP `e5e3e285269957a43d1cabc742bb9ce59ac2443bace49a2714974d02b62df8e8`
   - Windows EXE `bb77d12d2c1f6334f5880a749bfb6f64022a6fb589e6141f3b80eb8441c92693`
 - Render, Vercel, Cloudflare Worker, billing gates y endpoints MT5 sensibles pasan el smoke de produccion.
-- Sigue pendiente la validacion de plataforma GitHub con credenciales admin: branch protection, secret scanning, push protection y Dependabot security updates.
+- Validacion GitHub con `gh` autenticado completada para controles de seguridad del repo:
+  - `secret scanning`: activo;
+  - `push protection`: activo;
+  - Dependabot alerts/security updates: activos.
+- Sigue pendiente proteger `main` cuando termine la fase de cambios directos sobre la rama.
 - Launcher simplificado en `0c13fd7`: la accion local vuelve a ser solo instalar/reinstalar el conector en MT5. La app local no repara, crea ni regenera KMFXKeys; la key estable se consulta en `Cuentas > Ver detalles`.
 - Artefactos reconstruidos y smokeados tras `0c13fd7`:
   - macOS ZIP `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
@@ -251,9 +255,9 @@ Objetivo: no abrir superficie sensible sin controles.
 - [x] Revisar Cloudflare Worker `mt5-api`.
 - [x] Revisar CORS.
 - [x] Revisar headers Vercel.
-- [ ] Activar secret scanning GitHub.
-- [ ] Activar push protection GitHub.
-- [ ] Activar Dependabot alerts/security updates.
+- [x] Activar secret scanning GitHub.
+- [x] Activar push protection GitHub.
+- [x] Activar Dependabot alerts/security updates.
 - [x] Aplicar actualizacion Dependabot pendiente de GitHub Actions.
 - [x] Auditoria reproducible de GitHub governance creada:
   `python3 scripts/github_release_governance_audit.py`.
@@ -312,6 +316,11 @@ Notas 2026-05-12:
 - Sigue pendiente verificar/activar en GitHub con credenciales admin: secret scanning, push protection, Dependabot security updates y branch protection de `main`.
 - Nueva pasada XSS focalizada: las tablas de exposicion/riesgo con datos MT5 y la vista Talent escapan simbolos, direcciones, labels y notas antes de renderizar con `innerHTML`.
 - Diagnostico/admin y badges comunes endurecidos: los valores de runtime, cuenta, error y labels de estado se escapan antes de insertarse en HTML.
+
+Notas 2026-05-13:
+
+- Verificado por API de GitHub con `gh` autenticado: `secret scanning`, `secret_scanning_push_protection` y `dependabot_security_updates` estan activos en `kevinmartinezpallares-collab/kmfx-edge`.
+- `main` sigue sin branch protection (`gh api repos/kevinmartinezpallares-collab/kmfx-edge/branches/main/protection` devuelve `404 Branch not protected`), decision mantenida temporalmente para no bloquear cambios directos mientras siga abierto el cierre del roadmap.
 
 Notas 2026-05-09:
 
@@ -506,12 +515,17 @@ Objetivo: detectar problemas reales y poder recuperarse.
   - logs
   - eventos billing
 - [x] Politica de borrado de cuenta/MT5 documentada en `docs/data-retention-policy.md`.
-- [ ] Feature flags para apagar:
-  - conexion directa
-  - billing
-  - Journal AI
-  - Risk editor
-  - exports
+- [x] Guardrails de coste documentados para Render y Supabase en
+  `docs/platform-cost-guardrails.md`.
+- [ ] Limite personalizado de minutos de build configurado manualmente en
+  Render Dashboard si el owner quiere cortar cargos automaticos.
+- [x] Feature flags para apagar funciones de riesgo:
+  - conexion directa MT5: implementada en backend y desactivada por defecto en produccion salvo `KMFX_ENABLE_DIRECT_MT5=1`;
+  - billing checkout/portal: implementado con `KMFX_DISABLE_BILLING=1`;
+  - exports / AI evidence: implementado con `KMFX_DISABLE_EXPORTS=1`;
+  - Journal AI: reservado/documentado para cuando tenga endpoint propio;
+  - Risk editor: reservado/documentado para cuando se exponga remotamente.
+- [x] Runbook de kill switches documentada en `docs/feature-flags-runbook.md`.
 
 Criterio de salida:
 

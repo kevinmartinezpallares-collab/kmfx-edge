@@ -89,6 +89,18 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         with patch.dict("os.environ", {"KMFX_DISABLE_DEFAULT_ADMIN_EMAILS": "true"}, clear=True):
             self.assertEqual(set(), connector_api.resolve_admin_emails())
 
+    def test_feature_flags_disable_wins_over_enable(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"KMFX_ENABLE_EXPORTS": "true", "KMFX_DISABLE_EXPORTS": "true"},
+            clear=True,
+        ):
+            self.assertFalse(connector_api.kmfx_feature_enabled("exports"))
+
+    def test_feature_flags_accept_explicit_false(self) -> None:
+        with patch.dict(os.environ, {"KMFX_FEATURE_BILLING": "false"}, clear=True):
+            self.assertFalse(connector_api.kmfx_feature_enabled("billing"))
+
     def test_admin_emails_are_env_driven(self) -> None:
         with patch.dict("os.environ", {"KMFX_ADMIN_EMAILS": "ops@kmfxedge.com, owner@kmfxedge.com "}, clear=True):
             self.assertEqual(
@@ -525,6 +537,30 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertTrue(any(item["server"] == "Darwinex-Live" for item in body["servers"]))
         self.assertIn("provider", body)
+
+    def test_direct_mt5_brokers_disabled_by_default_in_production(self) -> None:
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        with patch.dict(os.environ, {"RENDER": "true", "KMFX_ENV": "production"}, clear=True):
+            response = asyncio.run(connector_api.direct_mt5_brokers(request, q="Darwinex", limit=10))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(503, response.status_code)
+        self.assertFalse(body["ok"])
+        self.assertEqual("feature_disabled", body["reason"])
+        self.assertEqual("direct_mt5", body["feature"])
+
+    def test_direct_mt5_brokers_can_be_enabled_in_production(self) -> None:
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        with patch.dict(
+            os.environ,
+            {"RENDER": "true", "KMFX_ENV": "production", "KMFX_ENABLE_DIRECT_MT5": "true"},
+            clear=True,
+        ):
+            response = asyncio.run(connector_api.direct_mt5_brokers(request, q="Darwinex", limit=10))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
 
     def test_direct_mt5_link_with_fixture_provider_ingests_live_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1265,6 +1301,29 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual(401, response.status_code)
         self.assertEqual("auth_required", body["reason"])
+
+    def test_billing_checkout_can_be_disabled_by_feature_flag(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-token"},
+            json_body={"plan": "pro", "interval": "monthly"},
+        )
+        with patch.dict(os.environ, {"KMFX_DISABLE_BILLING": "true"}, clear=False), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "11111111-1111-4111-8111-111111111111",
+                "email": "billing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(connector_api, "stripe_api_request") as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("feature_disabled", body["reason"])
+        self.assertEqual("billing", body["feature"])
+        stripe_mock.assert_not_called()
 
     def test_billing_default_return_urls_open_subscription_tab(self) -> None:
         with patch.dict(
@@ -2218,6 +2277,25 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.assertEqual("entitlement_required", body["reason"])
         self.assertEqual("exports", body["details"]["entitlement"])
+
+    def test_ai_evidence_export_endpoint_can_be_disabled_by_feature_flag(self) -> None:
+        request = self._request(headers={"authorization": "Bearer export-token"})
+        with patch.dict(os.environ, {"KMFX_DISABLE_EXPORTS": "true"}, clear=False), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "user-123",
+                "email": "user@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "active"},
+                "user_metadata": {},
+            },
+        ):
+            response = asyncio.run(connector_api.account_ai_evidence_report("acc-123", request, format="markdown"))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("feature_disabled", body["reason"])
+        self.assertEqual("exports", body["feature"])
 
     def test_ai_evidence_export_endpoint_allows_pro_export_entitlement(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

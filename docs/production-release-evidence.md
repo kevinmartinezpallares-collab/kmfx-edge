@@ -281,6 +281,77 @@ Pendiente:
 - Alertas de plataforma para 5xx, webhooks Stripe fallidos y volumen anomalo de
   rechazos MT5.
 
+## 2026-05-13 - Kill switches de produccion
+
+Contexto:
+
+- Rama: `main`.
+- Fase: observabilidad y control de riesgo operativo.
+
+Cambio validado:
+
+- Backend puede apagar conexion directa MT5 sin afectar al flujo principal
+  EA/Launcher.
+- Backend puede apagar checkout/portal de billing sin bloquear webhooks de
+  Stripe ya emitidos.
+- Backend puede apagar exports / AI evidence ante abuso, fuga o consumo anomalo.
+- Conexion directa MT5 queda desactivada por defecto en produccion y solo se
+  abre con `KMFX_ENABLE_DIRECT_MT5=1`.
+- Runbook operativo creado en `docs/feature-flags-runbook.md`.
+
+Flags:
+
+- `KMFX_DISABLE_DIRECT_MT5=1`
+- `KMFX_ENABLE_DIRECT_MT5=1`
+- `KMFX_DISABLE_BILLING=1`
+- `KMFX_DISABLE_EXPORTS=1`
+- `KMFX_DISABLE_JOURNAL_AI=1` reservado/documentado.
+- `KMFX_DISABLE_RISK_EDITOR=1` reservado/documentado.
+
+Validacion local:
+
+- `python3 -m py_compile kmfx_connector_api.py`.
+- `python3 -m unittest tests.test_connector_cors_config`.
+- `git diff --check`.
+- `python3 scripts/production_gate.py`: verde.
+
+Pendiente:
+
+- Confirmar mensaje visual final en dashboard si una funcion opcional se apaga.
+- Añadir flags frontend para Journal AI/Risk editor cuando migren a endpoints
+  propios.
+
+## 2026-05-13 - Guardrails de coste Render/Supabase
+
+Contexto:
+
+- Render avisa de uso superior al 70% de los minutos gratuitos de build
+  pipeline.
+- Supabase ya habia avisado por salida/egress sobre la cuota gratuita.
+- Objetivo: evitar facturas sorpresa sin ralentizar el dashboard.
+
+Cambio validado:
+
+- Runbook operativo creado en `docs/platform-cost-guardrails.md`.
+- Se documenta que Codex debe agrupar cambios y ejecutar gate local antes de
+  empujar a `main` para reducir builds innecesarios.
+- Se documenta accion manual recomendada en Render: configurar limite mensual
+  personalizado de minutos de build.
+- Se mantiene la regla de no activar planes, add-ons o cambios de facturacion
+  sin aprobacion explicita del owner.
+
+Validacion local:
+
+- `git diff --check`.
+
+Pendiente:
+
+- Activar manualmente el limite de minutos de build en Render si se quiere
+  cortar gasto automatico.
+- Confirmar desde Supabase Dashboard si el egress baja tras las mitigaciones de
+  polling/cache.
+
+
 ## 2026-05-13 - Checkpoint `0c13fd7`
 
 Contexto:
@@ -743,6 +814,44 @@ Smoke de produccion:
 
 Pendiente por credenciales de plataforma:
 
-- El gate local no tiene `GITHUB_TOKEN`; por eso secret scanning, push
-  protection, Dependabot security updates y branch protection de `main` siguen
-  pendientes de confirmar desde GitHub Dashboard/API autenticada.
+- El gate local se ejecuto sin `GITHUB_TOKEN` administrativo, asi que esa
+  corrida solo podia validar archivos del repo y no ajustes privados de GitHub.
+
+## 2026-05-13 - GitHub governance verificado con `gh`
+
+Contexto:
+
+- Cuenta autenticada en `gh`: `kevinmartinezpallares-collab`.
+- Repo verificado: `kevinmartinezpallares-collab/kmfx-edge`.
+- Objetivo: confirmar por API los gates de seguridad del repositorio sin tocar
+  branch protection todavia.
+
+Comandos usados:
+
+```bash
+gh auth status
+gh api repos/kevinmartinezpallares-collab/kmfx-edge --jq '{default_branch,security_and_analysis}'
+gh api repos/kevinmartinezpallares-collab/kmfx-edge/vulnerability-alerts -i
+gh api repos/kevinmartinezpallares-collab/kmfx-edge/branches/main/protection
+gh run list --workflow ci.yml --limit 5
+gh run list --workflow windows-launcher.yml --limit 5
+```
+
+Resultado:
+
+- `secret_scanning.status=enabled`
+- `secret_scanning_push_protection.status=enabled`
+- `dependabot_security_updates.status=enabled`
+- Vulnerability alerts endpoint responde `204 No Content`, consistente con
+  alerts activos.
+- `main` sigue sin branch protection: `404 Branch not protected`.
+- Ultimas ejecuciones observadas:
+  - `CI`: verdes en `main`.
+  - `Build Windows Launcher`: verdes en `main`.
+
+Lectura operativa:
+
+- La seguridad de repositorio en GitHub ya no esta pendiente salvo por la
+  proteccion de `main`.
+- Se mantiene sin branch protection por decision operativa temporal para no
+  bloquear cambios directos mientras el otro frente sigue cerrando roadmap.
