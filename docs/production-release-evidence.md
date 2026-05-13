@@ -987,3 +987,52 @@ Coste:
 - Pendiente manual: fijar un limite de gasto de build pipeline en Render
   Dashboard. Sin ese limite, Render puede cobrar minutos adicionales si se
   supera la cuota incluida.
+
+## 2026-05-13 - Smoke publico tras runbook de auditoria final
+
+Contexto:
+
+- Rama: `main`.
+- Commit local: `96ad22e Add final user go-live audit runbook [skip render]`.
+- Hora del smoke: 2026-05-13 23:00 UTC.
+- Nota: el commit es documental y usa `[skip render]`; Render mantiene el
+  backend desplegado en `968b8e0ad1d4e72ca3aea95d685cc21f776d6d5d`.
+
+Smoke de produccion:
+
+- `python3 scripts/production_smoke.py`: verde.
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Headers verificados: CSP, HSTS, `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, CORS sin wildcard y origen KMFX.
+- Descargas verificadas:
+  - `downloads/KMFX-Launcher-macOS.zip`
+  - `downloads/KMFX-Launcher-Windows.exe`
+  - `KMFXConnector.ex5`
+- Checksums publicados coinciden con repo:
+  - macOS ZIP:
+    `441ccfa1454dc6555dfd5ade57f50a12d95b726d0588dbfb394ed84986d6d514`
+  - Windows EXE:
+    `6fdb9c399e666d892bb29b25f93c107f2d7775317b04dcb45e636412b957cca4`
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- CORS del Worker permite `X-KMFX-Connection-Key`, no permite headers de
+  usuario y bloquea origenes desconocidos.
+- `/api/accounts/snapshot?view=summary` sin bearer no expone cuentas y devuelve
+  `auth_required: true`.
+- `/api/billing/checkout` y `/api/billing/portal` sin bearer rechazan
+  `401 auth_required`.
+- `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
+- `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
+- `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+Auditoria final:
+
+- Se anade `docs/final-user-go-live-audit.md` como runbook obligatorio antes de
+  go-live.
+- La auditoria final queda pendiente de credenciales de usuario normal, cuenta
+  MT5 real/demo controlada y aprobacion explicita para cualquier limpieza de
+  suscripciones o conexiones reales.
