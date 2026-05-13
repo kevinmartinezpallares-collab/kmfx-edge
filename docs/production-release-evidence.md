@@ -292,6 +292,42 @@ Pendiente:
 - La auditoria XSS global sigue abierta hasta revisar todos los sinks restantes
   de `innerHTML` ruta por ruta.
 
+## 2026-05-13 - Checkpoint `c76f880`
+
+Contexto:
+
+- Rama: `main`.
+- Commit local y remoto: `c76f880 Harden frontend dynamic HTML rendering`.
+- Objetivo: cerrar la auditoria XSS del dashboard vanilla actual sin cambiar el
+  flujo MT5/Launcher ni introducir rediseños grandes antes de la migracion a
+  Next.js.
+
+Cambio validado:
+
+- Calculadora escapa capital, placeholders, distancias, precios y metricas antes
+  de renderizar markup dinamico.
+- Estrategias escapa nombre, mercado, descripcion, SL/TP, score y resumen antes
+  de montar formularios y tarjetas.
+- Risk Engine escapa simbolos, ids y campos de whitelist derivados de usuario o
+  MT5.
+- Funding escapa account ids, status tones y valores usados en acciones HTML.
+- Ejecucion/Discipline escapa labels, valores, subcopy y badges de KPIs antes
+  de insertarlos con `innerHTML`.
+- Se mantiene permitido el HTML explicito solo en helpers que ya separan
+  `metaHtml`, `pnlHtml` o `valueHtml` de texto normal.
+
+Validacion local:
+
+- `node --check js/modules/calculator.js js/modules/strategies.js js/modules/risk.js js/modules/funded.js js/modules/discipline.js`: verde.
+- `python3 -m unittest tests.test_frontend_xss_contract`: 6 tests OK.
+- `python3 -m unittest tests.test_frontend_xss_contract tests.test_calculator_fx_pip tests.test_dashboard_render_smoke`: 14 tests OK.
+- `git diff --check`: verde.
+
+Pendiente relacionado:
+
+- Repetir auditoria XSS/CSRF en la app Next.js cuando exista sidecar y si se
+  introducen cookies o sesiones server-side.
+
 ## 2026-05-13 - Checkpoint `ae26c85`
 
 Contexto:

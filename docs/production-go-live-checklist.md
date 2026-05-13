@@ -259,7 +259,7 @@ Objetivo: no abrir superficie sensible sin controles.
   `python3 scripts/github_release_governance_audit.py`.
 - [ ] Branch protection en `main`.
 - [x] Validacion centralizada de payloads en endpoints state-changing.
-- [ ] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5.
+- [x] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5 en el dashboard vanilla actual.
 - [ ] Definir postura CSRF para Next.js si se usan cookies/sesiones server-side.
 - [ ] Ejecutar audit de dependencias cuando exista manifest/lockfile del frontend Next.
 - [ ] Alertas anti-abuso: bursts de registros, creacion de keys, writes rechazados y basura en tablas de usuario.
@@ -321,6 +321,12 @@ Notas 2026-05-09:
 - Mercado ahora escapa valores dinamicos de simbolos, sesgos, eventos y narrativas antes de renderizar.
 - Pasada de hardening frontend añadida: títulos/subtítulos de modales, focus panels, selects de ajustes, detalles Funding, Cuentas admin y Operaciones escapan valores dinámicos antes de insertarse con `innerHTML`.
 - Copy visible de métricas/ejecución normalizado a español: `Tasa de acierto`, `Factor de beneficio`, `Expectativa`, `PnL abierto`, `Última sincronización` y `operación/operaciones`.
+
+Notas 2026-05-13:
+
+- Auditoria XSS frontend cerrada para el dashboard vanilla actual en `c76f880`: Calculadora, Estrategias, Risk whitelist, Funding ids y Ejecución escapan valores de usuario/MT5 antes de insertarlos con `innerHTML` o atributos HTML.
+- Validacion ejecutada: `node --check js/modules/calculator.js js/modules/strategies.js js/modules/risk.js js/modules/funded.js js/modules/discipline.js`; `python3 -m unittest tests.test_frontend_xss_contract tests.test_calculator_fx_pip tests.test_dashboard_render_smoke`; `git diff --check`.
+- La postura para Next queda pendiente como fase separada: si se introducen cookies/sesiones server-side, definir CSRF y repetir auditoria XSS sobre la nueva app.
 
 Criterio de salida:
 
