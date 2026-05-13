@@ -606,6 +606,7 @@ Objetivo: validar un viaje real antes de cobrar.
 - [ ] Dashboard desktop completo.
 - [ ] Mobile basico.
 - [x] Enlaces legales.
+- [ ] Auditoria final como usuario real: registro/login, compra, plan aplicado, descarga Launcher/EA, conexion MT5 real, cierre de Launcher, dashboard completo, admin oculto y metricas reconciliadas.
 
 Criterio de salida:
 
@@ -636,6 +637,7 @@ Notas 2026-05-13:
   `Analyze (javascript-typescript)`, historial lineal, force-push desactivado y
   borrado de rama desactivado. No se exige PR todavia para mantener velocidad
   durante el cierre tecnico del MVP.
+- Se anade como condicion de salida una auditoria final hecha por Codex como usuario normal con credenciales y cuenta de trading reales aportadas por Kevin antes de go-live.
 
 Notas 2026-05-12:
 

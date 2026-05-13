@@ -1013,6 +1013,26 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(connector_api.DEFAULT_CONNECTION_PLAN_LIMITS["admin"], body["limits"]["connectionKeyLimit"])
         self.assertFalse(body["entitlements"]["rawBridgeDebug"])
 
+    def test_non_owner_email_never_gets_admin_billing_status(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": "99999999-9999-4999-8999-999999999999",
+                "email": "kevinmartinezpallares@hotmail.com",
+                "app_metadata": {"role": "admin", "plan": "unlimited", "billing_status": "active"},
+                "user_metadata": {"role": "admin"},
+            },
+        ), patch.object(connector_api, "backfill_billing_subscription_for_context", return_value={}):
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(body["is_admin"])
+        self.assertNotEqual(connector_api.DEFAULT_CONNECTION_PLAN_LIMITS["admin"], body["limits"]["connectionKeyLimit"])
+        self.assertFalse(body["entitlements"]["rawBridgeDebug"])
+
     def test_billing_status_anonymous_returns_free_limited_entitlements(self) -> None:
         response = asyncio.run(connector_api.billing_status(self._request()))
         body = json.loads(response.body.decode("utf-8"))
@@ -1335,6 +1355,56 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             params["subscription_data"]["trial_settings"],
         )
         self.assertEqual("if_required", params["payment_method_collection"])
+
+    def test_billing_checkout_opens_portal_when_subscription_already_exists(self) -> None:
+        request = self._request(
+            headers={"authorization": "Bearer billing-existing-token"},
+            json_body={"plan": "pro", "interval": "monthly", "return_url": "https://kmfxedge.com/ajustes"},
+        )
+        user_id = "12121212-1212-4121-8121-121212121212"
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "billing-existing@example.com",
+                "app_metadata": {"plan": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_existing",
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_current_billing_subscription",
+            return_value={
+                "user_id": user_id,
+                "stripe_subscription_id": "sub_existing",
+                "stripe_customer_id": "cus_existing",
+                "plan_key": "pro",
+                "status": "trialing",
+                "current_period_end": "2026-05-20T00:00:00Z",
+            },
+        ), patch.object(connector_api, "resolve_stripe_price_reference") as price_mock, patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value={"id": "bps_existing", "url": "https://billing.stripe.test/portal"},
+        ) as stripe_mock:
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(body["ok"])
+        self.assertEqual("subscription_already_exists", body["reason"])
+        self.assertEqual("https://billing.stripe.test/portal", body["url"])
+        self.assertEqual("pro", body["billing"]["plan"])
+        self.assertEqual("trialing", body["billing"]["status"])
+        price_mock.assert_not_called()
+        _, path, params = stripe_mock.call_args.args
+        self.assertEqual("/billing_portal/sessions", path)
+        self.assertEqual("cus_existing", params["customer"])
+        self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
 
     def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:
         response = asyncio.run(connector_api.billing_checkout(self._request(json_body={"plan": "pro"})))
@@ -2574,7 +2644,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual(200, first.status_code)
         self.assertEqual(429, second.status_code)
-        self.assertEqual(1, stripe_mock.call_count)
+        checkout_calls = [call for call in stripe_mock.call_args_list if call.args[1] == "/checkout/sessions"]
+        self.assertEqual(1, len(checkout_calls))
         body = json.loads(second.body.decode("utf-8"))
         self.assertEqual("rate_limited", body["reason"])
 

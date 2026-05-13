@@ -2606,6 +2606,58 @@ def sync_latest_kmfx_subscription_for_customer(customer_id: str, *, user_id: str
     return stripe_subscription_to_billing_row(subscription, user_id=user_id)
 
 
+CHECKOUT_BLOCKING_SUBSCRIPTION_STATUSES = {
+    "active",
+    "trialing",
+    "paused",
+    "past_due",
+    "unpaid",
+    "incomplete",
+}
+
+
+def billing_row_blocks_new_checkout(row: dict[str, Any]) -> bool:
+    row = ensure_dict(row)
+    plan_key = normalize_plan_key(row.get("plan_key") or row.get("plan"))
+    status = safe_str(row.get("status")).lower()
+    return bool(plan_key != "free" and status in CHECKOUT_BLOCKING_SUBSCRIPTION_STATUSES)
+
+
+def existing_kmfx_subscription_for_checkout(context: dict[str, Any], customer_id: str) -> dict[str, Any]:
+    user_id = safe_str(context.get("user_id")).lower()
+    email = safe_str(context.get("email")).lower()
+    if not user_id:
+        return {}
+    try:
+        row = supabase_fetch_current_billing_subscription(user_id)
+    except RuntimeError:
+        row = {}
+    if billing_row_blocks_new_checkout(row):
+        return row
+    try:
+        row = sync_latest_kmfx_subscription_for_customer(customer_id, user_id=user_id, email=email)
+    except RuntimeError:
+        row = {}
+    if billing_row_blocks_new_checkout(row):
+        return row
+    return {}
+
+
+def stripe_create_billing_portal_session(customer_id: str, return_url: str) -> dict[str, Any]:
+    session = stripe_api_request(
+        "POST",
+        "/billing_portal/sessions",
+        {
+            "customer": customer_id,
+            "return_url": return_url,
+        },
+    )
+    portal_url = safe_str(session.get("url"))
+    if not portal_url:
+        raise RuntimeError("stripe_portal_url_missing")
+    return session
+
+
 def backfill_billing_subscription_for_context(context: dict[str, Any]) -> dict[str, Any]:
     user_id = safe_str(context.get("user_id")).lower()
     email = safe_str(context.get("email")).lower()
@@ -6887,10 +6939,36 @@ async def billing_checkout(request: Request) -> JSONResponse:
         return billing_json_response({"ok": False, "reason": "invalid_plan", "error": "invalid_plan"}, status_code=400)
 
     try:
-        price_reference = resolve_stripe_price_reference(plan, interval)
         customer_id = ensure_billing_customer(context)
         user_id = safe_str(context.get("user_id")).lower()
         email = safe_str(context.get("email")).lower()
+        existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
+        if existing_subscription:
+            portal_return_url = billing_safe_return_url(
+                payload.get("return_url")
+                or payload.get("returnUrl")
+                or payload.get("success_url")
+                or payload.get("successUrl"),
+                f"{billing_public_app_url()}/ajustes?tab=subscription",
+            )
+            portal_session = stripe_create_billing_portal_session(customer_id, portal_return_url)
+            portal_url = safe_str(portal_session.get("url"))
+            return billing_json_response(
+                {
+                    "ok": True,
+                    "reason": "subscription_already_exists",
+                    "portal_url": portal_url,
+                    "url": portal_url,
+                    "session_id": safe_str(portal_session.get("id")),
+                    "billing": {
+                        "plan": normalize_plan_key(existing_subscription.get("plan_key")),
+                        "status": safe_str(existing_subscription.get("status")).lower(),
+                        "currentPeriodEndsAt": safe_str(existing_subscription.get("current_period_end")),
+                        "trialEndsAt": safe_str(existing_subscription.get("trial_end")),
+                    },
+                }
+            )
+        price_reference = resolve_stripe_price_reference(plan, interval)
         checkout_metadata = {
             "app": "kmfx_edge",
             "kmfx_user_id": user_id,
@@ -6996,13 +7074,9 @@ async def billing_portal(request: Request) -> JSONResponse:
         status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
     try:
-        session = stripe_api_request(
-            "POST",
-            "/billing_portal/sessions",
-            {
-                "customer": customer_id,
-                "return_url": billing_safe_return_url(payload.get("return_url") or payload.get("returnUrl"), f"{billing_public_app_url()}/ajustes"),
-            },
+        session = stripe_create_billing_portal_session(
+            customer_id,
+            billing_safe_return_url(payload.get("return_url") or payload.get("returnUrl"), f"{billing_public_app_url()}/ajustes"),
         )
     except RuntimeError as exc:
         reason = safe_str(exc) or "billing_portal_failed"

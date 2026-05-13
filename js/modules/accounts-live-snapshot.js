@@ -185,7 +185,7 @@ function hasLiveAccountAccess(state = {}) {
   if (auth.isAdmin) return true;
   const billing = state.billing && typeof state.billing === "object" ? state.billing : null;
   const billingLoaded = Boolean(billing?.loadedAt || (billing?.source && billing.source !== "initial"));
-  if (!billingLoaded || billing?.loading) return true;
+  if (!billingLoaded || billing?.loading) return false;
   const access = String(billing?.billing?.access || "").toLowerCase();
   if (access === "restricted" || access === "billing_attention") return false;
   return billing?.entitlements?.launcherConnection === true;
