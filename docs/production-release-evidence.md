@@ -207,6 +207,44 @@ Pendiente por credenciales de plataforma:
   protection, Dependabot security updates y branch protection de `main` siguen
   pendientes de confirmar desde GitHub Dashboard/API autenticada.
 
+## 2026-05-13 - Backups, restore y retencion de datos
+
+Contexto:
+
+- Fase: Observabilidad, Backups y Datos.
+- Objetivo: dejar documentado como recuperar Supabase y que datos conserva KMFX
+  antes de abrir beta o usuarios de pago.
+
+Cambios:
+
+- Nuevo runbook `docs/supabase-backup-restore-runbook.md`.
+- Nueva politica tecnica `docs/data-retention-policy.md`.
+- Checklist de produccion actualizado:
+  - restore queda documentado;
+  - retencion queda definida;
+  - borrado de cuenta/MT5 queda documentado;
+  - confirmacion real de backups Supabase sigue pendiente de plataforma.
+
+Notas operativas:
+
+- No se ha cambiado plan ni add-ons de Supabase.
+- No se ha tocado schema ni RLS.
+- El restore seguro se define primero sobre proyecto nuevo/staging, nunca sobre
+  produccion a ciegas.
+- Stripe queda como fuente de verdad de billing tras restore.
+- Dashboard queda como fuente de verdad para copiar la KMFXKey estable de cada
+  cuenta; el Launcher no debe crear ni regenerar keys.
+
+Validacion local:
+
+- `git diff --check`.
+
+Pendiente manual:
+
+- Confirmar backups/PITR en Supabase Dashboard.
+- Ejecutar restore drill a staging antes de beta abierta si se aceptan usuarios
+  de pago o datos live no recuperables.
+
 ## 2026-05-13 - Observabilidad minima de billing y MT5
 
 Contexto:

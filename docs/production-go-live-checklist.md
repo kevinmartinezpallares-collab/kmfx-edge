@@ -496,14 +496,16 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Eventos de auditoria pendientes:
   - login
 - [ ] Backups Supabase confirmados.
-- [ ] Restore documentado o probado.
-- [ ] Retencion de datos definida:
+- [x] Restore documentado o probado:
+  - documentado en `docs/supabase-backup-restore-runbook.md`;
+  - pendiente prueba real a staging antes de beta abierta.
+- [x] Retencion de datos definida:
   - payloads MT5
   - operaciones
   - journal
   - logs
   - eventos billing
-- [ ] Politica de borrado de cuenta/MT5.
+- [x] Politica de borrado de cuenta/MT5 documentada en `docs/data-retention-policy.md`.
 - [ ] Feature flags para apagar:
   - conexion directa
   - billing
