@@ -207,6 +207,42 @@ Pendiente por credenciales de plataforma:
   protection, Dependabot security updates y branch protection de `main` siguen
   pendientes de confirmar desde GitHub Dashboard/API autenticada.
 
+## 2026-05-13 - Observabilidad minima de billing y MT5
+
+Contexto:
+
+- Rama: `main`.
+- Fase: observabilidad tecnica minima viable.
+
+Cambio validado:
+
+- Los eventos de billing relevantes para produccion emiten auditoria
+  estructurada sin secretos:
+  - `billing_plan_changed`
+  - `billing_payment_failed`
+  - `billing_payment_paid`
+- Los rechazos anormales de sync MT5 emiten auditoria estructurada como
+  `mt5_sync_rejected` sin exponer la KMFXKey completa:
+  - key ausente
+  - key desconocida
+  - key revocada
+  - key enviada por query string
+  - rate limit por `connection_key`
+
+Validacion local:
+
+- `python3 -m py_compile kmfx_connector_api.py`.
+- `python3 -m unittest tests.test_connector_cors_config`: `102 tests OK`.
+- `git diff --check`.
+- `python3 scripts/production_gate.py`: verde.
+
+Pendiente:
+
+- Login auditado en Supabase/Auth o en frontend server-side cuando se migre a
+  Next.js.
+- Alertas de plataforma para 5xx, webhooks Stripe fallidos y volumen anomalo de
+  rechazos MT5.
+
 ## 2026-05-13 - Checkpoint `0c13fd7`
 
 Contexto:

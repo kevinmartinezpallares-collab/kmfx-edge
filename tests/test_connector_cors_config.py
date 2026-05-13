@@ -126,13 +126,21 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
     def test_query_connection_key_rejected_by_default_without_echoing_raw_key(self) -> None:
         request = self._request(query_params={"connection_key": "abcdef1234567890"})
-        response = connector_api.query_connection_key_rejection_response("/api/mt5/policy", request)
+        with patch.object(connector_api, "emit_audit_event") as audit_mock:
+            response = connector_api.query_connection_key_rejection_response("/api/mt5/policy", request)
 
         self.assertIsNotNone(response)
         self.assertEqual(400, response.status_code)
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual("query_connection_key_not_allowed", body["reason"])
         self.assertNotIn("abcdef1234567890", response.body.decode("utf-8"))
+        audit_mock.assert_called_once()
+        self.assertEqual("mt5_sync_rejected", audit_mock.call_args.args[0])
+        self.assertEqual("rejected", audit_mock.call_args.kwargs["status"])
+        self.assertEqual(
+            "query_connection_key_not_allowed",
+            audit_mock.call_args.kwargs["details"]["reason"],
+        )
 
     def test_mt5_query_connection_key_routes_reject_before_processing(self) -> None:
         request = self._request(query_params={"api_key": "abcdef1234567890"})
@@ -1881,7 +1889,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             connector_api,
             "send_payment_failed_email",
             return_value={"sent": False, "reason": "email_not_configured"},
-        ) as email_mock:
+        ) as email_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_invoice_failed",
@@ -1896,6 +1904,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("invoice.payment_failed", result["invoice_event"])
         self.assertEqual("in_123", result["invoice_id"])
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
+        audit_mock.assert_called_once()
+        self.assertEqual("billing_payment_failed", audit_mock.call_args.args[0])
+        self.assertEqual("66666666-6666-4666-8666-666666666666", audit_mock.call_args.kwargs["user_id"])
+        self.assertEqual("failed", audit_mock.call_args.kwargs["status"])
+        self.assertEqual("invoice.payment_failed", audit_mock.call_args.kwargs["details"]["stripe_event_type"])
 
     def test_invoice_paid_syncs_kmfx_subscription_renewal_state(self) -> None:
         invoice = {
@@ -1949,7 +1962,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         ) as subscription_mock, patch.object(
             connector_api,
             "supabase_update_auth_app_metadata",
-        ) as metadata_mock:
+        ) as metadata_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_subscription_updated",
@@ -1965,6 +1978,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         metadata = metadata_mock.call_args.args[1]
         self.assertEqual("unlimited", metadata["kmfx_plan"])
         self.assertEqual("active", metadata["kmfx_billing_status"])
+        audit_mock.assert_called_once()
+        self.assertEqual("billing_plan_changed", audit_mock.call_args.args[0])
+        self.assertEqual("88888888-8888-4888-8888-888888888888", audit_mock.call_args.kwargs["user_id"])
+        self.assertEqual("active", audit_mock.call_args.kwargs["status"])
+        self.assertEqual("customer.subscription.updated", audit_mock.call_args.kwargs["details"]["stripe_event_type"])
 
     def test_subscription_deleted_event_downgrades_app_metadata_to_free(self) -> None:
         subscription = {
@@ -2430,7 +2448,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                         "trades": [],
                     },
                 )
-                response = asyncio.run(connector_api.mt5_sync(request))
+                with patch.object(connector_api, "emit_audit_event") as audit_mock:
+                    response = asyncio.run(connector_api.mt5_sync(request))
             finally:
                 connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
                 connector_api.account_service = previous_service
@@ -2441,6 +2460,26 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("revoked_connection_key", body["reason"])
         self.assertNotIn("revoked-route-key", body_text)
         self.assertEqual("revoke...-key", body["details"]["connection_key"])
+        audit_mock.assert_called_once()
+        self.assertEqual("mt5_sync_rejected", audit_mock.call_args.args[0])
+        self.assertEqual("rejected", audit_mock.call_args.kwargs["status"])
+        self.assertEqual(created.account_id, audit_mock.call_args.kwargs["account_id"])
+        self.assertEqual("revoked_connection_key", audit_mock.call_args.kwargs["details"]["reason"])
+
+    def test_missing_connection_key_response_emits_audit_event(self) -> None:
+        with patch.object(connector_api, "emit_audit_event") as audit_mock:
+            response = connector_api.mt5_missing_connection_key_response(
+                "/api/mt5/sync",
+                sync_id="sync-missing-key",
+            )
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(401, response.status_code)
+        self.assertEqual("missing_connection_key", body["reason"])
+        audit_mock.assert_called_once()
+        self.assertEqual("mt5_sync_rejected", audit_mock.call_args.args[0])
+        self.assertEqual("rejected", audit_mock.call_args.kwargs["status"])
+        self.assertEqual("missing_connection_key", audit_mock.call_args.kwargs["details"]["reason"])
 
     def test_policy_route_rate_limits_valid_connection_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -890,6 +890,15 @@ def query_connection_key_rejection_response(endpoint: str, request: Request) -> 
         endpoint,
         sorted(query_fields.keys()),
     )
+    emit_audit_event(
+        "mt5_sync_rejected",
+        status="rejected",
+        details={
+            "endpoint": endpoint,
+            "reason": "query_connection_key_not_allowed",
+            "fields": sorted(query_fields.keys()),
+        },
+    )
     return connector_json_response(
         {
             "ok": False,
@@ -1042,6 +1051,16 @@ def _auth_identity_key(user_id: str, login: str) -> str:
 
 def mt5_missing_connection_key_response(endpoint: str, sync_id: str = "", batch_id: str = "") -> JSONResponse:
     log.warning("%s rejected | reason=missing_connection_key", endpoint)
+    emit_audit_event(
+        "mt5_sync_rejected",
+        status="rejected",
+        details={
+            "endpoint": endpoint,
+            "reason": "missing_connection_key",
+            "sync_id": sync_id,
+            "batch_id": batch_id,
+        },
+    )
     payload: dict[str, Any] = {
         "ok": False,
         "received": False,
@@ -2550,6 +2569,14 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
                 plan=safe_str(result.get("plan") or ensure_dict(data_object.get("metadata")).get("kmfx_plan") or ensure_dict(data_object.get("metadata")).get("plan_key"), "pro"),
                 event_id=safe_str(event.get("id")),
             )
+        emit_billing_audit_event(
+            "billing_plan_changed",
+            stripe_event=event,
+            billing_result=result,
+            stripe_object=data_object,
+            subscription=data_object,
+            status=safe_str(result.get("status") or data_object.get("status") or "ok", "ok"),
+        )
         return result
     if event_type == "customer.updated":
         metadata = ensure_dict(data_object.get("metadata"))
@@ -2581,8 +2608,65 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
                 plan=safe_str(result.get("plan") or stripe_subscription_to_billing_row(subscription).get("plan_key"), "pro"),
                 event_id=safe_str(event.get("id")),
             )
+            emit_billing_audit_event(
+                "billing_payment_failed",
+                stripe_event=event,
+                billing_result=result,
+                stripe_object=data_object,
+                subscription=subscription,
+                status="failed",
+            )
+        elif event_type == "invoice.paid":
+            emit_billing_audit_event(
+                "billing_payment_paid",
+                stripe_event=event,
+                billing_result=result,
+                stripe_object=data_object,
+                subscription=subscription,
+                status="ok",
+            )
         return result
     return {"ignored": event_type or "unknown"}
+
+
+def emit_billing_audit_event(
+    event_name: str,
+    *,
+    stripe_event: dict[str, Any],
+    billing_result: dict[str, Any],
+    stripe_object: dict[str, Any] | None = None,
+    subscription: dict[str, Any] | None = None,
+    status: str = "ok",
+) -> None:
+    event_type = safe_str(stripe_event.get("type"))
+    data_object = ensure_dict(stripe_object)
+    subscription_object = ensure_dict(subscription)
+    metadata = {
+        **ensure_dict(subscription_object.get("metadata")),
+        **ensure_dict(data_object.get("metadata")),
+    }
+    user_id = safe_str(
+        billing_result.get("user_id")
+        or metadata.get("kmfx_user_id")
+        or metadata.get("user_id")
+    ).lower()
+    details = {
+        "stripe_event_id": safe_str(stripe_event.get("id")),
+        "stripe_event_type": event_type,
+        "stripe_subscription_id": safe_str(
+            subscription_object.get("id")
+            or data_object.get("subscription")
+            or (data_object.get("id") if event_type.startswith("customer.subscription.") else "")
+        ),
+        "stripe_invoice_id": safe_str(data_object.get("id") if event_type.startswith("invoice.") else ""),
+        "plan": safe_str(
+            billing_result.get("plan")
+            or metadata.get("kmfx_plan")
+            or metadata.get("plan_key")
+        ),
+        "billing_status": safe_str(billing_result.get("status") or subscription_object.get("status") or data_object.get("status")),
+    }
+    emit_audit_event(event_name, user_id=user_id, status=status, details=details)
 
 
 def connection_key_creation_denial(
@@ -2735,6 +2819,17 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
         mask_connection_key(normalized_key),
         limit,
         retry_after_seconds,
+    )
+    emit_audit_event(
+        "mt5_sync_rejected",
+        status="rejected",
+        details={
+            "endpoint": endpoint,
+            "reason": "connection_key_rate_limited",
+            "connection_key": mask_connection_key(normalized_key),
+            "limit_per_minute": limit,
+            "retry_after_seconds": retry_after_seconds,
+        },
     )
     response = connector_json_response(
         {
@@ -2889,6 +2984,19 @@ def mt5_revoked_connection_key_response(endpoint: str, connection_key: str, *, s
         endpoint,
         payload["details"]["account_id"],
         mask_connection_key(connection_key),
+    )
+    emit_audit_event(
+        "mt5_sync_rejected",
+        user_id=revoked_account.user_id if revoked_account else "",
+        account_id=revoked_account.account_id if revoked_account else "",
+        status="rejected",
+        details={
+            "endpoint": endpoint,
+            "reason": "revoked_connection_key",
+            "connection_key": mask_connection_key(connection_key),
+            "sync_id": sync_id,
+            "batch_id": batch_id,
+        },
     )
     return connector_json_response(payload, status_code=401)
 
@@ -5940,6 +6048,16 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     }
                     log.error("SYNC rejected | reason=unknown_connection_key details=%s", details)
                     log_connection_key_validation("/api/mt5/sync", connection_key, False)
+                    emit_audit_event(
+                        "mt5_sync_rejected",
+                        status="rejected",
+                        details={
+                            **details,
+                            "endpoint": "/api/mt5/sync",
+                            "reason": "unknown_connection_key",
+                            "sync_id": sync_id,
+                        },
+                    )
                     return connector_json_response(
                         {
                             "ok": False,

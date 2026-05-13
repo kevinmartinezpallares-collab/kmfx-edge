@@ -472,7 +472,7 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [ ] Alerta errores 5xx.
 - [ ] Alerta webhooks Stripe fallidos.
 - [ ] Alerta sync MT5 rechazado anormal.
-- [ ] Logs utiles sin secretos.
+- [x] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
 - [x] Cache backend corto para `view=summary`: TTL 5s, invalida con cada sync MT5 y nunca cachea snapshots completos.
@@ -488,11 +488,13 @@ Objetivo: detectar problemas reales y poder recuperarse.
   - revocar key
   - regenerar key
   - eliminar cuenta
-- [ ] Eventos de auditoria pendientes:
-  - login
+- [x] Eventos de auditoria de billing y MT5:
   - cambio de plan
   - pago fallido
-  - sync rechazado anormal
+  - pago recuperado
+  - sync MT5 rechazado por key ausente, desconocida, revocada, query string o rate limit
+- [ ] Eventos de auditoria pendientes:
+  - login
 - [ ] Backups Supabase confirmados.
 - [ ] Restore documentado o probado.
 - [ ] Retencion de datos definida:
