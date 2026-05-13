@@ -11,8 +11,8 @@ import {
   renderSymbolExposureTable,
   riskToneFromStatus,
 } from "./risk-panel-components.js?v=build-20260509-150500";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260513-120000";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260513-120000";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260513-130000";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260513-130000";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

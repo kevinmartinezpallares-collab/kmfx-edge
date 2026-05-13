@@ -243,6 +243,7 @@ class UserFlowUiContractTests(unittest.TestCase):
 
     def test_critical_auth_admin_and_billing_modules_share_fresh_cache_key(self) -> None:
         files = [
+            "index.html",
             "app.js",
             "js/modules/admin-mode.js",
             "js/modules/billing-status.js",
@@ -258,10 +259,23 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260513-120000",
+                        f"{module}.js?v=build-20260513-130000",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
+
+    def test_dashboard_shell_uses_current_production_cache_key(self) -> None:
+        html = read_text("index.html")
+        app = read_text("app.js")
+
+        self.assertIn('src="./app.js?v=build-20260513-130000"', html)
+        self.assertIn('const BUILD_TAG = "build-20260513-130000";', app)
+        for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
+            self.assertIn(
+                f"./js/modules/{module}.js?v=build-20260513-130000",
+                app,
+                f"app.js must load {module} with the current production cache key",
+            )
 
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")

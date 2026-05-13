@@ -1,7 +1,7 @@
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260509-150500";
 import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500";
 import { applyAvatarContent } from "./avatar-utils.js?v=build-20260509-150500";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260513-120000";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260513-130000";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
