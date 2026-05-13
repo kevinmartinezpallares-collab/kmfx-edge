@@ -13,7 +13,7 @@ Los controles principales de KMFX Edge estan en buen estado para una beta contro
 - Las KMFXKeys no viajan por query string en produccion.
 - La ingesta MT5 remota sin key/bearer esta bloqueada.
 - Las keys se guardan hasheadas y se muestran solo enmascaradas salvo peticion autenticada del propietario/admin.
-- El proxy Cloudflare elimina parametros sensibles de query y no reenvia headers publicos de identidad.
+- El proxy Cloudflare elimina parametros sensibles de query, no reenvia headers publicos de identidad y solo expone las rutas MT5/health necesarias.
 - Los endpoints sensibles tienen rate limit por usuario/IP y la ingesta MT5 tiene rate limit por key.
 - Las decisiones de plan/admin se resuelven desde bearer verificado y `app_metadata`, no desde headers remotos ni `user_metadata` publico.
 - El Launcher queda limitado a detectar instalaciones, instalar/reinstalar el EA y abrir MT5. La KMFXKey estable pertenece al dashboard.
@@ -49,6 +49,9 @@ Los controles principales de KMFX Edge estan en buen estado para una beta contro
 - Headers permitidos: `Authorization`, `Content-Type`, `X-KMFX-Connection-Key`.
 - Parametros sensibles de query eliminados antes de reenviar.
 - Headers spoofables `X-KMFX-User-Email` y `X-KMFX-User-Id` eliminados.
+- Allowlist de rutas: `/health`, `/api/mt5/sync`, `/api/mt5/journal` y `/api/mt5/policy`.
+- Las rutas ajenas al flujo MT5 devuelven `404 path_not_found` desde el Worker y no llegan al backend Render.
+- Los fallos de upstream devuelven `502 upstream_unavailable` sin exponer detalles internos.
 
 ### Account keys
 

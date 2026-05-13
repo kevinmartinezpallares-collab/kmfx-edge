@@ -22,6 +22,13 @@ const ALLOWED_HEADERS = [
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "HEAD", "OPTIONS"]);
 
+const ALLOWED_PROXY_PATHS = new Set([
+  "/health",
+  "/api/mt5/sync",
+  "/api/mt5/journal",
+  "/api/mt5/policy",
+]);
+
 const SENSITIVE_QUERY_PARAMS = new Set([
   "api_key",
   "connection_key",
@@ -105,16 +112,37 @@ function stripSpoofableIdentityHeaders(headers) {
   SPOOFABLE_IDENTITY_HEADERS.forEach((header) => headers.delete(header));
 }
 
+function normalizePathname(pathname) {
+  if (!pathname || pathname === "/") return "/";
+  return pathname.replace(/\/+$/, "");
+}
+
+function isAllowedProxyPath(pathname) {
+  return ALLOWED_PROXY_PATHS.has(normalizePathname(pathname));
+}
+
+function jsonResponse(request, status, payload, extraHeaders = {}) {
+  return new Response(request.method === "HEAD" ? null : JSON.stringify(payload), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "X-KMFX-Proxy": PROXY_NAME,
+      ...Object.fromEntries(corsHeaders(request)),
+      ...extraHeaders,
+    },
+  });
+}
+
 async function handleRequest(request) {
   if (!ALLOWED_METHODS.has(request.method)) {
-    return new Response(JSON.stringify({ ok: false, reason: "method_not_allowed" }), {
-      status: 405,
-      headers: {
-        "Content-Type": "application/json",
-        "Allow": "GET, POST, HEAD, OPTIONS",
-        ...Object.fromEntries(corsHeaders(request)),
-      },
+    return jsonResponse(request, 405, { ok: false, reason: "method_not_allowed" }, {
+      "Allow": "GET, POST, HEAD, OPTIONS",
     });
+  }
+
+  const incomingUrl = new URL(request.url);
+  if (!isAllowedProxyPath(incomingUrl.pathname)) {
+    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" });
   }
 
   if (request.method === "OPTIONS") {
@@ -125,21 +153,26 @@ async function handleRequest(request) {
     return new Response(null, { status: 204, headers });
   }
 
-  const incomingUrl = new URL(request.url);
   const targetUrl = new URL(incomingUrl.pathname + incomingUrl.search, ORIGIN);
   stripSensitiveQueryParams(targetUrl);
   const headers = new Headers(request.headers);
   headers.delete("host");
   stripSpoofableIdentityHeaders(headers);
+  headers.set("X-Forwarded-Proto", incomingUrl.protocol.replace(":", ""));
   headers.set("X-Forwarded-Host", incomingUrl.host);
   headers.set("X-KMFX-Proxy", PROXY_NAME);
 
-  const response = await fetch(targetUrl.toString(), {
-    method: request.method,
-    headers,
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-    redirect: "manual",
-  });
+  let response;
+  try {
+    response = await fetch(targetUrl.toString(), {
+      method: request.method,
+      headers,
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+      redirect: "manual",
+    });
+  } catch (_error) {
+    return jsonResponse(request, 502, { ok: false, reason: "upstream_unavailable" });
+  }
 
   const responseHeaders = new Headers(response.headers);
   stripUpstreamCorsHeaders(responseHeaders);

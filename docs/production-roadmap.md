@@ -134,8 +134,9 @@ Estas auditorias no sustituyen al QA funcional; son paquetes de cierre para redu
 - [ ] Ejecutar auditoria launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`.
   - Alcance: bundle `.app`, DMG/ZIP, Info.plist, permisos, entitlements, Gatekeeper y estructura de distribucion.
   - Nota: notarizacion Apple sigue siendo opcional por decision de producto, pero la validacion de packaging/signing no se debe saltar.
-- [ ] Ejecutar revision `cloudflare:workers-best-practices`.
+- [x] Ejecutar revision `cloudflare:workers-best-practices`.
   - Alcance: `cloudflare/mt5-api-proxy.js`, secrets, headers, streaming/body limits, logs, CORS, errores y observabilidad.
+  - Resultado: Worker MT5 limitado a `/health`, `/api/mt5/sync`, `/api/mt5/journal` y `/api/mt5/policy`; rutas ajenas devuelven `404` sin tocar Render.
 - [ ] Ejecutar revision `supabase:supabase-postgres-best-practices`.
   - Alcance: migrations de billing/accounts, RLS, indices, policies, funciones security definer, lecturas por usuario y tablas de eventos.
 - [ ] Ejecutar `vercel:verification` o `browser-use` para prueba visual final en navegador real.
@@ -205,6 +206,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - El runbook `docs/mt5-production-smoke-runbook.md` documenta el flujo de soporte: no crear cuentas duplicadas para reinstalar una cuenta, regenerar key solo por revocacion/filtracion/cambio explicito y validar que el EA vuelve a `Conectado a KMFX`.
 - Auditoria `codex-security:security-scan` cerrada sobre backend, Worker, Cuentas/keys, Launcher, billing y controles Supabase documentados; no aparece P0/P1 nuevo en codigo.
 - Riesgos operativos restantes de seguridad: activar GitHub branch protection/secret scanning/push protection, controlar o subir plan de Supabase por egress, mantener conexion directa MT5 bloqueada para usuario normal y ejecutar QA clean-machine del Launcher.
+- Revision `cloudflare:workers-best-practices` cerrada: `mt5-api.kmfxedge.com` queda como superficie dedicada al EA/MT5, con CORS cerrado, headers spoofables eliminados, query secrets descartados, allowlist de rutas y respuesta segura ante upstream caido.
 - Siguiente cierre MT5: ejecutar smoke en macOS limpio y Windows real con usuario no-admin, plan valido, WebRequest autorizado, primer sync, cierre de Launcher y cuenta visible en dashboard.
 
 ## Fase 1 - Cierre de Producto y Billing
@@ -397,7 +399,7 @@ Objetivo: cerrar los riesgos que no se ven en el smoke funcional.
 - [ ] Launcher macOS con `build-macos-apps:packaging-notarization` y `build-macos-apps:signing-entitlements`.
   - Validar bundle, plist, permisos, entitlements, firma local/ad hoc y comportamiento Gatekeeper.
   - Confirmar que el aviso de Apple es aceptable si no se notariza, pero sin fallos de estructura del paquete.
-- [ ] Cloudflare con `cloudflare:workers-best-practices`.
+- [x] Cloudflare con `cloudflare:workers-best-practices`.
   - Revisar `cloudflare/mt5-api-proxy.js`, body limits, CORS, logs, errores y secretos.
 - [ ] Supabase con `supabase:supabase-postgres-best-practices`.
   - Revisar migrations, RLS, indices, policies, funciones y tablas de billing/accounts.

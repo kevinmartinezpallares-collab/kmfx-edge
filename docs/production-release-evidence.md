@@ -413,3 +413,39 @@ Impacto esperado:
 - Menor egress contra Supabase Auth en dashboards con polling y varias
   peticiones autenticadas consecutivas.
 - Sin tocar snapshots completos de cuenta ni el flujo MT5/Launcher.
+
+## 2026-05-12 - Cloudflare Worker MT5 hardening
+
+Contexto:
+
+- Skill usado: `cloudflare:workers-best-practices`.
+- Worker revisado: `cloudflare/mt5-api-proxy.js`.
+- Objetivo: mantener `mt5-api.kmfxedge.com` como endpoint dedicado al EA/MT5,
+  sin exponer accidentalmente otras rutas del backend Render.
+
+Cambios:
+
+- Allowlist explicita de rutas proxy:
+  - `/health`
+  - `/api/mt5/sync`
+  - `/api/mt5/journal`
+  - `/api/mt5/policy`
+- Cualquier otra ruta devuelve `404 path_not_found` desde el Worker.
+- Los errores de upstream devuelven `502 upstream_unavailable` sin detalles
+  internos.
+- Se mantiene CORS cerrado, strip de query params sensibles y strip de headers
+  spoofables de identidad.
+- Se añade `X-Forwarded-Proto` junto a `X-Forwarded-Host` y `X-KMFX-Proxy`.
+
+Validacion local:
+
+- `node --check cloudflare/mt5-api-proxy.js`.
+- Smoke local del Worker con `vm`: ruta MT5 permitida, ruta de billing bloqueada,
+  query key eliminada y header spoofable no reenviado.
+- `git diff --check`.
+
+Pendiente operativo:
+
+- Desplegar el Worker si Cloudflare no publica automáticamente desde `main`.
+- Tras deploy, ejecutar smoke externo y comprobar que una ruta ajena al flujo
+  MT5 no llega a Render.
