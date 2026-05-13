@@ -2781,21 +2781,46 @@ def record_billing_event_once(event: dict[str, Any]) -> bool:
         "payload": event,
     }
     if existing_status == "failed":
-        supabase_admin_request(
-            "PATCH",
-            "/rest/v1/billing_events",
-            query={"stripe_event_id": f"eq.{event_id}"},
-            payload=payload,
-            prefer="return=minimal",
-        )
+        try:
+            supabase_admin_request(
+                "PATCH",
+                "/rest/v1/billing_events",
+                query={"stripe_event_id": f"eq.{event_id}"},
+                payload=payload,
+                prefer="return=minimal",
+            )
+        except RuntimeError as exc:
+            reason = safe_str(exc)
+            if reason == "supabase_http_409":
+                return False
+            raise
     else:
-        supabase_admin_request(
-            "POST",
-            "/rest/v1/billing_events",
-            payload=payload,
-            prefer="return=minimal",
-        )
+        try:
+            supabase_admin_request(
+                "POST",
+                "/rest/v1/billing_events",
+                payload=payload,
+                prefer="return=minimal",
+            )
+        except RuntimeError as exc:
+            reason = safe_str(exc)
+            if reason == "supabase_http_409":
+                return False
+            raise
     return True
+
+
+def _is_idempotent_conflict_error(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, urllib.error.HTTPError) and getattr(current, "code", None) == 409:
+            return True
+        if isinstance(current, RuntimeError) and safe_str(current) == "supabase_http_409":
+            return True
+        current = getattr(current, "__cause__", None) or getattr(current, "__context__", None)
+    return False
 
 
 def mark_billing_event_status(event_id: str, status: str, error: str = "") -> None:
@@ -7138,7 +7163,7 @@ async def billing_webhook(request: Request) -> JSONResponse:
         else:
             mark_billing_event_status(event_id, "processed")
     except Exception as exc:
-        if isinstance(exc, urllib.error.HTTPError) and getattr(exc, "code", None) == 409:
+        if _is_idempotent_conflict_error(exc):
             log.warning("Stripe webhook idempotent conflict | event_id=%s type=%s", event_id, safe_str(event.get("type")))
             try:
                 mark_billing_event_status(event_id, "processed", "idempotent_conflict")
