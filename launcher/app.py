@@ -571,48 +571,25 @@ class KMFXApi:
         return response
 
     def ensure_remote_account_link(self) -> dict[str, Any]:
-        has_local_link = (
-            self.config.connection_key
-            and self.config.connection_key_user_id
-            and self.config.connection_key_user_id == self.config.auth_user_id
-        )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        if not has_local_link:
-            save_bridge_config(self.config, user_id=self.config.auth_user_id)
-            self.fetch_json("/bridge/reload-config")
-            self.logger.info("[KMFX][AUTH][LINK] launcher session ready without creating MT5 account")
-            return {
-                "ok": True,
-                "message": "Sesión lista. Crea o copia la KMFXKey desde Cuentas.",
-            }
-        response = self.link_account_with_session(
-            user_id=self.config.auth_user_id,
-            label="KMFX Connector MT5",
-            connection_key=self.config.connection_key,
-        )
-        if not response.ok:
-            self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
-            if has_local_link:
-                save_bridge_config(self.config, user_id=self.config.auth_user_id)
-                self.fetch_json("/bridge/reload-config")
-                return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
-            return {"ok": False, "message": self.link_account_error_message(response)}
-
-        body = response.body or {}
-        connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
-        if not connection_key and has_local_link:
-            connection_key = self.config.connection_key
-        if not connection_key:
-            return {"ok": False, "message": "El backend no devolvió connection key."}
-        self.config.connection_key = connection_key
-        self.config.connection_key_user_id = self.config.auth_user_id
-        self.cache_linked_account_connection(body, label="KMFX Connector MT5")
+        if self.config.connection_key or self.config.connection_key_user_id:
+            self.logger.info(
+                "[KMFX][AUTH][LINK] clearing legacy launcher-level key key=%s",
+                mask_connection_key(self.config.connection_key),
+            )
+            self.config.connection_key = ""
+            self.config.connection_key_user_id = ""
+            self.config.backend_token = self.config.auth_access_token or self.config.backend_token
+            save_config(self.config)
         save_config(self.config)
         save_bridge_config(self.config, user_id=self.config.auth_user_id)
         self.fetch_json("/bridge/reload-config")
-        self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
-        return {"ok": True, "connection_key": mask_connection_key(connection_key)}
+        self.logger.info("[KMFX][AUTH][LINK] launcher session ready; dashboard owns MT5 keys")
+        return {
+            "ok": True,
+            "message": "Sesión lista. Copia la KMFXKey desde Cuentas.",
+        }
 
     def cache_linked_account_connection(self, body: dict[str, Any] | None, *, label: str = "") -> dict[str, Any]:
         if not isinstance(body, dict):
@@ -978,49 +955,42 @@ class KMFXApi:
                     "ok": False,
                     "message": (
                         "Esta instalación MT5 tiene una KMFXKey que no existe en tu dashboard. "
-                        "Abre Cuentas > Ver detalles, copia la KMFXKey correcta y reinstala el conector sobre esa misma cuenta."
+                        "Abre Cuentas > Ver detalles, copia la KMFXKey correcta y vuelve a instalar el conector desde esa cuenta."
                     ),
                 }
-            else:
-                if connection_key:
-                    self.logger.warning(
-                        "[KMFX][LAUNCHER][INSTALL] shared connection key detected; creating dedicated MT5 connection target=%s key=%s",
-                        installation.label,
-                        mask_connection_key(connection_key),
-                    )
-                response = self.link_account_with_session(
-                    user_id=self.config.auth_user_id,
-                    label=label,
-                    connection_key="",
-                )
-            if not response.ok:
-                return {"ok": False, "message": self.link_account_error_message(response)}
-            linked = self.cache_linked_account_connection(response.body, label=label)
-            connection_key = _safe_str(response.body.get("connection_key") or linked.get("connection_key"))
-            if not connection_key:
-                return {"ok": False, "message": "No se pudo preparar la key de esta cuenta MT5."}
 
-            install_config = replace(self.config)
-            install_config.connection_key = connection_key
-            try:
-                result = install_connector(installation, install_config)
-            except ConnectorInstallError as exc:
-                self.logger.error("[KMFX][LAUNCHER][INSTALL] connector resource missing: %s", exc)
-                return {"ok": False, "message": str(exc)}
+            identity_connection = self.remote_connection_for_installation(installation)
+            if identity_connection.get("account_id"):
+                return self.install_connector_for_connection(identity_connection["account_id"], installation.label)
+
+            available_connections = [
+                connection
+                for connection in self.get_account_connections()
+                if _safe_str(connection.get("account_id"))
+                and _safe_str(connection.get("connection_key"))
+                and not connection.get("connection_key_revoked")
+                and not connection.get("connection_key_mismatch")
+            ]
+            pending_connections = [
+                connection
+                for connection in available_connections
+                if _safe_str(connection.get("status")).lower() in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"}
+                and not _safe_str(connection.get("login"))
+            ]
+            if len(pending_connections) == 1:
+                return self.install_connector_for_connection(pending_connections[0]["account_id"], installation.label)
+
             self.logger.info(
-                "[KMFX][LAUNCHER][INSTALL] connector installed target=%s account_id=%s key=%s",
+                "[KMFX][LAUNCHER][INSTALL] install requires dashboard account selection target=%s candidates=%s",
                 installation.label,
-                linked.get("account_id", ""),
-                mask_connection_key(connection_key),
+                len(available_connections),
             )
-            self.refresh_installations()
             return {
-                "ok": True,
-                "message": "Conector instalado correctamente.",
-                "result": result,
-                "status": self.get_status(),
-                "installations": self.get_installations(),
-                "account_connections": self.get_account_connections(),
+                "ok": False,
+                "message": (
+                    "Crea la cuenta en el dashboard y pulsa Reinstalar en esa cuenta. "
+                    "El Launcher no genera KMFXKeys nuevas."
+                ),
             }
 
     def install_connector_for_connection(self, account_id: str, selected_installation: str | None = None) -> dict[str, Any]:

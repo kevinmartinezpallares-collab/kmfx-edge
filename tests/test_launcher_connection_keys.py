@@ -677,6 +677,44 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual(0, backend.link_calls)
         self.assertEqual("dashboard-stable-key", captured["connection_key"])
 
+    def test_launcher_install_connector_does_not_create_dashboard_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
+                root = Path(temp_dir) / "CleanMT5"
+                experts_path = root / "MQL5" / "Experts"
+                experts_path.mkdir(parents=True)
+
+                config = LauncherConfig(
+                    auth_access_token="access-token",
+                    auth_refresh_token="refresh-token",
+                    auth_expires_at=int(time.time()) + 3600,
+                    auth_user_id="user-1",
+                    auth_email="kevin@example.test",
+                    backend_token="access-token",
+                )
+                save_config(config)
+
+                backend = RegistryBackendWithLinkTrap(config, [])
+                api = object.__new__(KMFXApi)
+                api.config = config
+                api.backend = backend
+                api.store = LauncherStateStore()
+                api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+                api._lock = threading.RLock()
+                api.installations = [
+                    MT5Installation("MetaTrader 5", "", str(root), str(experts_path), "", "test")
+                ]
+                api._last_account_connections = []
+                api._last_installed_link_sync_at = time.time()
+                api.get_session = lambda: {"authenticated": True}
+                api.get_account_connections = lambda: []
+
+                result = api.install_connector("MetaTrader 5")
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(0, backend.link_calls)
+        self.assertIn("Launcher no genera KMFXKeys", result["message"])
+
     def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
@@ -747,7 +785,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual("", api.config.backend_token)
         self.assertEqual(1, api.backend.refresh_calls)
 
-    def test_launcher_keeps_saved_key_when_remote_link_is_rejected(self) -> None:
+    def test_launcher_clears_legacy_saved_key_on_login(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(os.environ, {"KMFX_LAUNCHER_HOME": temp_dir}):
                 config = LauncherConfig(
@@ -772,8 +810,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 result = api.ensure_remote_account_link()
 
         self.assertTrue(result["ok"])
-        self.assertEqual(["revoked-key"], api.backend.connection_keys)
-        self.assertEqual("revoked-key", api.config.connection_key)
+        self.assertEqual([], api.backend.connection_keys)
+        self.assertEqual("", api.config.connection_key)
+        self.assertEqual("", api.config.connection_key_user_id)
 
     def test_launcher_login_does_not_create_generic_mt5_account_without_local_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

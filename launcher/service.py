@@ -240,47 +240,21 @@ class LauncherServiceRuntime:
         return response
 
     def ensure_remote_account_link(self) -> dict[str, Any]:
-        has_local_link = (
-            self.config.connection_key
-            and self.config.connection_key_user_id
-            and self.config.connection_key_user_id == self.config.auth_user_id
-        )
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
-        if not has_local_link:
-            save_bridge_config(self.config, user_id=self.config.auth_user_id)
-            self.reload_bridge_config(force_log=True)
-            self.logger.info("[KMFX][AUTH][LINK] launcher service session ready without creating MT5 account")
-            return {
-                "ok": True,
-                "message": "Sesión lista. Crea o copia la KMFXKey desde Cuentas.",
-            }
-        response = self.link_account_with_session(
-            user_id=self.config.auth_user_id,
-            label="KMFX Connector MT5",
-            connection_key=self.config.connection_key,
-        )
-        if not response.ok:
-            self.logger.warning("[KMFX][AUTH][LINK] account link failed status=%s", response.status_code)
-            if has_local_link:
-                save_bridge_config(self.config, user_id=self.config.auth_user_id)
-                self.reload_bridge_config(force_log=True)
-                return {"ok": True, "connection_key": mask_connection_key(self.config.connection_key)}
-            return {"ok": False, "message": "No se pudo preparar la vinculación de cuenta."}
-
-        body = response.body or {}
-        connection_key = str(body.get("connection_key") or body.get("launcher_config", {}).get("connection_key") or "").strip()
-        if not connection_key and has_local_link:
-            connection_key = self.config.connection_key
-        if not connection_key:
-            return {"ok": False, "message": "El backend no devolvió connection key."}
-        self.config.connection_key = connection_key
-        self.config.connection_key_user_id = self.config.auth_user_id
-        save_config(self.config)
+        if self.config.connection_key or self.config.connection_key_user_id:
+            self.logger.info(
+                "[KMFX][AUTH][LINK] clearing legacy service-level key key=%s",
+                mask_connection_key(self.config.connection_key),
+            )
+            self.config.connection_key = ""
+            self.config.connection_key_user_id = ""
+            self.config.backend_token = self.config.auth_access_token or self.config.backend_token
+            save_config(self.config)
         save_bridge_config(self.config, user_id=self.config.auth_user_id)
         self.reload_bridge_config(force_log=True)
-        self.logger.info("[KMFX][AUTH][LINK] connection_key ready key=%s", mask_connection_key(connection_key))
-        return {"ok": True, "connection_key": mask_connection_key(connection_key)}
+        self.logger.info("[KMFX][AUTH][LINK] launcher service session ready; dashboard owns MT5 keys")
+        return {"ok": True, "message": "Sesión lista. Copia la KMFXKey desde Cuentas."}
 
     def auth_error_message(self, response: Any) -> str:
         body = response.body or {}
