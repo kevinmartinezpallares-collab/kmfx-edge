@@ -2659,7 +2659,13 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
     data_object = ensure_dict(ensure_dict(event.get("data")).get("object"))
     if event_type == "checkout.session.completed":
         return process_checkout_session_completed(data_object)
-    if event_type in {"customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"}:
+    if event_type in {
+        "customer.subscription.created",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+        "customer.subscription.paused",
+        "customer.subscription.resumed",
+    }:
         if not stripe_subscription_belongs_to_kmfx(data_object):
             return {"ignored": "non_kmfx_subscription"}
         result = sync_billing_subscription(data_object)

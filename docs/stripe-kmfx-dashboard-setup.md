@@ -74,6 +74,8 @@ Eventos minimos:
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
+- `customer.subscription.paused`
+- `customer.subscription.resumed`
 - `invoice.paid`
 - `invoice.payment_failed`
 - `invoice.payment_action_required`

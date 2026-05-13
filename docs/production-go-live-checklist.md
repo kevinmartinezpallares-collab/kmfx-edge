@@ -213,7 +213,7 @@ Notas 2026-05-08:
 - Stripe read-only search no devuelve lookup keys `kmfx_basic_*`/`kmfx_pro_*`; mientras se configuran, Render debe usar Price IDs.
 - Checkout queda preparado con trial de 7 dias sin tarjeta por defecto (`STRIPE_TRIAL_PERIOD_DAYS=7`, `STRIPE_TRIAL_REQUIRES_CARD=false`).
 - Success/cancel vuelven a `/ajustes?tab=subscription`, y la UI muestra el estado de retorno sin caer al dashboard.
-- Webhooks de invoice (`invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required`) sincronizan la suscripcion KMFX asociada si pertenece al producto/metadata KMFX.
+- Webhooks de subscription (`customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`) y de invoice (`invoice.paid`, `invoice.payment_failed`, `invoice.payment_action_required`) sincronizan la suscripcion KMFX asociada si pertenece al producto/metadata KMFX.
 
 Notas 2026-05-09:
 

@@ -2084,6 +2084,80 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("active", audit_mock.call_args.kwargs["status"])
         self.assertEqual("customer.subscription.updated", audit_mock.call_args.kwargs["details"]["stripe_event_type"])
 
+    def test_subscription_paused_event_restricts_entitlements(self) -> None:
+        subscription = {
+            "id": "sub_paused",
+            "customer": "cus_paused",
+            "status": "paused",
+            "metadata": {
+                "kmfx_user_id": "12121212-1212-4121-8121-121212121212",
+                "kmfx_user_email": "paused@example.com",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ) as subscription_mock, patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ) as metadata_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_paused",
+                    "type": "customer.subscription.paused",
+                    "data": {"object": subscription},
+                }
+            )
+
+        self.assertEqual("pro", result["plan"])
+        self.assertEqual("paused", result["status"])
+        subscription_row = subscription_mock.call_args.args[0]
+        self.assertEqual("paused", subscription_row["status"])
+        self.assertTrue(subscription_row["is_current"])
+        metadata = metadata_mock.call_args.args[1]
+        self.assertEqual("pro", metadata["kmfx_plan"])
+        self.assertEqual("paused", metadata["kmfx_billing_status"])
+        audit_mock.assert_called_once()
+        self.assertEqual("billing_plan_changed", audit_mock.call_args.args[0])
+        self.assertEqual("paused", audit_mock.call_args.kwargs["status"])
+        self.assertEqual("customer.subscription.paused", audit_mock.call_args.kwargs["details"]["stripe_event_type"])
+
+    def test_subscription_resumed_event_restores_active_entitlements(self) -> None:
+        subscription = {
+            "id": "sub_resumed",
+            "customer": "cus_resumed",
+            "status": "active",
+            "metadata": {
+                "kmfx_user_id": "13131313-1313-4131-8131-131313131313",
+                "kmfx_user_email": "resumed@example.com",
+            },
+            "items": {"data": [{"price": {"id": "price_unlimited_monthly", "lookup_key": "kmfx_unlimited_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ) as subscription_mock, patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ) as metadata_mock:
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_resumed",
+                    "type": "customer.subscription.resumed",
+                    "data": {"object": subscription},
+                }
+            )
+
+        self.assertEqual("unlimited", result["plan"])
+        self.assertEqual("active", result["status"])
+        subscription_row = subscription_mock.call_args.args[0]
+        self.assertEqual("unlimited", subscription_row["plan_key"])
+        self.assertEqual("active", subscription_row["status"])
+        metadata = metadata_mock.call_args.args[1]
+        self.assertEqual("unlimited", metadata["kmfx_plan"])
+        self.assertEqual("active", metadata["kmfx_billing_status"])
+
     def test_subscription_deleted_event_downgrades_app_metadata_to_free(self) -> None:
         subscription = {
             "id": "sub_cancelled",
