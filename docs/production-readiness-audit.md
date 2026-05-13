@@ -143,7 +143,7 @@ Riesgos pendientes:
 - Branch protection de `main` sigue pendiente; el resto de controles principales de seguridad del repo en GitHub ya esta activo y verificado por API.
 - Revisar env vars reales en Vercel, Render, Cloudflare y Supabase.
 - Confirmar `SUPABASE_JWT_SECRET` o verificacion remota JWT final en Render.
-- Reducir admin defaults/envs a configuracion de plataforma antes de abrir usuarios.
+- Admin defaults/envs eliminados: solo `kevinmartinezpallares@gmail.com` conserva admin antes de abrir usuarios.
 - Rotar keys antiguas que hayan podido salir en logs previos.
 - No lanzar conexion directa con password hasta tener vault y permisos por plan.
 

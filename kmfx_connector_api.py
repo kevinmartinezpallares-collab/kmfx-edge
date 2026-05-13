@@ -161,29 +161,16 @@ def _parse_admin_launcher_connection_key_mappings(value: str) -> dict[str, set[s
     return mappings
 
 
-DEFAULT_ADMIN_USER_IDS = {"421e2f82-d3c9-4965-bda5-35d6e88cbd0f"}
+DEFAULT_ADMIN_USER_IDS: set[str] = set()
 DEFAULT_ADMIN_EMAILS = {"kevinmartinezpallares@gmail.com"}
 
 
 def resolve_admin_user_ids() -> set[str]:
-    admin_ids: set[str] = set()
-    if not _env_flag("KMFX_DISABLE_DEFAULT_ADMIN_IDS", default=False):
-        admin_ids.update(DEFAULT_ADMIN_USER_IDS)
-    configured = _split_env_list(_env_value("KMFX_ADMIN_USER_IDS"))
-    if configured:
-        admin_ids.update(user_id.lower() for user_id in configured)
-        return admin_ids
-    if _env_flag("KMFX_ENABLE_DEV_ADMIN_FALLBACK", default=False) and not _is_production_runtime():
-        admin_ids.add("local-dev-admin")
-    return admin_ids
+    return set(DEFAULT_ADMIN_USER_IDS)
 
 
 def resolve_admin_emails() -> set[str]:
-    admin_emails: set[str] = set()
-    if not _env_flag("KMFX_DISABLE_DEFAULT_ADMIN_EMAILS", default=False):
-        admin_emails.update(DEFAULT_ADMIN_EMAILS)
-    admin_emails.update(email.lower() for email in _split_env_list(_env_value("KMFX_ADMIN_EMAILS")))
-    return admin_emails
+    return {email.lower() for email in DEFAULT_ADMIN_EMAILS}
 
 
 def resolve_admin_launcher_connection_keys_by_user_id() -> dict[str, set[str]]:
@@ -191,26 +178,6 @@ def resolve_admin_launcher_connection_keys_by_user_id() -> dict[str, set[str]]:
     if not configured:
         return {}
     return _parse_admin_launcher_connection_key_mappings(configured)
-
-
-def metadata_value_contains_admin(value: Any) -> bool:
-    if isinstance(value, (list, tuple, set)):
-        return any(metadata_value_contains_admin(item) for item in value)
-    normalized = safe_str(value).lower()
-    if not normalized:
-        return False
-    return any(part.strip() in {"admin", "owner"} for part in normalized.replace(";", ",").replace("|", ",").split(","))
-
-
-def app_metadata_marks_admin(app_metadata: dict[str, Any]) -> bool:
-    metadata = ensure_dict(app_metadata)
-    for key in ("is_admin", "admin", "kmfx_admin"):
-        if metadata_bool(metadata.get(key)) is True:
-            return True
-    for key in ("role", "kmfx_role", "roles", "kmfx_roles"):
-        if metadata_value_contains_admin(metadata.get(key)):
-            return True
-    return False
 
 
 def resolve_cors_allow_origins() -> list[str]:
@@ -1266,11 +1233,7 @@ def build_admin_context(request: Request) -> dict[str, Any]:
     user_id = safe_str(identity["user_id"]).lower()
     app_metadata = ensure_dict(identity.get("app_metadata"))
     user_metadata = ensure_dict(identity.get("user_metadata"))
-    is_admin = bool(
-        (user_id and user_id in ADMIN_USER_IDS)
-        or (email and email in ADMIN_EMAILS)
-        or app_metadata_marks_admin(app_metadata)
-    )
+    is_admin = bool(email and email in ADMIN_EMAILS)
     return {
         "email": email,
         "user_id": user_id,
@@ -6946,6 +6909,20 @@ async def billing_webhook(request: Request) -> JSONResponse:
         else:
             mark_billing_event_status(event_id, "processed")
     except Exception as exc:
+        if isinstance(exc, urllib.error.HTTPError) and getattr(exc, "code", None) == 409:
+            log.warning("Stripe webhook idempotent conflict | event_id=%s type=%s", event_id, safe_str(event.get("type")))
+            try:
+                mark_billing_event_status(event_id, "processed", "idempotent_conflict")
+            except Exception:
+                log.warning("Stripe webhook conflict status update failed | event_id=%s", event_id)
+            return billing_json_response(
+                {
+                    "ok": True,
+                    "event_id": event_id,
+                    "event_type": safe_str(event.get("type")),
+                    "conflict": True,
+                }
+            )
         log.exception("Stripe webhook processing failed | event_id=%s type=%s", event_id, safe_str(event.get("type")))
         emit_operational_alert(
             "billing_webhook_failed",

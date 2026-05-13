@@ -914,3 +914,76 @@ Lectura operativa:
   proteccion de `main`.
 - Se mantiene sin branch protection por decision operativa temporal para no
   bloquear cambios directos mientras el otro frente sigue cerrando roadmap.
+
+## 2026-05-13 - Smoke publico y governance tras guardrails de coste
+
+Contexto:
+
+- Rama: `main`.
+- Backend desplegado durante el smoke:
+  `0299d364c2a06bbd6f80d5c588dafada31d363b5`.
+- Nota: los commits posteriores de documentacion usan `[skip render]` para no
+  gastar minutos de build pipeline.
+
+Validacion Launcher/EA local:
+
+- `python3 -m unittest tests.test_launcher_connection_keys tests.test_launcher_connector_install tests.test_launcher_queue_resilience tests.test_launcher_auth_errors tests.test_launcher_config`: 55 tests OK.
+- `python3 -m py_compile launcher/app.py launcher/backend_client.py launcher/service.py launcher/config.py launcher/connector_installer.py launcher/mt5_detector.py launcher/platform_mac.py launcher/platform_windows.py`: OK.
+- Contrato validado por tests:
+  - el Launcher instala `KMFXConnector.ex5` y escribe `MQL5/Files/kmfx_connection.conf`;
+  - la key viaja a MT5 desde el dashboard, no desde una key local obsoleta;
+  - una key local que no coincide con el preview servidor no se expone para copiar;
+  - la reinstalacion puede sustituir una key local antigua por la KMFXKey estable
+    de la cuenta existente;
+  - el Launcher no auto-resucita cuentas borradas ni crea duplicados desde keys
+    locales desconocidas.
+
+Smoke de produccion:
+
+- `python3 scripts/production_smoke.py`: verde.
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Descargas verificadas:
+  - `downloads/KMFX-Launcher-macOS.zip`
+  - `downloads/KMFX-Launcher-Windows.exe`
+  - `KMFXConnector.ex5`
+- Checksums publicados coinciden con repo:
+  - macOS ZIP:
+    `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
+  - Windows EXE:
+    `8909c79d57c56976f0073a9fe44a32e51cf58ea7296394a323876eaa4a47f12b`
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- CORS del Worker permite `X-KMFX-Connection-Key`, no permite headers de
+  usuario y bloquea origenes desconocidos.
+- `/api/accounts/snapshot?view=summary` sin bearer no expone cuentas y devuelve
+  `auth_required: true`.
+- `/api/billing/checkout` y `/api/billing/portal` sin bearer rechazan
+  `401 auth_required`.
+- `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
+- `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
+- `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+GitHub governance:
+
+- Branch protection de `main` activado por API con checks requeridos:
+  - `Backend and connector tests`;
+  - `Static app checks`;
+  - `Analyze (python)`;
+  - `Analyze (javascript-typescript)`.
+- Historial lineal activado.
+- Force-push y borrado de rama desactivados.
+- Admin bypass permitido temporalmente para no bloquear fixes criticos durante
+  el cierre de produccion.
+
+Coste:
+
+- Monitor recurrente ampliado para revisar Supabase y Render cada 6 horas.
+- Regla operativa añadida: usar `[skip render]` o `[render skip]` en commits
+  solo-documentacion.
+- Pendiente manual: fijar un limite de gasto de build pipeline en Render
+  Dashboard. Sin ese limite, Render puede cobrar minutos adicionales si se
+  supera la cuota incluida.

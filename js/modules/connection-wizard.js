@@ -385,6 +385,23 @@ function renderMethodStep() {
   `;
 }
 
+function renderAdminReleaseChecksums(state) {
+  if (state.isAdmin !== true) return "";
+  return `
+    <div class="connection-wizard__utility-row connection-wizard__utility-row--release">
+      <div>
+        <div class="connection-wizard__utility-label">Versiones y checksums publicados</div>
+        <div class="connection-wizard__release-list">
+          ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        </div>
+      </div>
+      <div class="connection-wizard__utility-actions">
+        <button class="btn-secondary" type="button" data-wizard-copy-download-checksums="true">Copiar checksums</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderEaConfigStep(state) {
   const ea = state.ea || {};
   return `
@@ -418,17 +435,7 @@ function renderEaConfigStep(state) {
             </div>
           </div>
         </div>
-        <div class="connection-wizard__utility-row connection-wizard__utility-row--release">
-          <div>
-            <div class="connection-wizard__utility-label">Versiones y checksums publicados</div>
-            <div class="connection-wizard__release-list">
-              ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
-            </div>
-          </div>
-          <div class="connection-wizard__utility-actions">
-            <button class="btn-secondary" type="button" data-wizard-copy-download-checksums="true">Copiar checksums</button>
-          </div>
-        </div>
+        ${renderAdminReleaseChecksums(state)}
         <div class="connection-wizard__setup-flow">
           <div class="connection-wizard__setup-step">
             <span>1</span>
@@ -1051,6 +1058,7 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
 }
 
 export function openConnectionWizard(options = {}) {
+  const initialStoreState = options.store?.getState?.() || {};
   const state = {
     step: resolveInitialStep(options),
     platform: options.platform || "mt5",
@@ -1059,6 +1067,7 @@ export function openConnectionWizard(options = {}) {
     loading: false,
     checking: false,
     showKey: false,
+    isAdmin: initialStoreState?.auth?.user?.is_admin === true,
     syncStatus: { status: "", title: "", message: "" },
     ea: {
       label: "",

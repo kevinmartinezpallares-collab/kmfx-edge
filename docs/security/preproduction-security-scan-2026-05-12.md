@@ -15,7 +15,7 @@ Los controles principales de KMFX Edge estan en buen estado para una beta contro
 - Las keys se guardan hasheadas y se muestran solo enmascaradas salvo peticion autenticada del propietario/admin.
 - El proxy Cloudflare elimina parametros sensibles de query, no reenvia headers publicos de identidad y solo expone las rutas MT5/health necesarias.
 - Los endpoints sensibles tienen rate limit por usuario/IP y la ingesta MT5 tiene rate limit por key.
-- Las decisiones de plan/admin se resuelven desde bearer verificado y `app_metadata`, no desde headers remotos ni `user_metadata` publico.
+- Las decisiones de plan se resuelven desde bearer verificado y `app_metadata`, no desde headers remotos ni `user_metadata` publico. El rol admin queda restringido al email propietario `kevinmartinezpallares@gmail.com`.
 - El Launcher queda limitado a detectar instalaciones, instalar/reinstalar el EA y abrir MT5. La KMFXKey estable pertenece al dashboard.
 
 ## Threat model cubierto

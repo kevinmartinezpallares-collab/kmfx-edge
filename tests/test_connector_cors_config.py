@@ -83,17 +83,17 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         if connector_api.CORS_ALLOW_ORIGIN_REGEX:
             self.assertIn("localhost", connector_api.CORS_ALLOW_ORIGIN_REGEX)
 
-    def test_production_admin_ids_include_owner_bridge(self) -> None:
+    def test_production_admin_ids_are_empty_by_default(self) -> None:
         with patch.dict("os.environ", {"RENDER": "true", "KMFX_ENV": "production"}, clear=True):
-            self.assertEqual(connector_api.DEFAULT_ADMIN_USER_IDS, connector_api.resolve_admin_user_ids())
+            self.assertEqual(set(), connector_api.resolve_admin_user_ids())
 
-    def test_default_admin_ids_can_be_disabled(self) -> None:
+    def test_default_admin_ids_ignore_disable_flag(self) -> None:
         with patch.dict("os.environ", {"KMFX_DISABLE_DEFAULT_ADMIN_IDS": "true"}, clear=True):
             self.assertEqual(set(), connector_api.resolve_admin_user_ids())
 
-    def test_admin_ids_are_env_driven(self) -> None:
+    def test_admin_ids_ignore_env_values(self) -> None:
         with patch.dict("os.environ", {"KMFX_ADMIN_USER_IDS": "USER-A, user-b "}, clear=True):
-            self.assertEqual({"user-a", "user-b", *connector_api.DEFAULT_ADMIN_USER_IDS}, connector_api.resolve_admin_user_ids())
+            self.assertEqual(set(), connector_api.resolve_admin_user_ids())
 
     def test_default_admin_email_allows_owner_without_plan(self) -> None:
         request = self._request(headers={"authorization": "Bearer owner-token"})
@@ -116,9 +116,9 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(context["is_admin"])
         self.assertIsNone(response)
 
-    def test_default_admin_emails_can_be_disabled(self) -> None:
+    def test_default_admin_emails_ignore_disable_flag(self) -> None:
         with patch.dict("os.environ", {"KMFX_DISABLE_DEFAULT_ADMIN_EMAILS": "true"}, clear=True):
-            self.assertEqual(set(), connector_api.resolve_admin_emails())
+            self.assertEqual(connector_api.DEFAULT_ADMIN_EMAILS, connector_api.resolve_admin_emails())
 
     def test_feature_flags_disable_wins_over_enable(self) -> None:
         with patch.dict(
@@ -132,22 +132,22 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         with patch.dict(os.environ, {"KMFX_FEATURE_BILLING": "false"}, clear=True):
             self.assertFalse(connector_api.kmfx_feature_enabled("billing"))
 
-    def test_admin_emails_are_env_driven(self) -> None:
+    def test_admin_emails_ignore_env_values(self) -> None:
         with patch.dict("os.environ", {"KMFX_ADMIN_EMAILS": "ops@kmfxedge.com, owner@kmfxedge.com "}, clear=True):
             self.assertEqual(
-                {"ops@kmfxedge.com", "owner@kmfxedge.com", *connector_api.DEFAULT_ADMIN_EMAILS},
+                connector_api.DEFAULT_ADMIN_EMAILS,
                 connector_api.resolve_admin_emails(),
             )
 
     def test_dev_admin_fallback_requires_explicit_opt_in(self) -> None:
         with patch.dict("os.environ", {"KMFX_ENV": "development"}, clear=True):
-            self.assertEqual(connector_api.DEFAULT_ADMIN_USER_IDS, connector_api.resolve_admin_user_ids())
+            self.assertEqual(set(), connector_api.resolve_admin_user_ids())
         with patch.dict(
             "os.environ",
             {"KMFX_ENV": "development", "KMFX_ENABLE_DEV_ADMIN_FALLBACK": "true"},
             clear=True,
         ):
-            self.assertEqual({"local-dev-admin", *connector_api.DEFAULT_ADMIN_USER_IDS}, connector_api.resolve_admin_user_ids())
+            self.assertEqual(set(), connector_api.resolve_admin_user_ids())
 
     def test_admin_launcher_key_mapping_is_env_driven(self) -> None:
         parsed = connector_api._parse_admin_launcher_connection_key_mappings(
@@ -518,7 +518,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             try:
                 request = self._request(
                     host="127.0.0.1",
-                    headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"},
+                    headers={
+                        "x-kmfx-user-id": "owner-direct-test",
+                        "x-kmfx-user-email": "kevinmartinezpallares@gmail.com",
+                    },
                     json_body={
                         "label": "Cuenta MT5 Darwinex",
                         "platform": "mt5",
@@ -549,7 +552,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 self.assertEqual("Darwinex-Live", account["server"])
                 self.assertNotIn("investor-secret", list_body_text)
 
-                snapshot = connector_api.build_live_accounts_snapshot("421e2f82-d3c9-4965-bda5-35d6e88cbd0f")
+                snapshot = connector_api.build_live_accounts_snapshot("owner-direct-test")
                 self.assertEqual(1, len(snapshot["accounts"]))
                 self.assertEqual("mt5_direct_pending", snapshot["accounts"][0]["dashboard_payload"]["payloadSource"])
                 self.assertEqual("pending_direct_backend", snapshot["accounts"][0]["dashboard_payload"]["data_status"])
@@ -561,7 +564,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 connector_api.account_service = previous_service
 
     def test_direct_mt5_brokers_returns_server_catalog_for_authenticated_user(self) -> None:
-        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "direct-broker-test"})
         response = asyncio.run(connector_api.direct_mt5_brokers(request, q="Darwinex", limit=10))
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(200, response.status_code)
@@ -570,7 +573,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertIn("provider", body)
 
     def test_direct_mt5_brokers_disabled_by_default_in_production(self) -> None:
-        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "direct-broker-test"})
         with patch.dict(os.environ, {"RENDER": "true", "KMFX_ENV": "production"}, clear=True):
             response = asyncio.run(connector_api.direct_mt5_brokers(request, q="Darwinex", limit=10))
 
@@ -581,7 +584,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("direct_mt5", body["feature"])
 
     def test_direct_mt5_brokers_can_be_enabled_in_production(self) -> None:
-        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"})
+        request = self._request(host="127.0.0.1", headers={"x-kmfx-user-id": "direct-broker-test"})
         with patch.dict(
             os.environ,
             {"RENDER": "true", "KMFX_ENV": "production", "KMFX_ENABLE_DIRECT_MT5": "true"},
@@ -602,7 +605,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 with patch.dict("os.environ", {"KMFX_DIRECT_MT5_PROVIDER": "fixture"}, clear=True):
                     request = self._request(
                         host="127.0.0.1",
-                        headers={"x-kmfx-user-id": "421e2f82-d3c9-4965-bda5-35d6e88cbd0f"},
+                        headers={
+                            "x-kmfx-user-id": "owner-direct-test",
+                            "x-kmfx-user-email": "kevinmartinezpallares@gmail.com",
+                        },
                         json_body={
                             "label": "Cuenta Direct Fixture",
                             "platform": "mt5",
@@ -621,7 +627,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     self.assertEqual("direct", body["account"]["connection_mode"])
                     self.assertEqual("active", body["account"]["status"])
 
-                    snapshot = connector_api.build_live_accounts_snapshot("421e2f82-d3c9-4965-bda5-35d6e88cbd0f")
+                    snapshot = connector_api.build_live_accounts_snapshot("owner-direct-test")
                     self.assertEqual(1, len(snapshot["accounts"]))
                     payload = snapshot["accounts"][0]["dashboard_payload"]
                     self.assertEqual("mt5_direct_live", payload["payloadSource"])
@@ -794,7 +800,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertIsNone(response)
 
-    def test_verified_app_metadata_admin_bypasses_connection_limit(self) -> None:
+    def test_non_owner_app_metadata_admin_does_not_bypass_connection_limit(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service
             connector_api.account_service = AccountService(JsonFileAccountStore(os.path.join(temp_dir, "accounts.json")))
@@ -806,7 +812,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     "_resolve_verified_bearer_claims",
                     return_value={
                         "sub": "admin-user",
-                        "email": "admin@kmfxedge.com",
+                        "email": "nonowner@kmfxedge.com",
                         "app_metadata": {"role": "admin"},
                         "user_metadata": {"plan": "free"},
                     },
@@ -819,17 +825,17 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
-        self.assertTrue(context["is_admin"])
-        self.assertIsNone(response)
+        self.assertFalse(context["is_admin"])
+        self.assertIsNotNone(response)
 
-    def test_signed_bearer_uses_fresh_supabase_app_metadata_for_admin(self) -> None:
+    def test_signed_bearer_app_metadata_does_not_grant_admin_without_owner_email(self) -> None:
         request = self._request(headers={"authorization": "Bearer signed-token"})
         with patch.object(
             connector_api,
             "_resolve_signed_bearer_claims",
             return_value={
                 "sub": "admin-user",
-                "email": "admin@kmfxedge.com",
+                "email": "nonowner@kmfxedge.com",
                 "app_metadata": {"provider": "google"},
                 "user_metadata": {},
             },
@@ -838,14 +844,14 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "_resolve_supabase_user_claims",
             return_value={
                 "sub": "admin-user",
-                "email": "admin@kmfxedge.com",
+                "email": "nonowner@kmfxedge.com",
                 "app_metadata": {"provider": "google", "role": "admin", "kmfx_admin": True},
                 "user_metadata": {},
             },
         ):
             context = connector_api.build_admin_context(request)
 
-        self.assertTrue(context["is_admin"])
+        self.assertFalse(context["is_admin"])
         self.assertEqual("admin", context["app_metadata"]["role"])
 
     def test_signed_bearer_uses_fresh_supabase_app_metadata_for_plan(self) -> None:
@@ -931,7 +937,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "_resolve_signed_bearer_claims",
             return_value={
                 "sub": "admin-user",
-                "email": "admin@kmfxedge.com",
+                "email": "nonowner@kmfxedge.com",
                 "app_metadata": {"role": "admin"},
                 "user_metadata": {},
             },
@@ -940,7 +946,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "_resolve_supabase_user_claims",
             return_value={
                 "sub": "different-user",
-                "email": "admin@kmfxedge.com",
+                "email": "nonowner@kmfxedge.com",
                 "app_metadata": {"role": "admin"},
                 "user_metadata": {},
             },
@@ -957,7 +963,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             host="203.0.113.10",
             headers={
                 "x-kmfx-user-id": "admin-user",
-                "x-kmfx-user-email": "admin@kmfxedge.com",
+                "x-kmfx-user-email": "nonowner@kmfxedge.com",
             },
         )
         with patch.object(connector_api, "_resolve_verified_bearer_claims", return_value={}):
@@ -991,7 +997,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             "_resolve_verified_bearer_claims",
             return_value={
                 "sub": "admin-user",
-                "email": "admin@kmfxedge.com",
+                "email": "kevinmartinezpallares@gmail.com",
                 "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
                 "user_metadata": {},
             },
@@ -1193,7 +1199,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     "_resolve_verified_bearer_claims",
                     return_value={
                         "sub": "admin-user",
-                        "email": "admin@kmfxedge.com",
+                        "email": "kevinmartinezpallares@gmail.com",
                         "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
                         "user_metadata": {},
                     },
@@ -1240,7 +1246,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 "_resolve_verified_bearer_claims",
                 return_value={
                     "sub": "admin-user",
-                    "email": "admin@kmfxedge.com",
+                    "email": "kevinmartinezpallares@gmail.com",
                     "app_metadata": {"role": "admin", "plan": "free", "billing_status": "unpaid"},
                     "user_metadata": {},
                 },

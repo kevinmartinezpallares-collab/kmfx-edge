@@ -68,7 +68,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [ ] Permitir marcar cuenta como Real, Demo, Funding o Challenge.
 - [ ] Vincular cuenta MT5 a Funding journey existente o nuevo.
 - [ ] Mostrar límites de plan en launcher y dashboard sin borrar cola local.
-- [x] Definir versión visible y checksum visible del launcher.
+- [x] Definir versión visible del launcher y checksum visible solo para admin/soporte.
 - [ ] Definir estrategia de actualización del launcher.
 
 ### Backend y seguridad
@@ -80,7 +80,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Keys almacenadas como hash.
 - [x] Revocación y rate limit por `connection_key`.
 - [x] Payloads MT5 demasiado grandes rechazados con `413 payload_too_large`.
-- [x] Admin y plan limits mueven decisiones hacia env/app metadata.
+- [x] Plan limits mueven decisiones hacia `app_metadata`; admin queda limitado al email propietario `kevinmartinezpallares@gmail.com`.
 - [ ] Auditar env vars reales de Render, Vercel, Cloudflare y GitHub.
 - [x] Añadir o documentar verificación JWT final: Supabase Auth remote verification vs `SUPABASE_JWT_SECRET`.
 - [x] Añadir rate limit complementario por IP/usuario para endpoints sensibles.
@@ -185,7 +185,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Health externo verificado tras `6ecd97f`: Vercel `/dashboard`, Render `/health`, Worker `mt5-api` `/health` y Supabase Auth protegido responden como esperado.
 - Supabase Security Advisor sigue con un unico warning abierto: activar leaked password protection en Auth. Performance Advisor requiere reautenticacion del conector o CLI local.
 - Copy visible reforzado tras `d7e74fd`: se retiraron restos de `ledger`, `local`, `bridge MT5`, `Usuario local`, `Panel source trace` y labels inglesas de Mercado; Mercado escapa valores dinamicos antes de renderizar.
-- Permisos y entitlements auditados de nuevo el `2026-05-12`: backend sigue resolviendo plan/billing/admin desde `app_metadata`, y el frontend ya no eleva `role` desde `user_metadata`. Regression cubierta en `tests/test_auth_session_contract.py`.
+- Permisos y entitlements auditados de nuevo el `2026-05-13`: backend sigue resolviendo plan/billing desde `app_metadata`, pero admin queda limitado al email propietario `kevinmartinezpallares@gmail.com`; el frontend tampoco eleva `role` desde `user_metadata`. Regresion cubierta en `tests/test_auth_session_contract.py` y `tests.test_connector_cors_config`.
 - Flujo MT5 reforzado con errores orientados a usuario final: WebRequest, KMFXKey ausente/no reconocida/revocada, conector desactualizado, rate limit, plan sin permiso y servidor de KMFX temporalmente no disponible.
 - Añadida fase de corrección ortográfica completa del dashboard y normalización visual de Estudio de métricas con el patrón de "Métricas críticas del dashboard".
 - Estudio de métricas mantiene la misma retícula de 3 columnas en métricas críticas y categorías; Funding retira restos visibles de `Ledger`, `Refund`, `Fees`, `Cashflow`, `payouts` y el disclaimer final queda en español.
@@ -363,7 +363,7 @@ Objetivo: que un usuario no técnico conecte MT5 sin pensar en puertos, keys ni 
 - [ ] Si es Funding, permitir vincular a journey existente.
 - [x] Añadir estado de sincronización reciente, stale, key revocada y bloqueo por plan más claro en Cuentas.
 - [ ] Añadir guía breve dentro de Cuentas para WebRequest.
-- [x] Añadir checksum visible para descargas.
+- [x] Añadir checksum visible para admin/soporte, oculto al usuario final.
 - [ ] Probar Windows launcher en Windows real.
 - [ ] Probar macOS launcher en máquina limpia.
 

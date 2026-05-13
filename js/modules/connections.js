@@ -499,7 +499,22 @@ function connectionKeyMatchesPreview(connectionKey = "", preview = "") {
   return Boolean(normalizedKey && (!normalizedPreview || maskConnectionKeyForDisplay(normalizedKey) === normalizedPreview));
 }
 
-function renderConnectionGuide() {
+function renderAdminReleaseBlock(state = {}) {
+  if (!isAdminUser(state)) return "";
+  return `
+    <div class="connections-guide-card__release">
+      <div>
+        <div class="metric-label">Paquete publicado</div>
+        <div class="connections-guide-card__release-list">
+          ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        </div>
+      </div>
+      <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-download-checksums="true">Copiar checksums</button>
+    </div>
+  `;
+}
+
+function renderConnectionGuide(state = {}) {
   const steps = [
     {
       title: "Abre o instala KMFX Launcher",
@@ -537,15 +552,7 @@ function renderConnectionGuide() {
         </div>
       </div>
       <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir.</div>
-      <div class="connections-guide-card__release">
-        <div>
-          <div class="metric-label">Paquete publicado</div>
-          <div class="connections-guide-card__release-list">
-            ${downloadArtifactSummary().map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
-          </div>
-        </div>
-        <button class="btn-secondary connections-shell__utility-btn" type="button" data-copy-download-checksums="true">Copiar checksums</button>
-      </div>
+      ${renderAdminReleaseBlock(state)}
       <div class="connections-guide-card__endpoint">
         <div>
           <div class="metric-label">URL para WebRequest en MetaTrader 5</div>
@@ -568,12 +575,12 @@ function renderConnectionGuide() {
   `;
 }
 
-function openConnectionGuideModal() {
+function openConnectionGuideModal(state = {}) {
   openModal({
     title: "Guía de conexión",
     subtitle: "Consulta el paso a paso solo cuando lo necesites.",
     maxWidth: 1040,
-    content: renderConnectionGuide(),
+    content: renderConnectionGuide(state),
     onMount(card) {
       card?.classList.add("connections-guide-modal");
       card?.addEventListener("click", (event) => {
@@ -1468,7 +1475,7 @@ export function initConnections(store) {
     }
 
     if (event.target.closest("[data-account-guide-open]")) {
-      openConnectionGuideModal();
+      openConnectionGuideModal(store.getState());
       return;
     }
 

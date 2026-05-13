@@ -96,6 +96,18 @@ Notas 2026-05-13:
 - Artefactos reconstruidos y smokeados tras `0c13fd7`:
   - macOS ZIP `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
   - Windows EXE `8909c79d57c56976f0073a9fe44a32e51cf58ea7296394a323876eaa4a47f12b`
+- Branch protection de `main` activado con checks requeridos, historial lineal,
+  borrado/destructive pushes bloqueados y bypass admin permitido para no frenar
+  fixes criticos durante el cierre de produccion.
+- Smoke de produccion ejecutado de nuevo contra `kmfxedge.com`, Render y Worker:
+  verde con backend desplegado en `0299d364c2a06bbd6f80d5c588dafada31d363b5`.
+- Regresion automatizada Launcher/EA verde:
+  `tests.test_launcher_connection_keys`, `tests.test_launcher_connector_install`,
+  `tests.test_launcher_queue_resilience`, `tests.test_launcher_auth_errors` y
+  `tests.test_launcher_config`.
+- Cost guardrail operativo: commits solo-documentacion deben usar
+  `[skip render]` o `[render skip]`; queda pendiente fijar manualmente el limite
+  de gasto de build pipeline en Render Dashboard para evitar overages.
 
 ## Fase 1 - Contrato de Metricas
 
@@ -232,6 +244,33 @@ Notas 2026-05-12:
 - El conector Stripe disponible en esta sesion permite listar/buscar/crear objetos, pero no expone update de Prices ni configuracion de Customer Portal. Tampoco hay `STRIPE_SECRET_KEY` local para ejecutar una mutacion auditada por CLI.
 - Estado operativo: el backend sigue funcionando por Price IDs live configurados en Render; antes de cobrar publicamente hay que completar lookup keys/metadata y Customer Portal desde Stripe Dashboard/API con credenciales live.
 
+Notas 2026-05-13:
+
+- Completadas manualmente en Stripe las `lookup keys` de los seis Prices KMFX:
+  - `kmfx_basic_monthly`
+  - `kmfx_basic_yearly`
+  - `kmfx_pro_monthly`
+  - `kmfx_pro_yearly`
+  - `kmfx_unlimited_monthly`
+  - `kmfx_unlimited_yearly`
+- Customer Portal configurado con oferta de retencion previa a la cancelacion:
+  - cupon de retencion `15%` `forever`
+  - comportamiento buscado: mostrar la oferta antes de que el usuario confirme la baja
+- Incentivo anual configurado sin tocar Price IDs:
+  - cupon/promotion code visible `KMFXANUAL25`
+  - descuento `25%`
+  - duracion `forever`
+  - validado en Checkout sobre plan anual, reduciendo `390,00 €` a `292,50 €`
+- Compra de prueba anual con `KMFX Comunidad Privada` completada a `0 €`:
+  - la suscripcion se crea correctamente en trial
+  - no se solicita tarjeta al inicio
+  - no queda metodo de pago guardado por defecto
+- Decision de producto para maximizar conversion:
+  - mantener `7` dias de trial
+  - mantener `STRIPE_TRIAL_REQUIRES_CARD=false`
+  - al finalizar el trial sin metodo de pago, el comportamiento deseado pasa a ser `pause`, no `cancel` ni `past_due`
+  - el checkout/backend debe enviar explicitamente `subscription_data.trial_settings.end_behavior.missing_payment_method = pause`
+
 Criterio de salida:
 
 - Un usuario puede pagar en test mode y su plan/entitlements cambian correctamente.
@@ -270,10 +309,11 @@ Objetivo: no abrir superficie sensible sin controles.
 
 Notas 2026-05-08:
 
-- Backend revisado para que permisos sensibles dependan de bearer verificado, `app_metadata` y decisiones server-side.
+- Backend revisado para que permisos sensibles dependan de bearer verificado y decisiones server-side.
+- Admin queda restringido por contrato a `kevinmartinezpallares@gmail.com`; UUIDs, variables de entorno y `app_metadata` no conceden admin.
 - `X-KMFX-User-*` queda limitado a requests locales; Cloudflare Worker elimina esos headers antes de reenviar a Render.
 - Si `SUPABASE_JWT_SECRET` y Supabase Auth devuelven identidades distintas para el mismo bearer, el backend falla cerrado y no concede identidad ni admin.
-- Cuando hay JWT firmado y Supabase Auth fresco para el mismo usuario, la metadata fresca de Auth prevalece para plan, billing y admin.
+- Cuando hay JWT firmado y Supabase Auth fresco para el mismo usuario, la metadata fresca de Auth prevalece para plan y billing, pero no para admin.
 - MT5 remoto requiere `X-KMFX-Connection-Key` o bearer valido; keys en query string siguen bloqueadas en produccion.
 - Rate limit por `connection_key` activo en sync/journal/policy.
 - Rate limit complementario por usuario/IP anadido a checkout, portal, creacion/link de cuentas, regeneracion/revocacion/borrado de keys y endpoints admin.
@@ -379,7 +419,7 @@ Notas 2026-05-09:
 - El Launcher publicado se ha regenerado para mostrar nombres legibles de instalaciones MT5 usando broker/login inferidos del registro local y para ocultar backups/carpetas antiguas.
 - Checksum actual macOS ZIP: `1a4149ef01dd70ba85f79f48e3b00a9bf7f94af28c0a8dad4b16463ef246b09f`.
 - Checksum actual Windows EXE: `32182b50be6ff3053f5f2eaadadb896bf9cc0fffcee897746d800ab22fa8df8d`.
-- El dashboard muestra Launcher v1.0.0, Connector v2.84 y checksums copiables en la guia de Cuentas y en el asistente de conexion.
+- El dashboard muestra Launcher v1.0.0 y Connector v2.84 para todos los usuarios; los checksums copiables quedan visibles solo para admin/soporte.
 - Contrato probado: el instalador copia `KMFXConnector.ex5`/`.mq5`, escribe preset y deja `MQL5/Files/kmfx_connection.conf`; el EA lee esa key en runtime.
 - Contrato probado: si Render/backend no responde, el Launcher conserva `snapshot`/`journal` con `connection_key` local, aplica backoff, drena al recuperarse y solo descarta al superar `max_attempts`.
 - Runbook de smoke MT5 de produccion creado: define preflight, flujo Launcher, flujo manual, errores esperados, evidencia, cierre de Launcher y criterios de aprobacion sin exponer keys completas.
