@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase.js?v=build-20260509-150500";
-import { mergeAuthProfile } from "./auth-session.js?v=build-20260513-130000";
+import { mergeAuthProfile } from "./auth-session.js?v=build-20260513-173000";
 
 export const SETTINGS_PREFS_STORAGE_KEY = "kmfx.settings.preferences";
 

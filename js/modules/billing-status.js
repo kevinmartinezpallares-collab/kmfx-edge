@@ -1,5 +1,5 @@
 import { resolveBillingStatusUrl } from "./api-config.js?v=build-20260509-150500";
-import { isAdminIdentity } from "./auth-session.js?v=build-20260513-130000";
+import { isAdminIdentity } from "./auth-session.js?v=build-20260513-173000";
 
 export const DEFAULT_BILLING_STATUS = {
   loading: false,
@@ -309,7 +309,8 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
     return { ok: true, authRequired: true };
   }
 
-  const url = resolveBillingStatusUrl();
+  const baseUrl = resolveBillingStatusUrl();
+  const url = baseUrl ? `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}_=${Date.now()}` : "";
   if (!url) {
     store.setState((current) => ({
       ...current,
@@ -334,7 +335,13 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
   }
 
   try {
-    const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
+    const response = await fetch(url, {
+      headers: buildAuthHeaders(store.getState(), {
+        "Cache-Control": "no-store",
+        Pragma: "no-cache",
+      }),
+      cache: "no-store",
+    });
     const payload = await response.json();
     if (!response.ok || payload?.ok === false) {
       const reason = payload?.reason || `http_${response.status}`;

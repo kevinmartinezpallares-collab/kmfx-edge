@@ -241,6 +241,14 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("allowPending: false", wizard)
         self.assertIn("if (!connectionAccess.allowed)", wizard)
 
+    def test_billing_status_fetch_bypasses_browser_and_cdn_cache(self) -> None:
+        source = read_text("js/modules/billing-status.js")
+
+        self.assertIn("_=${Date.now()}", source)
+        self.assertIn('cache: "no-store"', source)
+        self.assertIn('"Cache-Control": "no-store"', source)
+        self.assertIn('Pragma: "no-cache"', source)
+
     def test_critical_auth_admin_and_billing_modules_share_fresh_cache_key(self) -> None:
         files = [
             "index.html",
@@ -259,7 +267,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260513-130000",
+                        f"{module}.js?v=build-20260513-173000",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -268,11 +276,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260513-130000"', html)
-        self.assertIn('const BUILD_TAG = "build-20260513-130000";', app)
+        self.assertIn('src="./app.js?v=build-20260513-173000"', html)
+        self.assertIn('const BUILD_TAG = "build-20260513-173000";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260513-130000",
+                f"./js/modules/{module}.js?v=build-20260513-173000",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )

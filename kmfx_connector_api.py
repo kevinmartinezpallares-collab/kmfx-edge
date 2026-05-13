@@ -473,6 +473,19 @@ def connector_json_response(content: Any, status_code: int = 200) -> JSONRespons
     )
 
 
+def no_store_json_response(content: Any, status_code: int = 200) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={
+            "Connection": "close",
+            "Cache-Control": "no-store, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
 def feature_disabled_response(feature: str, *, status_code: int = 503) -> JSONResponse:
     normalized = safe_str(feature, "feature").lower().replace("-", "_")
     return connector_json_response(
@@ -6981,7 +6994,7 @@ async def billing_status(request: Request) -> JSONResponse:
         ensure_dict(payload.get("billing")).get("status") or "",
         ensure_dict(payload.get("billing")).get("access") or "",
     )
-    return connector_json_response(payload)
+    return no_store_json_response(payload)
 
 
 @app.post("/api/billing/checkout")

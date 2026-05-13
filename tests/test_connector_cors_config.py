@@ -1095,6 +1095,8 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         body = json.loads(response.body.decode("utf-8"))
 
         self.assertEqual(200, response.status_code)
+        self.assertEqual("no-store, max-age=0", response.headers.get("cache-control"))
+        self.assertEqual("no-cache", response.headers.get("pragma"))
         self.assertTrue(body["auth_required"])
         self.assertEqual("anonymous", body["billing"]["status"])
         self.assertEqual("free", body["billing"]["effectivePlan"])
