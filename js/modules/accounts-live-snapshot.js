@@ -1,7 +1,6 @@
 import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260509-150500";
 import { evaluateCompliance } from "./account-runtime.js?v=build-20260509-150500";
 import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260511-071500";
-import { isAdminIdentity } from "./auth-session.js?v=build-20260509-150500";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 10 * 60 * 1000;
@@ -157,11 +156,12 @@ function buildAuthHeaders(state) {
 function authContext(state = {}) {
   const auth = state.auth || {};
   const userId = String(auth.user?.id || "").trim().toLowerCase();
+  const billingIsAdmin = state?.billing?.isAdmin === true;
   return {
     isAuthenticated: auth.status === "authenticated",
     userId,
     email: String(auth.user?.email || "").trim().toLowerCase(),
-    isAdmin: isAdminIdentity(userId, auth.user?.email),
+    isAdmin: billingIsAdmin,
     hasToken: Boolean(auth.session?.accessToken),
   };
 }

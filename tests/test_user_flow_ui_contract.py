@@ -162,6 +162,14 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("Provider directo", source)
         self.assertNotIn("motor de conexión directa", source)
 
+    def test_live_snapshot_admin_access_comes_from_billing_only(self) -> None:
+        source = read_text("js/modules/accounts-live-snapshot.js")
+
+        self.assertNotIn("isAdminIdentity", source)
+        self.assertIn("const billingIsAdmin = state?.billing?.isAdmin === true", source)
+        self.assertIn("isAdmin: billingIsAdmin", source)
+        self.assertNotIn("auth.user?.email),", source)
+
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")
 
