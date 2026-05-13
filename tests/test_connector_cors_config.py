@@ -1330,6 +1330,10 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("pro", params["subscription_data"]["metadata"]["kmfx_plan"])
         self.assertEqual("pro", params["subscription_data"]["metadata"]["plan_key"])
         self.assertEqual(7, params["subscription_data"]["trial_period_days"])
+        self.assertEqual(
+            {"end_behavior": {"missing_payment_method": "pause"}},
+            params["subscription_data"]["trial_settings"],
+        )
         self.assertEqual("if_required", params["payment_method_collection"])
 
     def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:

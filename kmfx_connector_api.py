@@ -6771,6 +6771,12 @@ async def billing_checkout(request: Request) -> JSONResponse:
         trial_days = billing_trial_period_days()
         if trial_days > 0:
             subscription_data["trial_period_days"] = trial_days
+            if not billing_trial_requires_card():
+                subscription_data["trial_settings"] = {
+                    "end_behavior": {
+                        "missing_payment_method": "pause",
+                    }
+                }
         checkout_params: dict[str, Any] = {
             "mode": "subscription",
             "customer": customer_id,
