@@ -387,7 +387,13 @@ function renderMethodStep() {
 }
 
 function renderAdminReleaseChecksums(state) {
-  if (state.isAdmin !== true) return "";
+  let showReleaseChecksums = false;
+  try {
+    showReleaseChecksums = window.localStorage?.getItem("kmfx:showReleaseChecksums") === "1";
+  } catch {
+    showReleaseChecksums = false;
+  }
+  if (state.isAdmin !== true || !showReleaseChecksums) return "";
   return `
     <div class="connection-wizard__utility-row connection-wizard__utility-row--release">
       <div>

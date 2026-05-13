@@ -12,6 +12,7 @@ import {
   riskToneFromStatus,
 } from "./risk-panel-components.js?v=build-20260509-150500";
 import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260513-071500";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
@@ -20,6 +21,29 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function renderDashboardConnectionAction(state, {
+  label = "Añadir cuenta",
+  method = "",
+  source = "dashboard",
+} = {}) {
+  const access = billingEntitlementState(state, "launcherConnection", {
+    allowLimited: false,
+    allowPending: false,
+  });
+  if (access.allowed) {
+    return `
+      <button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" ${method ? `data-connection-method="${escapeHtml(method)}"` : ""} data-connection-source="${escapeHtml(source)}">
+        ${escapeHtml(label)}
+      </button>
+    `;
+  }
+  return `
+    <button class="btn-secondary btn-inline dashboard-screen__add-account" type="button" disabled aria-disabled="true" title="${escapeHtml(access.title || "Activa un plan para conectar MT5")}">
+      ${escapeHtml(label)}
+    </button>
+  `;
 }
 
 function isDirectAccountPendingLiveSync(account, dashboardPayload = {}) {
@@ -34,7 +58,7 @@ function isDirectAccountPendingLiveSync(account, dashboardPayload = {}) {
   return connectionMode === "direct" && payloadSource === "mt5_direct_pending";
 }
 
-function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
+function renderDirectAccountPendingState(root, account, dashboardPayload = {}, state = {}) {
   const display = resolveAccountDisplayIdentity(account);
   const login = display.login || dashboardPayload.login || dashboardPayload.account?.login || "";
   const server = display.server || dashboardPayload.server || dashboardPayload.account?.server || "";
@@ -50,7 +74,11 @@ function renderDirectAccountPendingState(root, account, dashboardPayload = {}) {
         titleClassName: "calendar-screen__title",
         descriptionClassName: "calendar-screen__subtitle",
         actionsClassName: "dashboard-screen__actions",
-        actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-method="ea" data-connection-source="dashboard-direct-pending">Sincronizar con EA</button>`,
+        actionsHtml: renderDashboardConnectionAction(state, {
+          label: "Sincronizar con EA",
+          method: "ea",
+          source: "dashboard-direct-pending",
+        }),
       })}
       <article class="tl-section-card dashboard-direct-pending">
         <div class="tl-section-header">
@@ -1555,7 +1583,10 @@ export function renderDashboard(root, state) {
           titleClassName: "calendar-screen__title",
           descriptionClassName: "calendar-screen__subtitle",
           actionsClassName: "dashboard-screen__actions",
-          actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
+          actionsHtml: renderDashboardConnectionAction(state, {
+            label: "Añadir cuenta",
+            source: "dashboard",
+          }),
         })}
       </section>
     `;
@@ -1566,7 +1597,7 @@ export function renderDashboard(root, state) {
   }
 
   if (isDirectAccountPendingLiveSync(account, dashboardPayload)) {
-    renderDirectAccountPendingState(root, account, dashboardPayload);
+    renderDirectAccountPendingState(root, account, dashboardPayload, state);
     return;
   }
 
@@ -2113,7 +2144,10 @@ export function renderDashboard(root, state) {
         descriptionClassName: "calendar-screen__subtitle",
         descriptionAttributes: { "data-dashboard-subtitle": true },
         actionsClassName: "dashboard-screen__actions",
-        actionsHtml: `<button class="btn-primary btn-inline dashboard-screen__add-account" type="button" data-open-connection-wizard="true" data-connection-source="dashboard">Añadir cuenta</button>`,
+        actionsHtml: renderDashboardConnectionAction(state, {
+          label: "Añadir cuenta",
+          source: "dashboard",
+        }),
       })}
 
       <section class="tl-kpi-row dashboard-summary-kpis dashboard-kpi-row dashboard-kpi-row--overview dashboard-kpi-row--primary">

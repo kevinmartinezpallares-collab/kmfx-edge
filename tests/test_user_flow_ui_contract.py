@@ -162,6 +162,13 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("Provider directo", source)
         self.assertNotIn("motor de conexión directa", source)
 
+    def test_connection_wizard_hides_release_checksums_by_default(self) -> None:
+        source = read_text("js/modules/connection-wizard.js")
+
+        self.assertIn("kmfx:showReleaseChecksums", source)
+        self.assertIn("state.isAdmin !== true || !showReleaseChecksums", source)
+        self.assertNotIn('if (state.isAdmin !== true) return "";', source)
+
     def test_live_snapshot_admin_access_comes_from_billing_only(self) -> None:
         source = read_text("js/modules/accounts-live-snapshot.js")
 
@@ -169,6 +176,25 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("const billingIsAdmin = state?.billing?.isAdmin === true", source)
         self.assertIn("isAdmin: billingIsAdmin", source)
         self.assertNotIn("auth.user?.email),", source)
+
+    def test_dynamic_admin_navigation_is_hidden_from_billing_state(self) -> None:
+        source = read_text("app.js")
+
+        self.assertIn("const syncAdminUI = (state = store.getState()) =>", source)
+        self.assertIn('document.querySelectorAll("[data-admin-only]")', source)
+        self.assertNotIn("const adminOnlyNodes = [...document.querySelectorAll", source)
+
+    def test_add_account_entrypoints_use_billing_entitlement_gate(self) -> None:
+        dashboard = read_text("js/modules/dashboard.js")
+        sidebar = read_text("js/modules/sidebar-ui.js")
+
+        self.assertIn("billingEntitlementState", dashboard)
+        self.assertIn("function renderDashboardConnectionAction", dashboard)
+        self.assertIn("allowPending: false", dashboard)
+        self.assertIn("disabled aria-disabled", dashboard)
+        self.assertIn("billingEntitlementState", sidebar)
+        self.assertIn("function sidebarConnectionAccess", sidebar)
+        self.assertIn('disabled aria-disabled="true"', sidebar)
 
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")

@@ -406,14 +406,14 @@ function initSettings(authSession = null) {
   const billingCheckoutButtons = [...document.querySelectorAll("[data-billing-checkout]")];
   const settingsTabButtons = [...document.querySelectorAll("[data-settings-tab]")];
   const settingsPanels = [...document.querySelectorAll("[data-settings-panel]")];
-  const adminOnlyNodes = [...document.querySelectorAll("[data-admin-only]")];
   const themeSelect = document.querySelector('[data-settings-field="theme"]');
   const densitySelect = document.querySelector('[data-settings-field="density"]');
 
   const syncAdminUI = (state = store.getState()) => {
     const isAdmin = isAdminMode(state);
     document.documentElement.dataset.adminMode = isAdmin ? "true" : "false";
-    adminOnlyNodes.forEach((node) => {
+    const adminNodes = [...document.querySelectorAll("[data-admin-only]")];
+    adminNodes.forEach((node) => {
       node.hidden = !isAdmin;
       node.setAttribute("aria-hidden", isAdmin ? "false" : "true");
     });

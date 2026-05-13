@@ -1,6 +1,7 @@
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260509-150500";
 import { closeModal, openModal } from "./modal-system.js?v=build-20260509-150500";
 import { applyAvatarContent } from "./avatar-utils.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260513-071500";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
@@ -103,9 +104,24 @@ function dispatchOpenConnectionWizard(source = "sidebar") {
   }));
 }
 
+function sidebarConnectionAccess(state) {
+  return billingEntitlementState(state, "launcherConnection", {
+    allowLimited: false,
+    allowPending: false,
+  });
+}
+
 function openSidebarAccountPicker(store, state) {
   const accounts = resolveSidebarAccounts(state);
   const activeAccountId = selectActiveAccountId(state);
+  const connectionAccess = sidebarConnectionAccess(state);
+  const addDisabled = connectionAccess.allowed ? "" : " disabled aria-disabled=\"true\"";
+  const addTitle = connectionAccess.allowed
+    ? "Añadir cuenta de trading"
+    : (connectionAccess.title || "Activa un plan para conectar MT5");
+  const addSubtitle = connectionAccess.allowed
+    ? "Conecta una nueva cuenta"
+    : "Activa una suscripción para conectar MT5";
 
   openModal({
     title: "Cuentas de trading",
@@ -133,11 +149,11 @@ function openSidebarAccountPicker(store, state) {
           }).join("")}
         </div>
         <div class="sidebar-account-picker__footer">
-          <button class="sidebar-account-picker__add" type="button" data-sidebar-account-add="true">
+          <button class="sidebar-account-picker__add" type="button" data-sidebar-account-add="true"${addDisabled} title="${escapeHtml(addTitle)}">
             <span class="sidebar-account-picker__add-icon" aria-hidden="true">+</span>
             <span class="sidebar-account-picker__add-copy">
-              <span class="sidebar-account-picker__add-title">Añadir cuenta de trading</span>
-              <span class="sidebar-account-picker__add-subtitle">Conecta una nueva cuenta</span>
+              <span class="sidebar-account-picker__add-title">${escapeHtml(addTitle)}</span>
+              <span class="sidebar-account-picker__add-subtitle">${escapeHtml(addSubtitle)}</span>
             </span>
           </button>
         </div>
@@ -162,6 +178,7 @@ function openSidebarAccountPicker(store, state) {
       });
 
       card?.querySelector("[data-sidebar-account-add]")?.addEventListener("click", () => {
+        if (!sidebarConnectionAccess(store.getState()).allowed) return;
         closeModal();
         dispatchOpenConnectionWizard("sidebar-account-picker");
       });
@@ -330,6 +347,7 @@ export function initSidebarUI(store) {
     const isAuthenticated = state.auth?.status === "authenticated";
     const isMenuOpen = Boolean(profileRoot.__menuOpen);
     const accounts = resolveSidebarAccounts(state);
+    const connectionAccess = sidebarConnectionAccess(state);
     const activeAccountId = selectActiveAccountId(state);
     const activeAccount = selectActiveAccount(state) || accounts[0] || null;
     const activeAccountName = activeAccount ? resolveAccountDisplayName(activeAccount) : "";
@@ -341,12 +359,12 @@ export function initSidebarUI(store) {
       : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof activeAccountIcon === "object" ? activeAccountIcon.value : activeAccountIcon)}</span>`;
     const accountBlock = !accounts.length
       ? `
-        <button class="sidebar-account-switcher sidebar-account-switcher--empty sidebar-menu-button sidebar-menu-button--lg" type="button" data-open-connection-wizard="true" data-connection-source="sidebar" data-sidebar="menu-button">
+        <button class="sidebar-account-switcher sidebar-account-switcher--empty sidebar-menu-button sidebar-menu-button--lg" type="button" ${connectionAccess.allowed ? 'data-open-connection-wizard="true" data-connection-source="sidebar"' : 'disabled aria-disabled="true"'} title="${escapeHtml(connectionAccess.allowed ? "Añadir cuenta" : (connectionAccess.title || "Activa un plan para conectar MT5"))}" data-sidebar="menu-button">
           <span class="sidebar-account-switcher__icon" aria-hidden="true">
             <span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">+</span>
           </span>
           <span class="sidebar-account-switcher__copy">
-            <span class="sidebar-account-switcher__title">Añadir cuenta</span>
+            <span class="sidebar-account-switcher__title">${escapeHtml(connectionAccess.allowed ? "Añadir cuenta" : "Activa un plan")}</span>
           </span>
         </button>
       `

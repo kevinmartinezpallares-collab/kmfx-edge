@@ -1069,6 +1069,57 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertFalse(body["entitlements"]["rawBridgeDebug"])
         self.assertFalse(body["entitlements"]["teamWorkspace"])
 
+    def test_billing_status_reconciles_stale_free_row_with_stripe_subscription(self) -> None:
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        user_id = "user-with-trial"
+        stale_row = {
+            "user_id": user_id,
+            "plan_key": "free",
+            "status": "free",
+            "is_current": True,
+        }
+        stripe_row = {
+            "user_id": user_id,
+            "stripe_customer_id": "cus_trial",
+            "stripe_subscription_id": "sub_trial",
+            "plan_key": "pro",
+            "status": "trialing",
+            "current_period_end": "2026-05-20T00:00:00Z",
+            "trial_end": "2026-05-20T00:00:00Z",
+            "cancel_at_period_end": False,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "trial@example.com",
+                "app_metadata": {"plan": "free", "billing_status": "free"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_current_billing_subscription",
+            return_value=stale_row,
+        ), patch.object(
+            connector_api,
+            "supabase_fetch_billing_customer",
+            return_value={"stripe_customer_id": "cus_trial"},
+        ), patch.object(
+            connector_api,
+            "sync_latest_kmfx_subscription_for_customer",
+            return_value=stripe_row,
+        ) as sync_mock:
+            response = asyncio.run(connector_api.billing_status(request))
+        body = json.loads(response.body.decode("utf-8"))
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("pro", body["billing"]["plan"])
+        self.assertEqual("pro", body["billing"]["effectivePlan"])
+        self.assertEqual("trialing", body["billing"]["status"])
+        self.assertEqual(5, body["entitlements"]["liveMt5Accounts"])
+        sync_mock.assert_called_once_with("cus_trial", user_id=user_id, email="trial@example.com")
+
     def test_billing_status_restricts_unpaid_to_free_entitlements(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         with patch.object(

@@ -2663,9 +2663,9 @@ def backfill_billing_subscription_for_context(context: dict[str, Any]) -> dict[s
     email = safe_str(context.get("email")).lower()
     if not user_id:
         return {}
-    row = supabase_fetch_current_billing_subscription(user_id)
-    if row:
-        return row
+    current_row = supabase_fetch_current_billing_subscription(user_id)
+    if billing_row_blocks_new_checkout(current_row):
+        return current_row
     billing_customer = supabase_fetch_billing_customer(user_id)
     customer_id = safe_str(billing_customer.get("stripe_customer_id"))
     if customer_id:
@@ -2677,7 +2677,7 @@ def backfill_billing_subscription_for_context(context: dict[str, Any]) -> dict[s
         row = sync_latest_kmfx_subscription_for_customer(customer_id, user_id=user_id, email=email)
         if row:
             return row
-    return {}
+    return current_row if current_row else {}
 
 
 def sync_billing_subscription(subscription: dict[str, Any], *, user_id: str = "", email: str = "") -> dict[str, Any]:
