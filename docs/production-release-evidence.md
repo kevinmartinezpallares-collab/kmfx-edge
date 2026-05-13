@@ -385,6 +385,31 @@ Validacion local:
 - `python3 -m py_compile kmfx_connector_api.py`.
 - `python3 -m unittest tests.test_connector_cors_config`: 110 tests OK.
 
+## 2026-05-13 - GitHub branch protection
+
+Contexto:
+
+- Antes de produccion tecnica minima viable, `main` no debe admitir borrados ni
+  force-push accidentales.
+- Queremos mantener velocidad hoy, asi que no se exige pull request obligatorio
+  todavia.
+
+Cambio aplicado:
+
+- Proteccion de rama activada en `main`.
+- Checks obligatorios:
+  - `Backend and connector tests`
+  - `Static app checks`
+  - `Analyze (python)`
+  - `Analyze (javascript-typescript)`
+- Historial lineal requerido.
+- Force-push desactivado.
+- Borrado de rama desactivado.
+
+Validacion:
+
+- CI y CodeQL del ultimo commit `745f70e` estan en verde.
+
 
 ## 2026-05-13 - Checkpoint `0c13fd7`
 

@@ -261,7 +261,7 @@ Objetivo: no abrir superficie sensible sin controles.
 - [x] Aplicar actualizacion Dependabot pendiente de GitHub Actions.
 - [x] Auditoria reproducible de GitHub governance creada:
   `python3 scripts/github_release_governance_audit.py`.
-- [ ] Branch protection en `main`.
+- [x] Branch protection en `main`.
 - [x] Validacion centralizada de payloads en endpoints state-changing.
 - [x] Auditoria XSS de todos los `innerHTML` con datos de usuario/MT5 en el dashboard vanilla actual.
 - [ ] Definir postura CSRF para Next.js si se usan cookies/sesiones server-side.
@@ -588,6 +588,14 @@ Notas 2026-05-11:
 - `www.kmfxedge.com/dashboard` y `dashboard.kmfxedge.com/dashboard` resuelven a `kmfxedge.com/dashboard`.
 - `/api/mt5/policy` sin `X-KMFX-Connection-Key` rechaza `401 missing_connection_key`.
 - La evidencia queda centralizada en `docs/production-release-evidence.md`.
+
+Notas 2026-05-13:
+
+- Branch protection aplicada en `main`: checks obligatorios
+  `Backend and connector tests`, `Static app checks`, `Analyze (python)` y
+  `Analyze (javascript-typescript)`, historial lineal, force-push desactivado y
+  borrado de rama desactivado. No se exige PR todavia para mantener velocidad
+  durante el cierre tecnico del MVP.
 
 Notas 2026-05-12:
 
