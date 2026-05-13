@@ -24,7 +24,7 @@ import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260510
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-110500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-071500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260509-150500";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
@@ -638,16 +638,53 @@ function initSettings(authSession = null) {
     });
   };
 
+  const billingReturnUrl = () => {
+    const url = new URL(window.location.href);
+    url.pathname = "/ajustes";
+    url.search = "";
+    url.searchParams.set("tab", "subscription");
+    url.searchParams.set("billing", "portal-return");
+    return url.toString();
+  };
+
+  const refreshBillingAfterReturn = async (reason = "checkout") => {
+    const delays = [0, 1500, 4000, 8000];
+    for (let attempt = 0; attempt < delays.length; attempt += 1) {
+      const delay = delays[attempt];
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+      const result = await refreshBillingStatus(store, { silent: attempt > 0 });
+      syncBillingReadout(store.getState());
+      const billing = result?.billing?.billing || store.getState().billing?.billing || {};
+      const access = String(billing.access || "").toLowerCase();
+      if (access === "active") {
+        if (settingsStatus) settingsStatus.textContent = "Plan actualizado correctamente.";
+        return;
+      }
+    }
+    if (settingsStatus) {
+      settingsStatus.textContent = reason === "portal"
+        ? "Portal cerrado. Si acabas de cambiar el plan, KMFX lo actualizará en cuanto Stripe confirme el estado."
+        : "Checkout completado. KMFX actualizará tu plan cuando Stripe confirme el webhook.";
+    }
+  };
+
   const syncCheckoutReturnState = () => {
     const params = new URLSearchParams(window.location.search || "");
     const checkoutState = String(params.get("checkout") || "").toLowerCase();
+    const billingReturn = String(params.get("billing") || "").toLowerCase();
     const tab = String(params.get("tab") || "").toLowerCase();
     const path = String(window.location.pathname || "").toLowerCase();
-    const wantsSubscription = tab === "subscription" || Boolean(checkoutState) || path.includes("/billing") || path.includes("/suscripcion");
+    const wantsSubscription = tab === "subscription" || Boolean(checkoutState) || Boolean(billingReturn) || path.includes("/billing") || path.includes("/suscripcion");
     if (wantsSubscription) activateSettingsTab("subscription");
+    if (billingReturn === "portal-return") {
+      if (settingsStatus) settingsStatus.textContent = "Actualizando estado de suscripción...";
+      void refreshBillingAfterReturn("portal");
+      return;
+    }
     if (!settingsStatus || !checkoutState) return;
     if (checkoutState === "success") {
       settingsStatus.textContent = "Checkout completado. KMFX actualizará tu plan cuando Stripe confirme el webhook.";
+      void refreshBillingAfterReturn("checkout");
     } else if (checkoutState === "cancelled" || checkoutState === "canceled" || checkoutState === "cancel") {
       settingsStatus.textContent = "Checkout cancelado. Tu plan no se ha modificado.";
     }
@@ -933,7 +970,7 @@ function initSettings(authSession = null) {
       const response = await fetch(url, {
         method: "POST",
         headers: billingRequestHeaders(),
-        body: JSON.stringify({ return_url: window.location.href }),
+        body: JSON.stringify({ return_url: billingReturnUrl() }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload?.url) {
