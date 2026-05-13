@@ -306,9 +306,9 @@ function renderStrategiesSetupSummary(summary) {
   return `
     <div class="strategies-summary" aria-label="Resumen de setups">
       ${summary.map((item) => `
-        <div class="strategies-summary__item" data-tone="${item.tone || "neutral"}">
-          <span class="strategies-summary__label">${item.label}</span>
-          <strong class="strategies-summary__value">${item.value}</strong>
+        <div class="strategies-summary__item" data-tone="${safeToken(item.tone || "neutral", "neutral")}">
+          <span class="strategies-summary__label">${escapeHtml(item.label)}</span>
+          <strong class="strategies-summary__value">${escapeHtml(item.value)}</strong>
         </div>
       `).join("")}
     </div>
@@ -325,11 +325,11 @@ function renderStrategyEditor({ item, form, store }) {
           <div class="strategies-dialog__grid">
             <label class="strategies-dialog__field">
               <span>Nombre</span>
-              <input type="text" name="name" value="${form.name}">
+              <input type="text" name="name" value="${escapeHtml(form.name)}">
             </label>
             <label class="strategies-dialog__field">
               <span>Par</span>
-              <input type="text" name="market" value="${form.market}">
+              <input type="text" name="market" value="${escapeHtml(form.market)}">
             </label>
             <label class="strategies-dialog__field">
               <span>TF</span>
@@ -341,11 +341,11 @@ function renderStrategyEditor({ item, form, store }) {
             </label>
             <label class="strategies-dialog__field">
               <span>SL</span>
-              <input type="text" name="sl" value="${form.sl}">
+              <input type="text" name="sl" value="${escapeHtml(form.sl)}">
             </label>
             <label class="strategies-dialog__field">
               <span>TP</span>
-              <input type="text" name="tp" value="${form.tp}">
+              <input type="text" name="tp" value="${escapeHtml(form.tp)}">
             </label>
             <label class="strategies-dialog__field">
               <span>Estado</span>
@@ -358,11 +358,11 @@ function renderStrategyEditor({ item, form, store }) {
             </label>
             <label class="strategies-dialog__field">
               <span>Puntuación</span>
-              <input type="number" step="0.1" name="score" value="${form.score}">
+              <input type="number" step="0.1" name="score" value="${escapeHtml(form.score)}">
             </label>
             <label class="strategies-dialog__field strategies-dialog__field--full">
               <span>Descripción</span>
-              <textarea rows="4" name="description" placeholder="Qué invalida el setup, cuándo entra y qué contexto necesita.">${form.description}</textarea>
+              <textarea rows="4" name="description" placeholder="Qué invalida el setup, cuándo entra y qué contexto necesita.">${escapeHtml(form.description)}</textarea>
             </label>
           </div>
           <div class="strategies-dialog__footer">

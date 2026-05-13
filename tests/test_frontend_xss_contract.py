@@ -71,6 +71,12 @@ class FrontendXssContractTests(unittest.TestCase):
         for snippet in [
             "function escapeHtml",
             "function safeToken",
+            'name="name" value="${escapeHtml(form.name)}"',
+            'name="market" value="${escapeHtml(form.market)}"',
+            'name="sl" value="${escapeHtml(form.sl)}"',
+            'name="tp" value="${escapeHtml(form.tp)}"',
+            'name="score" value="${escapeHtml(form.score)}"',
+            "${escapeHtml(form.description)}</textarea>",
             "${escapeHtml(item.name)}",
             "${escapeHtml(item.description || \"Sin descripción operativa.\")}",
             "${escapeHtml(item.market || \"—\")}",
@@ -91,8 +97,51 @@ class FrontendXssContractTests(unittest.TestCase):
             "<td>${item.session || \"—\"}</td>",
             'data-strategy-id="${item.id}"',
             "strategy-status-chip--${item.status || \"testing\"}",
+            'name="name" value="${form.name}"',
+            'name="market" value="${form.market}"',
+            'name="sl" value="${form.sl}"',
+            'name="tp" value="${form.tp}"',
+            'name="score" value="${form.score}"',
+            ">${form.description}</textarea>",
         ]:
             self.assertNotIn(unsafe_snippet, source)
+
+    def test_tool_forms_escape_rehydrated_attribute_values(self) -> None:
+        calculator = read_text("js/modules/calculator.js")
+        for snippet in [
+            'value="${escapeHtml(calc.accountSize)}"',
+            'placeholder="${escapeHtml(currentModel?.account.balance || "")}"',
+            'value="${escapeHtml(calc.riskPct)}"',
+            'value="${escapeHtml(calc.symbol)}"',
+            'value="${escapeHtml(calc.entry)}"',
+            'value="${escapeHtml(calc.stop)}"',
+            'value="${escapeHtml(targetCopy)}"',
+            "<strong>${escapeHtml(value)}</strong>",
+            "${meta ? `<small>${escapeHtml(meta)}</small>` : \"\"}",
+        ]:
+            self.assertIn(snippet, calculator)
+        for unsafe_snippet in [
+            'value="${calc.accountSize}"',
+            'placeholder="${currentModel?.account.balance || ""}"',
+            'value="${calc.riskPct}"',
+            'value="${calc.symbol}"',
+            'value="${calc.entry}"',
+            'value="${calc.stop}"',
+            'value="${targetCopy}"',
+            "<strong>${value}</strong>",
+            "${meta ? `<small>${meta}</small>` : \"\"}",
+        ]:
+            self.assertNotIn(unsafe_snippet, calculator)
+
+        risk = read_text("js/modules/risk.js")
+        for snippet in [
+            'value="${escapeHtml(prefsDraft.defaultRisk)}"',
+            'value="${escapeHtml(prefsDraft.dailyDrawdownLimit)}"',
+            'value="${escapeHtml(prefsDraft.maxDrawdownLimit)}"',
+            'data-risk-symbol-add="${escapeHtml(normalizedQuery)}"',
+        ]:
+            self.assertIn(snippet, risk)
+        self.assertNotIn('data-risk-symbol-add="${normalizedQuery}"', risk)
 
     def test_analytics_escapes_dynamic_markup_from_mt5_and_journal(self) -> None:
         source = read_text("js/modules/analytics.js")

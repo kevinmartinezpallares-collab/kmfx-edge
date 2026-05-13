@@ -4357,10 +4357,10 @@ export function renderDisciplineSection(target, data = disciplineData, context =
     <section class="execution-kpi-grid">
       ${displayKpis.map((kpi) => `
         <article ${executionKpiId(kpi.label) ? `id="${executionKpiId(kpi.label)}"` : ""} class="tl-kpi-card execution-kpi kpi-card execution-kpi--${kpi.tone === "bad" ? "critical" : "support"} execution-tone-${kpi.tone}">
-          <div class="tl-kpi-label kpi-label">${kpi.label}</div>
-          <div class="tl-kpi-val kpi-value" data-value-type="${/pendiente/i.test(String(kpi.value)) ? "text" : "number"}">${kpi.value}</div>
-          <p class="kpi-sub">${kpi.subcopy}</p>
-          <span>${kpi.badge}</span>
+          <div class="tl-kpi-label kpi-label">${escapeHtml(kpi.label)}</div>
+          <div class="tl-kpi-val kpi-value" data-value-type="${/pendiente/i.test(String(kpi.value)) ? "text" : "number"}">${escapeHtml(kpi.value)}</div>
+          <p class="kpi-sub">${escapeHtml(kpi.subcopy)}</p>
+          <span>${escapeHtml(kpi.badge)}</span>
         </article>
       `).join("")}
     </section>

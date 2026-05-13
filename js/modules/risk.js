@@ -183,7 +183,7 @@ function categoryPillMarkup(symbol) {
   return `
     <span class="risk-symbol-cat risk-symbol-cat--${tone}">
       <span class="risk-symbol-cat-icon" aria-hidden="true">${icons[tone] || "+"}</span>
-      <span>${symbol.cat}</span>
+      <span>${escapeHtml(symbol.cat)}</span>
     </span>
   `;
 }
@@ -1213,7 +1213,7 @@ export function renderRisk(root, state) {
   const selectedSymbolTagsMarkup = selectedSymbolItems.length
     ? selectedSymbolItems.slice(0, 5).map((symbol) => {
       const meta = symbolUniverseMap.get(symbol.id) || { cat: "Custom" };
-      return `<span class="risk-selected-tag risk-selected-tag--${symbolCategoryTone(meta.cat)}">${symbol.id}</span>`;
+      return `<span class="risk-selected-tag risk-selected-tag--${symbolCategoryTone(meta.cat)}">${escapeHtml(symbol.id)}</span>`;
     }).join("")
     : `<span class="risk-selected-tag risk-selected-tag--empty">Sin símbolos</span>`;
   const selectedSymbolOverflowMarkup = selectedSymbolItems.length > 5
@@ -1228,7 +1228,7 @@ export function renderRisk(root, state) {
       <div class="risk-symbol-summary-pills">
         ${summaryPills.map((symbol) => {
           const meta = symbolUniverseMap.get(symbol) || { cat: "Custom" };
-          return `<span class="risk-symbol-summary-pill risk-symbol-summary-pill--${symbolCategoryTone(meta.cat)}">${symbol}</span>`;
+          return `<span class="risk-symbol-summary-pill risk-symbol-summary-pill--${symbolCategoryTone(meta.cat)}">${escapeHtml(symbol)}</span>`;
         }).join("")}
         ${summaryOverflow ? `<span class="risk-symbol-summary-pill risk-symbol-summary-pill--more">+${summaryOverflow} más</span>` : ""}
       </div>
@@ -1236,8 +1236,8 @@ export function renderRisk(root, state) {
   `;
   const selectedSymbolEditorTagsMarkup = selectedSymbolItems.length
     ? selectedSymbolItems.map((symbol) => `
-      <button class="risk-symbol-editor-tag risk-symbol-editor-tag--${symbolCategoryTone(symbol.cat)}" type="button" data-risk-symbol-remove="${symbol.id}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
-        <span>${symbol.id}</span>
+      <button class="risk-symbol-editor-tag risk-symbol-editor-tag--${symbolCategoryTone(symbol.cat)}" type="button" data-risk-symbol-remove="${escapeHtml(symbol.id)}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
+        <span>${escapeHtml(symbol.id)}</span>
         <em aria-hidden="true">×</em>
       </button>
     `).join("")
@@ -1245,16 +1245,16 @@ export function renderRisk(root, state) {
   const symbolSearchResultsMarkup = normalizedQuery
     ? availableSymbolItems.length
       ? availableSymbolItems.map((symbol, index, list) => `
-        <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${symbol.id}">
-          <button class="risk-symbol-main" type="button" data-risk-symbol-option="${symbol.id}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
+        <div class="risk-symbol-row ${index === 0 ? "first" : ""} ${index === list.length - 1 ? "last" : ""}" data-risk-symbol-row="${escapeHtml(symbol.id)}">
+          <button class="risk-symbol-main" type="button" data-risk-symbol-option="${escapeHtml(symbol.id)}" aria-pressed="false" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
             <span class="risk-symbol-action-pill">Añadir</span>
-            <span class="risk-symbol-name">${symbol.id}</span>
+            <span class="risk-symbol-name">${escapeHtml(symbol.id)}</span>
             ${categoryPillMarkup(symbol)}
           </button>
-          <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${symbol.id}" aria-label="Marcar ${symbol.id} como favorito" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>★</button>
+          <button class="risk-symbol-favorite ${favoriteSymbols.has(symbol.id) ? "active" : ""}" type="button" data-risk-symbol-favorite="${escapeHtml(symbol.id)}" aria-label="Marcar ${escapeHtml(symbol.id)} como favorito" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>★</button>
         </div>
       `).join("")
-      : `<div class="risk-symbol-search-empty">No hay resultados para "${normalizedQuery}".</div>`
+      : `<div class="risk-symbol-search-empty">No hay resultados para "${escapeHtml(normalizedQuery)}".</div>`
     : `<div class="risk-symbol-search-empty">Empieza a escribir para buscar pares y añadirlos a la whitelist.</div>`;
   const allSessionsSelected = selectedSessions.length === sessionOptions.length;
   const sessionSummaryMarkup = `
@@ -1823,7 +1823,7 @@ export function renderRisk(root, state) {
             <em class="risk-policy-field__state risk-policy-field__state--${defaultRiskMt5State.tone}">${escapeHtml(defaultRiskMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
-              <input type="number" step="0.05" min="0" max="5" value="${prefsDraft.defaultRisk}" data-risk-pref-number="defaultRisk"${riskPolicyDisabledAttr}>
+              <input type="number" step="0.05" min="0" max="5" value="${escapeHtml(prefsDraft.defaultRisk)}" data-risk-pref-number="defaultRisk"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1833,7 +1833,7 @@ export function renderRisk(root, state) {
             <em class="risk-policy-field__state risk-policy-field__state--${dailyDdMt5State.tone}">${escapeHtml(dailyDdMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
-            <input type="number" step="0.1" min="0" value="${prefsDraft.dailyDrawdownLimit}" data-risk-pref-number="dailyDrawdownLimit"${riskPolicyDisabledAttr}>
+            <input type="number" step="0.1" min="0" value="${escapeHtml(prefsDraft.dailyDrawdownLimit)}" data-risk-pref-number="dailyDrawdownLimit"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1843,7 +1843,7 @@ export function renderRisk(root, state) {
             <em class="risk-policy-field__state risk-policy-field__state--${maxDdMt5State.tone}">${escapeHtml(maxDdMt5State.label)}</em>
           </div>
           <div class="risk-policy-input-shell">
-            <input type="number" step="0.1" min="0" value="${prefsDraft.maxDrawdownLimit}" data-risk-pref-number="maxDrawdownLimit"${riskPolicyDisabledAttr}>
+            <input type="number" step="0.1" min="0" value="${escapeHtml(prefsDraft.maxDrawdownLimit)}" data-risk-pref-number="maxDrawdownLimit"${riskPolicyDisabledAttr}>
             <em>%</em>
           </div>
         </label>
@@ -1864,7 +1864,7 @@ export function renderRisk(root, state) {
           <label class="risk-policy-field risk-policy-field--compact">
             <span>Lote máximo</span>
             <div class="risk-policy-input-shell">
-              <input type="number" step="0.01" min="0" value="${prefsDraft.maxVolume || String(liveSnapshot?.policy?.max_volume || 1.5)}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled && canEditRiskPolicy ? "" : "disabled"}>
+              <input type="number" step="0.01" min="0" value="${escapeHtml(prefsDraft.maxVolume || String(liveSnapshot?.policy?.max_volume || 1.5))}" data-risk-pref-text="maxVolume" ${prefsDraft.maxVolumeEnabled && canEditRiskPolicy ? "" : "disabled"}>
               <em>lot</em>
             </div>
           </label>
@@ -1962,8 +1962,8 @@ export function renderRisk(root, state) {
                 <input type="search" placeholder="Buscar símbolo o mercado" data-risk-symbol-search ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
               </label>
               ${canCreateCustomSymbol ? `
-                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${normalizedQuery}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
-                  + Añadir '${normalizedQuery}' como símbolo personalizado
+                <button class="risk-symbol-add-custom" type="button" data-risk-symbol-add="${escapeHtml(normalizedQuery)}" ${prefsDraft.allowedSymbolsEnabled && canEditRiskPolicy ? "" : "disabled"}>
+                  + Añadir '${escapeHtml(normalizedQuery)}' como símbolo personalizado
                 </button>
               ` : ""}
               <div class="risk-symbol-editor">

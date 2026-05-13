@@ -650,9 +650,9 @@ function calculateModel(state) {
 function calculatorMetricMarkup(label, value, meta = "") {
   return `
     <div class="calculator-metric">
-      <span>${label}</span>
-      <strong>${value}</strong>
-      ${meta ? `<small>${meta}</small>` : ""}
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
     </div>
   `;
 }
@@ -1000,11 +1000,11 @@ export function renderCalculator(root, state) {
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Capital (${model.accountCurrency})</span>
-                <input type="text" inputmode="decimal" data-calc-field="accountSize" value="${calc.accountSize}" placeholder="${currentModel?.account.balance || ""}" autocomplete="off">
+                <input type="text" inputmode="decimal" data-calc-field="accountSize" value="${escapeHtml(calc.accountSize)}" placeholder="${escapeHtml(currentModel?.account.balance || "")}" autocomplete="off">
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>Riesgo %</span>
-                <input type="text" inputmode="decimal" data-calc-field="riskPct" value="${calc.riskPct}" autocomplete="off">
+                <input type="text" inputmode="decimal" data-calc-field="riskPct" value="${escapeHtml(calc.riskPct)}" autocomplete="off">
                 <div class="calc-inline-presets calculator-mini-presets calculator-attached-presets calculator-risk-presets" aria-label="Presets rápidos de riesgo">
                   ${[0.5, 1, 1.5, 2].map((preset) => `<button class="calc-pill ${toNumber(calc.riskPct) === preset ? "active" : ""}" type="button" data-calc-preset="riskPct" data-calc-value="${preset}">${preset}%</button>`).join("")}
                 </div>
@@ -1018,7 +1018,7 @@ export function renderCalculator(root, state) {
               </label>
               <label class="form-stack calculator-fast-field">
                 <span>${slDistanceLabel}</span>
-                <input type="text" inputmode="decimal" data-calc-field="stopPips" value="${calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips}" autocomplete="off" ${calc.slMode === "price" ? "readonly" : ""}>
+                <input type="text" inputmode="decimal" data-calc-field="stopPips" value="${escapeHtml(calc.slMode === "price" ? model.stopPips.toFixed(1) : calc.stopPips)}" autocomplete="off" ${calc.slMode === "price" ? "readonly" : ""}>
                 <div class="calculator-segmented-control calculator-sl-segmented" role="group" aria-label="Modo Stop Loss">
                   <button class="calc-pill ${calc.slMode === "distance" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="distance">Por distancia</button>
                   <button class="calc-pill ${calc.slMode === "price" ? "active" : ""}" type="button" data-calc-preset="slMode" data-calc-value="price">Por precio</button>
@@ -1033,8 +1033,8 @@ export function renderCalculator(root, state) {
             </div>
 
             <div class="calculator-price-fields ${calc.slMode === "price" ? "is-visible" : ""}">
-              <label class="form-stack"><span>Precio entrada</span><input type="text" inputmode="decimal" data-calc-field="entry" value="${calc.entry}" autocomplete="off"></label>
-              <label class="form-stack"><span>Precio SL</span><input type="text" inputmode="decimal" data-calc-field="stop" value="${calc.stop}" autocomplete="off"></label>
+              <label class="form-stack"><span>Precio entrada</span><input type="text" inputmode="decimal" data-calc-field="entry" value="${escapeHtml(calc.entry)}" autocomplete="off"></label>
+              <label class="form-stack"><span>Precio SL</span><input type="text" inputmode="decimal" data-calc-field="stop" value="${escapeHtml(calc.stop)}" autocomplete="off"></label>
             </div>
           </div>
 
@@ -1115,7 +1115,7 @@ export function renderCalculator(root, state) {
             </label>
             <label class="form-stack">
               <span>Precio TP</span>
-              <input type="text" value="${targetCopy}" readonly>
+              <input type="text" value="${escapeHtml(targetCopy)}" readonly>
             </label>
           </div>
           <div class="calculator-spec-note calculator-spec-note--${model.spec.source || "manual"}">

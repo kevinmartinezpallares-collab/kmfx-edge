@@ -1748,7 +1748,7 @@ export function renderFunded(root, state) {
               account.fundingJourney?.id
             ));
             return `
-              <button class="funding-challenge-card ${account.id === selected.id ? "is-active" : ""} ${isLiveFundedAccount(account) ? "" : "is-secondary"}" data-funded-select data-funded-id="${account.id}" data-tone="${status.dataTone}">
+              <button class="funding-challenge-card ${account.id === selected.id ? "is-active" : ""} ${isLiveFundedAccount(account) ? "" : "is-secondary"}" data-funded-select data-funded-id="${escapeHtml(account.id)}" data-tone="${escapeHtml(status.dataTone)}">
                 <span class="funding-challenge-card__head">
                   <span class="funding-challenge-card__identity">
                     <strong>${escapeHtml(fundedChallengeDisplayName(account))}</strong>
@@ -1771,7 +1771,7 @@ export function renderFunded(root, state) {
       ` : ""}
 
       ${showChallenges ? `
-      <article class="tl-section-card funding-detail-panel" data-tone="${challengeStatus.dataTone}">
+      <article class="tl-section-card funding-detail-panel" data-tone="${escapeHtml(challengeStatus.dataTone)}">
         <div class="funding-detail-header">
           <div>
             <div class="tl-section-title">Lectura del challenge</div>
@@ -1781,9 +1781,9 @@ export function renderFunded(root, state) {
           </div>
           <div class="funding-detail-actions">
             ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
-            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
-            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
-            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
+            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${escapeHtml(selected.id)}">Editar configuración</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${escapeHtml(selected.id)}">Añadir movimiento</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${escapeHtml(selected.id)}">Ver detalle</button>
           </div>
         </div>
 
@@ -1812,7 +1812,7 @@ export function renderFunded(root, state) {
       ` : ""}
 
       ${showRules ? `
-      <article class="tl-section-card funding-rules-command-panel" data-tone="${challengeStatus.dataTone}">
+      <article class="tl-section-card funding-rules-command-panel" data-tone="${escapeHtml(challengeStatus.dataTone)}">
         <div class="funding-detail-header">
           <div>
             <div class="tl-section-title">Matriz de reglas</div>
@@ -1822,7 +1822,7 @@ export function renderFunded(root, state) {
           </div>
           <div class="funding-detail-actions">
             ${badgeMarkup({ label: challengeStatus.label, tone: challengeStatus.tone }, "ui-badge--compact")}
-            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${selected.id}">Editar configuración</button>
+            <button class="btn-secondary funded-detail-btn funding-edit-config-btn" data-funded-action="edit-config" data-funded-id="${escapeHtml(selected.id)}">Editar configuración</button>
           </div>
         </div>
         <div class="funding-reading-grid funding-rules-command-grid">
@@ -1841,8 +1841,8 @@ export function renderFunded(root, state) {
             <div class="funding-detail-sub">${escapeHtml(selectedLinkedAccountMeta(selected))}</div>
           </div>
           <div class="funding-detail-actions">
-            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${selected.id}">Añadir movimiento</button>
-            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${selected.id}">Ver detalle</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="add-transaction" data-funded-id="${escapeHtml(selected.id)}">Añadir movimiento</button>
+            <button class="btn-secondary funded-detail-btn" data-funded-action="view" data-funded-id="${escapeHtml(selected.id)}">Ver detalle</button>
           </div>
         </div>
         <div class="funding-payout-ledger-grid">
