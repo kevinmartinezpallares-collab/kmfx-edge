@@ -2898,22 +2898,29 @@ def mark_billing_event_status(event_id: str, status: str, error: str = "") -> No
 
 
 def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any]:
-    if not stripe_checkout_session_belongs_to_kmfx(session):
-        return {"ignored": "non_kmfx_checkout_session"}
     metadata = ensure_dict(session.get("metadata"))
+    subscription_id = safe_str(session.get("subscription"))
+    subscription: dict[str, Any] = {}
+    is_kmfx_session = stripe_checkout_session_belongs_to_kmfx(session)
+    if subscription_id:
+        subscription = fetch_stripe_subscription(subscription_id)
+        is_kmfx_session = is_kmfx_session or stripe_subscription_belongs_to_kmfx(subscription)
+    if not is_kmfx_session:
+        return {"ignored": "non_kmfx_checkout_session"}
     user_id = safe_str(metadata.get("kmfx_user_id") or metadata.get("user_id") or session.get("client_reference_id")).lower()
     customer_id = safe_str(session.get("customer"))
     email = safe_str(ensure_dict(session.get("customer_details")).get("email") or metadata.get("kmfx_user_email") or metadata.get("user_email")).lower()
-    if not user_id:
+    if not user_id and customer_id:
+        user_id = stripe_customer_user_id(customer_id)
+    if not user_id and not subscription_id:
         raise RuntimeError("checkout_session_missing_user")
-    if customer_id:
+    if user_id and customer_id:
         supabase_upsert_billing_customer(
             user_id,
             customer_id,
             email=email,
             metadata={"source": "checkout.session.completed", "stripe_livemode": bool(session.get("livemode"))},
         )
-    subscription_id = safe_str(session.get("subscription"))
     if not subscription_id:
         email_result = send_purchase_confirmation_email(
             email=email,
@@ -2921,12 +2928,11 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
             interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval"), "monthly"),
         )
         return {"user_id": user_id, "subscription": "", "processed": "customer", "email": email_result}
-    subscription = fetch_stripe_subscription(subscription_id)
     result = sync_billing_subscription(subscription, user_id=user_id, email=email)
     result["email"] = send_purchase_confirmation_email(
         email=email or safe_str(metadata.get("kmfx_user_email") or metadata.get("user_email")).lower(),
         plan=safe_str(result.get("plan") or metadata.get("kmfx_plan") or metadata.get("plan_key"), "pro"),
-        interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval"), "monthly"),
+        interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval") or stripe_interval_from_price(first_subscription_price(subscription)), "monthly"),
     )
     return result
 

@@ -2263,15 +2263,122 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 "plan_key": "pro",
             },
         }
-        with patch.object(connector_api, "fetch_stripe_subscription") as fetch_mock, patch.object(
+        external_subscription = {
+            "id": "sub_external",
+            "customer": "cus_external",
+            "status": "active",
+            "metadata": {"user_id": "55555555-5555-4555-8555-555555555555"},
+            "items": {"data": [{"price": {"id": "price_external", "lookup_key": "external_pro"}}]},
+        }
+        with patch.object(connector_api, "fetch_stripe_subscription", return_value=external_subscription) as fetch_mock, patch.object(
             connector_api,
             "sync_billing_subscription",
         ) as sync_mock:
             result = connector_api.process_checkout_session_completed(session)
 
         self.assertEqual({"ignored": "non_kmfx_checkout_session"}, result)
-        fetch_mock.assert_not_called()
+        fetch_mock.assert_called_once_with("sub_external")
         sync_mock.assert_not_called()
+
+    def test_checkout_session_completed_accepts_kmfx_subscription_price_without_session_app_metadata(self) -> None:
+        session = {
+            "id": "cs_kmfx_without_app",
+            "livemode": True,
+            "customer": "cus_kmfx",
+            "subscription": "sub_kmfx",
+            "customer_details": {"email": "buyer@example.com"},
+            "client_reference_id": "55555555-5555-4555-8555-555555555555",
+            "metadata": {
+                "user_id": "55555555-5555-4555-8555-555555555555",
+            },
+        }
+        subscription = {
+            "id": "sub_kmfx",
+            "customer": "cus_kmfx",
+            "status": "trialing",
+            "metadata": {},
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_1TUC65EoC6e7wNItBfoMCblt",
+                            "lookup_key": "kmfx_unlimited_yearly",
+                            "recurring": {"interval": "year"},
+                        }
+                    }
+                ]
+            },
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock, patch.object(
+            connector_api,
+            "fetch_stripe_subscription",
+            return_value=subscription,
+        ) as fetch_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "55555555-5555-4555-8555-555555555555", "plan": "unlimited", "status": "trialing"},
+        ) as sync_mock, patch.object(
+            connector_api,
+            "send_purchase_confirmation_email",
+            return_value={"sent": True},
+        ) as email_mock:
+            result = connector_api.process_checkout_session_completed(session)
+
+        fetch_mock.assert_called_once_with("sub_kmfx")
+        customer_mock.assert_called_once()
+        sync_mock.assert_called_once_with(subscription, user_id="55555555-5555-4555-8555-555555555555", email="buyer@example.com")
+        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
+        self.assertEqual({"sent": True}, result["email"])
+
+    def test_checkout_session_completed_resolves_user_from_customer_mapping(self) -> None:
+        session = {
+            "id": "cs_kmfx_customer_fallback",
+            "livemode": True,
+            "customer": "cus_kmfx",
+            "subscription": "sub_kmfx",
+            "customer_details": {"email": "buyer@example.com"},
+            "metadata": {},
+        }
+        subscription = {
+            "id": "sub_kmfx",
+            "customer": "cus_kmfx",
+            "status": "trialing",
+            "metadata": {},
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_1TUC65EoC6e7wNItBfoMCblt",
+                            "lookup_key": "kmfx_unlimited_yearly",
+                            "recurring": {"interval": "year"},
+                        }
+                    }
+                ]
+            },
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer") as customer_mock, patch.object(
+            connector_api,
+            "fetch_stripe_subscription",
+            return_value=subscription,
+        ), patch.object(
+            connector_api,
+            "stripe_customer_user_id",
+            return_value="55555555-5555-4555-8555-555555555555",
+        ) as customer_user_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "55555555-5555-4555-8555-555555555555", "plan": "unlimited", "status": "trialing"},
+        ) as sync_mock, patch.object(
+            connector_api,
+            "send_purchase_confirmation_email",
+            return_value={"sent": True},
+        ):
+            result = connector_api.process_checkout_session_completed(session)
+
+        customer_user_mock.assert_called_once_with("cus_kmfx")
+        customer_mock.assert_called_once()
+        sync_mock.assert_called_once_with(subscription, user_id="55555555-5555-4555-8555-555555555555", email="buyer@example.com")
+        self.assertEqual("unlimited", result["plan"])
 
     def test_customer_updated_ignores_generic_metadata_without_kmfx_app(self) -> None:
         event = {
