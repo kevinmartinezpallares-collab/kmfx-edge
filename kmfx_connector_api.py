@@ -895,6 +895,81 @@ def emit_audit_event(
     )
 
 
+def emit_operational_alert(
+    event: str,
+    *,
+    severity: str = "warning",
+    context: dict[str, Any] | None = None,
+    user_id: str = "",
+    account_id: str = "",
+    details: dict[str, Any] | None = None,
+) -> None:
+    safe_context = ensure_dict(context)
+    actor_user_id = safe_str(safe_context.get("user_id") or user_id)
+    actor_email = mask_email_for_log(safe_str(safe_context.get("email")))
+    actor_role = "admin" if safe_context.get("is_admin") else "user"
+    log.warning(
+        "[KMFX][ALERT] event=%s severity=%s user_id=%s account_id=%s actor_role=%s actor_email=%s details=%s",
+        safe_str(event, "unknown"),
+        safe_str(severity, "warning"),
+        actor_user_id,
+        safe_str(account_id),
+        actor_role,
+        actor_email,
+        audit_event_details(details),
+    )
+
+
+def emit_mt5_reject_alert(
+    reason: str,
+    *,
+    endpoint: str,
+    severity: str = "warning",
+    user_id: str = "",
+    account_id: str = "",
+    details: dict[str, Any] | None = None,
+) -> None:
+    emit_operational_alert(
+        "mt5_sync_rejected_abnormal",
+        severity=severity,
+        user_id=user_id,
+        account_id=account_id,
+        details={
+            "endpoint": endpoint,
+            "reason": reason,
+            **ensure_dict(details),
+        },
+    )
+
+
+@app.middleware("http")
+async def operational_alert_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        emit_operational_alert(
+            "api_unhandled_exception",
+            severity="critical",
+            details={
+                "method": safe_str(getattr(request, "method", "")),
+                "path": safe_str(getattr(getattr(request, "url", None), "path", "")),
+                "error_type": type(exc).__name__,
+            },
+        )
+        raise
+    if getattr(response, "status_code", 200) >= 500:
+        emit_operational_alert(
+            "api_5xx_response",
+            severity="error",
+            details={
+                "method": safe_str(getattr(request, "method", "")),
+                "path": safe_str(getattr(getattr(request, "url", None), "path", "")),
+                "status_code": getattr(response, "status_code", 0),
+            },
+        )
+    return response
+
+
 def allow_query_connection_key_compat() -> bool:
     return _env_flag("KMFX_ALLOW_QUERY_CONNECTION_KEY", default=False) and not _is_production_runtime()
 
@@ -945,6 +1020,12 @@ def query_connection_key_rejection_response(endpoint: str, request: Request) -> 
             "reason": "query_connection_key_not_allowed",
             "fields": sorted(query_fields.keys()),
         },
+    )
+    emit_mt5_reject_alert(
+        "query_connection_key_not_allowed",
+        endpoint=endpoint,
+        severity="warning",
+        details={"fields": sorted(query_fields.keys())},
     )
     return connector_json_response(
         {
@@ -1104,6 +1185,15 @@ def mt5_missing_connection_key_response(endpoint: str, sync_id: str = "", batch_
         details={
             "endpoint": endpoint,
             "reason": "missing_connection_key",
+            "sync_id": sync_id,
+            "batch_id": batch_id,
+        },
+    )
+    emit_mt5_reject_alert(
+        "missing_connection_key",
+        endpoint=endpoint,
+        severity="warning",
+        details={
             "sync_id": sync_id,
             "batch_id": batch_id,
         },
@@ -2878,6 +2968,16 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
             "retry_after_seconds": retry_after_seconds,
         },
     )
+    emit_mt5_reject_alert(
+        "connection_key_rate_limited",
+        endpoint=endpoint,
+        severity="error",
+        details={
+            "connection_key": mask_connection_key(normalized_key),
+            "limit_per_minute": limit,
+            "retry_after_seconds": retry_after_seconds,
+        },
+    )
     response = connector_json_response(
         {
             "ok": False,
@@ -3040,6 +3140,18 @@ def mt5_revoked_connection_key_response(endpoint: str, connection_key: str, *, s
         details={
             "endpoint": endpoint,
             "reason": "revoked_connection_key",
+            "connection_key": mask_connection_key(connection_key),
+            "sync_id": sync_id,
+            "batch_id": batch_id,
+        },
+    )
+    emit_mt5_reject_alert(
+        "revoked_connection_key",
+        endpoint=endpoint,
+        severity="error",
+        user_id=revoked_account.user_id if revoked_account else "",
+        account_id=revoked_account.account_id if revoked_account else "",
+        details={
             "connection_key": mask_connection_key(connection_key),
             "sync_id": sync_id,
             "batch_id": batch_id,
@@ -6111,6 +6223,15 @@ async def mt5_sync(request: Request) -> JSONResponse:
                             "sync_id": sync_id,
                         },
                     )
+                    emit_mt5_reject_alert(
+                        "unknown_connection_key",
+                        endpoint="/api/mt5/sync",
+                        severity="error",
+                        details={
+                            **details,
+                            "sync_id": sync_id,
+                        },
+                    )
                     return connector_json_response(
                         {
                             "ok": False,
@@ -6804,6 +6925,16 @@ async def billing_webhook(request: Request) -> JSONResponse:
     except RuntimeError as exc:
         reason = safe_str(exc) or "billing_event_record_failed"
         status_code = 503 if reason == "supabase_service_role_not_configured" else 502
+        emit_operational_alert(
+            "billing_webhook_failed",
+            severity="error",
+            details={
+                "stage": "record_event",
+                "reason": reason,
+                "event_id": event_id,
+                "event_type": safe_str(event.get("type")),
+            },
+        )
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
     if not should_process:
         return billing_json_response({"ok": True, "duplicate": True, "event_id": event_id})
@@ -6816,6 +6947,17 @@ async def billing_webhook(request: Request) -> JSONResponse:
             mark_billing_event_status(event_id, "processed")
     except Exception as exc:
         log.exception("Stripe webhook processing failed | event_id=%s type=%s", event_id, safe_str(event.get("type")))
+        emit_operational_alert(
+            "billing_webhook_failed",
+            severity="critical",
+            details={
+                "stage": "process_event",
+                "reason": "webhook_processing_failed",
+                "event_id": event_id,
+                "event_type": safe_str(event.get("type")),
+                "error_type": type(exc).__name__,
+            },
+        )
         try:
             mark_billing_event_status(event_id, "failed", safe_str(exc))
         except Exception:

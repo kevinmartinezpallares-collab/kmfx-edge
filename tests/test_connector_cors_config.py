@@ -41,6 +41,37 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertIn("https://dashboard.kmfxedge.com", connector_api.CORS_ALLOW_ORIGINS)
         self.assertNotIn("*", connector_api.CORS_ALLOW_ORIGINS)
 
+    def test_operational_alert_masks_sensitive_details(self) -> None:
+        raw_key = "abcdef1234567890abcdef1234567890"
+        with self.assertLogs("kmfx_connector_api", level="WARNING") as captured:
+            connector_api.emit_operational_alert(
+                "test_alert",
+                severity="critical",
+                user_id="user_123",
+                details={
+                    "connection_key": raw_key,
+                    "nested": {"api_key": raw_key},
+                },
+            )
+        output = "\n".join(captured.output)
+        self.assertIn("[KMFX][ALERT] event=test_alert severity=critical", output)
+        self.assertIn("user_id=user_123", output)
+        self.assertIn("abcdef...7890", output)
+        self.assertNotIn(raw_key, output)
+
+    def test_mt5_reject_alert_uses_standard_event_name(self) -> None:
+        with self.assertLogs("kmfx_connector_api", level="WARNING") as captured:
+            connector_api.emit_mt5_reject_alert(
+                "unknown_connection_key",
+                endpoint="/api/mt5/sync",
+                severity="error",
+                details={"connection_key": "abcdef1234567890abcdef1234567890"},
+            )
+        output = "\n".join(captured.output)
+        self.assertIn("event=mt5_sync_rejected_abnormal", output)
+        self.assertIn('"reason": "unknown_connection_key"', output)
+        self.assertIn("abcdef...7890", output)
+
     def test_split_env_list_dedupes_and_ignores_wildcard(self) -> None:
         parsed = connector_api._split_env_list(
             " https://kmfxedge.com/ , *, https://kmfxedge.com, https://api.kmfxedge.com "

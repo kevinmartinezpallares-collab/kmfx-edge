@@ -478,9 +478,9 @@ Criterio de salida:
 Objetivo: detectar problemas reales y poder recuperarse.
 
 - [x] Alerta Render/API caida.
-- [ ] Alerta errores 5xx.
-- [ ] Alerta webhooks Stripe fallidos.
-- [ ] Alerta sync MT5 rechazado anormal.
+- [x] Alerta errores 5xx.
+- [x] Alerta webhooks Stripe fallidos.
+- [x] Alerta sync MT5 rechazado anormal.
 - [x] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
@@ -517,6 +517,8 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [x] Politica de borrado de cuenta/MT5 documentada en `docs/data-retention-policy.md`.
 - [x] Guardrails de coste documentados para Render y Supabase en
   `docs/platform-cost-guardrails.md`.
+- [x] Alertas operativas estructuradas documentadas en
+  `docs/observability-alerts-runbook.md`.
 - [ ] Limite personalizado de minutos de build configurado manualmente en
   Render Dashboard si el owner quiere cortar cargos automaticos.
 - [x] Feature flags para apagar funciones de riesgo:

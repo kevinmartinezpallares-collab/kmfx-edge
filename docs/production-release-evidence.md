@@ -351,6 +351,32 @@ Pendiente:
 - Confirmar desde Supabase Dashboard si el egress baja tras las mitigaciones de
   polling/cache.
 
+## 2026-05-13 - Alertas operativas minimas
+
+Contexto:
+
+- Antes de abrir beta hace falta detectar fallos reales sin contratar otra
+  herramienta ni aumentar el coste fijo.
+- Las areas criticas son 5xx del backend, webhooks Stripe fallidos y rechazos
+  anormales de sincronizacion MT5.
+
+Cambio validado:
+
+- Backend emite `[KMFX][ALERT] event=api_5xx_response` para respuestas 5xx.
+- Backend emite `[KMFX][ALERT] event=api_unhandled_exception` para excepciones
+  no controladas.
+- Backend emite `[KMFX][ALERT] event=billing_webhook_failed` cuando un webhook
+  firmado de Stripe falla al reservar o procesar evento.
+- Backend emite `[KMFX][ALERT] event=mt5_sync_rejected_abnormal` para key ausente,
+  query string legacy, key desconocida, key revocada o rate limit.
+- Runbook creado en `docs/observability-alerts-runbook.md`.
+- Las alertas reutilizan el sanitizador de auditoria y no imprimen keys completas.
+
+Validacion local:
+
+- `python3 -m py_compile kmfx_connector_api.py`.
+- `python3 -m unittest tests.test_connector_cors_config`: 110 tests OK.
+
 
 ## 2026-05-13 - Checkpoint `0c13fd7`
 
