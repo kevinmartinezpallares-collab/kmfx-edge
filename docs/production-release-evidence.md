@@ -207,6 +207,61 @@ Pendiente por credenciales de plataforma:
   protection, Dependabot security updates y branch protection de `main` siguen
   pendientes de confirmar desde GitHub Dashboard/API autenticada.
 
+## 2026-05-13 - Checkpoint `0c13fd7`
+
+Contexto:
+
+- Rama: `main`.
+- Commit local y remoto: `0c13fd7 Simplify launcher reinstall flow`.
+- Hora del gate: 2026-05-13 UTC.
+
+Cambio validado:
+
+- El Launcher queda alineado con el flujo simple de produccion:
+  - instala o reinstala el conector en la instalacion MT5 seleccionada;
+  - no muestra accion de reparacion separada;
+  - no crea, regenera ni decide KMFXKeys desde la app local;
+  - la KMFXKey estable sigue siendo propiedad del dashboard y se consulta desde
+    Cuentas > Ver detalles.
+
+Artefactos publicados:
+
+- `downloads/KMFX-Launcher-macOS.zip` reconstruido.
+- `downloads/KMFX-Launcher-Windows.exe` reconstruido.
+- `downloads/KMFX-Launcher-Windows.zip` reconstruido como artefacto alternativo.
+- Checksums publicados coinciden con repo:
+  - macOS ZIP:
+    `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
+  - Windows EXE:
+    `aadb5b79c4bc9bb1625394624d99bc00ad805efc69596c7dfd97743b489ba320`
+  - Windows ZIP:
+    `543d15b6c27ba69899db02bba62e8f2768df9c4fa9845a0b2e92fa814f8e28b2`
+
+Validacion local:
+
+- `node --check launcher/ui/app.js`: verde.
+- `python3 -m py_compile launcher/app.py launcher/backend_client.py launcher/service.py`: verde.
+- `python3 -m unittest tests.test_launcher_connection_keys`: 35 tests OK.
+- `git diff --check`: verde.
+- `git diff --cached --check`: verde.
+
+Gate de produccion:
+
+- `python3 scripts/production_gate.py`: verde.
+- Descargas publicas macOS/Windows verificadas contra checksums versionados.
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- Billing sin bearer y webhook sin firma siguen fallando cerrado.
+- MT5 sync sin key y key en query siguen rechazados en produccion.
+
+Pendiente real:
+
+- Smoke MT5 limpio con usuario no-admin y plan valido en macOS/Windows.
+- Confirmar manualmente en GitHub: branch protection, secret scanning, push
+  protection y Dependabot security updates.
+
 ## 2026-05-13 - XSS pass en vistas de riesgo MT5
 
 Contexto:

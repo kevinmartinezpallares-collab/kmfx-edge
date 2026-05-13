@@ -88,6 +88,10 @@ Notas 2026-05-13:
   - Windows EXE `bb77d12d2c1f6334f5880a749bfb6f64022a6fb589e6141f3b80eb8441c92693`
 - Render, Vercel, Cloudflare Worker, billing gates y endpoints MT5 sensibles pasan el smoke de produccion.
 - Sigue pendiente la validacion de plataforma GitHub con credenciales admin: branch protection, secret scanning, push protection y Dependabot security updates.
+- Launcher simplificado en `0c13fd7`: la accion local vuelve a ser solo instalar/reinstalar el conector en MT5. La app local no repara, crea ni regenera KMFXKeys; la key estable se consulta en `Cuentas > Ver detalles`.
+- Artefactos reconstruidos y smokeados tras `0c13fd7`:
+  - macOS ZIP `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
+  - Windows EXE `aadb5b79c4bc9bb1625394624d99bc00ad805efc69596c7dfd97743b489ba320`
 
 ## Fase 1 - Contrato de Metricas
 
@@ -370,6 +374,12 @@ Notas 2026-05-12:
 - Reinstalacion de conector endurecida para el caso de key antigua o incorrecta: el Launcher actualizado reutiliza la cuenta existente y reinstala `kmfx_connection.conf` con la KMFXKey estable del dashboard.
 - Accion operativa para soporte: si un usuario ve `La clave de conexion de KMFX fue revocada`, primero debe instalar el Launcher actualizado y pulsar `Reinstalar` sobre la cuenta correcta. No debe crear una cuenta nueva salvo que sea otra cuenta MT5.
 - Artefactos publicados reconstruidos: macOS ZIP y Windows EXE/ZIP. El aviso Gatekeeper/SmartScreen sigue documentado y aceptado por decision de producto.
+
+Notas 2026-05-13:
+
+- Flujo de Launcher reducido a la version de producto final: seleccionar instalacion MT5, instalar/reinstalar conector y abrir MT5. Sin accion separada de reparar y sin gestion local de keys.
+- La KMFXKey de cada cuenta queda visible y copiable desde el dashboard. El Launcher solo la escribe en `MQL5/Files/kmfx_connection.conf` al instalar/reinstalar.
+- Tests de contrato del Launcher pasan y las descargas publicas macOS/Windows coinciden con los checksums publicados tras `0c13fd7`.
 
 Criterio de salida:
 
