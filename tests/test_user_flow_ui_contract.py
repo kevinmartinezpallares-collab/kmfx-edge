@@ -166,7 +166,7 @@ class UserFlowUiContractTests(unittest.TestCase):
         source = read_text("js/modules/connection-wizard.js")
 
         self.assertIn("kmfx:showReleaseChecksums", source)
-        self.assertIn("state.isAdmin !== true || !showReleaseChecksums", source)
+        self.assertIn("!isAdminMode(liveState) || !showReleaseChecksums", source)
         self.assertNotIn('if (state.isAdmin !== true) return "";', source)
 
     def test_connections_guide_hides_release_checksums_by_default(self) -> None:
@@ -228,14 +228,16 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("billingEntitlementState", dashboard)
         self.assertIn("function renderDashboardConnectionAction", dashboard)
         self.assertIn("allowPending: false", dashboard)
-        self.assertIn("disabled aria-disabled", dashboard)
+        self.assertIn('data-open-subscription-prompt="true"', dashboard)
         self.assertIn("billingEntitlementState", sidebar)
         self.assertIn("function sidebarConnectionAccess", sidebar)
-        self.assertIn('disabled aria-disabled="true"', sidebar)
+        self.assertIn('data-open-subscription-prompt="true"', sidebar)
+        self.assertIn('kmfx:open-subscription-prompt', sidebar)
         self.assertIn("billingEntitlementState", connections)
         self.assertIn("const connectionAccess = billingEntitlementState(state, \"launcherConnection\"", connections)
         self.assertIn("renderConnectionAccessState(connectionAccess)", connections)
-        self.assertIn("connectDisabled", connections)
+        self.assertIn("connectAttrs", connections)
+        self.assertIn('data-open-subscription-prompt="true"', connections)
         self.assertIn('data-open-connection-wizard="true"', connections)
         self.assertIn("billingEntitlementState(initialStoreState, \"launcherConnection\"", wizard)
         self.assertIn("allowPending: false", wizard)

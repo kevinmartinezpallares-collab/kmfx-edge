@@ -394,7 +394,8 @@ function renderAdminReleaseChecksums(state) {
   } catch {
     showReleaseChecksums = false;
   }
-  if (state.isAdmin !== true || !showReleaseChecksums) return "";
+  const liveState = activeWizardStore?.getState?.() || {};
+  if (!isAdminMode(liveState) || !showReleaseChecksums) return "";
   return `
     <div class="connection-wizard__utility-row connection-wizard__utility-row--release">
       <div>

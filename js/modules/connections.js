@@ -259,7 +259,9 @@ function resolveRegistryAccounts(state) {
 }
 
 function renderConnectionsHeader({ adminVisible = false, adminState = null, connectionAccess = { allowed: true } } = {}) {
-  const connectDisabled = connectionAccess.allowed ? "" : ` disabled aria-disabled="true" title="${escapeHtml(connectionAccess.title || "Conexión no disponible")}"`;
+  const connectAttrs = connectionAccess.allowed
+    ? `data-open-connection-wizard="true" data-connection-source="connections"`
+    : `data-open-subscription-prompt="true" data-paywall-source="connections" title="${escapeHtml(connectionAccess.title || "Activa un plan para conectar MT5")}"`;
   return pageHeaderMarkup({
     eyebrow: "Cuentas",
     title: "Cuentas",
@@ -273,7 +275,7 @@ function renderConnectionsHeader({ adminVisible = false, adminState = null, conn
     actionsHtml: `
         ${adminVisible ? `<button class="btn-secondary connections-shell__utility-btn" type="button" data-account-admin-toggle="true">${adminState?.open ? "Cerrar admin" : "Admin tools"}</button>` : ""}
         <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-guide-open="true">Guía</button>
-        <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections"${connectDisabled}>Añadir cuenta MT5</button>
+        <button class="btn-primary" type="button" ${connectAttrs}>Añadir cuenta MT5</button>
       `,
   });
 }
@@ -1186,7 +1188,7 @@ function renderEmptyState(root, state = {}) {
             </div>
           </div>
           <div class="connections-empty-card__actions">
-            <button class="btn-primary" type="button" data-open-connection-wizard="true" data-connection-source="connections-empty"${connectionAccess.allowed ? "" : " disabled aria-disabled=\"true\""}>Conectar cuenta</button>
+            <button class="btn-primary" type="button" ${connectionAccess.allowed ? 'data-open-connection-wizard="true" data-connection-source="connections-empty"' : 'data-open-subscription-prompt="true" data-paywall-source="connections-empty"'}>Conectar cuenta</button>
             <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-guide-open="true">Ver guía</button>
           </div>
         </article>

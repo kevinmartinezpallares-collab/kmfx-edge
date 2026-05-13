@@ -999,7 +999,7 @@ function initSettings(authSession = null) {
     activateSettingsTab("subscription");
   };
 
-  const shouldOpenSubscriptionPrompt = (state = store.getState()) => {
+  const shouldOpenSubscriptionPrompt = (state = store.getState(), { force = false } = {}) => {
     if (state.auth?.status !== "authenticated") return false;
     const billingState = selectBillingStatus(state);
     if (billingState.loading || !billingState.loadedAt || billingState.error) return false;
@@ -1008,20 +1008,20 @@ function initSettings(authSession = null) {
     if (access === "active") return false;
     if (!["free", "restricted", "billing_attention"].includes(access)) return false;
     const activePage = parentPageForPage(state.ui?.activePage || "dashboard");
-    if (activePage === "settings") return false;
-    if (document.body.classList.contains("modal-open")) return false;
+    if (!force && activePage === "settings") return false;
+    if (!force && document.body.classList.contains("modal-open")) return false;
     return true;
   };
 
   let lastSubscriptionPromptKey = "";
-  const maybeOpenSubscriptionPrompt = (state = store.getState()) => {
-    if (!shouldOpenSubscriptionPrompt(state)) return;
+  const maybeOpenSubscriptionPrompt = (state = store.getState(), { force = false } = {}) => {
+    if (!shouldOpenSubscriptionPrompt(state, { force })) return;
     const billingState = selectBillingStatus(state);
     const access = String(billingState.billing?.access || "").toLowerCase();
     const status = String(billingState.billing?.status || "").toLowerCase();
     const email = state.auth?.user?.email || "user";
     const promptKey = `kmfx:subscription-prompt:${email}:${access}:${status}`;
-    if (lastSubscriptionPromptKey === promptKey || sessionStorage.getItem(promptKey) === "dismissed") return;
+    if (!force && (lastSubscriptionPromptKey === promptKey || sessionStorage.getItem(promptKey) === "dismissed")) return;
     lastSubscriptionPromptKey = promptKey;
 
     const isPaused = isBillingPaused(state);
@@ -1113,6 +1113,15 @@ function initSettings(authSession = null) {
     button.addEventListener("click", () => startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly"));
   });
   billingPortalButton?.addEventListener("click", openBillingPortal);
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-open-subscription-prompt]");
+    if (!trigger) return;
+    event.preventDefault();
+    maybeOpenSubscriptionPrompt(store.getState(), { force: true });
+  });
+  window.addEventListener("kmfx:open-subscription-prompt", () => {
+    maybeOpenSubscriptionPrompt(store.getState(), { force: true });
+  });
   settingsTabButtons.forEach((button) => {
     button.addEventListener("click", () => activateSettingsTab(button.dataset.settingsTab));
   });

@@ -40,7 +40,7 @@ function renderDashboardConnectionAction(state, {
     `;
   }
   return `
-    <button class="btn-secondary btn-inline dashboard-screen__add-account" type="button" disabled aria-disabled="true" title="${escapeHtml(access.title || "Activa un plan para conectar MT5")}">
+    <button class="btn-secondary btn-inline dashboard-screen__add-account" type="button" data-open-subscription-prompt="true" data-paywall-source="${escapeHtml(source)}" title="${escapeHtml(access.title || "Activa un plan para conectar MT5")}">
       ${escapeHtml(label)}
     </button>
   `;

@@ -115,7 +115,9 @@ function openSidebarAccountPicker(store, state) {
   const accounts = resolveSidebarAccounts(state);
   const activeAccountId = selectActiveAccountId(state);
   const connectionAccess = sidebarConnectionAccess(state);
-  const addDisabled = connectionAccess.allowed ? "" : " disabled aria-disabled=\"true\"";
+  const addAttrs = connectionAccess.allowed
+    ? ""
+    : 'data-open-subscription-prompt="true" data-paywall-source="sidebar-account-picker"';
   const addTitle = connectionAccess.allowed
     ? "Añadir cuenta de trading"
     : (connectionAccess.title || "Activa un plan para conectar MT5");
@@ -149,7 +151,7 @@ function openSidebarAccountPicker(store, state) {
           }).join("")}
         </div>
         <div class="sidebar-account-picker__footer">
-          <button class="sidebar-account-picker__add" type="button" data-sidebar-account-add="true"${addDisabled} title="${escapeHtml(addTitle)}">
+          <button class="sidebar-account-picker__add" type="button" data-sidebar-account-add="true" ${addAttrs} title="${escapeHtml(addTitle)}">
             <span class="sidebar-account-picker__add-icon" aria-hidden="true">+</span>
             <span class="sidebar-account-picker__add-copy">
               <span class="sidebar-account-picker__add-title">${escapeHtml(addTitle)}</span>
@@ -177,8 +179,16 @@ function openSidebarAccountPicker(store, state) {
         });
       });
 
-      card?.querySelector("[data-sidebar-account-add]")?.addEventListener("click", () => {
-        if (!sidebarConnectionAccess(store.getState()).allowed) return;
+      card?.querySelector("[data-sidebar-account-add]")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!sidebarConnectionAccess(store.getState()).allowed) {
+          closeModal();
+          window.dispatchEvent(new CustomEvent("kmfx:open-subscription-prompt", {
+            detail: { source: "sidebar-account-picker" }
+          }));
+          return;
+        }
         closeModal();
         dispatchOpenConnectionWizard("sidebar-account-picker");
       });
@@ -359,7 +369,7 @@ export function initSidebarUI(store) {
       : `<span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">${escapeHtml(typeof activeAccountIcon === "object" ? activeAccountIcon.value : activeAccountIcon)}</span>`;
     const accountBlock = !accounts.length
       ? `
-        <button class="sidebar-account-switcher sidebar-account-switcher--empty sidebar-menu-button sidebar-menu-button--lg" type="button" ${connectionAccess.allowed ? 'data-open-connection-wizard="true" data-connection-source="sidebar"' : 'disabled aria-disabled="true"'} title="${escapeHtml(connectionAccess.allowed ? "Añadir cuenta" : (connectionAccess.title || "Activa un plan para conectar MT5"))}" data-sidebar="menu-button">
+        <button class="sidebar-account-switcher sidebar-account-switcher--empty sidebar-menu-button sidebar-menu-button--lg" type="button" ${connectionAccess.allowed ? 'data-open-connection-wizard="true" data-connection-source="sidebar"' : 'data-open-subscription-prompt="true" data-paywall-source="sidebar"'} title="${escapeHtml(connectionAccess.allowed ? "Añadir cuenta" : (connectionAccess.title || "Activa un plan para conectar MT5"))}" data-sidebar="menu-button">
           <span class="sidebar-account-switcher__icon" aria-hidden="true">
             <span class="sidebar-account-switcher__icon-glyph" aria-hidden="true">+</span>
           </span>
