@@ -480,6 +480,42 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             finally:
                 connector_api.account_service = previous_service
 
+    def test_restore_key_endpoint_reactivates_revoked_stable_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            previous_service = connector_api.account_service
+            store_path = os.path.join(temp_dir, "accounts.json")
+            connector_api.account_service = AccountService(JsonFileAccountStore(store_path))
+            try:
+                created = connector_api.account_service.create_pending_account_with_key(
+                    user_id="user-123",
+                    alias="Darwinex MT5",
+                    connection_key="stable-darwinex-key",
+                    platform="mt5",
+                    connection_mode="launcher",
+                )
+                revoked = connector_api.account_service.revoke_connection_key(created.account_id, reason="manual_repair")
+                self.assertIsNotNone(revoked)
+                self.assertTrue(connector_api.account_service.is_connection_key_revoked_any_user("stable-darwinex-key"))
+
+                request = self._request(
+                    host="127.0.0.1",
+                    headers={"x-kmfx-user-id": "user-123"},
+                    json_body={"connection_key": "stable-darwinex-key"},
+                )
+                response = asyncio.run(connector_api.restore_own_account_connection_key(created.account_id, request))
+                body = json.loads(response.body.decode("utf-8"))
+
+                self.assertEqual(200, response.status_code)
+                self.assertTrue(body["ok"])
+                self.assertEqual("stable-darwinex-key", body["connection_key"])
+                self.assertFalse(body["connection_key_revoked"])
+                self.assertFalse(connector_api.account_service.is_connection_key_revoked_any_user("stable-darwinex-key"))
+                self.assertIsNotNone(
+                    connector_api.account_service.get_account_by_api_key_any_user("stable-darwinex-key")
+                )
+            finally:
+                connector_api.account_service = previous_service
+
     def test_link_account_blocks_authenticated_free_live_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

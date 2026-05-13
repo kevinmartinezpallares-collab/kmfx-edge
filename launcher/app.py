@@ -570,6 +570,13 @@ class KMFXApi:
             response = self.backend.get_account_key(account_id=account_id)
         return response
 
+    def restore_account_key_with_session(self, account_id: str, connection_key: str) -> BackendResponse:
+        self.ensure_session()
+        response = self.backend.restore_account_key(account_id=account_id, connection_key=connection_key)
+        if response.status_code == 401 and self._force_refresh_session("restore_account_key_401"):
+            response = self.backend.restore_account_key(account_id=account_id, connection_key=connection_key)
+        return response
+
     def ensure_remote_account_link(self) -> dict[str, Any]:
         if not self.config.auth_user_id:
             return {"ok": False, "message": "Sesión no iniciada."}
@@ -1021,6 +1028,18 @@ class KMFXApi:
                 connection_key = installed_key
                 connection["connection_key"] = installed_key
                 connection["connection_key_masked"] = mask_connection_key(installed_key)
+
+            if key_revoked and connection_key and normalized_account_id:
+                restore_response = self.restore_account_key_with_session(normalized_account_id, connection_key)
+                if restore_response.ok:
+                    restored_key = _safe_str(restore_response.body.get("connection_key")) or connection_key
+                    connection_key = restored_key
+                    key_revoked = False
+                    key_mismatch = False
+                    connection["connection_key"] = restored_key
+                    connection["connection_key_masked"] = mask_connection_key(restored_key)
+                    connection["connection_key_revoked"] = False
+                    connection["connection_key_revoked_at"] = ""
 
             if (not connection_key or key_revoked or key_mismatch) and normalized_account_id:
                 key_response = self.get_account_key_with_session(normalized_account_id)

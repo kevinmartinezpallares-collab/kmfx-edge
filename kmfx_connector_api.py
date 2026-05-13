@@ -5938,6 +5938,33 @@ async def get_own_account_connection_key(account_id: str, request: Request) -> J
             },
             status_code=409,
         )
+    key_was_revoked = bool(getattr(account, "connection_key_revoked_at", None))
+    if connection_key and account_service.is_connection_key_revoked_any_user(connection_key):
+        key_was_revoked = True
+    if key_was_revoked:
+        restored = account_service.restore_connection_key_with_key(account.account_id, connection_key)
+        if restored is None:
+            return connector_json_response(
+                {
+                    "ok": False,
+                    "reason": "connection_key_not_available",
+                    "account_id": normalized_account_id,
+                    "timestamp": now_iso(),
+                },
+                status_code=409,
+            )
+        account = restored
+        connection_key = safe_str(getattr(account, "api_key", ""))
+        emit_audit_event(
+            "restore_key",
+            context=auth_context,
+            user_id=account.user_id,
+            account_id=account.account_id,
+            details={
+                "source": "account_detail",
+                "connection_key_preview": getattr(account, "connection_key_preview", "") or mask_connection_key(connection_key),
+            },
+        )
     return connector_json_response(
         {
             "ok": True,
@@ -5947,6 +5974,98 @@ async def get_own_account_connection_key(account_id: str, request: Request) -> J
             "status": getattr(account, "status", ""),
             "connection_key_revoked": bool(getattr(account, "connection_key_revoked_at", None)),
             "connection_key_revoked_at": getattr(account, "connection_key_revoked_at", None).isoformat() if getattr(account, "connection_key_revoked_at", None) else "",
+            "is_admin": bool(auth_context.get("is_admin")),
+            "timestamp": now_iso(),
+        }
+    )
+
+
+@app.post("/api/accounts/{account_id}/restore-key")
+async def restore_own_account_connection_key(account_id: str, request: Request) -> JSONResponse:
+    scope_user_id, auth_context = resolve_account_scope(request)
+    if not scope_user_id:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "auth_required",
+                "timestamp": now_iso(),
+            },
+            status_code=401,
+        )
+    rate_limited = sensitive_rate_limit_response(
+        "POST /api/accounts/{account_id}/restore-key",
+        request,
+        user_id=scope_user_id,
+        email=safe_str(auth_context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            payload = {}
+    except Exception:
+        payload = {}
+    connection_key = safe_str(resolve_connection_key(payload, request))
+    if not connection_key:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "missing_connection_key",
+                "timestamp": now_iso(),
+            },
+            status_code=400,
+        )
+    normalized_account_id = safe_str(account_id)
+    account = next(
+        (
+            item
+            for item in account_service.list_accounts(scope_user_id)
+            if item.account_id == normalized_account_id
+        ),
+        None,
+    )
+    if account is None:
+        if not auth_context.get("is_admin"):
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+        account = find_account_by_id_any_user(normalized_account_id)
+        if account is None:
+            return connector_json_response(
+                {"ok": False, "reason": "account_not_found", "timestamp": now_iso()},
+                status_code=404,
+            )
+    restored = account_service.restore_connection_key_with_key(account.account_id, connection_key)
+    if restored is None:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "invalid_connection_key",
+                "account_id": normalized_account_id,
+                "timestamp": now_iso(),
+            },
+            status_code=409,
+        )
+    emit_audit_event(
+        "restore_key",
+        context=auth_context,
+        user_id=restored.user_id,
+        account_id=restored.account_id,
+        details={
+            "source": "launcher_reinstall",
+            "connection_key_preview": restored.connection_key_preview or mask_connection_key(connection_key),
+        },
+    )
+    return connector_json_response(
+        {
+            "ok": True,
+            "account_id": restored.account_id,
+            "connection_key": connection_key,
+            "connection_key_preview": restored.connection_key_preview or mask_connection_key(connection_key),
+            "status": restored.status,
+            "connection_key_revoked": False,
             "is_admin": bool(auth_context.get("is_admin")),
             "timestamp": now_iso(),
         }

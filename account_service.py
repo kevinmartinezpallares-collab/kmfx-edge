@@ -964,6 +964,93 @@ class AccountService:
         self.store.save_accounts(accounts)
         return deepcopy(target) if target else None
 
+    def restore_connection_key(self, account_id: str) -> Account | None:
+        accounts = self.store.list_accounts()
+        target: Account | None = None
+        now = _now_utc()
+        for account in accounts:
+            if account.account_id != account_id or _is_deleted(account):
+                continue
+            normalized_key = normalize_connection_key(account.api_key)
+            if not normalized_key:
+                return None
+            current_hash = account.connection_key_hash or hash_connection_key(normalized_key)
+            account.connection_key_hash = current_hash
+            account.connection_key_preview = account.connection_key_preview or mask_connection_key(normalized_key)
+            if current_hash:
+                account.revoked_connection_key_hashes = [
+                    key_hash
+                    for key_hash in (account.revoked_connection_key_hashes or [])
+                    if key_hash != current_hash
+                ]
+            account.revoked_connection_keys = [
+                key
+                for key in (account.revoked_connection_keys or [])
+                if normalize_connection_key(key) != normalized_key
+            ]
+            account.connection_key_revoked_at = None
+            account.connection_key_revocation_reason = ""
+            account.updated_at = now
+            target = account
+            log.info(
+                "[KMFX][CONNECTION_KEY_VALIDATION] event=key_restored account_id=%s user_id=%s key=%s",
+                account.account_id,
+                account.user_id,
+                account.connection_key_preview,
+            )
+            break
+        if target is None:
+            return None
+        self.store.save_accounts(accounts)
+        return deepcopy(target)
+
+    def restore_connection_key_with_key(self, account_id: str, connection_key: str) -> Account | None:
+        normalized_key = normalize_connection_key(connection_key)
+        if not normalized_key:
+            return None
+        accounts = self.store.list_accounts()
+        target: Account | None = None
+        now = _now_utc()
+        current_hash = hash_connection_key(normalized_key)
+        for account in accounts:
+            if account.account_id != account_id or _is_deleted(account):
+                continue
+            if not _account_connection_key_matches(account, normalized_key):
+                return None
+            account.connection_key_hash = account.connection_key_hash or current_hash
+            account.connection_key_preview = account.connection_key_preview or mask_connection_key(normalized_key)
+            account.revoked_connection_key_hashes = [
+                key_hash
+                for key_hash in (account.revoked_connection_key_hashes or [])
+                if key_hash != current_hash
+            ]
+            account.revoked_connection_keys = [
+                key
+                for key in (account.revoked_connection_keys or [])
+                if normalize_connection_key(key) != normalized_key
+            ]
+            account.connection_key_revoked_at = None
+            account.connection_key_revocation_reason = ""
+            account.updated_at = now
+            if account.status == "pending_link":
+                account.status = "connected" if account.last_sync_at else "pending_link"
+            target = account
+            log.info(
+                "[KMFX][CONNECTION_KEY_VALIDATION] event=key_restored_with_supplied_key account_id=%s user_id=%s key=%s",
+                account.account_id,
+                account.user_id,
+                account.connection_key_preview,
+            )
+            break
+        if target is None:
+            return None
+        self.store.save_accounts(accounts)
+        target_copy = deepcopy(target)
+        target_copy.api_key = normalized_key
+        target_copy.connection_key_hash = target_copy.connection_key_hash or current_hash
+        target_copy.connection_key_preview = target_copy.connection_key_preview or mask_connection_key(normalized_key)
+        return target_copy
+
     def delete_account(self, account_id: str) -> Account | None:
         accounts = self.store.list_accounts()
         target = next((account for account in accounts if account.account_id == account_id), None)
