@@ -4,7 +4,7 @@ import { showToast } from "./toast.js?v=build-20260509-150500";
 import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260509-150500";
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260509-150500";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260509-150500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260513-120000";
 
 function emptyForm() {
   return {

@@ -8,7 +8,7 @@ import { renderTrades } from "./js/modules/trades.js?v=build-20260510-110500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260510-110500";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260510-110500";
 import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260511-071500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260513-113000";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260513-120000";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260510-110500";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260510-110500";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260510-110500";
@@ -23,9 +23,9 @@ import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-2026
 import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260510-110500";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260510-110500";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260510-110500";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-071500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-071500";
-import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260509-150500";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260513-120000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260513-120000";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260513-120000";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260511-030638";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260510-110500";
 import {
@@ -35,7 +35,7 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260510-110500";
+} from "./js/modules/auth-session.js?v=build-20260513-120000";
 import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260510-110500";
 import {
   DEFAULT_SETTINGS_PREFERENCES,

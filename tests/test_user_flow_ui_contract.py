@@ -222,6 +222,8 @@ class UserFlowUiContractTests(unittest.TestCase):
     def test_add_account_entrypoints_use_billing_entitlement_gate(self) -> None:
         dashboard = read_text("js/modules/dashboard.js")
         sidebar = read_text("js/modules/sidebar-ui.js")
+        connections = read_text("js/modules/connections.js")
+        wizard = read_text("js/modules/connection-wizard.js")
 
         self.assertIn("billingEntitlementState", dashboard)
         self.assertIn("function renderDashboardConnectionAction", dashboard)
@@ -230,6 +232,36 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("billingEntitlementState", sidebar)
         self.assertIn("function sidebarConnectionAccess", sidebar)
         self.assertIn('disabled aria-disabled="true"', sidebar)
+        self.assertIn("billingEntitlementState", connections)
+        self.assertIn("const connectionAccess = billingEntitlementState(state, \"launcherConnection\"", connections)
+        self.assertIn("renderConnectionAccessState(connectionAccess)", connections)
+        self.assertIn("connectDisabled", connections)
+        self.assertIn('data-open-connection-wizard="true"', connections)
+        self.assertIn("billingEntitlementState(initialStoreState, \"launcherConnection\"", wizard)
+        self.assertIn("allowPending: false", wizard)
+        self.assertIn("if (!connectionAccess.allowed)", wizard)
+
+    def test_critical_auth_admin_and_billing_modules_share_fresh_cache_key(self) -> None:
+        files = [
+            "app.js",
+            "js/modules/admin-mode.js",
+            "js/modules/billing-status.js",
+            "js/modules/connection-wizard.js",
+            "js/modules/connections.js",
+            "js/modules/funded.js",
+            "js/modules/risk.js",
+            "js/modules/sidebar-ui.js",
+        ]
+        for relative_path in files:
+            source = read_text(relative_path)
+            for module in ("auth-session", "admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
+                marker = f"{module}.js?v=build-"
+                if marker in source:
+                    self.assertIn(
+                        f"{module}.js?v=build-20260513-120000",
+                        source,
+                        f"{relative_path} must import {module} with the current production cache key",
+                    )
 
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")

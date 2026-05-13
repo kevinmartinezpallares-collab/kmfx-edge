@@ -28,7 +28,7 @@ const accountingWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: ACCOUNTING_TIMEZONE,
   weekday: "short",
 });
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260509-150500";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260513-120000";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");

@@ -1,7 +1,7 @@
 import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260509-150500";
 import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260509-150500";
 import { openFocusPanel } from "./modal-system.js?v=build-20260509-150500";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260509-150500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260513-120000";
 import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260509-150500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
