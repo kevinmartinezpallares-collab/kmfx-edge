@@ -169,6 +169,14 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("state.isAdmin !== true || !showReleaseChecksums", source)
         self.assertNotIn('if (state.isAdmin !== true) return "";', source)
 
+    def test_connections_guide_hides_release_checksums_by_default(self) -> None:
+        source = read_text("js/modules/connections.js")
+
+        self.assertIn("function shouldShowReleaseChecksums", source)
+        self.assertIn("kmfx:showReleaseChecksums", source)
+        self.assertIn("if (!shouldShowReleaseChecksums(state)) return \"\";", source)
+        self.assertNotIn("if (!isAdminUser(state)) return \"\";", source)
+
     def test_live_snapshot_admin_access_comes_from_billing_only(self) -> None:
         source = read_text("js/modules/accounts-live-snapshot.js")
 

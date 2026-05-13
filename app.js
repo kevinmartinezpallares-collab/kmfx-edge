@@ -8,7 +8,7 @@ import { renderTrades } from "./js/modules/trades.js?v=build-20260510-110500";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260510-110500";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260510-110500";
 import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260511-071500";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260513-071500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260513-113000";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260510-110500";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260510-110500";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260510-110500";
@@ -56,7 +56,7 @@ import {
   resolveBillingStatusUrl
 } from "./js/modules/api-config.js?v=build-20260511-071500";
 
-const BUILD_TAG = "build-20260511-071500";
+const BUILD_TAG = "build-20260513-113000";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();

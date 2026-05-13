@@ -365,6 +365,15 @@ function isAdminUser(state) {
   return state?.billing?.isAdmin === true;
 }
 
+function shouldShowReleaseChecksums(state = {}) {
+  if (!isAdminUser(state)) return false;
+  try {
+    return window.localStorage?.getItem("kmfx:showReleaseChecksums") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function buildAuthHeaders(state, extra = {}) {
   const headers = {
     Accept: "application/json",
@@ -509,7 +518,7 @@ function connectionKeyMatchesPreview(connectionKey = "", preview = "") {
 }
 
 function renderAdminReleaseBlock(state = {}) {
-  if (!isAdminUser(state)) return "";
+  if (!shouldShowReleaseChecksums(state)) return "";
   return `
     <div class="connections-guide-card__release">
       <div>
