@@ -207,6 +207,68 @@ Pendiente por credenciales de plataforma:
   protection, Dependabot security updates y branch protection de `main` siguen
   pendientes de confirmar desde GitHub Dashboard/API autenticada.
 
+## 2026-05-13 - Checkpoint `ae26c85`
+
+Contexto:
+
+- Rama: `main`.
+- Commit desplegado en Render durante el smoke:
+  `ae26c850f189f4b9226d7ddac6fdd45534c82171`.
+- Hora del gate: 2026-05-13 00:13 UTC.
+
+Cambio validado:
+
+- El flujo de KMFXKey estable queda cerrado para el usuario final:
+  - el Launcher instala o reinstala el EA, pero no muestra ni regenera keys;
+  - el dashboard, en Cuentas > Ver detalles, es la fuente de verdad para copiar
+    la KMFXKey;
+  - una cuenta MT5 existente debe conservar su misma key salvo revocacion,
+    filtracion o eliminacion explicita;
+  - la regeneracion normal queda bloqueada para usuarios no-admin.
+
+Gate completo de produccion:
+
+- `python3 scripts/production_gate.py --full-tests`: verde.
+- `git diff --check`: verde.
+- Compilacion Python critica: verde.
+- Smoke real de produccion: verde.
+- Regresiones de seguridad de conector/auth: verde.
+- Suite completa: `365 tests OK`.
+
+Smoke de produccion:
+
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Descargas verificadas:
+  - `downloads/KMFX-Launcher-macOS.zip`
+  - `downloads/KMFX-Launcher-Windows.exe`
+  - `KMFXConnector.ex5`
+- Checksums publicados coinciden con repo:
+  - macOS ZIP:
+    `22ec9a1ddadaeae0189f0f6cdb534e57b68d9987c3a32a1bde729e21dfee8224`
+  - Windows EXE:
+    `657d8279fb0c0a008f22e92656dd67226340f4badcb579cbd1bde525ad4350dc`
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- CORS del Worker permite `X-KMFX-Connection-Key`, no permite headers de
+  usuario y bloquea origenes desconocidos.
+- `/api/accounts/snapshot?view=summary` sin bearer no expone cuentas y devuelve
+  `auth_required: true`.
+- `/api/billing/checkout` y `/api/billing/portal` sin bearer rechazan
+  `401 auth_required`.
+- `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
+- `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
+- `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+Pendiente por credenciales de plataforma:
+
+- El gate local no tiene `GITHUB_TOKEN`; por eso secret scanning, push
+  protection, Dependabot security updates y branch protection de `main` siguen
+  pendientes de confirmar desde GitHub Dashboard/API autenticada.
+
 ## 2026-05-12 - Stripe Billing Read-Only Scan
 
 Contexto:
