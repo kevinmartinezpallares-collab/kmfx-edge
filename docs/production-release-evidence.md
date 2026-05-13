@@ -487,3 +487,67 @@ Pendiente operativo:
 - Aplicar migraciones en Supabase antes de beta abierta.
 - Si el entorno remoto ya tenia tablas creadas manualmente con tipos distintos,
   revisar el diff en staging antes de aplicar en produccion.
+
+## 2026-05-13 - Gate tras artefacto Windows CI
+
+Contexto:
+
+- Rama: `main`.
+- Commit local y remoto: `47f11f916c40c1f7ad2e4fead6acb3b7c5da892e`.
+- Commit desplegado en Render durante el smoke:
+  `47f11f916c40c1f7ad2e4fead6acb3b7c5da892e`.
+- Hora del gate: 2026-05-13 02:00 UTC.
+
+Cambio validado:
+
+- GitHub Actions publico el artefacto Windows definitivo del Launcher y el
+  checkout local se sincronizo por fast-forward.
+- Las descargas publicas de macOS y Windows vuelven a coincidir con los
+  checksums versionados en el repo.
+- El contrato del Launcher sigue siendo: instalar/reinstalar el EA en la
+  instalacion MT5 seleccionada; la KMFXKey estable se consulta y copia desde el
+  dashboard, no desde el Launcher.
+
+Gate de produccion:
+
+- `python3 scripts/production_gate.py`: verde.
+- `git diff --check`: verde.
+- Compilacion Python critica: verde.
+- Auditoria local de GitHub governance: verde en archivos del repo, con
+  advertencias de plataforma por falta de `GITHUB_TOKEN`.
+- Smoke real de produccion: verde.
+- Regresiones de seguridad de conector/auth: `102 tests OK`.
+
+Smoke de produccion:
+
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Descargas verificadas:
+  - `downloads/KMFX-Launcher-macOS.zip`
+  - `downloads/KMFX-Launcher-Windows.exe`
+  - `KMFXConnector.ex5`
+- Checksums publicados coinciden con repo:
+  - macOS ZIP:
+    `e5e3e285269957a43d1cabc742bb9ce59ac2443bace49a2714974d02b62df8e8`
+  - Windows EXE:
+    `bb77d12d2c1f6334f5880a749bfb6f64022a6fb589e6141f3b80eb8441c92693`
+- Hash de `KMFXConnector.ex5` coincide con repo:
+  `cabc679109c674044f592035152c5cf40ea0749b366f31b213a72cf200ee741b`.
+- Render `/health`: `ok`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- CORS del Worker permite `X-KMFX-Connection-Key`, no permite headers de
+  usuario y bloquea origenes desconocidos.
+- `/api/accounts/snapshot?view=summary` sin bearer no expone cuentas y devuelve
+  `auth_required: true`.
+- `/api/billing/checkout` y `/api/billing/portal` sin bearer rechazan
+  `401 auth_required`.
+- `/api/billing/webhook` sin firma rechaza `400 invalid_signature`.
+- `/api/mt5/sync` sin key rechaza `401 missing_connection_key`.
+- `/api/mt5/sync` con key en query sigue rechazado en produccion.
+
+Pendiente por credenciales de plataforma:
+
+- El gate local no tiene `GITHUB_TOKEN`; por eso secret scanning, push
+  protection, Dependabot security updates y branch protection de `main` siguen
+  pendientes de confirmar desde GitHub Dashboard/API autenticada.

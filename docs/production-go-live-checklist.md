@@ -1,6 +1,6 @@
 # KMFX Edge - Checklist Maestro de Produccion
 
-Ultima revision: 2026-05-11
+Ultima revision: 2026-05-13
 Rama objetivo: `main`
 Objetivo: cerrar KMFX Edge como SaaS usable por traders reales, lanzar produccion controlada y preparar migracion a Next.js sin romper el producto actual.
 
@@ -79,6 +79,15 @@ Notas 2026-05-12:
 - Artefactos macOS y Windows reconstruidos con el fix de reinstalacion. Hasta que exista auto-update, usuarios y alumnos deben descargar de nuevo el Launcher desde el dashboard para recibir este comportamiento.
 - El runbook MT5 documenta el flujo correcto: reinstalar la cuenta existente si la key local es antigua o incorrecta, regenerar key solo por revocacion/filtracion/cambio explicito, y crear una cuenta nueva solo si se conecta otra cuenta MT5.
 - Sigue pendiente el smoke limpio macOS/Windows con usuario no-admin y plan valido para marcar la fase como cerrada.
+
+Notas 2026-05-13:
+
+- Gate estandar de produccion ejecutado en `47f11f9` tras publicar el artefacto Windows por GitHub Actions: verde.
+- Descargas publicas de macOS y Windows verificadas contra checksums del repo:
+  - macOS ZIP `e5e3e285269957a43d1cabc742bb9ce59ac2443bace49a2714974d02b62df8e8`
+  - Windows EXE `bb77d12d2c1f6334f5880a749bfb6f64022a6fb589e6141f3b80eb8441c92693`
+- Render, Vercel, Cloudflare Worker, billing gates y endpoints MT5 sensibles pasan el smoke de produccion.
+- Sigue pendiente la validacion de plataforma GitHub con credenciales admin: branch protection, secret scanning, push protection y Dependabot security updates.
 
 ## Fase 1 - Contrato de Metricas
 
