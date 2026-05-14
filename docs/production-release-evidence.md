@@ -1075,6 +1075,16 @@ Validacion local:
 - `node --check` pasa en `app.js`, `js/modules/auth-session.js`,
   `js/modules/billing-status.js`, `js/modules/admin-mode.js`,
   `js/modules/connections.js` y `js/modules/connection-wizard.js`.
+
+Validacion de produccion:
+
+- `https://kmfxedge.com` sirve `build-20260514-013000` en `reloadKey`,
+  `styles.css`, `styles-v2.css` y `app.js`, evitando mezcla de modulos
+  antiguos en navegadores de usuario.
+- Render responde `/health` en un commit descendiente de la linea actual con
+  keys estables MT5 y admin unico por email propietario.
+- La limpieza de duplicado Stripe del usuario de prueba queda completada; el
+  orden de go-live ya no incluye esa tarea como pendiente.
 - `git diff --check` pasa.
 
 Pendiente:

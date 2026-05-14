@@ -724,13 +724,12 @@ Criterio de salida:
 
 1. Cerrar QA final como usuario normal con cuenta MT5 real.
 2. Validar compra live controlada, recibo real y estado de plan aplicado.
-3. Limpiar duplicados de suscripcion trial si Kevin aprueba cancelacion.
-4. Completar QA Launcher macOS/Windows limpio.
-5. Activar/confirmar guardrails manuales de plataforma: Supabase leaked password protection, backups y limite de minutos Render.
-6. Ejecutar smoke final y congelar `main`.
-7. Crear tag `v0.1.0-production-mvp`.
-8. Go live controlado.
-9. Next.js sidecar.
+3. Completar QA Launcher macOS/Windows limpio.
+4. Activar/confirmar guardrails manuales de plataforma: Supabase leaked password protection, backups y limite de minutos Render.
+5. Ejecutar smoke final y congelar `main`.
+6. Crear tag `v0.1.0-production-mvp`.
+7. Go live controlado.
+8. Next.js sidecar.
 
 ## Paquete de Trabajo Cerrado
 
