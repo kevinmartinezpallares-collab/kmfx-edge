@@ -34,10 +34,12 @@ class LauncherConnectorInstallTests(unittest.TestCase):
             files_path = data_path / "MQL5" / "Files"
             preset_path = data_path / "Profiles" / "Presets" / "KMFXConnector_Launcher.set"
             connection_config_path = files_path / "kmfx_connection.conf"
+            safety_notice_path = files_path / "KMFX_READ_ONLY_NOTICE.txt"
 
             self.assertTrue((experts_path / "KMFXConnector.ex5").is_file())
             self.assertTrue((experts_path / "KMFXConnector.mq5").is_file())
             self.assertEqual(str(connection_config_path), result["connection_config_path"])
+            self.assertEqual(str(safety_notice_path), result["safety_notice_path"])
             self.assertIn("KMFXConnector.ex5", result["copied_files"])
 
             connection_config = connection_config_path.read_text(encoding="utf-8")
@@ -50,6 +52,11 @@ class LauncherConnectorInstallTests(unittest.TestCase):
             self.assertIn("KMFXBackendBaseUrl=https://mt5-api.kmfxedge.com||0||0||0||N", preset)
             self.assertIn("KMFXVerboseLog=false||0||0||0||N", preset)
             self.assertIn("KMFXEnableEnforce=false||0||0||0||N", preset)
+
+            notice = safety_notice_path.read_text(encoding="utf-8")
+            self.assertIn("read-only data sync", notice)
+            self.assertIn("does not open, modify, block, copy, or close trades", notice)
+            self.assertIn("KMFXEnableEnforce=false", notice)
 
     def test_installer_requires_compiled_ex5_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -96,6 +103,14 @@ class LauncherConnectorInstallTests(unittest.TestCase):
         self.assertIn('KMFXLoadConnectionConfigValue("connection_key")', source)
         self.assertIn("g_runtime_connection_key=KMFXLoadConnectionKeyFromFile()", source)
         self.assertIn("KMFXRefreshRuntimeConnectionConfig()", source)
+
+    def test_ea_exposes_explicit_read_only_notice_for_prop_accounts(self) -> None:
+        source = (ROOT / "KMFXConnector.mq5").read_text(encoding="utf-8")
+
+        self.assertIn("KMFX Edge | SOLO LECTURA", source)
+        self.assertIn("No permite que KMFX gestione esta cuenta desde el EA.", source)
+        self.assertIn("KMFXRenderChartSafetyNotice()", source)
+        self.assertIn('Comment(KMFXReadOnlyChartNotice())', source)
 
     def test_ea_reloads_launcher_key_after_backend_reject(self) -> None:
         source = (ROOT / "KMFXConnector.mq5").read_text(encoding="utf-8")

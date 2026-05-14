@@ -96,6 +96,17 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("pointer-events: none !important;", css)
         self.assertIn("max-height: 0 !important;", css)
 
+    def test_billing_refresh_avoids_non_allowlisted_cors_headers(self) -> None:
+        source = read_text("js/modules/billing-status.js")
+
+        refresh_start = source.index("export async function refreshBillingStatus")
+        init_start = source.index("export function initBillingStatus", refresh_start)
+        refresh_source = source[refresh_start:init_start]
+
+        self.assertIn("headers: buildAuthHeaders(store.getState())", refresh_source)
+        self.assertNotIn('"Cache-Control": "no-store"', refresh_source)
+        self.assertNotIn('Pragma: "no-cache"', refresh_source)
+
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")
 
@@ -283,8 +294,8 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn("_=${Date.now()}", source)
         self.assertIn('cache: "no-store"', source)
-        self.assertIn('"Cache-Control": "no-store"', source)
-        self.assertIn('Pragma: "no-cache"', source)
+        self.assertNotIn('"Cache-Control": "no-store"', source)
+        self.assertNotIn('Pragma: "no-cache"', source)
 
     def test_critical_auth_admin_and_billing_modules_share_fresh_cache_key(self) -> None:
         files = [
@@ -304,7 +315,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260514-093300",
+                        f"{module}.js?v=build-20260514-114500",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -313,11 +324,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260514-093300"', html)
-        self.assertIn('const BUILD_TAG = "build-20260514-093300";', app)
+        self.assertIn('src="./app.js?v=build-20260514-114500"', html)
+        self.assertIn('const BUILD_TAG = "build-20260514-114500";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260514-093300",
+                f"./js/modules/{module}.js?v=build-20260514-114500",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )

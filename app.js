@@ -1,33 +1,33 @@
-import { createStore } from "./js/modules/store.js?v=build-20260514-093300";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260514-093300";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260514-093300";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260514-093300";
-import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260514-093300";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260514-093300";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260514-093300";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260514-093300";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260514-093300";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260514-093300";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260514-093300";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260514-093300";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260514-093300";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260514-093300";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260514-093300";
-import { renderMarket } from "./js/modules/market.js?v=build-20260514-093300";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260514-093300";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260514-093300";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260514-093300";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260514-093300";
-import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260514-093300";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260514-093300";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514-093300";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-093300";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-093300";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-093300";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-093300";
-import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-093300";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-093300";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-093300";
+import { createStore } from "./js/modules/store.js?v=build-20260514-114500";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260514-114500";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260514-114500";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260514-114500";
+import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260514-114500";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260514-114500";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260514-114500";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260514-114500";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260514-114500";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260514-114500";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260514-114500";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260514-114500";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260514-114500";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260514-114500";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260514-114500";
+import { renderMarket } from "./js/modules/market.js?v=build-20260514-114500";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260514-114500";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260514-114500";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260514-114500";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260514-114500";
+import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260514-114500";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260514-114500";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514-114500";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-114500";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-114500";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-114500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-114500";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-114500";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-114500";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-114500";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260514-093300";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260514-093300";
+} from "./js/modules/auth-session.js?v=build-20260514-114500";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260514-114500";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,8 +45,8 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260514-093300";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260514-093300";
+} from "./js/modules/supabase-user-config.js?v=build-20260514-114500";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260514-114500";
 import {
   resolveAccountsRegistryUrl,
   resolveAccountsSnapshotUrl,
@@ -54,9 +54,9 @@ import {
   resolveBillingCheckoutUrl,
   resolveBillingPortalUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260514-093300";
+} from "./js/modules/api-config.js?v=build-20260514-114500";
 
-const BUILD_TAG = "build-20260514-093300";
+const BUILD_TAG = "build-20260514-114500";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
@@ -218,6 +218,75 @@ function syncAppShellVisibility(state = store.getState()) {
   if (!unlocked) {
     clearAppPageRoots();
   }
+}
+
+function resolveLauncherAuthContext() {
+  const params = new URL(window.location.href).searchParams;
+  if (params.get("launcher_auth") !== "1") return null;
+  const rawRedirect = String(params.get("launcher_redirect") || "").trim();
+  if (!rawRedirect) return null;
+  try {
+    const redirectUrl = new URL(rawRedirect);
+    const validHost = redirectUrl.protocol === "http:" && ["localhost", "127.0.0.1"].includes(redirectUrl.hostname);
+    const validPath = redirectUrl.pathname === "/auth/callback";
+    if (!validHost || !validPath) return null;
+    redirectUrl.search = "";
+    redirectUrl.hash = "";
+    return {
+      redirectUrl,
+      email: String(params.get("launcher_email") || "").trim().toLowerCase(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const launcherAuthState = {
+  context: resolveLauncherAuthContext(),
+  dispatched: false,
+};
+
+function buildLauncherAuthHandoffUrl(auth = {}, context = launcherAuthState.context) {
+  if (!context?.redirectUrl) return "";
+  const accessToken = String(auth.session?.accessToken || "").trim();
+  const refreshToken = String(auth.session?.refreshToken || "").trim();
+  const userId = String(auth.user?.id || "").trim();
+  const email = String(auth.user?.email || "").trim().toLowerCase();
+  if (!accessToken || !refreshToken || !userId || !email) return "";
+  const expiresAt = auth.session?.expiresAt ? Math.floor(new Date(auth.session.expiresAt).getTime() / 1000) : "";
+  const hash = new URLSearchParams({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_at: String(expiresAt || ""),
+    user_id: userId,
+    email,
+    name: String(auth.user?.name || "").trim(),
+    provider: String(auth.provider || auth.user?.provider || "email").trim().toLowerCase(),
+  });
+  const handoffUrl = new URL(context.redirectUrl.toString());
+  handoffUrl.hash = hash.toString();
+  return handoffUrl.toString();
+}
+
+function initLauncherAuthBridge() {
+  if (!launcherAuthState.context) return;
+  const maybeDispatch = (state = store.getState()) => {
+    if (launcherAuthState.dispatched) return;
+    if (state.auth?.status !== "authenticated") return;
+    const handoffUrl = buildLauncherAuthHandoffUrl(state.auth);
+    if (!handoffUrl) return;
+    launcherAuthState.dispatched = true;
+    console.info("[KMFX][LAUNCHER_AUTH] handoff_ready", {
+      email: state.auth?.user?.email || "",
+      provider: state.auth?.provider || "",
+      redirect: launcherAuthState.context?.redirectUrl?.toString?.() || "",
+    });
+    window.location.replace(handoffUrl);
+  };
+  maybeDispatch(store.getState());
+  store.subscribe((state) => {
+    maybeDispatch(state);
+  });
 }
 
 function renderActivePage() {
@@ -1255,6 +1324,7 @@ async function bootstrapApp() {
   });
   initAccountRuntime(store);
   initAuthUI(store);
+  initLauncherAuthBridge();
   initTopbarStatus(store);
   initSidebarUI(store);
   initSidebarVNext();

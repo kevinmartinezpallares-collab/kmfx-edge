@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.85                                              |
+//| KMFXConnector v2.86                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.85"
+#property version   "2.86"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.85"
+#define KMFX_CONNECTOR_VERSION "2.86"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -228,12 +228,20 @@ bool KMFXRiskGuardActive()
 
 string KMFXReadOnlyNotice()
   {
-   return "KMFX Connector iniciado en modo solo lectura. No ejecuta, modifica ni cierra operaciones. Solo sincroniza datos de la cuenta con KMFX Edge.";
+   return "KMFX Connector iniciado en modo solo lectura. No abre, ejecuta, modifica ni cierra operaciones. Solo sincroniza datos de la cuenta con KMFX Edge.";
   }
 
 string KMFXReadOnlyScopeNotice()
   {
-   return "Sin copy trading, sin ejecucion de senales y sin contrasena del broker. Verifica las reglas de tu firma antes de usar EAs de terceros.";
+   return "No gestiona la cuenta, no hace copy trading y no envia la contrasena del broker a KMFX. El control operativo sigue en tu terminal MT5. Verifica las reglas de tu broker o firma antes de usar EAs de terceros.";
+  }
+
+string KMFXReadOnlyChartNotice()
+  {
+   return "KMFX Edge | SOLO LECTURA\n"
+          "No abre, modifica ni cierra operaciones.\n"
+          "No permite que KMFX gestione esta cuenta desde el EA.\n"
+          "Solo sincroniza datos. Revisa las reglas de tu broker o firma.";
   }
 
 string KMFXRiskGuardBetaNotice()
@@ -2985,7 +2993,18 @@ void KMFXLogReadOnlyMode(int cooldown_seconds=3600)
 
    Runtime.read_only_mode_logged=true;
    Runtime.last_read_only_mode_log_at=now_time;
-   KMFXLogStatus("Cuenta en modo lectura/investor. KMFX Connector no ejecuta, modifica ni cierra operaciones; solo sincroniza datos.",cooldown_seconds);
+   KMFXLogStatus("Cuenta en modo lectura/investor. KMFX Connector no abre, modifica ni cierra operaciones; no gestiona la cuenta y solo sincroniza datos.",cooldown_seconds);
+  }
+
+void KMFXRenderChartSafetyNotice()
+  {
+   if(KMFXRiskGuardActive())
+     {
+      Comment("");
+      return;
+     }
+
+   Comment(KMFXReadOnlyChartNotice());
   }
 
 bool KMFXClosePositionByTicket(ulong position_ticket)
@@ -3240,6 +3259,7 @@ int OnInit()
      {
       KMFXLog("INIT",KMFXReadOnlyNotice());
       KMFXLog("INIT",KMFXReadOnlyScopeNotice());
+      KMFXRenderChartSafetyNotice();
      }
    EventSetMillisecondTimer(KMFXTimerMs);
    return(INIT_SUCCEEDED);
@@ -3248,6 +3268,7 @@ int OnInit()
 void OnDeinit(const int reason)
   {
    EventKillTimer();
+   Comment("");
    KMFXLog("DEINIT","Connector detenido. reason="+IntegerToString(reason));
   }
 

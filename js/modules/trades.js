@@ -1,6 +1,6 @@
-import { closeModal, openFocusPanel } from "./modal-system.js?v=build-20260514-093300";
-import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-093300";
-import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-093300";
+import { closeModal, openFocusPanel } from "./modal-system.js?v=build-20260514-114500";
+import { formatCurrency, formatDurationHuman, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-114500";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-114500";
 
 function formatTableValue(value) {
   return value == null || value === "" ? "—" : escapeHtml(value);

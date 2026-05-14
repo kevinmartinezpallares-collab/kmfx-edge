@@ -82,12 +82,15 @@ scripts\start_launcher_windows.bat
 
 - copia `KMFXConnector.mq5` y `KMFXConnector.ex5` si existen
 - crea el preset `KMFXConnector_Launcher.set`
+- crea `MQL5/Files/KMFX_READ_ONLY_NOTICE.txt` como evidencia local del alcance del EA
 - configura:
   - `KMFXBackendBaseUrl=http://127.0.0.1:8766`
   - `/mt5/sync`
   - `/mt5/journal`
   - `/mt5/policy`
   - `connection_key`
+- fija `KMFXEnableEnforce=false` en el preset publico
+- deja visible que el conector publico es de solo lectura y no gestiona operaciones
 
 ## Limitaciones honestas del MVP
 

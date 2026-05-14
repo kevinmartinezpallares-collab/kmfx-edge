@@ -127,6 +127,17 @@ Resultado esperado en Experts:
 
 El texto debe dejar claro que no ejecuta, modifica ni cierra operaciones.
 
+Resultado esperado en el grafico:
+
+```text
+KMFX Edge | SOLO LECTURA
+No abre, modifica ni cierra operaciones.
+No permite que KMFX gestione esta cuenta desde el EA.
+Solo sincroniza datos.
+```
+
+Y en `MQL5/Files/` debe existir `KMFX_READ_ONLY_NOTICE.txt` con `KMFXEnableEnforce=false`.
+
 ### 5. Primer Sync
 
 Esperar hasta 60 segundos.

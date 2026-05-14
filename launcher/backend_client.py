@@ -223,10 +223,14 @@ class BackendClient:
                 request_attempted=True,
             )
 
-    def sign_in_with_password(self, *, email: str, password: str) -> BackendResponse:
+    def sign_in_with_password(self, *, email: str, password: str, captcha_token: str = "") -> BackendResponse:
+        payload: dict[str, Any] = {"email": email, "password": password}
+        normalized_captcha_token = str(captcha_token or "").strip()
+        if normalized_captcha_token:
+            payload["gotrue_meta_security"] = {"captcha_token": normalized_captcha_token}
         return self._supabase_auth_request(
             "/token?grant_type=password",
-            payload={"email": email, "password": password},
+            payload=payload,
         )
 
     def google_oauth_url(self, *, redirect_to: str, code_challenge: str) -> str:

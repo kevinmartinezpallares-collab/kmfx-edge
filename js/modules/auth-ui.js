@@ -1,6 +1,10 @@
 export function initAuthUI(store) {
   const root = document.getElementById("authRoot");
   if (!root) return;
+  const launcherAuthParams = new URL(window.location.href).searchParams;
+  const launcherAuthEmail = launcherAuthParams.get("launcher_auth") === "1"
+    ? String(launcherAuthParams.get("launcher_email") || "").trim().toLowerCase()
+    : "";
 
   const BOT_PROTECTION_PROVIDER = "turnstile";
   const BOT_PROTECTION_ACTIONS = {
@@ -28,12 +32,12 @@ export function initAuthUI(store) {
     mode: "signin",
     slideIndex: 0,
     name: "",
-    email: "",
+    email: launcherAuthEmail,
     password: "",
     confirmPassword: "",
     loading: false,
     error: "",
-    notice: "",
+    notice: launcherAuthEmail ? "Completa el acceso y volverás al launcher automáticamente." : "",
     providerLoading: ""
   };
 

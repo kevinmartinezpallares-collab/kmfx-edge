@@ -1,5 +1,5 @@
-import { resolveBillingStatusUrl } from "./api-config.js?v=build-20260514-093300";
-import { isAdminIdentity } from "./auth-session.js?v=build-20260514-093300";
+import { resolveBillingStatusUrl } from "./api-config.js?v=build-20260514-114500";
+import { isAdminIdentity } from "./auth-session.js?v=build-20260514-114500";
 
 export const DEFAULT_BILLING_STATUS = {
   loading: false,
@@ -336,10 +336,7 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
 
   try {
     const response = await fetch(url, {
-      headers: buildAuthHeaders(store.getState(), {
-        "Cache-Control": "no-store",
-        Pragma: "no-cache",
-      }),
+      headers: buildAuthHeaders(store.getState()),
       cache: "no-store",
     });
     const payload = await response.json();

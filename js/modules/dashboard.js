@@ -1,8 +1,8 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260514-093300";
-import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260514-093300";
-import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260514-093300";
-import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260514-093300";
-import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-093300";
+import { formatCompact, formatCurrency, formatPercent, getAccountTypeLabel, hasLiveAccounts as hasResolvedLiveAccounts, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolveSelectedLiveAccountId, resolvePerformanceViewModel, selectCurrentAccount, selectCurrentDashboardPayload, selectCurrentModel } from "./utils.js?v=build-20260514-114500";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260514-114500";
+import { selectDashboardProfessionalKpis } from "./dashboard-professional-kpis.js?v=build-20260514-114500";
+import { selectRiskExposure, selectRiskLimits, selectRiskStatus, selectRiskSummary } from "./risk-selectors.js?v=build-20260514-114500";
+import { kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-114500";
 import {
   formatRiskCurrency,
   formatRiskValuePct,
@@ -10,9 +10,9 @@ import {
   renderRiskStatusBadge,
   renderSymbolExposureTable,
   riskToneFromStatus,
-} from "./risk-panel-components.js?v=build-20260514-093300";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-093300";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260514-093300";
+} from "./risk-panel-components.js?v=build-20260514-114500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-114500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-114500";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

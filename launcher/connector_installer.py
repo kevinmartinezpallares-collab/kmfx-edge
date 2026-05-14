@@ -15,6 +15,7 @@ MT5_CLOUD_BASE_URL = "https://mt5-api.kmfxedge.com"
 MT5_CLOUD_SYNC_PATH = "/api/mt5/sync"
 MT5_CLOUD_JOURNAL_PATH = "/api/mt5/journal"
 MT5_CLOUD_POLICY_PATH = "/api/mt5/policy"
+SAFETY_NOTICE_FILE = "KMFX_READ_ONLY_NOTICE.txt"
 
 
 class ConnectorInstallError(RuntimeError):
@@ -94,6 +95,33 @@ def connection_config_contents(config: LauncherConfig) -> str:
     )
 
 
+def safety_notice_contents(config: LauncherConfig, installation: MT5Installation) -> str:
+    return "\n".join(
+        [
+            "KMFX Edge - MT5 safety notice",
+            "",
+            f"Installation: {installation.label}",
+            f"Platform: {installation.platform_name}",
+            f"Written at: {datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')}",
+            "",
+            "This public KMFXConnector installation is configured for read-only data sync.",
+            "It does not open, modify, block, copy, or close trades on this MT5 account.",
+            "It does not send the broker password to KMFX Edge.",
+            "Operational control of the account remains in the trader's own MT5 terminal.",
+            "",
+            "Launcher preset guardrails:",
+            f"- KMFXMode=SAFE_MODE ({0})",
+            "- KMFXEnableEnforce=false",
+            "",
+            "If you trade with a prop firm or funded account, verify their current EA policy before use.",
+            "Keep this file as local evidence of the connector scope installed by KMFX Launcher.",
+            "",
+            f"Connection key installed: {str(config.connection_key or '').strip()}",
+            "",
+        ]
+    )
+
+
 def install_connector(installation: MT5Installation, config: LauncherConfig) -> dict[str, str]:
     experts_path = Path(installation.experts_path)
     presets_path = resolve_presets_path(installation)
@@ -116,10 +144,15 @@ def install_connector(installation: MT5Installation, config: LauncherConfig) -> 
     connection_config_path.write_text(connection_config_contents(config), encoding="utf-8")
     LOGGER.info("[KMFX][INSTALLER][KEY_PROPAGATION] path=%s", connection_config_path)
 
+    safety_notice_path = files_path / SAFETY_NOTICE_FILE
+    safety_notice_path.write_text(safety_notice_contents(config, installation), encoding="utf-8")
+    LOGGER.info("[KMFX][INSTALLER][NOTICE] path=%s", safety_notice_path)
+
     return {
         "experts_path": str(experts_path),
         "preset_path": str(preset_path),
         "connection_config_path": str(connection_config_path),
+        "safety_notice_path": str(safety_notice_path),
         "copied_files": "\n".join(copied_files),
     }
 

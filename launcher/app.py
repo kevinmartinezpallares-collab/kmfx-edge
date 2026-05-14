@@ -11,6 +11,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 from urllib.request import urlopen
 import webbrowser
 import os
@@ -416,11 +417,15 @@ class KMFXApi:
             self._clear_expired_auth_session()
         return self._session_payload()
 
-    def login(self, email: str, password: str) -> dict[str, Any]:
+    def login(self, email: str, password: str, captcha_token: str = "") -> dict[str, Any]:
         normalized_email = str(email or "").strip().lower()
         if not normalized_email or not password:
             return {"ok": False, "message": "Introduce tu email y contraseña de KMFX Edge."}
-        response = self.backend.sign_in_with_password(email=normalized_email, password=password)
+        response = self.backend.sign_in_with_password(
+            email=normalized_email,
+            password=password,
+            captcha_token=str(captcha_token or "").strip(),
+        )
         if not response.ok:
             return {"ok": False, "message": self._auth_error_message(response)}
         self._store_auth_response(response.body)
@@ -448,6 +453,30 @@ class KMFXApi:
             self.logger.warning("[KMFX][AUTH][GOOGLE] browser open failed error=%s", exc)
             return {"ok": False, "message": "No se pudo abrir el navegador para Google."}
         return {"ok": True, "pending": True, "message": "Completa el acceso con Google en tu navegador."}
+
+    def open_browser_signin(self, email: str = "") -> dict[str, Any]:
+        self.ensure_service_started()
+        normalized_email = str(email or "").strip().lower()
+        query = f"?email={quote(normalized_email)}" if normalized_email else ""
+        result = None
+        for _ in range(20):
+            result = self.fetch_json(f"/auth/browser/start{query}")
+            if result:
+                break
+            time.sleep(0.15)
+        if not result or not result.get("ok") or not result.get("auth_url"):
+            return {"ok": False, "message": "No se pudo preparar el acceso por email."}
+        self.logger.info(
+            "[KMFX][AUTH][BROWSER] opening system browser redirect_to=%s",
+            result.get("redirect_to", ""),
+        )
+        try:
+            if not webbrowser.open(str(result.get("auth_url") or "")):
+                return {"ok": False, "message": "No se pudo abrir el navegador para el acceso por email."}
+        except Exception as exc:
+            self.logger.warning("[KMFX][AUTH][BROWSER] browser open failed error=%s", exc)
+            return {"ok": False, "message": "No se pudo abrir el navegador para el acceso por email."}
+        return {"ok": True, "pending": True, "message": "Completa el acceso por email en tu navegador."}
 
     def get_oauth_status(self) -> dict[str, Any]:
         status = self.fetch_json("/auth/status") or {"status": "idle", "session": self.get_session()}
@@ -1526,8 +1555,8 @@ class KMFXApi:
             return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
         if "captcha" in normalized_raw or "turnstile" in normalized_raw or "anti-bot" in normalized_raw:
             return (
-                "La protección anti-bots bloqueó este acceso por email. Entra con Google o crea/restablece "
-                "tu contraseña desde kmfxedge.com."
+                "La verificación anti-bots no se pudo completar. Reintenta la verificación, entra con Google "
+                "o crea/restablece tu contraseña desde kmfxedge.com."
             )
         if response.status_code == 0:
             return "No se pudo conectar con Supabase Auth. Revisa internet, firewall o usa Entrar con Google."

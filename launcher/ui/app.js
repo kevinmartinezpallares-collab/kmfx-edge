@@ -442,15 +442,16 @@ async function handleLogin(event) {
   setBusy(true);
   try {
     const email = $("#login-email")?.value || "";
-    const password = $("#login-password")?.value || "";
-    const result = await callApi("login", email, password);
+    const result = await callApi("open_browser_signin", email);
     if (!result.ok) {
       if (error) error.textContent = result.message || "No se pudo iniciar sesión.";
       return;
     }
-    state.session = result.session || { authenticated: true };
-    showToast("Sesión iniciada.");
-    await loadAll();
+    state.oauthPending = true;
+    oauthPollStartedAt = Date.now();
+    setOAuthStatus("Esperando confirmación desde kmfxedge.com...");
+    showToast(result.message || "Completa el acceso por email en tu navegador.");
+    startOAuthPolling();
   } catch (err) {
     if (error) error.textContent = err.message || "No se pudo iniciar sesión.";
   } finally {

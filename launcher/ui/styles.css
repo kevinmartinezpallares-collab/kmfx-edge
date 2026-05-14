@@ -161,6 +161,30 @@ p {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
 }
 
+.launcher-turnstile {
+  display: grid;
+  gap: 8px;
+}
+
+.launcher-turnstile__label {
+  color: #d8dde8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.launcher-turnstile__slot {
+  min-height: 68px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.launcher-turnstile__loading {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .form-error {
   min-height: 20px;
   margin: 0;

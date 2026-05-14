@@ -8,6 +8,7 @@ import os
 import secrets
 import threading
 import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -27,6 +28,7 @@ LOCAL_OAUTH_ALLOWED_REDIRECT_URLS = (
     LOCAL_OAUTH_REDIRECT_URL,
     "http://127.0.0.1:8766/auth/callback",
 )
+DASHBOARD_LAUNCHER_AUTH_URL = os.getenv("KMFX_DASHBOARD_LAUNCHER_AUTH_URL", "https://kmfxedge.com/")
 QUERY_CONNECTION_KEY_FIELD_NAMES = {"connection_key", "kmfxapikey", "api_key"}
 KMFX_BACKEND_HEALTH_TTL_SECONDS = 60.0
 
@@ -265,8 +267,8 @@ class LauncherServiceRuntime:
             return "Email o contraseña incorrectos. Si tu cuenta usa Google, entra con Google o crea una contraseña desde recuperación."
         if "captcha" in normalized_raw or "turnstile" in normalized_raw or "anti-bot" in normalized_raw:
             return (
-                "La protección anti-bots bloqueó este acceso por email. Entra con Google o crea/restablece "
-                "tu contraseña desde kmfxedge.com."
+                "La verificación anti-bots no se pudo completar. Reintenta la verificación, entra con Google "
+                "o crea/restablece tu contraseña desde kmfxedge.com."
             )
         if response.status_code == 0:
             return "No se pudo conectar con el servidor"
@@ -300,6 +302,32 @@ class LauncherServiceRuntime:
         )
         self.logger.info("[KMFX][AUTH][GOOGLE] oauth_url=%s", auth_url)
         return {"ok": True, "auth_url": auth_url, "redirect_to": LOCAL_OAUTH_REDIRECT_URL}
+
+    def begin_browser_signin(self, email: str = "") -> dict[str, Any]:
+        normalized_email = str(email or "").strip().lower()
+        redirect_to = LOCAL_OAUTH_REDIRECT_URL
+        auth_url = DASHBOARD_LAUNCHER_AUTH_URL
+        separator = "&" if "?" in auth_url else "?"
+        query = {
+            "launcher_auth": "1",
+            "launcher_redirect": redirect_to,
+        }
+        if normalized_email:
+            query["launcher_email"] = normalized_email
+        auth_url = f"{auth_url}{separator}{urllib.parse.urlencode(query)}"
+        with self.oauth_lock:
+            self.oauth_state = {
+                "status": "pending",
+                "started_at": now_iso(),
+                "message": "Completa el acceso por email en kmfxedge.com.",
+                "session": self.auth_session_payload(),
+            }
+        self.logger.info(
+            "[KMFX][AUTH][BROWSER] start redirect_to=%s auth_url=%s",
+            redirect_to,
+            auth_url,
+        )
+        return {"ok": True, "auth_url": auth_url, "redirect_to": redirect_to}
 
     def oauth_status(self) -> dict[str, Any]:
         with self.oauth_lock:
@@ -350,6 +378,54 @@ class LauncherServiceRuntime:
             self.oauth_state = {"status": "authenticated", "message": "Sesión iniciada con Google.", "session": session}
         self.logger.info("[KMFX][AUTH][GOOGLE] session_saved user=%s", self.config.auth_email)
         return {"ok": True, "message": "Sesión iniciada con Google.", "session": session}
+
+    def complete_browser_handoff(self, payload: dict[str, Any] | None) -> dict[str, Any]:
+        handoff = payload if isinstance(payload, dict) else {}
+        access_token = str(handoff.get("access_token") or "").strip()
+        refresh_token = str(handoff.get("refresh_token") or "").strip()
+        email = str(handoff.get("email") or "").strip().lower()
+        user_id = str(handoff.get("user_id") or "").strip()
+        name = str(handoff.get("name") or "").strip()
+        provider = str(handoff.get("provider") or "email").strip().lower() or "email"
+        expires_at_raw = str(handoff.get("expires_at") or "").strip()
+        if not access_token or not refresh_token or not email or not user_id:
+            with self.oauth_lock:
+                self.oauth_state = {"status": "error", "message": "No pude completar la sesión del launcher."}
+            return {"ok": False, "message": "No pude completar la sesión del launcher."}
+        expires_at = int(time.time()) + 3600
+        if expires_at_raw:
+            try:
+                expires_at = int(float(expires_at_raw))
+            except ValueError:
+                try:
+                    expires_at = int(parse_iso(expires_at_raw).timestamp())
+                except ValueError:
+                    expires_at = int(time.time()) + 3600
+
+        self.store_auth_response(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "expires_at": expires_at,
+                "user": {
+                    "id": user_id,
+                    "email": email,
+                    "user_metadata": {
+                        "name": name or self.name_from_email(email),
+                        "full_name": name or self.name_from_email(email),
+                    },
+                    "app_metadata": {
+                        "provider": provider,
+                    },
+                },
+            }
+        )
+        self.ensure_remote_account_link()
+        session = self.auth_session_payload()
+        with self.oauth_lock:
+            self.oauth_state = {"status": "authenticated", "message": "Sesión iniciada.", "session": session}
+        self.logger.info("[KMFX][AUTH][BROWSER] handoff_saved user=%s provider=%s", email, provider)
+        return {"ok": True, "message": "Sesión iniciada.", "session": session}
 
     def reload_bridge_config(self, force_log: bool = False) -> str:
         previous_key = str(self.bridge_config.get("connection_key") or "").strip()
@@ -724,9 +800,20 @@ async def auth_google_start() -> JSONResponse:
     return json_response(runtime.begin_google_oauth())
 
 
+@app.get("/auth/browser/start")
+async def auth_browser_start(email: str = Query("", min_length=0)) -> JSONResponse:
+    return json_response(runtime.begin_browser_signin(email=email))
+
+
 @app.get("/auth/status")
 async def auth_status() -> JSONResponse:
     return json_response(runtime.oauth_status())
+
+
+@app.post("/auth/handoff")
+async def auth_handoff(request: Request) -> JSONResponse:
+    payload = await request.json()
+    return json_response(runtime.complete_browser_handoff(payload))
 
 
 @app.get("/auth/callback")
@@ -736,6 +823,82 @@ async def auth_callback(
     error: str = Query("", min_length=0),
     error_description: str = Query("", min_length=0),
 ) -> HTMLResponse:
+    if not code and not error and not state:
+        html_body = """
+        <!doctype html>
+        <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>KMFX Launcher</title>
+            <style>
+              :root { color-scheme: dark; }
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                background: #0b0d12;
+                color: #f5f7fb;
+                font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+              }
+              .card {
+                width: min(420px, calc(100vw - 40px));
+                padding: 28px;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 20px;
+                background: rgba(18, 22, 32, 0.96);
+                box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+              }
+              h1 { margin: 0 0 10px; font-size: 26px; }
+              p { margin: 0; color: #aab3c2; line-height: 1.5; }
+              .ok { color: #86efac; }
+              .error { color: #fda4af; }
+            </style>
+          </head>
+          <body>
+            <section class="card">
+              <h1 id="title">Conectando KMFX Launcher</h1>
+              <p id="message">Estamos cerrando la sesión en el launcher. No cierres esta ventana.</p>
+            </section>
+            <script>
+              (async () => {
+                const title = document.getElementById("title");
+                const message = document.getElementById("message");
+                const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+                const payload = Object.fromEntries(hashParams.entries());
+                if (!payload.access_token || !payload.refresh_token || !payload.email || !payload.user_id) {
+                  title.textContent = "No se pudo conectar";
+                  title.className = "error";
+                  message.textContent = "Faltan datos de sesión. Vuelve al launcher y prueba otra vez.";
+                  return;
+                }
+                try {
+                  const response = await fetch("/auth/handoff", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                  const result = await response.json();
+                  if (!response.ok || result.ok === false) {
+                    throw new Error(result.message || "No se pudo completar la sesión.");
+                  }
+                  history.replaceState({}, document.title, "/auth/callback");
+                  title.textContent = "Launcher conectado";
+                  title.className = "ok";
+                  message.textContent = "Ya puedes volver a KMFX Launcher.";
+                } catch (error) {
+                  title.textContent = "No se pudo conectar";
+                  title.className = "error";
+                  message.textContent = error?.message || "Vuelve al launcher y prueba otra vez.";
+                }
+              })();
+            </script>
+          </body>
+        </html>
+        """
+        return HTMLResponse(html_body)
+
     runtime.logger.info(
         "[KMFX][AUTH][GOOGLE] callback hit query_keys=%s",
         ",".join(key for key, value in {

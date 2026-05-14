@@ -1,5 +1,5 @@
-import { analyticsTabForPage, navigationParentForPage } from "./route-map.js?v=build-20260514-093300";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-093300";
+import { analyticsTabForPage, navigationParentForPage } from "./route-map.js?v=build-20260514-114500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260514-114500";
 
 const primaryItems = [
   { page: "dashboard", label: "Dashboard", icon: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>' },
