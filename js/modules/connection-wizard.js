@@ -28,6 +28,7 @@ const FALLBACK_DIRECT_MT5_SERVERS = [
   { broker: "FundingPips", server: "FundingPips-SIM", label: "FundingPips-SIM" },
   { broker: "FundedNext", server: "FundedNext-Server", label: "FundedNext-Server" },
 ];
+const ACCOUNT_PROFILE_OPTIONS = ["Demo", "Real", "Funding", "Challenge"];
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -49,6 +50,51 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function normalizeAccountProfile(value = "") {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "demo") return "Demo";
+  if (normalized === "funding" || normalized === "funded") return "Funding";
+  if (normalized === "challenge" || normalized === "eval" || normalized === "evaluation") return "Challenge";
+  return "Real";
+}
+
+function accountProfileHints(profile = "Real") {
+  const normalized = normalizeAccountProfile(profile);
+  if (normalized === "Demo") {
+    return {
+      defaultLabel: "Cuenta Demo MT5",
+      note: "Útil para separar pruebas, validaciones internas o entornos demo.",
+    };
+  }
+  if (normalized === "Funding") {
+    return {
+      defaultLabel: "Cuenta Funding MT5",
+      note: "Marca la cuenta como funding para reconocerla mejor en Cuentas y seguimiento.",
+    };
+  }
+  if (normalized === "Challenge") {
+    return {
+      defaultLabel: "Cuenta Challenge MT5",
+      note: "Ideal para fases de evaluación o challenge con reglas concretas de firma.",
+    };
+  }
+  return {
+    defaultLabel: "Cuenta Real MT5",
+    note: "Usa Real para cuentas live personales o no ligadas a un challenge.",
+  };
+}
+
+function buildWizardAccountLabel(rawLabel = "", profile = "Real") {
+  const normalizedProfile = normalizeAccountProfile(profile);
+  const trimmed = String(rawLabel || "").trim();
+  const hints = accountProfileHints(normalizedProfile);
+  if (!trimmed) return hints.defaultLabel;
+  const lowered = trimmed.toLowerCase();
+  const alreadyTagged = ["demo", "real", "funding", "funded", "challenge", "eval", "evaluation"].some((token) => lowered.includes(token));
+  if (alreadyTagged || normalizedProfile === "Real") return trimmed;
+  return `${trimmed} · ${normalizedProfile}`;
 }
 
 function openLauncher() {
@@ -202,6 +248,8 @@ function normalizeLinkedAccount(payload = {}, fallback = {}) {
     account_id: accountId,
     alias: label,
     display_name: account.display_name || label,
+    account_type: account.account_type || fallback.accountType || "",
+    label: account.label || fallback.accountType || "",
     platform: account.platform || fallback.platform || "mt5",
     connection_mode: account.connection_mode || payload.connection_mode || fallback.connectionMode || "ea_direct",
     status: account.status || account.lifecycle_status || fallback.status || "pending_link",
@@ -413,14 +461,25 @@ function renderAdminReleaseChecksums(state) {
 
 function renderEaConfigStep(state) {
   const ea = state.ea || {};
+  const accountProfile = normalizeAccountProfile(ea.accountProfile || "Real");
+  const profileHints = accountProfileHints(accountProfile);
   return `
     ${renderStepFrame(
       "Prepara MetaTrader 5",
       "El Launcher solo instala y configura. La sincronización la hace MT5 con el EA activo.",
       `
         <label class="form-stack">
-          <span>Nombre de la conexión</span>
-          <input type="text" name="eaLabel" value="${escapeHtml(ea.label || "Cuenta MT5 EA")}" placeholder="Orion Challenge 5k">
+          <span>Nombre visible de la cuenta</span>
+          <input type="text" name="eaLabel" value="${escapeHtml(ea.label || "")}" placeholder="Orion Challenge 5k">
+          <small>${escapeHtml(profileHints.note)}</small>
+        </label>
+        <label class="form-stack">
+          <span>Tipo de cuenta</span>
+          <select name="eaAccountProfile">
+            ${ACCOUNT_PROFILE_OPTIONS.map((option) => `
+              <option value="${option}" ${accountProfile === option ? "selected" : ""}>${option}</option>
+            `).join("")}
+          </select>
         </label>
         <div class="connection-wizard__setup-grid">
           <div class="connection-wizard__setup-card connection-wizard__setup-card--accent">
@@ -488,6 +547,8 @@ function renderDirectConfigStep(state) {
   const direct = state.direct || {};
   const servers = normalizeDirectServers(state.directServers?.length ? state.directServers : FALLBACK_DIRECT_MT5_SERVERS);
   const providerConfigured = state.directProvider?.configured === true;
+  const accountProfile = normalizeAccountProfile(direct.accountProfile || "Real");
+  const profileHints = accountProfileHints(accountProfile);
   return `
     ${renderStepFrame(
       "Conexión directa",
@@ -500,6 +561,19 @@ function renderDirectConfigStep(state) {
           </div>
         </div>
         <div class="connection-wizard__form-grid">
+          <label class="form-stack">
+            <span>Nombre visible de la cuenta</span>
+            <input type="text" name="directLabel" autocomplete="off" value="${escapeHtml(direct.label || "")}" placeholder="Darwinex Swing · Funding">
+            <small>${escapeHtml(profileHints.note)}</small>
+          </label>
+          <label class="form-stack">
+            <span>Tipo de cuenta</span>
+            <select name="directAccountProfile">
+              ${ACCOUNT_PROFILE_OPTIONS.map((option) => `
+                <option value="${option}" ${accountProfile === option ? "selected" : ""}>${option}</option>
+              `).join("")}
+            </select>
+          </label>
           <label class="form-stack">
             <span>Número de cuenta</span>
             <input type="text" name="directLogin" inputmode="numeric" autocomplete="off" value="${escapeHtml(direct.login || "")}" placeholder="80571774">
@@ -806,10 +880,11 @@ function throwConnectionError(payload) {
 
 async function createEaConnection(card, state, options = {}, store = activeWizardStore) {
   const body = card?.querySelector(".modal-body");
-  const label = String(body?.querySelector("[name='eaLabel']")?.value || "Cuenta MT5 EA").trim() || "Cuenta MT5 EA";
+  const accountProfile = normalizeAccountProfile(body?.querySelector("[name='eaAccountProfile']")?.value || state.ea?.accountProfile || "Real");
+  const label = buildWizardAccountLabel(body?.querySelector("[name='eaLabel']")?.value || state.ea?.label || "", accountProfile);
   state.loading = true;
   state.error = "";
-  state.ea = { ...(state.ea || {}), label };
+  state.ea = { ...(state.ea || {}), label, accountProfile };
   mountWizard(card, state, options, store);
   try {
     const response = await fetch(buildApiUrl("/api/accounts/link"), {
@@ -830,6 +905,7 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
       label,
       accountId: payload.account_id || "",
       connectionKey: payload.connection_key,
+      accountProfile,
     };
     persistLocalConnectionKey({
       accountId: payload.account_id || "",
@@ -841,6 +917,7 @@ async function createEaConnection(card, state, options = {}, store = activeWizar
       label,
       connectionMode: "ea_direct",
       status: "pending_link",
+      accountType: accountProfile,
     });
     state.step = "confirm";
     state.showKey = false;
@@ -876,7 +953,8 @@ async function createDirectConnection(card, state, options = {}, store = activeW
     return;
   }
 
-  const label = String(direct.label || `MT5 ${login}`).trim();
+  const accountProfile = normalizeAccountProfile(direct.accountProfile || "Real");
+  const label = buildWizardAccountLabel(direct.label || `MT5 ${login}`, accountProfile);
   state.loading = true;
   state.error = "";
   mountWizard(card, state, options, store);
@@ -904,8 +982,11 @@ async function createDirectConnection(card, state, options = {}, store = activeW
       label,
       accountId: payload.account_id || "",
       connectionKey: payload.connection_key || "",
+      accountProfile,
     };
     state.direct = {
+      label,
+      accountProfile,
       login,
       server,
       password: "",
@@ -925,6 +1006,7 @@ async function createDirectConnection(card, state, options = {}, store = activeW
       server,
       connectionMode: "direct",
       status: "linked",
+      accountType: accountProfile,
     });
     state.step = "confirm";
     state.showKey = false;
@@ -1019,6 +1101,8 @@ async function loadDirectMt5Servers(card, state, options = {}, store = activeWiz
 
 function captureDirectFields(body, state) {
   state.direct = {
+    label: String(body?.querySelector("[name='directLabel']")?.value || ""),
+    accountProfile: normalizeAccountProfile(body?.querySelector("[name='directAccountProfile']")?.value || state.direct?.accountProfile || "Real"),
     login: String(body?.querySelector("[name='directLogin']")?.value || ""),
     password: String(body?.querySelector("[name='directPassword']")?.value || ""),
     server: String(body?.querySelector("[name='directServer']")?.value || ""),
@@ -1057,6 +1141,20 @@ function mountWizard(card, state, options = {}, store = activeWizardStore) {
   body.querySelector("[data-wizard-download-ea='true']")?.addEventListener("click", downloadEa);
   body.querySelector("[data-wizard-copy-webrequest='true']")?.addEventListener("click", () => copyText(MT5_WEBREQUEST_URL, "URL copiada"));
   body.querySelector("[data-wizard-copy-download-checksums='true']")?.addEventListener("click", () => copyText(downloadChecksumText(), "Checksums copiados"));
+  body.querySelector("[name='eaAccountProfile']")?.addEventListener("change", (event) => {
+    state.ea = {
+      ...(state.ea || {}),
+      accountProfile: normalizeAccountProfile(event.target?.value || "Real"),
+    };
+    mountWizard(card, state, options, store);
+  });
+  body.querySelector("[name='directAccountProfile']")?.addEventListener("change", (event) => {
+    state.direct = {
+      ...(state.direct || {}),
+      accountProfile: normalizeAccountProfile(event.target?.value || "Real"),
+    };
+    mountWizard(card, state, options, store);
+  });
   body.querySelector("[data-wizard-create-ea-key='true']")?.addEventListener("click", () => createEaConnection(card, state, options, store));
   body.querySelector("[data-wizard-copy-ea-key='true']")?.addEventListener("click", () => {
     copyText(state.ea?.connectionKey || "", "Clave copiada");
@@ -1136,8 +1234,11 @@ export function openConnectionWizard(options = {}) {
       label: "",
       accountId: "",
       connectionKey: "",
+      accountProfile: "Real",
     },
     direct: {
+      label: "",
+      accountProfile: "Real",
       login: "",
       password: "",
       server: "",
