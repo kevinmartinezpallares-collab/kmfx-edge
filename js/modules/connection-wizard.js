@@ -366,7 +366,7 @@ function renderMethodStep() {
             <span class="connection-wizard__option-copy">
               <span class="connection-wizard__option-title">Conexión directa</span>
               <span class="connection-wizard__option-subtitle">Introduce login, servidor e investor password. La cuenta se añade a Cuentas al finalizar.</span>
-              <span class="connection-wizard__option-note">Usa investor password siempre que puedas.</span>
+              <span class="connection-wizard__option-note">Usa investor password siempre que puedas. Para cuentas de fondeo, prioriza EA si quieres separar lectura y credenciales.</span>
             </span>
           </button>
           <button class="connection-wizard__option is-selected" type="button" data-wizard-select-method="ea">
@@ -374,7 +374,7 @@ function renderMethodStep() {
             <span class="connection-wizard__option-copy">
               <span class="connection-wizard__option-title">Expert Advisor (EA)</span>
               <span class="connection-wizard__option-subtitle">Recomendado. No compartes credenciales de MT5 y funciona con investor password.</span>
-              <span class="connection-wizard__option-note">Usa KMFX Connector en tu terminal MT5.</span>
+              <span class="connection-wizard__option-note">Solo lectura: no abre, cierra ni modifica operaciones. Usa KMFX Connector en tu terminal MT5.</span>
             </span>
           </button>
         </div>
@@ -442,6 +442,12 @@ function renderEaConfigStep(state) {
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-download-ea="true">Descargar EA</button>
             </div>
+          </div>
+        </div>
+        <div class="connection-wizard__utility-row connection-wizard__utility-row--accent">
+          <div>
+            <div class="connection-wizard__utility-label">Solo lectura para cuentas de fondeo</div>
+            <p class="connection-wizard__warning" style="margin-top:8px !important;">KMFX Connector solo lee y sincroniza datos. No abre, cierra ni modifica operaciones en MetaTrader 5, y el Launcher solo instala el conector.</p>
           </div>
         </div>
         ${renderAdminReleaseChecksums(state)}

@@ -1335,6 +1335,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertNotIn("Añadir cuenta MT5", ui_html)
         self.assertNotIn("Reparar conector", ui_source)
         self.assertNotIn("Copiar key", ui_source)
+        self.assertIn("El EA es solo lectura: no abre, cierra ni modifica operaciones", ui_html)
+        self.assertIn("modo solo lectura", ui_source)
+        self.assertIn("el EA no gestiona órdenes", ui_source)
 
     def test_launcher_detects_shared_installed_connection_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

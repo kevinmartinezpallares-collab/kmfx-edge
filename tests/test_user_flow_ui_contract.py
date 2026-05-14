@@ -138,6 +138,8 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("Crear KMFXKey para esta cuenta", wizard)
         self.assertIn("Si reinstalas, usa esta misma key desde Cuentas > Ver detalles", wizard)
         self.assertIn("Usa esta misma key si reinstalas el EA en esta cuenta", wizard)
+        self.assertIn("Solo lectura: no abre, cierra ni modifica operaciones.", wizard)
+        self.assertIn("KMFX Connector solo lee y sincroniza datos.", wizard)
         self.assertIn("Copia la KMFXKey actual desde Cuentas > Ver detalles", connector)
         self.assertIn("Copiar key", source)
         self.assertIn("Usa esta misma KMFXKey y reinstala el conector en el mismo MT5", source)

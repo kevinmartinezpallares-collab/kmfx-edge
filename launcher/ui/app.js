@@ -273,11 +273,11 @@ function renderHome() {
   if (!hasMt5) {
     message.textContent = "No se ha detectado MetaTrader 5.";
   } else if (!installed) {
-    message.textContent = "Selecciona una instancia MT5 e instala el conector para dejar el EA preparado.";
+    message.textContent = "Selecciona una instancia MT5 e instala el conector para dejar el EA preparado en modo solo lectura.";
   } else if (recentSync) {
-    message.textContent = "EA instalado en la instancia MT5. La sincronización ya la hace MetaTrader con KMFX.";
+    message.textContent = "EA instalado en la instancia MT5. La sincronización ya la hace MetaTrader con KMFX y el EA no gestiona órdenes.";
   } else {
-    message.textContent = "EA instalado en la instancia MT5. Abre MetaTrader y espera el primer sync; después puedes cerrar el Launcher.";
+    message.textContent = "EA instalado en la instancia MT5. Abre MetaTrader y espera el primer sync; después puedes cerrar el Launcher. KMFX no abre, cierra ni modifica operaciones.";
   }
 }
 
