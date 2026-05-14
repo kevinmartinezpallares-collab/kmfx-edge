@@ -1,5 +1,5 @@
-import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-222200";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-222200";
+import { describeAccountAuthority, formatCurrency, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-230900";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-230900";
 
 function escapeHtml(value = "") {
   return String(value)
