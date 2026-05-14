@@ -8,6 +8,11 @@ Esta auditoria es la puerta final antes de go-live. No sustituye a los tests
 automaticos: valida el producto desde fuera, como usuario normal, con datos reales
 o una cuenta demo controlada.
 
+Runbooks de apoyo:
+
+- `docs/mt5-production-smoke-runbook.md`
+- `docs/mt5-metrics-reconciliation-runbook.md`
+
 ## Objetivo
 
 Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live:
