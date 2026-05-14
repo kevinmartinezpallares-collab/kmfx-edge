@@ -1094,3 +1094,54 @@ Pendiente:
   `build-20260514-013000`.
 - Validar recibo real de Stripe/Resend y plan aplicado sin refresco manual en la
   auditoria final con usuario normal.
+
+## 2026-05-13 - Gate estandar post billing/key
+
+Contexto:
+
+- Rama: `main`.
+- Objetivo: confirmar que, tras la limpieza de billing y el fallback de
+  reinstalacion del Launcher, el gate tecnico minimo sigue verde sin disparar
+  builds innecesarios.
+- El archivo `docs/billing-implementation-checklist.md` queda fuera del stage
+  porque contiene cambios manuales del owner.
+
+Validacion ejecutada:
+
+- `python3 scripts/production_gate.py`: verde en modo estandar.
+- `git diff --check`: verde.
+- Compilacion Python critica: verde.
+- Smoke de produccion: verde.
+- Regresiones de seguridad de conector/auth: verde.
+
+Smoke de produccion:
+
+- `https://kmfxedge.com`: responde `200`.
+- Rutas SPA probadas: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio` y `/ajustes`.
+- Descargas publicas macOS/Windows/EA verificadas contra checksums versionados.
+- Render `/health`: `ok`, commit desplegado
+  `968b8e0ad1d4e72ca3aea95d685cc21f776d6d5d`.
+- `mt5-api.kmfxedge.com/health`: `ok` via Worker.
+- Billing sin bearer, portal sin bearer y webhook sin firma fallan cerrado.
+- MT5 sync sin key y key en query siguen rechazados en produccion.
+
+Admin y checksums:
+
+- Produccion sirve `ADMIN_EMAILS = ["kevinmartinezpallares@gmail.com"]`.
+- `kevinmartinezpallares@hotmail.com` no aparece como admin en los modulos
+  servidos por produccion.
+- Los checksums de release solo se renderizan si hay modo admin real y
+  `localStorage["kmfx:showReleaseChecksums"] === "1"`.
+- Los enlaces admin del HTML siguen marcados como `data-admin-only` y deben
+  quedar ocultos para usuarios normales cuando la app inicializa.
+
+Advertencias operativas:
+
+- El gate local no tiene `GITHUB_TOKEN`; las comprobaciones de plataforma
+  GitHub no se consultan desde este shell, aunque la proteccion de rama y checks
+  obligatorios ya quedaron documentados previamente.
+- Persisten avisos de cuota Supabase/egress en pruebas locales. No bloquean el
+  gate, pero siguen siendo riesgo operativo a vigilar antes de abrir usuarios.
+- La auditoria final de usuario normal queda pendiente de credenciales y cuenta
+  MT5 real/demo controlada antes del go-live publico.
