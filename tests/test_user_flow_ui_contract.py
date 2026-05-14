@@ -87,6 +87,15 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("if (!isAppUnlocked(state)) {", source)
         self.assertIn("clearAppPageRoots();", source)
 
+    def test_hidden_admin_nodes_stay_collapsed_in_sidebar_css(self) -> None:
+        css = read_text("styles-v2.css")
+
+        self.assertIn(".app-shell.sidebar-vnext.sidebar-provider [data-admin-only][hidden]", css)
+        self.assertIn(".app-shell.sidebar-vnext.sidebar-provider .sidebar-admin-nav[hidden]", css)
+        self.assertIn("visibility: hidden !important;", css)
+        self.assertIn("pointer-events: none !important;", css)
+        self.assertIn("max-height: 0 !important;", css)
+
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")
 
