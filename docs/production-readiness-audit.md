@@ -46,8 +46,11 @@ No se recomienda abrir produccion comercial amplia hasta completar la auditoria 
    - El upsert de suscripciones actuales ahora desmarca filas actuales previas del mismo usuario antes de publicar la nueva como `is_current=true`, evitando estados Free/Demo cuando Stripe tiene un plan vigente.
 
 4. Guardrails manuales de coste/plataforma.
-   - Supabase esta en periodo de gracia por exceso de salida; ya se redujo polling y se creo monitor, pero hay que confirmar leaked password protection, backups y limites de uso.
-   - Render aviso de minutos de build: fijar limite personalizado desde Dashboard si se quiere cortar cargos automaticos.
+   - Supabase Free ya ha agotado la cuota de salida/egress y puede devolver restricciones/402. Antes de invitar alumnos, activar Supabase Pro o recargar/regularizar el proyecto y mantener Spend Cap activo.
+   - Pro se usa como margen operativo controlado, no como barra libre: no activar add-ons, dominios, PITR, read replicas, IPv4 dedicado ni compute extra sin aprobacion explicita.
+   - Tras el upgrade, revisar uso a 1h, 6h y 24h; si el egress proyecta mas de 150 GB/mes, auditar payloads antes de abrir mas alumnos.
+   - Render `$2.99` corresponde al runtime prorrateado de `kmfx-edge-api` en Starter (`$0.0094/h * 317.86h`), no a uso de API accidental. `[skip render]` ahorra build minutes, pero no apaga el backend.
+   - Render aviso de minutos de build: fijar limite personalizado desde Dashboard si se quiere cortar cargos automaticos, y confirmar que solo hay un servicio pago activo.
 
 ### P1 antes de beta publica
 
@@ -228,6 +231,8 @@ Resultado:
 
 - Tag `v0.1.0-production-mvp`.
 - Stripe live.
+- Supabase Pro activo con Spend Cap antes de invitar alumnos si la organizacion sigue restringida por egress.
+- Render con limite de Build Pipeline configurado y sin servicios pagos duplicados.
 - Compra real de prueba.
 - Monitorizacion Render, Stripe, Supabase, Vercel y Cloudflare durante primeras sesiones.
 

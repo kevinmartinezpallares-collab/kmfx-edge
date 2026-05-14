@@ -96,6 +96,12 @@ Notas 2026-05-13:
 - Artefactos reconstruidos y smokeados tras `0c13fd7`:
   - macOS ZIP `e1d09f21e1ae4297b0933244b605d73b08fc05ff15a9db4d89871b4122bf081e`
   - Windows EXE `8909c79d57c56976f0073a9fe44a32e51cf58ea7296394a323876eaa4a47f12b`
+- Coste/plataforma:
+  - Supabase Free ha quedado agotado por salida/egress antes de beta privada.
+  - Para invitar alumnos, activar Supabase Pro antes de abrir accesos y mantener Spend Cap activo.
+  - No comprar add-ons de Supabase sin aprobacion explicita: custom domains, PITR, read replicas, IPv4 dedicado o compute extra.
+  - Render `$2.99` visto en Billing corresponde al runtime prorrateado de `kmfx-edge-api` en Starter, no a un coste de API accidental.
+  - `[skip render]` reduce minutos de build, pero no apaga el coste horario del backend vivo.
 - Branch protection de `main` activado con checks requeridos, historial lineal,
   borrado/destructive pushes bloqueados y bypass admin permitido para no frenar
   fixes criticos durante el cierre de produccion.
@@ -534,10 +540,15 @@ Objetivo: detectar problemas reales y poder recuperarse.
 - [x] Logs utiles sin secretos.
 - [x] Mitigacion inicial de egress Supabase/frontend: el polling de `/api/accounts/snapshot` reduce frecuencia en produccion cuando no hay posiciones abiertas y se pausa de forma agresiva con la pestana oculta.
 - [x] `/api/accounts/snapshot?view=summary` separa refresco ligero de estado/balance/posiciones abiertas del payload MT5 pesado; la carga inicial y refrescos espaciados siguen usando snapshot completo.
-- [x] Cache backend corto para `view=summary`: TTL 5s, invalida con cada sync MT5 y nunca cachea snapshots completos.
+- [x] Cache backend corto para `view=summary`: TTL 30s por defecto, invalida con cada sync MT5 y nunca cachea snapshots completos.
 - [x] Monitor recurrente creado para revisar uso de salida Supabase tras deploy.
 - [x] Monitor recurrente `Monitor producción KMFX` creado cada 6 horas para web, Render `/health`, Worker `mt5-api` y smoke básico de seguridad.
 - [x] Rollback operativo documentado en `docs/production-rollback-runbook.md` para web, backend, Worker, Launcher/EA, billing, Supabase y MT5.
+- [ ] Supabase Pro/recarga activado antes de invitar alumnos si la organizacion sigue restringida por egress.
+- [ ] Spend Cap y limites de uso de Supabase revisados tras el upgrade para evitar cargos inesperados.
+- [ ] Primer control post-upgrade: revisar egress 1h, 6h y 24h tras abrir beta.
+- [ ] Render: confirmar que solo hay un servicio pago activo (`kmfx-edge-api`) y que no existen workers/jobs duplicados.
+- [ ] Render: limite de Build Pipeline configurado si el owner quiere cortar compra automatica de minutos.
 - [ ] Decidir si hace falta mover historial/trades a tabla dedicada si el uso vuelve a subir antes de beta abierta.
 - [x] Eventos de auditoria de cuentas y KMFXKeys:
   - crear cuenta

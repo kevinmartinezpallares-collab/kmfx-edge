@@ -11,6 +11,12 @@ Riesgo actual:
   build pipeline.
 - Al agotar los minutos gratuitos, Render puede cobrar minutos adicionales de
   build.
+- El cargo visto de `kmfx-edge-api` en Starter no es un coste de API puntual:
+  es runtime del servicio vivo. En la captura actual, `317.86h * $0.0094/h`
+  explica aproximadamente `$2.99`.
+- El bandwidth saliente de Render se vigila aparte. En la captura actual hay
+  `20.45 GB`; si el workspace tiene 25 GB incluidos, todavia no deberia generar
+  overage, pero hay que seguirlo antes de abrir beta.
 
 Medidas operativas:
 
@@ -28,6 +34,12 @@ python3 scripts/production_gate.py
 - Usar commits de documentacion en bloque cuando no requieran deploy urgente.
 - Configurar un limite mensual personalizado de minutos de build en Render si
   se quiere cortar gasto automatico.
+- Confirmar en Render que solo existe un servicio pago activo para KMFX
+  (`kmfx-edge-api`) y que no hay workers, cron jobs, workflows o servicios
+  duplicados consumiendo compute.
+- Mantener claro el coste minimo operativo: si `kmfx-edge-api` sigue encendido
+  24/7 en Starter, habra coste mensual de servicio. Suspenderlo elimina ese
+  coste, pero rompe backend, billing, MT5 sync y dashboard live.
 - Mantener el monitor recurrente de costes para revisar Supabase y Render cada
   6 horas durante la preparacion de beta.
 
@@ -49,8 +61,12 @@ Referencia operativa:
 
 - Render permite saltar un auto-deploy con `[skip render]` o `[render skip]` en
   el mensaje de commit.
+- `[skip render]` solo ahorra pipeline/build minutes; no apaga el servicio ni
+  evita el coste horario del runtime ya desplegado.
 - Render compra minutos suplementarios automaticamente al agotar los incluidos
   salvo que se alcance el limite mensual de gasto o no haya metodo de pago.
+- El plan Starter de web services aparece como `$7/month`; el dashboard puede
+  mostrarlo prorrateado por horas durante el ciclo.
 
 ## Supabase
 
@@ -59,6 +75,22 @@ Riesgo actual:
 - La organizacion ha superado la cuota gratuita de salida/egress.
 - El dashboard ya tiene mitigacion inicial: menos polling pesado, cache corta
   del summary y pausa agresiva cuando la pestana esta oculta.
+- La captura actual muestra alrededor de `60 GB` de salida frente a `5.5 GB`
+  de cuota gratuita. En ese estado no conviene invitar alumnos: Supabase puede
+  devolver restricciones/402 y romper Auth, API, smokes o sincronizacion.
+
+Decision recomendada antes de beta privada:
+
+- Comprar/activar Supabase Pro ahora, antes de meter los ~15 alumnos, porque
+  la organizacion ya esta restringida por egress en Free.
+- Activarlo como margen operativo controlado, no como barra libre:
+  - mantener `Spend Cap` activado;
+  - no comprar add-ons, dominios, PITR, read replicas, IPv4 dedicado ni compute
+    extra sin aprobacion explicita;
+  - revisar `Usage` a 1h, 6h y 24h tras abrir la beta.
+- Con Pro, la cuota de egress sube a `250 GB` y el overage de egress queda
+  cubierto por `Spend Cap`; si se vuelve a superar, Supabase restringira en vez
+  de generar sobrecoste automatico para los items cubiertos.
 
 Medidas operativas:
 
@@ -71,11 +103,24 @@ Medidas operativas:
   - realtime si se activa en el futuro.
 - Si el egress vuelve a subir:
   1. Confirmar si el consumo viene de `accounts.snapshot`.
-  2. Bajar frecuencia de polling antes de cambiar arquitectura.
-  3. Separar historial/trades a tabla dedicada si el snapshot completo sigue
+  2. Confirmar si el consumo viene de Auth, Storage, Edge Functions, Realtime
+     o Database Egress.
+  3. Revisar endpoints mas solicitados y consultas que devuelven demasiadas
+     filas/campos.
+  4. Bajar frecuencia de polling antes de cambiar arquitectura.
+  5. Separar historial/trades a tabla dedicada si el snapshot completo sigue
      transportando demasiado dato.
-  4. Evitar descargar payloads MT5 historicos en vistas que solo necesitan
+  6. Evitar descargar payloads MT5 historicos en vistas que solo necesitan
      summary.
+  7. Si Storage genera egress, mover descargas pesadas a Vercel/GitHub Releases
+     o CDN cacheado, no a Supabase.
+
+Umbrales operativos durante beta:
+
+- Verde: egress diario estable y proyectado por debajo de `250 GB/mes`.
+- Amarillo: egress diario proyecta `>150 GB/mes`; auditar endpoints y payloads.
+- Rojo: egress diario proyecta `>220 GB/mes` o sube de golpe tras abrir alumnos;
+  congelar invitaciones, bajar polling y limitar payloads historicos.
 
 ## Regla de despliegue
 
