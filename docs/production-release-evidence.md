@@ -1190,3 +1190,47 @@ Pendiente:
 - La auditoria final de usuario normal debe confirmar en navegador que el plan
   comprado se refleja sin intervencion manual, que no aparecen paneles admin y
   que `Anadir cuenta` queda gobernado igual en Dashboard y Cuentas.
+
+## 2026-05-14 - Gate tecnico tras guardrail de billing
+
+Contexto:
+
+- Rama: `main`.
+- Ultimo commit de evidencia previo: `748162b Record billing backfill guardrail [skip render]`.
+- No se fuerza deploy porque el ultimo cambio es documental y el guardrail de
+  runtime ya quedo en `c8616e7`.
+- El archivo `docs/billing-implementation-checklist.md` sigue fuera del stage
+  por contener cambios manuales del owner.
+
+Validacion ejecutada:
+
+- `python3 scripts/production_gate.py`: verde en modo `standard`.
+- `git diff --check`: verde.
+- Compilacion Python critica: verde.
+- Reglas locales de gobierno GitHub: verde.
+- Smoke de produccion: verde.
+- Regresiones de seguridad de conector/auth: verde.
+
+Smoke cubierto:
+
+- `https://kmfxedge.com`: `200`.
+- Rutas SPA: `/dashboard`, `/cuentas`, `/ejecucion`, `/journal`,
+  `/estudio`, `/ajustes`.
+- Descargas publicas:
+  - `KMFX-Launcher-macOS.zip`: checksum coincide con repo.
+  - `KMFX-Launcher-Windows.exe`: checksum coincide con repo.
+  - `KMFXConnector.ex5`: checksum coincide con repo.
+- Backend Render `/health`: `ok`.
+- Worker `https://mt5-api.kmfxedge.com/health`: `ok`.
+- Checkout, portal y webhook fallan cerrado sin credenciales/firma.
+- MT5 sync sin key y keys en query siguen rechazados.
+
+Pendiente antes de go-live publico:
+
+- Auditoria final como usuario normal con credenciales reales y cuenta MT5
+  controlada.
+- Confirmar compra live/recibo/email y plan aplicado en navegador sin tocar
+  Supabase manualmente.
+- QA limpia de Launcher macOS y Windows desde artefactos descargados.
+- Guardrails manuales de coste: limite de minutos Render y decision de plan o
+  soporte para Supabase egress.
