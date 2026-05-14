@@ -2760,6 +2760,57 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("active", metadata["kmfx_billing_status"])
         self.assertEqual("sub_123", metadata["stripe_subscription_id"])
 
+    def test_upsert_current_subscription_clears_previous_current_rows_before_update(self) -> None:
+        calls: list[tuple[str, str, dict[str, str] | None, dict[str, object] | None]] = []
+
+        def fake_admin_request(method, path, query=None, payload=None, prefer=""):
+            calls.append((method, path, query, payload))
+            if method == "PATCH" and query == {"stripe_subscription_id": "eq.sub_current"}:
+                return [{"stripe_subscription_id": "sub_current"}]
+            return []
+
+        row = {
+            "user_id": "user-123",
+            "stripe_subscription_id": "sub_current",
+            "stripe_customer_id": "cus_current",
+            "plan_key": "unlimited",
+            "status": "trialing",
+            "is_current": True,
+        }
+        with patch.object(connector_api, "supabase_admin_request", side_effect=fake_admin_request):
+            connector_api.supabase_upsert_billing_subscription(row)
+
+        self.assertEqual("PATCH", calls[0][0])
+        self.assertEqual("/rest/v1/billing_subscriptions", calls[0][1])
+        self.assertEqual({"user_id": "eq.user-123", "is_current": "eq.true"}, calls[0][2])
+        self.assertEqual({"is_current": False}, calls[0][3])
+        self.assertEqual({"stripe_subscription_id": "eq.sub_current"}, calls[1][2])
+        self.assertEqual(row, calls[1][3])
+        self.assertEqual(2, len(calls))
+
+    def test_upsert_non_current_subscription_does_not_clear_active_entitlement(self) -> None:
+        calls: list[tuple[str, str, dict[str, str] | None, dict[str, object] | None]] = []
+
+        def fake_admin_request(method, path, query=None, payload=None, prefer=""):
+            calls.append((method, path, query, payload))
+            return []
+
+        row = {
+            "user_id": "user-123",
+            "stripe_subscription_id": "sub_canceled",
+            "stripe_customer_id": "cus_current",
+            "plan_key": "free",
+            "status": "canceled",
+            "is_current": False,
+        }
+        with patch.object(connector_api, "supabase_admin_request", side_effect=fake_admin_request):
+            connector_api.supabase_upsert_billing_subscription(row)
+
+        self.assertEqual(2, len(calls))
+        self.assertEqual({"stripe_subscription_id": "eq.sub_canceled"}, calls[0][2])
+        self.assertEqual("POST", calls[1][0])
+        self.assertNotEqual({"user_id": "eq.user-123", "is_current": "eq.true"}, calls[0][2])
+
     def test_restricted_billing_blocks_connection_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             previous_service = connector_api.account_service

@@ -2511,6 +2511,8 @@ def supabase_upsert_billing_subscription(row: dict[str, Any]) -> None:
     subscription_id = safe_str(row.get("stripe_subscription_id"))
     if not user_id or not subscription_id:
         raise RuntimeError("subscription_identity_required")
+    if row.get("is_current") is not False:
+        supabase_mark_user_subscriptions_not_current(user_id)
     updated = supabase_admin_request(
         "PATCH",
         "/rest/v1/billing_subscriptions",
@@ -2520,8 +2522,6 @@ def supabase_upsert_billing_subscription(row: dict[str, Any]) -> None:
     )
     if isinstance(updated, list) and updated:
         return
-    if row.get("is_current") is not False:
-        supabase_mark_user_subscriptions_not_current(user_id)
     supabase_admin_request(
         "POST",
         "/rest/v1/billing_subscriptions",
