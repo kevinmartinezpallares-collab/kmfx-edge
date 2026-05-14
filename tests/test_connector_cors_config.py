@@ -2349,14 +2349,121 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             connector_api,
             "sync_billing_subscription",
             return_value=synced_row,
-        ):
+        ), patch.object(
+            connector_api,
+            "send_subscription_cancel_scheduled_email",
+            return_value={"sent": True},
+        ) as email_mock:
             response = asyncio.run(connector_api.billing_subscription_action(request))
 
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(200, response.status_code)
         self.assertEqual("cancel", body["action"])
         self.assertTrue(body["billing"]["cancelAtPeriodEnd"])
+        self.assertEqual({"sent": True}, body["email"])
         self.assertEqual("/subscriptions/sub_manage_sub", stripe_mock.call_args.args[1])
+        email_mock.assert_called_once_with(
+            email="user@example.com",
+            plan="pro",
+            event_id="manual_subscription_action_cancel",
+        )
+
+    def test_billing_subscription_action_sends_reactivation_email(self) -> None:
+        user_id = "58585858-5858-4585-8585-585858585858"
+        request = self._request(headers={"authorization": "Bearer verified-token"}, json_body={"action": "resume"})
+        updated_subscription = {
+            "id": "sub_manage_sub",
+            "customer": "cus_manage_sub",
+            "status": "active",
+            "cancel_at_period_end": False,
+            "current_period_end": 1780000000,
+            "metadata": {
+                "kmfx_user_id": "user-123",
+                "kmfx_plan": "unlimited",
+            },
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_unlimited_monthly",
+                            "lookup_key": "kmfx_unlimited_monthly",
+                            "product": "prod_unlimited",
+                        }
+                    }
+                ]
+            },
+        }
+        synced_row = {
+            "user_id": "user-123",
+            "plan_key": "unlimited",
+            "status": "active",
+            "current_period_end": "2026-06-01T00:00:00Z",
+            "trial_end": "",
+            "cancel_at_period_end": False,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "user@example.com",
+                "app_metadata": {"plan": "unlimited", "billing_status": "active"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_manage_sub",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={
+                "stripe_subscription_id": "sub_manage_sub",
+                "stripe_customer_id": "cus_manage_sub",
+                "plan_key": "unlimited",
+                "status": "active",
+            },
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value=updated_subscription,
+        ) as stripe_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value=synced_row,
+        ), patch.object(
+            connector_api,
+            "send_subscription_reactivated_email",
+            return_value={"sent": True},
+        ) as email_mock:
+            response = asyncio.run(connector_api.billing_subscription_action(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("resume", body["action"])
+        self.assertFalse(body["billing"]["cancelAtPeriodEnd"])
+        self.assertEqual({"sent": True}, body["email"])
+        self.assertEqual("/subscriptions/sub_manage_sub", stripe_mock.call_args.args[1])
+        email_mock.assert_called_once_with(
+            email="user@example.com",
+            plan="unlimited",
+            event_id="manual_subscription_action_resume",
+        )
+
+    def test_purchase_confirmation_email_includes_dashboard_onboarding_and_billing_guidance(self) -> None:
+        message = connector_api.build_purchase_confirmation_email(
+            email="buyer@example.com",
+            plan="unlimited",
+            interval="yearly",
+        )
+
+        self.assertIn("Qué desbloquea tu plan", message["html"])
+        self.assertIn("Qué hacer ahora", message["html"])
+        self.assertIn("Método de pago y facturas", message["html"])
+        self.assertIn("Ajustes &gt; Suscripción", message["html"])
+        self.assertIn("/cuentas", message["html"])
+        self.assertIn("Facturas, cobros y método de pago", message["text"])
+        self.assertIn("Ve a Cuentas para conectar tu MT5", message["text"])
 
     def test_billing_checkout_updates_existing_subscription_without_portal(self) -> None:
         user_id = "57575757-5757-4575-8575-575757575757"

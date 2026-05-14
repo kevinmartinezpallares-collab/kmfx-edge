@@ -2053,19 +2053,53 @@ def send_transactional_email(
         return {"sent": False, "provider": "resend", "reason": "email_request_failed"}
 
 
+def purchase_confirmation_plan_highlights(plan: str) -> list[str]:
+    plan_key = normalize_plan_key(plan)
+    if plan_key == "core":
+        return [
+            "Hasta 2 cuentas MT5 conectadas",
+            "Dashboard, calendario y métricas core",
+            "Base sólida para empezar con una operativa principal",
+        ]
+    if plan_key == "unlimited":
+        return [
+            "Cuentas MT5 ilimitadas",
+            "Dashboard, funding, journal, riesgo y exports completos",
+            "Pensado para multi-cuenta, mentoring o uso intensivo",
+        ]
+    return [
+        "Hasta 5 cuentas MT5 conectadas",
+        "Funding, riesgo, journal y analítica avanzada",
+        "El equilibrio recomendado para varias cuentas o pruebas de fondeo",
+    ]
+
+
 def build_purchase_confirmation_email(*, email: str, plan: str, interval: str) -> dict[str, str]:
     plan_key = normalize_plan_key(plan)
     plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
     interval_copy = "anual" if safe_str(interval).lower() == "yearly" else "mensual"
     app_url = billing_public_app_url()
+    subscription_url = f"{app_url}/ajustes?tab=subscription"
+    connections_url = f"{app_url}/cuentas"
     safe_email = html_lib.escape(safe_str(email).lower())
     safe_plan_name = html_lib.escape(plan_name)
     safe_interval_copy = html_lib.escape(interval_copy)
     safe_app_url = html_lib.escape(app_url, quote=True)
+    safe_subscription_url = html_lib.escape(subscription_url, quote=True)
+    safe_connections_url = html_lib.escape(connections_url, quote=True)
+    highlights_markup = "".join(
+        f'<li style="margin:0 0 8px;color:#d4d4d8;font-size:15px;line-height:1.5;">{html_lib.escape(item)}</li>'
+        for item in purchase_confirmation_plan_highlights(plan_key)
+    )
     subject = f"Tu acceso a {plan_name} ya está activo"
     text = (
         f"Tu suscripción {plan_name} ({interval_copy}) ya está activa en KMFX Edge.\n\n"
         f"Entra aquí para acceder al dashboard: {app_url}\n\n"
+        "Primeros pasos recomendados:\n"
+        "1. Entra al dashboard y confirma que tu plan aparece activo.\n"
+        f"2. Ve a Cuentas para conectar tu MT5: {connections_url}\n"
+        "3. Descarga el launcher o instala el EA con la KMFXKey de esa cuenta.\n\n"
+        f"Facturas, cobros y método de pago: {subscription_url}\n\n"
         "Si acabas de usar un cupón del 100 %, tu acceso queda igualmente registrado como suscripción activa."
     )
     html = f"""
@@ -2073,15 +2107,33 @@ def build_purchase_confirmation_email(*, email: str, plan: str, interval: str) -
       <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
         <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
         <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Tu acceso ya está activo</h1>
-        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Has activado <strong style="color:#ffffff;">{safe_plan_name}</strong> en modalidad {safe_interval_copy}. Ya puedes entrar al dashboard y usar las funciones incluidas en tu plan.</p>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Has activado <strong style="color:#ffffff;">{safe_plan_name}</strong> en modalidad {safe_interval_copy}. Ya puedes entrar al dashboard y empezar a trabajar con las funciones incluidas en tu plan.</p>
         <div style="margin:24px 0;padding:16px;border:1px solid #27272a;border-radius:14px;background:#111113;">
           <p style="margin:0;color:#a1a1aa;font-size:13px;">Cuenta</p>
           <p style="margin:4px 0 0;color:#ffffff;font-size:16px;">{safe_email}</p>
           <p style="margin:14px 0 0;color:#a1a1aa;font-size:13px;">Plan</p>
           <p style="margin:4px 0 0;color:#ffffff;font-size:16px;">{safe_plan_name} · {safe_interval_copy}</p>
         </div>
-        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Entrar al dashboard</a>
-        <p style="margin:24px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">Si el pago se hizo con descuento del 100 %, es normal que el total sea 0 €. El acceso queda asociado a esta cuenta.</p>
+        <div style="margin:24px 0;padding:16px;border:1px solid #27272a;border-radius:14px;background:#0f1720;">
+          <p style="margin:0 0 10px;color:#ffffff;font-size:15px;font-weight:700;">Qué desbloquea tu plan</p>
+          <ul style="margin:0;padding-left:18px;">
+            {highlights_markup}
+          </ul>
+        </div>
+        <div style="margin:24px 0;padding:16px;border:1px solid #27272a;border-radius:14px;background:#111113;">
+          <p style="margin:0 0 10px;color:#ffffff;font-size:15px;font-weight:700;">Qué hacer ahora</p>
+          <ol style="margin:0;padding-left:18px;">
+            <li style="margin:0 0 8px;color:#d4d4d8;font-size:15px;line-height:1.5;">Entra al dashboard y confirma que tu plan ya aparece activo.</li>
+            <li style="margin:0 0 8px;color:#d4d4d8;font-size:15px;line-height:1.5;">Ve a <strong style="color:#ffffff;">Cuentas</strong> para conectar tu MT5 y copiar tu KMFXKey.</li>
+            <li style="margin:0;color:#d4d4d8;font-size:15px;line-height:1.5;">Descarga el launcher o instala el EA en la instancia MT5 que quieras sincronizar.</li>
+          </ol>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Entrar al dashboard</a>
+          <a href="{safe_connections_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#18181b;color:#ffffff;text-decoration:none;font-weight:700;border:1px solid #27272a;">Abrir Cuentas</a>
+        </div>
+        <p style="margin:24px 0 0;color:#d4d4d8;font-size:14px;line-height:1.55;">Tus facturas, cobros y método de pago están disponibles en <a href="{safe_subscription_url}" style="color:#8ab4ff;text-decoration:none;">Ajustes &gt; Suscripción</a>, dentro de <strong style="color:#ffffff;">Método de pago y facturas</strong>.</p>
+        <p style="margin:14px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">Si el pago se hizo con descuento del 100 %, es normal que el total sea 0 €. El acceso queda asociado a esta cuenta.</p>
       </div>
     </div>
     """
@@ -7814,12 +7866,29 @@ async def billing_subscription_action(request: Request) -> JSONResponse:
         status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
         return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
 
+    plan_key = normalize_plan_key(updated_row.get("plan_key") or existing_subscription.get("plan_key"))
+    email_result: dict[str, Any] = {}
+    if email:
+        if action == "cancel":
+            email_result = send_subscription_cancel_scheduled_email(
+                email=email,
+                plan=plan_key,
+                event_id="manual_subscription_action_cancel",
+            )
+        else:
+            email_result = send_subscription_reactivated_email(
+                email=email,
+                plan=plan_key,
+                event_id="manual_subscription_action_resume",
+            )
+
     return billing_json_response(
         {
             "ok": True,
             "action": action,
             "message": "Cancelación programada correctamente." if action == "cancel" else "La renovación automática vuelve a estar activa.",
             "billing": billing_subscription_payload(updated_row),
+            "email": email_result,
         }
     )
 
