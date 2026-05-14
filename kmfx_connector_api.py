@@ -4083,13 +4083,22 @@ def build_ai_evidence_report_for_account_entry(
         "equity": dashboard_payload.get("equity"),
     }
     trades = dashboard_payload.get("trades") if isinstance(dashboard_payload.get("trades"), list) else []
+    positions = dashboard_payload.get("positions") if isinstance(dashboard_payload.get("positions"), list) else []
     risk_snapshot = dashboard_payload.get("riskSnapshot") if isinstance(dashboard_payload.get("riskSnapshot"), dict) else {}
     journal_entries = dashboard_payload.get("journalEntries") if isinstance(dashboard_payload.get("journalEntries"), list) else []
+    data_origin = {
+        "account": safe_str(dashboard_payload.get("payloadSource") or dashboard_payload.get("mode"), "payload activo"),
+        "history": f"{len(dashboard_payload.get('history') or [])} puntos historicos",
+        "first_trade": safe_str((trades[0] if trades else {}).get("time") or (trades[0] if trades else {}).get("when") or (trades[0] if trades else {}).get("date")),
+        "last_trade": safe_str((trades[-1] if trades else {}).get("time") or (trades[-1] if trades else {}).get("when") or (trades[-1] if trades else {}).get("date")),
+    }
     report = build_ai_evidence_report(
         account=account,
         trades=trades,
         risk_snapshot=risk_snapshot,
         journal_entries=journal_entries,
+        positions=positions,
+        data_origin=data_origin,
         generated_at=generated_at or now_iso(),
     )
     return {

@@ -304,6 +304,133 @@ def build_journal_summary(journal_entries: Sequence[dict[str, Any]], *, limit: i
     }
 
 
+def sanitize_positions(positions: Sequence[dict[str, Any]], *, limit: int = 24) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for position in list(positions or [])[:limit]:
+        if not isinstance(position, dict):
+            continue
+        rows.append({
+            "symbol": trade_field(position, ("symbol", "instrument", "pair"), "UNKNOWN"),
+            "direction": trade_field(position, ("type", "side", "direction"), "N/A"),
+            "volume": position.get("volume", position.get("lots", position.get("size", ""))),
+            "floating_pnl": round_float(
+                position.get("pnl", position.get("profit", position.get("floating_pnl", position.get("floatingPnl")))),
+                2,
+            ),
+            "entry_price": position.get("entryPrice", position.get("priceOpen", position.get("open_price", ""))),
+            "stop_loss": position.get("sl", position.get("stopLoss", position.get("stop_loss", ""))),
+            "take_profit": position.get("tp", position.get("takeProfit", position.get("take_profit", ""))),
+        })
+    return rows
+
+
+def build_data_origin(
+    *,
+    account: dict[str, Any],
+    trades: Sequence[dict[str, Any]],
+    positions: Sequence[dict[str, Any]],
+    risk_snapshot: dict[str, Any],
+    journal_entries: Sequence[dict[str, Any]],
+    data_origin: Optional[dict[str, Any]] = None,
+) -> list[dict[str, Any]]:
+    origin = data_origin or {}
+    professional_metrics = extract_professional_metrics(risk_snapshot)
+    return [
+        {
+            "source": "account_snapshot",
+            "detail": safe_str(origin.get("account"), safe_str(origin.get("payload_source"), "payload activo")),
+        },
+        {
+            "source": "closed_trades",
+            "detail": f"{len(trades)} operaciones cerradas normalizadas",
+        },
+        {
+            "source": "open_positions",
+            "detail": f"{len(positions)} posiciones abiertas en el ultimo snapshot",
+        },
+        {
+            "source": "risk_metrics",
+            "detail": "riskSnapshot.professional_metrics" if professional_metrics else "Pendiente de snapshot profesional",
+        },
+        {
+            "source": "journal_reviews",
+            "detail": f"{len(journal_entries)} revisiones o notas vinculadas a la cuenta",
+        },
+        {
+            "source": "history_curve",
+            "detail": safe_str(origin.get("history"), "Sin detalle de curva"),
+        },
+        {
+            "source": "first_trade",
+            "detail": safe_str(origin.get("first_trade"), derive_period(trades).get("from")),
+        },
+        {
+            "source": "last_trade",
+            "detail": safe_str(origin.get("last_trade"), derive_period(trades).get("to")),
+        },
+        {
+            "source": "account_context",
+            "detail": safe_str(account.get("broker"), "MT5"),
+        },
+    ]
+
+
+def format_complete_metric_value(path: str, value: Any, currency: str) -> str:
+    if isinstance(value, bool):
+        return "si" if value else "no"
+    if isinstance(value, (int, float)):
+        lower = path.lower()
+        if "pct" in lower or "percent" in lower:
+            return f"{float(value):.2f}%"
+        if any(token in lower for token in ("pnl", "amount", "balance", "equity", "cashflow", "margin")):
+            return f"{round_float(value, 2):.2f} {currency}"
+        return str(round_float(value, 4))
+    return safe_str(value)
+
+
+def flatten_complete_metric_rows(
+    source: Any,
+    *,
+    currency: str,
+    prefix: str = "",
+    rows: Optional[list[dict[str, str]]] = None,
+    depth: int = 0,
+) -> list[dict[str, str]]:
+    current_rows = rows if rows is not None else []
+    if not isinstance(source, dict) or depth > 5:
+        return current_rows
+    for key, value in source.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if any(token in path.lower() for token in ("key", "secret", "token", "password", "jwt", "authorization")):
+            continue
+        if value in (None, "", []):
+            continue
+        if isinstance(value, list):
+            current_rows.append({"path": path, "value": f"{len(value)} items"})
+            continue
+        if isinstance(value, dict):
+            flatten_complete_metric_rows(value, currency=currency, prefix=path, rows=current_rows, depth=depth + 1)
+            continue
+        current_rows.append({"path": path, "value": format_complete_metric_value(path, value, currency)})
+    return current_rows
+
+
+def build_complete_metric_rows(
+    *,
+    account: dict[str, Any],
+    risk_snapshot: dict[str, Any],
+    currency: str,
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    professional_metrics = extract_professional_metrics(risk_snapshot)
+    flatten_complete_metric_rows(professional_metrics, currency=currency, prefix="professional_metrics", rows=rows)
+    flatten_complete_metric_rows(read_path(risk_snapshot, ["summary"], {}), currency=currency, prefix="risk_summary", rows=rows)
+    flatten_complete_metric_rows(read_path(risk_snapshot, ["status"], {}), currency=currency, prefix="risk_status", rows=rows)
+    flatten_complete_metric_rows(read_path(risk_snapshot, ["policy_evaluation"], {}), currency=currency, prefix="policy_evaluation", rows=rows)
+    flatten_complete_metric_rows(account, currency=currency, prefix="account_snapshot", rows=rows)
+    return rows or [{"path": "state", "value": "Sin metricas profesionales en el snapshot actual"}]
+
+
 def build_external_ai_prompt(pack: dict[str, Any]) -> str:
     period = pack.get("period", {})
     return (
@@ -328,12 +455,15 @@ def build_ai_evidence_pack(
     trades: Optional[Sequence[dict[str, Any]]] = None,
     risk_snapshot: Optional[dict[str, Any]] = None,
     journal_entries: Optional[Sequence[dict[str, Any]]] = None,
+    positions: Optional[Sequence[dict[str, Any]]] = None,
+    data_origin: Optional[dict[str, Any]] = None,
     period: Optional[dict[str, Any]] = None,
     generated_at: Optional[str] = None,
 ) -> dict[str, Any]:
     account = account or {}
     trades = list(trades or [])
     journal_entries = list(journal_entries or [])
+    positions = list(positions or [])
     professional_metrics = extract_professional_metrics(risk_snapshot)
     performance = professional_metrics.get("performance") if isinstance(professional_metrics.get("performance"), dict) else {}
     tail_risk = professional_metrics.get("tail_risk") if isinstance(professional_metrics.get("tail_risk"), dict) else {}
@@ -360,10 +490,11 @@ def build_ai_evidence_pack(
         "period": derive_period(trades, period),
         "sources": {
             "trades_count": len(trades),
+            "positions_count": len(positions),
             "journal_entries_count": len(journal_entries),
             "has_risk_snapshot": isinstance(risk_snapshot, dict),
             "has_professional_metrics": bool(professional_metrics),
-            "source_types": ["closed_trades", "journal_entries", "risk_snapshot", "professional_metrics"],
+            "source_types": ["closed_trades", "open_positions", "journal_entries", "risk_snapshot", "professional_metrics"],
         },
         "metrics": {
             "sample_size": performance.get("sample_size", len(trades)),
@@ -399,6 +530,20 @@ def build_ai_evidence_pack(
         "review_queue": build_review_queue(trades, journal_entries, professional_metrics),
         "evidence_trades": build_evidence_trades(trades),
         "journal": build_journal_summary(journal_entries),
+        "open_positions": sanitize_positions(positions),
+        "data_origin": build_data_origin(
+            account=account,
+            trades=trades,
+            positions=positions,
+            risk_snapshot=risk_snapshot or {},
+            journal_entries=journal_entries,
+            data_origin=data_origin,
+        ),
+        "complete_metrics": build_complete_metric_rows(
+            account=account,
+            risk_snapshot=risk_snapshot or {},
+            currency=safe_str(account.get("currency"), "USD"),
+        ),
         "restrictions_for_external_ai": [
             "No generar senales de compra o venta.",
             "No inventar causalidad sin evidencia.",
@@ -426,6 +571,9 @@ def render_ai_evidence_markdown(pack: dict[str, Any]) -> str:
     metrics = pack.get("metrics", {})
     risk = pack.get("risk", {})
     prop_firm = pack.get("prop_firm", {})
+    data_origin = pack.get("data_origin", [])
+    complete_metrics = pack.get("complete_metrics", [])
+    open_positions = pack.get("open_positions", [])
     strategies = read_path(pack, ["strategies", "groups"], []) or []
     review_queue = pack.get("review_queue", [])
     evidence_trades = pack.get("evidence_trades", [])
@@ -452,6 +600,15 @@ def render_ai_evidence_markdown(pack: dict[str, Any]) -> str:
             ],
         ),
         "",
+        "## Origen y calidad de datos",
+        markdown_table(
+            ["Fuente", "Detalle"],
+            [
+                [row.get("source"), row.get("detail")]
+                for row in data_origin
+            ] or [["-", "-"]],
+        ),
+        "",
         "## Snapshot profesional",
         markdown_table(
             ["Metrica", "Valor"],
@@ -466,6 +623,32 @@ def render_ai_evidence_markdown(pack: dict[str, Any]) -> str:
                 ["Risk of Ruin", read_path(risk, ["risk_of_ruin", "analytic_ruin_probability_pct"], "")],
                 ["Max DD %", read_path(risk, ["drawdown_path", "max_drawdown_pct"], "")],
             ],
+        ),
+        "",
+        "## Metricas completas normalizadas",
+        markdown_table(
+            ["Ruta", "Valor"],
+            [
+                [row.get("path"), row.get("value")]
+                for row in complete_metrics
+            ] or [["-", "-"]],
+        ),
+        "",
+        "## Posiciones abiertas",
+        markdown_table(
+            ["Simbolo", "Direccion", "Volumen", "P&L flotante", "Entrada", "SL", "TP"],
+            [
+                [
+                    row.get("symbol"),
+                    row.get("direction"),
+                    row.get("volume"),
+                    row.get("floating_pnl"),
+                    row.get("entry_price"),
+                    row.get("stop_loss"),
+                    row.get("take_profit"),
+                ]
+                for row in open_positions
+            ] or [["-", "-", "-", "-", "-", "-", "-"]],
         ),
         "",
         "## Prop firm",
@@ -549,6 +732,8 @@ def build_ai_evidence_report(
     trades: Optional[Sequence[dict[str, Any]]] = None,
     risk_snapshot: Optional[dict[str, Any]] = None,
     journal_entries: Optional[Sequence[dict[str, Any]]] = None,
+    positions: Optional[Sequence[dict[str, Any]]] = None,
+    data_origin: Optional[dict[str, Any]] = None,
     period: Optional[dict[str, Any]] = None,
     generated_at: Optional[str] = None,
 ) -> dict[str, Any]:
@@ -557,6 +742,8 @@ def build_ai_evidence_report(
         trades=trades,
         risk_snapshot=risk_snapshot,
         journal_entries=journal_entries,
+        positions=positions,
+        data_origin=data_origin,
         period=period,
         generated_at=generated_at,
     )

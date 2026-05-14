@@ -61,6 +61,15 @@ class AiEvidenceReportTests(unittest.TestCase):
                     "lesson": "Esperar cierre de vela.",
                 }
             ],
+            positions=[
+                {"symbol": "EURUSD", "type": "BUY", "volume": 1.0, "profit": 125.5, "open_price": 1.0825, "sl": 1.078, "tp": 1.09},
+            ],
+            data_origin={
+                "account": "mt5_sync_live",
+                "history": "42 puntos historicos",
+                "first_trade": "2026-05-01T08:00:00+00:00",
+                "last_trade": "2026-05-02T11:00:00+00:00",
+            },
             generated_at="2026-05-02T12:00:00+00:00",
         )
 
@@ -80,7 +89,14 @@ class AiEvidenceReportTests(unittest.TestCase):
         self.assertIn("prop_firm", pack)
         self.assertEqual(pack["prop_firm"]["pass_probability"]["simulations"], 100)
         self.assertIn("discipline_coverage_pct", pack["strategies"]["groups"][0])
+        self.assertEqual(1, pack["sources"]["positions_count"])
+        self.assertEqual("mt5_sync_live", pack["data_origin"][0]["detail"])
+        self.assertTrue(any(row["path"].startswith("professional_metrics.performance") for row in pack["complete_metrics"]))
+        self.assertEqual("EURUSD", pack["open_positions"][0]["symbol"])
         self.assertIn("# KMFX Edge AI Evidence Pack", report["markdown"])
+        self.assertIn("## Origen y calidad de datos", report["markdown"])
+        self.assertIn("## Metricas completas normalizadas", report["markdown"])
+        self.assertIn("## Posiciones abiertas", report["markdown"])
         self.assertIn("Disciplina", report["markdown"])
         self.assertIn("## Prompt sugerido", report["markdown"])
 
@@ -95,6 +111,7 @@ class AiEvidenceReportTests(unittest.TestCase):
         markdown = render_ai_evidence_markdown(pack)
 
         self.assertEqual(pack["sources"]["trades_count"], 0)
+        self.assertEqual(pack["sources"]["positions_count"], 0)
         self.assertEqual(pack["period"]["label"], "sin periodo")
         self.assertEqual(pack["account"]["login_masked"], "**")
         self.assertIn("Sin alertas de review generadas", markdown)
@@ -133,6 +150,9 @@ class AiEvidenceReportTests(unittest.TestCase):
             "dashboard_payload": {
                 **account,
                 "trades": trades,
+                "positions": [
+                    {"symbol": "EURUSD", "type": "BUY", "volume": 0.3, "profit": 42.5, "open_price": 1.08, "sl": 1.075, "tp": 1.09}
+                ],
                 "riskSnapshot": risk_snapshot,
                 "journalEntries": [
                     {
@@ -153,7 +173,10 @@ class AiEvidenceReportTests(unittest.TestCase):
         self.assertTrue(report["ok"])
         self.assertEqual(report["account_id"], "acc-1")
         self.assertEqual(report["pack"]["account"]["login_masked"], "***4444")
+        self.assertEqual(1, report["pack"]["sources"]["positions_count"])
+        self.assertEqual("EURUSD", report["pack"]["open_positions"][0]["symbol"])
         self.assertIn("KMFX Edge AI Evidence Pack", report["markdown"])
+        self.assertIn("## Metricas completas normalizadas", report["markdown"])
         self.assertNotIn("very-secret-key", report["json"])
         self.assertNotIn("another-secret", report["json"])
 
