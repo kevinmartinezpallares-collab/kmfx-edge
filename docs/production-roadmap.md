@@ -1,6 +1,6 @@
 # Roadmap de Producción KMFX Edge
 
-Última revisión: 2026-05-12
+Última revisión: 2026-05-13
 Rama revisada: `main`
 Commit base: `44248f3 Record full production gate evidence`
 Auditoria actualizada: `docs/production-readiness-audit.md`
@@ -93,7 +93,7 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] `plan_entitlements` sembrado para `free`, `core`, `pro`, `desk`.
 - [x] Pricing final confirmado para MVP.
 - [x] Stripe Product y Prices creados como catálogo KMFX final.
-- [ ] Customer Portal no está configurado.
+- [x] Customer Portal configurado con retención antes de cancelar.
 - [x] Webhooks Stripe implementados en backend; falta configurar endpoint/secreto live antes de cobrar.
 - [x] Contrato inicial `GET /api/billing/status` implementado con plan, estado y entitlements desde `app_metadata`.
 - [x] Endpoints mutables `/api/billing/checkout`, `/api/billing/portal` y `/api/billing/webhook` implementados.
@@ -111,9 +111,9 @@ La conclusión es clara: el núcleo técnico ya está bastante cerca. Lo que má
 - [x] Auditoria reproducible de release governance anadida en `scripts/github_release_governance_audit.py`.
 - [x] Gate local de producción en un solo comando añadido en `scripts/production_gate.py`.
 - [x] Runbook GitHub release governance creado en `docs/security/github-release-governance.md`.
-- [ ] Activar branch protection real en GitHub.
-- [ ] Activar secret scanning y push protection.
-- [ ] Exigir checks de CI antes de merge cuando el flujo esté estable.
+- [x] Activar branch protection real en GitHub.
+- [x] Activar secret scanning y push protection.
+- [x] Exigir checks de CI antes de merge cuando el flujo esté estable.
 - [ ] Ejecutar smoke manual antes de cada release.
 - [ ] Crear tag de release cuando el MVP esté cerrado.
 
@@ -237,21 +237,27 @@ Bloque previo obligatorio:
 - [x] Confirmar política de refunds y cancelación: 14 dias en primera compra sin abuso o fallo tecnico no resuelto.
 - [x] Crear Stripe Product `KMFX Edge`: `prod_UT7nzmgj3Eg3Zv`.
 - [x] Crear Prices live bajo `KMFX Edge` con Price IDs documentados en `docs/stripe-product-catalog.md`.
-- [ ] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API:
+- [x] Completar lookup keys/metadata de esos Prices en Stripe Dashboard/API:
   - `kmfx_basic_monthly`
   - `kmfx_basic_yearly`
   - `kmfx_pro_monthly`
   - `kmfx_pro_yearly`
   - `kmfx_unlimited_monthly`
   - `kmfx_unlimited_yearly`
-- [ ] Configurar Customer Portal.
-- [ ] Configurar webhook endpoint en Stripe.
+- [x] Configurar Customer Portal.
+- [x] Configurar webhook endpoint en Stripe.
 
 Criterio de salida:
 
 - Hay catálogo Stripe creado y documentado.
 - Lookup keys/metadata, Customer Portal y webhook endpoint quedan configurados antes de cobrar.
 - No quedan decisiones comerciales bloqueando QA de billing.
+
+Nota 2026-05-13:
+
+- Kevin completó manualmente las lookup keys de los seis Prices KMFX, Customer Portal
+  con retención y el flujo de trial de 7 días sin tarjeta. No repetir esa
+  configuración salvo auditoría de solo lectura.
 
 ## Fase 2 - Backend Billing
 
@@ -420,13 +426,13 @@ Criterio de salida:
 
 Objetivo: reducir riesgo operativo antes de abrir a usuarios reales.
 
-- [ ] Activar secret scanning en GitHub.
-- [ ] Activar push protection en GitHub.
-- [ ] Activar Dependabot alerts/security updates.
-- [ ] Configurar branch protection para `main`.
+- [x] Activar secret scanning en GitHub.
+- [x] Activar push protection en GitHub.
+- [x] Activar Dependabot alerts/security updates.
+- [x] Configurar branch protection para `main`.
 - [x] Dejar auditoria ejecutable para validar branch protection, secret scanning,
   push protection y Dependabot con token administrativo.
-- [ ] Exigir checks:
+- [x] Exigir checks:
   - `Backend and connector tests`
   - `Static app checks`
   - `Build Windows launcher`
@@ -460,8 +466,8 @@ Objetivo: validar un viaje real de usuario antes de cobrar.
 - [x] Probar `/api/accounts/snapshot` sin auth: debe requerir auth.
 - [x] Probar `/api/mt5/policy` sin key: debe rechazar.
 - [x] Probar `/api/mt5/sync` sin key: debe rechazar.
-- [ ] Probar Checkout test success/cancel.
-- [ ] Probar Customer Portal test.
+- [x] Probar Checkout test success/cancel.
+- [x] Probar Customer Portal test.
 - [ ] Probar webhook replay/idempotencia.
 - [x] Probar launcher con backend caído: cola crece.
 - [x] Probar launcher con backend recuperado: cola drena.
@@ -480,11 +486,11 @@ Objetivo: pasar de beta técnica a producción controlada.
 
 - [ ] Congelar `main`.
 - [ ] Crear tag `v0.1.0-production-mvp`.
-- [ ] Cambiar Stripe a live keys.
-- [ ] Crear productos/prices live con las mismas lookup keys.
-- [ ] Configurar webhook live.
-- [ ] Configurar Customer Portal live.
-- [ ] Confirmar Render env live.
+- [x] Cambiar Stripe a live keys.
+- [x] Crear productos/prices live con las mismas lookup keys.
+- [x] Configurar webhook live.
+- [x] Configurar Customer Portal live.
+- [x] Confirmar Render env live.
 - [ ] Confirmar Supabase production.
 - [ ] Confirmar Vercel production branch `main`.
 - [ ] Ejecutar smoke production.

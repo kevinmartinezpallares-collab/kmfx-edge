@@ -2,7 +2,7 @@
 
 Ultima revision: 2026-05-13
 Rama revisada: `main`
-Commit base local: `1c19515 Refresh frontend cache for billing gates [skip render]`
+Commit base local: `ea42253 Tighten final user go-live audit [skip render]`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
@@ -43,6 +43,7 @@ No se recomienda abrir produccion comercial amplia hasta completar la auditoria 
    - Checkout, portal, webhook, trial pause, Price IDs y lookup keys estan implementados/configurados.
    - Falta comprobar en una compra live controlada que el recibo/confirmacion llega al usuario y que el dashboard actualiza el plan sin intervencion manual.
    - La duplicidad de trial del usuario de prueba `kevinmartinezpallares@hotmail.com` ya fue limpiada en Stripe: se conserva `sub_1TWYq4EoC6e7wNItR0TKxm5R` y se cancelo `sub_1TWW4sEoC6e7wNIt1oQfN1XE`.
+   - El upsert de suscripciones actuales ahora desmarca filas actuales previas del mismo usuario antes de publicar la nueva como `is_current=true`, evitando estados Free/Demo cuando Stripe tiene un plan vigente.
 
 4. Guardrails manuales de coste/plataforma.
    - Supabase esta en periodo de gracia por exceso de salida; ya se redujo polling y se creo monitor, pero hay que confirmar leaked password protection, backups y limites de uso.
@@ -242,3 +243,5 @@ Para produccion de pago, el siguiente bloque obligatorio es QA real + facturacio
 ## Cierre operativo pendiente
 
 Antes de go-live, Codex ejecutara `docs/final-user-go-live-audit.md` con un usuario normal y una cuenta MT5 real/demo controlada aportada por Kevin. Esa auditoria es la puerta final: debe probar login, plan, descarga Launcher/EA, instalacion, primer sync, cierre del Launcher, dashboard completo, ocultacion admin y reconciliacion de metricas contra MT5.
+
+La auditoria final queda ampliada con criterios de no-go: usuario normal con panel admin, plan comprado que no aplica, `Anadir cuenta` habilitado sin entitlement, EA que depende del Launcher abierto, KMFXKey distinta entre dashboard y Launcher, suscripciones duplicadas o coste/plataforma sin guardrail manual.
