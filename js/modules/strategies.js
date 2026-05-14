@@ -1,10 +1,10 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-114500";
-import { buildApiUrl } from "./api-config.js?v=build-20260514-114500";
-import { showToast } from "./toast.js?v=build-20260514-114500";
-import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260514-114500";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-114500";
-import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260514-114500";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260514-114500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260514-121723";
+import { buildApiUrl } from "./api-config.js?v=build-20260514-121723";
+import { showToast } from "./toast.js?v=build-20260514-121723";
+import { formatCurrency, selectActiveDashboardPayload } from "./utils.js?v=build-20260514-121723";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-121723";
+import { buildBacktestVsRealReport, renderBacktestVsRealSection } from "./backtest-real.js?v=build-20260514-121723";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-121723";
 
 function emptyForm() {
   return {
