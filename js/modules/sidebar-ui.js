@@ -1,7 +1,7 @@
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260514-121723";
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-121723";
-import { applyAvatarContent } from "./avatar-utils.js?v=build-20260514-121723";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260514-121723";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260514-222200";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260514-222200";
+import { applyAvatarContent } from "./avatar-utils.js?v=build-20260514-222200";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-222200";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
