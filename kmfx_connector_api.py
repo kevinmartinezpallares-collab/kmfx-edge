@@ -2903,7 +2903,7 @@ def mark_billing_event_status(event_id: str, status: str, error: str = "") -> No
     )
 
 
-def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any]:
+def process_checkout_session_completed(session: dict[str, Any], *, event_id: str = "") -> dict[str, Any]:
     metadata = ensure_dict(session.get("metadata"))
     subscription_id = safe_str(session.get("subscription"))
     subscription: dict[str, Any] = {}
@@ -2932,6 +2932,7 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
             email=email,
             plan=safe_str(metadata.get("kmfx_plan") or metadata.get("plan_key"), "pro"),
             interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval"), "monthly"),
+            event_id=event_id,
         )
         return {"user_id": user_id, "subscription": "", "processed": "customer", "email": email_result}
     result = sync_billing_subscription(subscription, user_id=user_id, email=email)
@@ -2939,6 +2940,7 @@ def process_checkout_session_completed(session: dict[str, Any]) -> dict[str, Any
         email=email or safe_str(metadata.get("kmfx_user_email") or metadata.get("user_email")).lower(),
         plan=safe_str(result.get("plan") or metadata.get("kmfx_plan") or metadata.get("plan_key"), "pro"),
         interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval") or stripe_interval_from_price(first_subscription_price(subscription)), "monthly"),
+        event_id=event_id,
     )
     return result
 
@@ -2947,7 +2949,7 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
     event_type = safe_str(event.get("type"))
     data_object = ensure_dict(ensure_dict(event.get("data")).get("object"))
     if event_type == "checkout.session.completed":
-        return process_checkout_session_completed(data_object)
+        return process_checkout_session_completed(data_object, event_id=safe_str(event.get("id")))
     if event_type in {
         "customer.subscription.created",
         "customer.subscription.updated",

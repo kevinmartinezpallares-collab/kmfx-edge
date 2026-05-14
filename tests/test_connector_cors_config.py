@@ -2252,7 +2252,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         customer_mock.assert_called_once()
         sync_mock.assert_called_once()
-        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
+        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly", event_id="")
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
 
     def test_subscription_created_sends_purchase_email_from_customer(self) -> None:
@@ -2383,8 +2383,64 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         fetch_mock.assert_called_once_with("sub_kmfx")
         customer_mock.assert_called_once()
         sync_mock.assert_called_once_with(subscription, user_id="55555555-5555-4555-8555-555555555555", email="buyer@example.com")
-        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly")
+        email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly", event_id="")
         self.assertEqual({"sent": True}, result["email"])
+
+    def test_checkout_session_webhook_tags_purchase_email_with_event_id(self) -> None:
+        session = {
+            "id": "cs_123",
+            "livemode": True,
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "customer_details": {"email": "buyer@example.com"},
+            "client_reference_id": "55555555-5555-4555-8555-555555555555",
+            "metadata": {
+                "app": "kmfx_edge",
+                "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                "kmfx_user_email": "buyer@example.com",
+                "kmfx_plan": "unlimited",
+                "kmfx_interval": "yearly",
+            },
+        }
+        subscription = {
+            "id": "sub_123",
+            "customer": "cus_123",
+            "status": "trialing",
+            "metadata": {
+                "app": "kmfx_edge",
+                "kmfx_user_id": "55555555-5555-4555-8555-555555555555",
+                "kmfx_user_email": "buyer@example.com",
+                "kmfx_plan": "unlimited",
+            },
+            "items": {"data": [{"price": {"id": "price_unlimited", "lookup_key": "kmfx_unlimited_yearly"}}]},
+        }
+        event = {
+            "id": "evt_checkout_completed",
+            "type": "checkout.session.completed",
+            "data": {"object": session},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "fetch_stripe_subscription",
+            return_value=subscription,
+        ), patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value={"user_id": "55555555-5555-4555-8555-555555555555", "plan": "unlimited", "status": "trialing"},
+        ), patch.object(
+            connector_api,
+            "send_purchase_confirmation_email",
+            return_value={"sent": True},
+        ) as email_mock:
+            result = connector_api.process_stripe_billing_event(event)
+
+        self.assertEqual({"sent": True}, result["email"])
+        email_mock.assert_called_once_with(
+            email="buyer@example.com",
+            plan="unlimited",
+            interval="yearly",
+            event_id="evt_checkout_completed",
+        )
 
     def test_checkout_session_completed_resolves_user_from_customer_mapping(self) -> None:
         session = {
