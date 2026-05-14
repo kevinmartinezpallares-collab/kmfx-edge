@@ -4,6 +4,7 @@ import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, select
 import { emptyStateMarkup, kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-013000";
 import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260514-013000";
 import { billingEntitlementState } from "./billing-status.js?v=build-20260514-013000";
+import { loadPostTradeTags } from "./discipline.js?v=build-20260514-013000";
 
 const emptyForm = {
   date: "2026-03-20",
@@ -127,6 +128,94 @@ function entryReviewKey(entry = {}) {
   return `${day}|${symbol}|${setup}`;
 }
 
+function tradeReviewCandidateIds(trade = {}) {
+  const explicit = [
+    trade.id,
+    trade.ticket,
+    trade.ticketId,
+    trade.dealId,
+    trade.deal_id,
+    trade.orderId,
+    trade.order_id,
+    trade.positionId,
+    trade.position_id,
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  const when = trade.when instanceof Date
+    ? trade.when.toISOString()
+    : String(trade.when || trade.closeTime || trade.close_time || trade.time || trade.date || trade.timestamp || trade.openTime || "").trim();
+  const composite = [
+    trade.symbol || trade.pair || "trade",
+    trade.direction || trade.side || trade.type || "",
+    when,
+    trade.entry ?? trade.entryPrice ?? "",
+    trade.exit ?? trade.close ?? trade.closePrice ?? "",
+    trade.pnl ?? trade.net ?? trade.profit ?? "",
+  ].join(":");
+  return [...new Set([...explicit, composite].filter(Boolean))];
+}
+
+function findPostTradeReviewTag(tags = {}, trade = {}) {
+  if (!tags || typeof tags !== "object") return null;
+  const tagId = tradeReviewCandidateIds(trade).find((candidate) => tags[candidate] && typeof tags[candidate] === "object");
+  return tagId ? tags[tagId] : null;
+}
+
+function postTradeReviewAnswerCount(tag = {}) {
+  const directAnswers = [
+    tag.londonConfirmation,
+    tag.obEntry,
+    tag.validSetup,
+    tag.beActivated,
+    tag.allowedPairs,
+    tag.emotionalState,
+  ].filter((value) => value !== null && value !== undefined && value !== "").length;
+  const customAnswers = Object.values(tag.customAnswers || {}).filter((value) => value !== null && value !== undefined && value !== "").length;
+  return directAnswers + customAnswers;
+}
+
+function hasCompletedPostTradeReviewTag(tag = {}) {
+  if (!tag || typeof tag !== "object") return false;
+  if (tag.tagSkipped === true || tag.tagPartial === true) return false;
+  return postTradeReviewAnswerCount(tag) > 0 || String(tag.note || "").trim().length > 0;
+}
+
+function buildPostTradeReviewSummary(tag = {}) {
+  const note = String(tag.note || "").trim();
+  if (note) return note;
+  const answers = postTradeReviewAnswerCount(tag);
+  return answers > 0 ? `${answers} respuestas de revisión guardadas.` : "Revisión post-trade guardada.";
+}
+
+function buildPostTradeReviewEntries(trades = [], manualEntries = []) {
+  const tags = loadPostTradeTags();
+  const coveredKeys = new Set((Array.isArray(manualEntries) ? manualEntries : []).map(entryReviewKey));
+  return (Array.isArray(trades) ? trades : []).reduce((rows, trade) => {
+    const tag = findPostTradeReviewTag(tags, trade);
+    if (!hasCompletedPostTradeReviewTag(tag)) return rows;
+    const reviewKey = tradeReviewKey(trade);
+    if (!reviewKey || coveredKeys.has(reviewKey)) return rows;
+    coveredKeys.add(reviewKey);
+    rows.push({
+      id: `post-trade:${tradeReviewCandidateIds(trade)[0] || reviewKey}`,
+      accountId: trade.accountId || trade.account_id || "",
+      date: journalDayKey(trade.when || trade.closeTime || trade.close_time || trade.time || trade.date || tag.timestamp),
+      symbol: String(trade.symbol || trade.pair || "").trim().toUpperCase(),
+      setup: String(trade.setup || trade.strategyTag || trade.strategy_tag || "").trim(),
+      pnl: safeNumber(trade.pnl ?? trade.net ?? trade.profit, 0),
+      compliance: "Revisión post-trade",
+      mistake: "",
+      emotion: String(tag.emotionalState || "").trim(),
+      notes: String(tag.note || "").trim(),
+      lesson: buildPostTradeReviewSummary(tag),
+      sourceType: "post_trade_review",
+      tradeId: tradeReviewCandidateIds(trade)[0] || "",
+    });
+    return rows;
+  }, []);
+}
+
 function groupLeak(trades = [], keyResolver, fallbackLabel = "Sin datos") {
   const groups = new Map();
   trades.forEach((trade) => {
@@ -155,8 +244,10 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
   const riskAdjusted = safeObject(professional.risk_adjusted);
   const sizing = safeObject(professional.sizing);
   const sampleQuality = safeObject(performance.sample_quality);
-  const reviewEntries = accountEntries.filter((entry) => entry.sourceType !== "external_ai_response");
+  const manualEntries = accountEntries.filter((entry) => entry.sourceType !== "external_ai_response");
   const externalAiResponses = accountEntries.filter((entry) => entry.sourceType === "external_ai_response");
+  const postTradeReviewEntries = buildPostTradeReviewEntries(trades, manualEntries);
+  const reviewEntries = [...manualEntries, ...postTradeReviewEntries];
   const reviewKeys = new Set(reviewEntries.map(entryReviewKey));
   const recentTrades = [...trades].slice(-12).reverse();
   const unreviewedTrades = recentTrades.filter((trade) => !reviewKeys.has(tradeReviewKey(trade)));
@@ -266,6 +357,8 @@ function buildJournalCockpit(account, accountEntries, authorityMeta) {
     riskAdjusted,
     sizing,
     sampleQuality,
+    manualEntries,
+    postTradeReviewEntries,
     reviewEntries,
     externalAiResponses,
     recentTrades,
@@ -360,9 +453,9 @@ function journalSubpageHeroMarkup(activePage, cockpit, currency, latestEntry, st
         <div class="journal-subpage-hero__grid">
           ${journalSubpageMetricCard({
             label: "Entradas",
-            value: String(cockpit.reviewEntries.length),
+            value: String(cockpit.manualEntries.length),
             detail: `${cockpit.trades.length} operaciones detectadas`,
-            tone: cockpit.reviewEntries.length ? "info" : "neutral",
+            tone: cockpit.manualEntries.length ? "info" : "neutral",
           })}
           ${journalSubpageMetricCard({
             label: "Cobertura",
@@ -691,7 +784,7 @@ function buildDataOriginRows(account, cockpit, authorityMeta) {
     ["Histórico cerrado", `${authority.tradeCount ?? cockpit.trades.length} operaciones normalizadas`],
     ["Curva / puntos históricos", authority.historyPoints ?? safeArray(cockpit.model.history).length],
     ["Riesgo y métricas", Object.keys(cockpit.professional).length ? "riskSnapshot.professional_metrics" : "Pendiente de snapshot profesional"],
-    ["Diario manual", `${cockpit.reviewEntries.length} entradas vinculadas a esta cuenta`],
+    ["Diario y revisión", `${cockpit.reviewEntries.length} evidencias vinculadas a esta cuenta`],
     ["Respuestas IA", `${cockpit.externalAiResponses.length} respuestas externas guardadas manualmente`],
     ["Primera operación", authority.firstTradeLabel || "—"],
     ["Última operación", authority.lastTradeLabel || "—"]
@@ -961,7 +1054,7 @@ function buildExternalAiEvidenceMarkdown(state) {
     markdownTable(["Fecha", "Símbolo", "Estrategia", "Dirección", "P&L", "Comentario"], buildTradeEvidenceRows(trades, currency)),
     "",
     "## Diario",
-    markdownTable(["Fecha", "Símbolo", "Setup", "P&L", "Cumplimiento", "Error", "Emoción", "Lección"], buildJournalEvidenceRows(accountEntries, currency)),
+    markdownTable(["Fecha", "Símbolo", "Setup", "P&L", "Cumplimiento", "Error", "Emoción", "Lección"], buildJournalEvidenceRows(cockpit.reviewEntries, currency)),
     "",
     "## Prompt sugerido",
     "Actúa como analista de proceso y riesgo para trading. No des señales de compra o venta, no predigas mercado y no inventes causalidad. Usa solo la evidencia del reporte. Quiero que revises: estado general de la cuenta, peor patrón operativo, estrategias que merecen capital/pausa/más muestra, riesgos de fondeo y un plan de mejora de 7 días. Formato: Estado / Causa probable / Evidencia / Acción."

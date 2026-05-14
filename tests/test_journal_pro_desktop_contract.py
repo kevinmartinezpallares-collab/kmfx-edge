@@ -89,7 +89,12 @@ class JournalProDesktopContractTests(unittest.TestCase):
     def test_journal_production_copy_keeps_debug_logs_and_review_coverage_safe(self) -> None:
         journal = read_text("js/modules/journal.js")
 
+        self.assertIn('import { loadPostTradeTags } from "./discipline.js', journal)
+        self.assertIn("function buildPostTradeReviewEntries(trades = [], manualEntries = [])", journal)
+        self.assertIn("const postTradeReviewEntries = buildPostTradeReviewEntries(trades, manualEntries);", journal)
+        self.assertIn("const reviewEntries = [...manualEntries, ...postTradeReviewEntries];", journal)
         self.assertIn("Math.min(100, (reviewEntries.length / trades.length) * 100)", journal)
+        self.assertIn("buildJournalEvidenceRows(cockpit.reviewEntries, currency)", journal)
         debug_guard = journal.find("if (window.__KMFX_DEBUG__ === true) {")
         debug_log = journal.find('console.info("[KMFX][JOURNAL_AUTHORITY]"')
         self.assertGreaterEqual(debug_guard, 0)

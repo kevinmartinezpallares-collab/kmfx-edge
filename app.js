@@ -24,7 +24,7 @@ import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-013000";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-013000";
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-013000";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, hasBillingEntitlement, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-013000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-013000";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-013000";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-013000";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-013000";
@@ -190,7 +190,7 @@ function logBootState(label, state = store.getState(), extra = {}) {
 }
 
 function canUseDebugPage(state) {
-  return isAdminMode(state) || hasBillingEntitlement(state, "rawBridgeDebug", { allowLimited: false });
+  return isAdminMode(state);
 }
 
 function renderActivePage() {

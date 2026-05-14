@@ -216,6 +216,13 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("if (billingState.isAdmin === true) return false;", source)
         self.assertNotIn("const adminOnlyNodes = [...document.querySelectorAll", source)
 
+    def test_debug_page_route_is_hard_blocked_for_non_admin_users(self) -> None:
+        source = read_text("app.js")
+
+        self.assertIn("function canUseDebugPage(state)", source)
+        self.assertIn("return isAdminMode(state);", source)
+        self.assertNotIn('hasBillingEntitlement(state, "rawBridgeDebug"', source)
+
     def test_feature_modules_do_not_trust_raw_billing_admin_flag(self) -> None:
         funded = read_text("js/modules/funded.js")
         risk = read_text("js/modules/risk.js")
