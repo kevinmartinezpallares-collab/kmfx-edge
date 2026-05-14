@@ -43,6 +43,12 @@ REQUIRED_WORKFLOWS = {
         "actions/checkout@v6",
         "actions/upload-artifact@v4",
     ],
+    ".github/workflows/macos-launcher.yml": [
+        "name: Build macOS Launcher",
+        "Build macOS launcher",
+        "actions/checkout@v6",
+        "actions/upload-artifact@v4",
+    ],
 }
 
 REQUIRED_CHECKS = {
