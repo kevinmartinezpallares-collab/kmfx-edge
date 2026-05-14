@@ -105,3 +105,13 @@ Notes 2026-05-13:
 
 - `scripts/stripe_kmfx_setup_audit.py` now also validates Product metadata, required Customer Portal features, Customer Portal subscription-update product scope, the six KMFX Price IDs and the `invoice.payment_action_required` webhook event.
 - The audit remains read-only unless `--apply-price-metadata` is passed; that flag only applies lookup keys/metadata to the six documented KMFX Prices.
+- Manual live-platform updates completed in Stripe Dashboard:
+  - lookup keys assigned to all six KMFX Prices;
+  - retention offer configured in Customer Portal with a `15%` `forever` coupon before cancellation;
+  - visible annual promotion code `KMFXANUAL25` created with `25%` `forever` discount and validated in Checkout;
+  - annual checkout using `KMFX Comunidad Privada` was validated at `0 €`, creating the subscription successfully without requiring a card at trial start.
+- Billing decision confirmed for post-trial conversion:
+  - keep `STRIPE_TRIAL_PERIOD_DAYS=7`;
+  - keep `STRIPE_TRIAL_REQUIRES_CARD=false`;
+  - when a free trial ends without a payment method, the desired behavior is `pause`, not `cancel` and not `past_due`;
+  - implementation follow-up: send `subscription_data.trial_settings.end_behavior.missing_payment_method = pause` in Checkout subscription creation.
