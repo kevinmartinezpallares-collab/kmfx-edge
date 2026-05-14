@@ -40,6 +40,8 @@ if [[ ! -f "$ROOT_DIR/KMFXConnector.ex5" ]]; then
   exit 1
 fi
 
+python3 "$ROOT_DIR/scripts/verify_ea_release.py"
+
 if ! command -v sips >/dev/null 2>&1 || ! command -v iconutil >/dev/null 2>&1; then
   echo "[KMFX][BUILD][ERROR] macOS icon tools not found. Run this script on macOS." >&2
   exit 1

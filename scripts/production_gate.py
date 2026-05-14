@@ -88,6 +88,7 @@ def build_checks(*, full_tests: bool) -> list[Check]:
                 "main",
             ],
         ),
+        Check("ea_release_integrity", [python, "scripts/verify_ea_release.py"]),
         Check("production_smoke", [python, "scripts/production_smoke.py"]),
         Check(
             "connector_security_regressions",

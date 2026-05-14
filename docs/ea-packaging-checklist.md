@@ -4,7 +4,7 @@
 
 The public/private beta v1 EA package should ship `KMFXConnector.ex5` as a read-only sync connector.
 
-Current public package source version: `KMFXConnector` v2.82.
+Current public package source version: `KMFXConnector` v2.86.
 
 Public v1 scope:
 
@@ -45,6 +45,7 @@ Public v1 scope:
 Before packaging:
 
 - Compile `KMFXConnector.mq5` in MetaEditor.
+- Preferred local macOS command: `bash scripts/compile_mt5_connector.sh`
 - Confirm `.ex5` timestamp and version match release manifest.
 - Confirm `KMFXConnector` version is `2.82` or the intended newer release version.
 - Confirm public/default source has `KMFXEnableEnforce=false`.

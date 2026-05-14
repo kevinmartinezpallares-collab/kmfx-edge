@@ -24,6 +24,8 @@ if [[ ! -x "${WINE_BIN}" ]]; then
   exit 1
 fi
 
+python3 "${ROOT_DIR}/scripts/verify_ea_release.py"
+
 mkdir -p "${TOOLCHAIN_DIR}" "${ROOT_DIR}/downloads"
 
 if [[ ! -f "${PYTHON_ZIP}" ]]; then

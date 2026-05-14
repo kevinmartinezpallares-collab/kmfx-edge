@@ -26,6 +26,12 @@ if (!(Test-Path $IconFile)) {
 if (!(Test-Path (Join-Path $RootDir "KMFXConnector.ex5"))) {
     Write-Warning "[KMFX][BUILD][WARN] KMFXConnector.ex5 not found; the bundle will include KMFXConnector.mq5 only."
 }
+else {
+    python (Join-Path $RootDir "scripts\\verify_ea_release.py")
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "[KMFX][BUILD][ERROR] KMFXConnector.ex5 failed release verification."
+    }
+}
 
 $hasPyInstaller = python -c "import PyInstaller" 2>$null
 if ($LASTEXITCODE -ne 0) {
