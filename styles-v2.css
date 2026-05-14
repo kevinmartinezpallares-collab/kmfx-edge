@@ -3267,6 +3267,20 @@ html[data-theme="dark"] .sidebar-section-label,
   display: none !important;
 }
 
+.app-shell.sidebar-vnext.sidebar-provider [data-admin-only][hidden],
+.app-shell.sidebar-vnext.sidebar-provider .sidebar-admin-nav[hidden],
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider [data-admin-only][hidden],
+html[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-admin-nav[hidden],
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider [data-admin-only][hidden],
+body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-admin-nav[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+}
+
 .sidebar-admin-badge {
   display: inline-flex;
   align-items: center;

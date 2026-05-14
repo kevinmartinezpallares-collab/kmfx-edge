@@ -7,7 +7,7 @@ import {
   pageFromLocation,
   parentPageForPage,
   routeForPage
-} from "./route-map.js?v=build-20260514-091500";
+} from "./route-map.js?v=build-20260514-093300";
 
 const pageTitle = {
   dashboard: "Panel",
