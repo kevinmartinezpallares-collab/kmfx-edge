@@ -572,6 +572,8 @@ class KMFXApi:
 
     def restore_account_key_with_session(self, account_id: str, connection_key: str) -> BackendResponse:
         self.ensure_session()
+        if not hasattr(self.backend, "restore_account_key"):
+            return BackendResponse(ok=False, status_code=501, body={"reason": "restore_account_key_unsupported"})
         response = self.backend.restore_account_key(account_id=account_id, connection_key=connection_key)
         if response.status_code == 401 and self._force_refresh_session("restore_account_key_401"):
             response = self.backend.restore_account_key(account_id=account_id, connection_key=connection_key)
