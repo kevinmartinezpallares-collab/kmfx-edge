@@ -227,6 +227,17 @@ export function initAuthUI(store) {
     }
   };
 
+  window.addEventListener("kmfx:open-auth", (event) => {
+    const detail = event?.detail && typeof event.detail === "object" ? event.detail : {};
+    setUiState({
+      mode: String(detail.mode || "signin"),
+      error: "",
+      notice: String(detail.notice || ""),
+      loading: false,
+      providerLoading: "",
+    });
+  });
+
   const updateAuthCarouselView = () => {
     const nextIndex = Math.max(0, Math.min(authSlides.length - 1, Number(root.__authUiState?.slideIndex || 0)));
     root.querySelector(".auth-carousel-track")?.style.setProperty("transform", `translateX(-${nextIndex * 100}%)`);

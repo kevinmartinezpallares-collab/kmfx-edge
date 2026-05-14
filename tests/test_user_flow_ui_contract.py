@@ -287,9 +287,12 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("connectAttrs", connections)
         self.assertIn('data-open-subscription-prompt="true"', connections)
         self.assertIn('data-open-connection-wizard="true"', connections)
+        self.assertIn('window.dispatchEvent(new CustomEvent("kmfx:open-auth"', wizard)
         self.assertIn("billingEntitlementState(initialStoreState, \"launcherConnection\"", wizard)
         self.assertIn("allowPending: false", wizard)
         self.assertIn("if (!connectionAccess.allowed)", wizard)
+        app = read_text("app.js")
+        self.assertIn('window.dispatchEvent(new CustomEvent("kmfx:open-auth"', app)
 
     def test_billing_status_fetch_bypasses_browser_and_cdn_cache(self) -> None:
         source = read_text("js/modules/billing-status.js")

@@ -1088,19 +1088,37 @@ export function openConnectionWizard(options = {}) {
     allowPending: false,
   });
   if (!connectionAccess.allowed) {
+    const requiresAuth = connectionAccess.reason === "auth_required";
     openModal({
-      title: connectionAccess.reason === "auth_required" ? "Inicia sesión para conectar MT5" : "Activa KMFX Edge",
+      title: requiresAuth ? "Inicia sesión para conectar MT5" : "Activa KMFX Edge",
       subtitle: connectionAccess.title || "Conexión MT5 no disponible",
       maxWidth: 720,
       content: `
         <div class="connection-wizard__paywall">
-          <p>${escapeHtml(connectionAccess.description || "El plan actual no permite añadir cuentas MT5 live.")}</p>
+          <p>${escapeHtml(
+            requiresAuth
+              ? "Necesitas una sesión activa y la verificación anti-bots completada antes de crear o vincular una cuenta MT5."
+              : (connectionAccess.description || "El plan actual no permite añadir cuentas MT5 live.")
+          )}</p>
           <div class="connection-wizard__inline-actions">
-            <a class="btn-primary" href="/ajustes?tab=subscription">Ver planes</a>
+            ${requiresAuth
+              ? '<button class="btn-primary" type="button" data-auth-required="signin">Iniciar sesión</button>'
+              : '<a class="btn-primary" href="/ajustes?tab=subscription">Ver planes</a>'}
             <button class="btn-secondary" type="button" data-modal-dismiss="true">Cerrar</button>
           </div>
         </div>
       `,
+      onMount(card) {
+        card?.querySelector("[data-auth-required='signin']")?.addEventListener("click", () => {
+          closeModal();
+          window.dispatchEvent(new CustomEvent("kmfx:open-auth", {
+            detail: {
+              mode: "signin",
+              notice: "Inicia sesión para conectar tu cuenta MT5.",
+            }
+          }));
+        });
+      }
     });
     return;
   }

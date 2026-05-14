@@ -1217,9 +1217,27 @@ function initSettings(authSession = null) {
     const trigger = event.target.closest("[data-open-subscription-prompt]");
     if (!trigger) return;
     event.preventDefault();
+    if (store.getState().auth?.status !== "authenticated") {
+      window.dispatchEvent(new CustomEvent("kmfx:open-auth", {
+        detail: {
+          mode: "signin",
+          notice: "Inicia sesión para revisar planes y conectar cuentas MT5.",
+        }
+      }));
+      return;
+    }
     maybeOpenSubscriptionPrompt(store.getState(), { force: true });
   });
   window.addEventListener("kmfx:open-subscription-prompt", () => {
+    if (store.getState().auth?.status !== "authenticated") {
+      window.dispatchEvent(new CustomEvent("kmfx:open-auth", {
+        detail: {
+          mode: "signin",
+          notice: "Inicia sesión para revisar planes y conectar cuentas MT5.",
+        }
+      }));
+      return;
+    }
     maybeOpenSubscriptionPrompt(store.getState(), { force: true });
   });
   settingsTabButtons.forEach((button) => {
