@@ -1,10 +1,10 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-013000";
-import { showToast } from "./toast.js?v=build-20260514-013000";
-import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260514-013000";
-import { emptyStateMarkup, kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-013000";
-import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260514-013000";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260514-013000";
-import { loadPostTradeTags } from "./discipline.js?v=build-20260514-013000";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260514-091500";
+import { showToast } from "./toast.js?v=build-20260514-091500";
+import { describeAccountAuthority, formatCurrency, renderAuthorityNotice, selectCurrentAccount } from "./utils.js?v=build-20260514-091500";
+import { emptyStateMarkup, kpiCardMarkup, kmfxBadgeMarkup, pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-091500";
+import { buildBacktestVsRealReport } from "./backtest-real.js?v=build-20260514-091500";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-091500";
+import { loadPostTradeTags } from "./discipline.js?v=build-20260514-091500";
 
 const emptyForm = {
   date: "2026-03-20",

@@ -1,4 +1,4 @@
-import { selectCurrentAccount } from "./utils.js?v=build-20260514-013000";
+import { selectCurrentAccount } from "./utils.js?v=build-20260514-091500";
 
 function safeObject(value) {
   return value && typeof value === "object" ? value : {};

@@ -1,6 +1,6 @@
-import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260514-013000";
-import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-013000";
-import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-013000";
+import { chartCanvas, mountCharts } from "./chart-system.js?v=build-20260514-091500";
+import { describeAccountAuthority, formatPercent, renderAuthorityNotice, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-091500";
+import { pageHeaderMarkup } from "./ui-primitives.js?v=build-20260514-091500";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

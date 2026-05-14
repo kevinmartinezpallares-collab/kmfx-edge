@@ -1,6 +1,6 @@
-import { formatDateTime } from "./utils.js?v=build-20260514-013000";
-import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260514-013000";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-013000";
+import { formatDateTime } from "./utils.js?v=build-20260514-091500";
+import { badgeMarkup, getConnectionStatusMeta, getFundedStatusMeta, getRiskStatusMeta, getWorkspaceStatusMeta } from "./status-badges.js?v=build-20260514-091500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260514-091500";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
