@@ -10,6 +10,14 @@ python3 kmfx_connector_api.py
 
 Confirma que el backend responde en `http://127.0.0.1:8000/`.
 
+Si quieres que el Launcher de este repo apunte a ese backend local, arráncalo así:
+
+```bash
+KMFX_ENV=development KMFX_BACKEND_BASE_URL=http://127.0.0.1:8000 ./scripts/start_launcher_mac.sh
+```
+
+En uso normal o desde los scripts sin overrides, el Launcher arranca en modo producción.
+
 ## 2. Arrancar launcher
 
 macOS:
@@ -135,6 +143,10 @@ MT5:
 Debe quedar operativa esta ruta:
 
 `EA -> localhost:8766 -> backend:8000 -> dashboard`
+
+En producción el objetivo es distinto:
+
+`EA -> https://mt5-api.kmfxedge.com -> backend KMFX -> dashboard`
 
 Si el backend cae:
 
