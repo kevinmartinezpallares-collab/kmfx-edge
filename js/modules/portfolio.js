@@ -1,6 +1,6 @@
-import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260514-230900";
-import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260514-230900";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-230900";
+import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260514-233900";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260514-233900";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-233900";
 
 function escapeHtml(value = "") {
   return String(value ?? "")

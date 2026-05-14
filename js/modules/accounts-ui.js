@@ -1,7 +1,7 @@
-import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-230900";
-import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260514-230900";
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-230900";
-import { pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-230900";
+import { formatCurrency, formatPercent, getAccountTypeLabel, resolveAccountDataAuthority, resolveAccountDisplayIdentity, resolvePerformanceViewModel, resolveSelectedLiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-233900";
+import { badgeMarkup, getConnectionStatusMeta, getRiskStatusMeta } from "./status-badges.js?v=build-20260514-233900";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-233900";
+import { pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-233900";
 
 const accountSurfacePages = new Set(["dashboard"]);
 const accountMeshMarkup = () => `

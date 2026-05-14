@@ -3003,6 +3003,81 @@ def stripe_create_billing_portal_session(customer_id: str, return_url: str) -> d
     return session
 
 
+def stripe_update_subscription(
+    subscription_id: str,
+    params: dict[str, Any],
+    *,
+    idempotency_key: str = "",
+) -> dict[str, Any]:
+    normalized_subscription_id = safe_str(subscription_id)
+    if not normalized_subscription_id:
+        raise RuntimeError("stripe_subscription_id_missing")
+    return stripe_api_request(
+        "POST",
+        f"/subscriptions/{urllib.parse.quote(normalized_subscription_id)}",
+        params,
+        idempotency_key=idempotency_key,
+    )
+
+
+def first_subscription_item(subscription: dict[str, Any]) -> dict[str, Any]:
+    items = ensure_dict(subscription.get("items")).get("data")
+    if not isinstance(items, list) or not items:
+        return {}
+    return ensure_dict(items[0])
+
+
+def billing_manageable_subscription(context: dict[str, Any], customer_id: str) -> dict[str, Any]:
+    row = existing_kmfx_subscription_for_checkout(context, customer_id)
+    if safe_str(row.get("stripe_subscription_id")):
+        return row
+    return {}
+
+
+def billing_subscription_payload(row: dict[str, Any]) -> dict[str, Any]:
+    row = ensure_dict(row)
+    plan = normalize_plan_key(row.get("plan_key") or row.get("plan"))
+    status = safe_str(row.get("status"), "free").lower()
+    return {
+        "plan": plan,
+        "effectivePlan": "free" if status in BILLING_RESTRICTED_STATUSES else plan,
+        "displayName": PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"]),
+        "status": status,
+        "currentPeriodEndsAt": safe_str(row.get("current_period_end")),
+        "trialEndsAt": safe_str(row.get("trial_end")),
+        "cancelAtPeriodEnd": bool(row.get("cancel_at_period_end")),
+    }
+
+
+def stripe_change_kmfx_subscription_price(
+    subscription_id: str,
+    *,
+    price_id: str,
+    user_id: str,
+    email: str,
+) -> dict[str, Any]:
+    subscription = fetch_stripe_subscription(subscription_id)
+    item_id = safe_str(first_subscription_item(subscription).get("id"))
+    if not item_id:
+        raise RuntimeError("stripe_subscription_item_missing")
+    updated = stripe_update_subscription(
+        subscription_id,
+        {
+            "cancel_at_period_end": False,
+            "proration_behavior": "create_prorations",
+            "items": [
+                {
+                    "id": item_id,
+                    "price": price_id,
+                }
+            ],
+        },
+        idempotency_key=stripe_idempotency_key("kmfx_change_plan", user_id, subscription_id, price_id),
+    )
+    sync_billing_subscription(updated, user_id=user_id, email=email)
+    return updated
+
+
 def backfill_billing_subscription_for_context(context: dict[str, Any]) -> dict[str, Any]:
     user_id = safe_str(context.get("user_id")).lower()
     email = safe_str(context.get("email")).lower()
@@ -7529,34 +7604,43 @@ async def billing_checkout(request: Request) -> JSONResponse:
         customer_id = ensure_billing_customer(context)
         user_id = safe_str(context.get("user_id")).lower()
         email = safe_str(context.get("email")).lower()
+        price_reference = resolve_stripe_price_reference(plan, interval)
         existing_subscription = existing_kmfx_subscription_for_checkout(context, customer_id)
         if existing_subscription:
-            portal_customer_id = safe_str(existing_subscription.get("stripe_customer_id")) or customer_id
-            portal_return_url = billing_safe_return_url(
-                payload.get("return_url")
-                or payload.get("returnUrl")
-                or payload.get("success_url")
-                or payload.get("successUrl"),
-                f"{billing_public_app_url()}/ajustes?tab=subscription",
-            )
-            portal_session = stripe_create_billing_portal_session(portal_customer_id, portal_return_url)
-            portal_url = safe_str(portal_session.get("url"))
+            existing_subscription_id = safe_str(existing_subscription.get("stripe_subscription_id"))
+            existing_price_id = safe_str(existing_subscription.get("stripe_price_id"))
+            if existing_subscription_id and existing_price_id and existing_price_id != price_reference["price_id"]:
+                updated_subscription = stripe_change_kmfx_subscription_price(
+                    existing_subscription_id,
+                    price_id=price_reference["price_id"],
+                    user_id=user_id,
+                    email=email,
+                )
+                updated_row = stripe_subscription_to_billing_row(updated_subscription, user_id=user_id)
+                return billing_json_response(
+                    {
+                        "ok": True,
+                        "reason": "subscription_updated",
+                        "message": "Plan actualizado correctamente.",
+                        "billing": billing_subscription_payload(updated_row),
+                    }
+                )
+            existing_status = safe_str(existing_subscription.get("status")).lower()
             return billing_json_response(
                 {
                     "ok": True,
-                    "reason": "subscription_already_exists",
-                    "portal_url": portal_url,
-                    "url": portal_url,
-                    "session_id": safe_str(portal_session.get("id")),
+                    "reason": "subscription_unchanged",
+                    "message": "Ya estás en este plan.",
                     "billing": {
                         "plan": normalize_plan_key(existing_subscription.get("plan_key")),
-                        "status": safe_str(existing_subscription.get("status")).lower(),
+                        "status": existing_status,
                         "currentPeriodEndsAt": safe_str(existing_subscription.get("current_period_end")),
                         "trialEndsAt": safe_str(existing_subscription.get("trial_end")),
+                        "cancelAtPeriodEnd": bool(existing_subscription.get("cancel_at_period_end")),
+                        "displayName": PLAN_DISPLAY_NAMES.get(normalize_plan_key(existing_subscription.get("plan_key")), PLAN_DISPLAY_NAMES["free"]),
                     },
                 }
             )
-        price_reference = resolve_stripe_price_reference(plan, interval)
         checkout_metadata = {
             "app": "kmfx_edge",
             "kmfx_user_id": user_id,
@@ -7683,6 +7767,59 @@ async def billing_portal(request: Request) -> JSONResponse:
             "portal_url": portal_url,
             "url": portal_url,
             "session_id": safe_str(session.get("id")),
+        }
+    )
+
+
+@app.post("/api/billing/subscription")
+async def billing_subscription_action(request: Request) -> JSONResponse:
+    payload, payload_error = await read_json_object_payload(request, "/api/billing/subscription")
+    if payload_error is not None:
+        return payload_error
+    context, denial = billing_user_context(request)
+    if denial is not None:
+        return denial
+    if not kmfx_feature_enabled("billing", default=True):
+        return feature_disabled_response("billing")
+    rate_limited = sensitive_rate_limit_response(
+        "/api/billing/subscription",
+        request,
+        user_id=safe_str(context.get("user_id")),
+        email=safe_str(context.get("email")),
+    )
+    if rate_limited is not None:
+        return rate_limited
+
+    action = safe_str(payload.get("action")).lower()
+    if action not in {"cancel", "resume"}:
+        return billing_json_response({"ok": False, "reason": "invalid_action", "error": "invalid_action"}, status_code=400)
+
+    try:
+        customer_id = ensure_billing_customer(context)
+        user_id = safe_str(context.get("user_id")).lower()
+        email = safe_str(context.get("email")).lower()
+        existing_subscription = billing_manageable_subscription(context, customer_id)
+        subscription_id = safe_str(existing_subscription.get("stripe_subscription_id"))
+        if not subscription_id:
+            return billing_json_response({"ok": False, "reason": "subscription_not_found", "error": "subscription_not_found"}, status_code=404)
+        updated_subscription = stripe_update_subscription(
+            subscription_id,
+            {"cancel_at_period_end": action == "cancel"},
+            idempotency_key=stripe_idempotency_key("kmfx_subscription_action", user_id, subscription_id, action),
+        )
+        sync_billing_subscription(updated_subscription, user_id=user_id, email=email)
+        updated_row = stripe_subscription_to_billing_row(updated_subscription, user_id=user_id)
+    except RuntimeError as exc:
+        reason = safe_str(exc) or "billing_subscription_update_failed"
+        status_code = 503 if reason in {"stripe_not_configured", "supabase_service_role_not_configured"} else 502
+        return billing_json_response({"ok": False, "reason": reason, "error": reason}, status_code=status_code)
+
+    return billing_json_response(
+        {
+            "ok": True,
+            "action": action,
+            "message": "Cancelación programada correctamente." if action == "cancel" else "La renovación automática vuelve a estar activa.",
+            "billing": billing_subscription_payload(updated_row),
         }
     )
 

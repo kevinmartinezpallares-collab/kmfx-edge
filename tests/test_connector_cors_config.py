@@ -1540,7 +1540,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertNotIn(user_id, stripe_mock.call_args.kwargs.get("idempotency_key", ""))
         self.assertNotIn("billing@example.com", stripe_mock.call_args.kwargs.get("idempotency_key", ""))
 
-    def test_billing_checkout_opens_portal_when_subscription_already_exists(self) -> None:
+    def test_billing_checkout_keeps_existing_subscription_without_opening_portal(self) -> None:
         request = self._request(
             headers={"authorization": "Bearer billing-existing-token"},
             json_body={"plan": "pro", "interval": "monthly", "return_url": "https://kmfxedge.com/ajustes"},
@@ -1570,25 +1570,24 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                 "status": "trialing",
                 "current_period_end": "2026-05-20T00:00:00Z",
             },
-        ), patch.object(connector_api, "resolve_stripe_price_reference") as price_mock, patch.object(
+        ), patch.object(
             connector_api,
-            "stripe_api_request",
-            return_value={"id": "bps_existing", "url": "https://billing.stripe.test/portal"},
-        ) as stripe_mock:
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"},
+        ) as price_mock, patch.object(connector_api, "stripe_api_request") as stripe_mock:
             response = asyncio.run(connector_api.billing_checkout(request))
 
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(200, response.status_code)
         self.assertTrue(body["ok"])
-        self.assertEqual("subscription_already_exists", body["reason"])
-        self.assertEqual("https://billing.stripe.test/portal", body["url"])
+        self.assertEqual("subscription_unchanged", body["reason"])
+        self.assertEqual("Ya estás en este plan.", body["message"])
         self.assertEqual("pro", body["billing"]["plan"])
         self.assertEqual("trialing", body["billing"]["status"])
-        price_mock.assert_not_called()
-        _, path, params = stripe_mock.call_args.args
-        self.assertEqual("/billing_portal/sessions", path)
-        self.assertEqual("cus_existing", params["customer"])
-        self.assertEqual("https://kmfxedge.com/ajustes", params["return_url"])
+        self.assertEqual("Edge Pro", body["billing"]["displayName"])
+        self.assertNotIn("url", body)
+        price_mock.assert_called_once()
+        stripe_mock.assert_not_called()
 
     def test_billing_checkout_reconciles_existing_email_customer_subscription(self) -> None:
         request = self._request(
@@ -1631,22 +1630,21 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             connector_api,
             "stripe_customers_for_email",
             return_value=[{"id": "cus_existing"}],
-        ), patch.object(connector_api, "resolve_stripe_price_reference") as price_mock, patch.object(
+        ), patch.object(
             connector_api,
-            "stripe_api_request",
-            return_value={"id": "bps_existing", "url": "https://billing.stripe.test/portal"},
-        ) as stripe_mock:
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"},
+        ) as price_mock, patch.object(connector_api, "stripe_api_request") as stripe_mock:
             response = asyncio.run(connector_api.billing_checkout(request))
 
         body = json.loads(response.body.decode("utf-8"))
         self.assertEqual(200, response.status_code)
         self.assertTrue(body["ok"])
-        self.assertEqual("subscription_already_exists", body["reason"])
-        price_mock.assert_not_called()
+        self.assertEqual("subscription_unchanged", body["reason"])
+        self.assertEqual("Ya estás en este plan.", body["message"])
+        price_mock.assert_called_once()
         self.assertEqual(["cus_new", "cus_existing"], [call.args[0] for call in sync_mock.call_args_list])
-        _, path, params = stripe_mock.call_args.args
-        self.assertEqual("/billing_portal/sessions", path)
-        self.assertEqual("cus_existing", params["customer"])
+        stripe_mock.assert_not_called()
 
     def test_billing_checkout_requires_authenticated_supabase_user(self) -> None:
         response = asyncio.run(connector_api.billing_checkout(self._request(json_body={"plan": "pro"})))
@@ -2287,6 +2285,172 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         sync_mock.assert_called_once()
         email_mock.assert_called_once_with(email="buyer@example.com", plan="unlimited", interval="yearly", event_id="")
         self.assertEqual({"sent": False, "reason": "email_not_configured"}, result["email"])
+
+    def test_billing_subscription_action_schedules_cancel_at_period_end(self) -> None:
+        user_id = "56565656-5656-4565-8565-565656565656"
+        request = self._request(headers={"authorization": "Bearer verified-token"}, json_body={"action": "cancel"})
+        updated_subscription = {
+            "id": "sub_manage_sub",
+            "customer": "cus_manage_sub",
+            "status": "active",
+            "cancel_at_period_end": True,
+            "current_period_end": 1780000000,
+            "metadata": {
+                "kmfx_user_id": "user-123",
+                "kmfx_plan": "pro",
+            },
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_pro_monthly",
+                            "lookup_key": "kmfx_pro_monthly",
+                            "product": "prod_pro",
+                        }
+                    }
+                ]
+            },
+        }
+        synced_row = {
+            "user_id": "user-123",
+            "plan_key": "pro",
+            "status": "active",
+            "current_period_end": "2026-06-01T00:00:00Z",
+            "trial_end": "",
+            "cancel_at_period_end": True,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "user@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "active"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_manage_sub",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={
+                "stripe_subscription_id": "sub_manage_sub",
+                "stripe_customer_id": "cus_manage_sub",
+                "plan_key": "pro",
+                "status": "active",
+            },
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value=updated_subscription,
+        ) as stripe_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value=synced_row,
+        ):
+            response = asyncio.run(connector_api.billing_subscription_action(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("cancel", body["action"])
+        self.assertTrue(body["billing"]["cancelAtPeriodEnd"])
+        self.assertEqual("/subscriptions/sub_manage_sub", stripe_mock.call_args.args[1])
+
+    def test_billing_checkout_updates_existing_subscription_without_portal(self) -> None:
+        user_id = "57575757-5757-4575-8575-575757575757"
+        request = self._request(
+            headers={"authorization": "Bearer verified-token"},
+            json_body={"plan": "unlimited", "interval": "yearly"},
+        )
+        updated_subscription = {
+            "id": "sub_upgrade",
+            "customer": "cus_upgrade",
+            "status": "active",
+            "cancel_at_period_end": False,
+            "metadata": {
+                "kmfx_user_id": "user-123",
+                "kmfx_plan": "unlimited",
+            },
+            "items": {
+                "data": [
+                    {
+                        "id": "si_upgrade",
+                        "price": {
+                            "id": "price_new",
+                            "lookup_key": "kmfx_unlimited_yearly",
+                            "product": "prod_unlimited",
+                        }
+                    }
+                ]
+            },
+        }
+        synced_row = {
+            "user_id": "user-123",
+            "plan_key": "unlimited",
+            "status": "active",
+            "current_period_end": "2026-06-01T00:00:00Z",
+            "trial_end": "",
+            "cancel_at_period_end": False,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "user@example.com",
+                "app_metadata": {"plan": "pro", "billing_status": "active"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_upgrade",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={
+                "stripe_subscription_id": "sub_upgrade",
+                "stripe_customer_id": "cus_upgrade",
+                "stripe_price_id": "price_old",
+                "plan_key": "pro",
+                "status": "active",
+            },
+        ), patch.object(
+            connector_api,
+            "resolve_stripe_price_reference",
+            return_value={"price_id": "price_new", "lookup_key": "kmfx_unlimited_yearly"},
+        ), patch.object(
+            connector_api,
+            "fetch_stripe_subscription",
+            return_value={
+                "id": "sub_upgrade",
+                "items": {
+                    "data": [
+                        {
+                            "id": "si_upgrade",
+                            "price": {"id": "price_old"},
+                        }
+                    ]
+                },
+            },
+        ), patch.object(
+            connector_api,
+            "stripe_api_request",
+            return_value=updated_subscription,
+        ) as stripe_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value=synced_row,
+        ):
+            response = asyncio.run(connector_api.billing_checkout(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("subscription_updated", body["reason"])
+        self.assertEqual("/subscriptions/sub_upgrade", stripe_mock.call_args.args[1])
+        self.assertEqual("price_new", stripe_mock.call_args.args[2]["items"][0]["price"])
 
     def test_subscription_created_sends_purchase_email_from_customer(self) -> None:
         event = {

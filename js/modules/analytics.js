@@ -1,8 +1,8 @@
-import { formatCompact, formatCurrency, formatPercent, getAccountingDayKey, getAccountingHour, getAccountingMonthKey, getAccountingWeekdayIndex, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-230900";
-import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260514-230900";
-import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260514-230900";
-import { badgeMarkup } from "./status-badges.js?v=build-20260514-230900";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-230900";
+import { formatCompact, formatCurrency, formatPercent, getAccountingDayKey, getAccountingHour, getAccountingMonthKey, getAccountingWeekdayIndex, resolveAccountDataAuthority, resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-233900";
+import { barChartSpec, chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260514-233900";
+import { computeRiskAlerts } from "./risk-alerts.js?v=build-20260514-233900";
+import { badgeMarkup } from "./status-badges.js?v=build-20260514-233900";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-233900";
 
 const ANALYTICS_CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 

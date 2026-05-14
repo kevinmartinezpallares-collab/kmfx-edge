@@ -256,6 +256,19 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("if (billingState.isAdmin === true) return false;", source)
         self.assertNotIn("const adminOnlyNodes = [...document.querySelectorAll", source)
 
+    def test_settings_surface_includes_subscription_shortcut_and_legal_help(self) -> None:
+        index_source = read_text("index.html")
+        sidebar_source = read_text("js/modules/sidebar-ui.js")
+
+        self.assertIn("Ayuda y legal", index_source)
+        self.assertIn('href="/terms"', index_source)
+        self.assertIn('href="/privacy"', index_source)
+        self.assertIn('href="/refunds"', index_source)
+        self.assertIn('href="/support"', index_source)
+        self.assertIn('data-sidebar-action="subscription"', sidebar_source)
+        self.assertIn("Suscripción", sidebar_source)
+        self.assertNotIn("app-disclaimer-footer", index_source)
+
     def test_debug_page_route_is_hard_blocked_for_non_admin_users(self) -> None:
         source = read_text("app.js")
 
@@ -326,7 +339,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260514-230900",
+                        f"{module}.js?v=build-20260514-233900",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -335,11 +348,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260514-230900"', html)
-        self.assertIn('const BUILD_TAG = "build-20260514-230900";', app)
+        self.assertIn('src="./app.js?v=build-20260514-233900"', html)
+        self.assertIn('const BUILD_TAG = "build-20260514-233900";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260514-230900",
+                f"./js/modules/{module}.js?v=build-20260514-233900",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )

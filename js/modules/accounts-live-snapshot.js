@@ -1,7 +1,7 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-230900";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-230900";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-230900";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-230900";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-233900";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-233900";
+import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-233900";
+import { isAdminMode } from "./admin-mode.js?v=build-20260514-233900";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 15 * 60 * 1000;

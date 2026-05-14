@@ -1,7 +1,7 @@
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260514-230900";
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-230900";
-import { applyAvatarContent } from "./avatar-utils.js?v=build-20260514-230900";
-import { billingEntitlementState } from "./billing-status.js?v=build-20260514-230900";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds, selectVisibleUserProfile } from "./utils.js?v=build-20260514-233900";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260514-233900";
+import { applyAvatarContent } from "./avatar-utils.js?v=build-20260514-233900";
+import { billingEntitlementState } from "./billing-status.js?v=build-20260514-233900";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
@@ -422,6 +422,10 @@ export function initSidebarUI(store) {
             <span class="sidebar-profile-menu-item__icon" aria-hidden="true">${buildSidebarMenuIcon("settings")}</span>
             <span class="sidebar-profile-menu-item__label">Configuración</span>
           </button>
+          <button class="sidebar-profile-menu-item" type="button" data-sidebar-action="subscription">
+            <span class="sidebar-profile-menu-item__icon" aria-hidden="true">${buildSidebarMenuIcon("settings")}</span>
+            <span class="sidebar-profile-menu-item__label">Suscripción</span>
+          </button>
         </div>
         ${isAuthenticated ? `
           <div class="sidebar-profile-menu__divider" role="presentation"></div>
@@ -457,6 +461,23 @@ export function initSidebarUI(store) {
       event.stopPropagation();
       profileRoot.__menuOpen = false;
       syncMenuState();
+      store.setState((prev) => ({
+        ...prev,
+        ui: {
+          ...prev.ui,
+          activePage: "settings"
+        }
+      }));
+    });
+
+    profileRoot.querySelector('[data-sidebar-action="subscription"]')?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      profileRoot.__menuOpen = false;
+      syncMenuState();
+      window.history.pushState({}, "", "/ajustes?tab=subscription");
+      window.dispatchEvent(new CustomEvent("kmfx:open-settings-tab", {
+        detail: { tab: "subscription" }
+      }));
       store.setState((prev) => ({
         ...prev,
         ui: {

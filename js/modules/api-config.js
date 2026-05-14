@@ -71,6 +71,10 @@ export function resolveBillingPortalUrl() {
   return buildApiUrl("/api/billing/portal");
 }
 
+export function resolveBillingSubscriptionUrl() {
+  return buildApiUrl("/api/billing/subscription");
+}
+
 export function resolveAccountsRegistryUrl() {
   return buildApiUrl("/accounts");
 }

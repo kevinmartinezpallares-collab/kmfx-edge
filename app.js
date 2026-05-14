@@ -1,33 +1,33 @@
-import { createStore } from "./js/modules/store.js?v=build-20260514-230900";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260514-230900";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260514-230900";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260514-230900";
-import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260514-230900";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260514-230900";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260514-230900";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260514-230900";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260514-230900";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260514-230900";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260514-230900";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260514-230900";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260514-230900";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260514-230900";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260514-230900";
-import { renderMarket } from "./js/modules/market.js?v=build-20260514-230900";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260514-230900";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260514-230900";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260514-230900";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260514-230900";
-import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260514-230900";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260514-230900";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514-230900";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-230900";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-230900";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-230900";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-230900";
-import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-230900";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-230900";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-230900";
+import { createStore } from "./js/modules/store.js?v=build-20260514-233900";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260514-233900";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260514-233900";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260514-233900";
+import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260514-233900";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260514-233900";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260514-233900";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260514-233900";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260514-233900";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260514-233900";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260514-233900";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260514-233900";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260514-233900";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260514-233900";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260514-233900";
+import { renderMarket } from "./js/modules/market.js?v=build-20260514-233900";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260514-233900";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260514-233900";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260514-233900";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260514-233900";
+import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260514-233900";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260514-233900";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260514-233900";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260514-233900";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514-233900";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-233900";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-233900";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-233900";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-233900";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-233900";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260514-230900";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260514-230900";
+} from "./js/modules/auth-session.js?v=build-20260514-233900";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260514-233900";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,18 +45,19 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260514-230900";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260514-230900";
+} from "./js/modules/supabase-user-config.js?v=build-20260514-233900";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260514-233900";
 import {
   resolveAccountsRegistryUrl,
   resolveAccountsSnapshotUrl,
   resolveApiBaseUrl,
   resolveBillingCheckoutUrl,
   resolveBillingPortalUrl,
+  resolveBillingSubscriptionUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260514-230900";
+} from "./js/modules/api-config.js?v=build-20260514-233900";
 
-const BUILD_TAG = "build-20260514-230900";
+const BUILD_TAG = "build-20260514-233900";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
@@ -503,6 +504,7 @@ function initSettings(authSession = null) {
   const billingPlan = document.querySelector("[data-settings-billing-plan]");
   const billingStatus = document.querySelector("[data-settings-billing-status]");
   const billingPortalButton = document.querySelector("[data-billing-portal]");
+  const billingSubscriptionActionButton = document.querySelector("[data-billing-subscription-action]");
   const billingCheckoutButtons = [...document.querySelectorAll("[data-billing-checkout]")];
   const settingsTabButtons = [...document.querySelectorAll("[data-settings-tab]")];
   const settingsPanels = [...document.querySelectorAll("[data-settings-panel]")];
@@ -698,6 +700,10 @@ function initSettings(authSession = null) {
     const displayName = billing.displayName || "Free / Demo";
     const status = String(billing.status || "").toLowerCase();
     const access = String(billing.access || "").toLowerCase();
+    const hasPaidSubscription = authReady
+      && billing.plan
+      && String(billing.plan).toLowerCase() !== "free"
+      && !["anonymous", "free"].includes(access);
     const statusCopy = !authReady
       ? "Inicia sesión para activar una suscripción."
       : access === "active"
@@ -723,6 +729,18 @@ function initSettings(authSession = null) {
       const canOpenPortal = authReady && access !== "anonymous" && !state.billing?.loading;
       billingPortalButton.disabled = !canOpenPortal;
       billingPortalButton.setAttribute("aria-disabled", canOpenPortal ? "false" : "true");
+    }
+    if (billingSubscriptionActionButton) {
+      const wantsResume = billing.cancelAtPeriodEnd === true;
+      const canManageSubscription = hasPaidSubscription && !state.billing?.loading;
+      billingSubscriptionActionButton.hidden = !hasPaidSubscription;
+      billingSubscriptionActionButton.setAttribute("aria-hidden", hasPaidSubscription ? "false" : "true");
+      billingSubscriptionActionButton.disabled = !canManageSubscription;
+      billingSubscriptionActionButton.setAttribute("aria-disabled", canManageSubscription ? "false" : "true");
+      billingSubscriptionActionButton.dataset.subscriptionAction = wantsResume ? "resume" : "cancel";
+      billingSubscriptionActionButton.textContent = wantsResume ? "Reactivar renovación" : "Cancelar al final del periodo";
+      billingSubscriptionActionButton.classList.toggle("btn-primary", wantsResume);
+      billingSubscriptionActionButton.classList.toggle("btn-secondary", !wantsResume);
     }
   };
 
@@ -1041,7 +1059,18 @@ function initSettings(authSession = null) {
         body: JSON.stringify({ plan, interval }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload?.url) {
+      if (!response.ok) {
+        if (settingsStatus) settingsStatus.textContent = payload?.reason || "No se pudo abrir Checkout.";
+        return;
+      }
+      if (payload?.reason === "subscription_updated" || payload?.reason === "subscription_unchanged") {
+        if (settingsStatus) settingsStatus.textContent = payload?.message || "Suscripción actualizada correctamente.";
+        await refreshBillingStatus(store, { silent: false });
+        syncBillingReadout(store.getState());
+        activateSettingsTab("subscription");
+        return;
+      }
+      if (!payload?.url) {
         if (settingsStatus) settingsStatus.textContent = payload?.reason || "No se pudo abrir Checkout.";
         return;
       }
@@ -1081,6 +1110,54 @@ function initSettings(authSession = null) {
     } catch (error) {
       console.warn("[KMFX][BILLING] portal failed", error);
       if (settingsStatus) settingsStatus.textContent = "No se pudo conectar con el portal.";
+    } finally {
+      syncBillingReadout(store.getState());
+    }
+  };
+
+  const manageBillingSubscription = async () => {
+    if (store.getState().auth?.status !== "authenticated") {
+      if (settingsStatus) settingsStatus.textContent = "Inicia sesión para gestionar tu suscripción.";
+      return;
+    }
+    const action = String(billingSubscriptionActionButton?.dataset.subscriptionAction || "").toLowerCase();
+    if (!["cancel", "resume"].includes(action)) return;
+    const url = resolveBillingSubscriptionUrl();
+    if (!url) {
+      if (settingsStatus) settingsStatus.textContent = "No se pudo abrir la gestión de suscripción.";
+      return;
+    }
+    const wantsCancel = action === "cancel";
+    const confirmed = window.confirm(
+      wantsCancel
+        ? "Tu plan seguirá activo hasta el final del periodo ya pagado. ¿Quieres programar la cancelación?"
+        : "¿Quieres reactivar la renovación automática de tu plan?"
+    );
+    if (!confirmed) return;
+    if (settingsStatus) {
+      settingsStatus.textContent = wantsCancel
+        ? "Programando cancelación al final del periodo..."
+        : "Reactivando renovación automática...";
+    }
+    if (billingSubscriptionActionButton) billingSubscriptionActionButton.disabled = true;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: billingRequestHeaders(),
+        body: JSON.stringify({ action }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (settingsStatus) settingsStatus.textContent = payload?.reason || "No se pudo actualizar la suscripción.";
+        return;
+      }
+      if (settingsStatus) settingsStatus.textContent = payload?.message || "Suscripción actualizada correctamente.";
+      await refreshBillingStatus(store, { silent: false });
+      syncBillingReadout(store.getState());
+      activateSettingsTab("subscription");
+    } catch (error) {
+      console.warn("[KMFX][BILLING] subscription action failed", error);
+      if (settingsStatus) settingsStatus.textContent = "No se pudo actualizar la suscripción.";
     } finally {
       syncBillingReadout(store.getState());
     }
@@ -1213,6 +1290,7 @@ function initSettings(authSession = null) {
     button.addEventListener("click", () => startBillingCheckout(button.dataset.plan || "pro", button.dataset.interval || "monthly"));
   });
   billingPortalButton?.addEventListener("click", openBillingPortal);
+  billingSubscriptionActionButton?.addEventListener("click", manageBillingSubscription);
   document.addEventListener("click", (event) => {
     const trigger = event.target.closest("[data-open-subscription-prompt]");
     if (!trigger) return;
@@ -1239,6 +1317,10 @@ function initSettings(authSession = null) {
       return;
     }
     maybeOpenSubscriptionPrompt(store.getState(), { force: true });
+  });
+  window.addEventListener("kmfx:open-settings-tab", (event) => {
+    const requestedTab = String(event?.detail?.tab || "").toLowerCase();
+    activateSettingsTab(requestedTab);
   });
   settingsTabButtons.forEach((button) => {
     button.addEventListener("click", () => activateSettingsTab(button.dataset.settingsTab));

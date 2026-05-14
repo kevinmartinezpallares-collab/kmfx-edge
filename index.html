@@ -26,7 +26,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <script>
     (function retireLegacyServiceWorker() {
-      var reloadKey = "kmfx-sw-retired-build-20260514-230900";
+      var reloadKey = "kmfx-sw-retired-build-20260514-233900";
       if (!("serviceWorker" in navigator)) return;
 
       Promise.all([
@@ -49,8 +49,8 @@
       }).catch(function () {});
     })();
   </script>
-  <link rel="stylesheet" href="./styles.css?v=build-20260514-230900">
-  <link rel="stylesheet" href="./styles-v2.css?v=build-20260514-230900">
+  <link rel="stylesheet" href="./styles.css?v=build-20260514-233900">
+  <link rel="stylesheet" href="./styles-v2.css?v=build-20260514-233900">
   <style id="light-card-flatten-bootstrap">
     html:not([data-theme="dark"]) .tl-section-card:has(.account-hero-card),
     html:not([data-theme="dark"]) .tl-section-card:has(.portfolio-account-card),
@@ -395,7 +395,10 @@
                       <strong data-settings-billing-plan>Free / Demo</strong>
                       <small data-settings-billing-status>Inicia sesión para activar una suscripción.</small>
                     </div>
-                    <button class="btn-secondary btn-inline" type="button" data-billing-portal>Gestionar suscripción</button>
+                    <div class="settings-billing-hero__actions">
+                      <button class="btn-secondary btn-inline" type="button" data-billing-portal>Método de pago y facturas</button>
+                      <button class="btn-secondary btn-inline" type="button" data-billing-subscription-action hidden aria-hidden="true">Cancelar al final del periodo</button>
+                    </div>
                   </div>
                   <div class="settings-billing-grid" aria-label="Planes disponibles">
                     <article class="settings-billing-plan settings-billing-plan--basic">
@@ -541,6 +544,33 @@
                   </div>
                 </article>
 
+                <article class="tl-section-card settings-card settings-card--compact settings-card--help">
+                  <div class="tl-section-header">
+                    <div>
+                      <div class="tl-section-title">Ayuda y legal</div>
+                      <div class="settings-section-sub">Acceso directo a soporte, términos y política comercial.</div>
+                    </div>
+                  </div>
+                  <div class="settings-help-links" aria-label="Ayuda y enlaces legales">
+                    <a class="settings-help-link" href="/support">
+                      <strong>Soporte</strong>
+                      <span>Contacto y ayuda operativa.</span>
+                    </a>
+                    <a class="settings-help-link" href="/terms">
+                      <strong>Términos</strong>
+                      <span>Condiciones de uso.</span>
+                    </a>
+                    <a class="settings-help-link" href="/privacy">
+                      <strong>Privacidad</strong>
+                      <span>Tratamiento de datos y sincronizaciones.</span>
+                    </a>
+                    <a class="settings-help-link" href="/refunds">
+                      <strong>Reembolsos</strong>
+                      <span>Política comercial y devoluciones.</span>
+                    </a>
+                  </div>
+                </article>
+
                 <details class="tl-section-card settings-card settings-card--compact settings-card--admin settings-card--advanced" data-admin-only="settings-connection">
                   <summary class="settings-advanced-summary">
                     <span>Avanzado / Admin</span>
@@ -574,15 +604,6 @@
           </div>
         </section>
 
-        <footer class="app-disclaimer-footer">
-          <p class="app-disclaimer-text">KMFX Edge es una herramienta de análisis. No ofrece asesoramiento financiero. Operar implica riesgo y cada usuario es responsable de sus decisiones.</p>
-          <nav class="app-disclaimer-links" aria-label="Enlaces legales">
-            <a href="/terms">Términos</a>
-            <a href="/privacy">Privacidad</a>
-            <a href="/refunds">Reembolsos</a>
-            <a href="/support">Soporte</a>
-          </nav>
-        </footer>
       </div>
     </main>
   </div>
@@ -592,6 +613,6 @@
   <div id="mobileNavRoot"></div>
 
   <script src="./js/console-privacy.js?v=build-20260511-console-privacy"></script>
-  <script type="module" src="./app.js?v=build-20260514-230900"></script>
+  <script type="module" src="./app.js?v=build-20260514-233900"></script>
 </body>
 </html>
