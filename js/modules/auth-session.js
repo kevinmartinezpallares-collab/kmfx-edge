@@ -8,11 +8,11 @@ const RECOVERY_STATE_KEY = "kmfx.auth.recovery.v1";
 export const AUTH_PROVIDER_IDS = ["email", "google", "apple", "local"];
 
 export const DEFAULT_AUTH_USER = {
-  id: "local-dev-user",
-  name: "Kevin C.",
-  email: "kevin@kmfxedge.local",
+  id: "anonymous-user",
+  name: "Usuario KMFX",
+  email: "sin-sesion@kmfxedge.local",
   avatar: null,
-  initials: "KC",
+  initials: "KM",
   provider: "local",
   role: "user",
   is_admin: false

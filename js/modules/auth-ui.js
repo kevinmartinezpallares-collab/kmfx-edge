@@ -613,7 +613,7 @@ export function initAuthUI(store) {
                 ${(isSignUpMode && !isResetMode) ? `
                   <label class="form-stack">
                     <span>Nombre</span>
-                    <input type="text" data-auth-field="name" placeholder="Kevin C." value="${escapeHtml(uiState.name)}">
+                    <input type="text" data-auth-field="name" placeholder="Tu nombre" value="${escapeHtml(uiState.name)}">
                   </label>
                 ` : ""}
                 <label class="form-stack">
