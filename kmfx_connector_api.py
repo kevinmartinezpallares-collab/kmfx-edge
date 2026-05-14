@@ -1493,6 +1493,7 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     effective_plan = "free" if status in BILLING_RESTRICTED_STATUSES else plan
     if context.get("is_admin"):
         effective_plan = "unlimited"
+    display_plan = "unlimited" if context.get("is_admin") else plan
     entitlements = plan_entitlements(effective_plan)
     if status in BILLING_RESTRICTED_STATUSES and not context.get("is_admin"):
         entitlements["liveMt5Accounts"] = 0
@@ -1522,7 +1523,8 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
         "billing": {
             "plan": plan,
             "effectivePlan": effective_plan,
-            "displayName": PLAN_DISPLAY_NAMES.get(effective_plan, PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"])),
+            # Keep the commercial plan name visible even when access is restricted.
+            "displayName": PLAN_DISPLAY_NAMES.get(display_plan, PLAN_DISPLAY_NAMES.get(plan, PLAN_DISPLAY_NAMES["free"])),
             "status": status,
             "access": access,
             "currentPeriodEndsAt": metadata_first_value(
@@ -2178,6 +2180,209 @@ def send_payment_failed_email(*, email: str, plan: str, event_id: str = "") -> d
     return result
 
 
+def build_subscription_paused_email(*, email: str, plan: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu suscripción {plan_name} está en pausa"
+    text = (
+        f"Tu suscripción {plan_name} ha quedado en pausa en KMFX Edge.\n\n"
+        f"Añade o actualiza tu método de pago desde Ajustes > Suscripción: {app_url}\n\n"
+        "Tus datos siguen guardados, pero las conexiones nuevas y el acceso premium pueden quedar bloqueados hasta reanudar el plan."
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Suscripción en pausa</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Tu suscripción <strong style="color:#ffffff;">{safe_plan_name}</strong> está en pausa. Añade un método de pago o reanuda el plan para recuperar el acceso completo.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Revisar suscripción</a>
+        <p style="margin:24px 0 0;color:#8b8b92;font-size:13px;line-height:1.5;">KMFX Edge conserva tus datos y tu histórico mientras regularizas el plan. No hace falta crear otra cuenta ni regenerar tu KMFXKey.</p>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_subscription_paused_email(*, email: str, plan: str, event_id: str = "") -> dict[str, Any]:
+    message = build_subscription_paused_email(email=email, plan=plan)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "subscription_paused"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Subscription paused email result | email=%s plan=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        plan,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
+def build_subscription_changed_email(*, email: str, previous_plan: str, new_plan: str, interval: str) -> dict[str, str]:
+    previous_plan_key = normalize_plan_key(previous_plan)
+    new_plan_key = normalize_plan_key(new_plan)
+    previous_plan_name = PLAN_DISPLAY_NAMES.get(previous_plan_key, PLAN_DISPLAY_NAMES["free"])
+    new_plan_name = PLAN_DISPLAY_NAMES.get(new_plan_key, PLAN_DISPLAY_NAMES["pro"])
+    interval_copy = "anual" if safe_str(interval).lower() == "yearly" else "mensual"
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_previous_plan_name = html_lib.escape(previous_plan_name)
+    safe_new_plan_name = html_lib.escape(new_plan_name)
+    safe_interval_copy = html_lib.escape(interval_copy)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu suscripción ahora es {new_plan_name}"
+    text = (
+        f"Tu suscripción de KMFX Edge ha cambiado de {previous_plan_name} a {new_plan_name} ({interval_copy}).\n\n"
+        f"Puedes revisar el estado del plan desde Ajustes > Suscripción: {app_url}\n\n"
+        "El acceso y los límites de tu cuenta se actualizarán automáticamente según el nuevo plan."
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Suscripción actualizada</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Tu plan ha cambiado de <strong style="color:#ffffff;">{safe_previous_plan_name}</strong> a <strong style="color:#ffffff;">{safe_new_plan_name}</strong> en modalidad {safe_interval_copy}.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Ver suscripción</a>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_subscription_changed_email(*, email: str, previous_plan: str, new_plan: str, interval: str, event_id: str = "") -> dict[str, Any]:
+    message = build_subscription_changed_email(
+        email=email,
+        previous_plan=previous_plan,
+        new_plan=new_plan,
+        interval=interval,
+    )
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "subscription_changed"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Subscription changed email result | email=%s previous_plan=%s new_plan=%s interval=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        previous_plan,
+        new_plan,
+        interval,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
+def build_subscription_cancel_scheduled_email(*, email: str, plan: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu cancelación de {plan_name} ha quedado programada"
+    text = (
+        f"Tu suscripción {plan_name} seguirá activa hasta el final del periodo actual y después se cancelará.\n\n"
+        f"Puedes revisar o reactivar el plan desde Ajustes > Suscripción: {app_url}"
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Cancelación programada</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Tu suscripción <strong style="color:#ffffff;">{safe_plan_name}</strong> seguirá activa hasta el final del periodo actual y luego se cancelará.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Revisar suscripción</a>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_subscription_cancel_scheduled_email(*, email: str, plan: str, event_id: str = "") -> dict[str, Any]:
+    message = build_subscription_cancel_scheduled_email(email=email, plan=plan)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "subscription_cancel_scheduled"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Subscription cancel scheduled email result | email=%s plan=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        plan,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
+def build_subscription_reactivated_email(*, email: str, plan: str) -> dict[str, str]:
+    plan_key = normalize_plan_key(plan)
+    plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
+    app_url = f"{billing_public_app_url()}/ajustes?tab=subscription"
+    safe_plan_name = html_lib.escape(plan_name)
+    safe_app_url = html_lib.escape(app_url, quote=True)
+    subject = f"Tu suscripción {plan_name} sigue activa"
+    text = (
+        f"Tu cancelación programada se ha retirado y tu suscripción {plan_name} sigue activa.\n\n"
+        f"Puedes revisar el estado del plan desde Ajustes > Suscripción: {app_url}"
+    )
+    html = f"""
+    <div style="margin:0;padding:0;background:#09090b;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+        <p style="margin:0 0 18px;color:#a1a1aa;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">KMFX Edge</p>
+        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.12;color:#ffffff;">Suscripción reactivada</h1>
+        <p style="margin:0 0 18px;color:#d4d4d8;font-size:16px;line-height:1.55;">Tu suscripción <strong style="color:#ffffff;">{safe_plan_name}</strong> seguirá activa. La cancelación programada se ha retirado correctamente.</p>
+        <a href="{safe_app_url}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#3f7cff;color:#ffffff;text-decoration:none;font-weight:700;">Ver suscripción</a>
+      </div>
+    </div>
+    """
+    return {"subject": subject, "html": html, "text": text}
+
+
+def send_subscription_reactivated_email(*, email: str, plan: str, event_id: str = "") -> dict[str, Any]:
+    message = build_subscription_reactivated_email(email=email, plan=plan)
+    result = send_transactional_email(
+        to_email=email,
+        subject=message["subject"],
+        html=message["html"],
+        text=message["text"],
+        tags=[
+            {"name": "app", "value": "kmfx_edge"},
+            {"name": "event", "value": "subscription_reactivated"},
+            {"name": "stripe_event_id", "value": safe_str(event_id)[:256]},
+        ],
+    )
+    log.info(
+        "Subscription reactivated email result | email=%s plan=%s sent=%s reason=%s",
+        mask_email_for_log(email),
+        plan,
+        result.get("sent"),
+        result.get("reason", ""),
+    )
+    return result
+
+
 def build_subscription_canceled_email(*, email: str, plan: str) -> dict[str, str]:
     plan_key = normalize_plan_key(plan)
     plan_name = PLAN_DISPLAY_NAMES.get(plan_key, PLAN_DISPLAY_NAMES["pro"])
@@ -2446,6 +2651,28 @@ def supabase_fetch_current_billing_subscription(user_id: str) -> dict[str, Any]:
     return {}
 
 
+def supabase_fetch_billing_subscription_by_subscription_id(subscription_id: str) -> dict[str, Any]:
+    subscription_id = safe_str(subscription_id)
+    if not subscription_id:
+        return {}
+    rows = supabase_admin_request(
+        "GET",
+        "/rest/v1/billing_subscriptions",
+        query={
+            "stripe_subscription_id": f"eq.{subscription_id}",
+            "select": (
+                "user_id,stripe_subscription_id,stripe_customer_id,stripe_product_id,"
+                "stripe_price_id,plan_key,status,current_period_start,current_period_end,"
+                "cancel_at_period_end,trial_end,is_current,metadata"
+            ),
+            "limit": "1",
+        },
+    )
+    if isinstance(rows, list) and rows:
+        return ensure_dict(rows[0])
+    return {}
+
+
 def supabase_upsert_billing_customer(user_id: str, stripe_customer_id: str, email: str = "", metadata: dict[str, Any] | None = None) -> None:
     supabase_admin_request(
         "POST",
@@ -2575,12 +2802,20 @@ def supabase_upsert_billing_subscription(row: dict[str, Any]) -> None:
     )
     if isinstance(updated, list) and updated:
         return
-    supabase_admin_request(
-        "POST",
-        "/rest/v1/billing_subscriptions",
-        payload=row,
-        prefer="return=representation",
-    )
+    try:
+        supabase_admin_request(
+            "POST",
+            "/rest/v1/billing_subscriptions",
+            payload=row,
+            prefer="return=representation",
+        )
+    except RuntimeError as exc:
+        if safe_str(exc) != "supabase_http_409":
+            raise
+        existing = supabase_fetch_billing_subscription_by_subscription_id(subscription_id)
+        if existing:
+            return
+        raise
 
 
 def supabase_update_auth_app_metadata(user_id: str, metadata: dict[str, Any]) -> None:
@@ -3000,7 +3235,9 @@ def process_checkout_session_completed(session: dict[str, Any], *, event_id: str
 
 def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
     event_type = safe_str(event.get("type"))
-    data_object = ensure_dict(ensure_dict(event.get("data")).get("object"))
+    event_data = ensure_dict(event.get("data"))
+    data_object = ensure_dict(event_data.get("object"))
+    previous_attributes = ensure_dict(event_data.get("previous_attributes"))
     if event_type == "checkout.session.completed":
         return process_checkout_session_completed(data_object, event_id=safe_str(event.get("id")))
     if event_type in {
@@ -3031,6 +3268,61 @@ def process_stripe_billing_event(event: dict[str, Any]) -> dict[str, Any]:
                     interval=safe_str(metadata.get("kmfx_interval") or metadata.get("interval") or stripe_interval_from_price(price), "monthly"),
                     event_id=safe_str(event.get("id")),
                 )
+        if event_type == "customer.subscription.updated":
+            email = billing_email_from_sources(data_object)
+            current_price = first_subscription_price(data_object)
+            previous_metadata = ensure_dict(previous_attributes.get("metadata"))
+            previous_price = first_subscription_price(previous_attributes)
+            current_plan = safe_str(
+                result.get("plan")
+                or ensure_dict(data_object.get("metadata")).get("kmfx_plan")
+                or ensure_dict(data_object.get("metadata")).get("plan_key")
+                or stripe_plan_from_price(current_price),
+                "pro",
+            )
+            previous_plan = safe_str(
+                previous_metadata.get("kmfx_plan")
+                or previous_metadata.get("plan_key")
+                or stripe_plan_from_price(previous_price),
+            )
+            has_previous_plan_signal = bool(
+                previous_metadata.get("kmfx_plan")
+                or previous_metadata.get("plan_key")
+                or previous_price
+            )
+            current_cancel_at_period_end = bool(data_object.get("cancel_at_period_end"))
+            previous_cancel_at_period_end = metadata_bool(previous_attributes.get("cancel_at_period_end"))
+            if (
+                email
+                and has_previous_plan_signal
+                and previous_plan
+                and normalize_plan_key(previous_plan) != normalize_plan_key(current_plan)
+            ):
+                result["email"] = send_subscription_changed_email(
+                    email=email,
+                    previous_plan=previous_plan,
+                    new_plan=current_plan,
+                    interval=stripe_interval_from_price(current_price),
+                    event_id=safe_str(event.get("id")),
+                )
+            elif email and previous_cancel_at_period_end is False and current_cancel_at_period_end is True:
+                result["email"] = send_subscription_cancel_scheduled_email(
+                    email=email,
+                    plan=current_plan,
+                    event_id=safe_str(event.get("id")),
+                )
+            elif email and previous_cancel_at_period_end is True and current_cancel_at_period_end is False:
+                result["email"] = send_subscription_reactivated_email(
+                    email=email,
+                    plan=current_plan,
+                    event_id=safe_str(event.get("id")),
+                )
+        if event_type == "customer.subscription.paused":
+            result["email"] = send_subscription_paused_email(
+                email=billing_email_from_sources(data_object),
+                plan=safe_str(result.get("plan") or ensure_dict(data_object.get("metadata")).get("kmfx_plan") or ensure_dict(data_object.get("metadata")).get("plan_key"), "pro"),
+                event_id=safe_str(event.get("id")),
+            )
         if event_type == "customer.subscription.deleted":
             result["email"] = send_subscription_canceled_email(
                 email=billing_email_from_sources(data_object),

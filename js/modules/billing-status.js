@@ -387,21 +387,44 @@ export async function refreshBillingStatus(store, { silent = false } = {}) {
 
 export function initBillingStatus(store) {
   let lastAuthSignature = "";
+  let lastRefreshAt = 0;
+
+  const requestRefresh = ({ silent = false, force = false } = {}) => {
+    const state = store.getState();
+    if (state.auth?.status !== "authenticated") {
+      lastRefreshAt = Date.now();
+      return refreshBillingStatus(store, { silent });
+    }
+    if (!force && Date.now() - lastRefreshAt < 15000) {
+      return Promise.resolve({ ok: true, skipped: "cooldown" });
+    }
+    lastRefreshAt = Date.now();
+    return refreshBillingStatus(store, { silent });
+  };
+
   const syncForAuth = () => {
     const nextSignature = authSignature(store.getState());
     if (nextSignature === lastAuthSignature) return;
     lastAuthSignature = nextSignature;
-    refreshBillingStatus(store, { silent: false });
+    void requestRefresh({ silent: false, force: true });
   };
 
   syncForAuth();
   store.subscribe(syncForAuth);
   window.addEventListener("kmfx:billing-refresh", () => {
-    refreshBillingStatus(store, { silent: false });
+    void requestRefresh({ silent: false, force: true });
+  });
+  window.addEventListener("focus", () => {
+    void requestRefresh({ silent: true });
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void requestRefresh({ silent: true });
+    }
   });
 
   window.kmfxBilling = {
-    refresh: () => refreshBillingStatus(store, { silent: false }),
+    refresh: () => requestRefresh({ silent: false, force: true }),
     getStatus: () => selectBillingStatus(store.getState()),
   };
 }

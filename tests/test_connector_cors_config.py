@@ -1267,6 +1267,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual("pro", body["billing"]["plan"])
         self.assertEqual("free", body["billing"]["effectivePlan"])
+        self.assertEqual("Edge Pro", body["billing"]["displayName"])
         self.assertEqual("unpaid", body["billing"]["status"])
         self.assertEqual("restricted", body["billing"]["access"])
         self.assertEqual(0, body["entitlements"]["liveMt5Accounts"])
@@ -2666,27 +2667,129 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         ) as subscription_mock, patch.object(
             connector_api,
             "supabase_update_auth_app_metadata",
-        ) as metadata_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
+        ) as metadata_mock, patch.object(
+            connector_api,
+            "send_subscription_changed_email",
+            return_value={"sent": True},
+        ) as email_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_subscription_updated",
                     "type": "customer.subscription.updated",
-                    "data": {"object": subscription},
+                    "data": {
+                        "object": subscription,
+                        "previous_attributes": {
+                            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+                            "metadata": {"kmfx_plan": "pro"},
+                        },
+                    },
                 }
             )
 
         self.assertEqual("unlimited", result["plan"])
+        self.assertEqual({"sent": True}, result["email"])
         subscription_row = subscription_mock.call_args.args[0]
         self.assertEqual("unlimited", subscription_row["plan_key"])
         self.assertEqual("active", subscription_row["status"])
         metadata = metadata_mock.call_args.args[1]
         self.assertEqual("unlimited", metadata["kmfx_plan"])
         self.assertEqual("active", metadata["kmfx_billing_status"])
+        email_mock.assert_called_once_with(
+            email="upgrade@example.com",
+            previous_plan="pro",
+            new_plan="unlimited",
+            interval="monthly",
+            event_id="evt_subscription_updated",
+        )
         audit_mock.assert_called_once()
         self.assertEqual("billing_plan_changed", audit_mock.call_args.args[0])
         self.assertEqual("88888888-8888-4888-8888-888888888888", audit_mock.call_args.kwargs["user_id"])
         self.assertEqual("active", audit_mock.call_args.kwargs["status"])
         self.assertEqual("customer.subscription.updated", audit_mock.call_args.kwargs["details"]["stripe_event_type"])
+
+    def test_subscription_updated_cancel_at_period_end_sends_email(self) -> None:
+        subscription = {
+            "id": "sub_cancel_scheduled",
+            "customer": "cus_cancel_scheduled",
+            "status": "active",
+            "cancel_at_period_end": True,
+            "metadata": {
+                "kmfx_user_id": "14141414-1414-4141-8141-141414141414",
+                "kmfx_user_email": "cancel-later@example.com",
+                "kmfx_plan": "pro",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ), patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ), patch.object(
+            connector_api,
+            "send_subscription_cancel_scheduled_email",
+            return_value={"sent": True},
+        ) as email_mock, patch.object(connector_api, "emit_audit_event"):
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_cancel_scheduled",
+                    "type": "customer.subscription.updated",
+                    "data": {
+                        "object": subscription,
+                        "previous_attributes": {"cancel_at_period_end": False},
+                    },
+                }
+            )
+
+        self.assertEqual({"sent": True}, result["email"])
+        email_mock.assert_called_once_with(
+            email="cancel-later@example.com",
+            plan="pro",
+            event_id="evt_subscription_cancel_scheduled",
+        )
+
+    def test_subscription_updated_reactivation_sends_email(self) -> None:
+        subscription = {
+            "id": "sub_reactivated",
+            "customer": "cus_reactivated",
+            "status": "active",
+            "cancel_at_period_end": False,
+            "metadata": {
+                "kmfx_user_id": "15151515-1515-4151-8151-151515151515",
+                "kmfx_user_email": "reactivated@example.com",
+                "kmfx_plan": "pro",
+            },
+            "items": {"data": [{"price": {"id": "price_pro_monthly", "lookup_key": "kmfx_pro_monthly"}}]},
+        }
+        with patch.object(connector_api, "supabase_upsert_billing_customer"), patch.object(
+            connector_api,
+            "supabase_upsert_billing_subscription",
+        ), patch.object(
+            connector_api,
+            "supabase_update_auth_app_metadata",
+        ), patch.object(
+            connector_api,
+            "send_subscription_reactivated_email",
+            return_value={"sent": True},
+        ) as email_mock, patch.object(connector_api, "emit_audit_event"):
+            result = connector_api.process_stripe_billing_event(
+                {
+                    "id": "evt_subscription_reactivated",
+                    "type": "customer.subscription.updated",
+                    "data": {
+                        "object": subscription,
+                        "previous_attributes": {"cancel_at_period_end": True},
+                    },
+                }
+            )
+
+        self.assertEqual({"sent": True}, result["email"])
+        email_mock.assert_called_once_with(
+            email="reactivated@example.com",
+            plan="pro",
+            event_id="evt_subscription_reactivated",
+        )
 
     def test_subscription_paused_event_restricts_entitlements(self) -> None:
         subscription = {
@@ -2705,7 +2808,11 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         ) as subscription_mock, patch.object(
             connector_api,
             "supabase_update_auth_app_metadata",
-        ) as metadata_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
+        ) as metadata_mock, patch.object(
+            connector_api,
+            "send_subscription_paused_email",
+            return_value={"sent": True},
+        ) as email_mock, patch.object(connector_api, "emit_audit_event") as audit_mock:
             result = connector_api.process_stripe_billing_event(
                 {
                     "id": "evt_subscription_paused",
@@ -2716,12 +2823,18 @@ class ConnectorCorsConfigTests(unittest.TestCase):
 
         self.assertEqual("pro", result["plan"])
         self.assertEqual("paused", result["status"])
+        self.assertEqual({"sent": True}, result["email"])
         subscription_row = subscription_mock.call_args.args[0]
         self.assertEqual("paused", subscription_row["status"])
         self.assertTrue(subscription_row["is_current"])
         metadata = metadata_mock.call_args.args[1]
         self.assertEqual("pro", metadata["kmfx_plan"])
         self.assertEqual("paused", metadata["kmfx_billing_status"])
+        email_mock.assert_called_once_with(
+            email="paused@example.com",
+            plan="pro",
+            event_id="evt_subscription_paused",
+        )
         audit_mock.assert_called_once()
         self.assertEqual("billing_plan_changed", audit_mock.call_args.args[0])
         self.assertEqual("paused", audit_mock.call_args.kwargs["status"])
@@ -2898,6 +3011,37 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual({"stripe_subscription_id": "eq.sub_canceled"}, calls[0][2])
         self.assertEqual("POST", calls[1][0])
         self.assertNotEqual({"user_id": "eq.user-123", "is_current": "eq.true"}, calls[0][2])
+
+    def test_upsert_current_subscription_treats_insert_409_as_already_persisted_when_row_exists(self) -> None:
+        calls: list[tuple[str, str, dict[str, str] | None, dict[str, object] | None]] = []
+
+        def fake_admin_request(method, path, query=None, payload=None, prefer=""):
+            calls.append((method, path, query, payload))
+            if method == "PATCH" and query == {"user_id": "eq.user-123", "is_current": "eq.true"}:
+                return []
+            if method == "PATCH" and query == {"stripe_subscription_id": "eq.sub_race"}:
+                return []
+            if method == "POST" and path == "/rest/v1/billing_subscriptions":
+                raise RuntimeError("supabase_http_409")
+            if method == "GET" and query == {"stripe_subscription_id": "eq.sub_race", "select": "user_id,stripe_subscription_id,stripe_customer_id,stripe_product_id,stripe_price_id,plan_key,status,current_period_start,current_period_end,cancel_at_period_end,trial_end,is_current,metadata", "limit": "1"}:
+                return [{"stripe_subscription_id": "sub_race"}]
+            return []
+
+        row = {
+            "user_id": "user-123",
+            "stripe_subscription_id": "sub_race",
+            "stripe_customer_id": "cus_race",
+            "plan_key": "pro",
+            "status": "active",
+            "is_current": True,
+        }
+        with patch.object(connector_api, "supabase_admin_request", side_effect=fake_admin_request):
+            connector_api.supabase_upsert_billing_subscription(row)
+
+        self.assertEqual("POST", calls[2][0])
+        self.assertEqual("GET", calls[3][0])
+        self.assertEqual("eq.sub_race", calls[3][2]["stripe_subscription_id"])
+        self.assertEqual("1", calls[3][2]["limit"])
 
     def test_restricted_billing_blocks_connection_key_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -648,7 +648,7 @@ function initSettings(authSession = null) {
   };
 
   const refreshBillingAfterReturn = async (reason = "checkout") => {
-    const delays = [0, 1500, 4000, 8000];
+    const delays = [0, 1500, 4000, 8000, 15000];
     for (let attempt = 0; attempt < delays.length; attempt += 1) {
       const delay = delays[attempt];
       if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
