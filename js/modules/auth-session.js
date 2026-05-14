@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase.js?v=build-20260514-222200";
-import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260514-222200";
+import { supabase } from "../lib/supabase.js?v=build-20260514-230900";
+import { normalizeAvatarUrl } from "./avatar-utils.js?v=build-20260514-230900";
 
 const AUTH_STORAGE_KEY = "kmfx.auth.session.v1";
 const LEGACY_PROFILE_STORAGE_KEY = "kmfx.settings.profile";
@@ -432,6 +432,7 @@ function stripLiveAccountStateForAuth(current = {}, nextAuth = DEFAULT_AUTH_STAT
     liveAccountIds: [],
     activeLiveAccountId: null,
     activeAccountId: null,
+    preferredLiveAccountId: null,
     mode: "mock",
     currentAccount: currentAccountIsSafe ? current.currentAccount : fallbackAccount,
   };

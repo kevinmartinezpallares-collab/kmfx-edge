@@ -48,6 +48,16 @@ class AccountsLiveSnapshotContractTests(unittest.TestCase):
         self.assertNotIn("latest_report_metrics:record->latest_report_metrics", account_store)
         self.assertNotIn("return hasOpenPositions ? 3000 : 15000", source)
 
+    def test_live_snapshot_prefers_last_selected_live_account_after_reload(self) -> None:
+        source = read_text("js/modules/accounts-live-snapshot.js")
+        store_source = read_text("js/modules/store.js")
+
+        self.assertIn('preferredLiveAccountId = String(state.preferredLiveAccountId || "").trim()', source)
+        self.assertIn('resolvedCurrentAccount = preferredLiveAccountId || activeAccountId || liveAccountIds[0] || previousCurrentAccount', source)
+        self.assertIn('preferredLiveAccountId: liveAccountIds.includes(resolvedCurrentAccount)', source)
+        self.assertIn("preferredLiveAccountId", store_source)
+        self.assertIn('currentAccount: currentAccount?.sourceType === "mt5" ? "sandbox" : state.currentAccount', store_source)
+
 
 if __name__ == "__main__":
     unittest.main()

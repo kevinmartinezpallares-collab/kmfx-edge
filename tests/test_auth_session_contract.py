@@ -201,6 +201,10 @@ class AuthSessionContractTests(unittest.TestCase):
         self.assertFalse(result["hotmail"])
         self.assertFalse(result["idOnly"])
 
+    def test_auth_isolation_clears_previous_live_preference(self) -> None:
+        source = (ROOT / "js/modules/auth-session.js").read_text(encoding="utf-8")
+        self.assertIn("preferredLiveAccountId: null", source)
+
 
 if __name__ == "__main__":
     unittest.main()

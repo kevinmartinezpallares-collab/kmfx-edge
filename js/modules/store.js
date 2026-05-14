@@ -1,6 +1,6 @@
-import { adaptMockAccounts, createMockWorkspaceState, rawMockAccounts } from "../data/index.js?v=build-20260514-222200";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-222200";
-import { readPersistedAuthState } from "./auth-session.js?v=build-20260514-222200";
+import { adaptMockAccounts, createMockWorkspaceState, rawMockAccounts } from "../data/index.js?v=build-20260514-230900";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-230900";
+import { readPersistedAuthState } from "./auth-session.js?v=build-20260514-230900";
 
 const STORAGE_KEY = "kmfx_frontend_state";
 const validPages = new Set([
@@ -123,16 +123,26 @@ function hydratePreferences(auth = readPersistedAuthState()) {
   return parsePersistedPreferences(safeStorageGet(STORAGE_KEY));
 }
 
+function sanitizePreferredLiveAccountId(value) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
 function persistPreferences(state) {
   const nonLiveAccounts = Object.values(state.accounts || {})
     .filter((account) => account?.sourceType !== "mt5");
+  const currentAccount = state.accounts?.[state.currentAccount];
+  const preferredLiveAccountId = currentAccount?.sourceType === "mt5"
+    ? state.currentAccount
+    : sanitizePreferredLiveAccountId(state.preferredLiveAccountId);
   safeStorageSet(storageKeyForAuth(state.auth), JSON.stringify({
     owner: {
       status: state.auth?.status || "anonymous",
       userId: state.auth?.status === "authenticated" ? state.auth?.user?.id || "" : "",
       email: state.auth?.status === "authenticated" ? state.auth?.user?.email || "" : "",
     },
-    currentAccount: state.accounts?.[state.currentAccount]?.sourceType === "mt5" ? "sandbox" : state.currentAccount,
+    currentAccount: currentAccount?.sourceType === "mt5" ? "sandbox" : state.currentAccount,
+    preferredLiveAccountId,
     ui: {
       activePage: state.ui.activePage,
       analyticsTab: state.ui.analyticsTab,
@@ -271,6 +281,7 @@ function createInitialState() {
     liveAccountIds: [],
     activeLiveAccountId: null,
     activeAccountId: null,
+    preferredLiveAccountId: sanitizePreferredLiveAccountId(persisted.preferredLiveAccountId),
     mode: "mock",
     bootResolved: false,
     billing: DEFAULT_BILLING_STATE,

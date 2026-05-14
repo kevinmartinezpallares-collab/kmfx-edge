@@ -1,7 +1,7 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-222200";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-222200";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-222200";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-222200";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-230900";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-230900";
+import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-230900";
+import { isAdminMode } from "./admin-mode.js?v=build-20260514-230900";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 15 * 60 * 1000;
@@ -394,25 +394,34 @@ function mergeLiveAccounts(store, snapshot) {
   });
 
   const previousCurrentAccount = state.currentAccount;
+  const preferredLiveAccountId = String(state.preferredLiveAccountId || "").trim();
   const activeAccountId = snapshot?.active_account_id || normalizedAccounts.find((account) => account.isDefault)?.accountId || liveAccountIds[0] || state.currentAccount;
-  const selectedAccount = normalizedAccounts.find((account) => account.accountId === activeAccountId) || normalizedAccounts[0] || null;
+  const preferredLiveAccount = preferredLiveAccountId
+    ? normalizedAccounts.find((account) => account.accountId === preferredLiveAccountId)
+    : null;
   const currentAccountIsLive = liveAccountIds.includes(previousCurrentAccount);
   let resolvedCurrentAccount = previousCurrentAccount;
 
   if (liveAccountIds.length > 0) {
     if (previousCurrentAccount === "sandbox") {
-      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || previousCurrentAccount;
+      resolvedCurrentAccount = preferredLiveAccountId || activeAccountId || liveAccountIds[0] || previousCurrentAccount;
     } else if (!currentAccountIsLive) {
-      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || previousCurrentAccount;
+      resolvedCurrentAccount = preferredLiveAccountId || activeAccountId || liveAccountIds[0] || previousCurrentAccount;
     } else if (!nextAccounts[previousCurrentAccount]) {
-      resolvedCurrentAccount = activeAccountId || liveAccountIds[0] || Object.keys(nextAccounts)[0] || null;
+      resolvedCurrentAccount = preferredLiveAccountId || activeAccountId || liveAccountIds[0] || Object.keys(nextAccounts)[0] || null;
     }
   } else if (!nextAccounts[previousCurrentAccount]) {
     resolvedCurrentAccount = Object.keys(nextAccounts)[0] || null;
   }
+  const selectedAccount = normalizedAccounts.find((account) => account.accountId === resolvedCurrentAccount)
+    || normalizedAccounts.find((account) => account.accountId === activeAccountId)
+    || preferredLiveAccount
+    || normalizedAccounts[0]
+    || null;
 
   console.log("[KMFX][ACCOUNTS] currentAccount resolution", {
     previousCurrentAccount,
+    preferredLiveAccountId,
     liveAccountIds,
     activeAccountId,
     resolvedCurrentAccount,
@@ -471,6 +480,9 @@ function mergeLiveAccounts(store, snapshot) {
     activeAccountId: activeAccountId || null,
     mode: liveAccountIds.length > 0 ? "live" : "mock",
     bootResolved: true,
+    preferredLiveAccountId: liveAccountIds.includes(resolvedCurrentAccount)
+      ? resolvedCurrentAccount
+      : (liveAccountIds.includes(prev.preferredLiveAccountId) ? prev.preferredLiveAccountId : null),
     currentAccount: resolvedCurrentAccount,
   }));
   console.log("[KMFX][ACCOUNTS] store updated", {
