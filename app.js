@@ -193,8 +193,39 @@ function canUseDebugPage(state) {
   return isAdminMode(state);
 }
 
+function clearAppPageRoots() {
+  document.querySelectorAll(
+    "#dashboardRoot, #analyticsRoot, #disciplineRoot, #riskRoot, #tradesRoot, #calendarRoot, #connectionsRoot, #calculatorRoot, #journalRoot, #strategiesRoot, #fundedRoot, #marketRoot, #portfolioRoot, #glossaryRoot, #debugRoot"
+  ).forEach((root) => {
+    if (!root) return;
+    root.innerHTML = "";
+  });
+}
+
+function isAppUnlocked(state = store.getState()) {
+  const recoveryState = window.kmfxAuth?.getRecoveryState?.() || { active: false };
+  return state?.auth?.status === "authenticated" && !recoveryState.active;
+}
+
+function syncAppShellVisibility(state = store.getState()) {
+  const appShell = document.querySelector(".app-shell");
+  const unlocked = isAppUnlocked(state);
+  if (appShell) {
+    appShell.hidden = !unlocked;
+    appShell.setAttribute("aria-hidden", unlocked ? "false" : "true");
+  }
+  document.body?.classList?.toggle("app-shell-hidden", !unlocked);
+  if (!unlocked) {
+    clearAppPageRoots();
+  }
+}
+
 function renderActivePage() {
   const state = store.getState();
+  syncAppShellVisibility(state);
+  if (!isAppUnlocked(state)) {
+    return;
+  }
   const activePanelPage = parentPageForPage(state.ui.activePage);
   if (activePanelPage === "debug" && !canUseDebugPage(state)) {
     store.setState((current) => ({

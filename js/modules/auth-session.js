@@ -575,9 +575,10 @@ export function initAuthSession(store) {
     getSession: () => sanitizeAuthState(store.getState().auth || DEFAULT_AUTH_STATE),
     getUser: () => selectVisibleUserProfile(store.getState()),
     getRecoveryState: () => sanitizeRecoveryState(recoveryState),
-    signInWithPassword: async ({ email, password, name } = {}) => {
+    signInWithPassword: async ({ email, password, name, captchaToken } = {}) => {
       const normalizedEmail = String(email || "").trim().toLowerCase();
       const normalizedPassword = String(password || "");
+      const normalizedCaptchaToken = normalizeCaptchaToken(captchaToken);
       if (!normalizedEmail || !normalizedEmail.includes("@")) {
         return { ok: false, reason: "Introduce un email válido." };
       }
@@ -588,6 +589,9 @@ export function initAuthSession(store) {
         email: normalizedEmail,
         password: normalizedPassword
       };
+      if (normalizedCaptchaToken) {
+        signInPayload.options = { captchaToken: normalizedCaptchaToken };
+      }
       const { data, error } = await supabase.auth.signInWithPassword(signInPayload);
       if (error) {
         return { ok: false, reason: normalizeAuthError(error, "No se pudo iniciar sesión.") };

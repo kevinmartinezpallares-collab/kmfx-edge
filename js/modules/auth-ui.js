@@ -65,7 +65,7 @@ export function initAuthUI(store) {
     return "signin";
   };
 
-  const isProtectedTurnstileMode = (mode) => ["signup", "forgot", "reset"].includes(mode);
+  const isProtectedTurnstileMode = (mode) => ["signin", "signup", "forgot", "reset"].includes(mode);
 
   const getTurnstileAction = (mode) => BOT_PROTECTION_ACTIONS[mode] || mode || "auth";
 
@@ -286,11 +286,14 @@ export function initAuthUI(store) {
   };
 
   const signInWithPassword = async () => {
+    if (!ensureTurnstileCompleted("signin")) return;
     const email = String(root.__authUiState.email || "").trim();
     const password = String(root.__authUiState.password || "");
+    const captchaToken = getTurnstileToken("signin");
     setAuthRequestPending("email", "Entrando...");
-    const result = await window.kmfxAuth?.signInWithPassword?.({ email, password });
+    const result = await window.kmfxAuth?.signInWithPassword?.({ email, password, captchaToken });
     if (!result?.ok) {
+      resetTurnstileWidget("signin");
       setUiState({
         loading: false,
         providerLoading: "",

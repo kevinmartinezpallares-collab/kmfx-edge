@@ -21,14 +21,14 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertGreater(len(site_key), 20)
         self.assertNotIn("SECRET", site_key.upper())
 
-    def test_email_signin_does_not_require_turnstile_but_sensitive_auth_flows_do(self) -> None:
+    def test_email_signin_requires_turnstile_when_bot_protection_is_enabled(self) -> None:
         source = read_text("js/modules/auth-ui.js")
 
-        self.assertIn('["signup", "forgot", "reset"].includes(mode)', source)
-        self.assertNotIn('ensureTurnstileCompleted("signin")', source)
-        self.assertNotIn('getTurnstileToken("signin")', source)
-        self.assertNotIn('resetTurnstileWidget("signin")', source)
-        self.assertIn("signInWithPassword?.({ email, password })", source)
+        self.assertIn('["signin", "signup", "forgot", "reset"].includes(mode)', source)
+        self.assertIn('ensureTurnstileCompleted("signin")', source)
+        self.assertIn('const captchaToken = getTurnstileToken("signin")', source)
+        self.assertIn('resetTurnstileWidget("signin")', source)
+        self.assertIn("signInWithPassword?.({ email, password, captchaToken })", source)
         self.assertIn('ensureTurnstileCompleted("signup")', source)
         self.assertIn('ensureTurnstileCompleted("forgot")', source)
         self.assertIn('ensureTurnstileCompleted("reset")', source)
@@ -45,14 +45,15 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn('window.dispatchEvent(new Event("kmfx:turnstile-ready"))', html)
         self.assertIn(".auth-turnstile-loading", css)
 
-    def test_email_signin_does_not_send_captcha_token_to_supabase_options(self) -> None:
+    def test_email_signin_sends_captcha_token_to_supabase_when_available(self) -> None:
         source = read_text("js/modules/auth-session.js")
 
         signin_start = source.index("signInWithPassword: async")
         signup_start = source.index("signUpWithPassword: async", signin_start)
         signin_source = source[signin_start:signup_start]
-        self.assertNotIn("captchaToken", signin_source)
-        self.assertNotIn("signInPayload.options", signin_source)
+        self.assertIn("captchaToken", signin_source)
+        self.assertIn("const normalizedCaptchaToken = normalizeCaptchaToken(captchaToken);", signin_source)
+        self.assertIn("signInPayload.options = { captchaToken: normalizedCaptchaToken };", signin_source)
         self.assertIn("signUpOptions.captchaToken = normalizedCaptchaToken", source)
         self.assertNotIn("signInPayload.captchaToken = normalizedCaptchaToken", source)
 
@@ -63,6 +64,7 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertIn("{ rerender: false }", source)
 
         for mode, pending_marker in [
+            ("signin", 'setAuthRequestPending("email", "Entrando...")'),
             ("signup", 'setAuthRequestPending("signup", "Creando cuenta...")'),
             ("forgot", 'setAuthRequestPending("reset-request", "Enviando...")'),
             ("reset", 'setAuthRequestPending("reset-password", "Actualizando...")'),
@@ -74,6 +76,16 @@ class UserFlowUiContractTests(unittest.TestCase):
                 loading_index,
                 f"{mode} must capture the Turnstile token before setting pending auth state",
             )
+
+    def test_anonymous_auth_hides_app_shell_and_skips_page_render(self) -> None:
+        source = read_text("app.js")
+
+        self.assertIn("function clearAppPageRoots()", source)
+        self.assertIn('document.querySelector(".app-shell")', source)
+        self.assertIn('appShell.hidden = !unlocked', source)
+        self.assertIn('document.body?.classList?.toggle("app-shell-hidden", !unlocked)', source)
+        self.assertIn("if (!isAppUnlocked(state)) {", source)
+        self.assertIn("clearAppPageRoots();", source)
 
     def test_account_detail_warnings_are_user_safe(self) -> None:
         source = read_text("js/modules/connections.js")
