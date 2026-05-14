@@ -1145,3 +1145,48 @@ Advertencias operativas:
   gate, pero siguen siendo riesgo operativo a vigilar antes de abrir usuarios.
 - La auditoria final de usuario normal queda pendiente de credenciales y cuenta
   MT5 real/demo controlada antes del go-live publico.
+
+## 2026-05-13 - Guardrail de backfill billing
+
+Contexto:
+
+- Rama: `main`.
+- Commit local: `c8616e7 Throttle billing backfill failures [skip render]`.
+- Objetivo: evitar que una restriccion temporal de Supabase o Stripe provoque
+  llamadas repetidas de reconciliacion de billing en cada refresco del
+  dashboard.
+- El archivo `docs/billing-implementation-checklist.md` queda fuera del stage
+  porque contiene cambios manuales del owner.
+
+Cambio validado:
+
+- `GET /api/billing/status` mantiene la reconciliacion server-side con Stripe
+  cuando no existe una suscripcion actual en Supabase.
+- Si el backfill falla por una restriccion temporal de plataforma, el backend
+  cachea solo el fallo durante una ventana corta y devuelve el estado seguro sin
+  reintentar en cada request.
+- La cache no guarda estados de plan validos y no sustituye a Stripe ni a
+  Supabase como fuente de verdad; solo reduce ruido/coste en modo degradado.
+
+Validacion local:
+
+- `python3 -m py_compile kmfx_connector_api.py`: verde.
+- `python3 -m unittest tests.test_connector_cors_config tests.test_auth_session_contract tests.test_user_flow_ui_contract`: verde, 158 tests.
+- `git diff --check`: verde.
+- `git diff --cached --check`: verde antes del commit.
+
+Cobertura relevante:
+
+- Usuario normal con `kevinmartinezpallares@hotmail.com` no puede heredar admin
+  por billing, metadata ni UUID.
+- Solo `kevinmartinezpallares@gmail.com` conserva admin.
+- Los checksums de release siguen ocultos para usuario normal y solo aparecen
+  con admin real + flag local de soporte.
+- El backfill de billing se intenta cuando hace falta, pero un fallo reciente
+  no se convierte en bucle de llamadas contra Supabase/Stripe.
+
+Pendiente:
+
+- La auditoria final de usuario normal debe confirmar en navegador que el plan
+  comprado se refleja sin intervencion manual, que no aparecen paneles admin y
+  que `Anadir cuenta` queda gobernado igual en Dashboard y Cuentas.
