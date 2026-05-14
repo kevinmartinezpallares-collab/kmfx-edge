@@ -1166,6 +1166,38 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertFalse(body["entitlements"]["rawBridgeDebug"])
         self.assertFalse(body["entitlements"]["teamWorkspace"])
 
+    def test_billing_status_throttles_recent_backfill_failures(self) -> None:
+        connector_api.BILLING_BACKFILL_FAILURE_CACHE.clear()
+        request = self._request(headers={"authorization": "Bearer verified-token"})
+        try:
+            with patch.object(
+                connector_api,
+                "_resolve_verified_bearer_claims",
+                return_value={
+                    "sub": "user-backfill-failed",
+                    "email": "user@example.com",
+                    "app_metadata": {"plan": "free", "billing_status": "free"},
+                    "user_metadata": {},
+                },
+            ), patch.object(
+                connector_api,
+                "backfill_billing_subscription_for_context",
+                side_effect=RuntimeError("supabase_http_402"),
+            ) as backfill_mock:
+                first_response = asyncio.run(connector_api.billing_status(request))
+                second_response = asyncio.run(connector_api.billing_status(request))
+        finally:
+            connector_api.BILLING_BACKFILL_FAILURE_CACHE.clear()
+
+        first_body = json.loads(first_response.body.decode("utf-8"))
+        second_body = json.loads(second_response.body.decode("utf-8"))
+
+        self.assertEqual(200, first_response.status_code)
+        self.assertEqual(200, second_response.status_code)
+        self.assertEqual("free", first_body["billing"]["effectivePlan"])
+        self.assertEqual("free", second_body["billing"]["effectivePlan"])
+        backfill_mock.assert_called_once()
+
     def test_billing_status_reconciles_stale_free_row_with_stripe_subscription(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         user_id = "user-with-trial"

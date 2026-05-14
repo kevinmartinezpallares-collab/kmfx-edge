@@ -411,6 +411,8 @@ VERIFIED_BEARER_CACHE_TTL_SECONDS = _env_int(
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS", default=5)
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_MAX_ENTRIES = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES", default=128)
+BILLING_BACKFILL_FAILURE_CACHE: dict[str, tuple[float, str]] = {}
+BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS = _env_int("KMFX_BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS", default=60)
 ACCOUNTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-accounts.json")
 POST_TRADE_REVIEWS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-post-trade-reviews.json")
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
@@ -653,6 +655,40 @@ def remember_accounts_summary_snapshot(cache_key: str, snapshot: dict[str, Any])
     ACCOUNTS_SUMMARY_SNAPSHOT_CACHE[cache_key] = (
         time.time() + ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS,
         deepcopy(snapshot),
+    )
+
+
+def billing_backfill_failure_cache_key(context: dict[str, Any]) -> str:
+    user_id = safe_str(context.get("user_id")).lower()
+    email = safe_str(context.get("email")).lower()
+    return user_id or email
+
+
+def cached_billing_backfill_failure_reason(context: dict[str, Any]) -> str:
+    if BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS <= 0:
+        return ""
+    cache_key = billing_backfill_failure_cache_key(context)
+    if not cache_key:
+        return ""
+    record = BILLING_BACKFILL_FAILURE_CACHE.get(cache_key)
+    if not record:
+        return ""
+    expires_at, reason = record
+    if expires_at <= time.time():
+        BILLING_BACKFILL_FAILURE_CACHE.pop(cache_key, None)
+        return ""
+    return reason
+
+
+def remember_billing_backfill_failure(context: dict[str, Any], reason: str) -> None:
+    if BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS <= 0:
+        return
+    cache_key = billing_backfill_failure_cache_key(context)
+    if not cache_key:
+        return
+    BILLING_BACKFILL_FAILURE_CACHE[cache_key] = (
+        time.time() + BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS,
+        safe_str(reason, "billing_backfill_failed"),
     )
 
 
@@ -1417,15 +1453,26 @@ def billing_status_payload_for_context(context: dict[str, Any]) -> dict[str, Any
     app_metadata = dict(ensure_dict(context.get("app_metadata")))
     billing_source = "app_metadata"
     if not context.get("is_admin"):
-        try:
-            billing_row = backfill_billing_subscription_for_context(context)
-        except RuntimeError as exc:
-            log.warning(
-                "Billing backfill skipped | scope_user_id=%s reason=%s",
+        cached_backfill_failure = cached_billing_backfill_failure_reason(context)
+        if cached_backfill_failure:
+            log.debug(
+                "Billing backfill temporarily skipped after recent failure | scope_user_id=%s reason=%s",
                 user_id,
-                safe_str(exc) or "billing_backfill_failed",
+                cached_backfill_failure,
             )
             billing_row = {}
+        else:
+            try:
+                billing_row = backfill_billing_subscription_for_context(context)
+            except RuntimeError as exc:
+                reason = safe_str(exc) or "billing_backfill_failed"
+                remember_billing_backfill_failure(context, reason)
+                log.warning(
+                    "Billing backfill skipped | scope_user_id=%s reason=%s",
+                    user_id,
+                    reason,
+                )
+                billing_row = {}
         if billing_row:
             app_metadata.update(subscription_app_metadata(billing_row))
             billing_source = "billing_subscription"
