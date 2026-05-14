@@ -1419,7 +1419,7 @@ export function initConnections(store) {
       renderConnections(root, store.getState());
     });
   }
-  const pollMs = isLocalRuntime() ? 5000 : 30000;
+  const pollMs = isLocalRuntime() ? 5000 : 120000;
   console.info("[KMFX][ACCOUNTS]", {
     label: "registry-poll-config",
     intervalMs: pollMs,

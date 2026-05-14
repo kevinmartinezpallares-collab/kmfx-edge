@@ -22,6 +22,7 @@ from uuid import UUID
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 
 from account_keys import hash_connection_key as storage_connection_key_hash
 from account_service import AccountService, account_summary_fields_from_payload, compact_dashboard_payload_from_payload
@@ -374,6 +375,11 @@ MT5_LOCAL_POLICY_PATH = "/mt5/policy"
 
 app = FastAPI(title="KMFX Connector API", version="0.2.0")
 app.add_middleware(
+    GZipMiddleware,
+    minimum_size=max(512, _env_int("KMFX_GZIP_MINIMUM_SIZE_BYTES", default=1024)),
+    compresslevel=min(9, max(1, _env_int("KMFX_GZIP_COMPRESS_LEVEL", default=5))),
+)
+app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ALLOW_ORIGINS,
     allow_origin_regex=CORS_ALLOW_ORIGIN_REGEX,
@@ -409,7 +415,7 @@ VERIFIED_BEARER_CACHE_TTL_SECONDS = _env_int(
     default=300 if _is_production_runtime() else 60,
 )
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
-ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS", default=5)
+ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_TTL_SECONDS = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS", default=30)
 ACCOUNTS_SUMMARY_SNAPSHOT_CACHE_MAX_ENTRIES = _env_int("KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES", default=128)
 BILLING_BACKFILL_FAILURE_CACHE: dict[str, tuple[float, str]] = {}
 BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS = _env_int("KMFX_BILLING_BACKFILL_FAILURE_CACHE_TTL_SECONDS", default=60)

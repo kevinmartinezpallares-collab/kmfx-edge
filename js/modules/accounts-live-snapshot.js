@@ -4,9 +4,9 @@ import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-013
 import { isAdminMode } from "./admin-mode.js?v=build-20260514-013000";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 10 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 30 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 15 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 2 * 60 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 function isLocalRuntime() {
@@ -19,9 +19,9 @@ function isDocumentHidden() {
 }
 
 function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
-  if (isHidden) return isLocal ? 15000 : 60000;
+  if (isHidden) return isLocal ? 15000 : 5 * 60 * 1000;
   if (isLocal) return hasOpenPositions ? 1000 : 5000;
-  return hasOpenPositions ? 8000 : 30000;
+  return hasOpenPositions ? 20000 : 120000;
 }
 
 function resolveAccountsFullSnapshotRefreshMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
