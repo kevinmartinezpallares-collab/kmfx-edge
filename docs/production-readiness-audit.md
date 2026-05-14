@@ -2,7 +2,7 @@
 
 Ultima revision: 2026-05-13
 Rama revisada: `main`
-Commit base local: `ea42253 Tighten final user go-live audit [skip render]`
+Commit base local: `dad532f Fix launcher reinstall stable key fallback [skip render]`
 Preset de producto: SaaS dashboard + conector MT5
 
 ## Veredicto
@@ -82,6 +82,11 @@ No se recomienda abrir produccion comercial amplia hasta completar la auditoria 
    - macOS y Windows estan publicados.
    - Versiones visibles para usuario final; checksums reservados a admin/soporte para no generar ruido.
    - Avisos de sistema operativo documentados en el runbook MT5.
+
+4. Reinstalacion del conector.
+   - El Launcher mantiene el contrato simple de producto: instalar/reinstalar el EA en una instalacion MT5.
+   - Si el backend desplegado aun no expone restauracion explicita de key, el Launcher cae al flujo estable y solicita la KMFXKey actual de la cuenta en vez de crear/regenerar otra.
+   - Contrato verificado en `dad532f` con `tests.test_launcher_connection_keys`: 35 tests OK.
 
 ## Matriz de datos MT5 vs dashboard
 

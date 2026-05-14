@@ -2,7 +2,7 @@
 
 Última revisión: 2026-05-13
 Rama revisada: `main`
-Commit base: `44248f3 Record full production gate evidence`
+Commit base: `dad532f Fix launcher reinstall stable key fallback [skip render]`
 Auditoria actualizada: `docs/production-readiness-audit.md`
 Auditoria seguridad preproduccion: `docs/security/preproduction-security-scan-2026-05-12.md`
 Objetivo: llevar KMFX Edge a producción comercial lo antes posible, sin bloquear el lanzamiento por la migración a Next.js.
@@ -204,6 +204,7 @@ La conexión directa con credenciales MT5 debe mantenerse bloqueada o marcada co
 - Bloqueo de KMFXKeys antiguas cerrado en el Launcher: reinstalar conector reutiliza la cuenta existente, resuelve la cuenta por preview de key o identidad MT5 y escribe la KMFXKey estable del dashboard en `MQL5/Files/kmfx_connection.conf`.
 - Los artefactos descargables macOS y Windows se reconstruyeron con el fix. Hasta que haya auto-update, quien tenga un Launcher antiguo debe descargarlo de nuevo desde el dashboard.
 - El runbook `docs/mt5-production-smoke-runbook.md` documenta el flujo de soporte: no crear cuentas duplicadas para reinstalar una cuenta, regenerar key solo por revocacion/filtracion/cambio explicito y validar que el EA vuelve a `Conectado a KMFX`.
+- Checkpoint `dad532f`: si el backend actual no soporta todavia el endpoint de restauracion explicita, el Launcher no falla; usa el flujo estable `get_account_key` y reinstala la KMFXKey existente de la cuenta. Esto preserva la regla de producto: cada cuenta conserva su propia key y el usuario no debe regenerarla para reparar.
 - Auditoria `codex-security:security-scan` cerrada sobre backend, Worker, Cuentas/keys, Launcher, billing y controles Supabase documentados; no aparece P0/P1 nuevo en codigo.
 - Riesgos operativos restantes de seguridad: activar GitHub branch protection/secret scanning/push protection, controlar o subir plan de Supabase por egress, mantener conexion directa MT5 bloqueada para usuario normal y ejecutar QA clean-machine del Launcher.
 - Revision `cloudflare:workers-best-practices` cerrada: `mt5-api.kmfxedge.com` queda como superficie dedicada al EA/MT5, con CORS cerrado, headers spoofables eliminados, query secrets descartados, allowlist de rutas y respuesta segura ante upstream caido.

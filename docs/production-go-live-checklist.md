@@ -443,6 +443,7 @@ Notas 2026-05-13:
 - Flujo de Launcher reducido a la version de producto final: seleccionar instalacion MT5, instalar/reinstalar conector y abrir MT5. Sin accion separada de reparar y sin gestion local de keys.
 - La KMFXKey de cada cuenta queda visible y copiable desde el dashboard. El Launcher solo la escribe en `MQL5/Files/kmfx_connection.conf` al instalar/reinstalar.
 - Tests de contrato del Launcher pasan y las descargas publicas macOS/Windows coinciden con los checksums publicados tras `0c13fd7`.
+- Checkpoint `dad532f`: `Reinstalar` tolera backends sin endpoint nuevo de restauracion y vuelve al flujo estable de obtener la KMFXKey actual de la cuenta. Resultado esperado para soporte: no regenerar key por defecto; reinstalar el conector sobre la cuenta correcta y comprobar que dashboard y EA usan la misma KMFXKey.
 - En UI de usuario final no se muestran checksums ni controles tecnicos; quedan reservados para admin/soporte.
 
 Criterio de salida:
