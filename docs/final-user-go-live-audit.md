@@ -4,6 +4,10 @@ Ultima revision: 2026-05-13
 Entorno objetivo: `https://kmfxedge.com`
 Estado: pendiente de credenciales, cuenta MT5 real/controlada y aprobacion de ejecucion.
 
+Esta auditoria es la puerta final antes de go-live. No sustituye a los tests
+automaticos: valida el producto desde fuera, como usuario normal, con datos reales
+o una cuenta demo controlada.
+
 ## Objetivo
 
 Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live:
@@ -20,6 +24,7 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
 ## Datos Que Debe Aportar Kevin
 
 - Email y contrasena de usuario normal.
+- Confirmacion de que ese email no debe tener permisos admin.
 - Tipo de acceso esperado: sin plan, Basic, Pro o Unlimited.
 - Cuenta MT5 de prueba:
   - broker;
@@ -30,6 +35,7 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
   - numero aproximado de operaciones cerradas esperadas.
 - Confirmacion de si se puede hacer una compra real/controlada o solo validar estado existente.
 - Confirmacion antes de cancelar cualquier suscripcion duplicada o borrar conexiones MT5.
+- Bandeja de entrada disponible para verificar recibos, confirmaciones y correos de billing.
 
 ## Reglas
 
@@ -46,6 +52,30 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
   - error visible;
   - request/response sin secretos;
   - correccion propuesta.
+- Si aparece un dato sensible en UI, log, consola o red, detener la auditoria y
+  tratarlo como bloqueo de produccion hasta corregirlo.
+- Si el usuario normal ve cualquier panel admin, detener la auditoria y corregir
+  permisos antes de seguir.
+
+## Evidencias A Recoger
+
+Cada bloque debe quedar con una de estas marcas:
+
+- `OK`: comportamiento esperado.
+- `WARN`: funciona, pero requiere seguimiento antes o justo despues de go-live.
+- `FAIL`: bloquea produccion.
+- `N/A`: no aplica al usuario o plan probado.
+
+Evidencias minimas:
+
+- captura o nota de estado de plan;
+- captura o nota de cuenta MT5 conectada sin mostrar la KMFXKey completa;
+- timestamp del primer sync;
+- conteo de operaciones en MT5 y en dashboard;
+- resultado de abrir/cerrar Launcher;
+- resultado de copiar la KMFXKey desde detalles;
+- confirmacion de que no aparecen paneles admin;
+- confirmacion de email/recibo si se hace compra live controlada.
 
 ## Bloque A - Acceso Y Permisos
 
@@ -61,6 +91,8 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
   - cuentas de otros usuarios.
 - [ ] El email `kevinmartinezpallares@hotmail.com` queda como usuario normal.
 - [ ] Solo `kevinmartinezpallares@gmail.com` tiene admin.
+- [ ] El estado admin no depende de metadata editable ni de UUID heredado.
+- [ ] Refrescar pagina y cerrar/abrir sesion no cambia permisos de usuario normal.
 
 ## Bloque B - Billing Y Conversion
 
@@ -79,6 +111,9 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
 - [ ] Compra real/controlada genera recibo o email de confirmacion.
 - [ ] Trial sin tarjeta queda en trial y al terminar debe pausar si no hay metodo de pago.
 - [ ] No se crean duplicados de subscription por doble clic/retorno repetido.
+- [ ] El plan comprado se refleja sin tener que tocar Supabase manualmente.
+- [ ] El dashboard y `Ajustes > Suscripcion` muestran el mismo plan.
+- [ ] El boton `Anadir cuenta` queda bloqueado o habilitado igual en todas las rutas.
 
 ## Bloque C - Descargas Y Launcher
 
@@ -97,6 +132,9 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
   - `kmfx_connection.conf`;
   - preset si aplica.
 - [ ] Launcher no crea ni regenera keys; solo instala la KMFXKey estable de esa cuenta.
+- [ ] El Launcher muestra una interfaz simple: instalar/reinstalar y abrir MT5.
+- [ ] Las keys se consultan desde el dashboard, no se gestionan como flujo tecnico dentro del Launcher.
+- [ ] Si el Launcher no puede contactar con KMFX, el error explica accion concreta para el usuario.
 
 ## Bloque D - MT5 Y EA
 
@@ -110,6 +148,8 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
 - [ ] Cerrar Launcher no corta la sincronizacion.
 - [ ] Reinstalar conserva la misma cuenta y KMFXKey.
 - [ ] Si la key esta revocada, el flujo correcto es copiar la key estable desde detalles o reinstalar, no crear una cuenta nueva.
+- [ ] Si se reinstala el conector sobre la misma cuenta, dashboard y Launcher muestran la misma KMFXKey.
+- [ ] Si se anade otra instancia MT5, se crea otra cuenta/key solo para esa instancia.
 
 ## Bloque E - Reconciliacion De Datos
 
@@ -122,6 +162,8 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
 - [ ] Dashboard, Operaciones, Calendario, Capital, Risk Engine, Herramientas, Ejecucion e Insights usan la misma cuenta activa.
 - [ ] Las metricas criticas muestran fuente/formula/confianza y no dependen de mocks.
 - [ ] Politicas default no se muestran como incumplimientos reales.
+- [ ] Warnings tecnicos se traducen a lectura util para usuario o quedan ocultos para admin/diagnostico.
+- [ ] Las metricas que no tengan muestra suficiente lo indican sin inventar precision.
 
 ## Bloque F - Recorrido Del Dashboard
 
@@ -140,6 +182,22 @@ Validar KMFX Edge exactamente como lo viviria un trader antes de pasar a go-live
 - [ ] Estudio de metricas.
 - [ ] Diario / Review / Entradas / AI Review si esta visible por plan.
 - [ ] Enlaces legales, soporte y disclaimer.
+- [ ] No hay textos provisionales, checksums visibles ni mensajes tecnicos para usuario normal.
+- [ ] No hay acciones destructivas sin confirmacion.
+
+## Bloque H - Criterios De No-Go
+
+No pasar a go-live si ocurre cualquiera de estos casos:
+
+- usuario normal ve admin, datos de admin o cuentas de otro usuario;
+- plan comprado no se aplica en dashboard;
+- `Anadir cuenta` se puede usar sin plan cuando deberia estar bloqueado;
+- EA no sincroniza tras cerrar Launcher;
+- KMFXKey del dashboard y la instalada por Launcher no coinciden para la misma cuenta;
+- hay que regenerar keys para reparar una cuenta normal;
+- operaciones, calendario y dashboard no cuadran en conteo/P&L sin explicacion;
+- Stripe crea suscripciones duplicadas;
+- Supabase/Render quedan en riesgo de coste o bloqueo operativo sin guardrail manual.
 
 ## Bloque G - Resultado
 
@@ -160,3 +218,4 @@ La auditoria solo queda aprobada si:
 - Cuenta MT5 real/demo controlada.
 - Confirmacion de compra live controlada o estado de plan existente.
 - Aprobacion explicita para cancelar suscripciones duplicadas si aparecen.
+- Confirmacion de que Supabase y Render tienen limites/plan operativo suficiente para la prueba.
