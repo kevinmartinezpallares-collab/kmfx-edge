@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from account_service import AccountService
 from account_store import SupabaseAccountStore
@@ -40,6 +41,12 @@ class MemorySupabaseAccountStore(SupabaseAccountStore):
 
 
 class SupabaseAccountStoreTests(unittest.TestCase):
+    def test_timeout_is_short_and_configurable_for_render_health_resilience(self):
+        with patch.dict("os.environ", {"KMFX_SUPABASE_ACCOUNT_STORE_TIMEOUT_SECONDS": "1.5"}, clear=False):
+            store = SupabaseAccountStore("https://example.supabase.co", "service-role-test")
+
+        self.assertEqual(1.5, store.timeout_seconds)
+
     def test_connection_key_survives_service_recreation_as_hash(self):
         store = MemorySupabaseAccountStore()
         service = AccountService(store)

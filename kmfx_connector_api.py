@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 from copy import deepcopy
 import hmac
@@ -1238,6 +1239,68 @@ def mt5_missing_connection_key_response(endpoint: str, sync_id: str = "", batch_
     if batch_id:
         payload["batch_id"] = batch_id
     return connector_json_response(payload, status_code=401)
+
+
+def is_account_store_unavailable_exception(exc: BaseException) -> bool:
+    message = safe_str(exc)
+    return isinstance(exc, OSError) and (
+        "supabase_account_store_" in message
+        or "account_store" in message
+    )
+
+
+async def account_store_io(operation: str, func, *args, **kwargs):
+    return await asyncio.to_thread(func, *args, **kwargs)
+
+
+def mt5_account_store_unavailable_response(
+    endpoint: str,
+    exc: BaseException,
+    *,
+    operation: str,
+    connection_key: str = "",
+    sync_id: str = "",
+    batch_id: str = "",
+) -> JSONResponse:
+    log.warning(
+        "%s rejected | reason=account_store_unavailable operation=%s error_type=%s key=%s",
+        endpoint,
+        operation,
+        type(exc).__name__,
+        mask_connection_key(connection_key),
+    )
+    emit_operational_alert(
+        "account_store_unavailable",
+        severity="error",
+        details={
+            "endpoint": endpoint,
+            "operation": operation,
+            "error_type": type(exc).__name__,
+            "connection_key": mask_connection_key(connection_key),
+            "sync_id": sync_id,
+            "batch_id": batch_id,
+        },
+    )
+    payload: dict[str, Any] = {
+        "ok": False,
+        "received": False,
+        "disposition": "retry",
+        "reason": "account_store_unavailable",
+        "error": "account_store_unavailable",
+        "error_code": 5031,
+        "retryable": True,
+        "details": {
+            "field": "connection_key",
+            "problem": "account_store_unavailable",
+            "operation": operation,
+        },
+        "timestamp": now_iso(),
+    }
+    if sync_id:
+        payload["sync_id"] = sync_id
+    if batch_id:
+        payload["batch_id"] = batch_id
+    return connector_json_response(payload, status_code=503)
 
 
 def _resolve_trusted_header_email(request: Request) -> str:
@@ -4791,7 +4854,10 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
     }
 
 
-def load_persisted_account_state(connection_key: str, identity_key: str = "") -> dict[str, Any]:
+def load_persisted_account_state(connection_key: str, identity_key: str = "", bound_account: Any = None) -> dict[str, Any]:
+    if bound_account is not None and isinstance(getattr(bound_account, "latest_payload", None), dict):
+        return deepcopy(bound_account.latest_payload or {})
+
     normalized_connection_key = safe_str(connection_key)
     if normalized_connection_key:
         account = resolve_account_by_connection_key(normalized_connection_key)
@@ -7056,7 +7122,22 @@ async def mt5_sync(request: Request) -> JSONResponse:
             rate_limited = connection_key_rate_limit_response("/api/mt5/sync", connection_key)
             if rate_limited is not None:
                 return rate_limited
-            bound_account = resolve_account_by_connection_key(connection_key)
+            try:
+                bound_account = await account_store_io(
+                    "connection_key_lookup",
+                    resolve_account_by_connection_key,
+                    connection_key,
+                )
+            except OSError as exc:
+                if is_account_store_unavailable_exception(exc):
+                    return mt5_account_store_unavailable_response(
+                        "/api/mt5/sync",
+                        exc,
+                        operation="connection_key_lookup",
+                        connection_key=connection_key,
+                        sync_id=sync_id,
+                    )
+                raise
             log.info(
                 "SYNC connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s account_id=%s user_id=%s status=%s",
                 RUNTIME_SYNC_KEY_LOOKUP_MARKER,
@@ -7067,9 +7148,41 @@ async def mt5_sync(request: Request) -> JSONResponse:
                 bound_account.status if bound_account else "",
             )
             if bound_account is None:
-                if account_service.is_connection_key_revoked_any_user(connection_key):
+                try:
+                    is_revoked = await account_store_io(
+                        "revoked_connection_key_lookup",
+                        account_service.is_connection_key_revoked_any_user,
+                        connection_key,
+                    )
+                except OSError as exc:
+                    if is_account_store_unavailable_exception(exc):
+                        return mt5_account_store_unavailable_response(
+                            "/api/mt5/sync",
+                            exc,
+                            operation="revoked_connection_key_lookup",
+                            connection_key=connection_key,
+                            sync_id=sync_id,
+                        )
+                    raise
+                if is_revoked:
                     return mt5_revoked_connection_key_response("/api/mt5/sync", connection_key, sync_id=sync_id)
-                bound_account = bootstrap_account_for_sync(connection_key, sanitized_account)
+                try:
+                    bound_account = await account_store_io(
+                        "connection_key_bootstrap",
+                        bootstrap_account_for_sync,
+                        connection_key,
+                        sanitized_account,
+                    )
+                except OSError as exc:
+                    if is_account_store_unavailable_exception(exc):
+                        return mt5_account_store_unavailable_response(
+                            "/api/mt5/sync",
+                            exc,
+                            operation="connection_key_bootstrap",
+                            connection_key=connection_key,
+                            sync_id=sync_id,
+                        )
+                    raise
                 log.info(
                     "SYNC connection_key bootstrap | key=%s allowed=%s found=%s account_id=%s user_id=%s status=%s",
                     mask_connection_key(connection_key),
@@ -7169,7 +7282,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
         connector_version = safe_str(payload.get("connector_version"), "unknown")
         sync_timestamp = safe_timestamp(payload.get("timestamp"))
         identity_key = resolve_identity_key(connection_key, _auth_identity_key(auth_scope_user_id, login) if auth_scope_user_id else login)
-        persisted_state = load_persisted_account_state(connection_key, identity_key)
+        persisted_state = load_persisted_account_state(connection_key, identity_key, bound_account)
         policy = build_connector_policy_response(identity_key, persisted_state)
         existing_receipt = get_processed_sync_receipt(sync_id)
         if existing_receipt:
@@ -7214,13 +7327,28 @@ async def mt5_sync(request: Request) -> JSONResponse:
         }
 
         sync_user_id = bound_account.user_id if bound_account else (auth_scope_user_id or "local")
-        previous_account = bound_account or account_service.get_account_by_identity(
-            user_id=sync_user_id,
-            platform="mt5",
-            broker=safe_str(sanitized_account.get("broker"), "Unknown broker"),
-            server=safe_str(sanitized_account.get("server")),
-            login=login,
-        )
+        previous_account = bound_account
+        if previous_account is None:
+            try:
+                previous_account = await account_store_io(
+                    "identity_account_lookup",
+                    account_service.get_account_by_identity,
+                    user_id=sync_user_id,
+                    platform="mt5",
+                    broker=safe_str(sanitized_account.get("broker"), "Unknown broker"),
+                    server=safe_str(sanitized_account.get("server")),
+                    login=login,
+                )
+            except OSError as exc:
+                if is_account_store_unavailable_exception(exc):
+                    return mt5_account_store_unavailable_response(
+                        "/api/mt5/sync",
+                        exc,
+                        operation="identity_account_lookup",
+                        connection_key=connection_key,
+                        sync_id=sync_id,
+                    )
+                raise
         stored_payload = persisted_state or (previous_account.latest_payload if previous_account else {})
         equity_state = resolve_persisted_equity_state(
             payload=payload,
@@ -7271,17 +7399,30 @@ async def mt5_sync(request: Request) -> JSONResponse:
             len(dashboard_payload.get("history") or []),
             len(dashboard_payload.get("positions") or []),
         )
-        synced_account = account_service.link_connector_sync(
-            user_id=sync_user_id,
-            account_info={
-                **sanitized_account,
-                "platform": "mt5",
-            },
-            payload=dashboard_payload,
-            account_id=bound_account.account_id if bound_account else None,
-            api_key=connection_key,
-            nickname=bound_account.alias if bound_account else None,
-        )
+        try:
+            synced_account = await account_store_io(
+                "connector_sync_persist",
+                account_service.link_connector_sync,
+                user_id=sync_user_id,
+                account_info={
+                    **sanitized_account,
+                    "platform": "mt5",
+                },
+                payload=dashboard_payload,
+                account_id=bound_account.account_id if bound_account else None,
+                api_key=connection_key,
+                nickname=bound_account.alias if bound_account else None,
+            )
+        except OSError as exc:
+            if is_account_store_unavailable_exception(exc):
+                return mt5_account_store_unavailable_response(
+                    "/api/mt5/sync",
+                    exc,
+                    operation="connector_sync_persist",
+                    connection_key=connection_key,
+                    sync_id=sync_id,
+                )
+            raise
         remember_live_account_snapshot(synced_account)
         log.info(
             "ACCOUNT sync upsert | account_id=%s login=%s status=%s broker=%s server=%s last_sync_at=%s",
@@ -7390,7 +7531,22 @@ async def mt5_journal(request: Request) -> JSONResponse:
         rate_limited = connection_key_rate_limit_response("/api/mt5/journal", connection_key)
         if rate_limited is not None:
             return rate_limited
-        bound_account = resolve_account_by_connection_key(connection_key)
+        try:
+            bound_account = await account_store_io(
+                "connection_key_lookup",
+                resolve_account_by_connection_key,
+                connection_key,
+            )
+        except OSError as exc:
+            if is_account_store_unavailable_exception(exc):
+                return mt5_account_store_unavailable_response(
+                    "/api/mt5/journal",
+                    exc,
+                    operation="connection_key_lookup",
+                    connection_key=connection_key,
+                    batch_id=batch_id,
+                )
+            raise
         log.info(
             "JOURNAL connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
             RUNTIME_SYNC_KEY_LOOKUP_MARKER,
@@ -7398,7 +7554,23 @@ async def mt5_journal(request: Request) -> JSONResponse:
             bool(bound_account),
         )
         if bound_account is None:
-            if account_service.is_connection_key_revoked_any_user(connection_key):
+            try:
+                is_revoked = await account_store_io(
+                    "revoked_connection_key_lookup",
+                    account_service.is_connection_key_revoked_any_user,
+                    connection_key,
+                )
+            except OSError as exc:
+                if is_account_store_unavailable_exception(exc):
+                    return mt5_account_store_unavailable_response(
+                        "/api/mt5/journal",
+                        exc,
+                        operation="revoked_connection_key_lookup",
+                        connection_key=connection_key,
+                        batch_id=batch_id,
+                    )
+                raise
+            if is_revoked:
                 return mt5_revoked_connection_key_response("/api/mt5/journal", connection_key, batch_id=batch_id)
             log_connection_key_validation("/api/mt5/journal", connection_key, False)
             return connector_json_response(
@@ -7508,11 +7680,26 @@ async def mt5_policy(
             "timestamp": now_iso(),
         })
 
+    bound_account = None
     if normalized_connection_key:
         rate_limited = connection_key_rate_limit_response("/api/mt5/policy", normalized_connection_key)
         if rate_limited is not None:
             return rate_limited
-        bound_account = resolve_account_by_connection_key(normalized_connection_key)
+        try:
+            bound_account = await account_store_io(
+                "connection_key_lookup",
+                resolve_account_by_connection_key,
+                normalized_connection_key,
+            )
+        except OSError as exc:
+            if is_account_store_unavailable_exception(exc):
+                return mt5_account_store_unavailable_response(
+                    "/api/mt5/policy",
+                    exc,
+                    operation="connection_key_lookup",
+                    connection_key=normalized_connection_key,
+                )
+            raise
         log.info(
             "POLICY connection_key lookup | marker=%s key=%s lookup=get_account_by_api_key_any_user called=true found=%s",
             RUNTIME_SYNC_KEY_LOOKUP_MARKER,
@@ -7520,7 +7707,22 @@ async def mt5_policy(
             bool(bound_account),
         )
         if bound_account is None:
-            if account_service.is_connection_key_revoked_any_user(normalized_connection_key):
+            try:
+                is_revoked = await account_store_io(
+                    "revoked_connection_key_lookup",
+                    account_service.is_connection_key_revoked_any_user,
+                    normalized_connection_key,
+                )
+            except OSError as exc:
+                if is_account_store_unavailable_exception(exc):
+                    return mt5_account_store_unavailable_response(
+                        "/api/mt5/policy",
+                        exc,
+                        operation="revoked_connection_key_lookup",
+                        connection_key=normalized_connection_key,
+                    )
+                raise
+            if is_revoked:
                 return mt5_revoked_connection_key_response("/api/mt5/policy", normalized_connection_key)
             log_connection_key_validation("/api/mt5/policy", normalized_connection_key, False)
             return connector_json_response(
@@ -7540,9 +7742,22 @@ async def mt5_policy(
                 status_code=401,
             )
         log_connection_key_validation("/api/mt5/policy", normalized_connection_key, True)
-        account_service.record_policy_access(bound_account.account_id)
+        try:
+            await account_store_io(
+                "policy_access_persist",
+                account_service.record_policy_access,
+                bound_account.account_id,
+            )
+        except OSError as exc:
+            if not is_account_store_unavailable_exception(exc):
+                raise
+            log.warning(
+                "Policy access persistence skipped | reason=account_store_unavailable account_id=%s error_type=%s",
+                bound_account.account_id,
+                type(exc).__name__,
+            )
 
-    persisted_state = load_persisted_account_state(normalized_connection_key, identity_key)
+    persisted_state = load_persisted_account_state(normalized_connection_key, identity_key, bound_account)
     policy = build_connector_policy_response(identity_key, persisted_state)
     log.info(
         "Policy requested | identity=%s hash=%s equity_peak=%.2f daily_start_equity=%.2f",

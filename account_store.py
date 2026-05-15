@@ -18,6 +18,17 @@ from account_models import Account
 log = logging.getLogger("kmfx.account_store")
 
 
+def _env_float(name: str, *, default: float) -> float:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return default
+    try:
+        parsed = float(value)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else default
+
+
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -368,6 +379,7 @@ class SupabaseAccountStore(AccountStore):
         self.project_url = str(project_url or "").strip().rstrip("/")
         self.service_role_key = str(service_role_key or "").strip()
         self.table = str(table or "mt5_account_registry").strip()
+        self.timeout_seconds = _env_float("KMFX_SUPABASE_ACCOUNT_STORE_TIMEOUT_SECONDS", default=3.0)
         if not self.project_url or not self.service_role_key:
             raise ValueError("supabase_account_store_not_configured")
 
@@ -394,7 +406,7 @@ class SupabaseAccountStore(AccountStore):
             headers["Prefer"] = prefer
         request = urllib.request.Request(url, data=body, headers=headers, method=str(method or "GET").upper())
         try:
-            with urllib.request.urlopen(request, timeout=10) as response:
+            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                 raw_body = response.read()
         except urllib.error.HTTPError as exc:
             details = exc.read().decode("utf-8", errors="replace")[:500]

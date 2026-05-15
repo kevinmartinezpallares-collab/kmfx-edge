@@ -3773,6 +3773,55 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertIn("Retry-After", second.headers)
         self.assertNotIn("policy-route-rate-key", body_text)
 
+    def test_policy_route_returns_503_when_account_store_is_unavailable(self) -> None:
+        class FailingAccountService:
+            def get_account_by_api_key_any_user(self, api_key):
+                raise OSError("supabase_account_store_request_failed")
+
+        previous_service = connector_api.account_service
+        connector_api.account_service = FailingAccountService()
+        try:
+            request = self._request(headers={"x-kmfx-connection-key": "store-timeout-secret"})
+            response = asyncio.run(connector_api.mt5_policy(request, login="4000082126"))
+        finally:
+            connector_api.account_service = previous_service
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("account_store_unavailable", body["reason"])
+        self.assertTrue(body["retryable"])
+        self.assertNotIn("store-timeout-secret", body_text)
+
+    def test_sync_route_returns_503_when_account_store_is_unavailable(self) -> None:
+        class FailingAccountService:
+            def get_account_by_api_key_any_user(self, api_key):
+                raise OSError("supabase_account_store_request_failed")
+
+        previous_service = connector_api.account_service
+        connector_api.account_service = FailingAccountService()
+        try:
+            request = self._request(
+                headers={"x-kmfx-connection-key": "sync-timeout-secret"},
+                json_body={
+                    "sync_id": "sync-store-down",
+                    "account": {"login": "4000082126"},
+                    "positions": [],
+                    "trades": [],
+                },
+            )
+            response = asyncio.run(connector_api.mt5_sync(request))
+        finally:
+            connector_api.account_service = previous_service
+
+        body_text = response.body.decode("utf-8")
+        body = json.loads(body_text)
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("account_store_unavailable", body["reason"])
+        self.assertEqual("sync-store-down", body["sync_id"])
+        self.assertTrue(body["retryable"])
+        self.assertNotIn("sync-timeout-secret", body_text)
+
 
 if __name__ == "__main__":
     unittest.main()
