@@ -26,7 +26,7 @@ import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260514
 import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260514-233900";
 import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260514-233900";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260514-233900";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260514-233900";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260515-auth-demo";
 import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260514-233900";
 import {
   DEFAULT_AUTH_PROFILE,

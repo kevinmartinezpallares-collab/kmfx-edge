@@ -1,6 +1,7 @@
 export function initAuthUI(store) {
   const root = document.getElementById("authRoot");
   if (!root) return;
+  const DEMO_UNLOCK_STORAGE_KEY = "kmfx.auth.demo_unlocked.v1";
   const launcherAuthParams = new URL(window.location.href).searchParams;
   const launcherAuthEmail = launcherAuthParams.get("launcher_auth") === "1"
     ? String(launcherAuthParams.get("launcher_email") || "").trim().toLowerCase()
@@ -38,7 +39,14 @@ export function initAuthUI(store) {
     loading: false,
     error: "",
     notice: launcherAuthEmail ? "Completa el acceso y volverás al launcher automáticamente." : "",
-    providerLoading: ""
+    providerLoading: "",
+    demoUnlocked: (() => {
+      try {
+        return window.localStorage.getItem(DEMO_UNLOCK_STORAGE_KEY) === "1";
+      } catch {
+        return false;
+      }
+    })()
   };
 
   const getRuntimeTurnstileConfig = () => window.__KMFX_CONFIG__?.turnstile || {};
@@ -235,6 +243,7 @@ export function initAuthUI(store) {
       notice: String(detail.notice || ""),
       loading: false,
       providerLoading: "",
+      demoUnlocked: false,
     });
   });
 
@@ -264,6 +273,26 @@ export function initAuthUI(store) {
     if (submitButton && submitLabel) {
       submitButton.textContent = submitLabel;
     }
+  };
+
+  const setDemoUnlocked = (enabled) => {
+    const nextValue = Boolean(enabled);
+    try {
+      if (nextValue) {
+        window.localStorage.setItem(DEMO_UNLOCK_STORAGE_KEY, "1");
+      } else {
+        window.localStorage.removeItem(DEMO_UNLOCK_STORAGE_KEY);
+      }
+    } catch {
+      // noop
+    }
+    setUiState({
+      demoUnlocked: nextValue,
+      loading: false,
+      providerLoading: "",
+      error: "",
+      notice: ""
+    });
   };
 
   const authSlides = [
@@ -444,8 +473,9 @@ export function initAuthUI(store) {
     const recoveryState = window.kmfxAuth?.getRecoveryState?.() || { active: false, email: "" };
     const isRecoveryMode = Boolean(recoveryState.active);
     const isAuthenticated = auth.status === "authenticated";
-    document.body.classList.toggle("auth-locked", !isAuthenticated || isRecoveryMode);
-    if (isAuthenticated && !isRecoveryMode) {
+    const isDemoUnlocked = Boolean(root.__authUiState?.demoUnlocked) && !isRecoveryMode;
+    document.body.classList.toggle("auth-locked", (!isAuthenticated && !isDemoUnlocked) || isRecoveryMode);
+    if ((isAuthenticated || isDemoUnlocked) && !isRecoveryMode) {
       if (root.__authCarouselTimer) {
         window.clearInterval(root.__authCarouselTimer);
         root.__authCarouselTimer = null;
@@ -677,6 +707,10 @@ export function initAuthUI(store) {
                   <span>${isGoogleLoading ? "Conectando..." : "Continuar con Google"}</span>
                 </button>
                 <div class="auth-trust-line">Usamos Google para proteger tu cuenta. No almacenamos contraseñas.</div>` : ""}
+                ${!isForgotMode && !isResetMode ? `<button class="auth-link-btn auth-link-btn--demo" type="button" data-auth-demo ${uiState.loading ? "disabled" : ""}>
+                  Explorar demo sin iniciar sesión
+                </button>
+                <div class="auth-trust-line">Modo temporal: podrás ver la demo, pero las cuentas reales, pagos y ajustes privados seguirán protegidos.</div>` : ""}
                 ${!isResetMode && !isSignUpMode ? `<button class="auth-link-btn" type="button" data-auth-secondary-action ${uiState.loading ? "disabled" : ""}>
                   ${isForgotMode ? "Volver a iniciar sesión" : "¿Has olvidado tu contraseña?"}
                 </button>` : ""}
@@ -739,6 +773,7 @@ export function initAuthUI(store) {
       signInWithPassword();
     });
     root.querySelector('[data-auth-google]')?.addEventListener("click", signInWithGoogle);
+    root.querySelector('[data-auth-demo]')?.addEventListener("click", () => setDemoUnlocked(true));
     root.querySelectorAll("[data-auth-slide]")?.forEach((button) => {
       button.addEventListener("click", () => {
         const nextIndex = Number(button.getAttribute("data-auth-slide") || 0);
