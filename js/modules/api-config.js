@@ -1,8 +1,13 @@
 const PRODUCTION_API_BASE_URL = "https://kmfx-edge-api.onrender.com";
 
-function isLocalRuntime() {
+function isLocalHostname(hostname = "") {
+  const normalized = String(hostname || "").trim().toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function inferLocalRuntimeForDefaultBaseUrl() {
   const hostname = window.location.hostname || "";
-  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  return window.location.protocol === "file:" || isLocalHostname(hostname);
 }
 
 function normalizeBaseUrl(value = "") {
@@ -20,22 +25,32 @@ function readWindowBaseUrl() {
 
 let cachedBaseUrl = null;
 
+export function isLocalApiBaseUrl(baseUrl = "") {
+  try {
+    const parsed = baseUrl ? new URL(baseUrl) : null;
+    return isLocalHostname(parsed?.hostname || "");
+  } catch {
+    return false;
+  }
+}
+
 export function resolveApiBaseUrl() {
   if (cachedBaseUrl !== null) return cachedBaseUrl;
 
   const explicitBaseUrl = readWindowBaseUrl() || readMetaBaseUrl();
   if (explicitBaseUrl) {
     cachedBaseUrl = explicitBaseUrl;
-  } else if (isLocalRuntime()) {
+  } else if (inferLocalRuntimeForDefaultBaseUrl()) {
     cachedBaseUrl = "http://127.0.0.1:8000";
   } else {
     cachedBaseUrl = PRODUCTION_API_BASE_URL;
   }
 
+  const resolvedMode = isLocalApiBaseUrl(cachedBaseUrl) ? "local" : "production";
   console.info("[KMFX][API]", {
     label: "base url resolved",
     baseURL: cachedBaseUrl || "(unset)",
-    mode: isLocalRuntime() ? "local" : "production",
+    mode: resolvedMode,
   });
   return cachedBaseUrl;
 }
