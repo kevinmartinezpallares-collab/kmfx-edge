@@ -1,9 +1,9 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-233900";
-import { buildApiUrl } from "./api-config.js?v=build-20260514-233900";
-import { showToast } from "./toast.js?v=build-20260514-233900";
-import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260514-233900";
-import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260514-233900";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-233900";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260515-010629";
+import { buildApiUrl } from "./api-config.js?v=build-20260515-010629";
+import { showToast } from "./toast.js?v=build-20260515-010629";
+import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260515-010629";
+import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260515-010629";
+import { isAdminMode } from "./admin-mode.js?v=build-20260515-010629";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -291,9 +291,7 @@ function accountLooksConnected(account = {}) {
     account.last_sync_at ||
     account.lastSyncAt ||
     account.first_sync_at ||
-    account.firstSyncAt ||
-    account.login ||
-    account.mt5_login
+    account.firstSyncAt
   );
 }
 
@@ -466,7 +464,7 @@ function renderEaConfigStep(state) {
   return `
     ${renderStepFrame(
       "Prepara MetaTrader 5",
-      "El Launcher solo instala y configura. La sincronización la hace MT5 con el EA activo.",
+      "El Launcher solo detecta instancias e instala el EA. La KMFXKey se pega manualmente en MT5 para este usuario.",
       `
         <label class="form-stack">
           <span>Nombre visible de la cuenta</span>
@@ -484,8 +482,8 @@ function renderEaConfigStep(state) {
         <div class="connection-wizard__setup-grid">
           <div class="connection-wizard__setup-card connection-wizard__setup-card--accent">
             <div class="connection-wizard__setup-eyebrow">Recomendado</div>
-            <div class="connection-wizard__setup-title">Launcher + conector automático</div>
-            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Después puedes cerrar el Launcher cuando MT5 ya sincronice.</p>
+            <div class="connection-wizard__setup-title">Launcher + instalación del conector</div>
+            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Después pega la KMFXKey de esta cuenta en el EA y deja MT5 abierto hasta la primera sincronización.</p>
             <div class="connection-wizard__release-note">Launcher v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.launcher.version)} · Conector v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.connector.version)}</div>
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>
@@ -506,7 +504,7 @@ function renderEaConfigStep(state) {
         <div class="connection-wizard__utility-row connection-wizard__utility-row--accent">
           <div>
             <div class="connection-wizard__utility-label">Solo lectura para cuentas de fondeo</div>
-            <p class="connection-wizard__warning" style="margin-top:8px !important;">KMFX Connector solo lee y sincroniza datos. No abre, cierra ni modifica operaciones en MetaTrader 5, y el Launcher solo instala el conector.</p>
+            <p class="connection-wizard__warning" style="margin-top:8px !important;">KMFX Connector solo lee y sincroniza datos. No abre, cierra ni modifica operaciones en MetaTrader 5, y el Launcher no guarda ni impone ninguna KMFXKey.</p>
           </div>
         </div>
         ${renderAdminReleaseChecksums(state)}

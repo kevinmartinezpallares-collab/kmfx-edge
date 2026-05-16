@@ -140,13 +140,7 @@ class LauncherServiceRuntime:
         self.config = config
         self.logger = configure_logging(config.debug)
         self.bridge_config = load_bridge_config()
-        bridge_connection_key = str(self.bridge_config.get("connection_key") or "").strip()
-        if bridge_connection_key:
-            self.config.connection_key = bridge_connection_key
-            self.logger.info("[KMFX][BRIDGE] connection_key loaded: %s", mask_connection_key(bridge_connection_key))
-        else:
-            self.config.connection_key = ""
-            self.logger.warning("[KMFX][BRIDGE] WARNING: no connection_key config found")
+        self.config.connection_key = ""
         self.store = LauncherStateStore()
         self.backend = BackendClient(config)
         self.stop_event = threading.Event()
@@ -428,24 +422,15 @@ class LauncherServiceRuntime:
         return {"ok": True, "message": "Sesión iniciada.", "session": session}
 
     def reload_bridge_config(self, force_log: bool = False) -> str:
-        previous_key = str(self.bridge_config.get("connection_key") or "").strip()
         self.bridge_config = load_bridge_config()
-        next_key = str(self.bridge_config.get("connection_key") or "").strip()
-        self.config.connection_key = next_key
-        if next_key and next_key != previous_key:
-            self.logger.info(
-                "[KMFX][BRIDGE] connection_key reloaded previous=%s current=%s",
-                mask_connection_key(previous_key),
-                mask_connection_key(next_key),
-            )
-        elif next_key and force_log:
-            self.logger.info("[KMFX][BRIDGE] connection_key reload confirmed key=%s", mask_connection_key(next_key))
-        elif not next_key and force_log:
-            self.logger.warning("[KMFX][BRIDGE] WARNING: no connection_key config found after reload")
-        return next_key
+        self.config.connection_key = ""
+        if force_log:
+            self.logger.info("[KMFX][BRIDGE] config reloaded without launcher-owned connection keys")
+        return ""
 
     def effective_connection_key(self) -> str:
-        return self.reload_bridge_config()
+        self.reload_bridge_config()
+        return ""
 
     def identity_key(self, payload: dict[str, Any] | None, login: str = "", connection_key: str = "") -> str:
         if connection_key:
@@ -467,14 +452,7 @@ class LauncherServiceRuntime:
     def prepare_payload_for_backend(self, payload: dict[str, Any] | None, header_connection_key: str = "") -> tuple[dict[str, Any], str]:
         safe_payload = dict(payload) if isinstance(payload, dict) else {}
         explicit_key = str(header_connection_key or payload_connection_key(safe_payload) or "").strip()
-        bridge_key = self.effective_connection_key()
-        effective_key, key_source = resolve_effective_connection_key(explicit_key=explicit_key, bridge_key=bridge_key)
-        if effective_key and explicit_key and bridge_key and explicit_key != bridge_key:
-            self.logger.info(
-                "[KMFX][BRIDGE] explicit connection_key kept input_key=%s bridge_key=%s",
-                mask_connection_key(explicit_key),
-                mask_connection_key(bridge_key),
-            )
+        effective_key, key_source = resolve_effective_connection_key(explicit_key=explicit_key, bridge_key="")
         for key in ("connection_key", "KMFXApiKey", "api_key"):
             safe_payload.pop(key, None)
         if effective_key:
@@ -744,7 +722,7 @@ class LauncherServiceRuntime:
             "last_policy": snapshot.get("last_policy", {}),
             "last_backend_error": snapshot.get("last_backend_error", ""),
             "last_local_error": snapshot.get("last_local_error", ""),
-            "connection_key": mask_connection_key(self.config.connection_key),
+            "connection_key": "",
             "timestamp": now_iso(),
         }
 

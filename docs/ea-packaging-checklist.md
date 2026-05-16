@@ -4,7 +4,7 @@
 
 The public/private beta v1 EA package should ship `KMFXConnector.ex5` as a read-only sync connector.
 
-Current public package source version: `KMFXConnector` v2.86.
+Current public package source version: `KMFXConnector` v2.87.
 
 Public v1 scope:
 
@@ -71,8 +71,8 @@ Launcher/package checks:
 
 - Windows launcher artifact exists and checksum matches.
 - macOS launcher app exists and checksum matches.
-- Launcher can create or retrieve a connection key.
-- User can copy/use their own key.
+- Launcher installs the EA without creating or persisting a connection key.
+- User can copy their own key from the dashboard and paste it manually in the EA.
 - Launcher can install/copy EA files without exposing admin diagnostics in normal flow.
 - First MT5 account syncs.
 - Second MT5 account syncs without overwriting the first account.

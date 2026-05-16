@@ -168,15 +168,14 @@ class LauncherStateStore:
 
     def save_account_connection(self, account: dict[str, Any]) -> None:
         account_id = str(account.get("account_id") or "").strip()
-        connection_key = str(account.get("connection_key") or "").strip()
-        if not account_id or not connection_key:
+        if not account_id:
             return
         with self._lock:
             connections = self._state.setdefault("account_connections", [])
             connections[:] = [item for item in connections if str(item.get("account_id") or "").strip() != account_id]
             stored = deepcopy(account)
             stored["account_id"] = account_id
-            stored["connection_key"] = connection_key
+            stored["connection_key"] = ""
             stored["updated_at"] = _now_iso()
             connections.append(stored)
             self._save(self._state)

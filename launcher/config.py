@@ -161,7 +161,6 @@ def save_config(config: LauncherConfig) -> None:
 
 def save_bridge_config(config: LauncherConfig, *, user_id: str = "", linked_at: str = "") -> Path:
     payload = {
-        "connection_key": str(config.connection_key or "").strip(),
         "backend_url": str(config.backend_base_url or "").strip(),
         "user_id": str(user_id or "").strip(),
         "linked_at": linked_at or datetime.now(timezone.utc).isoformat(),

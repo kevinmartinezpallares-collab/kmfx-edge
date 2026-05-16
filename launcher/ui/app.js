@@ -129,12 +129,10 @@ function friendlyConnectionTitle(connection = {}, installation = null) {
 }
 
 function installationForConnection(connection = {}) {
-  const key = String(connection.connection_key || "").trim();
   const accountId = String(connection.account_id || "").trim();
-  if (!key && !accountId) return null;
+  if (!accountId) return null;
   return state.installations.find((installation) => (
-    (key && String(installation.connection_key || "").trim() === key) ||
-    (accountId && String(installation.linked_account_id || "").trim() === accountId)
+    String(installation.linked_account_id || "").trim() === accountId
   )) || null;
 }
 

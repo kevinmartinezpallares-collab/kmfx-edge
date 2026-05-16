@@ -156,6 +156,8 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("Crea una nueva conexión para volver a sincronizar", source)
         self.assertNotIn("tendrá que conectarse con una key nueva", source)
         self.assertNotIn("Genera una nueva key desde Cuentas", connector)
+        self.assertIn("string KMFXExplicitConnectionKeyValue()", connector)
+        self.assertIn('PrintFormat("[KMFX][RUNTIME][KEY_PREFERENCE] source=input key=%s ignores file=%s"', connector)
 
     def test_metric_study_cards_use_consistent_grid_and_explain_trader_use(self) -> None:
         source = read_text("js/modules/glossary.js")
@@ -208,6 +210,16 @@ class UserFlowUiContractTests(unittest.TestCase):
         self.assertNotIn("Account Number", source)
         self.assertNotIn("Provider directo", source)
         self.assertNotIn("motor de conexión directa", source)
+        self.assertNotIn("account.firstSyncAt ||\n    account.login ||", source)
+        self.assertNotIn("account.login ||\n    account.mt5_login", source)
+
+    def test_release_manifest_exposes_current_public_connector_artifact(self) -> None:
+        source = read_text("js/modules/download-artifacts.js")
+
+        self.assertIn('version: "2.87"', source)
+        self.assertIn("31882b1a961245e8c4573c409627afb40137296b15d027e0de88a99ff2b53ebb", source)
+        self.assertIn("ab7775e435023473c022e508220bde8fef16139384e827973aea0bfed6a6ad19", source)
+        self.assertIn("39e3e4ecc1616a8567ec78d843ee599084ebd18d01f0d7254be9ddedcab7215c", source)
 
     def test_connection_wizard_hides_release_checksums_by_default(self) -> None:
         source = read_text("js/modules/connection-wizard.js")
@@ -339,7 +351,7 @@ class UserFlowUiContractTests(unittest.TestCase):
                 marker = f"{module}.js?v=build-"
                 if marker in source:
                     self.assertIn(
-                        f"{module}.js?v=build-20260514-233900",
+                        f"{module}.js?v=build-20260515-010629",
                         source,
                         f"{relative_path} must import {module} with the current production cache key",
                     )
@@ -348,11 +360,11 @@ class UserFlowUiContractTests(unittest.TestCase):
         html = read_text("index.html")
         app = read_text("app.js")
 
-        self.assertIn('src="./app.js?v=build-20260514-233900"', html)
-        self.assertIn('const BUILD_TAG = "build-20260514-233900";', app)
+        self.assertIn('src="./app.js?v=build-20260515-010629"', html)
+        self.assertIn('const BUILD_TAG = "build-20260515-010629";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
             self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260514-233900",
+                f"./js/modules/{module}.js?v=build-20260515-010629",
                 app,
                 f"app.js must load {module} with the current production cache key",
             )

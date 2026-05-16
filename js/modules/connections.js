@@ -1,12 +1,12 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260514-233900";
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260514-233900";
-import { showToast } from "./toast.js?v=build-20260514-233900";
-import { resolveAccountsRegistryUrl } from "./api-config.js?v=build-20260514-233900";
-import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260514-233900";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-233900";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260514-233900";
-import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260514-233900";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-233900";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260515-010629";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260515-010629";
+import { showToast } from "./toast.js?v=build-20260515-010629";
+import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260515-010629";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260515-010629";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260515-010629";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260515-010629";
+import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260515-010629";
+import { isAdminMode } from "./admin-mode.js?v=build-20260515-010629";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -27,8 +27,12 @@ function windowsLauncherAvailable() {
 }
 
 function isLocalRuntime() {
-  const hostname = window.location.hostname || "";
-  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  try {
+    const baseUrl = resolveApiBaseUrl();
+    return isLocalApiBaseUrl(baseUrl);
+  } catch {
+    return false;
+  }
 }
 
 function registrySignature(accounts = []) {
@@ -565,7 +569,7 @@ function renderConnectionGuide(state = {}) {
       <div class="connections-guide-card__intro">
         <div class="connections-guide-card__copy">
           <div class="dashboard-risk-block__title">Conectar cuenta paso a paso</div>
-          <div class="row-sub">Instala el conector con Launcher y deja MT5 abierto con el EA activo para la primera sincronización.</div>
+          <div class="row-sub">Instala el conector con Launcher, pega la KMFXKey de esta cuenta en el EA y deja MT5 abierto para la primera sincronización.</div>
         </div>
         <div class="connections-guide-card__launcher-actions">
           <button class="btn-secondary connections-shell__utility-btn" type="button" data-account-open-launcher="true">Abrir Launcher</button>
@@ -573,7 +577,7 @@ function renderConnectionGuide(state = {}) {
           <button class="btn-primary" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
         </div>
       </div>
-      <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir.</div>
+      <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir. El Launcher no guarda la KMFXKey.</div>
       ${renderAdminReleaseBlock(state)}
       <div class="connections-guide-card__endpoint">
         <div>
@@ -1184,7 +1188,7 @@ function renderEmptyState(root, state = {}) {
           <div class="calendar-panel-head">
             <div>
               <div class="calendar-panel-title">Conecta tu cuenta MT5</div>
-              <div class="calendar-panel-sub">Instala el conector con el Launcher y deja MT5 abierto con el EA activo. El Launcher puede cerrarse tras la primera sincronización.</div>
+              <div class="calendar-panel-sub">Instala el conector con el Launcher, pega la KMFXKey en el EA y deja MT5 abierto. El Launcher puede cerrarse tras la primera sincronización.</div>
             </div>
           </div>
           <div class="connections-empty-card__actions">

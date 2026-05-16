@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.86                                              |
+//| KMFXConnector v2.87                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.86"
+#property version   "2.87"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.86"
+#define KMFX_CONNECTOR_VERSION "2.87"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -524,37 +524,35 @@ void KMFXApplyConnectionConfigFromFile()
    KMFXJournalPath=KMFXNormalizePath(journal_path,KMFXJournalPath);
    KMFXPolicyPath=KMFXNormalizePath(policy_path,KMFXPolicyPath);
    if(KMFXVerboseLog)
-      PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
+     PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
+  }
+
+string KMFXExplicitConnectionKeyValue()
+  {
+   string explicit_key=KMFXTrim(KMFXKey);
+   if(StringLen(explicit_key)>0)
+      return explicit_key;
+
+   explicit_key=KMFXTrim(connection_key);
+   if(StringLen(explicit_key)>0)
+      return explicit_key;
+
+   return KMFXTrim(KMFXApiKey);
   }
 
 void KMFXInitializeRuntimeConnectionKey()
   {
-   g_runtime_connection_key=KMFXLoadConnectionKeyFromFile();
-   if(StringLen(g_runtime_connection_key)>0)
-     {
-      if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file key=%s",KMFXMaskConnectionKey(g_runtime_connection_key));
-      return;
-     }
-
-   string explicit_key=KMFXTrim(KMFXKey);
-   if(StringLen(explicit_key)<=0)
-      explicit_key=KMFXTrim(connection_key);
+   string explicit_key=KMFXExplicitConnectionKeyValue();
    if(StringLen(explicit_key)>0)
      {
-      g_runtime_connection_key="";
       if(KMFXVerboseLog)
          PrintFormat("[KMFX][INIT][KEY_SOURCE] source=input key=%s",KMFXMaskConnectionKey(explicit_key));
       return;
      }
 
-   string legacy_key=KMFXTrim(KMFXApiKey);
-   if(StringLen(legacy_key)>0)
-     {
-      if(KMFXVerboseLog)
-         PrintFormat("[KMFX][INIT][KEY_SOURCE] source=legacy key=%s",KMFXMaskConnectionKey(legacy_key));
-      return;
-     }
+   string file_key=KMFXLoadConnectionKeyFromFile();
+   if(StringLen(file_key)>0 && KMFXVerboseLog)
+      PrintFormat("[KMFX][INIT][KEY_SOURCE] source=file_ignored key=%s",KMFXMaskConnectionKey(file_key));
 
    if(KMFXVerboseLog)
       Print("[KMFX][INIT][KEY_SOURCE] source=empty key=");
@@ -568,16 +566,18 @@ void KMFXRefreshRuntimeConnectionConfig()
    g_last_connection_config_file_check_at=now;
 
    // Launcher puede instalar o reparar kmfx_connection.conf con el EA ya activo.
-   // Recargamos URL/rutas además de la key para evitar quedar apuntando a localhost.
+   // Recargamos URL/rutas para evitar quedar apuntando a localhost, pero la key
+   // debe venir siempre del usuario en los inputs del EA.
    KMFXApplyConnectionConfigFromFile();
 
+   string explicit_key=KMFXExplicitConnectionKeyValue();
    string file_key=KMFXLoadConnectionKeyFromFile();
-   if(StringLen(file_key)>0 && file_key!=g_runtime_connection_key)
+   if(StringLen(file_key)>0 && KMFXVerboseLog)
      {
-      string previous_key=g_runtime_connection_key;
-      g_runtime_connection_key=file_key;
-      if(KMFXVerboseLog)
-         PrintFormat("[KMFX][RUNTIME][KEY_REFRESH] previous=%s current=%s",KMFXMaskConnectionKey(previous_key),KMFXMaskConnectionKey(g_runtime_connection_key));
+      if(StringLen(explicit_key)>0)
+         PrintFormat("[KMFX][RUNTIME][KEY_PREFERENCE] source=input key=%s ignores file=%s",KMFXMaskConnectionKey(explicit_key),KMFXMaskConnectionKey(file_key));
+      else
+         PrintFormat("[KMFX][RUNTIME][KEY_IGNORED] source=file key=%s",KMFXMaskConnectionKey(file_key));
      }
   }
 
@@ -596,23 +596,11 @@ bool KMFXBackendRejectSuggestsKeyReload(int status_code,string reason)
 
 bool KMFXForceReloadConnectionConfig(string context)
   {
-   string previous_key=KMFXConnectionKeyValue();
-
    g_last_connection_config_file_check_at=0;
    KMFXApplyConnectionConfigFromFile();
-
-   string file_key=KMFXLoadConnectionKeyFromFile();
-   if(StringLen(file_key)<=0)
-      return false;
-   if(file_key==previous_key)
-      return false;
-
-   g_runtime_connection_key=file_key;
-   g_last_connection_config_file_check_at=KMFXNow();
-   KMFXLogStatus("KMFXKey actualizada desde Launcher. Reintentando sincronizacion.",60);
    if(KMFXVerboseLog)
-      PrintFormat("[KMFX][RUNTIME][KEY_FORCE_REFRESH] context=%s previous=%s current=%s",context,KMFXMaskConnectionKey(previous_key),KMFXMaskConnectionKey(g_runtime_connection_key));
-   return true;
+      PrintFormat("[KMFX][RUNTIME][CONFIG_REFRESH] context=%s key_source=input_only",context);
+   return false;
   }
 
 string KMFXBuildSyncId()
@@ -624,20 +612,11 @@ string KMFXBuildSyncId()
 
 string KMFXConnectionKeyValue()
   {
-   string runtime_key=KMFXTrim(g_runtime_connection_key);
-   if(StringLen(runtime_key)>0)
-      return runtime_key;
-
-   string explicit_key=KMFXTrim(KMFXKey);
+   string explicit_key=KMFXExplicitConnectionKeyValue();
    if(StringLen(explicit_key)>0)
       return explicit_key;
 
-   explicit_key=KMFXTrim(connection_key);
-   if(StringLen(explicit_key)>0)
-      return explicit_key;
-
-   string legacy_key=KMFXTrim(KMFXApiKey);
-   return legacy_key;
+   return "";
   }
 
 bool KMFXHasConnectionKey()

@@ -56,9 +56,9 @@ def resolve_presets_path(installation: MT5Installation) -> Path:
 def preset_contents(config: LauncherConfig) -> str:
     return "\n".join(
         [
-            f"KMFXKey={config.connection_key}||0||0||0||N",
-            f"KMFXApiKey={config.connection_key}||0||0||0||N",
-            f"connection_key={config.connection_key}||0||0||0||N",
+            "KMFXKey=||0||0||0||N",
+            "KMFXApiKey=||0||0||0||N",
+            "connection_key=||0||0||0||N",
             "KMFXMode=0||0||0||1||N",
             f"KMFXBackendBaseUrl={MT5_CLOUD_BASE_URL}||0||0||0||N",
             f"KMFXSyncPath={MT5_CLOUD_SYNC_PATH}||0||0||0||N",
@@ -83,7 +83,6 @@ def preset_contents(config: LauncherConfig) -> str:
 def connection_config_contents(config: LauncherConfig) -> str:
     return "\n".join(
         [
-            f"connection_key={str(config.connection_key or '').strip()}",
             f"backend_url={MT5_CLOUD_BASE_URL}",
             f"sync_path={MT5_CLOUD_SYNC_PATH}",
             f"journal_path={MT5_CLOUD_JOURNAL_PATH}",
@@ -116,7 +115,8 @@ def safety_notice_contents(config: LauncherConfig, installation: MT5Installation
             "If you trade with a prop firm or funded account, verify their current EA policy before use.",
             "Keep this file as local evidence of the connector scope installed by KMFX Launcher.",
             "",
-            f"Connection key installed: {str(config.connection_key or '').strip()}",
+            "Connection key installed: none",
+            "Paste the KMFXKey manually in the EA inputs for the specific dashboard user you want to sync.",
             "",
         ]
     )

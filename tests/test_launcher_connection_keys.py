@@ -312,7 +312,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertEqual(1, len(connections))
         self.assertEqual("account-1", connections[0]["account_id"])
-        self.assertEqual("rotated-local-key", connections[0]["connection_key"])
+        self.assertEqual("", connections[0]["connection_key"])
 
     def test_launcher_state_store_can_prune_remote_deleted_connections(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -508,8 +508,8 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertEqual("", account["connection_key"])
         self.assertEqual(mask_connection_key(server_key), account["connection_key_masked"])
         self.assertEqual(mask_connection_key(server_key), account["server_connection_key_masked"])
-        self.assertEqual(mask_connection_key("stale-local-key"), account["local_connection_key_masked"])
-        self.assertTrue(account["connection_key_mismatch"])
+        self.assertEqual("", account["local_connection_key_masked"])
+        self.assertFalse(account["connection_key_mismatch"])
         self.assertFalse(account["can_copy_connection_key"])
 
     def test_launcher_hydrates_cached_key_only_when_it_matches_server_preview(self) -> None:
@@ -558,10 +558,10 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertEqual(1, len(connections))
         account = connections[0]
-        self.assertEqual(server_key, account["connection_key"])
+        self.assertEqual("", account["connection_key"])
         self.assertEqual(mask_connection_key(server_key), account["connection_key_masked"])
         self.assertFalse(account["connection_key_mismatch"])
-        self.assertTrue(account["can_copy_connection_key"])
+        self.assertFalse(account["can_copy_connection_key"])
 
     def test_launcher_does_not_auto_link_unknown_installed_local_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -675,7 +675,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual(0, backend.link_calls)
-        self.assertEqual("dashboard-stable-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
 
     def test_launcher_install_connector_does_not_create_dashboard_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -892,7 +892,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertFalse(result["ok"])
         self.assertEqual([], api.backend.connection_keys)
-        self.assertIn("no existe en tu dashboard", result["message"])
+        self.assertIn("Crea la cuenta en el dashboard", result["message"])
         self.assertNotIn("connection_key", captured)
 
     def test_launcher_repair_account_prefers_identity_match_over_selected_installation(self) -> None:
@@ -973,7 +973,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual("Darwinex", captured["label"])
-        self.assertEqual("darwinex-stable-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
 
     def test_launcher_reinstall_account_reuses_canonical_installed_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1028,7 +1028,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(0, api.backend.link_calls)
         self.assertEqual(0, api.backend.regenerate_calls)
-        self.assertEqual("stale-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
 
     def test_launcher_reinstall_connector_reuses_installed_key_from_remote_preview(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1094,7 +1094,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual("Darwinex", captured["label"])
-        self.assertEqual(revoked_key, captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
     def test_launcher_reinstall_connector_resolves_account_by_mt5_identity_with_stable_key(self) -> None:
@@ -1170,7 +1170,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.repair_connector("Darwinex")
 
         self.assertTrue(result["ok"])
-        self.assertEqual("darwinex-stable-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
     def test_launcher_reinstall_connector_fetches_existing_raw_key_without_regeneration(self) -> None:
@@ -1241,7 +1241,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.repair_connector("Darwinex")
 
         self.assertTrue(result["ok"])
-        self.assertEqual("darwinex-stable-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
     def test_launcher_reinstall_fetches_current_dashboard_key_when_registry_marks_old_key_revoked(self) -> None:
@@ -1318,7 +1318,7 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                     result = api.repair_connector("Darwinex")
 
         self.assertTrue(result["ok"])
-        self.assertEqual("darwinex-stable-key", captured["connection_key"])
+        self.assertEqual("", captured["connection_key"])
         self.assertEqual(0, api.backend.regenerate_calls)
 
     def test_launcher_ui_uses_reinstall_copy_for_existing_connector(self) -> None:
