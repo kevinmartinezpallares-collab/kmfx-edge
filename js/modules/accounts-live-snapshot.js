@@ -1,7 +1,7 @@
-import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260514-233900";
-import { evaluateCompliance } from "./account-runtime.js?v=build-20260514-233900";
-import { resolveAccountsSnapshotUrl } from "./api-config.js?v=build-20260514-233900";
-import { isAdminMode } from "./admin-mode.js?v=build-20260514-233900";
+import { adaptMt5Account } from "../data/adapters/mt5-account-adapter.js?v=build-20260517-133900";
+import { evaluateCompliance } from "./account-runtime.js?v=build-20260517-133900";
+import { resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260517-133900";
+import { isAdminMode } from "./admin-mode.js?v=build-20260517-133900";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 15 * 60 * 1000;
@@ -10,8 +10,15 @@ const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 2 * 60 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 function isLocalRuntime() {
-  const hostname = window.location.hostname || "";
-  return window.location.protocol === "file:" || hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  try {
+    const baseUrl = resolveApiBaseUrl();
+    const parsed = baseUrl ? new URL(baseUrl) : null;
+    const hostname = parsed?.hostname || window.location.hostname || "";
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    const hostname = window.location.hostname || "";
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  }
 }
 
 function isDocumentHidden() {

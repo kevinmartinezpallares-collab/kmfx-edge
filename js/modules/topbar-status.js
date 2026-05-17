@@ -1,5 +1,5 @@
-import { selectVisibleUserProfile } from "./utils.js?v=build-20260514-233900";
-import { applyAvatarContent } from "./avatar-utils.js?v=build-20260514-233900";
+import { selectVisibleUserProfile } from "./utils.js?v=build-20260517-133900";
+import { applyAvatarContent } from "./avatar-utils.js?v=build-20260517-133900";
 
 export function initTopbarStatus(store) {
   const root = document.getElementById("topbarQuickInfo");

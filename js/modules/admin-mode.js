@@ -1,4 +1,4 @@
-import { isAdminIdentity } from "./auth-session.js?v=build-20260514-233900";
+import { isAdminIdentity } from "./auth-session.js?v=build-20260517-133900";
 
 export function isAdminMode(state) {
   const user = state?.auth?.user || {};

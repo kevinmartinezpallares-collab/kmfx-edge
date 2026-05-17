@@ -1,8 +1,8 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260514-233900";
-import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260514-233900";
-import { openFocusPanel } from "./modal-system.js?v=build-20260514-233900";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260514-233900";
-import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-233900";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260517-133900";
+import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260517-133900";
+import { openFocusPanel } from "./modal-system.js?v=build-20260517-133900";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260517-133900";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260517-133900";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const CALENDAR_TOOLTIP_PERCENT_FORMATTER = new Intl.NumberFormat("es-ES", {
