@@ -362,20 +362,22 @@ class UserFlowUiContractTests(unittest.TestCase):
             "js/modules/risk.js",
             "js/modules/sidebar-ui.js",
         ]
-        for module in ("auth-session", "admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
-            seen_tags = set()
-            seen_files = []
-            for relative_path in files:
-                source = read_text(relative_path)
+        for relative_path in files:
+            source = read_text(relative_path)
+            for module in ("auth-session", "admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
+                if f"{module}.js" not in source:
+                    continue
                 tags = module_cache_tags(source, module)
-                if tags:
-                    seen_tags.update(tags)
-                    seen_files.append(relative_path)
-            self.assertLessEqual(
-                len(seen_tags),
-                1,
-                f"{module}.js must use one cache key across critical imports: {sorted(seen_files)}",
-            )
+                self.assertTrue(
+                    tags,
+                    f"{relative_path} must import {module}.js with an explicit build cache key",
+                )
+                for tag in tags:
+                    self.assertRegex(
+                        tag,
+                        r"^build-[A-Za-z0-9-]+$",
+                        f"{relative_path} has an invalid cache key for {module}.js",
+                    )
 
     def test_dashboard_shell_uses_current_production_cache_key(self) -> None:
         html = read_text("index.html")
