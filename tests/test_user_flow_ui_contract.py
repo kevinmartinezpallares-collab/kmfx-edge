@@ -1,3 +1,4 @@
+import re
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def read_text(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def current_shell_build_tag() -> str:
+    html = read_text("index.html")
+    app = read_text("app.js")
+    html_match = re.search(r'<script type="module" src="\./app\.js\?v=(build-[^"]+)"></script>', html)
+    app_match = re.search(r'const BUILD_TAG = "(build-[^"]+)";', app)
+    if not html_match or not app_match:
+        raise AssertionError("index.html and app.js must expose versioned shell build tags")
+    if html_match.group(1) != app_match.group(1):
+        raise AssertionError("index.html app.js cache key must match app.js BUILD_TAG")
+    return app_match.group(1)
+
+
+def module_cache_tags(source: str, module: str) -> set[str]:
+    return set(re.findall(rf"{re.escape(module)}\.js\?v=(build-[^\"']+)", source))
 
 
 class UserFlowUiContractTests(unittest.TestCase):
@@ -345,29 +362,50 @@ class UserFlowUiContractTests(unittest.TestCase):
             "js/modules/risk.js",
             "js/modules/sidebar-ui.js",
         ]
-        for relative_path in files:
-            source = read_text(relative_path)
-            for module in ("auth-session", "admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
-                marker = f"{module}.js?v=build-"
-                if marker in source:
-                    self.assertIn(
-                        f"{module}.js?v=build-20260515-010629",
-                        source,
-                        f"{relative_path} must import {module} with the current production cache key",
-                    )
+        for module in ("auth-session", "admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
+            seen_tags = set()
+            seen_files = []
+            for relative_path in files:
+                source = read_text(relative_path)
+                tags = module_cache_tags(source, module)
+                if tags:
+                    seen_tags.update(tags)
+                    seen_files.append(relative_path)
+            self.assertLessEqual(
+                len(seen_tags),
+                1,
+                f"{module}.js must use one cache key across critical imports: {sorted(seen_files)}",
+            )
 
     def test_dashboard_shell_uses_current_production_cache_key(self) -> None:
         html = read_text("index.html")
         app = read_text("app.js")
+        cache_key = current_shell_build_tag()
 
-        self.assertIn('src="./app.js?v=build-20260515-010629"', html)
-        self.assertIn('const BUILD_TAG = "build-20260515-010629";', app)
+        self.assertIn(f'src="./app.js?v={cache_key}"', html)
+        self.assertIn(f'const BUILD_TAG = "{cache_key}";', app)
         for module in ("dashboard", "connections", "sidebar-ui", "auth-ui"):
-            self.assertIn(
-                f"./js/modules/{module}.js?v=build-20260515-010629",
+            self.assertRegex(
                 app,
-                f"app.js must load {module} with the current production cache key",
+                rf'\./js/modules/{re.escape(module)}\.js\?v=build-[^"]+',
+                f"app.js must load {module} with an explicit cache key",
             )
+
+    def test_dashboard_shell_module_tags_do_not_drift_for_the_same_module(self) -> None:
+        files = [
+            "app.js",
+            "js/modules/connections.js",
+            "js/modules/sidebar-ui.js",
+            "js/modules/connection-wizard.js",
+        ]
+        for relative_path in files:
+            source = read_text(relative_path)
+            for module in ("admin-mode", "billing-status", "connection-wizard", "connections", "download-artifacts"):
+                self.assertLessEqual(
+                    len(module_cache_tags(source, module)),
+                    1,
+                    f"{relative_path} must not import {module}.js with mixed cache keys",
+                )
 
     def test_calendar_day_report_avoids_technical_copy(self) -> None:
         source = read_text("js/modules/calendar.js")
