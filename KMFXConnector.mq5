@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.88                                              |
+//| KMFXConnector v2.89                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.88"
+#property version   "2.89"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.88"
+#define KMFX_CONNECTOR_VERSION "2.89"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -955,22 +955,39 @@ string KMFXPublicErrorMessage(string message)
   {
    if(StringFind(message,"WebRequest")>=0 || StringFind(message,"transporte")>=0)
       return "No se pudo conectar con KMFX. Revisa la URL autorizada en WebRequest y tu conexion.";
-   if(StringFind(message,"connection_key_rate_limited")>=0 || StringFind(message,"HTTP=429")>=0)
+   if(StringFind(message,"connection_key_rate_limited")>=0 || StringFind(message,"rate_limited")>=0 || StringFind(message,"HTTP=429")>=0)
       return "KMFX esta limitando temporalmente la sincronizacion. El conector reintentara automaticamente.";
    if(StringFind(message,"payload_too_large")>=0 || StringFind(message,"HTTP=413")>=0)
       return "La sincronizacion MT5 es demasiado grande. Reduce el historico enviado o actualiza el conector.";
+   if(StringFind(message,"account_store_unavailable")>=0 || StringFind(message,"HTTP=503")>=0)
+      return "KMFX esta procesando un problema temporal del servidor. Espera un minuto y vuelve a intentarlo.";
+   if(StringFind(message,"invalid_json")>=0 || StringFind(message,"invalid_payload_shape")>=0 || StringFind(message,"missing_login")>=0 || StringFind(message,"HTTP=422")>=0)
+      return "El conector esta enviando un formato que KMFX no puede procesar. Reinstala el ultimo conector y vuelve a pegar la KMFXKey.";
    if(StringFind(message,"revoked_connection_key")>=0)
       return "La KMFXKey de MT5 no esta activa. Copia la KMFXKey actual desde Cuentas > Ver detalles y reinstala el conector.";
    if(StringFind(message,"missing_connection_key")>=0)
       return "KMFX no ha recibido la key de conexion. Revisa que este pegada en el EA.";
-   if(StringFind(message,"unknown_connection_key")>=0 || StringFind(message,"HTTP=401")>=0)
+   if(StringFind(message,"unknown_connection_key")>=0 || StringFind(message,"auth_required")>=0 || StringFind(message,"HTTP=401")>=0)
       return "KMFX no reconoce la clave de conexion. Revisa que la key pegada en el EA sea la de esta cuenta.";
-   if(StringFind(message,"entitlement_required")>=0 || StringFind(message,"billing_required")>=0 || StringFind(message,"plan_limit_reached")>=0 || StringFind(message,"HTTP=402")>=0 || StringFind(message,"HTTP=403")>=0 || StringFind(message,"HTTP=409")>=0)
+   if(StringFind(message,"entitlement_required")>=0 || StringFind(message,"billing_required")>=0 || StringFind(message,"billing_past_due")>=0 || StringFind(message,"plan_limit_reached")>=0 || StringFind(message,"HTTP=402")>=0 || StringFind(message,"HTTP=403")>=0 || StringFind(message,"HTTP=409")>=0)
       return "KMFX ha bloqueado esta conexion por permisos o plan. Revisa el acceso MT5 de tu usuario.";
    if(StringFind(message,"query_connection_key_not_allowed")>=0 || StringFind(message,"HTTP=400")>=0)
       return "La configuracion del conector no es valida. Reinstala el conector desde KMFX.";
+   if(StringFind(message,"unexpected_exception")>=0 || StringFind(message,"HTTP=500")>=0 || StringFind(message,"HTTP=502")>=0 || StringFind(message,"HTTP=504")>=0)
+      return "KMFX ha rechazado temporalmente la sincronizacion por un error interno. Espera un minuto y vuelve a intentarlo.";
    if(StringFind(message,"rechaz")>=0 || StringFind(message,"HTTP=")>=0)
+     {
+      string status_label="";
+      int http_index=StringFind(message,"HTTP=");
+      if(http_index>=0)
+        {
+         status_label=StringSubstr(message,http_index,8);
+         status_label=KMFXTrim(status_label);
+        }
+      if(StringLen(status_label)>0)
+         return "KMFX rechazo temporalmente la sincronizacion ("+status_label+"). Reinstala el conector o vuelve a intentarlo en unos minutos.";
       return "KMFX no acepto temporalmente la sincronizacion. Revisa tu conexion o vuelve a intentarlo.";
+     }
    return message;
   }
 

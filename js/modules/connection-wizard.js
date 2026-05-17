@@ -1,9 +1,9 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260517-133900";
-import { buildApiUrl } from "./api-config.js?v=build-20260517-133900";
-import { showToast } from "./toast.js?v=build-20260517-133900";
-import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260517-133900";
-import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260517-133900";
-import { isAdminMode } from "./admin-mode.js?v=build-20260517-133900";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260517-202600";
+import { buildApiUrl } from "./api-config.js?v=build-20260517-202600";
+import { showToast } from "./toast.js?v=build-20260517-202600";
+import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260517-202600";
+import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260517-202600";
+import { isAdminMode } from "./admin-mode.js?v=build-20260517-202600";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";

@@ -233,10 +233,10 @@ class UserFlowUiContractTests(unittest.TestCase):
     def test_release_manifest_exposes_current_public_connector_artifact(self) -> None:
         source = read_text("js/modules/download-artifacts.js")
 
-        self.assertIn('version: "2.88"', source)
-        self.assertIn("e235188fa3ead3c5f9b7919caa3d10868c21c455a85e1b68946243827e9eee5e", source)
-        self.assertIn("82a7a5124cd3ea4f76a73bd823d2d0e1f3e1f8ae33a9df93d955f279da90165f", source)
-        self.assertIn("72f35db5d52b70911e8f0375e20fa579cecfd303dc75a7f2e51fb5f63e892057", source)
+        self.assertIn('version: "2.89"', source)
+        self.assertIn("ebe356001888111bf45404fa3fefa44df6d8960a6c7d42725eac31b177ae754b", source)
+        self.assertIn("a28b4c8e90935a66ff9107d7f945c2c1dd9093aeaa169de4f8f48044daae6ed7", source)
+        self.assertIn("afd43ec54158e8dc41e0fd315a0a1c9e2a4aca3f1aed58c6c058c0d5ad4139b0", source)
 
     def test_connection_wizard_hides_release_checksums_by_default(self) -> None:
         source = read_text("js/modules/connection-wizard.js")
