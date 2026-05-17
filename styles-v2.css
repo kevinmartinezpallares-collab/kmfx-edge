@@ -92,7 +92,7 @@
   --z-dropdown: 700;
   --z-popover: 800;
   --z-modal: 1000;
-  --z-toast: 1100;
+  --z-toast: 13050;
   --z-tooltip: 1200;
   --duration-fast: 140ms;
   --duration-medium: 200ms;
@@ -40681,6 +40681,21 @@ body[data-theme="dark"] .app-shell.sidebar-vnext.sidebar-provider .sidebar-menu-
 }
 
 /* Mobile overlay hardening: keep modals, sheets, popovers, and toasts reachable on small screens. */
+.kmfx-toast {
+  z-index: var(--z-toast) !important;
+  max-width: min(560px, calc(100vw - 32px));
+  text-align: center;
+  white-space: normal;
+}
+
+body.modal-open .kmfx-toast {
+  top: auto !important;
+  bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
 @media (max-width: 760px) {
   body.modal-open {
     overflow: hidden !important;

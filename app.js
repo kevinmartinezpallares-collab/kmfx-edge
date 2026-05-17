@@ -57,7 +57,7 @@ import {
   resolveBillingStatusUrl
 } from "./js/modules/api-config.js?v=build-20260517-133900";
 
-const BUILD_TAG = "build-20260517-133900";
+const BUILD_TAG = "build-20260517-195900";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();
