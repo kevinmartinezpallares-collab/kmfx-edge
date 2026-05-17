@@ -1,6 +1,6 @@
-import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260514-233900";
-import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260514-233900";
-import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260514-233900";
+import { describeAccountAuthority, formatCurrency, formatDateTime, getAccountTypeLabel, resolveAccountDisplayIdentity, resolveAccountPnlSummary } from "./utils.js?v=build-20260515-010629";
+import { chartCanvas, lineAreaSpec, mountCharts, updateCharts } from "./chart-system.js?v=build-20260515-010629";
+import { pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260515-010629";
 
 function escapeHtml(value = "") {
   return String(value ?? "")
@@ -282,6 +282,17 @@ function accountCardPnlValue(account) {
     : Number(account?.model?.totals?.pnl || account?.model?.account?.openPnl || 0);
 }
 
+function isCapitalConnectedAccount(account) {
+  if (!account || String(account?.sourceType || "").toLowerCase() === "mock") return false;
+  const connection = account?.connection || {};
+  return Boolean(
+    connection.connected
+    || connection.state === "connected"
+    || connection.state === "connecting"
+    || connection.isSyncing
+  );
+}
+
 function buildCapitalStructureSignature({ accounts, currentAccount, hasChart, viewportKey }) {
   return JSON.stringify({
     viewportKey,
@@ -431,20 +442,42 @@ function renderCapitalExposureRows(globalPositions) {
 }
 
 export function renderPortfolio(root, state) {
-  const accounts = Object.values(state.accounts);
-  if (!accounts.length) {
+  const allAccounts = Object.values(state.accounts);
+  const accounts = allAccounts.filter(isCapitalConnectedAccount);
+  if (!allAccounts.length) {
     root.__capitalRendered = false;
     root.__capitalStructureSignature = "";
     root.__capitalLiveSignature = "";
     root.innerHTML = "";
     return;
   }
+  if (!accounts.length) {
+    root.__capitalRendered = false;
+    root.__capitalStructureSignature = "";
+    root.__capitalLiveSignature = "";
+    root.innerHTML = `
+      <section class="capital-page portfolio-page">
+        ${pageHeaderMarkup({
+          title: "Capital",
+          description: "Evolución del capital, resultado abierto y composición por cuenta.",
+          className: "tl-page-header capital-page__header",
+          titleClassName: "tl-page-title",
+          descriptionClassName: "tl-page-sub",
+        })}
+        <section class="capital-data-note" aria-label="Estado de conexión de Capital">
+          <span>Capital solo muestra cuentas MT5 conectadas con sincronización activa.</span>
+          <span>Cuando una cuenta conecte de nuevo, aquí verás su historial completo y métricas acumuladas.</span>
+        </section>
+      </section>
+    `;
+    return;
+  }
   const currentAccount = accounts.find((account) => account.id === state.currentAccount) || accounts[0];
-  const authorityMeta = describeAccountAuthority(accounts[0], "derived");
+  const authorityMeta = describeAccountAuthority(currentAccount, "derived");
   console.info("[KMFX][PORTFOLIO_AUTHORITY]", {
-    account_id: accounts[0]?.id || "",
-    login: accounts[0]?.login || "",
-    broker: accounts[0]?.broker || "",
+    account_id: currentAccount?.id || "",
+    login: currentAccount?.login || "",
+    broker: currentAccount?.broker || "",
     payloadSource: authorityMeta.authority.payloadSource,
     tradeCount: authorityMeta.authority.tradeCount,
     sourceUsed: "live_plus_derived_aggregate",
@@ -548,17 +581,13 @@ export function renderPortfolio(root, state) {
 
       ${renderCapitalEvolution({ account: currentAccount, series: capitalSeries })}
 
-      <section class="capital-cashflow-notice" aria-label="Estado de movimientos de capital">
-        Depósitos y retiradas pendientes de modelar.
-      </section>
-
       <article class="capital-section capital-section--accounts" data-portfolio-render="equal-cards">
         <div class="capital-section__header">
           <div>
             <h2 class="capital-section__title">Capital por cuenta</h2>
-            <p class="capital-section__description">Composición por cuenta conectada o registrada.</p>
+            <p class="capital-section__description">Composición agregada solo sobre cuentas conectadas.</p>
           </div>
-          <span class="capital-section__pill">${accounts.length} registradas</span>
+          <span class="capital-section__pill">${accounts.length} conectadas</span>
         </div>
         <div class="portfolio-account-grid capital-account-grid" data-capital-account-grid data-portfolio-layout="dashboard" style="${gridInlineStyle}">
           ${accounts.map((account) => renderPortfolioAccountCard(account, account.id === currentAccount.id)).join("")}

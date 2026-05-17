@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//| KMFXConnector v2.87                                              |
+//| KMFXConnector v2.88                                              |
 //| KMFX Edge - MT5 connector publico de solo sincronizacion         |
 //|                                                                  |
 //| Backend = snapshot operativo y telemetría de riesgo              |
@@ -13,12 +13,12 @@
 //| operaciones. No solicita contraseña del broker.                  |
 //+------------------------------------------------------------------+
 #property copyright "KMFX Edge"
-#property version   "2.87"
+#property version   "2.88"
 #property strict
 
 #include <Trade/Trade.mqh>
 
-#define KMFX_CONNECTOR_VERSION "2.87"
+#define KMFX_CONNECTOR_VERSION "2.88"
 #define KMFX_CONNECTION_CONFIG_FILE "kmfx_connection.conf"
 
 // -------------------------------------------------------------------
@@ -58,7 +58,7 @@ string            connection_key              = "";
 int               KMFXTimerMs                 = 2000;
 int               KMFXPolicyPollSeconds       = 12;
 int               KMFXStatePushSeconds        = 5;
-int               KMFXWebTimeoutMs            = 1500;
+int               KMFXWebTimeoutMs            = 5000;
 int               KMFXClosedDealsLimit        = 100;
 int               KMFXHistoryPointsLimit      = 120;
 int               KMFXHistoryLookbackDays     = 365;
@@ -622,6 +622,59 @@ string KMFXConnectionKeyValue()
 bool KMFXHasConnectionKey()
   {
    return StringLen(KMFXConnectionKeyValue())>0;
+  }
+
+string KMFXSanitizeFileToken(string value)
+  {
+   string sanitized="";
+   for(int i=0;i<StringLen(value);i++)
+     {
+      ushort ch=(ushort)StringGetCharacter(value,i);
+      bool allowed=false;
+      if((ch>='0' && ch<='9') || (ch>='A' && ch<='Z') || (ch>='a' && ch<='z') || ch=='-' || ch=='_')
+         allowed=true;
+      if(allowed)
+         sanitized+=CharToString((uchar)ch);
+      else
+         sanitized+="_";
+     }
+   return sanitized;
+  }
+
+string KMFXHistoryBootstrapPrefix()
+  {
+   return "KMFX_HISTORY_BOOTSTRAP_";
+  }
+
+string KMFXHistoryBootstrapFileName()
+  {
+   string identity_source=KMFXConnectionKeyValue();
+   if(StringLen(identity_source)<=0)
+      identity_source=KMFXAccountLoginString()+"_"+AccountInfoString(ACCOUNT_SERVER);
+   else
+      identity_source=identity_source+"_"+KMFXAccountLoginString()+"_"+AccountInfoString(ACCOUNT_SERVER);
+   string identity=KMFXSanitizeFileToken(identity_source);
+   return KMFXHistoryBootstrapPrefix()+identity+".txt";
+  }
+
+bool KMFXHasCompletedHistoryBootstrap()
+  {
+   int handle=FileOpen(KMFXHistoryBootstrapFileName(),FILE_READ|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+   FileClose(handle);
+   return true;
+  }
+
+bool KMFXMarkHistoryBootstrapComplete()
+  {
+   int handle=FileOpen(KMFXHistoryBootstrapFileName(),FILE_WRITE|FILE_TXT|FILE_COMMON|FILE_ANSI);
+   if(handle==INVALID_HANDLE)
+      return false;
+   FileWriteString(handle,KMFXNowIso()+"\n");
+   FileWriteString(handle,KMFX_CONNECTOR_VERSION+"\n");
+   FileClose(handle);
+   return true;
   }
 
 string KMFXPendingSyncPrefix()
@@ -1712,10 +1765,8 @@ string KMFXBuildJournalTradesJson(int max_count,string &trade_ids_csv)
    return json;
   }
 
-string KMFXBuildSyncTradesJson(int max_count)
+string KMFXBuildSyncTradesJson(datetime from_time,datetime to_time,int max_count)
   {
-   datetime to_time=KMFXNow();
-   datetime from_time=KMFXHistoryFromTime();
    if(!HistorySelect(from_time,to_time))
       return "[]";
 
@@ -1814,10 +1865,8 @@ string KMFXBuildSyncTradesJson(int max_count)
    return json;
   }
 
-string KMFXBuildSyncHistoryJson(int max_points)
+string KMFXBuildSyncHistoryJson(datetime from_time,datetime to_time,int max_points)
   {
-   datetime to_time=KMFXNow();
-   datetime from_time=KMFXHistoryFromTime();
    if(!HistorySelect(from_time,to_time))
      {
       string fallback_json="[";
@@ -1889,21 +1938,34 @@ string KMFXBuildSyncHistoryJson(int max_points)
 string KMFXBuildSyncPayload(string sync_id)
   {
    datetime now_time=KMFXNow();
+   bool full_history_sync=!KMFXHasCompletedHistoryBootstrap();
+   datetime sync_from_time=0;
+   if(!full_history_sync)
+      sync_from_time=KMFXHistoryFromTime();
    string sync_login=KMFXAccountLoginString();
    string positions_json=KMFXBuildPositionsJson();
-   string trades_json=KMFXBuildSyncTradesJson(KMFXClosedDealsLimit);
+   int trades_limit=0;
+   if(!full_history_sync)
+      trades_limit=KMFXClosedDealsLimit;
+   string trades_json=KMFXBuildSyncTradesJson(sync_from_time,now_time,trades_limit);
    string symbol_specs_json=KMFXBuildSymbolSpecsJson();
    int history_points_limit=0;
-   if(KMFXHistoryPointsLimit>0 && KMFXClosedDealsLimit>0)
-      history_points_limit=MathMin(KMFXHistoryPointsLimit,KMFXClosedDealsLimit);
-   else
-     if(KMFXHistoryPointsLimit>0)
-        history_points_limit=KMFXHistoryPointsLimit;
-     else
-        history_points_limit=KMFXClosedDealsLimit;
-   string history_json=KMFXBuildSyncHistoryJson(history_points_limit);
+   if(!full_history_sync)
+     {
+      if(KMFXHistoryPointsLimit>0 && KMFXClosedDealsLimit>0)
+         history_points_limit=MathMin(KMFXHistoryPointsLimit,KMFXClosedDealsLimit);
+      else
+        if(KMFXHistoryPointsLimit>0)
+           history_points_limit=KMFXHistoryPointsLimit;
+        else
+           history_points_limit=KMFXClosedDealsLimit;
+     }
+   int effective_history_points_limit=0;
+   if(!full_history_sync)
+      effective_history_points_limit=history_points_limit;
+   string history_json=KMFXBuildSyncHistoryJson(sync_from_time,now_time,effective_history_points_limit);
    datetime rm_to=now_time;
-   datetime rm_from=KMFXHistoryFromTime();
+   datetime rm_from=sync_from_time;
    string report_metrics_json=KMFXBuildReportMetrics(rm_from,rm_to);
    double daily_dd_pct=KMFXDailyDrawdownPct();
    double total_dd_pct=KMFXTotalDrawdownPct();
@@ -1925,6 +1987,7 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"daily_start_equity\":"+KMFXDoubleJson(Runtime.daily_start_equity,2)+",";
    json+="\"daily_start_day_key\":"+KMFXQuote(KMFXDayKey(KMFXNow()))+",";
    json+="\"daily_peak_equity\":"+KMFXDoubleJson(Runtime.daily_peak_equity,2)+",";
+   json+="\"historyBootstrapFull\":"+KMFXBoolJson(full_history_sync)+",";
    json+="\"account\":"+KMFXBuildAccountJson()+",";
    json+="\"symbolSpecs\":"+symbol_specs_json+",";
    json+="\"positions\":"+positions_json+",";
@@ -2259,6 +2322,9 @@ void KMFXProcessPendingSyncQueue()
         }
 
       KMFXDeletePendingSyncFile(file_name);
+      bool history_bootstrap_full=false;
+      if(KMFXExtractJsonBool(item.payload,"historyBootstrapFull",history_bootstrap_full) && history_bootstrap_full)
+         KMFXMarkHistoryBootstrapComplete();
       Policy.backend_connected=true;
       Policy.degraded_mode=false;
       Runtime.last_error="";
@@ -2334,6 +2400,8 @@ bool KMFXPushState()
    int positions_count=KMFXCountJsonArrayItems(body,"positions");
    int trades_count=KMFXCountJsonArrayItems(body,"trades");
    int history_count=KMFXCountJsonArrayItems(body,"history");
+   bool full_history_sync=false;
+   KMFXExtractJsonBool(body,"historyBootstrapFull",full_history_sync);
 
    if(KMFXVerboseLog)
      {
@@ -2457,6 +2525,8 @@ bool KMFXPushState()
    Policy.backend_connected=true;
    if(!recovered_after_retry)
       Policy.degraded_mode=false;
+   if(full_history_sync)
+      KMFXMarkHistoryBootstrapComplete();
    KMFXMarkSyncHealthy();
    Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();

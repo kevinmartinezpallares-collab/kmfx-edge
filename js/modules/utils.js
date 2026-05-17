@@ -28,7 +28,7 @@ const accountingWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: ACCOUNTING_TIMEZONE,
   weekday: "short",
 });
-import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260514-233900";
+import { DEFAULT_AUTH_STATE, selectVisibleUserProfile as selectAuthVisibleUserProfile, readPersistedAuthState } from "./auth-session.js?v=build-20260515-010629";
 function readPreferredCurrency() {
   try {
     const settingsRaw = window.localStorage.getItem("kmfx.settings.preferences");
@@ -796,13 +796,21 @@ export function buildDashboardModel(source) {
     equity: source?.account?.equity ?? source?.account?.balance ?? 0,
     totalTrades: source?.trades?.length ?? 0,
   });
-  const hasReportMetrics = Boolean(reportMetrics);
+  const reportMetricsAlignedWithHistory = Boolean(
+    reportMetrics
+    && Number(reportMetrics.totalTrades || 0) >= trades.length
+  );
+  const hasReportMetrics = reportMetricsAlignedWithHistory;
   if (!hasReportMetrics) {
     console.warn(
       "[KMFX][DATA_INTEGRITY] reportMetrics missing from payload. " +
       "Falling back to JS calculations — metrics may not match MT5. " +
       "Ensure KMFXConnector sends reportMetrics on every sync.",
-      { payloadSource: source.payloadSource || source.profile?.payloadSource || "normalized", tradesCount: trades.length }
+      {
+        payloadSource: source.payloadSource || source.profile?.payloadSource || "normalized",
+        tradesCount: trades.length,
+        reportMetricsTrades: Number(reportMetrics?.totalTrades || 0),
+      }
     );
   }
   const usedExplicitLivePayload = payloadSource === "mt5_sync_live";

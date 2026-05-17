@@ -4,7 +4,7 @@
 
 The public/private beta v1 EA package should ship `KMFXConnector.ex5` as a read-only sync connector.
 
-Current public package source version: `KMFXConnector` v2.87.
+Current public package source version: `KMFXConnector` v2.88.
 
 Public v1 scope:
 

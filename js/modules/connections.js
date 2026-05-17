@@ -1,11 +1,11 @@
 import { closeModal, openModal } from "./modal-system.js?v=build-20260515-010629";
 import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260515-010629";
 import { showToast } from "./toast.js?v=build-20260515-010629";
-import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260516-193600";
+import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260517-111500";
 import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260515-010629";
 import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260515-010629";
 import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260515-010629";
-import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260515-010629";
+import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260517-111500";
 import { isAdminMode } from "./admin-mode.js?v=build-20260515-010629";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";

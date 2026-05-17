@@ -8,13 +8,13 @@ import { renderTrades } from "./js/modules/trades.js?v=build-20260515-010629";
 import { renderCalendar } from "./js/modules/calendar.js?v=build-20260515-010629";
 import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260515-010629";
 import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260515-010629";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260516-193600";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260517-111500";
 import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260515-010629";
 import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260515-010629";
 import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260515-010629";
 import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260515-010629";
 import { renderMarket } from "./js/modules/market.js?v=build-20260515-010629";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260515-010629";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260517-111500";
 import { renderGlossary } from "./js/modules/glossary.js?v=build-20260515-010629";
 import { renderDebug } from "./js/modules/debug.js?v=build-20260515-010629";
 import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260515-010629";
@@ -23,7 +23,7 @@ import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-2026
 import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260515-010629";
 import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260515-010629";
 import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260515-010629";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260515-010629";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260517-111500";
 import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260515-010629";
 import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260515-010629";
 import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260515-010629";
@@ -55,9 +55,9 @@ import {
   resolveBillingPortalUrl,
   resolveBillingSubscriptionUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260516-193600";
+} from "./js/modules/api-config.js?v=build-20260517-111500";
 
-const BUILD_TAG = "build-20260516-193600";
+const BUILD_TAG = "build-20260517-111500";
 window.__KMFX_BUILD__ = BUILD_TAG;
 
 const store = createStore();

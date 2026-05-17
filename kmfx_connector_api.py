@@ -5440,7 +5440,7 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
 def mt5_request_max_body_bytes(route: str) -> int:
     if route == "/api/mt5/journal":
         return _env_int("KMFX_MT5_JOURNAL_MAX_BODY_BYTES", default=4 * 1024 * 1024)
-    return _env_int("KMFX_MT5_SYNC_MAX_BODY_BYTES", default=2 * 1024 * 1024)
+    return _env_int("KMFX_MT5_SYNC_MAX_BODY_BYTES", default=16 * 1024 * 1024)
 
 
 def request_header(request: Request, name: str) -> str:

@@ -67,7 +67,7 @@ def preset_contents(config: LauncherConfig) -> str:
             "KMFXTimerMs=2000||0||0||0||N",
             "KMFXPolicyPollSeconds=12||0||0||0||N",
             "KMFXStatePushSeconds=5||0||0||0||N",
-            "KMFXWebTimeoutMs=1500||0||0||0||N",
+            "KMFXWebTimeoutMs=5000||0||0||0||N",
             "KMFXClosedDealsLimit=100||0||0||0||N",
             "KMFXHistoryPointsLimit=120||0||0||0||N",
             "KMFXHistoryLookbackDays=365||0||0||0||N",

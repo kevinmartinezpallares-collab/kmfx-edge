@@ -171,6 +171,111 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
     return {key: value for key, value in compact.items() if value not in ("", None)}
 
 
+def _safe_sort_timestamp(value: Any) -> float:
+    if value in (None, ""):
+        return float("-inf")
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return float("-inf")
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return float("-inf")
+
+
+def _trade_record_key(trade: dict[str, Any], index: int) -> str:
+    stable = _first_text(
+        trade.get("trade_id"),
+        trade.get("ticket"),
+        trade.get("deal_id"),
+        trade.get("order_id"),
+        trade.get("position_id"),
+    )
+    if stable:
+        return f"trade:{stable}"
+    return "trade-fallback:{time}|{symbol}|{volume}|{profit}|{index}".format(
+        time=_first_text(trade.get("time"), trade.get("timestamp")),
+        symbol=_first_text(trade.get("symbol")),
+        volume=_first_text(trade.get("volume")),
+        profit=_first_text(trade.get("profit"), trade.get("net")),
+        index=index,
+    )
+
+
+def _history_record_key(point: dict[str, Any], index: int) -> str:
+    timestamp = _first_text(point.get("timestamp"), point.get("time"), point.get("date"))
+    if timestamp:
+        return f"history:{timestamp}"
+    label = _first_text(point.get("label"))
+    value = _first_text(point.get("value"), point.get("equity"), point.get("balance"))
+    return f"history-fallback:{label}|{value}|{index}"
+
+
+def _merge_payload_records(
+    previous_records: Any,
+    incoming_records: Any,
+    *,
+    key_builder,
+    timestamp_fields: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for records in (previous_records, incoming_records):
+        if not isinstance(records, list):
+            continue
+        for index, item in enumerate(records):
+            if not isinstance(item, dict):
+                continue
+            merged[key_builder(item, index)] = deepcopy(item)
+    rows = list(merged.values())
+    rows.sort(
+        key=lambda item: max(
+            (_safe_sort_timestamp(item.get(field)) for field in timestamp_fields),
+            default=float("-inf"),
+        )
+    )
+    return rows
+
+
+def merge_historical_dashboard_payload(
+    previous_payload: dict[str, Any] | None,
+    incoming_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    safe_previous = previous_payload if isinstance(previous_payload, dict) else {}
+    safe_incoming = incoming_payload if isinstance(incoming_payload, dict) else {}
+    merged_payload = deepcopy(safe_incoming)
+
+    merged_trades = _merge_payload_records(
+        safe_previous.get("trades"),
+        safe_incoming.get("trades"),
+        key_builder=_trade_record_key,
+        timestamp_fields=("time_unix", "time", "timestamp"),
+    )
+    if merged_trades:
+        merged_payload["trades"] = merged_trades
+
+    merged_history = _merge_payload_records(
+        safe_previous.get("history"),
+        safe_incoming.get("history"),
+        key_builder=_history_record_key,
+        timestamp_fields=("timestamp", "time", "date"),
+    )
+    if merged_history:
+        merged_payload["history"] = merged_history
+
+    incoming_trades = incoming_payload.get("trades") if isinstance(incoming_payload, dict) else []
+    incoming_history = incoming_payload.get("history") if isinstance(incoming_payload, dict) else []
+    if (
+        len(merged_trades) > (len(incoming_trades) if isinstance(incoming_trades, list) else 0)
+        or len(merged_history) > (len(incoming_history) if isinstance(incoming_history, list) else 0)
+    ):
+        merged_payload.pop("reportMetrics", None)
+        merged_payload.pop("report_metrics", None)
+
+    return merged_payload
+
+
 def _resolve_account_id(platform: str, broker: str, server: str, login: str) -> str:
     return _stable_account_id(platform, broker, server, login)
 
@@ -774,8 +879,9 @@ class AccountService:
         now = _now_utc()
         target = next((account for account in accounts if account.account_id == resolved_account_id and not _is_deleted(account)), None)
         is_first = not any(account.user_id == user_id and _is_operational(account) for account in accounts)
-        report_metrics = payload.get("reportMetrics") if isinstance(payload.get("reportMetrics"), dict) else {}
-        connector_version = str(payload.get("connectorVersion") or payload.get("connector_version") or "")
+        merged_payload = merge_historical_dashboard_payload(target.latest_payload if target else {}, payload)
+        report_metrics = merged_payload.get("reportMetrics") if isinstance(merged_payload.get("reportMetrics"), dict) else {}
+        connector_version = str(merged_payload.get("connectorVersion") or merged_payload.get("connector_version") or "")
 
         if target is None:
             target = Account(
@@ -802,7 +908,7 @@ class AccountService:
                 created_at=now,
                 updated_at=now,
                 last_sync_at=now,
-                latest_payload=deepcopy(payload),
+                latest_payload=deepcopy(merged_payload),
             )
             accounts.append(target)
             log.info(
@@ -837,7 +943,7 @@ class AccountService:
             target.deleted_at = None
             target.last_sync_at = now
             target.updated_at = now
-            target.latest_payload = deepcopy(payload)
+            target.latest_payload = deepcopy(merged_payload)
             log.info(
                 "[KMFX][ACCOUNT_LIFECYCLE] account_id=%s user_id=%s from_status=%s to_status=active event=sync_received",
                 target.account_id,

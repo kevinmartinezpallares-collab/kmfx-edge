@@ -52,6 +52,10 @@ class LauncherConnectorInstallTests(unittest.TestCase):
             self.assertIn("KMFXApiKey=||0||0||0||N", preset)
             self.assertIn("connection_key=||0||0||0||N", preset)
             self.assertIn("KMFXBackendBaseUrl=https://mt5-api.kmfxedge.com||0||0||0||N", preset)
+            self.assertIn("KMFXWebTimeoutMs=5000||0||0||0||N", preset)
+            self.assertIn("KMFXClosedDealsLimit=100||0||0||0||N", preset)
+            self.assertIn("KMFXHistoryPointsLimit=120||0||0||0||N", preset)
+            self.assertIn("KMFXHistoryLookbackDays=365||0||0||0||N", preset)
             self.assertIn("KMFXVerboseLog=false||0||0||0||N", preset)
             self.assertIn("KMFXEnableEnforce=false||0||0||0||N", preset)
 
@@ -130,6 +134,18 @@ class LauncherConnectorInstallTests(unittest.TestCase):
         self.assertIn('KMFXForceReloadConnectionConfig("policy:"+backend_reason)', source)
         self.assertIn("(now-g_last_connection_config_file_check_at)<5", source)
         self.assertIn('PrintFormat("[KMFX][RUNTIME][CONFIG_REFRESH] context=%s key_source=input_only"', source)
+
+    def test_ea_marks_one_time_history_bootstrap_and_then_returns_to_light_sync(self) -> None:
+        source = (ROOT / "KMFXConnector.mq5").read_text(encoding="utf-8")
+
+        self.assertIn('bool full_history_sync=!KMFXHasCompletedHistoryBootstrap();', source)
+        self.assertIn('datetime sync_from_time=0;', source)
+        self.assertIn('if(!full_history_sync)', source)
+        self.assertIn('sync_from_time=KMFXHistoryFromTime();', source)
+        self.assertIn('json+="\\"historyBootstrapFull\\":"+KMFXBoolJson(full_history_sync)+",";', source)
+        self.assertIn('KMFXMarkHistoryBootstrapComplete();', source)
+        self.assertIn('string KMFXHistoryBootstrapFileName()', source)
+        self.assertIn('KMFXConnectionKeyValue()', source)
 
     def test_launcher_health_is_local_and_backend_health_is_cached(self) -> None:
         source = (ROOT / "launcher" / "service.py").read_text(encoding="utf-8")

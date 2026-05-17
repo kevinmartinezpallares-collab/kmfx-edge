@@ -155,6 +155,63 @@ class AccountServiceTests(unittest.TestCase):
         self.assertNotIn("history", payload)
         self.assertNotIn("debug", payload["riskSnapshot"])
 
+    def test_ingest_account_snapshot_preserves_historical_trades_and_history_points(self) -> None:
+        self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 100000,
+                "equity": 100000,
+                "trades": [
+                    {"trade_id": "jan-1", "ticket": "jan-1", "profit": 100, "time": "2026-01-05T10:00:00Z"},
+                    {"trade_id": "jan-2", "ticket": "jan-2", "profit": -50, "time": "2026-01-10T10:00:00Z"},
+                ],
+                "history": [
+                    {"timestamp": "2026-01-05T10:00:00Z", "value": 100100},
+                    {"timestamp": "2026-01-10T10:00:00Z", "value": 100050},
+                ],
+                "reportMetrics": {"totalTrades": 2, "netProfit": 50},
+            },
+            api_key="darwinex-key",
+        )
+
+        updated = self.service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 100200,
+                "equity": 100200,
+                "trades": [
+                    {"trade_id": "may-1", "ticket": "may-1", "profit": 150, "time": "2026-05-10T10:00:00Z"},
+                ],
+                "history": [
+                    {"timestamp": "2026-05-10T10:00:00Z", "value": 100200},
+                ],
+                "reportMetrics": {"totalTrades": 1, "netProfit": 150},
+            },
+            api_key="darwinex-key",
+        )
+
+        payload = updated.latest_payload
+        self.assertEqual(["jan-1", "jan-2", "may-1"], [trade["trade_id"] for trade in payload["trades"]])
+        self.assertEqual(
+            ["2026-01-05T10:00:00Z", "2026-01-10T10:00:00Z", "2026-05-10T10:00:00Z"],
+            [point["timestamp"] for point in payload["history"]],
+        )
+        self.assertNotIn("reportMetrics", payload)
+
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
         local = self.service.ingest_account_snapshot(
             user_id="local",
