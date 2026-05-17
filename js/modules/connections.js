@@ -147,6 +147,10 @@ function isConnectedStatus(status = "") {
   return ["connected", "active", "first_sync_received"].includes(String(status || "").toLowerCase());
 }
 
+function isArchivedOrDeletedStatus(status = "") {
+  return ["archived", "deleted"].includes(String(status || "").trim().toLowerCase());
+}
+
 function isDirectConnectionMode(connectionMode = "") {
   return String(connectionMode || "").trim().toLowerCase() === "direct";
 }
@@ -1173,13 +1177,27 @@ async function deleteManagedAccount({ store, root, accountId }) {
       showToast(payload?.reason || "No pude borrar la cuenta.", "error");
       return;
     }
-    store.setState((state) => ({
-      ...state,
-      managedAccounts: (state.managedAccounts || []).filter((account) => account.account_id !== accountId),
-      accountDirectory: Object.fromEntries(
-        Object.entries(state.accountDirectory || {}).filter(([key]) => key !== accountId)
-      ),
-    }));
+    store.setState((state) => {
+      const nextAccounts = { ...(state.accounts || {}) };
+      delete nextAccounts[accountId];
+      const nextLiveAccountIds = (state.liveAccountIds || []).filter((id) => id !== accountId);
+      const nextCurrentAccount = state.currentAccount === accountId
+        ? (nextLiveAccountIds[0] || (nextAccounts.sandbox ? "sandbox" : null))
+        : state.currentAccount;
+      return {
+        ...state,
+        accounts: nextAccounts,
+        managedAccounts: (state.managedAccounts || []).filter((account) => account.account_id !== accountId),
+        accountDirectory: Object.fromEntries(
+          Object.entries(state.accountDirectory || {}).filter(([key]) => key !== accountId)
+        ),
+        liveAccountIds: nextLiveAccountIds,
+        activeLiveAccountId: state.activeLiveAccountId === accountId ? (nextLiveAccountIds[0] || null) : state.activeLiveAccountId,
+        activeAccountId: state.activeAccountId === accountId ? (nextLiveAccountIds[0] || null) : state.activeAccountId,
+        preferredLiveAccountId: state.preferredLiveAccountId === accountId ? (nextLiveAccountIds[0] || null) : state.preferredLiveAccountId,
+        currentAccount: nextCurrentAccount,
+      };
+    });
     await fetchAccountsRegistry(store);
     showToast("Cuenta eliminada", "success");
     renderConnections(root, store.getState());
@@ -1215,7 +1233,8 @@ async function fetchAccountsRegistry(store) {
     }
     const payload = await response.json();
     applyAdminAccess(store, payload?.is_admin);
-    const accounts = Array.isArray(payload?.accounts) ? payload.accounts : [];
+    const accounts = (Array.isArray(payload?.accounts) ? payload.accounts : [])
+      .filter((account) => !isArchivedOrDeletedStatus(account?.status));
     const previousAccounts = Array.isArray(store.getState().managedAccounts) ? store.getState().managedAccounts : [];
     if (registrySignature(previousAccounts) === registrySignature(accounts)) {
       console.info("[KMFX][ACCOUNTS]", {

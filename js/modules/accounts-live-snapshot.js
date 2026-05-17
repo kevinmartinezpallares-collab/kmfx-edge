@@ -321,6 +321,11 @@ function normalizeAccountEntry(entry = {}) {
   };
 }
 
+function isArchivedOrDeletedAccount(entry = {}) {
+  const status = String(entry?.status || "").trim().toLowerCase();
+  return status === "archived" || status === "deleted";
+}
+
 function snapshotModeFromPayload(payload = {}) {
   const shape = String(payload?.payloadShape || payload?.snapshot_payload_shape || "").toLowerCase();
   return shape === "summary" ? "summary" : "full";
@@ -340,6 +345,7 @@ function mergeLiveAccounts(store, snapshot) {
   const normalizedAccounts = Array.isArray(snapshot?.accounts)
     ? snapshot.accounts
       .map(normalizeAccountEntry)
+      .filter((account) => !isArchivedOrDeletedAccount(account))
       .filter((account) => isAccountOwnedByAuth(account, state, snapshot))
     : [];
   const blockedCount = Array.isArray(snapshot?.accounts) ? snapshot.accounts.length - normalizedAccounts.length : 0;

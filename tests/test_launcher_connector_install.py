@@ -31,13 +31,14 @@ class LauncherConnectorInstallTests(unittest.TestCase):
             result = install_connector(installation, config)
 
             experts_path = data_path / "MQL5" / "Experts"
+            advisors_path = experts_path / "Advisors"
             files_path = data_path / "MQL5" / "Files"
             preset_path = data_path / "Profiles" / "Presets" / "KMFXConnector_Launcher.set"
             connection_config_path = files_path / "kmfx_connection.conf"
             safety_notice_path = files_path / "KMFX_READ_ONLY_NOTICE.txt"
 
-            self.assertTrue((experts_path / "KMFXConnector.ex5").is_file())
-            self.assertTrue((experts_path / "KMFXConnector.mq5").is_file())
+            self.assertTrue((advisors_path / "KMFXConnector.ex5").is_file())
+            self.assertTrue((advisors_path / "KMFXConnector.mq5").is_file())
             self.assertEqual(str(connection_config_path), result["connection_config_path"])
             self.assertEqual(str(safety_notice_path), result["safety_notice_path"])
             self.assertIn("KMFXConnector.ex5", result["copied_files"])

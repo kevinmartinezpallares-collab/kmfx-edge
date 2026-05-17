@@ -124,15 +124,17 @@ def safety_notice_contents(config: LauncherConfig, installation: MT5Installation
 
 def install_connector(installation: MT5Installation, config: LauncherConfig) -> dict[str, str]:
     experts_path = Path(installation.experts_path)
+    advisors_path = experts_path / "Advisors"
     presets_path = resolve_presets_path(installation)
     files_path = Path(installation.data_path) / "MQL5" / "Files"
     experts_path.mkdir(parents=True, exist_ok=True)
+    advisors_path.mkdir(parents=True, exist_ok=True)
     presets_path.mkdir(parents=True, exist_ok=True)
     files_path.mkdir(parents=True, exist_ok=True)
 
     copied_files: list[str] = []
     for source in required_connector_sources():
-        target = experts_path / source.name
+        target = advisors_path / source.name
         shutil.copy2(source, target)
         copied_files.append(str(target))
 
