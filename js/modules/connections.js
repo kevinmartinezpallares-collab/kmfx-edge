@@ -12,6 +12,7 @@ const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
+const LOCAL_CONNECTION_KEYS_STORAGE_KEY = "kmfx.connectionKeys.v1";
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -96,6 +97,50 @@ function relativeTime(value) {
   if (hours < 24) return `hace ${hours}h`;
   const days = Math.round(hours / 24);
   return `hace ${days}d`;
+}
+
+function readLocalConnectionKeys() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistLocalConnectionKey({ accountId = "", connectionKey = "", label = "", state = {} } = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  const normalizedKey = String(connectionKey || "").trim();
+  if (!normalizedAccountId || !normalizedKey) return;
+  try {
+    const cache = readLocalConnectionKeys();
+    cache[normalizedAccountId] = {
+      accountId: normalizedAccountId,
+      connectionKey: normalizedKey,
+      label: String(label || "").trim(),
+      userId: state?.auth?.user?.id || "",
+      updatedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(LOCAL_CONNECTION_KEYS_STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    // Browser storage is optional.
+  }
+}
+
+function resolveCachedConnectionKey(accountId = "", state = {}) {
+  const normalizedAccountId = String(accountId || "").trim();
+  if (!normalizedAccountId) return "";
+  try {
+    const cache = readLocalConnectionKeys();
+    const entry = cache[normalizedAccountId];
+    if (!entry || typeof entry !== "object") return "";
+    const cachedUserId = String(entry.userId || "").trim();
+    const activeUserId = String(state?.auth?.user?.id || "").trim();
+    if (cachedUserId && activeUserId && cachedUserId !== activeUserId) return "";
+    return String(entry.connectionKey || "").trim();
+  } catch {
+    return "";
+  }
 }
 
 function isConnectedStatus(status = "") {
@@ -711,6 +756,7 @@ function resolveAccountConnectionKey(account, state, activeAccount = null) {
     account.connectionKey,
     account.api_key,
     account.apiKey,
+    resolveCachedConnectionKey(account.account_id, state),
     directoryAccount?.apiKey,
     directoryAccount?.api_key,
     activeAccountMatches ? (
@@ -750,6 +796,12 @@ async function fetchOwnAccountConnectionKey(accountId, state) {
     if (!connectionKey) {
       return { ok: false, reason: "connection_key_not_available", payload };
     }
+    persistLocalConnectionKey({
+      accountId: normalizedAccountId,
+      connectionKey,
+      label: payload?.connection_key_preview || "",
+      state,
+    });
     return { ok: true, connectionKey, payload };
   } catch {
     return { ok: false, reason: "network_error" };
@@ -1047,26 +1099,32 @@ function openAccountInfoModal(account, state, activeAccount = null) {
     onMount(card) {
       card?.classList.add("connections-account-modal", "connections-account-modal--info");
       let revealed = false;
+      let connectionKeyLoadPromise = null;
       const valueNode = card?.querySelector("[data-account-key-value]");
       const toggleButton = card?.querySelector("[data-account-modal-toggle-key='true']");
       const copyButton = card?.querySelector("[data-account-copy-key='true']");
       async function ensureConnectionKeyLoaded() {
         if (connectionKey) return true;
+        if (connectionKeyLoadPromise) return connectionKeyLoadPromise;
         if (!accountId) return false;
-        const result = await fetchOwnAccountConnectionKey(accountId, state);
-        if (!result.ok || !result.connectionKey) {
-          if (result.reason === "connection_key_revoked") {
-            showToast("No pude recuperar la KMFXKey actual. Abre Detalles y usa la key estable de esta cuenta; crea otra cuenta solo para otro MT5.", "error");
-          } else if (result.reason === "network_error") {
-            showToast("No pude conectar con el servidor de KMFX.", "error");
-          } else {
-            showToast("No pude recuperar la KMFXKey de esta cuenta.", "error");
+        connectionKeyLoadPromise = (async () => {
+          const result = await fetchOwnAccountConnectionKey(accountId, state);
+          if (!result.ok || !result.connectionKey) {
+            if (result.reason === "connection_key_revoked") {
+              showToast("No pude recuperar la KMFXKey actual. Abre Detalles y usa la key estable de esta cuenta; crea otra cuenta solo para otro MT5.", "error");
+            } else if (result.reason === "network_error") {
+              showToast("No pude conectar con el servidor de KMFX.", "error");
+            } else {
+              showToast("No pude recuperar la KMFXKey de esta cuenta.", "error");
+            }
+            connectionKeyLoadPromise = null;
+            return false;
           }
-          return false;
-        }
-        connectionKey = result.connectionKey;
-        connectionPreview = maskConnectionKeyForDisplay(connectionKey);
-        return true;
+          connectionKey = result.connectionKey;
+          connectionPreview = maskConnectionKeyForDisplay(connectionKey);
+          return true;
+        })();
+        return connectionKeyLoadPromise;
       }
       void (async () => {
         const loaded = await ensureConnectionKeyLoaded();
