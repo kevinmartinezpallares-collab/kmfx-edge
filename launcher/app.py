@@ -180,6 +180,15 @@ def _friendly_installation_label_from_text(value: str, fallback: str = "MetaTrad
     return _sanitize_account_label(candidate, fallback)
 
 
+def _explicit_instance_label_from_data_path(data_path: str, fallback: str = "") -> str:
+    path = Path(str(data_path or "")).expanduser()
+    for part in reversed(path.parts):
+        cleaned = _sanitize_account_label(part, "")
+        if cleaned.startswith("MT5-"):
+            return cleaned
+    return fallback
+
+
 def _decode_mt5_log_bytes(raw: bytes) -> str:
     if not raw:
         return ""
@@ -1131,6 +1140,9 @@ class KMFXApi:
         return ""
 
     def installed_connection_label(self, installation: MT5Installation) -> str:
+        explicit_label = _explicit_instance_label_from_data_path(installation.data_path)
+        if explicit_label:
+            return explicit_label
         raw_label = _identity_text(installation.label, installation.data_path)
         return _friendly_installation_label_from_text(raw_label, "Cuenta MT5")
 
@@ -1188,6 +1200,9 @@ class KMFXApi:
 
     def installation_display_label(self, installation: MT5Installation, connection: dict[str, Any] | None = None) -> str:
         connection = connection or {}
+        explicit_label = _explicit_instance_label_from_data_path(installation.data_path)
+        if explicit_label:
+            return explicit_label
         login = _safe_str(connection.get("login"))
         broker = _safe_str(connection.get("broker"))
         server = _safe_str(connection.get("server"))
