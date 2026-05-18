@@ -947,36 +947,29 @@ class KMFXApi:
             self.config.selected_mt5_experts_path = installation.experts_path
             save_config(self.config)
 
-            identity_connection = self.remote_connection_for_installation(installation)
-            if identity_connection.get("account_id"):
-                return self.install_connector_for_connection(identity_connection["account_id"], installation.label)
-
-            available_connections = [
-                connection
-                for connection in self.get_account_connections()
-                if _safe_str(connection.get("account_id"))
-                and not connection.get("connection_key_revoked")
-            ]
-            pending_connections = [
-                connection
-                for connection in available_connections
-                if _safe_str(connection.get("status")).lower() in {"pending_link", "pending_setup", "waiting_sync", "draft", "linked"}
-                and not _safe_str(connection.get("login"))
-            ]
-            if len(pending_connections) == 1:
-                return self.install_connector_for_connection(pending_connections[0]["account_id"], installation.label)
+            install_config = replace(self.config)
+            install_config.connection_key = ""
+            try:
+                install_connector(installation, install_config)
+            except ConnectorInstallError as exc:
+                self.logger.error("[KMFX][LAUNCHER][INSTALL] connector resource missing: %s", exc)
+                return {"ok": False, "message": str(exc)}
 
             self.logger.info(
-                "[KMFX][LAUNCHER][INSTALL] install requires dashboard account selection target=%s candidates=%s",
+                "[KMFX][LAUNCHER][INSTALL] connector installed target=%s mode=standalone_manual_key",
                 installation.label,
-                len(available_connections),
             )
+            self.refresh_installations()
+            self.ensure_installed_account_links(force=True)
             return {
-                "ok": False,
+                "ok": True,
                 "message": (
-                    "Crea la cuenta en el dashboard y pulsa Reinstalar en esa cuenta. "
-                    "El Launcher no genera KMFXKeys nuevas."
+                    "Conector instalado. Abre el EA en MT5 y pega la KMFXKey de la cuenta que quieras conectar."
                 ),
+                "installation_label": installation.label,
+                "linked_account_id": "",
+                "connection_key_preview": "",
+                "installations": self.get_installations(),
             }
 
     def install_connector_for_connection(self, account_id: str, selected_installation: str | None = None) -> dict[str, Any]:

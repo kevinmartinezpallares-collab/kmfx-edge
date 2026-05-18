@@ -708,12 +708,23 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 api._last_installed_link_sync_at = time.time()
                 api.get_session = lambda: {"authenticated": True}
                 api.get_account_connections = lambda: []
+                api.refresh_installations = lambda: api.installations
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_installations = lambda: []
 
-                result = api.install_connector("MetaTrader 5")
+                captured: dict[str, str] = {}
 
-        self.assertFalse(result["ok"])
+                def fake_install_connector(_installation: MT5Installation, install_config: LauncherConfig) -> dict[str, object]:
+                    captured["connection_key"] = install_config.connection_key
+                    return {"ok": True}
+
+                with patch("launcher.app.install_connector", fake_install_connector):
+                    result = api.install_connector("MetaTrader 5")
+
+        self.assertTrue(result["ok"])
         self.assertEqual(0, backend.link_calls)
-        self.assertIn("Launcher no genera KMFXKeys", result["message"])
+        self.assertEqual("", captured["connection_key"])
+        self.assertIn("Conector instalado", result["message"])
 
     def test_launcher_link_account_refreshes_and_retries_after_401(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -880,6 +891,8 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 api.get_status = lambda: {}
                 api.get_installations = lambda: []
                 api.get_account_connections = lambda: []
+                api.ensure_installed_account_links = lambda force=False: None
+                api.get_installations = lambda: []
 
                 captured: dict[str, str] = {}
 
@@ -890,10 +903,10 @@ class LauncherConnectionKeyTests(unittest.TestCase):
                 with patch("launcher.app.install_connector", fake_install_connector):
                     result = api.install_connector("Darwinex")
 
-        self.assertFalse(result["ok"])
+        self.assertTrue(result["ok"])
         self.assertEqual([], api.backend.connection_keys)
-        self.assertIn("Crea la cuenta en el dashboard", result["message"])
-        self.assertNotIn("connection_key", captured)
+        self.assertEqual("", captured["connection_key"])
+        self.assertIn("Conector instalado", result["message"])
 
     def test_launcher_repair_account_prefers_identity_match_over_selected_installation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
