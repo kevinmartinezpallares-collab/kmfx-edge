@@ -10,6 +10,55 @@ APP_PATH="$ROOT_DIR/dist/KMFX Launcher.app"
 DMG_PATH="$ROOT_DIR/dist/KMFX Launcher.dmg"
 ZIP_PATH="$ROOT_DIR/downloads/KMFX-Launcher-macOS.zip"
 ZIP_SHA_PATH="$ROOT_DIR/downloads/KMFX-Launcher-macOS.zip.sha256"
+BUILD_VENV_DIR="$ROOT_DIR/.venv-launcher-macos"
+
+pick_bootstrap_python() {
+  local candidates=(
+    "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3"
+    "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"
+  )
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  if command -v python3 >/dev/null 2>&1; then
+    candidate="$(command -v python3)"
+    local version
+    version="$("$candidate" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    if [[ "$version" == "3.13" || "$version" == "3.11" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  fi
+  echo "[KMFX][BUILD][ERROR] macOS launcher build requires Python 3.13 or 3.11. Python 3.14 builds are currently broken for distribution." >&2
+  exit 1
+}
+
+ensure_build_venv() {
+  local bootstrap_python
+  local bootstrap_version
+  bootstrap_python="$(pick_bootstrap_python)"
+  bootstrap_version="$("$bootstrap_python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+
+  if [[ -x "$BUILD_VENV_DIR/bin/python" ]]; then
+    local venv_version
+    venv_version="$("$BUILD_VENV_DIR/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+    if [[ "$venv_version" != "3.13" && "$venv_version" != "3.11" ]]; then
+      rm -rf "$BUILD_VENV_DIR"
+    fi
+  fi
+
+  if [[ ! -x "$BUILD_VENV_DIR/bin/python" ]]; then
+    echo "[KMFX][BUILD] creating macOS launcher venv with Python $bootstrap_version"
+    "$bootstrap_python" -m venv "$BUILD_VENV_DIR"
+  fi
+
+  "$BUILD_VENV_DIR/bin/python" -m pip install --upgrade pip setuptools wheel >/dev/null
+  "$BUILD_VENV_DIR/bin/python" -m pip install -r "$ROOT_DIR/requirements.txt" -r "$ROOT_DIR/requirements-build.txt" >/dev/null
+}
 
 BUILD_DMG=0
 BUILD_ZIP=0
@@ -29,6 +78,9 @@ for arg in "$@"; do
 done
 
 cd "$ROOT_DIR"
+
+ensure_build_venv
+BUILD_PYTHON="$BUILD_VENV_DIR/bin/python"
 
 if [[ ! -f "$ICON_SOURCE" ]]; then
   echo "[KMFX][BUILD][ERROR] Missing icon source: $ICON_SOURCE" >&2
@@ -87,13 +139,12 @@ PY
 fi
 echo "[KMFX][BUILD] icon ready: $ICON_FILE"
 
-if ! python3 -c "import PyInstaller" >/dev/null 2>&1; then
-  echo "[KMFX][BUILD][ERROR] PyInstaller is missing. Install build dependencies with:" >&2
-  echo "  python3 -m pip install -r requirements.txt -r requirements-build.txt" >&2
+if ! "$BUILD_PYTHON" -c "import PyInstaller" >/dev/null 2>&1; then
+  echo "[KMFX][BUILD][ERROR] PyInstaller is missing in $BUILD_VENV_DIR." >&2
   exit 1
 fi
 
-python3 -m PyInstaller --clean --noconfirm "$SPEC_FILE"
+"$BUILD_PYTHON" -m PyInstaller --clean --noconfirm "$SPEC_FILE"
 
 SIGN_WORK_DIR=""
 SIGN_APP_PATH=""

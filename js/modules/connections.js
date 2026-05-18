@@ -1,18 +1,74 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260517-202600";
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260517-202600";
-import { showToast } from "./toast.js?v=build-20260517-202600";
-import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260517-202600";
-import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260517-202600";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260517-202600";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260517-202600";
-import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260517-202600";
-import { isAdminMode } from "./admin-mode.js?v=build-20260517-202600";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260518-071000";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260518-071000";
+import { showToast } from "./toast.js?v=build-20260518-071000";
+import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260518-071000";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260518-071000";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260518-071000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260518-071000";
+import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260518-071000";
+import { isAdminMode } from "./admin-mode.js?v=build-20260518-071000";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
 const MT5_WEBREQUEST_URL = "https://mt5-api.kmfxedge.com";
 const EA_DOWNLOAD_URL = "./KMFXConnector.ex5";
 const LOCAL_CONNECTION_KEYS_STORAGE_KEY = "kmfx.connectionKeys.v1";
+
+const REGISTRY_POLL_LEADER_KEY = "kmfx.polling.leader.registry";
+const REGISTRY_POLL_LEADER_TTL_MS = 180000;
+
+function safeReadJsonStorage(key) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function safeWriteJsonStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveTabId() {
+  if (typeof window === "undefined") return "server";
+  if (window.__KMFX_TAB_ID__) return window.__KMFX_TAB_ID__;
+  try {
+    window.__KMFX_TAB_ID__ = `tab_${crypto?.randomUUID?.() || Math.random().toString(16).slice(2)}`;
+  } catch {
+    window.__KMFX_TAB_ID__ = `tab_${Math.random().toString(16).slice(2)}`;
+  }
+  return window.__KMFX_TAB_ID__;
+}
+
+function isDocumentHidden() {
+  return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
+function isRegistryPollLeader() {
+  if (isDocumentHidden()) return false;
+  const tabId = resolveTabId();
+  const current = safeReadJsonStorage(REGISTRY_POLL_LEADER_KEY) || {};
+  const now = Date.now();
+  const isStale = !current?.at || now - Number(current.at) > REGISTRY_POLL_LEADER_TTL_MS;
+  if (current?.tabId === tabId) return true;
+  if (!isStale) return false;
+  const next = { tabId, at: now };
+  if (!safeWriteJsonStorage(REGISTRY_POLL_LEADER_KEY, next)) return true;
+  const verify = safeReadJsonStorage(REGISTRY_POLL_LEADER_KEY) || {};
+  return verify?.tabId === tabId;
+}
+
+function touchRegistryPollLeader() {
+  const tabId = resolveTabId();
+  safeWriteJsonStorage(REGISTRY_POLL_LEADER_KEY, { tabId, at: Date.now() });
+}
 
 function launcherDownloadUrl(platform = "auto") {
   const macUrl = window.__KMFX_MAC_LAUNCHER_DOWNLOAD_URL__ || window.__KMFX_LAUNCHER_DOWNLOAD_URL__ || DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL;
@@ -1506,7 +1562,35 @@ export function initConnections(store) {
     intervalMs: pollMs,
     mode: isLocalRuntime() ? "local" : "production",
   });
-  window.setInterval(() => fetchAccountsRegistry(store), pollMs);
+  const scheduleNextRegistryPoll = () => {
+    clearTimeout(root.__registryPollTimer);
+    if (!isRegistryPollLeader()) {
+      root.__registryPollTimer = window.setTimeout(scheduleNextRegistryPoll, Math.max(pollMs, REGISTRY_POLL_LEADER_TTL_MS));
+      return;
+    }
+    touchRegistryPollLeader();
+    root.__registryPollTimer = window.setTimeout(async () => {
+      await fetchAccountsRegistry(store);
+      scheduleNextRegistryPoll();
+    }, pollMs);
+  };
+  scheduleNextRegistryPoll();
+  if (!root.__registryPollBound) {
+    root.__registryPollBound = true;
+    window.addEventListener("focus", async () => {
+      if (!isRegistryPollLeader()) return;
+      touchRegistryPollLeader();
+      await fetchAccountsRegistry(store);
+      renderConnections(root, store.getState());
+    });
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState !== "visible") return;
+      if (!isRegistryPollLeader()) return;
+      touchRegistryPollLeader();
+      await fetchAccountsRegistry(store);
+      renderConnections(root, store.getState());
+    });
+  }
   window.addEventListener("kmfx:accounts-refresh", async () => {
     await fetchAccountsRegistry(store);
     renderConnections(root, store.getState());
