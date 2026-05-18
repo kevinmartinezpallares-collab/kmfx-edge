@@ -9,6 +9,59 @@ const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 60 * 60 * 1000;
 const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 2 * 60 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
+const ACCOUNTS_POLL_LEADER_KEY = "kmfx.polling.leader.accounts";
+const ACCOUNTS_POLL_LEADER_TTL_MS = 45000;
+const REGISTRY_REFRESH_EVENT_DEBOUNCE_MS = 5000;
+
+function safeReadJsonStorage(key) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function safeWriteJsonStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveTabId() {
+  if (typeof window === "undefined") return "server";
+  if (window.__KMFX_TAB_ID__) return window.__KMFX_TAB_ID__;
+  try {
+    window.__KMFX_TAB_ID__ = `tab_${crypto?.randomUUID?.() || Math.random().toString(16).slice(2)}`;
+  } catch {
+    window.__KMFX_TAB_ID__ = `tab_${Math.random().toString(16).slice(2)}`;
+  }
+  return window.__KMFX_TAB_ID__;
+}
+
+function isAccountsPollLeader({ allowHidden = false } = {}) {
+  if (!allowHidden && isDocumentHidden()) return false;
+  const tabId = resolveTabId();
+  const current = safeReadJsonStorage(ACCOUNTS_POLL_LEADER_KEY) || {};
+  const now = Date.now();
+  const isStale = !current?.at || now - Number(current.at) > ACCOUNTS_POLL_LEADER_TTL_MS;
+  if (current?.tabId === tabId) return true;
+  if (!isStale) return false;
+  const next = { tabId, at: now };
+  if (!safeWriteJsonStorage(ACCOUNTS_POLL_LEADER_KEY, next)) return true;
+  const verify = safeReadJsonStorage(ACCOUNTS_POLL_LEADER_KEY) || {};
+  return verify?.tabId === tabId;
+}
+
+function touchAccountsPollLeader() {
+  const tabId = resolveTabId();
+  safeWriteJsonStorage(ACCOUNTS_POLL_LEADER_KEY, { tabId, at: Date.now() });
+}
+
 function isLocalRuntime() {
   try {
     const baseUrl = resolveApiBaseUrl();
@@ -35,6 +88,17 @@ function resolveAccountsFullSnapshotRefreshMs({ isLocal = false, hasOpenPosition
   if (isLocal) return LOCAL_FULL_SNAPSHOT_REFRESH_MS;
   if (isHidden) return PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN;
   return hasOpenPositions ? PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE : PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE;
+}
+
+function requestRegistryRefresh(reason = "live_snapshot") {
+  if (typeof window === "undefined") return;
+  const now = Date.now();
+  const lastAt = Number(window.__KMFX_REGISTRY_REFRESH_REQUEST_AT__ || 0);
+  if (Number.isFinite(lastAt) && now - lastAt < REGISTRY_REFRESH_EVENT_DEBOUNCE_MS) return;
+  window.__KMFX_REGISTRY_REFRESH_REQUEST_AT__ = now;
+  window.dispatchEvent(new CustomEvent("kmfx:accounts-refresh", {
+    detail: { source: reason }
+  }));
 }
 
 function toFiniteNumber(value, fallback = null) {
@@ -377,6 +441,7 @@ function mergeLiveAccounts(store, snapshot) {
     })),
   });
   const liveAccountIds = normalizedAccounts.map((account) => account.accountId).filter(Boolean);
+  const previousLiveAccountIds = Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [];
   const nextAccounts = { ...state.accounts };
 
   Object.entries(nextAccounts).forEach(([accountId, account]) => {
@@ -502,6 +567,10 @@ function mergeLiveAccounts(store, snapshot) {
     liveAccountIds,
     currentAccount: resolvedCurrentAccount,
   });
+  const hasNewLiveAccount = liveAccountIds.some((accountId) => !previousLiveAccountIds.includes(accountId));
+  if (hasNewLiveAccount) {
+    requestRegistryRefresh("new_live_account_detected");
+  }
   if (liveAccountIds.length > 0 && selectedAccount) {
     console.info("[KMFX][BOOT][LIVE-DETECTED]", {
       accountsCount: liveAccountIds.length,
@@ -565,6 +634,12 @@ export function initAccountsLiveSnapshot(store) {
 
   const scheduleNextHttpPoll = () => {
     clearHttpPollTimer();
+    if (!isAccountsPollLeader()) {
+      const intervalMs = Math.max(getHttpPollIntervalMs(), ACCOUNTS_POLL_LEADER_TTL_MS);
+      httpPollTimer = window.setTimeout(scheduleNextHttpPoll, intervalMs);
+      return;
+    }
+    touchAccountsPollLeader();
     const intervalMs = getHttpPollIntervalMs();
     console.info("[KMFX][ACCOUNTS]", {
       label: "http-poll-config",
@@ -731,6 +806,11 @@ export function initAccountsLiveSnapshot(store) {
       label: "live-refresh",
       reason,
     });
+    if (!isAccountsPollLeader({ allowHidden: true })) {
+      // Avoid piling up background tabs hitting Render/Supabase; a visible tab will take leadership.
+      return { ok: false, count: (store.getState().liveAccountIds || []).length, reason: "non_leader_tab" };
+    }
+    touchAccountsPollLeader();
     const result = await pollHttpSnapshot({ view: "full" });
     if (hasLiveAccountAccess(store.getState())) {
       connect();
@@ -743,6 +823,20 @@ export function initAccountsLiveSnapshot(store) {
   const initialSnapshotPromise = refreshLiveAccounts("initial");
   startHttpPolling();
   let lastAccessSignature = liveAccessSignature(store.getState());
+  if (!window.__KMFX_ACCOUNTS_POLL_LISTENERS_BOUND__) {
+    window.__KMFX_ACCOUNTS_POLL_LISTENERS_BOUND__ = true;
+    window.addEventListener("focus", () => {
+      if (!hasLiveAccountAccess(store.getState())) return;
+      if (!isAccountsPollLeader({ allowHidden: true })) return;
+      refreshLiveAccounts("focus");
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") return;
+      if (!hasLiveAccountAccess(store.getState())) return;
+      if (!isAccountsPollLeader({ allowHidden: true })) return;
+      refreshLiveAccounts("visible");
+    });
+  }
   store.subscribe((state) => {
     const nextAccessSignature = liveAccessSignature(state);
     if (nextAccessSignature === lastAccessSignature) return;

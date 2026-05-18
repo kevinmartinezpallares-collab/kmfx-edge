@@ -384,11 +384,7 @@ function escapeHtml(value = "") {
 }
 
 function resolveRegistryAccounts(state) {
-  // Connections UI source order: backend registry first; live snapshot fallback only
-  // keeps the page useful while registry polling is unavailable or still loading.
   const managedAccounts = Array.isArray(state.managedAccounts) ? state.managedAccounts : [];
-  if (managedAccounts.length) return { accounts: managedAccounts, source: "registry" };
-
   const liveAccountIds = selectLiveAccountIds(state);
   const accountDirectory = state.accountDirectory && typeof state.accountDirectory === "object" ? state.accountDirectory : {};
   const fallbackAccounts = liveAccountIds
@@ -407,7 +403,21 @@ function resolveRegistryAccounts(state) {
       last_sync_at: account.lastSyncAt,
     }));
 
-  return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
+  if (!managedAccounts.length) {
+    return { accounts: fallbackAccounts, source: fallbackAccounts.length ? "snapshot" : "empty" };
+  }
+
+  const mergedById = new Map(
+    managedAccounts.map((account) => [String(account?.account_id || "").trim(), account]).filter(([accountId]) => Boolean(accountId))
+  );
+  fallbackAccounts.forEach((account) => {
+    const accountId = String(account?.account_id || "").trim();
+    if (!accountId || mergedById.has(accountId)) return;
+    mergedById.set(accountId, account);
+  });
+  const mergedAccounts = Array.from(mergedById.values());
+  const source = mergedAccounts.length === managedAccounts.length ? "registry" : "registry+snapshot";
+  return { accounts: mergedAccounts, source };
 }
 
 function renderConnectionsHeader({ adminVisible = false, adminState = null, connectionAccess = { allowed: true } } = {}) {

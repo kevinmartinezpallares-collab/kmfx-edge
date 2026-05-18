@@ -16,7 +16,10 @@ function resolveSidebarAccounts(state) {
   const registryIds = (Array.isArray(state?.managedAccounts) ? state.managedAccounts : [])
     .map((account) => String(account?.account_id || "").trim())
     .filter(Boolean);
-  const candidateIds = registryIds.length > 0 ? registryIds : selectLiveAccountIds(state);
+  const liveIds = selectLiveAccountIds(state);
+  const candidateIds = registryIds.length > 0
+    ? Array.from(new Set([...registryIds, ...liveIds]))
+    : liveIds;
   return candidateIds
     .map((accountId) => state.accounts?.[accountId])
     .filter((account) => account && typeof account === "object");
