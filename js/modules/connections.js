@@ -1,12 +1,12 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260518-071000";
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260518-071000";
-import { showToast } from "./toast.js?v=build-20260518-071000";
-import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260518-071000";
-import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260518-071000";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260518-071000";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260518-071000";
-import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260518-071000";
-import { isAdminMode } from "./admin-mode.js?v=build-20260518-071000";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260518-081500";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260518-081500";
+import { showToast } from "./toast.js?v=build-20260518-081500";
+import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260518-081500";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260518-081500";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260518-081500";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260518-081500";
+import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260518-081500";
+import { isAdminMode } from "./admin-mode.js?v=build-20260518-081500";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -205,6 +205,49 @@ function isConnectedStatus(status = "") {
 
 function isArchivedOrDeletedStatus(status = "") {
   return ["archived", "deleted"].includes(String(status || "").trim().toLowerCase());
+}
+
+function reconcileManagedMt5State(state, managedAccounts = []) {
+  const registryIds = new Set(
+    (Array.isArray(managedAccounts) ? managedAccounts : [])
+      .map((account) => String(account?.account_id || "").trim())
+      .filter(Boolean)
+  );
+  const nextAccounts = { ...(state.accounts || {}) };
+
+  Object.entries(nextAccounts).forEach(([accountId, account]) => {
+    if (account?.sourceType === "mt5" && !registryIds.has(accountId)) {
+      delete nextAccounts[accountId];
+    }
+  });
+
+  const nextLiveAccountIds = (Array.isArray(state.liveAccountIds) ? state.liveAccountIds : [])
+    .filter((accountId) => registryIds.has(accountId) && nextAccounts[accountId]);
+
+  const nextPreferredLiveAccountId = registryIds.has(state.preferredLiveAccountId) && nextAccounts[state.preferredLiveAccountId]
+    ? state.preferredLiveAccountId
+    : (nextLiveAccountIds[0] || null);
+
+  const liveFallbackAccountId = nextPreferredLiveAccountId
+    || nextLiveAccountIds[0]
+    || [...registryIds].find((accountId) => Boolean(nextAccounts[accountId]))
+    || null;
+
+  const nextCurrentAccount = nextAccounts[state.currentAccount]
+    ? state.currentAccount
+    : (liveFallbackAccountId || (nextAccounts.sandbox ? "sandbox" : null));
+
+  return {
+    ...state,
+    accounts: nextAccounts,
+    managedAccounts,
+    liveAccountIds: nextLiveAccountIds,
+    activeLiveAccountId: nextAccounts[state.activeLiveAccountId] ? state.activeLiveAccountId : (liveFallbackAccountId || null),
+    activeAccountId: nextAccounts[state.activeAccountId] ? state.activeAccountId : (liveFallbackAccountId || null),
+    preferredLiveAccountId: nextPreferredLiveAccountId,
+    currentAccount: nextCurrentAccount,
+    mode: liveFallbackAccountId ? "live" : "mock",
+  };
 }
 
 function isDirectConnectionMode(connectionMode = "") {
@@ -1299,10 +1342,7 @@ async function fetchAccountsRegistry(store) {
       });
       return;
     }
-    store.setState((state) => ({
-      ...state,
-      managedAccounts: accounts,
-    }));
+    store.setState((state) => reconcileManagedMt5State(state, accounts));
   } catch (error) {
     console.warn("[KMFX][ACCOUNTS] registry fetch error", error);
   }

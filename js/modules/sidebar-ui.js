@@ -13,8 +13,11 @@ function escapeHtml(value = "") {
 }
 
 function resolveSidebarAccounts(state) {
-  const liveIds = selectLiveAccountIds(state);
-  return liveIds
+  const registryIds = (Array.isArray(state?.managedAccounts) ? state.managedAccounts : [])
+    .map((account) => String(account?.account_id || "").trim())
+    .filter(Boolean);
+  const candidateIds = registryIds.length > 0 ? registryIds : selectLiveAccountIds(state);
+  return candidateIds
     .map((accountId) => state.accounts?.[accountId])
     .filter((account) => account && typeof account === "object");
 }
@@ -359,7 +362,10 @@ export function initSidebarUI(store) {
     const accounts = resolveSidebarAccounts(state);
     const connectionAccess = sidebarConnectionAccess(state);
     const activeAccountId = selectActiveAccountId(state);
-    const activeAccount = selectActiveAccount(state) || accounts[0] || null;
+    const activeAccount = accounts.find((account) => account.id === activeAccountId)
+      || selectActiveAccount(state)
+      || accounts[0]
+      || null;
     const activeAccountName = activeAccount ? resolveAccountDisplayName(activeAccount) : "";
     const activeAccountBalance = activeAccount ? resolveAccountBalance(activeAccount) : "";
     const activeAccountContext = activeAccount ? resolveAccountContextLabel(activeAccount) : "";

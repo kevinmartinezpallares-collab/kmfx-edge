@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import json
 import logging
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
+
+try:
+    import certifi
+except ImportError:  # pragma: no cover - dependency is bundled in production builds
+    certifi = None
 
 from .connection_keys import payload_connection_key
 from .config import LauncherConfig, mask_connection_key
@@ -35,6 +41,13 @@ class BackendClient:
     def __init__(self, config: LauncherConfig) -> None:
         self.config = config
         self.logger = logging.getLogger("kmfx_launcher")
+
+    def _ssl_context_for_url(self, url: str):
+        if not str(url or "").lower().startswith("https://"):
+            return None
+        if certifi is not None:
+            return ssl.create_default_context(cafile=certifi.where())
+        return ssl.create_default_context()
 
     def _summarize_body(self, body: dict[str, Any] | None) -> str:
         if not body:
@@ -119,7 +132,11 @@ class BackendClient:
         request = urllib.request.Request(url=url, data=data, headers=headers, method=method)
         self.logger.info("[KMFX][HTTP] %s %s dispatch", method, safe_url)
         try:
-            with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request,
+                timeout=self.config.backend_timeout_seconds,
+                context=self._ssl_context_for_url(url),
+            ) as response:
                 body = response.read().decode("utf-8", errors="ignore")
                 parsed_body = json.loads(body) if body else {}
                 self.logger.info("[KMFX][HTTP] %s %s %s", method, safe_url, response.status)
@@ -177,7 +194,11 @@ class BackendClient:
         request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
         self.logger.info("[KMFX][AUTH][REQUEST] base=%s endpoint=%s method=POST", SUPABASE_AUTH_URL, path)
         try:
-            with urllib.request.urlopen(request, timeout=self.config.backend_timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request,
+                timeout=self.config.backend_timeout_seconds,
+                context=self._ssl_context_for_url(url),
+            ) as response:
                 body = response.read().decode("utf-8", errors="ignore")
                 parsed_body = json.loads(body) if body else {}
                 self.logger.info("[KMFX][AUTH][RESPONSE] endpoint=%s status=%s", path, response.status)

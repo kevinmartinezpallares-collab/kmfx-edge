@@ -69,9 +69,10 @@ class LauncherAuthErrorTests(unittest.TestCase):
             def __exit__(self, exc_type, exc, tb):
                 return False
 
-        def fake_urlopen(request, timeout=0):
+        def fake_urlopen(request, timeout=0, context=None):
             recorded["url"] = request.full_url
             recorded["payload"] = json.loads(request.data.decode("utf-8"))
+            recorded["context"] = context
             return _Response()
 
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
@@ -90,6 +91,36 @@ class LauncherAuthErrorTests(unittest.TestCase):
             },
             recorded["payload"],
         )
+        self.assertIsNotNone(recorded["context"])
+
+    def test_backend_client_uses_ssl_context_for_https_requests(self) -> None:
+        config = LauncherConfig(backend_base_url="https://kmfx-edge-api.onrender.com")
+        client = BackendClient(config)
+        recorded: dict[str, object] = {}
+
+        class _Response:
+            status = 200
+
+            def read(self) -> bytes:
+                return b'{"ok":true}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        def fake_urlopen(request, timeout=0, context=None):
+            recorded["url"] = request.full_url
+            recorded["context"] = context
+            return _Response()
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            response = client._request("GET", "/accounts")
+
+        self.assertTrue(response.ok)
+        self.assertEqual("https://kmfx-edge-api.onrender.com/accounts", recorded["url"])
+        self.assertIsNotNone(recorded["context"])
 
     def test_launcher_ui_uses_secure_browser_handoff_for_email_login(self) -> None:
         html = (ROOT / "launcher" / "ui" / "index.html").read_text(encoding="utf-8")
