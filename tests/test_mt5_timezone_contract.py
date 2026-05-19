@@ -107,6 +107,41 @@ class Mt5TimezoneContractTests(unittest.TestCase):
         self.assertEqual(result["closeTime"], "2026-05-02T22:30:00.000Z")
         self.assertEqual(result["tradingDayKey"], "2026-05-03")
 
+    def test_audusd_buy_pips_are_calculated_from_entry_and_exit_prices(self) -> None:
+        result = self.run_node(
+            """
+            const trade = adapter.normalizeTrades([{
+              trade_id: "3153889450",
+              ticket: "3153889450",
+              position_id: "3153889450",
+              symbol: "AUDUSD",
+              type: "SELL",
+              volume: 6,
+              open_price: 0.71226,
+              price: 0.71125,
+              open_time: "2026.05.19 11:09:04",
+              close_time: "2026.05.19 12:15:34",
+              time: "2026.05.19 12:15:34",
+              profit: -606,
+              commission: -21.35,
+              swap: 0,
+            }])[0];
+            console.log(JSON.stringify({
+              side: trade.side,
+              entry: trade.entry,
+              exit: trade.exit,
+              pips: trade.pips,
+              pnl: trade.pnl,
+            }));
+            """
+        )
+
+        self.assertEqual(result["side"], "BUY")
+        self.assertAlmostEqual(result["entry"], 0.71226)
+        self.assertAlmostEqual(result["exit"], 0.71125)
+        self.assertAlmostEqual(result["pips"], -10.1)
+        self.assertAlmostEqual(result["pnl"], -627.35)
+
     def test_cross_day_partial_uses_final_close_accounting_day(self) -> None:
         result = self.run_node(
             """

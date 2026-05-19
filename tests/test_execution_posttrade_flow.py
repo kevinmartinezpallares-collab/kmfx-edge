@@ -59,6 +59,15 @@ class ExecutionPostTradeFlowTests(unittest.TestCase):
         self.assertIn('@app.post("/api/post-trade/reviews")', api)
         self.assertIn("account_belongs_to_scope", api)
 
+    def test_post_trade_result_pips_are_derived_from_prices_not_pnl(self) -> None:
+        discipline = read_text("js/modules/discipline.js")
+
+        self.assertIn("function getTradeResultPips", discipline)
+        self.assertIn('getTradePrice(trade, ["entry"', discipline)
+        self.assertIn('getTradePrice(trade, ["exit"', discipline)
+        self.assertIn('getTradeDirection(trade) === "SELL" ? entry - exit : exit - entry', discipline)
+        self.assertNotIn("Math.round(pnl / 10)", discipline)
+
 
 if __name__ == "__main__":
     unittest.main()

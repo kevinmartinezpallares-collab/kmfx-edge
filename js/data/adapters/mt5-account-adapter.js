@@ -148,6 +148,26 @@ function normalizeMt5Side(value, fallback = "BUY") {
   return side === "SELL" ? "SELL" : "BUY";
 }
 
+function pipSizeForSymbol(symbol = "") {
+  const normalized = String(symbol || "").toUpperCase();
+  if (normalized.includes("JPY")) return 0.01;
+  if (normalized.includes("XAU") || normalized.includes("GOLD")) return 0.1;
+  return 0.0001;
+}
+
+function roundPips(value) {
+  return Number.isFinite(Number(value)) ? Math.round(Number(value) * 10) / 10 : null;
+}
+
+function calculateSignedPips({ symbol, side, entry, exit }) {
+  const entryPrice = Number(entry);
+  const exitPrice = Number(exit);
+  if (!Number.isFinite(entryPrice) || !Number.isFinite(exitPrice)) return null;
+  const direction = normalizeMt5Side(side);
+  const delta = direction === "SELL" ? entryPrice - exitPrice : exitPrice - entryPrice;
+  return roundPips(delta / pipSizeForSymbol(symbol));
+}
+
 function invertMt5Side(value) {
   return normalizeMt5Side(value) === "BUY" ? "SELL" : "BUY";
 }
@@ -230,6 +250,13 @@ function normalizeTrades(rawTrades = []) {
     const exitPrice = Number.isFinite(Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price))
       ? Number(trade.exit || trade.exit_price || trade.close_price || trade.price_close || trade.price)
       : null;
+    const pricePips = calculateSignedPips({
+      symbol: trade.symbol || "UNKNOWN",
+      side: originalSide,
+      entry: entryPrice,
+      exit: exitPrice,
+    });
+    const explicitPips = Number(trade.pips ?? trade.pips_result ?? trade.profitPips ?? trade.profit_pips);
     return {
       id: String(trade.ticket || `mt5-deal-${index}`),
       parentId: resolveTradeGroupKey(trade, index),
@@ -257,6 +284,7 @@ function normalizeTrades(rawTrades = []) {
       setup: trade.comment || trade.strategy_tag || "MT5 sync",
       session: trade.session || inferSession(date),
       durationMin: durationMinutes(openTime, date),
+      pips: pricePips ?? (Number.isFinite(explicitPips) ? roundPips(explicitPips) : null),
       volume,
       entry: entryPrice,
       exit: exitPrice,
@@ -359,6 +387,7 @@ function normalizeTrades(rawTrades = []) {
       closeTimeUnix: deal.closeTimeUnix,
       volume: deal.volume,
       exit: deal.exit,
+      pips: deal.pips,
       pnl: deal.pnl,
       commission: deal.commission,
       swap: deal.swap,
@@ -384,6 +413,12 @@ function normalizeTrades(rawTrades = []) {
       const weightedEntry = toWeightedAverage(trade.__weightedEntrySum, trade.__weightedEntryVolume);
       const weightedExit = toWeightedAverage(trade.__weightedExitSum, trade.__weightedExitVolume);
       const finalCloseTime = trade.closeTime || lastPartial?.closeTime || firstPartial?.closeTime || trade.date;
+      const aggregatePips = calculateSignedPips({
+        symbol: trade.symbol,
+        side: trade.side,
+        entry: weightedEntry ?? trade.entry,
+        exit: weightedExit,
+      });
       return {
         ...trade,
         date: finalCloseTime,
@@ -396,6 +431,7 @@ function normalizeTrades(rawTrades = []) {
         volume: Number.isFinite(Number(trade.volume)) ? Number(trade.volume) : null,
         entry: weightedEntry ?? trade.entry,
         exit: weightedExit,
+        pips: aggregatePips,
         partials,
         executions: partials,
         partialCount: partials.length,

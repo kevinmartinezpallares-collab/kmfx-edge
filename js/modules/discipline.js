@@ -979,6 +979,32 @@ function pipsBetween(symbol, a, b) {
   return Math.abs(first - second) / pipSize(symbol);
 }
 
+function roundPips(value) {
+  return Number.isFinite(Number(value)) ? Math.round(Number(value) * 10) / 10 : null;
+}
+
+function getTradePrice(trade = {}, keys = []) {
+  const value = keys.map((key) => trade?.[key]).find((candidate) => Number.isFinite(Number(candidate)));
+  return Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function getTradeDirection(trade = {}) {
+  const direction = String(trade.direction || trade.side || trade.type || "BUY").toUpperCase();
+  return direction.includes("SELL") ? "SELL" : "BUY";
+}
+
+function getTradeResultPips(trade = {}) {
+  const entry = getTradePrice(trade, ["entry", "entry_price", "open_price", "price_open"]);
+  const exit = getTradePrice(trade, ["exit", "exit_price", "close_price", "price_close", "close", "price"]);
+  if (entry != null && exit != null) {
+    const delta = getTradeDirection(trade) === "SELL" ? entry - exit : exit - entry;
+    return roundPips(delta / pipSize(trade.symbol || trade.pair));
+  }
+
+  const explicit = Number(trade.pips ?? trade.pipsResult ?? trade.profitPips);
+  return Number.isFinite(explicit) ? roundPips(explicit) : null;
+}
+
 function getEntryDeviationPips(trade) {
   const explicit = [
     trade?.entryDeviationPips,
@@ -1098,14 +1124,14 @@ function tradeIdForTag(trade = {}, index = 0) {
 function normalizeTradeForTag(trade = {}, index = 0) {
   const parsedWhen = trade.when instanceof Date ? trade.when : new Date(trade.timestamp || trade.closeTime || trade.openTime || Date.now());
   const when = !Number.isNaN(parsedWhen.getTime()) ? parsedWhen : new Date();
-  const direction = String(trade.direction || trade.type || "BUY").toUpperCase();
-  const pips = Number(trade.pips ?? trade.pipsResult ?? trade.profitPips);
+  const direction = getTradeDirection(trade);
+  const pips = getTradeResultPips(trade);
   const pnl = Number(trade.pnl ?? trade.profit ?? trade.result ?? 0);
   return {
     id: trade.id || tradeIdForTag({ ...trade, when }, index),
     symbol: String(trade.symbol || trade.pair || "EURUSD").toUpperCase(),
-    direction: direction.includes("SELL") ? "SELL" : "BUY",
-    pips: Number.isFinite(pips) ? pips : Math.round(pnl / 10),
+    direction,
+    pips,
     pnl,
     when,
     timestamp: when.toISOString()

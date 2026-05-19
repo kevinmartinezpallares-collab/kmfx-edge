@@ -235,8 +235,8 @@ class UserFlowUiContractTests(unittest.TestCase):
 
         self.assertIn('version: "2.89"', source)
         self.assertIn("ebe356001888111bf45404fa3fefa44df6d8960a6c7d42725eac31b177ae754b", source)
-        self.assertIn("a28b4c8e90935a66ff9107d7f945c2c1dd9093aeaa169de4f8f48044daae6ed7", source)
-        self.assertIn("afd43ec54158e8dc41e0fd315a0a1c9e2a4aca3f1aed58c6c058c0d5ad4139b0", source)
+        self.assertIn("a5fa0e2f0bab662ffe6b24eeecd2fbbaad2a856f1b69a3946d98602906abc21d", source)
+        self.assertIn("5fce4673584f018dfabbea31cd9f6c528a2b3576596ab5f099d8924b5e233cb5", source)
 
     def test_connection_wizard_hides_release_checksums_by_default(self) -> None:
         source = read_text("js/modules/connection-wizard.js")
