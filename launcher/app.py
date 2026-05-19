@@ -36,6 +36,11 @@ from .connector_installer import (
 )
 from .log_utils import configure_logging, read_recent_logs
 from .mt5_detector import MT5Installation, detect_mt5_installations
+from .mt5_instance_manager import (
+    create_mac_mt5_instance,
+    is_supported_mt5_instance_creation_platform,
+    normalize_instance_name,
+)
 from .platform_mac import open_mt5 as open_mt5_mac
 from .platform_windows import open_mt5 as open_mt5_windows, register_launcher_url_protocol
 from .resources import app_root, is_packaged, resource_path
@@ -970,6 +975,52 @@ class KMFXApi:
                 "linked_account_id": "",
                 "connection_key_preview": "",
                 "installations": self.get_installations(),
+            }
+
+    def create_mt5_instance(self, instance_name: str) -> dict[str, Any]:
+        with self._lock:
+            if not self.get_session().get("authenticated"):
+                return {"ok": False, "message": "Inicia sesión para crear una instancia MT5."}
+            if not is_supported_mt5_instance_creation_platform():
+                return {
+                    "ok": False,
+                    "message": "En Windows instala MT5 manualmente en una carpeta distinta y pulsa Volver a detectar.",
+                }
+            try:
+                normalized_name = normalize_instance_name(instance_name)
+            except ValueError:
+                return {"ok": False, "message": "Escribe un nombre para la instancia, por ejemplo MT5-FTMO100k."}
+            try:
+                result = create_mac_mt5_instance(normalized_name, self.config.ensure_runtime_values())
+            except FileExistsError:
+                return {"ok": False, "message": f"Ya existe una instancia llamada {normalized_name}."}
+            except RuntimeError as exc:
+                reason = str(exc)
+                if reason == "mt5_app_not_found":
+                    return {"ok": False, "message": "No encuentro MetaTrader 5.app en Aplicaciones."}
+                if reason == "mt5_source_not_found":
+                    return {"ok": False, "message": "No encuentro una base de MT5 para crear la instancia."}
+                return {"ok": False, "message": f"No pude crear la instancia MT5: {reason}"}
+            except Exception as exc:
+                self.logger.exception("[KMFX][LAUNCHER][INSTANCE] create failed")
+                return {"ok": False, "message": f"No pude crear la instancia MT5: {exc}"}
+
+            self.logger.info(
+                "[KMFX][LAUNCHER][INSTANCE] created name=%s data_path=%s",
+                result.get("name", ""),
+                result.get("data_path", ""),
+            )
+            self.refresh_installations()
+            self.config.selected_mt5_terminal_path = result.get("terminal_path", "")
+            self.config.selected_mt5_data_path = result.get("data_path", "")
+            self.config.selected_mt5_experts_path = result.get("experts_path", "")
+            save_config(self.config)
+            return {
+                "ok": True,
+                "message": f"Instancia {result.get('name', normalized_name)} creada con el conector instalado.",
+                "instance": result,
+                "installations": self.get_installations(),
+                "status": self.get_status(),
             }
 
     def install_connector_for_connection(self, account_id: str, selected_installation: str | None = None) -> dict[str, Any]:

@@ -406,6 +406,56 @@ class LauncherConnectionKeyTests(unittest.TestCase):
 
         self.assertEqual("FTMO MT5", label)
 
+    def test_launcher_create_mt5_instance_is_mac_only(self) -> None:
+        api = object.__new__(KMFXApi)
+        api._lock = threading.RLock()
+        api.get_session = lambda: {"authenticated": True}
+
+        with patch("launcher.app.is_supported_mt5_instance_creation_platform", return_value=False):
+            result = api.create_mt5_instance("FTMO100k")
+
+        self.assertFalse(result["ok"])
+        self.assertIn("En Windows instala MT5 manualmente", result["message"])
+
+    def test_launcher_create_mt5_instance_selects_created_installation(self) -> None:
+        config = LauncherConfig(
+            auth_access_token="access-token",
+            auth_user_id="user-1",
+            auth_email="kevin@example.test",
+            backend_token="access-token",
+        )
+        api = object.__new__(KMFXApi)
+        api.config = config
+        api._lock = threading.RLock()
+        api.logger = __import__("logging").getLogger("kmfx_launcher_test")
+        api.get_session = lambda: {"authenticated": True}
+        api.refresh_installations = lambda: []
+        api.get_installations = lambda: [{"label": "MT5-FTMO100k"}]
+        api.get_status = lambda: {"connector_installed": True}
+
+        created = {
+            "name": "MT5-FTMO100k",
+            "terminal_path": "/tmp/MT5-FTMO100k/terminal64.exe",
+            "data_path": "/tmp/MT5-FTMO100k",
+            "experts_path": "/tmp/MT5-FTMO100k/MQL5/Experts",
+        }
+
+        with (
+            patch("launcher.app.is_supported_mt5_instance_creation_platform", return_value=True),
+            patch("launcher.app.create_mac_mt5_instance", return_value=created) as create_instance,
+            patch("launcher.app.save_config") as save_config_mock,
+        ):
+            result = api.create_mt5_instance("FTMO100k")
+
+        self.assertTrue(result["ok"])
+        create_instance.assert_called_once()
+        self.assertEqual("MT5-FTMO100k", create_instance.call_args.args[0])
+        self.assertEqual("/tmp/MT5-FTMO100k/terminal64.exe", api.config.selected_mt5_terminal_path)
+        self.assertEqual("/tmp/MT5-FTMO100k", api.config.selected_mt5_data_path)
+        self.assertEqual("/tmp/MT5-FTMO100k/MQL5/Experts", api.config.selected_mt5_experts_path)
+        self.assertEqual(created, result["instance"])
+        save_config_mock.assert_called_once_with(config)
+
     def test_launcher_detector_skips_old_backup_and_tradelio_folders(self) -> None:
         self.assertFalse(_should_descend(Path("/tmp/tradelio-launcher")))
         self.assertFalse(_should_descend(Path("/tmp/KMFX_MT5_Funded_BROKEN_BACKUP")))
@@ -1351,6 +1401,9 @@ class LauncherConnectionKeyTests(unittest.TestCase):
         self.assertIn("El EA es solo lectura: no abre, cierra ni modifica operaciones", ui_html)
         self.assertIn("modo solo lectura", ui_source)
         self.assertIn("el EA no gestiona órdenes", ui_source)
+        self.assertIn('id="create-instance-form"', ui_html)
+        self.assertIn('callApi("create_mt5_instance", name)', ui_source)
+        self.assertIn("En Mac crea una instancia separada con el conector instalado", ui_html)
 
     def test_launcher_detects_shared_installed_connection_keys(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

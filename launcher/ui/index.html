@@ -107,6 +107,22 @@
             <p id="status-message" class="helper-text">Instala el conector, abre MT5 y espera el primer sync. KMFX solo lee y sincroniza datos.</p>
           </article>
 
+          <section class="settings-card instance-card" data-tool="mt5">
+            <div class="section-title">
+              <div>
+                <h2>Crear instancia MT5</h2>
+                <p>En Mac crea una instancia separada con el conector instalado. En Windows instala MT5 en una carpeta distinta y vuelve a detectar.</p>
+              </div>
+            </div>
+            <form id="create-instance-form" class="instance-form">
+              <label>
+                Nombre
+                <input id="instance-name" type="text" autocomplete="off" placeholder="MT5-FTMO100k" />
+              </label>
+              <button id="create-instance-button" class="button secondary" type="submit">Crear instancia</button>
+            </form>
+          </section>
+
           <section class="settings-card connections-card" data-tool="mt5">
             <div class="section-title">
               <div>

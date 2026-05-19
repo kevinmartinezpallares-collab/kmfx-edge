@@ -36,7 +36,7 @@ async function callApi(method, ...args) {
 
 function setBusy(value) {
   state.busy = Boolean(value);
-  ["#login-submit", "#login-google", "#password-reset-button", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#create-connection-button", "#logout-button"].forEach((selector) => {
+  ["#login-submit", "#login-google", "#password-reset-button", "#install-button", "#open-mt5-button", "#refresh-button", "#redetect-button", "#create-connection-button", "#create-instance-button", "#logout-button"].forEach((selector) => {
     const element = $(selector);
     if (element) element.disabled = state.busy;
   });
@@ -540,6 +540,32 @@ async function handlePasswordReset() {
   }
 }
 
+async function handleCreateInstance(event) {
+  event.preventDefault();
+  const input = $("#instance-name");
+  const rawName = input?.value || "";
+  const name = rawName.trim();
+  if (!name) {
+    showToast("Escribe un nombre para la instancia.");
+    return;
+  }
+  setBusy(true);
+  try {
+    const result = await callApi("create_mt5_instance", name);
+    showToast(result.message || "Instancia creada.");
+    if (result.ok === false) return;
+    if (input) input.value = "";
+    if (result.installations) state.installations = result.installations;
+    if (result.status) state.status = result.status;
+    await refreshEverything();
+  } catch (err) {
+    showToast(err.message || "No se pudo crear la instancia.");
+  } finally {
+    setBusy(false);
+    render();
+  }
+}
+
 async function performAction(method, successMessage, ...args) {
   setBusy(true);
   try {
@@ -603,6 +629,7 @@ function bindEvents() {
   $("#login-form")?.addEventListener("submit", handleLogin);
   $("#login-google")?.addEventListener("click", handleGoogleLogin);
   $("#password-reset-button")?.addEventListener("click", handlePasswordReset);
+  $("#create-instance-form")?.addEventListener("submit", handleCreateInstance);
   $("#logout-button")?.addEventListener("click", async () => {
     setBusy(true);
     try {

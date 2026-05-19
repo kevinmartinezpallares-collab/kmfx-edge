@@ -602,6 +602,36 @@ p {
   margin-bottom: 0;
 }
 
+.instance-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.instance-form label {
+  display: grid;
+  gap: 8px;
+  color: #d8dde8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.instance-form input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+}
+
+.instance-form input:focus {
+  border-color: rgba(96, 165, 250, 0.78);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+}
+
 .installations-list {
   display: grid;
   gap: 10px;
@@ -2424,6 +2454,11 @@ body,
   .tool-actions,
   .connection-row-actions {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .instance-form {
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
   }
