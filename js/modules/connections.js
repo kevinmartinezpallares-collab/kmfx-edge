@@ -1641,7 +1641,9 @@ export function initConnections(store) {
     }
     touchRegistryPollLeader();
     root.__registryPollTimer = window.setTimeout(async () => {
-      await fetchAccountsRegistry(store);
+      if (document.visibilityState === "visible") {
+        await fetchAccountsRegistry(store);
+      }
       scheduleNextRegistryPoll();
     }, pollMs);
   };

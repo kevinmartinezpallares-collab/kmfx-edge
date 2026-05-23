@@ -20,7 +20,7 @@ import urllib.parse
 import urllib.request
 from uuid import UUID
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
@@ -86,6 +86,17 @@ def _env_int(name: str, *, default: int) -> int:
         return default
     try:
         parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 0 else default
+
+
+def _env_float(name: str, *, default: float) -> float:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return default
+    try:
+        parsed = float(value)
     except ValueError:
         return default
     return parsed if parsed >= 0 else default
@@ -425,8 +436,37 @@ POST_TRADE_REVIEWS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-p
 SYNC_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-sync-receipts.json")
 JOURNAL_RECEIPTS_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-receipts.json")
 JOURNAL_TRADES_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-journal-trades.json")
+BANDWIDTH_GUARD_STATE_PATH = os.path.join(os.path.dirname(__file__), ".kmfx-bandwidth-guard.json")
 SYNC_RECEIPT_TTL = timedelta(days=7)
 BILLING_EVENT_PROCESSING_RETRY_AFTER = timedelta(minutes=10)
+BANDWIDTH_GUARD_ENABLED = _env_flag("KMFX_BANDWIDTH_GUARD_ENABLED", default=True)
+BANDWIDTH_MONTHLY_LIMIT_BYTES = _env_int("KMFX_BANDWIDTH_MONTHLY_LIMIT_BYTES", default=100 * 1024 * 1024 * 1024)
+BANDWIDTH_WARNING_RATIO = min(1.0, max(0.0, _env_float("KMFX_BANDWIDTH_WARNING_RATIO", default=0.70)))
+BANDWIDTH_SAVING_RATIO = min(1.0, max(BANDWIDTH_WARNING_RATIO, _env_float("KMFX_BANDWIDTH_SAVING_RATIO", default=0.80)))
+BANDWIDTH_CRITICAL_RATIO = min(1.0, max(BANDWIDTH_SAVING_RATIO, _env_float("KMFX_BANDWIDTH_CRITICAL_RATIO", default=0.90)))
+BANDWIDTH_HARD_RATIO = min(1.0, max(BANDWIDTH_CRITICAL_RATIO, _env_float("KMFX_BANDWIDTH_HARD_RATIO", default=0.95)))
+BANDWIDTH_BYTES_FALLBACK_RESPONSE_OVERHEAD = 800
+BANDWIDTH_STATE_FLUSH_INTERVAL_SECONDS = min(
+    3600.0,
+    max(1.0, _env_float("KMFX_BANDWIDTH_STATE_FLUSH_INTERVAL_SECONDS", default=30.0)),
+)
+BANDWIDTH_STATE_FLUSH_MIN_BYTES = max(0, _env_int("KMFX_BANDWIDTH_STATE_FLUSH_MIN_BYTES", default=1024 * 1024))
+BANDWIDTH_FORCED_MODE_VALUES = {"normal", "warning", "saving", "critical", "hard"}
+BANDWIDTH_NONESSENTIAL_PREFIXES = (
+    "/downloads/",
+    "/assets/brand/",
+    "/api/admin/",
+    "/api/backtests/mt5/import",
+)
+BANDWIDTH_HEAVY_SUFFIXES = (".zip", ".dmg", ".exe", ".pkg", ".pdf")
+BANDWIDTH_CRITICAL_PREFIXES = (
+    "/api/mt5/sync",
+    "/api/mt5/journal",
+    "/api/mt5/policy",
+    "/api/accounts/snapshot",
+    "/api/billing/",
+    "/health",
+)
 
 
 def account_store_service_role_key() -> str:
@@ -494,6 +534,207 @@ def no_store_json_response(content: Any, status_code: int = 200) -> JSONResponse
             "Expires": "0",
         },
     )
+
+
+def bandwidth_period_key() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m")
+
+
+def load_bandwidth_guard_state() -> dict[str, Any]:
+    initial_bytes = _env_int("KMFX_BANDWIDTH_INITIAL_EGRESS_BYTES", default=0)
+    if not os.path.exists(BANDWIDTH_GUARD_STATE_PATH):
+        return {"period": bandwidth_period_key(), "egress_bytes": initial_bytes}
+    try:
+        with open(BANDWIDTH_GUARD_STATE_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return {"period": bandwidth_period_key(), "egress_bytes": 0}
+    if not isinstance(payload, dict):
+        return {"period": bandwidth_period_key(), "egress_bytes": 0}
+    return payload
+
+
+def save_bandwidth_guard_state(state: dict[str, Any]) -> None:
+    try:
+        os.makedirs(os.path.dirname(BANDWIDTH_GUARD_STATE_PATH) or ".", exist_ok=True)
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(BANDWIDTH_GUARD_STATE_PATH) or ".", encoding="utf-8") as handle:
+            json.dump(state, handle, ensure_ascii=True, indent=2)
+            temp_path = handle.name
+        os.replace(temp_path, BANDWIDTH_GUARD_STATE_PATH)
+    except OSError as exc:
+        log.warning("Bandwidth guard state could not be saved | error=%s", exc)
+
+
+BANDWIDTH_GUARD_STATE: dict[str, Any] = load_bandwidth_guard_state()
+_BANDWIDTH_STATE_LAST_FLUSH_AT = time.monotonic()
+_BANDWIDTH_STATE_LAST_FLUSH_BYTES = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0))
+_BANDWIDTH_STATE_DIRTY = False
+
+
+def maybe_flush_bandwidth_guard_state(*, force: bool = False) -> None:
+    global _BANDWIDTH_STATE_LAST_FLUSH_AT
+    global _BANDWIDTH_STATE_LAST_FLUSH_BYTES
+    global _BANDWIDTH_STATE_DIRTY
+    if not _BANDWIDTH_STATE_DIRTY:
+        return
+    if not force:
+        now = time.monotonic()
+        elapsed = now - _BANDWIDTH_STATE_LAST_FLUSH_AT
+        current_bytes = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0))
+        delta = current_bytes - _BANDWIDTH_STATE_LAST_FLUSH_BYTES
+        if elapsed < BANDWIDTH_STATE_FLUSH_INTERVAL_SECONDS and delta < BANDWIDTH_STATE_FLUSH_MIN_BYTES:
+            return
+        _BANDWIDTH_STATE_LAST_FLUSH_AT = now
+        _BANDWIDTH_STATE_LAST_FLUSH_BYTES = current_bytes
+    else:
+        _BANDWIDTH_STATE_LAST_FLUSH_AT = time.monotonic()
+        _BANDWIDTH_STATE_LAST_FLUSH_BYTES = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0))
+    save_bandwidth_guard_state(BANDWIDTH_GUARD_STATE)
+    _BANDWIDTH_STATE_DIRTY = False
+
+
+def bandwidth_guard_snapshot() -> dict[str, Any]:
+    if not BANDWIDTH_GUARD_ENABLED or BANDWIDTH_MONTHLY_LIMIT_BYTES <= 0:
+        return {"enabled": False, "mode": "disabled", "egress_bytes": 0, "ratio": 0.0}
+    current_period = bandwidth_period_key()
+    if BANDWIDTH_GUARD_STATE.get("period") != current_period:
+        initial_bytes = _env_int("KMFX_BANDWIDTH_INITIAL_EGRESS_BYTES", default=0)
+        BANDWIDTH_GUARD_STATE.clear()
+        BANDWIDTH_GUARD_STATE.update({"period": current_period, "egress_bytes": initial_bytes})
+        global _BANDWIDTH_STATE_DIRTY
+        global _BANDWIDTH_STATE_LAST_FLUSH_BYTES
+        _BANDWIDTH_STATE_DIRTY = True
+        _BANDWIDTH_STATE_LAST_FLUSH_BYTES = initial_bytes
+        maybe_flush_bandwidth_guard_state(force=True)
+    egress_bytes = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0))
+    ratio = egress_bytes / max(1, BANDWIDTH_MONTHLY_LIMIT_BYTES)
+    forced_mode = str(os.getenv("KMFX_BANDWIDTH_FORCE_MODE") or "").strip().lower()
+    if forced_mode in BANDWIDTH_FORCED_MODE_VALUES:
+        mode = forced_mode
+    elif ratio >= BANDWIDTH_HARD_RATIO:
+        mode = "hard"
+    elif ratio >= BANDWIDTH_CRITICAL_RATIO:
+        mode = "critical"
+    elif ratio >= BANDWIDTH_SAVING_RATIO:
+        mode = "saving"
+    elif ratio >= BANDWIDTH_WARNING_RATIO:
+        mode = "warning"
+    else:
+        mode = "normal"
+    return {
+        "enabled": True,
+        "period": current_period,
+        "mode": mode,
+        "egress_bytes": egress_bytes,
+        "limit_bytes": BANDWIDTH_MONTHLY_LIMIT_BYTES,
+        "ratio": ratio,
+        "remaining_bytes": max(0, BANDWIDTH_MONTHLY_LIMIT_BYTES - egress_bytes),
+    }
+
+
+def record_bandwidth_egress(byte_count: int) -> dict[str, Any]:
+    snapshot = bandwidth_guard_snapshot()
+    if not snapshot.get("enabled"):
+        return snapshot
+    BANDWIDTH_GUARD_STATE["egress_bytes"] = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0)) + max(0, int(byte_count))
+    BANDWIDTH_GUARD_STATE["updated_at"] = now_iso()
+    global _BANDWIDTH_STATE_DIRTY
+    _BANDWIDTH_STATE_DIRTY = True
+    maybe_flush_bandwidth_guard_state()
+    return bandwidth_guard_snapshot()
+
+
+def bandwidth_route_is_nonessential(path: str) -> bool:
+    normalized = str(path or "")
+    if any(normalized.startswith(prefix) for prefix in BANDWIDTH_NONESSENTIAL_PREFIXES):
+        return True
+    return normalized.lower().endswith(BANDWIDTH_HEAVY_SUFFIXES)
+
+
+def bandwidth_route_is_critical(path: str) -> bool:
+    normalized = str(path or "")
+    return any(normalized.startswith(prefix) for prefix in BANDWIDTH_CRITICAL_PREFIXES)
+
+
+def bandwidth_sync_interval_seconds() -> int:
+    mode = bandwidth_guard_snapshot().get("mode")
+    if mode == "hard":
+        return _env_int("KMFX_BANDWIDTH_HARD_SYNC_INTERVAL_SECONDS", default=120)
+    if mode == "critical":
+        return _env_int("KMFX_BANDWIDTH_CRITICAL_SYNC_INTERVAL_SECONDS", default=60)
+    if mode == "saving":
+        return _env_int("KMFX_BANDWIDTH_SAVING_SYNC_INTERVAL_SECONDS", default=30)
+    return _env_int("KMFX_BANDWIDTH_NORMAL_SYNC_INTERVAL_SECONDS", default=15)
+
+
+def bandwidth_policy_payload() -> dict[str, Any]:
+    snapshot = bandwidth_guard_snapshot()
+    return {
+        "bandwidth_guard": {
+            "enabled": bool(snapshot.get("enabled")),
+            "mode": snapshot.get("mode", "disabled"),
+            "period": snapshot.get("period", ""),
+            "egress_bytes": snapshot.get("egress_bytes", 0),
+            "limit_bytes": snapshot.get("limit_bytes", 0),
+            "usage_ratio": round(float(snapshot.get("ratio") or 0), 6),
+        },
+        "next_sync_after_seconds": bandwidth_sync_interval_seconds(),
+    }
+
+
+def bandwidth_guard_rejection_response(request: Request) -> JSONResponse | None:
+    snapshot = bandwidth_guard_snapshot()
+    mode = str(snapshot.get("mode") or "normal")
+    path = str(getattr(getattr(request, "url", None), "path", "") or "")
+    if mode in {"saving", "critical", "hard"} and bandwidth_route_is_nonessential(path):
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "bandwidth_guard",
+                "error": "bandwidth_guard",
+                "mode": mode,
+                "message": "Ruta no esencial bloqueada temporalmente para evitar overage de bandwidth.",
+                **bandwidth_policy_payload(),
+                "timestamp": now_iso(),
+            },
+            status_code=429 if mode != "hard" else 503,
+        )
+    if mode == "hard" and not bandwidth_route_is_critical(path):
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": "bandwidth_guard_hard_cap",
+                "error": "bandwidth_guard_hard_cap",
+                "mode": mode,
+                "message": "Servicio en modo minimo para evitar cargos extra de bandwidth.",
+                **bandwidth_policy_payload(),
+                "timestamp": now_iso(),
+            },
+            status_code=503,
+        )
+    return None
+
+
+@app.middleware("http")
+async def bandwidth_guard_middleware(request: Request, call_next):
+    rejected = bandwidth_guard_rejection_response(request)
+    if rejected is not None:
+        snapshot = record_bandwidth_egress(len(rejected.body or b"") + BANDWIDTH_BYTES_FALLBACK_RESPONSE_OVERHEAD)
+        rejected.headers["X-KMFX-Bandwidth-Guard"] = str(snapshot.get("mode", "disabled"))
+        rejected.headers["X-KMFX-Bandwidth-Usage"] = f"{float(snapshot.get('ratio') or 0):.6f}"
+        return rejected
+
+    response = await call_next(request)
+    content_length = response.headers.get("content-length")
+    try:
+        body_size = int(content_length) if content_length else 0
+    except (TypeError, ValueError):
+        body_size = 0
+
+    snapshot = record_bandwidth_egress(body_size + BANDWIDTH_BYTES_FALLBACK_RESPONSE_OVERHEAD)
+    response.headers["X-KMFX-Bandwidth-Guard"] = str(snapshot.get("mode", "disabled"))
+    response.headers["X-KMFX-Bandwidth-Usage"] = f"{float(snapshot.get('ratio') or 0):.6f}"
+    return response
 
 
 def feature_disabled_response(feature: str, *, status_code: int = 503) -> JSONResponse:
@@ -3714,10 +3955,10 @@ def allow_public_connection_key_bootstrap() -> bool:
 def connection_key_rate_limit_for_endpoint(endpoint: str) -> int:
     normalized_endpoint = endpoint.lower()
     if "journal" in normalized_endpoint:
-        return _env_int("KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE", default=60)
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE", default=30)
     if "policy" in normalized_endpoint:
-        return _env_int("KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE", default=120)
-    return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=120)
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE", default=30)
+    return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=30)
 
 
 def prune_connection_rate_limit_buckets(now: float, *, max_buckets: int | None = None) -> None:
@@ -3802,6 +4043,7 @@ def connection_key_rate_limit_response(endpoint: str, connection_key: str) -> JS
                 "limit_per_minute": limit,
                 "retry_after_seconds": retry_after_seconds,
             },
+            "next_sync_after_seconds": max(retry_after_seconds, bandwidth_sync_interval_seconds()),
             "timestamp": now_iso(),
         },
         status_code=429,
@@ -4851,6 +5093,7 @@ def build_connector_policy_response(login: str, account_state: dict[str, Any] | 
         "daily_start_equity": safe_float(state.get("daily_start_equity")),
         "daily_start_day_key": safe_str(state.get("daily_start_day_key")),
         "peak_source": "backend_persisted",
+        **bandwidth_policy_payload(),
     }
 
 
@@ -7306,6 +7549,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                         "account_id": existing_receipt.get("account_id", ""),
                         "received_at": existing_receipt.get("received_at", ""),
                     },
+                    **bandwidth_policy_payload(),
                     "timestamp": now_iso(),
                 },
             )
@@ -7482,6 +7726,7 @@ async def mt5_sync(request: Request) -> JSONResponse:
                     "issues": issues,
                     "account_id": synced_account.account_id,
                 },
+                **bandwidth_policy_payload(),
                 "timestamp": now_iso(),
             },
         )
@@ -7791,6 +8036,13 @@ async def accounts_snapshot(
         return connector_json_response(billing_blocked_accounts_payload(auth_context, access_denial))
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
+    guard_mode = str(bandwidth_guard_snapshot().get("mode") or "normal")
+    if normalized_view == "full" and guard_mode in {"saving", "critical", "hard"}:
+        log.warning(
+            "Accounts snapshot downgraded | reason=bandwidth_guard requested=full served=summary mode=%s",
+            guard_mode,
+        )
+        normalized_view = "summary"
     summary_only = normalized_view == "summary"
     cache_status = "bypass"
     if summary_only:
@@ -7825,6 +8077,31 @@ async def accounts_snapshot(
         normalized_view,
         cache_status,
     )
+    if summary_only:
+        etag_seed = "|".join(
+            [
+                safe_str(snapshot.get("updated_at")),
+                safe_str(scope_user_id),
+                "1" if bool(snapshot.get("is_admin")) else "0",
+                safe_str(snapshot.get("auth_email")),
+                "1" if bool(snapshot.get("admin_launcher_bridge")) else "0",
+                safe_str(snapshot.get("active_account_id")),
+                str(len(snapshot.get("accounts") or [])),
+            ]
+        )
+        etag = hashlib.sha256(etag_seed.encode("utf-8")).hexdigest()[:32]
+        etag_header = f'W/"{etag}"'
+        response_headers = {
+            "Connection": "close",
+            # Allow per-user revalidation to reduce egress on frequent polling.
+            "Cache-Control": "private, max-age=0, must-revalidate",
+            "ETag": etag_header,
+            "Vary": "Authorization",
+        }
+        if safe_str(request.headers.get("if-none-match")) == etag_header:
+            return Response(status_code=304, headers=response_headers)
+        return JSONResponse(status_code=200, content=snapshot, headers=response_headers)
+
     return connector_json_response(snapshot)
 
 

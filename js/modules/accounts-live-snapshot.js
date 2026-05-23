@@ -4,9 +4,9 @@ import { resolveAccountsSnapshotUrl, resolveApiBaseUrl } from "./api-config.js?v
 import { isAdminMode } from "./admin-mode.js?v=build-20260519-113000";
 
 const EMPTY_SNAPSHOT_GRACE_MS = 90000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 15 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 60 * 60 * 1000;
-const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 2 * 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_ACTIVE = 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_IDLE = 4 * 60 * 60 * 1000;
+const PRODUCTION_FULL_SNAPSHOT_REFRESH_MS_HIDDEN = 8 * 60 * 60 * 1000;
 const LOCAL_FULL_SNAPSHOT_REFRESH_MS = 60 * 1000;
 
 const ACCOUNTS_POLL_LEADER_KEY = "kmfx.polling.leader.accounts";
@@ -81,7 +81,7 @@ function isDocumentHidden() {
 function resolveAccountsHttpPollIntervalMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
   if (isHidden) return isLocal ? 15000 : 5 * 60 * 1000;
   if (isLocal) return hasOpenPositions ? 1000 : 5000;
-  return hasOpenPositions ? 20000 : 120000;
+  return hasOpenPositions ? 20000 : 180000;
 }
 
 function resolveAccountsFullSnapshotRefreshMs({ isLocal = false, hasOpenPositions = false, isHidden = false } = {}) {
@@ -592,6 +592,8 @@ export function initAccountsLiveSnapshot(store) {
   let httpPollTimer = null;
   let lastNonEmptyHttpSnapshotAt = 0;
   let lastFullHttpSnapshotAt = 0;
+  let lastSummaryEtag = null;
+  let lastSummaryAccessSig = "";
 
   const clearHttpPollTimer = () => {
     clearTimeout(httpPollTimer);
@@ -670,7 +672,26 @@ export function initAccountsLiveSnapshot(store) {
       return { ok: false, count: 0 };
     }
     try {
-      const response = await fetch(url, { headers: buildAuthHeaders(store.getState()) });
+      const state = store.getState();
+      const accessSig = liveAccessSignature(state);
+      if (normalizedView === "summary" && accessSig !== lastSummaryAccessSig) {
+        lastSummaryAccessSig = accessSig;
+        lastSummaryEtag = null;
+      }
+      const headers = buildAuthHeaders(state);
+      if (normalizedView === "summary" && lastSummaryEtag) {
+        headers["If-None-Match"] = lastSummaryEtag;
+      }
+      const response = await fetch(url, { headers, cache: "no-store" });
+      if (normalizedView === "summary" && response.status === 304) {
+        const nextState = store.getState();
+        return {
+          ok: true,
+          count: Array.isArray(nextState.liveAccountIds) ? nextState.liveAccountIds.length : 0,
+          selectedAccountId: nextState.currentAccount || "",
+          status: 304,
+        };
+      }
       if (!response.ok) {
         console.warn("[KMFX][ACCOUNTS] http snapshot failed", response.status, url);
         if (![401, 403].includes(response.status) && keepLiveAccountsDuringTransientSnapshotFailure(store, `http_${response.status}`)) {
@@ -680,6 +701,10 @@ export function initAccountsLiveSnapshot(store) {
         return { ok: false, count: 0, status: response.status };
       }
       const payload = await response.json();
+      if (normalizedView === "summary") {
+        const responseEtag = response.headers.get("etag");
+        if (responseEtag) lastSummaryEtag = responseEtag;
+      }
       if (normalizedView === "full") {
         lastFullHttpSnapshotAt = Date.now();
       }
