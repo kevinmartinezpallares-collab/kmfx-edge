@@ -1,9 +1,9 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260518-081500";
-import { buildApiUrl } from "./api-config.js?v=build-20260518-081500";
-import { showToast } from "./toast.js?v=build-20260518-081500";
-import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260518-081500";
-import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260518-081500";
-import { isAdminMode } from "./admin-mode.js?v=build-20260518-081500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260523-110000";
+import { buildApiUrl } from "./api-config.js?v=build-20260523-110000";
+import { showToast } from "./toast.js?v=build-20260523-110000";
+import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260523-110000";
+import { billingEntitlementState, PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE } from "./billing-status.js?v=build-20260523-110000";
+import { isAdminMode } from "./admin-mode.js?v=build-20260523-110000";
 
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
@@ -483,7 +483,7 @@ function renderEaConfigStep(state) {
           <div class="connection-wizard__setup-card connection-wizard__setup-card--accent">
             <div class="connection-wizard__setup-eyebrow">Recomendado</div>
             <div class="connection-wizard__setup-title">Launcher + instalación del conector</div>
-            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Después pega la KMFXKey de esta cuenta en el EA y deja MT5 abierto hasta la primera sincronización.</p>
+            <p>Abre KMFX Launcher, elige tu instalación de MT5 y pulsa instalar conector. Si ya tenías el Launcher instalado, descarga la versión actual antes de reinstalar el conector.</p>
             <div class="connection-wizard__release-note">Launcher v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.launcher.version)} · Conector v${escapeHtml(KMFX_DOWNLOAD_ARTIFACTS.connector.version)}</div>
             <div class="connection-wizard__inline-actions">
               <button class="btn-secondary" type="button" data-wizard-open-launcher="true">Abrir Launcher</button>

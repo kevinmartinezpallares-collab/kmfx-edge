@@ -1,33 +1,33 @@
-import { createStore } from "./js/modules/store.js?v=build-20260519-113000";
-import { initNavigation } from "./js/modules/navigation.js?v=build-20260519-113000";
-import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260519-113000";
-import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260519-113000";
-import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260519-113000";
-import { renderRisk } from "./js/modules/risk.js?v=build-20260519-113000";
-import { renderTrades } from "./js/modules/trades.js?v=build-20260519-113000";
-import { renderCalendar } from "./js/modules/calendar.js?v=build-20260519-113000";
-import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260519-113000";
-import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260519-113000";
-import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260519-113000";
-import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260519-113000";
-import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260519-113000";
-import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260519-113000";
-import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260519-113000";
-import { renderMarket } from "./js/modules/market.js?v=build-20260519-113000";
-import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260519-113000";
-import { renderGlossary } from "./js/modules/glossary.js?v=build-20260519-113000";
-import { renderDebug } from "./js/modules/debug.js?v=build-20260519-113000";
-import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260519-113000";
-import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260519-113000";
-import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260519-113000";
-import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260519-113000";
-import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260519-113000";
-import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260519-113000";
-import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260519-113000";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260519-113000";
-import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260519-113000";
-import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260519-113000";
-import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260519-113000";
+import { createStore } from "./js/modules/store.js?v=build-20260523-110000";
+import { initNavigation } from "./js/modules/navigation.js?v=build-20260523-110000";
+import { renderDashboard } from "./js/modules/dashboard.js?v=build-20260523-110000";
+import { renderAnalytics } from "./js/modules/analytics.js?v=build-20260523-110000";
+import { loadPostTradeTags, openPostTradeModal, renderDiscipline } from "./js/modules/discipline.js?v=build-20260523-110000";
+import { renderRisk } from "./js/modules/risk.js?v=build-20260523-110000";
+import { renderTrades } from "./js/modules/trades.js?v=build-20260523-110000";
+import { renderCalendar } from "./js/modules/calendar.js?v=build-20260523-110000";
+import { initAccountsUI } from "./js/modules/accounts-ui.js?v=build-20260523-110000";
+import { initAccountsLiveSnapshot } from "./js/modules/accounts-live-snapshot.js?v=build-20260523-110000";
+import { initConnections, renderConnections } from "./js/modules/connections.js?v=build-20260523-110000";
+import { initCalculator, renderCalculator } from "./js/modules/calculator.js?v=build-20260523-110000";
+import { initJournal, renderJournal } from "./js/modules/journal.js?v=build-20260523-110000";
+import { initStrategies, renderStrategies } from "./js/modules/strategies.js?v=build-20260523-110000";
+import { initFunded, renderFunded } from "./js/modules/funded.js?v=build-20260523-110000";
+import { renderMarket } from "./js/modules/market.js?v=build-20260523-110000";
+import { renderPortfolio } from "./js/modules/portfolio.js?v=build-20260523-110000";
+import { renderGlossary } from "./js/modules/glossary.js?v=build-20260523-110000";
+import { renderDebug } from "./js/modules/debug.js?v=build-20260523-110000";
+import { initPullToRefresh } from "./js/modules/pull-to-refresh.js?v=build-20260523-110000";
+import { closeModal, openModal } from "./js/modules/modal-system.js?v=build-20260523-110000";
+import { initAccountRuntime } from "./js/modules/account-runtime.js?v=build-20260523-110000";
+import { initTopbarStatus } from "./js/modules/topbar-status.js?v=build-20260523-110000";
+import { initSidebarUI } from "./js/modules/sidebar-ui.js?v=build-20260523-110000";
+import { initSidebarVNext } from "./js/modules/sidebar-vnext.js?v=build-20260523-110000";
+import { initConnectionWizard } from "./js/modules/connection-wizard.js?v=build-20260523-110000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, initBillingStatus, isBillingPaused, isEffectiveBillingAdmin, refreshBillingStatus, selectBillingStatus } from "./js/modules/billing-status.js?v=build-20260523-110000";
+import { isAdminMode } from "./js/modules/admin-mode.js?v=build-20260523-110000";
+import { initAuthUI } from "./js/modules/auth-ui.js?v=build-20260523-110000";
+import { analyticsTabForPage, pageFromLocation, parentPageForPage } from "./js/modules/route-map.js?v=build-20260523-110000";
 import {
   DEFAULT_AUTH_PROFILE,
   DEFAULT_AUTH_USER,
@@ -35,8 +35,8 @@ import {
   mergeAuthProfile,
   persistAuthState,
   selectVisibleUserProfile
-} from "./js/modules/auth-session.js?v=build-20260519-113000";
-import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260519-113000";
+} from "./js/modules/auth-session.js?v=build-20260523-110000";
+import { applyAvatarContent } from "./js/modules/avatar-utils.js?v=build-20260523-110000";
 import {
   DEFAULT_SETTINGS_PREFERENCES,
   fetchSupabaseUserConfig,
@@ -45,8 +45,8 @@ import {
   persistLocalPreferences,
   readLocalPreferences,
   saveSupabaseUserConfig
-} from "./js/modules/supabase-user-config.js?v=build-20260519-113000";
-import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260519-113000";
+} from "./js/modules/supabase-user-config.js?v=build-20260523-110000";
+import { resolveActiveAccountId, selectCurrentAccount, selectCurrentModel } from "./js/modules/utils.js?v=build-20260523-110000";
 import {
   resolveAccountsRegistryUrl,
   resolveAccountsSnapshotUrl,
@@ -55,10 +55,15 @@ import {
   resolveBillingPortalUrl,
   resolveBillingSubscriptionUrl,
   resolveBillingStatusUrl
-} from "./js/modules/api-config.js?v=build-20260519-113000";
+} from "./js/modules/api-config.js?v=build-20260523-110000";
+import { KMFX_DOWNLOAD_ARTIFACTS } from "./js/modules/download-artifacts.js?v=build-20260523-110000";
+import { showToast } from "./js/modules/toast.js?v=build-20260523-110000";
 
-const BUILD_TAG = "build-20260519-113000";
+const BUILD_TAG = "build-20260523-110000";
 window.__KMFX_BUILD__ = BUILD_TAG;
+const CRITICAL_LAUNCHER_UPDATE_ID = `launcher-${KMFX_DOWNLOAD_ARTIFACTS.launcher.version}-connector-${KMFX_DOWNLOAD_ARTIFACTS.connector.version}-global-notice-v2`;
+const CRITICAL_LAUNCHER_UPDATE_REMINDER_KEY = `kmfx.critical-update.${CRITICAL_LAUNCHER_UPDATE_ID}.remindAfter`;
+const CRITICAL_LAUNCHER_UPDATE_DISMISSED_KEY = `kmfx.critical-update.${CRITICAL_LAUNCHER_UPDATE_ID}.dismissed`;
 
 const store = createStore();
 const POST_TRADE_PORTAL_ID = "kmfx-posttrade-portal";
@@ -74,6 +79,96 @@ function escapeHtml(value = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function launcherDownloadUrl(platform = "auto") {
+  const normalized = String(platform || "auto").toLowerCase();
+  if (normalized === "windows") return `./downloads/${KMFX_DOWNLOAD_ARTIFACTS.launcher.windows.file}`;
+  if (normalized === "macos" || normalized === "mac") return `./downloads/${KMFX_DOWNLOAD_ARTIFACTS.launcher.macos.file}`;
+  const agent = String(navigator.userAgent || "").toLowerCase();
+  return agent.includes("win")
+    ? `./downloads/${KMFX_DOWNLOAD_ARTIFACTS.launcher.windows.file}`
+    : `./downloads/${KMFX_DOWNLOAD_ARTIFACTS.launcher.macos.file}`;
+}
+
+function shouldShowCriticalLauncherUpdate(state = store.getState()) {
+  if (state.auth?.status !== "authenticated") return false;
+  if (window.sessionStorage?.getItem(CRITICAL_LAUNCHER_UPDATE_DISMISSED_KEY) === "1") return false;
+  const remindAfter = Number(window.localStorage?.getItem(CRITICAL_LAUNCHER_UPDATE_REMINDER_KEY) || 0);
+  return !Number.isFinite(remindAfter) || Date.now() >= remindAfter;
+}
+
+function markCriticalLauncherUpdateReminder(hours = 12) {
+  try {
+    window.localStorage.setItem(CRITICAL_LAUNCHER_UPDATE_REMINDER_KEY, String(Date.now() + hours * 60 * 60 * 1000));
+    window.sessionStorage.setItem(CRITICAL_LAUNCHER_UPDATE_DISMISSED_KEY, "1");
+  } catch {
+    // no-op
+  }
+}
+
+function openCriticalLauncherUpdateModal() {
+  openModal({
+    title: "Actualiza KMFX Launcher",
+    subtitle: `Launcher v${KMFX_DOWNLOAD_ARTIFACTS.launcher.version} · Connector v${KMFX_DOWNLOAD_ARTIFACTS.connector.version}`,
+    maxWidth: 620,
+    content: `
+      <div class="settings-inline-note" style="margin-bottom:14px;">
+        Debes actualizar KMFX Launcher y reinstalar el conector MT5. Este aviso aparece en cualquier sección del Dashboard porque las versiones anteriores pueden instalar el conector en una ruta incorrecta o dejar el flujo incompleto.
+      </div>
+      <ol class="row-sub" style="margin:0 0 14px 18px; padding:0; line-height:1.6;">
+        <li>Descarga el Launcher para tu equipo.</li>
+        <li>Abre KMFX Launcher.</li>
+        <li>Selecciona tu instancia MT5 y pulsa instalar/reparar conector.</li>
+        <li>Si MT5 estaba abierto, reinícialo al terminar.</li>
+      </ol>
+      <div class="row-sub" style="margin-bottom:14px;">
+        No perderás tus cuentas ni tus datos. El Launcher solo instala el conector; la KMFXKey sigue copiándose desde el Dashboard.
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" type="button" data-critical-launcher-download="auto">Descargar para mi equipo</button>
+        <button class="btn-secondary" type="button" data-critical-launcher-download="macos">macOS</button>
+        <button class="btn-secondary" type="button" data-critical-launcher-download="windows">Windows</button>
+        <button class="btn-secondary" type="button" data-critical-launcher-later>Recordar luego</button>
+      </div>
+      <div class="row-sub" style="margin-top:10px;">Si no sabes cuál elegir, usa "Descargar para mi equipo".</div>
+    `,
+    onMount(card) {
+      card.querySelectorAll("[data-critical-launcher-download]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const platform = button.dataset.criticalLauncherDownload || "auto";
+          window.open(launcherDownloadUrl(platform), "_blank", "noopener");
+          markCriticalLauncherUpdateReminder(72);
+          showToast("Descarga iniciada. Reinstala el conector desde KMFX Launcher.", "info", 4200);
+          closeModal();
+        });
+      });
+      card.querySelector("[data-critical-launcher-later]")?.addEventListener("click", () => {
+        markCriticalLauncherUpdateReminder(12);
+        closeModal();
+      });
+    }
+  });
+}
+
+function initCriticalLauncherUpdateNotice() {
+  let shown = false;
+  let retryTimer = 0;
+  const maybeShow = (state = store.getState()) => {
+    if (shown || !shouldShowCriticalLauncherUpdate(state)) return;
+    shown = true;
+    window.setTimeout(() => {
+      if (document.body.classList.contains("modal-open")) {
+        shown = false;
+        window.clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(() => maybeShow(store.getState()), 1500);
+        return;
+      }
+      openCriticalLauncherUpdateModal();
+    }, 900);
+  };
+  maybeShow(store.getState());
+  store.subscribe(maybeShow);
 }
 
 function ensureLightCardFlattening() {
@@ -1432,6 +1527,7 @@ async function bootstrapApp() {
   initPostTradeTagBridge();
   initPostTradeAutoPrompt();
   initSettings(authSession);
+  initCriticalLauncherUpdateNotice();
   startClock();
   store.subscribe(() => renderActivePage());
   store.subscribe((state) => {

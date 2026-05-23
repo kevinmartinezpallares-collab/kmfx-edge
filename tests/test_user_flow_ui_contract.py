@@ -234,9 +234,21 @@ class UserFlowUiContractTests(unittest.TestCase):
         source = read_text("js/modules/download-artifacts.js")
 
         self.assertIn('version: "2.89"', source)
-        self.assertIn("ebe356001888111bf45404fa3fefa44df6d8960a6c7d42725eac31b177ae754b", source)
-        self.assertIn("a5fa0e2f0bab662ffe6b24eeecd2fbbaad2a856f1b69a3946d98602906abc21d", source)
-        self.assertIn("5fce4673584f018dfabbea31cd9f6c528a2b3576596ab5f099d8924b5e233cb5", source)
+        self.assertIn("75a9af16721b90f04bc51f1443c0355a0e01dccc379a2f866b83a903ccc5c428", source)
+        self.assertIn("32f7a29bcbde1adc828a25e66d3e5254ac8bb1919b641b29350216686393f512", source)
+        self.assertIn("969562faf60e38271220142311b8d3a510e099926536534546f05af17d759183", source)
+
+    def test_dashboard_shows_global_launcher_update_notice_after_login(self) -> None:
+        source = read_text("app.js")
+
+        self.assertIn("initCriticalLauncherUpdateNotice();", source)
+        self.assertIn("store.subscribe(maybeShow)", source)
+        self.assertIn("Actualiza KMFX Launcher", source)
+        self.assertIn("data-critical-launcher-download", source)
+        self.assertIn("global-notice-v2", source)
+        self.assertIn("El Launcher solo instala el conector", source)
+        self.assertIn("retryTimer = window.setTimeout(() => maybeShow(store.getState()), 1500)", source)
+        self.assertNotIn("? `./downloads/${KMFX_DOWNLOAD_ARTIFACTS.launcher.windows.file}`\n    ?", source)
 
     def test_connection_wizard_hides_release_checksums_by_default(self) -> None:
         source = read_text("js/modules/connection-wizard.js")

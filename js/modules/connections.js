@@ -1,12 +1,12 @@
-import { closeModal, openModal } from "./modal-system.js?v=build-20260518-081500";
-import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260518-081500";
-import { showToast } from "./toast.js?v=build-20260518-081500";
-import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260518-081500";
-import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260518-081500";
-import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260518-081500";
-import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260518-081500";
-import { downloadArtifactSummary, downloadChecksumText } from "./download-artifacts.js?v=build-20260518-081500";
-import { isAdminMode } from "./admin-mode.js?v=build-20260518-081500";
+import { closeModal, openModal } from "./modal-system.js?v=build-20260523-110000";
+import { formatCurrency, selectActiveAccount, selectActiveAccountId, selectLiveAccountIds } from "./utils.js?v=build-20260523-110000";
+import { showToast } from "./toast.js?v=build-20260523-110000";
+import { isLocalApiBaseUrl, resolveAccountsRegistryUrl, resolveApiBaseUrl } from "./api-config.js?v=build-20260523-110000";
+import { renderRiskMetricCard } from "./risk-panel-components.js?v=build-20260523-110000";
+import { emptyStateMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260523-110000";
+import { PAUSED_SUBSCRIPTION_COPY, PAUSED_SUBSCRIPTION_CTA, PAUSED_SUBSCRIPTION_TITLE, billingAccessLabel, billingAccessTone, billingEntitlementState, isBillingAttention, isBillingPaused, isBillingRestricted, selectBillingStatus } from "./billing-status.js?v=build-20260523-110000";
+import { downloadArtifactSummary, downloadChecksumText, KMFX_DOWNLOAD_ARTIFACTS } from "./download-artifacts.js?v=build-20260523-110000";
+import { isAdminMode } from "./admin-mode.js?v=build-20260523-110000";
 const DEFAULT_MAC_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-macOS.zip";
 const DEFAULT_WINDOWS_LAUNCHER_DOWNLOAD_URL = "./downloads/KMFX-Launcher-Windows.exe";
 const LAUNCHER_OPEN_URL = "kmfx-launcher://open";
@@ -513,6 +513,25 @@ function renderBillingNotice(state = {}) {
   `;
 }
 
+function renderLauncherUpdateNotice() {
+  const launcherVersion = KMFX_DOWNLOAD_ARTIFACTS.launcher.version;
+  return `
+    <article class="widget-card connections-billing-notice connections-billing-notice--attention">
+      <div class="calendar-panel-head">
+        <div>
+          <div class="calendar-panel-title">Nuevo KMFX Launcher v${escapeHtml(launcherVersion)} disponible</div>
+          <div class="row-sub">Si ya tenías el Launcher instalado, descarga esta versión y reemplaza la anterior. Después abre el Launcher e instala de nuevo el conector en tu instancia MT5.</div>
+        </div>
+        <span class="risk-status-badge risk-status-badge--warning">Actualizar Launcher</span>
+      </div>
+      <div class="connections-empty-card__actions">
+        <button class="btn-primary" type="button" data-account-download-launcher="mac">Descargar macOS</button>
+        <button class="btn-primary" type="button" data-account-download-launcher="windows" ${windowsLauncherAvailable() ? "" : "disabled"}>${windowsLauncherAvailable() ? "Descargar Windows" : "Windows pendiente"}</button>
+      </div>
+    </article>
+  `;
+}
+
 function renderConnectionAccessState(connectionAccess) {
   if (connectionAccess.allowed) return "";
   const actionHtml = connectionAccess.reason === "auth_required"
@@ -736,6 +755,7 @@ function renderConnectionGuide(state = {}) {
         </div>
       </div>
       <div class="row-sub" style="margin-top:-8px;">macOS puede pedir confirmación la primera vez: abre KMFX Launcher con clic derecho > Abrir. El Launcher no guarda la KMFXKey.</div>
+      ${renderLauncherUpdateNotice()}
       ${renderAdminReleaseBlock(state)}
       <div class="connections-guide-card__endpoint">
         <div>
@@ -1366,6 +1386,7 @@ function renderEmptyState(root, state = {}) {
       ${renderConnectionsKpis([], state)}
       <section class="connections-shell__main">
         ${renderBillingNotice(state)}
+        ${renderLauncherUpdateNotice()}
         ${renderConnectionAccessState(connectionAccess)}
         <article class="tl-section-card connections-empty-card">
           <div class="calendar-panel-head">
@@ -1859,6 +1880,7 @@ export function renderConnections(root, state) {
       ${renderConnectionsKpis(registryAccounts, state)}
       <section class="connections-shell__main ${isSingleAccount ? "connections-shell__main--single" : ""}">
         ${renderBillingNotice(state)}
+        ${renderLauncherUpdateNotice()}
         ${renderConnectionAccessState(connectionAccess)}
         <div class="calendar-panel-head">
           <div class="dashboard-risk-block__title">Cuentas conectadas</div>

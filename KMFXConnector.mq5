@@ -57,7 +57,9 @@ string            KMFXApiKey                  = "";
 string            connection_key              = "";
 int               KMFXTimerMs                 = 2000;
 int               KMFXPolicyPollSeconds       = 12;
-int               KMFXStatePushSeconds        = 5;
+int               KMFXStatePushSeconds        = 15;
+int               KMFXIdleStatePushSeconds    = 60;
+int               KMFXEventPushCooldownSeconds= 2;
 int               KMFXWebTimeoutMs            = 5000;
 int               KMFXClosedDealsLimit        = 100;
 int               KMFXHistoryPointsLimit      = 120;
@@ -133,6 +135,10 @@ struct KMFXRuntimeState
    datetime  last_read_only_mode_log_at;
    int       transient_sync_failures;
    datetime  last_transient_sync_error_at;
+   bool      trade_event_pending;
+   datetime  last_trade_event_at;
+   int       server_min_state_push_seconds;
+   datetime  last_server_sync_policy_at;
   };
 
 struct KMFXPendingSync
@@ -1956,6 +1962,8 @@ string KMFXBuildSyncPayload(string sync_id)
   {
    datetime now_time=KMFXNow();
    bool full_history_sync=!KMFXHasCompletedHistoryBootstrap();
+   bool event_sync=Runtime.trade_event_pending;
+   bool lightweight_sync=(!event_sync && !full_history_sync);
    datetime sync_from_time=0;
    if(!full_history_sync)
       sync_from_time=KMFXHistoryFromTime();
@@ -1963,7 +1971,7 @@ string KMFXBuildSyncPayload(string sync_id)
    string positions_json=KMFXBuildPositionsJson();
    int trades_limit=0;
    if(!full_history_sync)
-      trades_limit=KMFXClosedDealsLimit;
+      trades_limit=lightweight_sync ? MathMin(KMFXClosedDealsLimit,20) : KMFXClosedDealsLimit;
    string trades_json=KMFXBuildSyncTradesJson(sync_from_time,now_time,trades_limit);
    string symbol_specs_json=KMFXBuildSymbolSpecsJson();
    int history_points_limit=0;
@@ -1979,7 +1987,7 @@ string KMFXBuildSyncPayload(string sync_id)
      }
    int effective_history_points_limit=0;
    if(!full_history_sync)
-      effective_history_points_limit=history_points_limit;
+      effective_history_points_limit=lightweight_sync ? MathMin(history_points_limit,24) : history_points_limit;
    string history_json=KMFXBuildSyncHistoryJson(sync_from_time,now_time,effective_history_points_limit);
    datetime rm_to=now_time;
    datetime rm_from=sync_from_time;
@@ -1992,6 +2000,8 @@ string KMFXBuildSyncPayload(string sync_id)
    json+="\"type\":\"kmfx_connector_sync\",";
    json+="\"connector_version\":"+KMFXQuote(KMFX_CONNECTOR_VERSION)+",";
    json+="\"mode\":"+KMFXQuote(KMFXModeName())+",";
+   json+="\"sync_reason\":"+KMFXQuote(event_sync ? "trade_event" : "heartbeat")+",";
+   json+="\"payload_mode\":"+KMFXQuote(lightweight_sync ? "lightweight" : "full")+",";
    json+="\"sync_id\":"+KMFXQuote(sync_id)+",";
    json += "\"login\":" + sync_login + ",";
    json+="\"timestamp\":"+KMFXQuote(TimeToString(now_time,TIME_DATE|TIME_SECONDS))+",";
@@ -2220,6 +2230,27 @@ string KMFXExtractBackendReason(string json)
    return "";
   }
 
+void KMFXApplyServerSyncPolicy(string json)
+  {
+   double next_sync_after=0.0;
+   if(!KMFXExtractJsonDouble(json,"next_sync_after_seconds",next_sync_after))
+      return;
+   if(!MathIsValidNumber(next_sync_after) || next_sync_after<=0.0)
+      return;
+
+   int bounded=(int)MathRound(next_sync_after);
+   if(bounded<KMFXEventPushCooldownSeconds)
+      bounded=KMFXEventPushCooldownSeconds;
+   if(bounded>300)
+      bounded=300;
+
+   Runtime.server_min_state_push_seconds=bounded;
+   Runtime.last_server_sync_policy_at=KMFXNow();
+
+   if(KMFXVerboseLog)
+      PrintFormat("[KMFX][SYNC][SERVER_POLICY] next_sync_after_seconds=%d", Runtime.server_min_state_push_seconds);
+  }
+
 bool KMFXIsTemporarySyncReject(int status_code,string reason)
   {
    string normalized_reason=reason;
@@ -2322,6 +2353,7 @@ void KMFXProcessPendingSyncQueue()
 
       if(status_code>=300)
         {
+         KMFXApplyServerSyncPolicy(response);
          KMFXDeletePendingSyncFile(file_name);
          if(KMFXVerboseLog)
             PrintFormat("[KMFX][SYNC][BACKEND_REJECT] sync_id=%s status=%d", item.sync_id, status_code);
@@ -2329,6 +2361,7 @@ void KMFXProcessPendingSyncQueue()
          break;
         }
 
+      KMFXApplyServerSyncPolicy(response);
       disposition=KMFXExtractSyncDisposition(response);
       if(KMFXVerboseLog)
         {
@@ -2508,6 +2541,7 @@ bool KMFXPushState()
 
    if(status_code>=300)
      {
+      KMFXApplyServerSyncPolicy(response);
       string backend_reason=KMFXExtractBackendReason(response);
       bool keep_connected=KMFXKeepConnectionForBackendReject(status_code,backend_reason);
       bool temporary_reject=keep_connected || KMFXIsTemporarySyncReject(status_code,backend_reason);
@@ -2531,10 +2565,13 @@ bool KMFXPushState()
         {
          Policy.backend_connected=true;
          Policy.degraded_mode=false;
-        }
+         }
+      if(temporary_reject)
+         Runtime.last_state_push_at=KMFXNow();
      return false;
     }
 
+   KMFXApplyServerSyncPolicy(response);
    disposition=KMFXExtractSyncDisposition(response);
    if(KMFXVerboseLog && disposition=="duplicate")
       PrintFormat("[KMFX][SYNC][DUPLICATE_ACK] sync_id=%s", sync_id);
@@ -2548,6 +2585,7 @@ bool KMFXPushState()
    Runtime.last_error="";
    Runtime.last_state_push_at=KMFXNow();
    Runtime.last_good_sync_at=Runtime.last_state_push_at;
+   Runtime.trade_event_pending=false;
    datetime now_time=Runtime.last_state_push_at;
    if(!Runtime.connection_ready_logged || (now_time-Runtime.last_connection_ready_log_at)>=3600)
      {
@@ -2773,6 +2811,8 @@ bool KMFXFetchPolicy()
 
    if(KMFXVerboseLog)
       PrintFormat("[KMFX][POLICY][DEBUG] status_code=%d response=%s", status_code, response);
+
+   KMFXApplyServerSyncPolicy(response);
 
    if(status_code==1003 || status_code<=0)
      {
@@ -3261,7 +3301,34 @@ void KMFXEnforceTradeTransaction(const MqlTradeTransaction &trans)
 // -------------------------------------------------------------------
 bool KMFXShouldPushState()
   {
-   return (KMFXNow()-Runtime.last_state_push_at)>=KMFXStatePushSeconds;
+   datetime now_time=KMFXNow();
+   int base_interval=KMFXStatePushSeconds;
+   if(base_interval<5)
+      base_interval=5;
+
+   int idle_interval=KMFXIdleStatePushSeconds;
+   if(idle_interval<base_interval)
+      idle_interval=base_interval;
+
+   int event_cooldown=KMFXEventPushCooldownSeconds;
+   if(event_cooldown<1)
+      event_cooldown=1;
+
+   int server_min=Runtime.server_min_state_push_seconds;
+   if(Runtime.last_server_sync_policy_at>0 && (now_time-Runtime.last_server_sync_policy_at)>900)
+      server_min=0;
+
+   if(Runtime.trade_event_pending)
+     {
+      int event_interval=MathMax(event_cooldown,server_min);
+      return (now_time-Runtime.last_state_push_at)>=event_interval;
+     }
+
+   int resolved_interval=(PositionsTotal()>0) ? base_interval : idle_interval;
+   if(server_min>resolved_interval)
+      resolved_interval=server_min;
+
+   return (now_time-Runtime.last_state_push_at)>=resolved_interval;
   }
 
 bool KMFXShouldRefreshPolicy()
@@ -3352,6 +3419,8 @@ void OnTick()
 
 void OnTradeTransaction(const MqlTradeTransaction &trans,const MqlTradeRequest &request,const MqlTradeResult &result)
   {
+   Runtime.trade_event_pending=true;
+   Runtime.last_trade_event_at=KMFXNow();
    KMFXEnforceTradeTransaction(trans);
   }
 //+------------------------------------------------------------------+
