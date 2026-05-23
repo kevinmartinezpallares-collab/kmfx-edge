@@ -269,6 +269,34 @@ class Mt5TimezoneContractTests(unittest.TestCase):
         self.assertAlmostEqual(result["dayPnl"], 57)
         self.assertAlmostEqual(result["totalPnl"], 57)
 
+    def test_calendar_cell_label_uses_accounting_day_key_not_browser_timezone(self) -> None:
+        result = self.run_node(
+            """
+            let calendarSource = fs.readFileSync("./js/modules/calendar.js", "utf8");
+            calendarSource = calendarSource
+              .replace(/^import .*$/gm, "")
+              .replace(/export function /g, "function ");
+            calendarSource = `const getAccountingDayKey = globalThis.__utilsHooks.getAccountingDayKey; const getAccountingMonthKey = globalThis.__utilsHooks.getAccountingMonthKey;\\n${calendarSource}`;
+            eval(`${calendarSource}\\nglobalThis.__calendarHooks = { buildMonthView, calendarDayNumber, formatCalendarDayKeyLong };`);
+
+            const month = globalThis.__calendarHooks.buildMonthView([
+              { key: "2026-05-19", pnl: 1940, trades: 3 }
+            ], "2026-05");
+            const tradedCell = month.cells.find((cell) => cell.trades === 3);
+
+            console.log(JSON.stringify({
+              key: tradedCell.key,
+              visibleDay: globalThis.__calendarHooks.calendarDayNumber(tradedCell.key),
+              title: globalThis.__calendarHooks.formatCalendarDayKeyLong(tradedCell.key),
+            }));
+            """,
+            timezone="Asia/Tokyo",
+        )
+
+        self.assertEqual(result["key"], "2026-05-19")
+        self.assertEqual(result["visibleDay"], 19)
+        self.assertEqual(result["title"], "martes, 19 de mayo de 2026")
+
 
 if __name__ == "__main__":
     unittest.main()

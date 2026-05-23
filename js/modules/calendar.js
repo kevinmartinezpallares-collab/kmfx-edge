@@ -1,8 +1,8 @@
-import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260517-133900";
-import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260517-133900";
-import { openFocusPanel } from "./modal-system.js?v=build-20260517-133900";
-import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260517-133900";
-import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260517-133900";
+import { chartCanvas, lineAreaSpec, mountCharts } from "./chart-system.js?v=build-20260523-125500";
+import { formatCurrency, formatDurationHuman, formatPercent, getAccountingDayKey, getAccountingMonthKey, resolveAccountDataAuthority, selectCurrentAccount, selectCurrentModel } from "./utils.js?v=build-20260523-125500";
+import { openFocusPanel } from "./modal-system.js?v=build-20260523-125500";
+import { renderAdminTracePanel } from "./admin-mode.js?v=build-20260523-125500";
+import { kpiCardMarkup, pageHeaderMarkup, pnlTextMarkup } from "./ui-primitives.js?v=build-20260523-125500";
 
 const CALENDAR_HEADERS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const CALENDAR_TOOLTIP_PERCENT_FORMATTER = new Intl.NumberFormat("es-ES", {
@@ -94,6 +94,58 @@ function safeCalendarToken(value = "") {
 
 function formatCalendarCellText(value) {
   return value == null || value === "" ? "—" : escapeCalendarStatText(value);
+}
+
+function parseCalendarDayKey(dayKey) {
+  const match = String(dayKey || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const parsed = {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+  };
+  if (!Number.isFinite(parsed.year) || !Number.isFinite(parsed.month) || !Number.isFinite(parsed.day)) return null;
+  return parsed;
+}
+
+function calendarUtcDate(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+function calendarDateFromDayKey(dayKey) {
+  const parsed = parseCalendarDayKey(dayKey);
+  return parsed ? calendarUtcDate(parsed.year, parsed.month, parsed.day) : null;
+}
+
+function calendarDayKeyFromUtcDate(date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function calendarDayNumber(dayKey) {
+  return parseCalendarDayKey(dayKey)?.day || "";
+}
+
+function formatCalendarDayKeyLong(dayKey) {
+  const date = calendarDateFromDayKey(dayKey);
+  return date
+    ? date.toLocaleDateString("es-ES", { timeZone: "UTC", weekday: "long", day: "2-digit", month: "long", year: "numeric" })
+    : "—";
+}
+
+function formatCalendarDayKeyShort(dayKey) {
+  const date = calendarDateFromDayKey(dayKey);
+  return date
+    ? date.toLocaleDateString("es-ES", { timeZone: "UTC", day: "2-digit", month: "2-digit" })
+    : "—";
+}
+
+function formatCalendarMonthKeyLabel(monthKey, options = { month: "long", year: "numeric" }) {
+  return monthKeyToDate(monthKey).toLocaleDateString("es-ES", { timeZone: "UTC", ...options });
 }
 
 function renderCalendarDayStatBar(metrics, dayTrades) {
@@ -287,7 +339,7 @@ function openCalendarDayFocus(root, state, model, key) {
       : "Siguiente paso: identifica qué trade sostuvo el resultado y compáralo con tu plan.";
 
   openFocusPanel({
-    title: new Date(key).toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
+    title: formatCalendarDayKeyLong(key),
     meta: `${firstTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"} · ${lastTrade?.when?.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) || "—"}`,
     pnlHtml: pnlTextMarkup({ value: dayPnl, text: formatCurrency(dayPnl), className: dayPnl >= 0 ? "metric-positive" : "metric-negative" }),
     pnlClass: "calendar-day-panel__pnl",
@@ -419,7 +471,7 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
       return `
         <article class="${cardClasses}">
           <div class="calendar-year-card__head">
-            <button class="calendar-year-card__month" type="button" data-calendar-open-month="${escapeCalendarStatText(monthRecord.key)}">${escapeCalendarStatText(monthKeyToDate(monthRecord.key).toLocaleDateString("es-ES", { month: "long" }))}</button>
+            <button class="calendar-year-card__month" type="button" data-calendar-open-month="${escapeCalendarStatText(monthRecord.key)}">${escapeCalendarStatText(formatCalendarMonthKeyLabel(monthRecord.key, { month: "long" }))}</button>
             <span class="calendar-year-card__badge ${monthValueClass}">
               ${hasModel ? pnlTextMarkup({ value: Number(monthRecord.pnl || 0), text: monthValue, className: monthValueClass }) : "—"}
             </span>
@@ -440,9 +492,9 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
                 cell.isToday ? "is-today" : ""
               ].filter(Boolean).join(" ");
               if (cell.trades && hasModel) {
-                return `<button class="${dayClasses}" type="button" data-calendar-day="${escapeCalendarStatText(cell.key)}" aria-label="${cell.date.getDate()} · ${cell.trades} operaciones">${cell.date.getDate()}</button>`;
+                return `<button class="${dayClasses}" type="button" data-calendar-day="${escapeCalendarStatText(cell.key)}" aria-label="${calendarDayNumber(cell.key)} · ${cell.trades} operaciones">${calendarDayNumber(cell.key)}</button>`;
               }
-              return `<span class="${dayClasses}">${cell.date.getDate()}</span>`;
+              return `<span class="${dayClasses}">${calendarDayNumber(cell.key)}</span>`;
             }).join("")}
           </div>
           <div class="calendar-year-card__footer">${tradeCount ? `${tradeCount} operaciones` : "Sin operativa"}</div>
@@ -453,8 +505,8 @@ function buildYearMonthCards(dayStats, calendarMonths, selectedYear, valueMode, 
 
 function formatCalendarDayLabel(dayKey) {
   if (!dayKey) return "—";
-  const [year, month, day] = String(dayKey).split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  const date = calendarDateFromDayKey(dayKey);
+  return date ? date.toLocaleDateString("es-ES", { timeZone: "UTC", day: "2-digit", month: "short" }) : "—";
 }
 
 function formatCalendarSignedCurrency(value) {
@@ -782,7 +834,7 @@ export function renderCalendar(root, state) {
                 return `
                   <button class="${classes}" type="button" ${cell.trades && hasModel ? `data-calendar-day="${escapeCalendarStatText(cell.key)}"` : "disabled"}>
                     <div class="calendar-day__top">
-                      <span class="calendar-day__date">${cell.date.getDate()}</span>
+                      <span class="calendar-day__date">${calendarDayNumber(cell.key)}</span>
                     </div>
                     <div class="calendar-day__body">
                       ${cell.trades && hasModel
@@ -950,25 +1002,27 @@ export function renderCalendar(root, state) {
 
 function buildMonthView(dayStats, monthKey) {
   const anchorDate = monthKeyToDate(monthKey);
-  const first = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
-  const last = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
+  const anchorYear = anchorDate.getUTCFullYear();
+  const anchorMonthIndex = anchorDate.getUTCMonth();
+  const first = new Date(Date.UTC(anchorYear, anchorMonthIndex, 1, 12, 0, 0));
+  const last = new Date(Date.UTC(anchorYear, anchorMonthIndex + 1, 0, 12, 0, 0));
   const start = new Date(first);
-  start.setDate(first.getDate() - first.getDay());
+  start.setUTCDate(first.getUTCDate() - first.getUTCDay());
   const end = new Date(last);
-  end.setDate(last.getDate() + (6 - last.getDay()));
+  end.setUTCDate(last.getUTCDate() + (6 - last.getUTCDay()));
   const todayKey = toLocalDayKey(new Date());
   const dayMap = new Map(dayStats.map((entry) => [entry.key, entry]));
 
   const cells = [];
   const weeks = [];
   let maxAbsPnl = 0;
-  for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
-    const key = toLocalDayKey(current);
+  for (let current = new Date(start); current <= end; current.setUTCDate(current.getUTCDate() + 1)) {
+    const key = calendarDayKeyFromUtcDate(current);
     const day = dayMap.get(key);
     maxAbsPnl = Math.max(maxAbsPnl, Math.abs(day?.pnl || 0));
     cells.push({
       key,
-      inMonth: current.getMonth() === anchorDate.getMonth(),
+      inMonth: current.getUTCMonth() === anchorMonthIndex,
       date: new Date(current),
       pnl: day?.pnl || 0,
       trades: day?.trades || 0,
@@ -993,7 +1047,7 @@ function buildMonthView(dayStats, monthKey) {
 
   return {
     key: monthKey,
-    label: anchorDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
+    label: formatCalendarMonthKeyLabel(monthKey),
     cells,
     weeks,
     maxAbsPnl
@@ -1042,7 +1096,7 @@ function buildCalendarCurve(dayStats, selectedMonth) {
   return monthDays.map((day) => {
     runningPnl += Number(day.pnl || 0);
     return {
-      label: new Date(day.key).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+      label: formatCalendarDayKeyShort(day.key),
       value: base ? (runningPnl / base) * 100 : 0
     };
   });
@@ -1102,7 +1156,7 @@ function buildFallbackMonthRecord() {
   const date = new Date();
   return {
     key: toLocalMonthKey(date),
-    label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+    label: toLocalMonthKey(date) ? formatCalendarMonthKeyLabel(toLocalMonthKey(date), { month: "short", year: "numeric" }) : date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
     pnl: 0,
     trades: 0,
     startBalance: 0,
@@ -1128,10 +1182,9 @@ function expandCalendarMonths(months) {
         continue;
       }
 
-      const date = new Date(year, monthNumber - 1, 1);
       expanded.push({
         key,
-        label: date.toLocaleDateString("es-ES", { month: "short", year: "numeric" }),
+        label: formatCalendarMonthKeyLabel(key, { month: "short", year: "numeric" }),
         pnl: 0,
         trades: 0,
         startBalance: runningBalance,
@@ -1145,11 +1198,15 @@ function expandCalendarMonths(months) {
 
 function buildEmptyCurve(monthKey) {
   const anchor = monthKeyToDate(monthKey || toLocalMonthKey(new Date()));
-  const lastDay = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
+  const lastDay = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 0, 12, 0, 0)).getUTCDate();
   return [1, 8, 15, 22, lastDay].map((day) => {
-    const date = new Date(anchor.getFullYear(), anchor.getMonth(), day);
+    const key = [
+      anchor.getUTCFullYear(),
+      String(anchor.getUTCMonth() + 1).padStart(2, "0"),
+      String(day).padStart(2, "0"),
+    ].join("-");
     return {
-      label: date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
+      label: formatCalendarDayKeyShort(key),
       value: 0
     };
   });
@@ -1197,5 +1254,5 @@ function shiftMonthKey(months, currentKey, offset) {
 
 function monthKeyToDate(key) {
   const [year, month] = key.split("-").map(Number);
-  return new Date(year, (month || 1) - 1, 1);
+  return calendarUtcDate(Number.isFinite(year) ? year : new Date().getUTCFullYear(), Number.isFinite(month) ? month : 1, 1);
 }
