@@ -1496,6 +1496,36 @@ def _resolve_verified_bearer_email(request: Request) -> str:
     return email
 
 
+def _resolve_preview_bearer_claims(request: Request) -> dict[str, Any]:
+    expected = safe_str(os.getenv("KMFX_PREVIEW_BEARER_TOKEN"))
+    token = _extract_bearer_token(request)
+    if not expected or not token or not hmac.compare_digest(token, expected):
+        return {}
+
+    email = safe_str(os.getenv("KMFX_PREVIEW_USER_EMAIL") or request.headers.get("x-kmfx-user-email")).lower()
+    user_id = safe_str(os.getenv("KMFX_PREVIEW_USER_ID") or request.headers.get("x-kmfx-user-id")).lower()
+    if not (email or user_id):
+        return {}
+
+    plan = safe_str(os.getenv("KMFX_PREVIEW_PLAN"), "pro").lower()
+    return {
+        "sub": user_id or email,
+        "email": email,
+        "source": "preview_bearer",
+        "app_metadata": {
+            "kmfx_preview": True,
+            "plan": plan or "pro",
+            "billing_status": "active",
+        },
+        "user_metadata": {},
+    }
+
+
+def _resolve_preview_bearer_email(request: Request) -> str:
+    claims = _resolve_preview_bearer_claims(request)
+    return safe_str(claims.get("email")).lower()
+
+
 def _is_local_request(request: Request) -> bool:
     client_host = safe_str(getattr(request.client, "host", "") if request.client else "").lower()
     return client_host in {"127.0.0.1", "::1", "localhost"}
@@ -1632,7 +1662,7 @@ def _resolve_trusted_header_user_id(request: Request) -> str:
 
 
 def resolve_authenticated_email(request: Request) -> str:
-    return _resolve_verified_bearer_email(request) or _resolve_trusted_header_email(request)
+    return _resolve_verified_bearer_email(request) or _resolve_preview_bearer_email(request) or _resolve_trusted_header_email(request)
 
 
 def resolve_authenticated_identity(request: Request) -> dict[str, str]:
@@ -1646,6 +1676,18 @@ def resolve_authenticated_identity(request: Request) -> dict[str, str]:
             "source": "verified_bearer",
             "app_metadata": ensure_dict(claims.get("app_metadata")),
             "user_metadata": ensure_dict(claims.get("user_metadata")),
+        }
+
+    preview_claims = _resolve_preview_bearer_claims(request)
+    preview_email = safe_str(preview_claims.get("email")).lower()
+    preview_user_id = safe_str(preview_claims.get("sub"))
+    if preview_email or preview_user_id:
+        return {
+            "email": preview_email,
+            "user_id": preview_user_id or preview_email,
+            "source": "preview_bearer",
+            "app_metadata": ensure_dict(preview_claims.get("app_metadata")),
+            "user_metadata": {},
         }
 
     trusted_email = _resolve_trusted_header_email(request)

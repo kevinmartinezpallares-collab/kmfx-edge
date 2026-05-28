@@ -8,6 +8,17 @@ Alcance: validar una cuenta real en `apps/web-next` sin activar auth real, billi
 
 Comprobar que la V1 Next puede leer un snapshot MT5 real, degradar si la lectura falla y mantener consistencia entre `Panel`, `Cuentas`, `Portfolio`, `Insights`, `Trades` y `Calendario`.
 
+## Entrada Beta Recomendada
+
+Usar `https://beta.kmfxedge.com` como entrada de beta cerrada.
+
+Motivo:
+
+- separa Next beta de la app legacy en `https://kmfxedge.com`;
+- permite rollback simple quitando DNS/env o apuntando el subdominio a una pagina cerrada;
+- no requiere mover rutas productivas vanilla;
+- permite restringir la lectura live con un bearer preview server-to-server antes de activar auth real completa.
+
 ## No Tocar
 
 - no enviar ordenes;
@@ -34,7 +45,10 @@ Opcionales si el endpoint preview lo requiere:
 export KMFX_PREVIEW_BEARER_TOKEN="..."
 export KMFX_PREVIEW_USER_EMAIL="..."
 export KMFX_PREVIEW_USER_ID="..."
+export KMFX_PREVIEW_PLAN="pro"
 ```
+
+El bearer preview solo debe vivir en entorno servidor. No debe exponerse como `NEXT_PUBLIC_*`, no sustituye auth real y se retirara cuando la beta pase a sesiones Supabase reales.
 
 Para reactivar Render sin dejar que el dashboard legacy lea o conecte cuentas desde navegador:
 
@@ -152,9 +166,19 @@ Se verifico un heartbeat MT5 posterior al deploy `b8b99ce` sin activar flujos de
 - `mt5_account_trades` contiene 20 filas y `mt5_equity_points` contiene 48 filas para la cuenta activa;
 - `scripts/audit_mt5_live_storage.py` queda como auditoria repetible de storage live sin imprimir tokens ni identificadores completos.
 
+## Nota De Gate Preview 2026-05-28
+
+Se adopta `https://beta.kmfxedge.com` como entrada recomendada de beta cerrada. El backend acepta un bearer preview configurado en entorno servidor para que Next pueda pedir `/api/accounts/snapshot` sin abrir auth real completa todavia.
+
+Guardas:
+
+- sin bearer valido, `/api/accounts/snapshot` sigue devolviendo `auth_required`;
+- headers `X-KMFX-User-*` remotos no crean identidad si no van acompanados del bearer preview;
+- el bearer preview aplica metadata de plan activa solo para la beta read-only;
+- el legacy dashboard sigue bloqueado para lectura browser de cuentas.
+
 Siguiente paso antes de invitar usuarios externos:
 
-- elegir entrada de beta cerrada (`subdominio beta` recomendado) y definir rollback simple;
 - configurar hosting del frontend Next con variables `KMFX_WAVE1_SOURCE=live`, `KMFX_API_BASE_URL`, timeout y token/identidad preview o gate equivalente;
 - probar una segunda cuenta beta read-only para cubrir multi-cuenta sin activar billing/auth/launcher reales;
 - registrar feedback por ruta V1 y no abrir rutas `Proximamente` hasta su chat dedicado.

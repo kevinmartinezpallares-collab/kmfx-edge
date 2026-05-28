@@ -1065,6 +1065,80 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("", context["email"])
         self.assertEqual("", context["source"])
 
+    def test_preview_bearer_allows_remote_beta_identity_without_real_auth(self) -> None:
+        request = self._request(
+            host="203.0.113.10",
+            headers={
+                "authorization": "Bearer preview-secret",
+                "x-kmfx-user-id": "beta-user",
+                "x-kmfx-user-email": "beta@example.com",
+            },
+        )
+        with patch.dict("os.environ", {"KMFX_PREVIEW_BEARER_TOKEN": "preview-secret"}, clear=True), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={},
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("beta-user", context["user_id"])
+        self.assertEqual("beta@example.com", context["email"])
+        self.assertEqual("preview_bearer", context["source"])
+        self.assertEqual("pro", context["app_metadata"]["plan"])
+        self.assertEqual("active", context["app_metadata"]["billing_status"])
+
+    def test_preview_bearer_requires_matching_secret(self) -> None:
+        request = self._request(
+            host="203.0.113.10",
+            headers={
+                "authorization": "Bearer wrong-secret",
+                "x-kmfx-user-id": "beta-user",
+                "x-kmfx-user-email": "beta@example.com",
+            },
+        )
+        with patch.dict("os.environ", {"KMFX_PREVIEW_BEARER_TOKEN": "preview-secret"}, clear=True), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={},
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertFalse(context["is_admin"])
+        self.assertEqual("", context["user_id"])
+        self.assertEqual("", context["email"])
+        self.assertEqual("", context["source"])
+
+    def test_preview_bearer_identity_can_come_from_server_env(self) -> None:
+        request = self._request(
+            host="203.0.113.10",
+            headers={
+                "authorization": "Bearer preview-secret",
+                "x-kmfx-user-id": "spoofed-user",
+                "x-kmfx-user-email": "spoofed@example.com",
+            },
+        )
+        with patch.dict(
+            "os.environ",
+            {
+                "KMFX_PREVIEW_BEARER_TOKEN": "preview-secret",
+                "KMFX_PREVIEW_USER_ID": "env-user",
+                "KMFX_PREVIEW_USER_EMAIL": "env@example.com",
+                "KMFX_PREVIEW_PLAN": "core",
+            },
+            clear=True,
+        ), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={},
+        ):
+            context = connector_api.build_admin_context(request)
+
+        self.assertEqual("env-user", context["user_id"])
+        self.assertEqual("env@example.com", context["email"])
+        self.assertEqual("preview_bearer", context["source"])
+        self.assertEqual("core", context["app_metadata"]["plan"])
+
     def test_local_user_headers_are_scoped_to_trusted_header_identity(self) -> None:
         request = self._request(
             host="127.0.0.1",
