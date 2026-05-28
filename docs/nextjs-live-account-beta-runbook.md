@@ -200,6 +200,33 @@ Estado resultante:
 - IC Markets sirve para validar lectura multi-cuenta en snapshot, pero no debe considerarse cerrada hasta ver un heartbeat nuevo posterior al deploy;
 - no se activaron flujos de escritura MT5, billing real, auth real, launcher ni enforcement.
 
+## Nota De Hosting Beta 2026-05-28
+
+El proyecto Vercel enlazado localmente es `kmfx-edge` y sigue representando la superficie productiva/legacy con dominios `kmfxedge.com`, `www.kmfxedge.com` y `dashboard.kmfxedge.com`. No debe usarse para cortar `apps/web-next` encima de produccion.
+
+Decision operativa:
+
+- mantener `kmfxedge.com` como legacy mientras se prueba Next;
+- publicar Next en un proyecto/entorno separado o dominio beta dedicado;
+- usar `beta.kmfxedge.com` como destino recomendado para beta cerrada;
+- configurar ahi, solo en entorno servidor, `KMFX_WAVE1_SOURCE=live`, `KMFX_API_BASE_URL`, `KMFX_SNAPSHOT_TIMEOUT_MS`, `KMFX_PREVIEW_BEARER_TOKEN`, `KMFX_PREVIEW_USER_EMAIL`, `KMFX_PREVIEW_USER_ID` y `KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT`;
+- no promocionar el proyecto legacy actual como beta Next sin revisar framework/root directory/build command.
+
+Preflight operativo:
+
+```bash
+python3 scripts/next_beta_preflight.py
+```
+
+Con `RENDER_API_KEY` disponible en la sesion, el preflight lee las variables preview desde Render sin imprimir secretos y comprueba backend, Worker, snapshot summary, scripts de Next y el enlace Vercel local.
+
+Resultado actual:
+
+- backend y Worker OK en `c944159`;
+- snapshot summary listo con 1 cuenta fresca y 1 cuenta stale;
+- Next local tiene los scripts de validacion necesarios;
+- Vercel local esta enlazado al proyecto legacy, por lo que el hosting beta separado sigue pendiente.
+
 ## Evidencia Minima
 
 Registrar sin datos sensibles:
