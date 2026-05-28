@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KMFX Edge Next Dashboard
 
-## Getting Started
+Next.js beta dashboard for the KMFX Edge migration. This app is read-only for V1 beta: no real auth rollout, billing writes, MT5 write-flows, launcher actions, RiskGuard enforcement, or EA export.
 
-First, run the development server:
+## Local Commands
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run validate:cascade
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Route smoke and mobile QA need a running server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run start -- --hostname 127.0.0.1 --port 3051
+KMFX_SMOKE_BASE_URL=http://127.0.0.1:3051 npm run test:smoke:routes
+KMFX_QA_BASE_URL=http://127.0.0.1:3051 npm run qa:mobile:v1
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Live Snapshot Beta
 
-## Learn More
+Use server-only env vars for beta live reads:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+KMFX_WAVE1_SOURCE=live
+KMFX_API_BASE_URL=https://kmfx-edge-api.onrender.com
+KMFX_SNAPSHOT_TIMEOUT_MS=60000
+KMFX_PREVIEW_BEARER_TOKEN=...
+KMFX_PREVIEW_USER_EMAIL=...
+KMFX_PREVIEW_USER_ID=...
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Do not expose preview bearer, service role keys, Render tokens, or Cloudflare tokens as `NEXT_PUBLIC_*`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Vercel Beta Setup
 
-## Deploy on Vercel
+Create a separate Vercel project for beta. Use `apps/web-next` as the root directory and `beta.kmfxedge.com` as the beta domain. Do not deploy this app over the existing legacy `kmfx-edge` production project.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Recommended gates before inviting users:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+python3 ../../scripts/next_beta_preflight.py
+npm run validate:cascade
+npm run build
+```
