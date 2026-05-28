@@ -16,8 +16,9 @@ Listo:
 - Backend directo bloquea lectura legacy desde `kmfxedge.com`.
 - Worker `kmfx-mt5-api-proxy` desplegado en Cloudflare: mantiene CORS valido para `/api/mt5/sync` y cierra rutas browser de cuentas con `404` sin CORS.
 - V1 local pasa typecheck, lint, cascade, build, smoke routes y QA mobile dark/light.
-- Proyecto Vercel beta separado creado: `kmfx-edge-next-beta`, root `apps/web-next`, framework Next.js, build `npm run build`, install `npm ci`.
-- Deploy beta generado correctamente en Vercel: `dpl_HNibFtpUZCyBHuP3t8qGvWGouqnB`.
+- Proyecto Vercel beta separado creado: `kmfx-edge-next-beta`, enlazado desde `apps/web-next`, framework Next.js, build `npm run build`, install `npm ci`.
+- Deploy beta corregido y generado correctamente en Vercel: `dpl_FS9GkMrAeYJE9mnZ4A7v18PMW6P8`.
+- Alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `200` con la app Next y smoke remoto OK.
 - `python3 scripts/next_beta_preflight.py --scope platform` queda `ready`.
 
 Pendiente antes de invitar usuarios:

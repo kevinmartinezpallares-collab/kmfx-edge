@@ -216,17 +216,20 @@ Inventario Vercel actual:
 
 - `apps/web-next` esta enlazado localmente a `kmfx-edge-next-beta`;
 - proyecto beta: `prj_XGqZvqB8OwYkRat3kC3cLCyHQ6d9`;
-- root directory: `apps/web-next`;
+- root directory remoto: `.`;
+- deploy operativo: ejecutar desde `apps/web-next` para no subir la raiz legacy;
 - framework: Next.js;
 - build command: `npm run build`;
 - install command: `npm ci`;
-- deploy beta creado: `dpl_HNibFtpUZCyBHuP3t8qGvWGouqnB`;
+- config beta propia: `apps/web-next/vercel.json`, sin rewrites legacy a `/index.html`;
+- deploy beta creado: `dpl_FS9GkMrAeYJE9mnZ4A7v18PMW6P8`;
 - URL tecnica Vercel: `https://kmfx-edge-next-beta.vercel.app`;
 - dominio previsto: `https://beta.kmfxedge.com`.
 
 Estado de acceso:
 
-- Vercel mantiene proteccion SSO sobre dominios `vercel.app`; una smoke externa contra esa URL devuelve `401`, esperado mientras la proteccion este activa;
+- el alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `200` y sirve la app Next con datos fixture/preparados;
+- los deployment URLs unicos `*.vercel.app` mantienen proteccion SSO y devuelven `401`, esperado mientras la proteccion este activa;
 - `beta.kmfxedge.com` esta asignado al proyecto beta, pero aun no resuelve hasta crear el registro DNS;
 - no activar datos live publicos en Vercel sin decidir primero el gate de acceso beta.
 
@@ -263,6 +266,7 @@ Estado actual:
 
 - `--scope platform` queda `ready`;
 - `--scope full` queda bloqueado por `snapshot_has_no_ready_account` cuando no hay bearer preview/identidad en la sesion;
+- `KMFX_SMOKE_BASE_URL=https://kmfx-edge-next-beta.vercel.app npm run test:smoke:routes` queda OK;
 - el aviso `root_vercel_project_is_legacy_surface_do_not_cutover_next_here` es intencionado y recuerda que la raiz sigue ligada a legacy;
 - WebRequest de IC Markets sigue siendo el bloqueo operativo para cerrar multi-cuenta fresca, pero no bloquea plataforma ni beta con una sola cuenta lista.
 
