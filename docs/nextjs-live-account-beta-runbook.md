@@ -80,6 +80,12 @@ KMFX_SMOKE_BASE_URL=http://localhost:3001 npm run test:smoke:routes
 KMFX_QA_BASE_URL=http://localhost:3001 npm run qa:mobile:v1
 ```
 
+Desde la raiz del repo, cuando haya `SUPABASE_SERVICE_ROLE_KEY` o `KMFX_SUPABASE_SERVICE_ROLE_KEY` solo en la sesion local:
+
+```bash
+python3 scripts/audit_mt5_live_storage.py --max-sync-age-minutes 120
+```
+
 Despues abrir `http://localhost:3001/dashboard` y revisar manualmente:
 
 - `Panel`: equity, P&L abierto, room diario, riesgo abierto y curva.
@@ -134,6 +140,17 @@ Estado resultante:
 - `KMFX_QA_BASE_URL=http://127.0.0.1:3001 npm run qa:mobile:v1` queda OK con 14 rutas V1 en dark/light;
 - verificacion en navegador sobre `http://127.0.0.1:3001/dashboard`: titulo `KMFX Edge`, H1 `Panel`, cuenta real visible, sin overlay/runtime error y sin errores/warnings de consola; navegacion `Panel -> Cuentas` funciona y muestra H1 `Cuentas`;
 - el dominio Render directo bloquea lectura browser legacy y el Worker `mt5-api.kmfxedge.com` queda desplegado para no proxyear lectura de cuentas legacy; mantiene `/health` y `/api/mt5/*` para el EA.
+
+## Nota De Almacenamiento Normalizado 2026-05-28
+
+Se verifico un heartbeat MT5 posterior al deploy `b8b99ce` sin activar flujos de escritura:
+
+- `payload_mode=lightweight`, `sync_reason=heartbeat` y `historyBootstrapFull=false`;
+- el registro principal queda en `payloadShape=storage-summary` con `fullPayloadStored=false`;
+- el registro principal no conserva arrays pesados `trades` ni `history`;
+- la lectura full reconstruye 20 operaciones y 48 puntos de equity desde tablas normalizadas;
+- `mt5_account_trades` contiene 20 filas y `mt5_equity_points` contiene 48 filas para la cuenta activa;
+- `scripts/audit_mt5_live_storage.py` queda como auditoria repetible de storage live sin imprimir tokens ni identificadores completos.
 
 Siguiente paso antes de invitar usuarios externos:
 
