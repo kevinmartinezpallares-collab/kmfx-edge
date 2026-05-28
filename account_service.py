@@ -216,11 +216,11 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
         },
     }
     compact.update(account_summary_fields_from_payload(safe_payload))
+    report_metrics = _compact_report_metrics_from_payload(safe_payload)
     for key in ("totalTrades", "winRate", "drawdownPct"):
-        value = _first_finite_number(safe_payload.get(key))
+        value = _first_finite_number(safe_payload.get(key), report_metrics.get(key))
         if value is not None:
             compact[key] = value
-    report_metrics = _compact_report_metrics_from_payload(safe_payload)
     if report_metrics:
         compact["reportMetrics"] = report_metrics
     return {key: value for key, value in compact.items() if value not in ("", None)}
@@ -230,20 +230,30 @@ def compact_storage_payload_from_payload(payload: dict[str, Any] | None) -> dict
     """Persist a bounded MT5 snapshot so Supabase writes stay small."""
     safe_payload = payload if isinstance(payload, dict) else {}
     compact = compact_dashboard_payload_from_payload(safe_payload)
-    positions = safe_payload.get("positions") if isinstance(safe_payload.get("positions"), list) else []
-    trades = safe_payload.get("trades") if isinstance(safe_payload.get("trades"), list) else []
-    history = safe_payload.get("history") if isinstance(safe_payload.get("history"), list) else []
+    positions_is_list = isinstance(safe_payload.get("positions"), list)
+    trades_is_list = isinstance(safe_payload.get("trades"), list)
+    history_is_list = isinstance(safe_payload.get("history"), list)
+    positions = safe_payload.get("positions") if positions_is_list else []
+    trades = safe_payload.get("trades") if trades_is_list else []
+    history = safe_payload.get("history") if history_is_list else []
     max_positions = max(0, _env_int("KMFX_MAX_STORED_OPEN_POSITIONS", default=25))
     if positions and max_positions:
         compact["positions"] = deepcopy(positions[:max_positions])
     compact["payloadShape"] = "storage-summary"
     compact["fullPayloadStored"] = False
-    compact["tradesCount"] = len(trades)
-    compact["historyCount"] = len(history)
-    compact["openPositionsCount"] = len(positions)
-    compact["positionsCount"] = len(positions)
-
     report_metrics = _compact_report_metrics_from_payload(safe_payload)
+    trades_count = (
+        len(trades)
+        if trades_is_list
+        else _first_finite_number(safe_payload.get("tradesCount"), safe_payload.get("totalTrades"), report_metrics.get("totalTrades"))
+    )
+    history_count = len(history) if history_is_list else _first_finite_number(safe_payload.get("historyCount"))
+    positions_count = len(positions) if positions_is_list else _first_finite_number(safe_payload.get("openPositionsCount"), safe_payload.get("positionsCount"))
+    compact["tradesCount"] = int(trades_count or 0)
+    compact["historyCount"] = int(history_count or 0)
+    compact["openPositionsCount"] = int(positions_count or 0)
+    compact["positionsCount"] = int(positions_count or 0)
+
     if report_metrics:
         compact["reportMetrics"] = report_metrics
     direct_sync = safe_payload.get("directSync") if isinstance(safe_payload.get("directSync"), dict) else {}

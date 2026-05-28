@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from account_keys import hash_connection_key, mask_connection_key
-from account_service import AccountService
+from account_service import AccountService, compact_storage_payload_from_payload
 from account_store import JsonFileAccountStore
 
 
@@ -256,6 +256,27 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual(80, payload["totalTrades"])
         self.assertEqual(52.5, payload["winRate"])
         self.assertEqual({"totalTrades": 80, "netProfit": 100}, payload["reportMetrics"])
+
+    def test_compact_storage_payload_preserves_existing_summary_counts(self) -> None:
+        payload = compact_storage_payload_from_payload(
+            {
+                "payloadShape": "storage-summary",
+                "fullPayloadStored": False,
+                "tradesCount": 20,
+                "historyCount": 34,
+                "openPositionsCount": 1,
+                "reportMetrics": {"totalTrades": 20, "winRate": 55.0, "netProfit": 250},
+            }
+        )
+
+        self.assertEqual("storage-summary", payload["payloadShape"])
+        self.assertFalse(payload["fullPayloadStored"])
+        self.assertEqual(20, payload["tradesCount"])
+        self.assertEqual(34, payload["historyCount"])
+        self.assertEqual(1, payload["openPositionsCount"])
+        self.assertEqual(20, payload["totalTrades"])
+        self.assertEqual(55.0, payload["winRate"])
+        self.assertEqual({"totalTrades": 20, "winRate": 55.0, "netProfit": 250}, payload["reportMetrics"])
 
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
         local = self.service.ingest_account_snapshot(
