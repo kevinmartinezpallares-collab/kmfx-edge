@@ -184,6 +184,22 @@ Siguiente paso antes de invitar usuarios externos:
 - probar una segunda cuenta beta read-only para cubrir multi-cuenta sin activar billing/auth/launcher reales;
 - registrar feedback por ruta V1 y no abrir rutas `Proximamente` hasta su chat dedicado.
 
+## Nota De Validacion Live 2026-05-28
+
+Se desplego el backend `c944159` en Render con una guarda adicional para el sync MT5 ligero:
+
+- el EA normaliza claves copiadas desde `.set` con metadata y evita duplicar timestamps en el historico minimo;
+- el backend hace unico `point_time` antes del upsert de `mt5_equity_points`;
+- Darwinex queda lista para beta read-only: snapshot `summary` conectado, storage normalizado `ready`, registro ligero sin arrays pesados y reconstruccion full desde tablas normalizadas;
+- IC Markets aparece en snapshot preview con balance/equity y posicion abierta, pero queda como riesgo operativo hasta que la instancia local MT5 vuelva a refrescar; los logs muestran rechazo de `WebRequest` en la instancia Wine aunque la URL autorizada figura en `common.ini`;
+- `qa:live:integrity` queda `ready` con ventana de 60 minutos para validar paridad `summary/full`, pero `qa:live:snapshot` marca `partial` porque IC esta desactualizada frente a la ventana estricta de 5-20 minutos.
+
+Estado resultante:
+
+- para beta inicial, Darwinex es la cuenta candidata segura;
+- IC Markets sirve para validar lectura multi-cuenta en snapshot, pero no debe considerarse cerrada hasta ver un heartbeat nuevo posterior al deploy;
+- no se activaron flujos de escritura MT5, billing real, auth real, launcher ni enforcement.
+
 ## Evidencia Minima
 
 Registrar sin datos sensibles:
