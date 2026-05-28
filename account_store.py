@@ -213,6 +213,7 @@ def _projected_account_record(row: dict) -> dict:
     account_payload = row.get("payload_account") if isinstance(row.get("payload_account"), dict) else {}
     risk_summary = row.get("payload_risk_summary") if isinstance(row.get("payload_risk_summary"), dict) else {}
     risk_status = row.get("payload_risk_status") if isinstance(row.get("payload_risk_status"), dict) else {}
+    report_metrics = row.get("payload_report_metrics") if isinstance(row.get("payload_report_metrics"), dict) else {}
     positions_count = _first_present(row.get("payload_open_positions_count"), 0)
     latest_payload = {
         "payloadSource": row.get("payload_source") or "mt5_sync_live",
@@ -236,6 +237,10 @@ def _projected_account_record(row: dict) -> dict:
         "pnl": row.get("payload_total_pnl"),
         "openPositionsCount": positions_count,
         "positionsCount": positions_count,
+        "totalTrades": _first_present(row.get("payload_total_trades"), report_metrics.get("totalTrades")),
+        "winRate": _first_present(row.get("payload_win_rate"), report_metrics.get("winRate")),
+        "drawdownPct": _first_present(row.get("payload_drawdown_pct"), report_metrics.get("drawdownPct")),
+        "reportMetrics": report_metrics,
         "account": account_payload,
         "riskSnapshot": {
             "summary": risk_summary,
@@ -491,6 +496,10 @@ class SupabaseAccountStore(AccountStore):
             "payload_closed_pnl:record->latest_payload->>closedPnl",
             "payload_total_pnl:record->latest_payload->>totalPnl",
             "payload_open_positions_count:record->latest_payload->>openPositionsCount",
+            "payload_total_trades:record->latest_payload->>totalTrades",
+            "payload_win_rate:record->latest_payload->>winRate",
+            "payload_drawdown_pct:record->latest_payload->>drawdownPct",
+            "payload_report_metrics:record->latest_payload->reportMetrics",
             "payload_risk_summary:record->latest_payload->riskSnapshot->summary",
             "payload_risk_status:record->latest_payload->riskSnapshot->status",
         ]

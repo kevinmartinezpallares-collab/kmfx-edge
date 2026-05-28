@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from account_service import AccountService
-from account_store import SupabaseAccountStore
+from account_store import SupabaseAccountStore, _projected_account_record
 
 
 class MemorySupabaseAccountStore(SupabaseAccountStore):
@@ -276,6 +276,30 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertEqual("storage-summary", payload["payloadShape"])
         self.assertEqual("t-1", payload["trades"][0]["trade_id"])
         self.assertEqual(1010, payload["history"][0]["value"])
+
+    def test_projected_summary_preserves_report_metrics(self):
+        record = _projected_account_record(
+            {
+                "account_id": "acc-1",
+                "user_id": "user-123",
+                "status": "active",
+                "payload_balance": "100000",
+                "payload_equity": "100250",
+                "payload_total_trades": "20",
+                "payload_win_rate": "40",
+                "payload_report_metrics": {
+                    "totalTrades": 20,
+                    "winRate": 40,
+                    "netProfit": 2151.12,
+                },
+            }
+        )
+
+        payload = record["latest_payload"]
+        self.assertEqual("summary", payload["payloadShape"])
+        self.assertEqual("20", payload["totalTrades"])
+        self.assertEqual("40", payload["winRate"])
+        self.assertEqual(2151.12, payload["reportMetrics"]["netProfit"])
 
 
 if __name__ == "__main__":
