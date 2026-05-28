@@ -155,6 +155,43 @@ def _split_env_list(value: str) -> list[str]:
     return items
 
 
+def _clean_header_value(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _origin_host(value: Any) -> str:
+    parsed = urllib.parse.urlparse(_clean_header_value(value))
+    return parsed.netloc.lower()
+
+
+def legacy_dashboard_live_block_enabled() -> bool:
+    return _env_flag("KMFX_BLOCK_LEGACY_DASHBOARD_LIVE", default=False)
+
+
+def is_legacy_dashboard_live_path(path: str) -> bool:
+    normalized_path = _clean_header_value(path)
+    return any(
+        normalized_path == prefix or normalized_path.startswith(f"{prefix}/")
+        for prefix in LEGACY_DASHBOARD_LIVE_BLOCK_PATH_PREFIXES
+    )
+
+
+def is_legacy_dashboard_live_origin(headers: dict[str, Any]) -> bool:
+    origin = _origin_host(headers.get("origin") or headers.get("Origin"))
+    referer = _origin_host(headers.get("referer") or headers.get("Referer"))
+    return origin in LEGACY_DASHBOARD_LIVE_BLOCK_ORIGINS or referer in LEGACY_DASHBOARD_LIVE_BLOCK_ORIGINS
+
+
+def legacy_dashboard_live_block_reason(path: str, headers: dict[str, Any]) -> str:
+    if not legacy_dashboard_live_block_enabled():
+        return ""
+    if not is_legacy_dashboard_live_path(path):
+        return ""
+    if not is_legacy_dashboard_live_origin(headers):
+        return ""
+    return "legacy_dashboard_live_disabled"
+
+
 def _parse_admin_launcher_connection_key_mappings(value: str) -> dict[str, set[str]]:
     mappings: dict[str, set[str]] = {}
     for mapping in str(value or "").replace(";", ",").split(","):
@@ -221,6 +258,16 @@ CORS_ALLOW_HEADERS = [
     "X-KMFX-User-ID",
     "X-Requested-With",
 ]
+LEGACY_DASHBOARD_LIVE_BLOCK_PATH_PREFIXES = (
+    "/accounts",
+    "/api/accounts",
+    "/api/direct-mt5",
+)
+LEGACY_DASHBOARD_LIVE_BLOCK_ORIGINS = frozenset(
+    urllib.parse.urlparse(origin).netloc.lower()
+    for origin in PRODUCTION_CORS_ORIGINS
+    if urllib.parse.urlparse(origin).netloc
+)
 DEFAULT_CONNECTION_PLAN_LIMITS = {
     "disabled": 0,
     "free": 1,
@@ -420,6 +467,25 @@ log.info(
 )
 
 
+@app.middleware("http")
+async def legacy_dashboard_live_lock(request: Request, call_next):
+    reason = legacy_dashboard_live_block_reason(
+        request.url.path,
+        request.headers,
+    )
+    if reason:
+        return connector_json_response(
+            {
+                "ok": False,
+                "reason": reason,
+                "message": "Live account access is disabled from the legacy dashboard during the Next.js beta.",
+                "timestamp": now_iso(),
+            },
+            status_code=403,
+        )
+    return await call_next(request)
+
+
 LAST_SYNC_BY_LOGIN: dict[str, dict[str, Any]] = {}
 VERIFIED_BEARER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 VERIFIED_BEARER_CACHE_TTL_SECONDS = _env_int(
@@ -565,6 +631,11 @@ def save_bandwidth_guard_state(state: dict[str, Any]) -> None:
         log.warning("Bandwidth guard state could not be saved | error=%s", exc)
 
 
+def bandwidth_emergency_lockdown_enabled() -> bool:
+    """Default production to minimal egress until the Render overage is resolved."""
+    return _env_flag("KMFX_BANDWIDTH_EMERGENCY_LOCKDOWN", default=_is_production_runtime())
+
+
 BANDWIDTH_GUARD_STATE: dict[str, Any] = load_bandwidth_guard_state()
 _BANDWIDTH_STATE_LAST_FLUSH_AT = time.monotonic()
 _BANDWIDTH_STATE_LAST_FLUSH_BYTES = max(0, int(BANDWIDTH_GUARD_STATE.get("egress_bytes") or 0))
@@ -611,6 +682,8 @@ def bandwidth_guard_snapshot() -> dict[str, Any]:
     forced_mode = str(os.getenv("KMFX_BANDWIDTH_FORCE_MODE") or "").strip().lower()
     if forced_mode in BANDWIDTH_FORCED_MODE_VALUES:
         mode = forced_mode
+    elif bandwidth_emergency_lockdown_enabled():
+        mode = "hard"
     elif ratio >= BANDWIDTH_HARD_RATIO:
         mode = "hard"
     elif ratio >= BANDWIDTH_CRITICAL_RATIO:
@@ -653,18 +726,20 @@ def bandwidth_route_is_nonessential(path: str) -> bool:
 
 def bandwidth_route_is_critical(path: str) -> bool:
     normalized = str(path or "")
+    if normalized == "/":
+        return True
     return any(normalized.startswith(prefix) for prefix in BANDWIDTH_CRITICAL_PREFIXES)
 
 
 def bandwidth_sync_interval_seconds() -> int:
     mode = bandwidth_guard_snapshot().get("mode")
     if mode == "hard":
-        return _env_int("KMFX_BANDWIDTH_HARD_SYNC_INTERVAL_SECONDS", default=120)
+        return _env_int("KMFX_BANDWIDTH_HARD_SYNC_INTERVAL_SECONDS", default=300)
     if mode == "critical":
-        return _env_int("KMFX_BANDWIDTH_CRITICAL_SYNC_INTERVAL_SECONDS", default=60)
+        return _env_int("KMFX_BANDWIDTH_CRITICAL_SYNC_INTERVAL_SECONDS", default=180)
     if mode == "saving":
-        return _env_int("KMFX_BANDWIDTH_SAVING_SYNC_INTERVAL_SECONDS", default=30)
-    return _env_int("KMFX_BANDWIDTH_NORMAL_SYNC_INTERVAL_SECONDS", default=15)
+        return _env_int("KMFX_BANDWIDTH_SAVING_SYNC_INTERVAL_SECONDS", default=120)
+    return _env_int("KMFX_BANDWIDTH_NORMAL_SYNC_INTERVAL_SECONDS", default=60)
 
 
 def bandwidth_policy_payload() -> dict[str, Any]:
@@ -3955,10 +4030,13 @@ def allow_public_connection_key_bootstrap() -> bool:
 def connection_key_rate_limit_for_endpoint(endpoint: str) -> int:
     normalized_endpoint = endpoint.lower()
     if "journal" in normalized_endpoint:
-        return _env_int("KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE", default=30)
+        default_limit = 1 if bandwidth_emergency_lockdown_enabled() else 30
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_JOURNAL_PER_MINUTE", default=default_limit)
     if "policy" in normalized_endpoint:
-        return _env_int("KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE", default=30)
-    return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=30)
+        default_limit = 1 if bandwidth_emergency_lockdown_enabled() else 30
+        return _env_int("KMFX_CONNECTION_RATE_LIMIT_POLICY_PER_MINUTE", default=default_limit)
+    default_limit = 1 if bandwidth_emergency_lockdown_enabled() else 30
+    return _env_int("KMFX_CONNECTION_RATE_LIMIT_SYNC_PER_MINUTE", default=default_limit)
 
 
 def prune_connection_rate_limit_buckets(now: float, *, max_buckets: int | None = None) -> None:
@@ -5341,6 +5419,26 @@ def build_dashboard_account_payload(
     raw_payload: dict[str, Any],
     previous_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    account = dict(account)
+    previous_payload = ensure_dict(previous_payload)
+    metric_recovery_warnings: list[str] = []
+    previous_account = ensure_dict(previous_payload.get("account"))
+
+    def recover_positive_metric(field: str) -> float:
+        current = safe_float(account.get(field))
+        if current > 0:
+            return current
+        previous = safe_float(previous_payload.get(field))
+        if previous <= 0:
+            previous = safe_float(previous_account.get(field))
+        if previous > 0:
+            metric_recovery_warnings.append(f"{field}_preserved_from_previous_snapshot")
+            return previous
+        return current
+
+    account["balance"] = recover_positive_metric("balance")
+    account["equity"] = recover_positive_metric("equity")
+
     def build_risk_rules() -> list[dict[str, Any]]:
         breaches = policy_evaluation.get("breaches") if isinstance(policy_evaluation.get("breaches"), list) else []
         warnings = policy_evaluation.get("warnings") if isinstance(policy_evaluation.get("warnings"), list) else []
@@ -5464,7 +5562,7 @@ def build_dashboard_account_payload(
             "warnings": list(metrics_snapshot["metadata"].get("warnings") or []) + policy_warnings,
         },
     }
-    return {
+    payload = {
         "accountName": account.get("name") or account.get("broker") or "MT5 Account",
         "name": account.get("name") or account.get("broker") or "MT5 Account",
         "broker": account.get("broker") or "MT5",
@@ -5502,6 +5600,21 @@ def build_dashboard_account_payload(
             "autoBlock": policy_snapshot["auto_block_enabled"],
         },
     }
+    if metric_recovery_warnings:
+        payload["data_status"] = "partial_account_metrics"
+        payload["syncIssues"] = [
+            {
+                "section": "account",
+                "field": warning.split("_preserved", 1)[0],
+                "problem": "incoming_zero_preserved_previous_value",
+            }
+            for warning in metric_recovery_warnings
+        ]
+        payload["riskSnapshot"]["metadata"]["warnings"] = [
+            *payload["riskSnapshot"]["metadata"].get("warnings", []),
+            *metric_recovery_warnings,
+        ]
+    return payload
 
 
 def build_direct_mt5_dashboard_payload(
@@ -5682,8 +5795,86 @@ def sync_error_response(reason: str, details: Any, http_status: int = 200, sync_
 
 def mt5_request_max_body_bytes(route: str) -> int:
     if route == "/api/mt5/journal":
-        return _env_int("KMFX_MT5_JOURNAL_MAX_BODY_BYTES", default=4 * 1024 * 1024)
-    return _env_int("KMFX_MT5_SYNC_MAX_BODY_BYTES", default=16 * 1024 * 1024)
+        return _env_int("KMFX_MT5_JOURNAL_MAX_BODY_BYTES", default=256 * 1024)
+    return _env_int("KMFX_MT5_SYNC_MAX_BODY_BYTES", default=512 * 1024)
+
+
+def mt5_sync_record_limit(name: str, *, default: int) -> int:
+    return max(0, _env_int(name, default=default))
+
+
+def limit_mt5_record_list(
+    records: Any,
+    *,
+    section: str,
+    env_name: str,
+    default: int,
+    issues: list[dict[str, Any]] | None = None,
+    keep_tail: bool = False,
+) -> list[Any]:
+    if not isinstance(records, list):
+        return []
+    limit = mt5_sync_record_limit(env_name, default=default)
+    if limit <= 0 or len(records) <= limit:
+        return records
+    if issues is not None:
+        issues.append(
+            {
+                "section": section,
+                "field": section,
+                "problem": "truncated_to_bandwidth_limit",
+                "received_count": len(records),
+                "stored_count": limit,
+            }
+        )
+    log.warning(
+        "MT5 sync section truncated | section=%s received_count=%s stored_count=%s env=%s",
+        section,
+        len(records),
+        limit,
+        env_name,
+    )
+    return records[-limit:] if keep_tail else records[:limit]
+
+
+def bounded_mt5_sync_payload(
+    payload: dict[str, Any],
+    *,
+    positions: list[dict[str, Any]],
+    trades: list[dict[str, Any]],
+    issues: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    bounded_positions = limit_mt5_record_list(
+        positions,
+        section="positions",
+        env_name="KMFX_MT5_SYNC_MAX_POSITIONS",
+        default=50,
+        issues=issues,
+    )
+    bounded_trades = limit_mt5_record_list(
+        trades,
+        section="trades",
+        env_name="KMFX_MT5_SYNC_MAX_TRADES",
+        default=40,
+        issues=issues,
+    )
+    history = payload.get("history") if isinstance(payload.get("history"), list) else []
+    bounded_history = limit_mt5_record_list(
+        history,
+        section="history",
+        env_name="KMFX_MT5_SYNC_MAX_HISTORY_POINTS",
+        default=48,
+        issues=issues,
+        keep_tail=True,
+    )
+    if bounded_history is history and bounded_positions is positions and bounded_trades is trades:
+        return payload, bounded_positions, bounded_trades
+    return {
+        **payload,
+        "positions": bounded_positions,
+        "trades": bounded_trades,
+        "history": bounded_history,
+    }, bounded_positions, bounded_trades
 
 
 def request_header(request: Request, name: str) -> str:
@@ -7357,6 +7548,12 @@ async def mt5_sync(request: Request) -> JSONResponse:
         issues.extend(account_issues)
         issues.extend(position_issues)
         issues.extend(trade_issues)
+        payload, sanitized_positions, sanitized_trades = bounded_mt5_sync_payload(
+            payload,
+            positions=sanitized_positions,
+            trades=sanitized_trades,
+            issues=issues,
+        )
 
         bound_account = None
         unverified_identity = False

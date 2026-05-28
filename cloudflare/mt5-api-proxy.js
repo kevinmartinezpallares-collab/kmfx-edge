@@ -29,6 +29,12 @@ const ALLOWED_PROXY_PATHS = new Set([
   "/api/mt5/policy",
 ]);
 
+const LEGACY_BROWSER_LIVE_PATH_PREFIXES = [
+  "/accounts",
+  "/api/accounts",
+  "/api/direct-mt5",
+];
+
 const SENSITIVE_QUERY_PARAMS = new Set([
   "api_key",
   "connection_key",
@@ -121,6 +127,13 @@ function isAllowedProxyPath(pathname) {
   return ALLOWED_PROXY_PATHS.has(normalizePathname(pathname));
 }
 
+function isLegacyBrowserLivePath(pathname) {
+  const normalized = normalizePathname(pathname);
+  return LEGACY_BROWSER_LIVE_PATH_PREFIXES.some((prefix) => (
+    normalized === prefix || normalized.startsWith(`${prefix}/`)
+  ));
+}
+
 function jsonResponse(request, status, payload, extraHeaders = {}) {
   return new Response(request.method === "HEAD" ? null : JSON.stringify(payload), {
     status,
@@ -141,6 +154,10 @@ async function handleRequest(request) {
   }
 
   const incomingUrl = new URL(request.url);
+  if (isLegacyBrowserLivePath(incomingUrl.pathname)) {
+    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" });
+  }
+
   if (!isAllowedProxyPath(incomingUrl.pathname)) {
     return jsonResponse(request, 404, { ok: false, reason: "path_not_found" });
   }

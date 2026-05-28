@@ -277,6 +277,35 @@ class DashboardLiveContractTests(unittest.TestCase):
         self.assertIn("EURUSD", payload["symbolSpecs"])
         self.assertTrue(REQUIRED_RISK_SUMMARY.issubset(payload["riskSnapshot"]["summary"].keys()))
 
+    def test_backend_payload_preserves_previous_positive_equity_on_partial_zero_sync(self) -> None:
+        account = {
+            "login": "contract-zero-sync",
+            "broker": "Darwinex",
+            "server": "Darwinex-Live",
+            "currency": "USD",
+            "balance": 0.0,
+            "equity": 0.0,
+            "profit": 0.0,
+        }
+        previous_payload = {
+            "balance": 103379.11,
+            "equity": 103379.11,
+            "account": {
+                "balance": 103379.11,
+                "equity": 103379.11,
+            },
+        }
+        raw_payload = {"timestamp": "2026-05-28T07:38:25Z"}
+
+        payload = connector_api.build_dashboard_account_payload(account, [], [], raw_payload, previous_payload)
+
+        self.assertEqual(103379.11, payload["balance"])
+        self.assertEqual(103379.11, payload["equity"])
+        self.assertEqual("partial_account_metrics", payload["data_status"])
+        self.assertIn("syncIssues", payload)
+        self.assertIn("balance_preserved_from_previous_snapshot", payload["riskSnapshot"]["metadata"]["warnings"])
+        self.assertIn("equity_preserved_from_previous_snapshot", payload["riskSnapshot"]["metadata"]["warnings"])
+
     def test_backend_payload_feeds_dashboard_professional_kpis_contract(self) -> None:
         account = {
             "login": "contract-456",

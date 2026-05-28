@@ -27,6 +27,8 @@ header and CORS changes.
 | `KMFX_VERIFIED_BEARER_CACHE_TTL_SECONDS` | No | Yes | Render backend only | No |
 | `KMFX_ACCOUNTS_SUMMARY_CACHE_TTL_SECONDS` | No | Yes | Render backend only | No |
 | `KMFX_ACCOUNTS_SUMMARY_CACHE_MAX_ENTRIES` | No | Yes | Render backend only | No |
+| `KMFX_BLOCK_LEGACY_DASHBOARD_LIVE` | No | Yes | Render backend only | No |
+| `KMFX_FEATURE_DIRECT_MT5` | No | Yes | Render backend only | No |
 
 ## Vercel manual checks
 
@@ -49,6 +51,8 @@ header and CORS changes.
 ## Render manual checks
 
 - Confirm backend secrets exist only in Render environment variables.
+- For Next.js beta account testing, set `KMFX_BLOCK_LEGACY_DASHBOARD_LIVE=true`
+  and `KMFX_FEATURE_DIRECT_MT5=false` before resuming the backend.
 - Confirm no Render logs print service role keys, JWT secrets, Turnstile
   secrets, connection keys, authorization headers, or raw sync payloads.
 - Confirm CORS env does not use `*` in production.
@@ -74,6 +78,10 @@ header and CORS changes.
 - Deploy the updated `kmfx-mt5-api-proxy` Worker.
 - Confirm Worker CORS only returns `Access-Control-Allow-Origin` for approved
   KMFX origins.
+- Confirm the public Worker returns `404` and no usable browser CORS path for
+  `/accounts`, `/api/accounts/*`, and `/api/direct-mt5/*`. These routes must
+  stay closed during the Next.js beta so the legacy dashboard cannot read live
+  account data through `mt5-api.kmfxedge.com`.
 - Confirm requests without an `Origin` header still work for MT5/server-to-
   server clients.
 - Confirm localhost origins are accepted only when testing a local/preview

@@ -85,6 +85,22 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         if connector_api.CORS_ALLOW_ORIGIN_REGEX:
             self.assertIn("localhost", connector_api.CORS_ALLOW_ORIGIN_REGEX)
 
+    def test_legacy_dashboard_live_lock_is_env_gated(self) -> None:
+        headers = {"origin": "https://kmfxedge.com"}
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual("", connector_api.legacy_dashboard_live_block_reason("/api/accounts/snapshot", headers))
+        with patch.dict("os.environ", {"KMFX_BLOCK_LEGACY_DASHBOARD_LIVE": "true"}, clear=True):
+            self.assertEqual(
+                "legacy_dashboard_live_disabled",
+                connector_api.legacy_dashboard_live_block_reason("/api/accounts/snapshot", headers),
+            )
+            self.assertEqual(
+                "legacy_dashboard_live_disabled",
+                connector_api.legacy_dashboard_live_block_reason("/api/accounts/link", headers),
+            )
+            self.assertEqual("", connector_api.legacy_dashboard_live_block_reason("/api/mt5/sync", headers))
+            self.assertEqual("", connector_api.legacy_dashboard_live_block_reason("/api/accounts/snapshot", {}))
+
     def test_production_admin_ids_are_empty_by_default(self) -> None:
         with patch.dict("os.environ", {"RENDER": "true", "KMFX_ENV": "production"}, clear=True):
             self.assertEqual(set(), connector_api.resolve_admin_user_ids())
@@ -302,6 +318,41 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(32, body["details"]["max_bytes"])
         self.assertEqual(128, body["details"]["actual_bytes"])
         self.assertNotIn("unused", body_text)
+
+    def test_mt5_payload_defaults_are_tight_for_bandwidth_protection(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(512 * 1024, connector_api.mt5_request_max_body_bytes("/api/mt5/sync"))
+            self.assertEqual(256 * 1024, connector_api.mt5_request_max_body_bytes("/api/mt5/journal"))
+
+    def test_mt5_sync_record_limits_cap_heavy_sections(self) -> None:
+        payload = {
+            "history": [{"timestamp": f"2026-05-25T10:{index:02d}:00Z", "value": index} for index in range(6)]
+        }
+        positions = [{"ticket": str(index)} for index in range(4)]
+        trades = [{"ticket": str(index), "time": f"2026-05-25T10:{index:02d}:00Z"} for index in range(5)]
+        issues: list[dict[str, object]] = []
+
+        with patch.dict(
+            "os.environ",
+            {
+                "KMFX_MT5_SYNC_MAX_POSITIONS": "2",
+                "KMFX_MT5_SYNC_MAX_TRADES": "3",
+                "KMFX_MT5_SYNC_MAX_HISTORY_POINTS": "2",
+            },
+            clear=False,
+        ):
+            bounded_payload, bounded_positions, bounded_trades = connector_api.bounded_mt5_sync_payload(
+                payload,
+                positions=positions,
+                trades=trades,
+                issues=issues,
+            )
+
+        self.assertEqual(2, len(bounded_positions))
+        self.assertEqual(3, len(bounded_trades))
+        self.assertEqual(2, len(bounded_payload["history"]))
+        self.assertEqual("2026-05-25T10:04:00Z", bounded_payload["history"][0]["timestamp"])
+        self.assertEqual({"positions", "trades", "history"}, {issue["section"] for issue in issues})
 
     def test_mt5_journal_rejects_oversized_body_without_echoing_payload(self) -> None:
         oversized_body = json.dumps({"batch_id": "batch-1", "events": ["secret-value"]}).encode("utf-8")
@@ -669,7 +720,9 @@ class ConnectorCorsConfigTests(unittest.TestCase):
                     self.assertEqual(1, len(snapshot["accounts"]))
                     payload = snapshot["accounts"][0]["dashboard_payload"]
                     self.assertEqual("mt5_direct_live", payload["payloadSource"])
-                    self.assertEqual(2, len(payload["trades"]))
+                    self.assertEqual("storage-summary", payload["payloadShape"])
+                    self.assertEqual(2, payload["tradesCount"])
+                    self.assertNotIn("trades", payload)
                     self.assertEqual("fixture", payload["directSync"]["provider"])
 
                     with open(store_path, "r", encoding="utf-8") as handle:
@@ -1414,7 +1467,7 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertTrue(body["is_admin"])
         self.assertFalse(body.get("live_access_blocked", False))
         self.assertEqual(1, len(body["accounts"]))
-        self.assertEqual("4838", str(body["accounts"][0]["dashboard_payload"]["balance"]))
+        self.assertEqual(4838.0, float(body["accounts"][0]["dashboard_payload"]["balance"]))
 
     def test_accounts_summary_snapshot_uses_short_cache_without_caching_full_snapshot(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
@@ -3538,6 +3591,38 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual(429, response.status_code)
         self.assertEqual("connection_key_rate_limited", json.loads(response.body.decode("utf-8"))["reason"])
         self.assertIn("Retry-After", response.headers)
+
+    def test_bandwidth_emergency_lockdown_forces_hard_mode_in_production(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"RENDER": "true", "KMFX_ENV": "production"},
+            clear=True,
+        ):
+            snapshot = connector_api.bandwidth_guard_snapshot()
+
+        self.assertEqual("hard", snapshot["mode"])
+
+    def test_bandwidth_emergency_lockdown_tightens_mt5_rate_defaults(self) -> None:
+        connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+        try:
+            with patch.dict(
+                "os.environ",
+                {
+                    "RENDER": "true",
+                    "KMFX_ENV": "production",
+                    "KMFX_BANDWIDTH_EMERGENCY_LOCKDOWN": "true",
+                },
+                clear=True,
+            ):
+                self.assertIsNone(connector_api.connection_key_rate_limit_response("/api/mt5/sync", "lockdown-key"))
+                response = connector_api.connection_key_rate_limit_response("/api/mt5/sync", "lockdown-key")
+        finally:
+            connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()
+
+        self.assertIsNotNone(response)
+        self.assertEqual(429, response.status_code)
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(1, body["details"]["limit_per_minute"])
 
     def test_connection_key_rate_limit_prunes_old_and_excess_buckets(self) -> None:
         connector_api.CONNECTION_RATE_LIMIT_BUCKETS.clear()

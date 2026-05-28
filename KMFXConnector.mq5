@@ -56,13 +56,13 @@ string            KMFXPolicyPath              = "/api/mt5/policy";
 string            KMFXApiKey                  = "";
 string            connection_key              = "";
 int               KMFXTimerMs                 = 2000;
-int               KMFXPolicyPollSeconds       = 12;
-int               KMFXStatePushSeconds        = 15;
-int               KMFXIdleStatePushSeconds    = 60;
-int               KMFXEventPushCooldownSeconds= 2;
+int               KMFXPolicyPollSeconds       = 300;
+int               KMFXStatePushSeconds        = 300;
+int               KMFXIdleStatePushSeconds    = 300;
+int               KMFXEventPushCooldownSeconds= 60;
 int               KMFXWebTimeoutMs            = 5000;
-int               KMFXClosedDealsLimit        = 100;
-int               KMFXHistoryPointsLimit      = 120;
+int               KMFXClosedDealsLimit        = 20;
+int               KMFXHistoryPointsLimit      = 24;
 int               KMFXHistoryLookbackDays     = 365;
 int               KMFXJournalBatchSize        = 20;
 bool              KMFXVerboseLog              = false;
@@ -2040,6 +2040,21 @@ string KMFXBuildJournalBatchPayload(string batch_id,string trades_json)
    return json;
   }
 
+bool KMFXAccountMetricsReadyForSync()
+  {
+   long login=(long)AccountInfoInteger(ACCOUNT_LOGIN);
+   double balance=AccountInfoDouble(ACCOUNT_BALANCE);
+   double equity=AccountInfoDouble(ACCOUNT_EQUITY);
+
+   if(login<=0)
+      return false;
+   if(!MathIsValidNumber(balance) || !MathIsValidNumber(equity))
+      return false;
+   if(balance<=0.0 && equity<=0.0)
+      return false;
+   return true;
+  }
+
 int KMFXCountJsonArrayItems(string json,string key)
   {
    string array_json="";
@@ -2438,6 +2453,13 @@ void KMFXApplyDefaultPolicyIfMissing()
 
 bool KMFXPushState()
   {
+   if(!KMFXAccountMetricsReadyForSync())
+     {
+      Runtime.last_state_push_at=KMFXNow();
+      KMFXLogStatus("Esperando metricas de cuenta MT5 antes de sincronizar.",60);
+      return false;
+     }
+
    string response="";
    int status_code=0;
    int transport_error=0;
