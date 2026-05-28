@@ -56,4 +56,15 @@ describe("V1 action safety contract", () => {
       /deleteAccount|removeAccount|disconnectAccount|launchMT5|openLauncher|fetch\(|window\.location|router\./i,
     );
   });
+
+  it("keeps live beta behind a server-side preview gate when configured", () => {
+    const source = readSource("src/proxy.ts");
+
+    expect(source).toContain("KMFX_BETA_GATE_PASSWORD");
+    expect(source).toContain("WWW-Authenticate");
+    expect(source).toContain("Basic realm");
+    expect(source).toContain("authorization");
+    expect(source).toContain("Cache-Control");
+    expect(source).not.toContain("NEXT_PUBLIC_KMFX_BETA_GATE_PASSWORD");
+  });
 });
