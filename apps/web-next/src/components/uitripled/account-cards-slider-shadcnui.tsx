@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   Avatar,
   AvatarFallback,
@@ -293,6 +295,32 @@ function companyLogoUrl(account: AccountRow) {
   )}&background=111111&color=ffffff&bold=true`;
 }
 
+function AccountLogoImage({
+  src,
+  alt,
+  className,
+  size,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  size: number;
+}) {
+  if (src.startsWith("/")) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        className={cn("size-full object-contain", className)}
+      />
+    );
+  }
+
+  return <AvatarImage src={src} alt={alt} className={className} />;
+}
+
 function AccountDetailMetric({
   label,
   value,
@@ -330,9 +358,11 @@ function AccountConnectionDetail({ account }: { account: AccountRow }) {
             <div className="absolute -right-12 -top-12 size-40 rounded-full bg-white/10 blur-3xl" />
             <div className="relative flex items-start gap-4">
               <Avatar className="size-14 border border-border/60 ring-4 ring-background">
-                <AvatarImage
+                <AccountLogoImage
                   src={companyLogoUrl(account)}
-                  alt={companyName(account)}
+                  alt={`${companyName(account)} logo`}
+                  className="p-2"
+                  size={56}
                 />
                 <AvatarFallback>{companyName(account)[0]}</AvatarFallback>
               </Avatar>
@@ -601,10 +631,10 @@ export function AccountCardsSlider({
 
           <div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-4">
             <Avatar className="size-16 border border-white/20 bg-background/75 p-2 shadow-xl ring-4 ring-black/20">
-              <AvatarImage
+              <AccountLogoImage
                 src={card.author.avatar}
                 alt={`${card.author.name} logo`}
-                className="object-contain"
+                size={64}
               />
               <AvatarFallback>{card.author.name[0]}</AvatarFallback>
             </Avatar>
@@ -734,7 +764,12 @@ export function AccountCardsSlider({
           <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8 border border-border/50 ring-2 ring-background">
-                <AvatarImage src={card.author.avatar} alt={card.author.name} />
+                <AccountLogoImage
+                  src={card.author.avatar}
+                  alt={`${card.author.name} logo`}
+                  className="p-1"
+                  size={32}
+                />
                 <AvatarFallback>{card.author.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
