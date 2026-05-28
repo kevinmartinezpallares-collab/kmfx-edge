@@ -18,16 +18,17 @@ Listo:
 - V1 local pasa typecheck, lint, cascade, build, smoke routes y QA mobile dark/light.
 - Proyecto Vercel beta separado creado: `kmfx-edge-next-beta`, enlazado desde `apps/web-next`, framework Next.js, build `npm run build`, install `npm ci`.
 - Deploy beta corregido y generado correctamente en Vercel: `dpl_FS9GkMrAeYJE9mnZ4A7v18PMW6P8`.
-- Alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `200` con la app Next y smoke remoto OK.
+- Alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` queda protegido por Basic Auth beta: sin credenciales responde `401`, con credenciales responde `200`.
+- Variables live server-only activadas en Vercel beta: `KMFX_WAVE1_SOURCE=live`, API base, timeout y preview bearer/identidad.
+- Deploy live protegido generado correctamente en Vercel: `dpl_6mRMHfPDaUCHMJ9DyWCq8BST86hN`.
+- Con credenciales beta, el alias tecnico sirve `Lectura MT5` y deja de servir `Lectura preparada`.
 - `python3 scripts/next_beta_preflight.py --scope platform` queda `ready`.
 - `python3 scripts/next_beta_preflight.py --scope full` queda `ready` con bearer preview: 2 cuentas, 1 fresca y 1 stale.
 - `qa:live:integrity` queda `ready` con ventana ampliada de 300 minutos; con ventana estricta de 60 minutos solo bloquea IC Markets por stale.
 
 Pendiente antes de invitar usuarios:
 
-- configurar DNS de `beta.kmfxedge.com` en Cloudflare con `A beta 76.76.21.21`;
-- decidir gate de acceso beta antes de exponer datos live: Vercel SSO, password/gate, auth real o beta fixture sin datos live;
-- configurar variables server-only live solo cuando haya gate decidido (`KMFX_WAVE1_SOURCE`, preview bearer/identidad y permiso full si aplica);
+- configurar DNS de `beta.kmfxedge.com` en Cloudflare con `A beta 76.76.21.21`; el token OAuth actual solo tiene `zone:read` y devuelve `403` al leer/escribir DNS;
 - confirmar WebRequest de IC Markets para cerrar multi-cuenta fresca;
 
 ## Roadmap Por Fase
@@ -42,7 +43,7 @@ Pendiente antes de invitar usuarios:
 - Fase 7, Wave 2 secundaria: implementada parcialmente, pero rutas avanzadas quedan como `Proximamente` en V1.
 - Fase 8, superficies sensibles: pospuesta para chats dedicados; no abrir RiskGuard, Review, Playbooks, Prop Firms, Mercado ni Ejecucion hasta cerrar producto y seguridad por seccion.
 - Fase 9, producto diferencial V2: contratos preparados; pendiente funding cockpit real, portfolio policy real, evaluation engine, persistencia/editor y export EA seguro.
-- Fase 10, QA integral: local V1 verde y plataforma beta separada lista; pendiente DNS, gate externo, QA accesibilidad/performance y paridad contra cuentas reales.
+- Fase 10, QA integral: local V1 verde y plataforma beta separada lista con live protegido; pendiente DNS, QA accesibilidad/performance y paridad contra cuentas reales.
 - Fase 11, cutover: pendiente. Debe empezar con subdominio beta, no con `kmfxedge.com`.
 
 ## No Reabrir Ahora
@@ -57,9 +58,8 @@ Pendiente antes de invitar usuarios:
 
 ## Proximo Paso Recomendado
 
-1. Configurar DNS de `beta.kmfxedge.com`.
-2. Definir gate beta antes de activar datos live en Vercel.
-3. Confirmar WebRequest IC Markets y/o usar Darwinex como cuenta unica fresca.
-4. Configurar variables server-only live en el proyecto beta.
-5. Repetir preflight `--scope full` tras el WebRequest de IC.
-6. Invitar primer grupo beta read-only.
+1. Crear el registro DNS de `beta.kmfxedge.com` con un token Cloudflare que tenga `Zone DNS Edit`.
+2. Confirmar WebRequest IC Markets y/o usar Darwinex como cuenta unica fresca.
+3. Repetir preflight `--scope full` tras el WebRequest de IC.
+4. Ejecutar QA beta final en `beta.kmfxedge.com`.
+5. Invitar primer grupo beta read-only.

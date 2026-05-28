@@ -228,10 +228,12 @@ Inventario Vercel actual:
 
 Estado de acceso:
 
-- el alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `200` y sirve la app Next con datos fixture/preparados;
+- el alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `401` sin credenciales beta;
+- con credenciales beta, el alias tecnico responde `200` y sirve `Lectura MT5`;
+- el gate beta es Basic Auth server-side en `apps/web-next/src/proxy.ts`, activado por `KMFX_BETA_GATE_PASSWORD`;
 - los deployment URLs unicos `*.vercel.app` mantienen proteccion SSO y devuelven `401`, esperado mientras la proteccion este activa;
 - `beta.kmfxedge.com` esta asignado al proyecto beta, pero aun no resuelve hasta crear el registro DNS;
-- no activar datos live publicos en Vercel sin decidir primero el gate de acceso beta.
+- no quitar `KMFX_BETA_GATE_PASSWORD` mientras `KMFX_WAVE1_SOURCE=live` siga activo sin auth real.
 
 Registro DNS pendiente en Cloudflare:
 
@@ -242,15 +244,20 @@ Content: 76.76.21.21
 Proxy status: DNS only
 ```
 
+El intento automatico con el token OAuth de Wrangler encontro la zona `kmfxedge.com`, pero Cloudflare devolvio `403` al leer/escribir DNS porque el token actual no tiene permiso `Zone DNS Edit`.
+
 Variables minimas para el proyecto beta:
 
 ```bash
+KMFX_BETA_GATE_USERNAME=kmfx
+KMFX_BETA_GATE_PASSWORD=...
 KMFX_WAVE1_SOURCE=live
 KMFX_API_BASE_URL=https://kmfx-edge-api.onrender.com
 KMFX_SNAPSHOT_TIMEOUT_MS=60000
 KMFX_PREVIEW_BEARER_TOKEN=...
-KMFX_PREVIEW_USER_EMAIL=...
 KMFX_PREVIEW_USER_ID=...
+KMFX_PREVIEW_PLAN=...
+KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT=true
 ```
 
 No usar `NEXT_PUBLIC_` para el bearer preview ni para claves privadas. La URL publica del API puede exponerse si hace falta, pero la lectura live de cuenta debe pasar por entorno servidor.
@@ -266,7 +273,7 @@ Estado actual:
 
 - `--scope platform` queda `ready`;
 - `--scope full` queda `ready` cuando el preflight puede leer el bearer preview desde Render: 2 cuentas, 1 fresca y 1 desactualizada;
-- `KMFX_SMOKE_BASE_URL=https://kmfx-edge-next-beta.vercel.app npm run test:smoke:routes` queda OK;
+- `curl` contra rutas V1 con credenciales beta queda `200` en `/dashboard`, `/accounts`, `/trades`, `/calendar`, `/settings`, `/subscription` y `/tools/calculator`;
 - `qa:live:snapshot` queda `partial` por IC Markets stale;
 - `qa:live:integrity` queda `blocked` con ventana estricta de 60 minutos solo por IC Markets stale, y `ready` con ventana ampliada de 300 minutos;
 - Darwinex hidrata `trades` e `history` desde tablas normalizadas en snapshot `full` tras el deploy `177fb254`;
