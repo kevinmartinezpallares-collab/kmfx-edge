@@ -235,8 +235,17 @@ Estado preparado en repo:
 
 - `cloudflare/mt5-api-proxy.js` mantiene CORS solo para `/health` y rutas permitidas `/api/mt5/*`;
 - `/accounts`, `/api/accounts/*`, `/api/direct-mt5/*` y rutas no permitidas devuelven `404 path_not_found` sin CORS de navegador;
+- `wrangler.jsonc` define el Worker `kmfx-mt5-api-proxy` apuntando a `mt5-api.kmfxedge.com/*` sin secretos ni bindings;
 - `scripts/production_smoke.py` incluye una asercion para detectar que `/api/accounts/snapshot?view=summary` en el Worker no se proxyea y no expone `Access-Control-Allow-Origin`;
-- validacion local: `node --check cloudflare/mt5-api-proxy.js` y harness Node de rutas legacy/MT5 OK.
+- validacion local: `node --check cloudflare/mt5-api-proxy.js`, harness Node de rutas legacy/MT5 OK y `npx wrangler deploy --dry-run --config wrangler.jsonc` OK.
+
+Cuando haya token Cloudflare en la sesion local:
+
+```bash
+export CLOUDFLARE_API_TOKEN="..."
+npx wrangler deploy --config wrangler.jsonc
+python3 scripts/production_smoke.py
+```
 
 Pendiente operativo: desplegar el Worker actualizado en Cloudflare y repetir el smoke publico. Hasta ese despliegue, el riesgo no es filtrado de cuentas por Worker porque la ruta devuelve `404`, pero la cabecera CORS sigue mas permisiva de lo ideal en rutas no MT5.
 
