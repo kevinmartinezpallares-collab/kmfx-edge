@@ -252,7 +252,10 @@ def compact_storage_payload_from_payload(payload: dict[str, Any] | None) -> dict
         "daily_start_day_key",
         "connector_version",
         "connectorVersion",
+        "historyBootstrapFull",
         "identity_status",
+        "payload_mode",
+        "sync_reason",
     ):
         if safe_payload.get(key) not in (None, ""):
             compact[key] = safe_payload.get(key)

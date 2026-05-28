@@ -232,6 +232,9 @@ class AccountServiceTests(unittest.TestCase):
                 "trades": [{"trade_id": f"t-{index}", "profit": index, "time": "2026-05-10T10:00:00Z"} for index in range(80)],
                 "history": [{"timestamp": f"2026-05-10T10:{index % 60:02d}:00Z", "value": 100000 + index} for index in range(80)],
                 "positions": [{"ticket": "open-1", "symbol": "EURUSD", "profit": 10}],
+                "payload_mode": "lightweight",
+                "sync_reason": "heartbeat",
+                "historyBootstrapFull": False,
                 "reportMetrics": {"totalTrades": 80, "netProfit": 100},
             },
             api_key="darwinex-key",
@@ -245,6 +248,9 @@ class AccountServiceTests(unittest.TestCase):
         self.assertNotIn("trades", payload)
         self.assertNotIn("history", payload)
         self.assertEqual(1, len(payload["positions"]))
+        self.assertEqual("lightweight", payload["payload_mode"])
+        self.assertEqual("heartbeat", payload["sync_reason"])
+        self.assertIs(payload["historyBootstrapFull"], False)
         self.assertEqual({"totalTrades": 80, "netProfit": 100}, payload["reportMetrics"])
 
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:
