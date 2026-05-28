@@ -212,6 +212,26 @@ Decision operativa:
 - configurar ahi, solo en entorno servidor, `KMFX_WAVE1_SOURCE=live`, `KMFX_API_BASE_URL`, `KMFX_SNAPSHOT_TIMEOUT_MS`, `KMFX_PREVIEW_BEARER_TOKEN`, `KMFX_PREVIEW_USER_EMAIL`, `KMFX_PREVIEW_USER_ID` y `KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT`;
 - no promocionar el proyecto legacy actual como beta Next sin revisar framework/root directory/build command.
 
+Inventario Vercel actual:
+
+- el equipo Vercel solo muestra el proyecto `kmfx-edge`;
+- no existe todavia un proyecto beta separado para `apps/web-next`;
+- no se debe ejecutar deploy desde la raiz enlazada actual porque comparte superficie con legacy;
+- el proyecto beta recomendado debe crearse con root directory `apps/web-next`, framework Next.js y variables server-only de preview/live.
+
+Variables minimas para el proyecto beta:
+
+```bash
+KMFX_WAVE1_SOURCE=live
+KMFX_API_BASE_URL=https://kmfx-edge-api.onrender.com
+KMFX_SNAPSHOT_TIMEOUT_MS=60000
+KMFX_PREVIEW_BEARER_TOKEN=...
+KMFX_PREVIEW_USER_EMAIL=...
+KMFX_PREVIEW_USER_ID=...
+```
+
+No usar `NEXT_PUBLIC_` para el bearer preview ni para claves privadas. La URL publica del API puede exponerse si hace falta, pero la lectura live de cuenta debe pasar por entorno servidor.
+
 Preflight operativo:
 
 ```bash
