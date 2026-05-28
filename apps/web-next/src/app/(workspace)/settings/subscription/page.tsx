@@ -1,0 +1,8 @@
+import { SubscriptionReferenceSection } from "@/components/trading/settings";
+import { getWorkspaceState } from "@/lib/data/workspace-source";
+
+export default async function SettingsSubscriptionPage() {
+  const workspace = await getWorkspaceState();
+
+  return <SubscriptionReferenceSection workspace={workspace} />;
+}
