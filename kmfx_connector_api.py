@@ -1728,6 +1728,13 @@ def resolve_account_scope(request: Request) -> tuple[str, dict[str, Any]]:
     return safe_str(context["user_id"] or context["email"]), context
 
 
+def preview_bearer_full_snapshot_allowed(context: dict[str, Any]) -> bool:
+    return (
+        safe_str(context.get("source")) == "preview_bearer"
+        and _env_flag("KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT", default=False)
+    )
+
+
 def admin_launcher_connection_keys_for_context(context: dict[str, Any]) -> set[str]:
     user_id = safe_str(context.get("user_id")).lower()
     if not user_id or not context.get("is_admin"):
@@ -8279,7 +8286,11 @@ async def accounts_snapshot(
     allowed_connection_keys = admin_launcher_connection_keys_for_context(auth_context)
     normalized_view = str(view or "full").lower() if isinstance(view, str) else "full"
     guard_mode = str(bandwidth_guard_snapshot().get("mode") or "normal")
-    if normalized_view == "full" and guard_mode in {"saving", "critical", "hard"}:
+    if (
+        normalized_view == "full"
+        and guard_mode in {"saving", "critical", "hard"}
+        and not preview_bearer_full_snapshot_allowed(auth_context)
+    ):
         log.warning(
             "Accounts snapshot downgraded | reason=bandwidth_guard requested=full served=summary mode=%s",
             guard_mode,

@@ -46,9 +46,10 @@ export KMFX_PREVIEW_BEARER_TOKEN="..."
 export KMFX_PREVIEW_USER_EMAIL="..."
 export KMFX_PREVIEW_USER_ID="..."
 export KMFX_PREVIEW_PLAN="pro"
+export KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT="true"
 ```
 
-El bearer preview solo debe vivir en entorno servidor. No debe exponerse como `NEXT_PUBLIC_*`, no sustituye auth real y se retirara cuando la beta pase a sesiones Supabase reales.
+El bearer preview solo debe vivir en entorno servidor. No debe exponerse como `NEXT_PUBLIC_*`, no sustituye auth real y se retirara cuando la beta pase a sesiones Supabase reales. `KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT` solo se usa en beta cerrada read-only para que Next pueda leer trades/history detallados cuando la guarda de bandwidth esta en modo ahorro; no abre snapshots full para trafico anonimo ni para bearer invalido.
 
 Para reactivar Render sin dejar que el dashboard legacy lea o conecte cuentas desde navegador:
 

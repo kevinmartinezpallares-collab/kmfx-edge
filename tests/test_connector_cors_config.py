@@ -1590,6 +1590,81 @@ class ConnectorCorsConfigTests(unittest.TestCase):
         self.assertEqual("summary", json.loads(second.body.decode("utf-8"))["snapshot_mode"])
         self.assertEqual("full", json.loads(full.body.decode("utf-8"))["snapshot_mode"])
 
+    def test_bandwidth_guard_downgrades_full_snapshot_for_preview_by_default(self) -> None:
+        request = self._request(headers={"authorization": "Bearer preview-secret"})
+        calls: list[bool] = []
+
+        def fake_snapshot(user_id, allowed_connection_keys=None, *, summary_only=False):
+            calls.append(summary_only)
+            return {
+                "accounts": [],
+                "active_account_id": "",
+                "portfolio_risk": {},
+                "snapshot_mode": "summary" if summary_only else "full",
+                "updated_at": "2026-05-28T07:00:00Z",
+            }
+
+        with patch.dict(
+            "os.environ",
+            {
+                "KMFX_PREVIEW_BEARER_TOKEN": "preview-secret",
+                "KMFX_PREVIEW_USER_ID": "beta-user",
+                "KMFX_PREVIEW_PLAN": "pro",
+            },
+            clear=True,
+        ), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "bandwidth_guard_snapshot",
+            return_value={"mode": "saving"},
+        ), patch.object(connector_api, "build_live_accounts_snapshot", side_effect=fake_snapshot):
+            response = asyncio.run(connector_api.accounts_snapshot(request, view="full"))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual([True], calls)
+        self.assertEqual("summary", body["snapshot_mode"])
+
+    def test_preview_bearer_can_allow_full_snapshot_under_bandwidth_guard(self) -> None:
+        request = self._request(headers={"authorization": "Bearer preview-secret"})
+        calls: list[bool] = []
+
+        def fake_snapshot(user_id, allowed_connection_keys=None, *, summary_only=False):
+            calls.append(summary_only)
+            return {
+                "accounts": [],
+                "active_account_id": "",
+                "portfolio_risk": {},
+                "snapshot_mode": "summary" if summary_only else "full",
+                "updated_at": "2026-05-28T07:00:00Z",
+            }
+
+        with patch.dict(
+            "os.environ",
+            {
+                "KMFX_PREVIEW_BEARER_TOKEN": "preview-secret",
+                "KMFX_PREVIEW_USER_ID": "beta-user",
+                "KMFX_PREVIEW_PLAN": "pro",
+                "KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT": "true",
+            },
+            clear=True,
+        ), patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={},
+        ), patch.object(
+            connector_api,
+            "bandwidth_guard_snapshot",
+            return_value={"mode": "saving"},
+        ), patch.object(connector_api, "build_live_accounts_snapshot", side_effect=fake_snapshot):
+            response = asyncio.run(connector_api.accounts_snapshot(request, view="full"))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual([False], calls)
+        self.assertEqual("full", body["snapshot_mode"])
+
     def test_billing_status_keeps_past_due_entitlements_with_attention_state(self) -> None:
         request = self._request(headers={"authorization": "Bearer verified-token"})
         with patch.object(
