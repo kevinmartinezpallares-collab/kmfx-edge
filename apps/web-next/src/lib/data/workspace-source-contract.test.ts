@@ -17,6 +17,13 @@ function readWorkspaceLayout() {
   );
 }
 
+function readAccountsSnapshotClient() {
+  return fs.readFileSync(
+    path.join(process.cwd(), "src/lib/api/accounts-snapshot-client.ts"),
+    "utf8",
+  );
+}
+
 describe("workspace source contract", () => {
   it("keeps the one-year fixture as the default V1 source", () => {
     const source = readWorkspaceSource();
@@ -35,5 +42,13 @@ describe("workspace source contract", () => {
 
   it("keeps workspace routes dynamic so live read-only snapshots are not frozen at build time", () => {
     expect(readWorkspaceLayout()).toContain('export const dynamic = "force-dynamic";');
+  });
+
+  it("uses a short server-side snapshot cache to avoid refetching live data on every route click", () => {
+    const source = readAccountsSnapshotClient();
+
+    expect(source).toContain("resolveKmfxSnapshotCacheTtlMs");
+    expect(source).toContain("liveSnapshotCache");
+    expect(source).toContain('cache: "no-store"');
   });
 });

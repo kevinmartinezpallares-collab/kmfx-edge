@@ -4,6 +4,7 @@ import {
   buildKmfxApiUrl,
   resolveKmfxAccountsSnapshotUrl,
   resolveKmfxApiBaseUrl,
+  resolveKmfxSnapshotCacheTtlMs,
   resolveKmfxSnapshotTimeoutMs,
 } from "@/lib/api/kmfx-api-config";
 
@@ -54,5 +55,19 @@ describe("kmfx-api-config", () => {
 
     process.env.KMFX_SNAPSHOT_TIMEOUT_MS = "4500";
     expect(resolveKmfxSnapshotTimeoutMs()).toBe(4500);
+  });
+
+  it("keeps live snapshot cache TTL short and bounded for route navigation", () => {
+    delete process.env.KMFX_SNAPSHOT_CACHE_TTL_MS;
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(15000);
+
+    process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "-1";
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(15000);
+
+    process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "0";
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(0);
+
+    process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "120000";
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(60000);
   });
 });

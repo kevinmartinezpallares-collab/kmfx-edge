@@ -1,11 +1,27 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import {
   resolveKmfxAccountsSnapshotUrl,
+  resolveKmfxSnapshotCacheTtlMs,
   resolveKmfxSnapshotTimeoutMs,
   type SnapshotView,
 } from "@/lib/api/kmfx-api-config";
 import type { RawLiveAccountsSnapshot } from "@/lib/contracts/live-snapshot";
+
+type SnapshotCacheEntry = {
+  expiresAt: number;
+  promise: Promise<RawLiveAccountsSnapshot>;
+};
+
+const liveSnapshotCache = new Map<string, SnapshotCacheEntry>();
+
+function fingerprint(value: string) {
+  if (!value) return "";
+
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
 
 function buildPreviewHeaders() {
   const headers = new Headers({
@@ -23,11 +39,16 @@ function buildPreviewHeaders() {
   return headers;
 }
 
-export async function fetchLiveAccountsSnapshot({
-  view = "full",
-}: {
-  view?: SnapshotView;
-} = {}): Promise<RawLiveAccountsSnapshot> {
+function snapshotCacheKey(view: SnapshotView) {
+  return [
+    view,
+    fingerprint(process.env.KMFX_PREVIEW_BEARER_TOKEN?.trim() ?? ""),
+    fingerprint(process.env.KMFX_PREVIEW_USER_EMAIL?.trim() ?? ""),
+    fingerprint(process.env.KMFX_PREVIEW_USER_ID?.trim() ?? ""),
+  ].join(":");
+}
+
+async function requestLiveAccountsSnapshot(view: SnapshotView) {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
@@ -53,4 +74,36 @@ export async function fetchLiveAccountsSnapshot({
   }
 
   return (await response.json()) as RawLiveAccountsSnapshot;
+}
+
+export function clearLiveAccountsSnapshotCache() {
+  liveSnapshotCache.clear();
+}
+
+export async function fetchLiveAccountsSnapshot({
+  view = "full",
+}: {
+  view?: SnapshotView;
+} = {}): Promise<RawLiveAccountsSnapshot> {
+  const ttlMs = resolveKmfxSnapshotCacheTtlMs();
+  if (ttlMs <= 0) return requestLiveAccountsSnapshot(view);
+
+  const now = Date.now();
+  const cacheKey = snapshotCacheKey(view);
+  const cached = liveSnapshotCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.promise;
+  }
+
+  const promise = requestLiveAccountsSnapshot(view).catch((error: unknown) => {
+    liveSnapshotCache.delete(cacheKey);
+    throw error;
+  });
+  liveSnapshotCache.set(cacheKey, {
+    expiresAt: now + ttlMs,
+    promise,
+  });
+
+  return promise;
 }

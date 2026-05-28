@@ -582,13 +582,32 @@ export function AccountCardsSlider({
             <AnimatedGradient config={gradientConfig} />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
 
-          <div className="absolute left-4 top-4">
+          <div className="absolute left-4 top-4 z-20">
             <Badge
               variant="secondary"
               className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
             >
               {card.category}
             </Badge>
+          </div>
+
+          <div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-4">
+            <Avatar className="size-16 border border-white/20 bg-background/75 p-2 shadow-xl ring-4 ring-black/20">
+              <AvatarImage
+                src={card.author.avatar}
+                alt={`${card.author.name} logo`}
+                className="object-contain"
+              />
+              <AvatarFallback>{card.author.name[0]}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 rounded-2xl border border-white/10 bg-background/55 px-3 py-2 text-right shadow-lg backdrop-blur-md">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {card.author.name}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                MT5 {card.account.login}
+              </p>
+            </div>
           </div>
 
           <div className="absolute right-4 top-4 z-20">
@@ -652,7 +671,7 @@ export function AccountCardsSlider({
             </DropdownMenu>
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
             <motion.button
               type="button"
               onClick={() => setSelectedAccountId(card.id)}
