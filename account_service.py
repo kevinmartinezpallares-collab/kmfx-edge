@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import re
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -25,6 +26,40 @@ PENDING_STATUSES = {"draft", "pending", "pending_setup", "pending_link", "waitin
 OPERATIONAL_STATUSES = {"active"}
 ARCHIVED_STATUSES = {"archived"}
 CLAIMABLE_LAUNCHER_USER_IDS = {"", "local"}
+STORAGE_REPORT_METRIC_KEYS = (
+    "balance",
+    "equity",
+    "netProfit",
+    "grossProfit",
+    "grossLoss",
+    "winRate",
+    "totalTrades",
+    "profitFactor",
+    "drawdownPct",
+    "commissions",
+    "swaps",
+    "bestTrade",
+    "worstTrade",
+    "source",
+)
+
+
+def _env_flag(name: str, *, default: bool = False) -> bool:
+    value = str(os.getenv(name) or "").strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "y", "on", "enabled"}
+
+
+def _env_int(name: str, *, default: int) -> int:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 0 else default
 
 
 def _now_utc() -> datetime:
@@ -124,6 +159,19 @@ def account_summary_fields_from_payload(payload: dict[str, Any] | None) -> dict[
     return summary
 
 
+def _compact_report_metrics_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    safe_payload = payload if isinstance(payload, dict) else {}
+    report_metrics = safe_payload.get("reportMetrics") if isinstance(safe_payload.get("reportMetrics"), dict) else {}
+    if not report_metrics:
+        return {}
+
+    return {
+        key: deepcopy(report_metrics[key])
+        for key in STORAGE_REPORT_METRIC_KEYS
+        if key in report_metrics and report_metrics[key] is not None
+    }
+
+
 def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
     """Keep only the fields needed for live status refreshes.
 
@@ -168,7 +216,58 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
         },
     }
     compact.update(account_summary_fields_from_payload(safe_payload))
+    report_metrics = _compact_report_metrics_from_payload(safe_payload)
+    if report_metrics:
+        compact["reportMetrics"] = report_metrics
     return {key: value for key, value in compact.items() if value not in ("", None)}
+
+
+def compact_storage_payload_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Persist a bounded MT5 snapshot so Supabase writes stay small."""
+    safe_payload = payload if isinstance(payload, dict) else {}
+    compact = compact_dashboard_payload_from_payload(safe_payload)
+    positions = safe_payload.get("positions") if isinstance(safe_payload.get("positions"), list) else []
+    trades = safe_payload.get("trades") if isinstance(safe_payload.get("trades"), list) else []
+    history = safe_payload.get("history") if isinstance(safe_payload.get("history"), list) else []
+    max_positions = max(0, _env_int("KMFX_MAX_STORED_OPEN_POSITIONS", default=25))
+    if positions and max_positions:
+        compact["positions"] = deepcopy(positions[:max_positions])
+    compact["payloadShape"] = "storage-summary"
+    compact["fullPayloadStored"] = False
+    compact["tradesCount"] = len(trades)
+    compact["historyCount"] = len(history)
+    compact["openPositionsCount"] = len(positions)
+    compact["positionsCount"] = len(positions)
+
+    report_metrics = _compact_report_metrics_from_payload(safe_payload)
+    if report_metrics:
+        compact["reportMetrics"] = report_metrics
+    direct_sync = safe_payload.get("directSync") if isinstance(safe_payload.get("directSync"), dict) else {}
+    if direct_sync:
+        compact["directSync"] = deepcopy(direct_sync)
+
+    for key in (
+        "equity_peak",
+        "daily_start_equity",
+        "daily_start_day_key",
+        "connector_version",
+        "connectorVersion",
+        "identity_status",
+    ):
+        if safe_payload.get(key) not in (None, ""):
+            compact[key] = safe_payload.get(key)
+    return compact
+
+
+def should_store_full_dashboard_payload(payload: dict[str, Any] | None) -> bool:
+    if not _env_flag("KMFX_STORE_FULL_MT5_PAYLOADS", default=False):
+        return False
+    safe_payload = payload if isinstance(payload, dict) else {}
+    max_trades = _env_int("KMFX_MAX_STORED_TRADES", default=40)
+    max_history = _env_int("KMFX_MAX_STORED_HISTORY_POINTS", default=48)
+    trades = safe_payload.get("trades") if isinstance(safe_payload.get("trades"), list) else []
+    history = safe_payload.get("history") if isinstance(safe_payload.get("history"), list) else []
+    return len(trades) <= max_trades and len(history) <= max_history
 
 
 def _safe_sort_timestamp(value: Any) -> float:
@@ -879,7 +978,12 @@ class AccountService:
         now = _now_utc()
         target = next((account for account in accounts if account.account_id == resolved_account_id and not _is_deleted(account)), None)
         is_first = not any(account.user_id == user_id and _is_operational(account) for account in accounts)
-        merged_payload = merge_historical_dashboard_payload(target.latest_payload if target else {}, payload)
+        if should_store_full_dashboard_payload(payload):
+            merged_payload = merge_historical_dashboard_payload(target.latest_payload if target else {}, payload)
+            merged_payload["payloadShape"] = merged_payload.get("payloadShape") or "full"
+            merged_payload["fullPayloadStored"] = True
+        else:
+            merged_payload = compact_storage_payload_from_payload(payload)
         report_metrics = merged_payload.get("reportMetrics") if isinstance(merged_payload.get("reportMetrics"), dict) else {}
         connector_version = str(merged_payload.get("connectorVersion") or merged_payload.get("connector_version") or "")
 
@@ -960,6 +1064,16 @@ class AccountService:
                     account.is_primary = False
 
         self._save_accounts_for_mutation(accounts, partial=partial_mutation)
+        save_normalized_snapshot = getattr(self.store, "save_normalized_snapshot", None)
+        if callable(save_normalized_snapshot):
+            try:
+                save_normalized_snapshot(target, payload)
+            except OSError as exc:
+                log.warning(
+                    "[KMFX][NORMALIZED_SYNC] skipped account_id=%s reason=store_error error=%s",
+                    target.account_id,
+                    exc,
+                )
         return deepcopy(target)
 
     def link_connector_sync(
