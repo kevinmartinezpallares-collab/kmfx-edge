@@ -265,8 +265,11 @@ python3 scripts/next_beta_preflight.py --scope full
 Estado actual:
 
 - `--scope platform` queda `ready`;
-- `--scope full` queda bloqueado por `snapshot_has_no_ready_account` cuando no hay bearer preview/identidad en la sesion;
+- `--scope full` queda `ready` cuando el preflight puede leer el bearer preview desde Render: 2 cuentas, 1 fresca y 1 desactualizada;
 - `KMFX_SMOKE_BASE_URL=https://kmfx-edge-next-beta.vercel.app npm run test:smoke:routes` queda OK;
+- `qa:live:snapshot` queda `partial` por IC Markets stale;
+- `qa:live:integrity` queda `blocked` con ventana estricta de 60 minutos solo por IC Markets stale, y `ready` con ventana ampliada de 300 minutos;
+- Darwinex hidrata `trades` e `history` desde tablas normalizadas en snapshot `full` tras el deploy `177fb254`;
 - el aviso `root_vercel_project_is_legacy_surface_do_not_cutover_next_here` es intencionado y recuerda que la raiz sigue ligada a legacy;
 - WebRequest de IC Markets sigue siendo el bloqueo operativo para cerrar multi-cuenta fresca, pero no bloquea plataforma ni beta con una sola cuenta lista.
 

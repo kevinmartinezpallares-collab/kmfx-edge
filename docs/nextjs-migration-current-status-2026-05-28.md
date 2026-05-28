@@ -12,7 +12,7 @@ Listo:
 
 - `apps/web-next` versionada en Git sin caches ni builds.
 - CI ejecuta `npm ci`, `npm run validate:cascade` y `npm run build`.
-- Backend Render live responde en `c944159`.
+- Backend Render live responde en `177fb254662e2d34eb2c0890a4401fa92b59c4be`.
 - Backend directo bloquea lectura legacy desde `kmfxedge.com`.
 - Worker `kmfx-mt5-api-proxy` desplegado en Cloudflare: mantiene CORS valido para `/api/mt5/sync` y cierra rutas browser de cuentas con `404` sin CORS.
 - V1 local pasa typecheck, lint, cascade, build, smoke routes y QA mobile dark/light.
@@ -20,14 +20,15 @@ Listo:
 - Deploy beta corregido y generado correctamente en Vercel: `dpl_FS9GkMrAeYJE9mnZ4A7v18PMW6P8`.
 - Alias tecnico `https://kmfx-edge-next-beta.vercel.app/dashboard` responde `200` con la app Next y smoke remoto OK.
 - `python3 scripts/next_beta_preflight.py --scope platform` queda `ready`.
+- `python3 scripts/next_beta_preflight.py --scope full` queda `ready` con bearer preview: 2 cuentas, 1 fresca y 1 stale.
+- `qa:live:integrity` queda `ready` con ventana ampliada de 300 minutos; con ventana estricta de 60 minutos solo bloquea IC Markets por stale.
 
 Pendiente antes de invitar usuarios:
 
 - configurar DNS de `beta.kmfxedge.com` en Cloudflare con `A beta 76.76.21.21`;
 - decidir gate de acceso beta antes de exponer datos live: Vercel SSO, password/gate, auth real o beta fixture sin datos live;
 - configurar variables server-only live solo cuando haya gate decidido (`KMFX_WAVE1_SOURCE`, preview bearer/identidad y permiso full si aplica);
-- ejecutar `python3 scripts/next_beta_preflight.py --scope full` con bearer preview y al menos una cuenta fresca;
-- confirmar WebRequest de IC Markets si se quiere validar multi-cuenta antes de beta.
+- confirmar WebRequest de IC Markets para cerrar multi-cuenta fresca;
 
 ## Roadmap Por Fase
 
@@ -60,5 +61,5 @@ Pendiente antes de invitar usuarios:
 2. Definir gate beta antes de activar datos live en Vercel.
 3. Confirmar WebRequest IC Markets y/o usar Darwinex como cuenta unica fresca.
 4. Configurar variables server-only live en el proyecto beta.
-5. Ejecutar preflight `--scope full`.
+5. Repetir preflight `--scope full` tras el WebRequest de IC.
 6. Invitar primer grupo beta read-only.
