@@ -240,10 +240,19 @@ python3 scripts/next_beta_preflight.py
 
 Con `RENDER_API_KEY` disponible en la sesion, el preflight lee las variables preview desde Render sin imprimir secretos y comprueba backend, Worker, snapshot summary, scripts de Next y el enlace Vercel local.
 
+El preflight tambien comprueba la superficie browser publica:
+
+- backend Render directo debe bloquear lectura legacy desde `Origin: https://kmfxedge.com`;
+- Worker debe mantener CORS valido para `/api/mt5/sync`;
+- Worker debe devolver `/api/accounts/snapshot` como ruta no disponible y sin `Access-Control-Allow-Origin`.
+
 Resultado actual:
 
 - backend y Worker OK en `c944159`;
-- snapshot summary listo con 1 cuenta fresca y 1 cuenta stale;
+- backend legacy bloqueado correctamente;
+- Worker MT5 CORS correcto;
+- Worker `/api/accounts/snapshot` devuelve `404`, pero la version desplegada aun anade CORS browser y queda bloqueada por preflight hasta desplegar `cloudflare/mt5-api-proxy.js`;
+- sin `RENDER_API_KEY`/bearer preview local, snapshot summary queda `auth_required`;
 - Next local tiene los scripts de validacion necesarios;
 - Vercel local esta enlazado al proyecto legacy, por lo que el hosting beta separado sigue pendiente.
 

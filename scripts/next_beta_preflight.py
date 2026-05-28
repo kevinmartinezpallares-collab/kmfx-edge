@@ -31,19 +31,41 @@ def env_value(*names: str) -> str:
     return ""
 
 
-def request_json(url: str, *, headers: dict[str, str] | None = None, timeout: int = 20) -> tuple[int, Any]:
-    request = urllib.request.Request(url, headers=headers or {})
+def normalize_headers(headers: Any) -> dict[str, str]:
+    return {str(key).lower(): str(value) for key, value in headers.items()}
+
+
+def request_json_with_headers(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    method: str = "GET",
+    timeout: int = 20,
+) -> tuple[int, Any, dict[str, str]]:
+    request_headers = {
+        "Accept": "application/json",
+        "User-Agent": "KMFX-Next-Beta-Preflight/1.0",
+        **(headers or {}),
+    }
+    request = urllib.request.Request(url, headers=request_headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read()
             status = int(response.status)
+            response_headers = normalize_headers(response.headers)
     except urllib.error.HTTPError as exc:
         raw = exc.read()
         status = int(exc.code)
+        response_headers = normalize_headers(exc.headers)
     try:
         payload = json.loads(raw.decode("utf-8")) if raw else {}
     except json.JSONDecodeError:
         payload = {"raw": raw.decode("utf-8", errors="replace")[:300]}
+    return status, payload, response_headers
+
+
+def request_json(url: str, *, headers: dict[str, str] | None = None, timeout: int = 20) -> tuple[int, Any]:
+    status, payload, _headers = request_json_with_headers(url, headers=headers, timeout=timeout)
     return status, payload
 
 
@@ -138,6 +160,61 @@ def snapshot_audit(base_url: str, headers: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def browser_surface_audit(api_base_url: str, worker_base_url: str) -> dict[str, Any]:
+    origin = "https://kmfxedge.com"
+    backend_status, backend_payload, backend_headers = request_json_with_headers(
+        f"{api_base_url.rstrip('/')}/api/accounts/snapshot?view=summary",
+        headers={"Accept": "application/json", "Origin": origin},
+        timeout=20,
+    )
+    backend_reason = str(backend_payload.get("reason") or "") if isinstance(backend_payload, dict) else ""
+    backend_legacy_blocked = (
+        backend_status == 403
+        and backend_reason == "legacy_dashboard_live_disabled"
+        and "access-control-allow-origin" not in backend_headers
+    )
+
+    worker_accounts_status, _worker_accounts_payload, worker_accounts_headers = request_json_with_headers(
+        f"{worker_base_url.rstrip('/')}/api/accounts/snapshot?view=summary",
+        headers={"Accept": "application/json", "Origin": origin},
+        timeout=20,
+    )
+    worker_accounts_closed = (
+        worker_accounts_status == 404
+        and "access-control-allow-origin" not in worker_accounts_headers
+    )
+
+    mt5_status, _mt5_payload, mt5_headers = request_json_with_headers(
+        f"{worker_base_url.rstrip('/')}/api/mt5/sync",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-kmfx-connection-key",
+        },
+        method="OPTIONS",
+        timeout=20,
+    )
+    allow_headers = mt5_headers.get("access-control-allow-headers", "")
+    worker_mt5_cors_ok = (
+        mt5_status == 204
+        and mt5_headers.get("access-control-allow-origin") == origin
+        and "X-KMFX-Connection-Key" in allow_headers
+        and "X-KMFX-User-Email" not in allow_headers
+    )
+
+    return {
+        "backend_legacy_blocked": backend_legacy_blocked,
+        "backend_legacy_status": backend_status,
+        "backend_legacy_reason": backend_reason,
+        "backend_legacy_has_browser_cors": "access-control-allow-origin" in backend_headers,
+        "worker_accounts_closed": worker_accounts_closed,
+        "worker_accounts_status": worker_accounts_status,
+        "worker_accounts_has_browser_cors": "access-control-allow-origin" in worker_accounts_headers,
+        "worker_mt5_cors_ok": worker_mt5_cors_ok,
+        "worker_mt5_preflight_status": mt5_status,
+    }
+
+
 def local_next_checks() -> dict[str, Any]:
     package_json_path = WEB_NEXT / "package.json"
     result = {
@@ -197,6 +274,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     render_health = health_check(api_base_url)
     worker_health = health_check(worker_base_url)
     snapshot = snapshot_audit(api_base_url, headers)
+    surface = browser_surface_audit(api_base_url, worker_base_url)
     local_next = local_next_checks()
     vercel = vercel_local_check()
     git = git_summary()
@@ -212,6 +290,12 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("render_health_failed")
     if not worker_health["ok"]:
         blockers.append("worker_health_failed")
+    if not surface["backend_legacy_blocked"]:
+        blockers.append("legacy_dashboard_live_block_missing")
+    if not surface["worker_accounts_closed"]:
+        blockers.append("worker_accounts_route_cors_not_closed")
+    if not surface["worker_mt5_cors_ok"]:
+        blockers.append("worker_mt5_cors_preflight_failed")
     if not snapshot["ok"]:
         blockers.append("snapshot_has_no_ready_account")
     if snapshot["stale"]:
@@ -229,6 +313,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "worker_base_url": worker_base_url,
         "render": render_health,
         "worker": worker_health,
+        "surface": surface,
         "snapshot": snapshot,
         "local_next": local_next,
         "vercel": vercel,
@@ -243,6 +328,12 @@ def print_human(report: dict[str, Any]) -> None:
     print(f"Estado: {report['status']}")
     print(f"Backend: {report['api_base_url']} | ok={report['render']['ok']} | commit={report['render'].get('commit')}")
     print(f"Worker: {report['worker_base_url']} | ok={report['worker']['ok']} | commit={report['worker'].get('commit')}")
+    surface = report["surface"]
+    print(
+        "Surface: backend_legacy_blocked={backend_legacy_blocked}, worker_accounts_closed={worker_accounts_closed}, worker_mt5_cors_ok={worker_mt5_cors_ok}".format(
+            **surface
+        )
+    )
     snapshot = report["snapshot"]
     print(
         "Snapshot: accounts={accounts}, ready={ready}, stale={stale}, missing_payload={missing_payload}, auth_required={auth_required}".format(
