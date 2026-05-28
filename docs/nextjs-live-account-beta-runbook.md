@@ -1,6 +1,6 @@
 # Next.js Live Account Beta Runbook
 
-Estado: operativo para primera prueba read-only, pendiente de snapshot fresco
+Estado: operativo para primera prueba read-only, snapshot live listo
 Ultima revision: 2026-05-28
 Alcance: validar una cuenta real en `apps/web-next` sin activar auth real, billing real, launcher, MT5 write-flows, enforcement RiskGuard ni export EA.
 
@@ -120,17 +120,27 @@ Estado resultante:
 
 ## Nota De Prueba 2026-05-28
 
-Render se reactivo y `/health` responde `200` con `account_store=SupabaseAccountStore`. La sesion local del launcher se renovo correctamente sin imprimir tokens y `/api/accounts/snapshot?view=summary` devuelve 1 cuenta real Darwinex-Live con `dashboard_payload` y estado `active`.
+Render se reactivo y `/health` responde `200` con `account_store=SupabaseAccountStore`. La sesion local del launcher se renovo correctamente sin imprimir tokens y `/api/accounts/snapshot?view=summary` devuelve 1 cuenta real Darwinex-Live con `dashboard_payload`, `reportMetrics`, `balance/equity` validos y estado `active`.
 
 Estado resultante:
 
-- la lectura previa tenia balance/equity `103379.11`, pero el sync fresco de `2026-05-28T07:38:28.740660+00:00` llego parcial con `balance=0` y `equity=0`;
-- `qa:live:snapshot` sigue en `blocked`: la cuenta ya no esta desactualizada, pero falta equity/balance valido y faltan `reportMetrics`;
-- la instancia `MT5-Darwinex` se pudo abrir, el terminal autorizo la cuenta en Darwinex-Live y el conector `KMFXConnector` esta instalado; el siguiente paso es revisar por que el EA lee `ACCOUNT_BALANCE/ACCOUNT_EQUITY` como cero en ese arranque;
-- se preparo un fix backend local para no machacar la ultima lectura positiva cuando entra un sync parcial con balance/equity cero; requiere deploy de backend para proteger siguientes syncs;
-- se preparo una guarda local en `KMFXConnector.mq5` para no enviar estado si MT5 aun devuelve `ACCOUNT_BALANCE=0` y `ACCOUNT_EQUITY=0` con login cargado; no se compilo ni exporto el EA en esta fase;
-- el servicio local del launcher responde correctamente en foreground, pero Codex no puede dejarlo persistente al cerrar el comando; para prueba sostenida hay que abrir la app `KMFX Launcher` o ejecutar `python3 -m launcher.service` en una terminal del usuario;
-- el dominio Render directo ya bloquea lectura browser legacy por CORS; el Worker `mt5-api.kmfxedge.com` necesita deploy del hardening local antes de considerar cerrado el bloqueo legacy completo.
+- el backend desplegado en Render sirve el commit `4718d4a` y conserva `reportMetrics` en el payload compacto de summary;
+- el sync parcial con `balance=0` y `equity=0` quedo cubierto por una guarda backend que preserva la ultima lectura positiva y por una guarda del EA para no enviar metricas de cuenta vacias;
+- la instancia `MT5-Darwinex` se abrio mediante el acceso dedicado, autorizo la cuenta en Darwinex-Live y el conector `KMFXConnector` sincronizo correctamente en modo solo lectura;
+- `qa:live:snapshot` queda en `ready`: 1 cuenta lista, 0 desactualizadas, 0 pendientes y 0 con error;
+- `npm run validate:cascade` queda OK con 20 archivos de test y 91 tests, seguido de `typecheck` y `lint` OK;
+- `KMFX_WAVE1_SOURCE=live npm run build` queda OK;
+- `KMFX_SMOKE_BASE_URL=http://127.0.0.1:3001 npm run test:smoke:routes` queda OK con 14 rutas V1, 16 rutas avanzadas y 1 ruta admin validada;
+- `KMFX_QA_BASE_URL=http://127.0.0.1:3001 npm run qa:mobile:v1` queda OK con 14 rutas V1 en dark/light;
+- verificacion en navegador sobre `http://127.0.0.1:3001/dashboard`: titulo `KMFX Edge`, H1 `Panel`, cuenta real visible, sin overlay/runtime error y sin errores/warnings de consola; navegacion `Panel -> Cuentas` funciona y muestra H1 `Cuentas`;
+- el dominio Render directo bloquea lectura browser legacy y el Worker `mt5-api.kmfxedge.com` queda desplegado para no proxyear lectura de cuentas legacy; mantiene `/health` y `/api/mt5/*` para el EA.
+
+Siguiente paso antes de invitar usuarios externos:
+
+- elegir entrada de beta cerrada (`subdominio beta` recomendado) y definir rollback simple;
+- configurar hosting del frontend Next con variables `KMFX_WAVE1_SOURCE=live`, `KMFX_API_BASE_URL`, timeout y token/identidad preview o gate equivalente;
+- probar una segunda cuenta beta read-only para cubrir multi-cuenta sin activar billing/auth/launcher reales;
+- registrar feedback por ruta V1 y no abrir rutas `Proximamente` hasta su chat dedicado.
 
 ## Evidencia Minima
 
