@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   ChevronDown,
@@ -103,13 +103,22 @@ function renderNavigationGroup({
   items,
   pathname,
   router,
+  selectedAccountId,
   workspace,
 }: {
   items: NavigationItem[];
   pathname: string;
   router: ReturnType<typeof useRouter>;
+  selectedAccountId: string | null;
   workspace: WorkspaceState;
 }) {
+  function hrefWithActiveAccount(href: string) {
+    if (!selectedAccountId) return href;
+
+    const params = new URLSearchParams({ account: selectedAccountId });
+    return `${href}?${params.toString()}`;
+  }
+
   return (
     <SidebarMenu>
       {items.map((item) => {
@@ -136,7 +145,7 @@ function renderNavigationGroup({
               )}
               onClick={() => {
                 if (href && item.enabled) {
-                  router.push(href);
+                  router.push(hrefWithActiveAccount(href));
                 }
               }}
             >
@@ -157,7 +166,7 @@ function renderNavigationGroup({
                         onClick={(event) => {
                           event.preventDefault();
                           if (child.enabled) {
-                            router.push(child.href);
+                            router.push(hrefWithActiveAccount(child.href));
                           }
                         }}
                       >
@@ -234,7 +243,7 @@ function getAccountLogoUrl(
   if (source.includes("darwin") && source.includes("zero")) {
     return "/brand-logos/darwinex-zero.webp";
   }
-  if (source.includes("darwin")) return "/brand-logos/darwinex.png";
+  if (source.includes("darwin")) return "/brand-logos/darwinex.svg";
   if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
   if (source.includes("funding pips")) return "/brand-logos/the-funding-pips.jpeg";
   if (source.includes("wsf")) return "/brand-logos/wsf.png";
@@ -242,7 +251,7 @@ function getAccountLogoUrl(
     return "/brand-logos/the5ers.png";
   }
   if (source.includes("ic markets") || source.includes("icmarkets")) {
-    return "/brand-logos/ic-markets.png";
+    return "/brand-logos/ic-markets.svg";
   }
   if (source.includes("pepperstone")) return "/brand-logos/pepperstone.svg";
 
@@ -291,6 +300,20 @@ function AccountSwitcher({
   workspace: WorkspaceState;
   activeAccount: WorkspaceState["accounts"][number] | undefined;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function selectAccount(accountId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("account", accountId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  const accountsHref = activeAccount
+    ? `/accounts?account=${encodeURIComponent(activeAccount.id)}`
+    : "/accounts";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -307,7 +330,7 @@ function AccountSwitcher({
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Cuenta activa</DropdownMenuLabel>
-          <DropdownMenuItem render={<Link href="/accounts" />}>
+          <DropdownMenuItem render={<Link href={accountsHref} />}>
             <div className="flex min-w-0 items-center gap-3">
               <AccountBrandAvatar account={activeAccount} className="size-9" />
               <div className="min-w-0">
@@ -326,7 +349,13 @@ function AccountSwitcher({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {workspace.accounts.slice(0, 4).map((account) => (
-            <DropdownMenuItem key={account.id} render={<Link href="/accounts" />}>
+            <DropdownMenuItem
+              key={account.id}
+              onSelect={(event) => {
+                event.preventDefault();
+                selectAccount(account.id);
+              }}
+            >
               <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <AccountBrandAvatar account={account} className="size-6" />
@@ -446,6 +475,8 @@ function SidebarUserMenu() {
 function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedAccountId = searchParams.get("account");
 
   return (
     <Sidebar
@@ -480,6 +511,7 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
                   items: group.items,
                   pathname,
                   router,
+                  selectedAccountId,
                   workspace,
                 })}
               </SidebarGroupContent>
@@ -499,8 +531,11 @@ function WorkspaceSidebar({ workspace }: { workspace: WorkspaceState }) {
 
 export function WorkspaceShell({ children, workspace }: WorkspaceShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const selectedAccountId =
+    searchParams.get("account") ?? workspace.activeAccountId;
   const activeAccount =
-    workspace.accounts.find((account) => account.id === workspace.activeAccountId) ??
+    workspace.accounts.find((account) => account.id === selectedAccountId) ??
     workspace.accounts[0];
 
   return (

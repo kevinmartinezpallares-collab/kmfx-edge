@@ -1,8 +1,15 @@
 import { CalculatorReferenceSection } from "@/components/trading/system";
-import { getWorkspaceState } from "@/lib/data/workspace-source";
+import {
+  getWorkspaceStateForSearchParams,
+  type WorkspaceSearchParams,
+} from "@/lib/data/workspace-source";
 
-export default async function ToolsCalculatorPage() {
-  const workspace = await getWorkspaceState();
+type WorkspacePageProps = {
+  searchParams?: Promise<WorkspaceSearchParams>;
+};
+
+export default async function ToolsCalculatorPage({ searchParams }: WorkspacePageProps) {
+  const workspace = await getWorkspaceStateForSearchParams(searchParams);
 
   return <CalculatorReferenceSection workspace={workspace} />;
 }

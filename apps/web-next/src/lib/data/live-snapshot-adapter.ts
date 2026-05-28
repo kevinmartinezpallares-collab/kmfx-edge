@@ -813,6 +813,7 @@ function mapDashboard(
 export function createWorkspaceFromLiveSnapshot(
   snapshot: RawLiveAccountsSnapshot,
   sourceMode: WorkspaceSourceMode,
+  activeAccountId?: string,
 ): WorkspaceState {
   const rawAccounts = Array.isArray(snapshot.accounts) ? snapshot.accounts : [];
   if (!rawAccounts.length) {
@@ -820,8 +821,11 @@ export function createWorkspaceFromLiveSnapshot(
   }
 
   const accounts = rawAccounts.map(mapAccount);
+  const normalizedActiveAccountId = String(activeAccountId || "").trim();
   const activeRawAccount =
-    rawAccounts.find((account) => account.is_default) ?? rawAccounts[0];
+    rawAccounts.find((account) => account.account_id === normalizedActiveAccountId) ??
+    rawAccounts.find((account) => account.is_default) ??
+    rawAccounts[0];
   const activeAccount =
     accounts.find((account) => account.id === activeRawAccount.account_id) ??
     accounts[0];

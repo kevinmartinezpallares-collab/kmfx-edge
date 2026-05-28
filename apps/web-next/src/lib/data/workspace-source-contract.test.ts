@@ -37,7 +37,7 @@ describe("workspace source contract", () => {
     const source = readWorkspaceSource();
 
     expect(source).toContain("live snapshot unavailable, falling back to fixture");
-    expect(source).toContain("return readFixtureWorkspaceState();");
+    expect(source).toContain("return readFixtureWorkspaceState(activeAccountId);");
   });
 
   it("keeps workspace routes dynamic so live read-only snapshots are not frozen at build time", () => {
@@ -50,5 +50,13 @@ describe("workspace source contract", () => {
     expect(source).toContain("resolveKmfxSnapshotCacheTtlMs");
     expect(source).toContain("liveSnapshotCache");
     expect(source).toContain('cache: "no-store"');
+  });
+
+  it("allows workspace pages to select the active account from the URL", () => {
+    const source = readWorkspaceSource();
+
+    expect(source).toContain("withActiveWorkspaceAccount");
+    expect(source).toContain("getWorkspaceStateForSearchParams");
+    expect(source).toContain("resolvedSearchParams?.account");
   });
 });

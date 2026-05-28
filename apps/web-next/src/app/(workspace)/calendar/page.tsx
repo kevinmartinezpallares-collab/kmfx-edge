@@ -1,8 +1,15 @@
 import { CalendarReferenceSection } from "@/components/trading/calendar";
-import { getWorkspaceState } from "@/lib/data/workspace-source";
+import {
+  getWorkspaceStateForSearchParams,
+  type WorkspaceSearchParams,
+} from "@/lib/data/workspace-source";
 
-export default async function CalendarPage() {
-  const workspace = await getWorkspaceState();
+type WorkspacePageProps = {
+  searchParams?: Promise<WorkspaceSearchParams>;
+};
+
+export default async function CalendarPage({ searchParams }: WorkspacePageProps) {
+  const workspace = await getWorkspaceStateForSearchParams(searchParams);
 
   return <CalendarReferenceSection workspace={workspace} />;
 }
