@@ -235,6 +235,8 @@ class AccountServiceTests(unittest.TestCase):
                 "payload_mode": "lightweight",
                 "sync_reason": "heartbeat",
                 "historyBootstrapFull": False,
+                "totalTrades": 80,
+                "winRate": 52.5,
                 "reportMetrics": {"totalTrades": 80, "netProfit": 100},
             },
             api_key="darwinex-key",
@@ -251,6 +253,8 @@ class AccountServiceTests(unittest.TestCase):
         self.assertEqual("lightweight", payload["payload_mode"])
         self.assertEqual("heartbeat", payload["sync_reason"])
         self.assertIs(payload["historyBootstrapFull"], False)
+        self.assertEqual(80, payload["totalTrades"])
+        self.assertEqual(52.5, payload["winRate"])
         self.assertEqual({"totalTrades": 80, "netProfit": 100}, payload["reportMetrics"])
 
     def test_claim_account_by_api_key_moves_local_launcher_account_to_user(self) -> None:

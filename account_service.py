@@ -216,6 +216,10 @@ def compact_dashboard_payload_from_payload(payload: dict[str, Any] | None) -> di
         },
     }
     compact.update(account_summary_fields_from_payload(safe_payload))
+    for key in ("totalTrades", "winRate", "drawdownPct"):
+        value = _first_finite_number(safe_payload.get(key))
+        if value is not None:
+            compact[key] = value
     report_metrics = _compact_report_metrics_from_payload(safe_payload)
     if report_metrics:
         compact["reportMetrics"] = report_metrics
