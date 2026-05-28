@@ -213,6 +213,11 @@ string KMFXNowIso()
    return TimeToString(KMFXNow(),TIME_DATE|TIME_SECONDS);
   }
 
+string KMFXIso(datetime value)
+  {
+   return TimeToString(value,TIME_DATE|TIME_SECONDS);
+  }
+
 datetime KMFXHistoryFromTime()
   {
    if(KMFXHistoryLookbackDays<=0)
@@ -533,17 +538,26 @@ void KMFXApplyConnectionConfigFromFile()
      PrintFormat("[KMFX][INIT][CONFIG] sync=%s journal=%s policy=%s",KMFXSyncPath,KMFXJournalPath,KMFXPolicyPath);
   }
 
+string KMFXNormalizeConnectionKeyInput(string value)
+  {
+   string normalized=KMFXTrim(value);
+   int set_metadata_at=StringFind(normalized,"||");
+   if(set_metadata_at>=0)
+      normalized=KMFXTrim(StringSubstr(normalized,0,set_metadata_at));
+   return normalized;
+  }
+
 string KMFXExplicitConnectionKeyValue()
   {
-   string explicit_key=KMFXTrim(KMFXKey);
+   string explicit_key=KMFXNormalizeConnectionKeyInput(KMFXKey);
    if(StringLen(explicit_key)>0)
       return explicit_key;
 
-   explicit_key=KMFXTrim(connection_key);
+   explicit_key=KMFXNormalizeConnectionKeyInput(connection_key);
    if(StringLen(explicit_key)>0)
       return explicit_key;
 
-   return KMFXTrim(KMFXApiKey);
+   return KMFXNormalizeConnectionKeyInput(KMFXApiKey);
   }
 
 void KMFXInitializeRuntimeConnectionKey()
@@ -1892,9 +1906,11 @@ string KMFXBuildSyncHistoryJson(datetime from_time,datetime to_time,int max_poin
   {
    if(!HistorySelect(from_time,to_time))
      {
+      datetime now=KMFXNow();
+      datetime baseline_time=now-60;
       string fallback_json="[";
-      fallback_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
-      fallback_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
+      fallback_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXIso(baseline_time))+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
+      fallback_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXIso(now))+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
       fallback_json+="]";
       return fallback_json;
      }
@@ -1925,9 +1941,11 @@ string KMFXBuildSyncHistoryJson(datetime from_time,datetime to_time,int max_poin
 
    if(collected<=0)
      {
+      datetime now=KMFXNow();
+      datetime baseline_time=now-60;
       string minimal_json="[";
-      minimal_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
-      minimal_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXNowIso())+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
+      minimal_json+="{\"label\":\"balance\",\"timestamp\":"+KMFXQuote(KMFXIso(baseline_time))+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_BALANCE),2)+"},";
+      minimal_json+="{\"label\":\"equity\",\"timestamp\":"+KMFXQuote(KMFXIso(now))+",\"value\":"+KMFXDoubleJson(AccountInfoDouble(ACCOUNT_EQUITY),2)+"}";
       minimal_json+="]";
       return minimal_json;
      }

@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
 from account_keys import hash_connection_key, mask_connection_key, normalize_connection_key
@@ -924,11 +924,18 @@ class SupabaseAccountStore(AccountStore):
             )
 
         equity_rows = []
+        used_equity_times: set[str] = set()
         for index, point in enumerate(item for item in history if isinstance(item, dict)):
             value = _safe_float_or_none(_first_present(point.get("value"), point.get("equity"), point.get("balance")))
             point_time = _iso_or_none(_first_present(point.get("timestamp"), point.get("time"), point.get("date")))
             if value is None or point_time is None:
                 continue
+            while point_time in used_equity_times:
+                parsed_time = _parse_datetime(point_time)
+                if parsed_time is None:
+                    break
+                point_time = _serialize_datetime(parsed_time + timedelta(seconds=1))
+            used_equity_times.add(point_time)
             equity_rows.append(
                 {
                     "account_id": account_id,

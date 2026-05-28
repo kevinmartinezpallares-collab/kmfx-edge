@@ -225,6 +225,39 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         )
         self.assertEqual("2026-05-28T09:00:00+00:00", equity_post["payload"][0]["point_time"])
 
+    def test_duplicate_history_timestamps_are_made_unique_before_upsert(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+
+        service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "IC Markets",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC-Demo",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 144976.82,
+                "equity": 144900.43,
+                "history": [
+                    {"timestamp": "2026.05.28 16:53:02", "value": 144976.82},
+                    {"timestamp": "2026.05.28 16:53:02", "value": 144900.43},
+                ],
+            },
+            api_key="ic-key",
+        )
+
+        equity_post = next(
+            call for call in store.table_calls if call["table"] == "mt5_equity_points" and call["method"] == "POST"
+        )
+        point_times = [row["point_time"] for row in equity_post["payload"]]
+        self.assertEqual(
+            ["2026-05-28T16:53:02+00:00", "2026-05-28T16:53:03+00:00"],
+            point_times,
+        )
+
     def test_full_snapshot_hydrates_compact_registry_from_normalized_tables(self):
         store = MemorySupabaseAccountStore()
         service = AccountService(store)
