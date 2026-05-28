@@ -235,10 +235,16 @@ No usar `NEXT_PUBLIC_` para el bearer preview ni para claves privadas. La URL pu
 Preflight operativo:
 
 ```bash
-python3 scripts/next_beta_preflight.py
+python3 scripts/next_beta_preflight.py --scope platform
+python3 scripts/next_beta_preflight.py --scope full
 ```
 
 Con `RENDER_API_KEY` disponible en la sesion, el preflight lee las variables preview desde Render sin imprimir secretos y comprueba backend, Worker, snapshot summary, scripts de Next y el enlace Vercel local.
+
+Scopes:
+
+- `platform`: valida backend, Worker, CORS, scripts locales y enlace Vercel sin exigir snapshot MT5 listo;
+- `full`: ademas exige al menos una cuenta live read-only lista para beta.
 
 El preflight tambien comprueba la superficie browser publica:
 
@@ -255,6 +261,8 @@ Resultado actual:
 - sin `RENDER_API_KEY`/bearer preview local, snapshot summary queda `auth_required`;
 - Next local tiene los scripts de validacion necesarios;
 - Vercel local esta enlazado al proyecto legacy, por lo que el hosting beta separado sigue pendiente.
+
+Lectura practica: en `--scope platform`, el unico bloqueo tecnico detectado ahora mismo es el deploy pendiente del Worker CORS. En `--scope full`, se suma el snapshot live porque falta bearer preview local y/o una cuenta fresca confirmada.
 
 ## Nota De Coste Render 2026-05-28
 

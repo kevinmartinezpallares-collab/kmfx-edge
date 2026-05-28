@@ -267,6 +267,7 @@ def git_summary() -> dict[str, Any]:
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
+    scope = str(getattr(args, "scope", "full") or "full")
     service_id = args.render_service_id or env_value("RENDER_SERVICE_ID") or DEFAULT_RENDER_SERVICE_ID
     api_base_url = args.api_base_url or env_value("KMFX_API_BASE_URL") or DEFAULT_API_BASE_URL
     worker_base_url = args.worker_base_url or DEFAULT_WORKER_BASE_URL
@@ -296,8 +297,10 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("worker_accounts_route_cors_not_closed")
     if not surface["worker_mt5_cors_ok"]:
         blockers.append("worker_mt5_cors_preflight_failed")
-    if not snapshot["ok"]:
+    if scope == "full" and not snapshot["ok"]:
         blockers.append("snapshot_has_no_ready_account")
+    elif scope == "platform" and not snapshot["ok"]:
+        warnings.append("snapshot_not_ready_ignored_in_platform_scope")
     if snapshot["stale"]:
         warnings.append(f"snapshot_has_stale_accounts:{snapshot['stale']}")
     if vercel.get("warning"):
@@ -309,6 +312,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
     return {
         "status": "blocked" if blockers else "ready",
+        "scope": scope,
         "api_base_url": api_base_url,
         "worker_base_url": worker_base_url,
         "render": render_health,
@@ -325,7 +329,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
 def print_human(report: dict[str, Any]) -> None:
     print("Next beta preflight")
-    print(f"Estado: {report['status']}")
+    print(f"Estado: {report['status']} | scope={report['scope']}")
     print(f"Backend: {report['api_base_url']} | ok={report['render']['ok']} | commit={report['render'].get('commit')}")
     print(f"Worker: {report['worker_base_url']} | ok={report['worker']['ok']} | commit={report['worker'].get('commit')}")
     surface = report["surface"]
@@ -358,6 +362,7 @@ def main() -> int:
     parser.add_argument("--render-service-id", default="")
     parser.add_argument("--api-base-url", default="")
     parser.add_argument("--worker-base-url", default="")
+    parser.add_argument("--scope", choices=("full", "platform"), default="full")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     report = build_report(args)

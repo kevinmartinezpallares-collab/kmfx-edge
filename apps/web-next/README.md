@@ -41,7 +41,10 @@ Create a separate Vercel project for beta. Use `apps/web-next` as the root direc
 Recommended gates before inviting users:
 
 ```bash
-python3 ../../scripts/next_beta_preflight.py
+python3 ../../scripts/next_beta_preflight.py --scope platform
+python3 ../../scripts/next_beta_preflight.py --scope full
 npm run validate:cascade
 npm run build
 ```
+
+`--scope platform` checks public surface, Worker CORS, local scripts and hosting safety without requiring a fresh MT5 account snapshot. `--scope full` also requires a ready live account snapshot.
