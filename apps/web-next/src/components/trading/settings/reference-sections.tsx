@@ -21,8 +21,17 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { useTheme } from "@/components/app/theme-provider";
+import {
+  AnimatedGradient,
+  type CustomConfig,
+} from "@/components/ui/animated-gradient";
+import {
+  Avatar,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -64,6 +73,67 @@ import { cn } from "@/lib/utils";
 
 function PageMotion({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>;
+}
+
+type PlanGradientTheme = Omit<CustomConfig, "preset" | "speed">;
+
+const PLAN_GRADIENT_THEMES = {
+  core: {
+    color1: "#060708",
+    color2: "#263039",
+    color3: "#a7b0b8",
+    rotation: 42,
+    proportion: 50,
+    scale: 0.32,
+    distortion: 11,
+    swirl: 30,
+    swirlIterations: 5,
+    softness: 100,
+    offset: 20,
+    shape: "Checks",
+    shapeSize: 58,
+  },
+  pro: {
+    color1: "#04120f",
+    color2: "#174338",
+    color3: "#c7d85b",
+    rotation: -28,
+    proportion: 58,
+    scale: 0.35,
+    distortion: 15,
+    swirl: 38,
+    swirlIterations: 7,
+    softness: 92,
+    offset: 110,
+    shape: "Edge",
+    shapeSize: 46,
+  },
+  unlimited: {
+    color1: "#100609",
+    color2: "#4a1725",
+    color3: "#f0a35d",
+    rotation: 118,
+    proportion: 62,
+    scale: 0.36,
+    distortion: 16,
+    swirl: 36,
+    swirlIterations: 7,
+    softness: 90,
+    offset: 230,
+    shape: "Stripes",
+    shapeSize: 44,
+  },
+} satisfies Record<string, PlanGradientTheme>;
+
+function planGradientConfigForOption(
+  key: keyof typeof PLAN_GRADIENT_THEMES,
+  index: number,
+): CustomConfig {
+  return {
+    preset: "custom",
+    ...PLAN_GRADIENT_THEMES[key],
+    speed: 7 + index * 2,
+  };
 }
 
 function SettingsPreferenceControl({
@@ -622,8 +692,8 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
             </div>
           </CardHeader>
           <CardContent className="grid gap-5 p-4 sm:p-6">
-            <div className="grid gap-4 lg:grid-cols-3">
-              {plan.options.map((option) => {
+            <div className="grid gap-5 lg:grid-cols-3">
+              {plan.options.map((option, index) => {
                 const featured = option.key === "pro";
                 const current = option.current;
                 const visual = planCardVisuals[option.key];
@@ -631,96 +701,153 @@ export function SubscriptionReferenceSection({ workspace }: { workspace: Workspa
                 const capacityPercent = chartItem
                   ? Math.max(12, (chartItem.accountCapacity / maxAccountCapacity) * 100)
                   : 12;
+                const gradientConfig = planGradientConfigForOption(option.key, index);
 
                 return (
-                  <div
+                  <motion.div
                     key={option.key}
                     className={cn(
-                      "relative flex min-w-0 flex-col rounded-xl border border-border/70 bg-background/45 p-3 transition-colors",
-                      featured &&
-                        "order-first border-foreground/25 bg-card/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] lg:order-none lg:-translate-y-2",
-                      current && "border-foreground/35 bg-muted/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+                      "h-[500px] min-w-0",
+                      featured && "order-first lg:order-none lg:-translate-y-2",
                     )}
+                    whileHover={{ y: -10, transition: { duration: 0.3 } }}
                   >
-                    <div className="overflow-hidden rounded-lg border border-border/70 bg-card/65 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium uppercase text-muted-foreground">
+                    <Card
+                      className={cn(
+                        "group relative h-full overflow-hidden rounded-3xl border-border/50 bg-card/30 p-0 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10",
+                        featured && "border-primary/60 shadow-2xl shadow-primary/10",
+                        current && "border-foreground/30",
+                      )}
+                    >
+                      <div className="relative h-56 overflow-hidden">
+                        <AnimatedGradient config={gradientConfig} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
+
+                        <div className="absolute left-4 top-4 z-20">
+                          <Badge
+                            variant="secondary"
+                            className="border-white/10 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-md"
+                          >
+                            {current ? "Actual" : featured ? "Recomendado" : visual.signal}
+                          </Badge>
+                        </div>
+                        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/10 bg-background/45 px-3 py-1 text-xs font-medium text-foreground backdrop-blur-md">
+                          {visual.capacity}
+                        </div>
+
+                        <div className="absolute bottom-4 left-4 right-4 z-20">
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
                             KMFX Edge
                           </p>
-                          <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-                            {visual.code}
-                          </p>
+                          <div className="mt-2 flex items-end justify-between gap-3">
+                            <h3 className="text-3xl font-bold leading-none tracking-tight text-white">
+                              {visual.code}
+                            </h3>
+                            <p className="max-w-36 text-right text-2xl font-semibold tracking-tight text-white">
+                              {priceForInterval(option)}
+                            </p>
+                          </div>
+                          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/20">
+                            <div
+                              className={cn(
+                                "h-full rounded-full bg-white/70",
+                                featured && "bg-primary",
+                              )}
+                              style={{ width: `${capacityPercent}%` }}
+                            />
+                          </div>
                         </div>
-                        {current ? (
-                          <Badge variant="secondary">Actual</Badge>
-                        ) : featured ? (
-                          <Badge className="bg-foreground text-background hover:bg-foreground/90">
-                            <Sparkles data-icon="inline-start" />
-                            Recomendado
-                          </Badge>
-                        ) : null}
+
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+                          <motion.button
+                            className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg transition-transform duration-200 disabled:cursor-not-allowed disabled:opacity-70"
+                            disabled={!plan.managementReady}
+                            type="button"
+                            whileHover={{ scale: plan.managementReady ? 1.05 : 1 }}
+                            whileTap={{ scale: plan.managementReady ? 0.95 : 1 }}
+                          >
+                            {current ? "Plan actual" : "Seleccionar"}
+                          </motion.button>
+                        </div>
                       </div>
 
-                      <div className="mt-8 flex items-end justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs text-muted-foreground">{visual.signal}</p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-foreground">
-                            {visual.capacity}
-                          </p>
+                      <div className="flex h-[calc(100%-14rem)] flex-col justify-between p-4">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground transition-colors group-hover:text-primary">
+                                {option.name}
+                              </h3>
+                              <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                                {option.recommendedFor}
+                              </p>
+                            </div>
+                            {featured ? (
+                              <Badge className="shrink-0 bg-foreground text-background hover:bg-foreground/90">
+                                <Sparkles data-icon="inline-start" />
+                                Top
+                              </Badge>
+                            ) : null}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
+                              <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                                Precio
+                              </p>
+                              <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
+                                {priceForInterval(option)}
+                              </p>
+                              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                                {intervalCaption}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl border border-border/50 bg-background/35 p-3">
+                              <p className="text-[11px] font-medium uppercase text-muted-foreground">
+                                Capacidad
+                              </p>
+                              <p className="mt-2 text-lg font-semibold leading-tight text-foreground">
+                                {option.accountLimitLabel}
+                              </p>
+                              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                                {option.key === "unlimited" ? "Escala total" : "Límite MT5"}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <p className="max-w-36 text-right text-2xl font-semibold tracking-tight text-foreground">
-                          {priceForInterval(option)}
-                        </p>
-                      </div>
 
-                      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted/50">
-                        <div
-                          className={cn(
-                            "h-full rounded-full bg-foreground/65",
-                            featured && "bg-primary",
-                          )}
-                          style={{ width: `${capacityPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="px-2 pt-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-foreground">{option.name}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {option.recommendedFor}
-                          </p>
+                        <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Avatar className="size-8 border border-border/60">
+                              <AvatarFallback className="bg-background/70 text-[11px] font-semibold">
+                                {visual.code.slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {current
+                                  ? "Plan actual"
+                                  : featured
+                                    ? "Recomendado"
+                                    : "Disponible"}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {option.key === "unlimited" ? "Sin límite" : visual.signal}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            className="shrink-0"
+                            disabled={!plan.managementReady}
+                            size="sm"
+                            variant={current ? "secondary" : featured ? "default" : "outline"}
+                          >
+                            {current ? "Actual" : "Elegir"}
+                          </Button>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {option.key === "unlimited" ? "Escala" : "Límite"}
-                        </span>
                       </div>
-                      <p className="mt-4 font-medium text-foreground">{option.accountLimitLabel}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{intervalCaption}</p>
-                    </div>
-
-                    <div className="mt-4 grid gap-3">
-                      {option.features.map((feature) => (
-                        <div
-                          key={feature}
-                          className="flex items-start gap-2 px-2 text-sm leading-6 text-muted-foreground"
-                        >
-                          <CheckCircle2 className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button
-                      className="mt-6 w-full"
-                      disabled={!plan.managementReady}
-                      variant={option.current ? "secondary" : featured ? "default" : "outline"}
-                    >
-                      {option.current ? "Plan actual" : "Seleccionar plan"}
-                    </Button>
-                  </div>
+                    </Card>
+                  </motion.div>
                 );
               })}
             </div>
