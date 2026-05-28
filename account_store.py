@@ -61,7 +61,14 @@ def _parse_datetime(value: object) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(normalized)
     except ValueError:
-        return None
+        for date_format in ("%Y.%m.%d %H:%M:%S", "%Y.%m.%d %H:%M", "%Y.%m.%d"):
+            try:
+                parsed = datetime.strptime(value, date_format)
+                break
+            except ValueError:
+                parsed = None
+        if parsed is None:
+            return None
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)

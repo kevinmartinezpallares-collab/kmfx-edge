@@ -199,6 +199,32 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertEqual("account_id,trade_key", trade_post["query"]["on_conflict"])
         self.assertEqual("t-1", trade_post["payload"][0]["trade_key"])
 
+    def test_mt5_dot_timestamp_history_points_are_normalized(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+
+        service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "Darwinex",
+                "platform": "mt5",
+                "login": "4000082126",
+                "server": "Darwinex-Live",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 100000,
+                "equity": 100125,
+                "history": [{"timestamp": "2026.05.28 09:00:00", "value": 100125}],
+            },
+            api_key="darwinex-key",
+        )
+
+        equity_post = next(
+            call for call in store.table_calls if call["table"] == "mt5_equity_points" and call["method"] == "POST"
+        )
+        self.assertEqual("2026-05-28T09:00:00+00:00", equity_post["payload"][0]["point_time"])
+
     def test_full_snapshot_hydrates_compact_registry_from_normalized_tables(self):
         store = MemorySupabaseAccountStore()
         service = AccountService(store)
