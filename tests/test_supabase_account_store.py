@@ -10,6 +10,24 @@ class MemorySupabaseAccountStore(SupabaseAccountStore):
         super().__init__("https://example.supabase.co", "service-role-test")
         self.rows = []
         self.queries = []
+        self.table_calls = []
+        self.table_rows = {}
+
+    def _request_table(self, table, method, *, query=None, payload=None, prefer="return=representation"):
+        if table == self.table:
+            return self._request(method, query=query, payload=payload, prefer=prefer)
+        self.table_calls.append(
+            {
+                "table": table,
+                "method": method,
+                "query": dict(query or {}),
+                "payload": payload,
+                "prefer": prefer,
+            }
+        )
+        if method == "GET":
+            return self.table_rows.get(table, [])
+        return []
 
     def _request(self, method, *, query=None, payload=None, prefer="return=representation"):
         if method == "GET":
@@ -139,6 +157,99 @@ class SupabaseAccountStoreTests(unittest.TestCase):
         self.assertEqual("linked", linked.status)
         self.assertEqual("eq." + pending.account_id, store.queries[0]["account_id"])
         self.assertEqual("1", store.queries[0]["limit"])
+
+    def test_mt5_sync_writes_normalized_tables_without_full_payload_storage(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        pending = service.create_pending_account_with_key(
+            user_id="user-123",
+            alias="IC Markets",
+            connection_key="ic-key",
+        )
+        store.table_calls.clear()
+
+        synced = service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "IC Markets",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC-Demo",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 1000,
+                "equity": 1010,
+                "positions": [{"ticket": "p-1", "symbol": "EURUSD", "type": "BUY", "volume": 0.1, "profit": 10}],
+                "trades": [{"trade_id": "t-1", "ticket": "t-1", "symbol": "EURUSD", "profit": 25, "time": "2026-05-25T08:00:00Z"}],
+                "history": [{"timestamp": "2026-05-25T08:00:00Z", "value": 1010}],
+            },
+            account_id=pending.account_id,
+            api_key="ic-key",
+        )
+
+        self.assertEqual("storage-summary", synced.latest_payload["payloadShape"])
+        self.assertNotIn("trades", synced.latest_payload)
+        self.assertNotIn("history", synced.latest_payload)
+        tables = [call["table"] for call in store.table_calls]
+        self.assertIn("mt5_account_positions", tables)
+        self.assertIn("mt5_account_trades", tables)
+        self.assertIn("mt5_equity_points", tables)
+        trade_post = next(call for call in store.table_calls if call["table"] == "mt5_account_trades" and call["method"] == "POST")
+        self.assertEqual("account_id,trade_key", trade_post["query"]["on_conflict"])
+        self.assertEqual("t-1", trade_post["payload"][0]["trade_key"])
+
+    def test_full_snapshot_hydrates_compact_registry_from_normalized_tables(self):
+        store = MemorySupabaseAccountStore()
+        service = AccountService(store)
+        synced = service.ingest_account_snapshot(
+            user_id="user-123",
+            account_info={
+                "broker": "IC Markets",
+                "platform": "mt5",
+                "login": "52651704",
+                "server": "ICMarketsSC-Demo",
+            },
+            connection_mode="connector",
+            payload={
+                "balance": 1000,
+                "equity": 1010,
+                "positions": [],
+                "trades": [{"trade_id": "t-1", "ticket": "t-1", "symbol": "EURUSD", "profit": 25, "time": "2026-05-25T08:00:00Z"}],
+                "history": [{"timestamp": "2026-05-25T08:00:00Z", "value": 1010}],
+            },
+            api_key="ic-key",
+        )
+        self.assertEqual("storage-summary", synced.latest_payload["payloadShape"])
+
+        store.table_rows = {
+            "mt5_account_positions": [],
+            "mt5_account_trades": [
+                {
+                    "trade_key": "t-1",
+                    "ticket": "t-1",
+                    "symbol": "EURUSD",
+                    "side": "BUY",
+                    "profit": 25,
+                    "net": 25,
+                    "close_time": "2026-05-25T08:00:00Z",
+                }
+            ],
+            "mt5_equity_points": [
+                {
+                    "point_time": "2026-05-25T08:00:00Z",
+                    "value": 1010,
+                    "source": "mt5_sync",
+                }
+            ],
+        }
+
+        snapshot = service.build_accounts_snapshot("user-123", summary_only=False)
+        payload = snapshot["accounts"][0]["dashboard_payload"]
+
+        self.assertEqual("storage-summary", payload["payloadShape"])
+        self.assertEqual("t-1", payload["trades"][0]["trade_id"])
+        self.assertEqual(1010, payload["history"][0]["value"])
 
 
 if __name__ == "__main__":

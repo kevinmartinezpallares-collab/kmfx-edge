@@ -29,6 +29,17 @@ def _env_float(name: str, *, default: float) -> float:
     return parsed if parsed > 0 else default
 
 
+def _env_int(name: str, *, default: int) -> int:
+    value = str(os.getenv(name) or "").strip()
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 0 else default
+
+
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -88,6 +99,107 @@ def _first_present(*values: object) -> object:
         if value not in (None, ""):
             return value
     return None
+
+
+def _safe_float_or_none(value: object) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_int_or_none(value: object) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _iso_or_none(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(value), timezone.utc).isoformat()
+        except (OSError, OverflowError, ValueError):
+            return None
+    parsed = _parse_datetime(str(value))
+    return _serialize_datetime(parsed)
+
+
+def _record_key(item: dict, *fields: str, fallback: str = "") -> str:
+    for field in fields:
+        text = str(item.get(field) or "").strip()
+        if text:
+            return text
+    return fallback
+
+
+def _compact_raw(item: dict, allowed_keys: tuple[str, ...]) -> dict:
+    return {key: item.get(key) for key in allowed_keys if item.get(key) not in (None, "")}
+
+
+def _normalized_position_payload(row: dict) -> dict:
+    return {
+        "position_id": _first_text(row.get("position_key")),
+        "ticket": _first_text(row.get("ticket")),
+        "symbol": _first_text(row.get("symbol")),
+        "type": _first_text(row.get("side")),
+        "volume": row.get("volume"),
+        "open_price": row.get("price_open"),
+        "current_price": row.get("price_current"),
+        "sl": row.get("stop_loss"),
+        "tp": row.get("take_profit"),
+        "profit": row.get("profit"),
+        "swap": row.get("swap"),
+        "floating_pnl": row.get("floating_pnl"),
+        "risk_amount": row.get("risk_amount"),
+        "risk_pct": row.get("risk_pct"),
+        "risk_state": row.get("risk_state"),
+        "risk_calculable": row.get("risk_calculable"),
+        "time": row.get("opened_at"),
+        "time_unix": row.get("time_unix"),
+    }
+
+
+def _normalized_trade_payload(row: dict) -> dict:
+    return {
+        "trade_id": _first_text(row.get("trade_key")),
+        "ticket": _first_text(row.get("ticket")),
+        "deal_id": _first_text(row.get("deal_id")),
+        "order_id": _first_text(row.get("order_id")),
+        "position_id": _first_text(row.get("position_id")),
+        "symbol": _first_text(row.get("symbol")),
+        "type": _first_text(row.get("side")),
+        "volume": row.get("volume"),
+        "price": row.get("price"),
+        "open_price": row.get("open_price"),
+        "open_time": row.get("open_time"),
+        "close_time": row.get("close_time"),
+        "open_time_unix": row.get("open_time_unix"),
+        "time_unix": row.get("close_time_unix"),
+        "sl": row.get("stop_loss"),
+        "tp": row.get("take_profit"),
+        "profit": row.get("profit"),
+        "commission": row.get("commission"),
+        "swap": row.get("swap"),
+        "net": row.get("net"),
+        "strategy_tag": row.get("strategy_tag"),
+        "comment": row.get("comment"),
+        "time": row.get("close_time"),
+    }
+
+
+def _normalized_equity_payload(row: dict) -> dict:
+    return {
+        "timestamp": row.get("point_time"),
+        "value": row.get("value"),
+        "source": row.get("source"),
+    }
 
 
 def _projected_account_record(row: dict) -> dict:
@@ -284,6 +396,9 @@ class AccountStore(ABC):
     def save_accounts(self, accounts: Iterable[Account]) -> None:
         raise NotImplementedError
 
+    def save_normalized_snapshot(self, account: Account, payload: dict) -> None:
+        return None
+
 
 class JsonFileAccountStore(AccountStore):
     def __init__(self, path: str) -> None:
@@ -369,7 +484,6 @@ class SupabaseAccountStore(AccountStore):
             "payload_closed_pnl:record->latest_payload->>closedPnl",
             "payload_total_pnl:record->latest_payload->>totalPnl",
             "payload_open_positions_count:record->latest_payload->>openPositionsCount",
-            "payload_account:record->latest_payload->account",
             "payload_risk_summary:record->latest_payload->riskSnapshot->summary",
             "payload_risk_status:record->latest_payload->riskSnapshot->status",
         ]
@@ -391,7 +505,18 @@ class SupabaseAccountStore(AccountStore):
         payload: object | None = None,
         prefer: str = "return=representation",
     ) -> object:
-        url = f"{self.project_url}/rest/v1/{urllib.parse.quote(self.table)}"
+        return self._request_table(self.table, method, query=query, payload=payload, prefer=prefer)
+
+    def _request_table(
+        self,
+        table: str,
+        method: str,
+        *,
+        query: dict[str, str] | None = None,
+        payload: object | None = None,
+        prefer: str = "return=representation",
+    ) -> object:
+        url = f"{self.project_url}/rest/v1/{urllib.parse.quote(table)}"
         if query:
             url = f"{url}?{urllib.parse.urlencode(query)}"
         body = json.dumps(payload).encode("utf-8") if payload is not None else None
@@ -463,6 +588,78 @@ class SupabaseAccountStore(AccountStore):
             if isinstance(record, dict):
                 records.append(record)
         return [record_to_account(record) for record in records]
+
+    def list_accounts_with_normalized_payload_for_user(self, user_id: str) -> list[Account]:
+        accounts = self.list_accounts_for_user(user_id)
+        if not accounts:
+            return []
+
+        max_positions = _env_int("KMFX_NORMALIZED_MAX_OPEN_POSITIONS", default=50)
+        max_trades = _env_int("KMFX_NORMALIZED_MAX_TRADES", default=240)
+        max_equity_points = _env_int("KMFX_NORMALIZED_MAX_EQUITY_POINTS", default=400)
+        for account in accounts:
+            account_id = str(account.account_id or "").strip()
+            if not account_id:
+                continue
+            payload = dict(account.latest_payload or {})
+            try:
+                if max_positions > 0:
+                    position_rows = self._request_table(
+                        "mt5_account_positions",
+                        "GET",
+                        query={
+                            "select": "*",
+                            "account_id": f"eq.{account_id}",
+                            "order": "opened_at.asc.nullslast",
+                            "limit": str(max_positions),
+                        },
+                    )
+                    if isinstance(position_rows, list):
+                        payload["positions"] = [
+                            {key: value for key, value in _normalized_position_payload(row).items() if value not in (None, "")}
+                            for row in position_rows
+                            if isinstance(row, dict)
+                        ]
+
+                if max_trades > 0:
+                    trade_rows = self._request_table(
+                        "mt5_account_trades",
+                        "GET",
+                        query={
+                            "select": "*",
+                            "account_id": f"eq.{account_id}",
+                            "order": "close_time.desc.nullslast",
+                            "limit": str(max_trades),
+                        },
+                    )
+                    if isinstance(trade_rows, list):
+                        payload["trades"] = [
+                            {key: value for key, value in _normalized_trade_payload(row).items() if value not in (None, "")}
+                            for row in trade_rows
+                            if isinstance(row, dict)
+                        ]
+
+                if max_equity_points > 0:
+                    equity_rows = self._request_table(
+                        "mt5_equity_points",
+                        "GET",
+                        query={
+                            "select": "*",
+                            "account_id": f"eq.{account_id}",
+                            "order": "point_time.desc",
+                            "limit": str(max_equity_points),
+                        },
+                    )
+                    if isinstance(equity_rows, list):
+                        payload["history"] = [
+                            {key: value for key, value in _normalized_equity_payload(row).items() if value not in (None, "")}
+                            for row in reversed(equity_rows)
+                            if isinstance(row, dict)
+                        ]
+            except OSError as exc:
+                log.warning("Supabase normalized payload hydration skipped | account_id=%s error=%s", account_id, exc)
+            account.latest_payload = payload
+        return accounts
 
     def list_account_summaries_for_user(self, user_id: str) -> list[Account]:
         clean_user_id = str(user_id or "").strip()
@@ -581,3 +778,156 @@ class SupabaseAccountStore(AccountStore):
             payload=rows,
             prefer="resolution=merge-duplicates,return=minimal",
         )
+
+    def save_normalized_snapshot(self, account: Account, payload: dict) -> None:
+        if not isinstance(payload, dict):
+            return
+        account_id = str(account.account_id or "").strip()
+        user_id = str(account.user_id or "local").strip()
+        if not account_id:
+            return
+
+        positions = payload.get("positions") if isinstance(payload.get("positions"), list) else []
+        trades = payload.get("trades") if isinstance(payload.get("trades"), list) else []
+        history = payload.get("history") if isinstance(payload.get("history"), list) else []
+
+        # Open positions are a current-state table, so replace this account's
+        # rows on each accepted sync. The row count is intentionally small.
+        self._request_table(
+            "mt5_account_positions",
+            "DELETE",
+            query={"account_id": f"eq.{account_id}"},
+            prefer="return=minimal",
+        )
+        position_rows = []
+        for index, position in enumerate(item for item in positions if isinstance(item, dict)):
+            position_key = _record_key(position, "position_id", "ticket", fallback=f"position:{index}")
+            position_rows.append(
+                {
+                    "account_id": account_id,
+                    "user_id": user_id,
+                    "position_key": position_key,
+                    "ticket": str(position.get("ticket") or ""),
+                    "symbol": _first_text(position.get("symbol")),
+                    "side": _first_text(position.get("type"), position.get("side")),
+                    "volume": _safe_float_or_none(position.get("volume")),
+                    "price_open": _safe_float_or_none(_first_present(position.get("price_open"), position.get("open_price"))),
+                    "price_current": _safe_float_or_none(_first_present(position.get("price_current"), position.get("current_price"))),
+                    "stop_loss": _safe_float_or_none(_first_present(position.get("sl"), position.get("stop_loss"))),
+                    "take_profit": _safe_float_or_none(_first_present(position.get("tp"), position.get("take_profit"))),
+                    "profit": _safe_float_or_none(position.get("profit")),
+                    "swap": _safe_float_or_none(position.get("swap")),
+                    "floating_pnl": _safe_float_or_none(_first_present(position.get("floating_pnl"), position.get("floatingPnl"))),
+                    "risk_amount": _safe_float_or_none(position.get("risk_amount")),
+                    "risk_pct": _safe_float_or_none(position.get("risk_pct")),
+                    "risk_state": str(position.get("risk_state") or ""),
+                    "risk_calculable": bool(position.get("risk_calculable", True)),
+                    "opened_at": _iso_or_none(position.get("time")),
+                    "time_unix": _safe_int_or_none(position.get("time_unix")),
+                    "raw": _compact_raw(
+                        position,
+                        (
+                            "position_id",
+                            "ticket",
+                            "symbol",
+                            "type",
+                            "volume",
+                            "profit",
+                            "swap",
+                            "risk_state",
+                            "strategy_tag",
+                        ),
+                    ),
+                }
+            )
+        if position_rows:
+            self._request_table(
+                "mt5_account_positions",
+                "POST",
+                query={"on_conflict": "account_id,position_key"},
+                payload=position_rows,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+
+        trade_rows = []
+        for index, trade in enumerate(item for item in trades if isinstance(item, dict)):
+            trade_key = _record_key(trade, "trade_id", "ticket", "deal_id", "order_id", fallback=f"trade:{index}")
+            close_time = _iso_or_none(_first_present(trade.get("time"), trade.get("close_time")))
+            trade_rows.append(
+                {
+                    "account_id": account_id,
+                    "user_id": user_id,
+                    "trade_key": trade_key,
+                    "ticket": str(trade.get("ticket") or ""),
+                    "deal_id": str(trade.get("deal_id") or ""),
+                    "order_id": str(trade.get("order_id") or ""),
+                    "position_id": str(trade.get("position_id") or ""),
+                    "symbol": _first_text(trade.get("symbol")),
+                    "side": _first_text(trade.get("type"), trade.get("side"), trade.get("direction")),
+                    "volume": _safe_float_or_none(trade.get("volume")),
+                    "price": _safe_float_or_none(trade.get("price")),
+                    "open_price": _safe_float_or_none(trade.get("open_price")),
+                    "open_time": _iso_or_none(trade.get("open_time")),
+                    "close_time": close_time,
+                    "open_time_unix": _safe_int_or_none(trade.get("open_time_unix")),
+                    "close_time_unix": _safe_int_or_none(trade.get("time_unix")),
+                    "stop_loss": _safe_float_or_none(_first_present(trade.get("sl"), trade.get("stop_loss"))),
+                    "take_profit": _safe_float_or_none(_first_present(trade.get("tp"), trade.get("take_profit"))),
+                    "profit": _safe_float_or_none(trade.get("profit")),
+                    "commission": _safe_float_or_none(trade.get("commission")),
+                    "swap": _safe_float_or_none(trade.get("swap")),
+                    "net": _safe_float_or_none(trade.get("net")),
+                    "strategy_tag": str(trade.get("strategy_tag") or ""),
+                    "comment": str(trade.get("comment") or ""),
+                    "raw": _compact_raw(
+                        trade,
+                        (
+                            "trade_id",
+                            "ticket",
+                            "deal_id",
+                            "order_id",
+                            "position_id",
+                            "symbol",
+                            "type",
+                            "profit",
+                            "commission",
+                            "swap",
+                            "net",
+                            "strategy_tag",
+                        ),
+                    ),
+                }
+            )
+        if trade_rows:
+            self._request_table(
+                "mt5_account_trades",
+                "POST",
+                query={"on_conflict": "account_id,trade_key"},
+                payload=trade_rows,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+
+        equity_rows = []
+        for index, point in enumerate(item for item in history if isinstance(item, dict)):
+            value = _safe_float_or_none(_first_present(point.get("value"), point.get("equity"), point.get("balance")))
+            point_time = _iso_or_none(_first_present(point.get("timestamp"), point.get("time"), point.get("date")))
+            if value is None or point_time is None:
+                continue
+            equity_rows.append(
+                {
+                    "account_id": account_id,
+                    "user_id": user_id,
+                    "point_time": point_time,
+                    "value": value,
+                    "source": str(point.get("source") or "mt5_sync"),
+                    "raw": _compact_raw(point, ("timestamp", "time", "date", "label", "value", "equity", "balance")),
+                }
+            )
+        if equity_rows:
+            self._request_table(
+                "mt5_equity_points",
+                "POST",
+                query={"on_conflict": "account_id,point_time"},
+                payload=equity_rows,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )

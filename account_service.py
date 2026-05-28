@@ -1386,6 +1386,8 @@ class AccountService:
         list_summary_for_user = getattr(self.store, "list_account_summaries_for_user", None)
         if summary_only and callable(list_summary_for_user):
             source_accounts = list_summary_for_user(user_id)
+        elif not summary_only and callable(getattr(self.store, "list_accounts_with_normalized_payload_for_user", None)):
+            source_accounts = self.store.list_accounts_with_normalized_payload_for_user(user_id)
         else:
             source_accounts = self.list_accounts(user_id)
         accounts = [
