@@ -411,7 +411,15 @@ function portfolioCompanyName(account: TradingAccount) {
 }
 
 function portfolioCompanyLogoUrl(account: TradingAccount) {
-  const source = portfolioCompanyName(account).toLowerCase();
+  const source = [
+    account.funding?.firm,
+    account.label,
+    account.broker,
+    account.server,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin") && source.includes("zero")) {

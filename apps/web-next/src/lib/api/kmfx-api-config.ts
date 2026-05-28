@@ -1,10 +1,10 @@
 const PRODUCTION_API_BASE_URL = "https://kmfx-edge-api.onrender.com";
 const DEFAULT_SNAPSHOT_TIMEOUT_MS = 8_000;
-const DEFAULT_SNAPSHOT_CACHE_TTL_MS = 15_000;
+const DEFAULT_SNAPSHOT_CACHE_TTL_MS = 60_000;
 const MIN_SNAPSHOT_TIMEOUT_MS = 1_000;
 const MAX_SNAPSHOT_TIMEOUT_MS = 60_000;
 const MIN_SNAPSHOT_CACHE_TTL_MS = 0;
-const MAX_SNAPSHOT_CACHE_TTL_MS = 60_000;
+const MAX_SNAPSHOT_CACHE_TTL_MS = 120_000;
 
 export type SnapshotView = "full" | "summary";
 

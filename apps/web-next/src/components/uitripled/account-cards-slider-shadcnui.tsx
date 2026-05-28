@@ -258,7 +258,15 @@ function companyName(account: AccountRow) {
 }
 
 function companyLogoUrl(account: AccountRow) {
-  const source = companyName(account).toLowerCase();
+  const source = [
+    account.funding?.firm,
+    account.label,
+    account.broker,
+    account.server,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin") && source.includes("zero")) {

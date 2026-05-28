@@ -220,7 +220,15 @@ function getAccountCompanyName(
 function getAccountLogoUrl(
   account: WorkspaceState["accounts"][number] | undefined,
 ) {
-  const source = getAccountCompanyName(account).toLowerCase();
+  const source = [
+    account?.funding?.firm,
+    account?.label,
+    account?.broker,
+    account?.server,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   if (source.includes("ftmo")) return "/brand-logos/ftmo.png";
   if (source.includes("darwin") && source.includes("zero")) {

@@ -59,15 +59,15 @@ describe("kmfx-api-config", () => {
 
   it("keeps live snapshot cache TTL short and bounded for route navigation", () => {
     delete process.env.KMFX_SNAPSHOT_CACHE_TTL_MS;
-    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(15000);
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(60000);
 
     process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "-1";
-    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(15000);
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(60000);
 
     process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "0";
     expect(resolveKmfxSnapshotCacheTtlMs()).toBe(0);
 
     process.env.KMFX_SNAPSHOT_CACHE_TTL_MS = "120000";
-    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(60000);
+    expect(resolveKmfxSnapshotCacheTtlMs()).toBe(120000);
   });
 });
