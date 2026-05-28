@@ -227,6 +227,17 @@ Resultado actual:
 - Next local tiene los scripts de validacion necesarios;
 - Vercel local esta enlazado al proyecto legacy, por lo que el hosting beta separado sigue pendiente.
 
+## Nota De Coste Render 2026-05-28
+
+Para vigilar consumo antes de invitar usuarios, el repo incluye una auditoria read-only de minutos de deploy/pipeline de Render:
+
+```bash
+export RENDER_API_KEY="..."
+python3 scripts/render_pipeline_minutes_mtd.py --name-contains kmfx-edge-api
+```
+
+El script suma deploys desde el primer dia UTC del mes y separa triggers (`new_commit`, `api`, `service_resumed`, etc.). No consulta ni imprime secrets. En este entorno Codex no hay `RENDER_API_KEY` exportado, asi que la medicion live queda pendiente de ejecutar desde una sesion con token.
+
 ## Nota De Worker CORS 2026-05-28
 
 Durante la revision de cierre beta se comprobo que el Worker `mt5-api.kmfxedge.com` ya no proxyea `/api/accounts/snapshot`, pero la version desplegada todavia anade `Access-Control-Allow-Origin` a la respuesta `404` cuando el origen es `https://kmfxedge.com`.
