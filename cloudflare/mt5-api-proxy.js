@@ -134,15 +134,18 @@ function isLegacyBrowserLivePath(pathname) {
   ));
 }
 
-function jsonResponse(request, status, payload, extraHeaders = {}) {
+function jsonResponse(request, status, payload, extraHeaders = {}, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    "X-KMFX-Proxy": PROXY_NAME,
+    ...extraHeaders,
+  };
+  if (options.cors !== false) {
+    Object.assign(headers, Object.fromEntries(corsHeaders(request)));
+  }
   return new Response(request.method === "HEAD" ? null : JSON.stringify(payload), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      "X-KMFX-Proxy": PROXY_NAME,
-      ...Object.fromEntries(corsHeaders(request)),
-      ...extraHeaders,
-    },
+    headers,
   });
 }
 
@@ -155,11 +158,11 @@ async function handleRequest(request) {
 
   const incomingUrl = new URL(request.url);
   if (isLegacyBrowserLivePath(incomingUrl.pathname)) {
-    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" });
+    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" }, {}, { cors: false });
   }
 
   if (!isAllowedProxyPath(incomingUrl.pathname)) {
-    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" });
+    return jsonResponse(request, 404, { ok: false, reason: "path_not_found" }, {}, { cors: false });
   }
 
   if (request.method === "OPTIONS") {

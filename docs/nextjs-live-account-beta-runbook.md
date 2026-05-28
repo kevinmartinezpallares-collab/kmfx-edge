@@ -227,6 +227,19 @@ Resultado actual:
 - Next local tiene los scripts de validacion necesarios;
 - Vercel local esta enlazado al proyecto legacy, por lo que el hosting beta separado sigue pendiente.
 
+## Nota De Worker CORS 2026-05-28
+
+Durante la revision de cierre beta se comprobo que el Worker `mt5-api.kmfxedge.com` ya no proxyea `/api/accounts/snapshot`, pero la version desplegada todavia anade `Access-Control-Allow-Origin` a la respuesta `404` cuando el origen es `https://kmfxedge.com`.
+
+Estado preparado en repo:
+
+- `cloudflare/mt5-api-proxy.js` mantiene CORS solo para `/health` y rutas permitidas `/api/mt5/*`;
+- `/accounts`, `/api/accounts/*`, `/api/direct-mt5/*` y rutas no permitidas devuelven `404 path_not_found` sin CORS de navegador;
+- `scripts/production_smoke.py` incluye una asercion para detectar que `/api/accounts/snapshot?view=summary` en el Worker no se proxyea y no expone `Access-Control-Allow-Origin`;
+- validacion local: `node --check cloudflare/mt5-api-proxy.js` y harness Node de rutas legacy/MT5 OK.
+
+Pendiente operativo: desplegar el Worker actualizado en Cloudflare y repetir el smoke publico. Hasta ese despliegue, el riesgo no es filtrado de cuentas por Worker porque la ruta devuelve `404`, pero la cabecera CORS sigue mas permisiva de lo ideal en rutas no MT5.
+
 ## Evidencia Minima
 
 Registrar sin datos sensibles:

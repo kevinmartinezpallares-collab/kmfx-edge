@@ -229,6 +229,18 @@ class Smoke:
         self.check("mt5_api_cors_blocks_user_headers", "X-KMFX-User-Email" not in allow_headers, allow_headers)
         self.check("mt5_api_cors_no_wildcard", allowed.headers.get("access-control-allow-origin") != "*", str(allowed.headers))
 
+        accounts = self.request(
+            "GET",
+            self.mt5_api_url + "/api/accounts/snapshot?view=summary",
+            headers={"Origin": "https://kmfxedge.com"},
+        )
+        self.check("mt5_api_accounts_route_not_proxied", accounts.status == 404, f"status={accounts.status}")
+        self.check(
+            "mt5_api_accounts_route_has_no_browser_cors",
+            "access-control-allow-origin" not in accounts.headers,
+            str(accounts.headers),
+        )
+
         denied = self.request(
             "OPTIONS",
             self.mt5_api_url + "/api/mt5/sync",
