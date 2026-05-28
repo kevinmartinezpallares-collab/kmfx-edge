@@ -289,6 +289,21 @@ python3 scripts/production_smoke.py
 
 Pendiente operativo: desplegar el Worker actualizado en Cloudflare y repetir el smoke publico. Hasta ese despliegue, el riesgo no es filtrado de cuentas por Worker porque la ruta devuelve `404`, pero la cabecera CORS sigue mas permisiva de lo ideal en rutas no MT5.
 
+## Nota De Validacion Local 2026-05-28
+
+Con WebRequest de IC Markets pendiente, se continuo la validacion sin depender de esa cuenta:
+
+- `npm run typecheck` OK;
+- `npm run lint` OK;
+- `npm run test -- navigation visible-copy dashboard-selectors calendar-selectors analytics-selectors accounts-selectors portfolio-selectors trades-selectors settings-selectors` OK, 55 tests;
+- `npm run validate:cascade` OK, 20 archivos y 92 tests, seguido de typecheck/lint;
+- `npm run build` OK con Next 16.2.6;
+- servidor temporal en `127.0.0.1:3051` OK;
+- `KMFX_SMOKE_BASE_URL=http://127.0.0.1:3051 npm run test:smoke:routes` OK, 14 rutas V1, 16 avanzadas y 1 admin;
+- `KMFX_QA_BASE_URL=http://127.0.0.1:3051 npm run qa:mobile:v1` OK, 14 rutas V1 en dark/light.
+
+Estado: V1 local sigue verde. Los bloqueos vivos antes de beta externa son operativos, no visuales: deploy Worker CORS, proyecto Vercel beta separado, snapshot preview con bearer disponible y confirmacion WebRequest IC/segunda cuenta.
+
 ## Evidencia Minima
 
 Registrar sin datos sensibles:
