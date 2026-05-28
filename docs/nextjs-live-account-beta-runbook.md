@@ -202,22 +202,42 @@ Estado resultante:
 
 ## Nota De Hosting Beta 2026-05-28
 
-El proyecto Vercel enlazado localmente es `kmfx-edge` y sigue representando la superficie productiva/legacy con dominios `kmfxedge.com`, `www.kmfxedge.com` y `dashboard.kmfxedge.com`. No debe usarse para cortar `apps/web-next` encima de produccion.
+El proyecto Vercel de la raiz es `kmfx-edge` y sigue representando la superficie productiva/legacy con dominios `kmfxedge.com`, `www.kmfxedge.com` y `dashboard.kmfxedge.com`. No debe usarse para cortar `apps/web-next` encima de produccion.
 
 Decision operativa:
 
 - mantener `kmfxedge.com` como legacy mientras se prueba Next;
-- publicar Next en un proyecto/entorno separado o dominio beta dedicado;
+- publicar Next en el proyecto separado `kmfx-edge-next-beta`;
 - usar `beta.kmfxedge.com` como destino recomendado para beta cerrada;
 - configurar ahi, solo en entorno servidor, `KMFX_WAVE1_SOURCE=live`, `KMFX_API_BASE_URL`, `KMFX_SNAPSHOT_TIMEOUT_MS`, `KMFX_PREVIEW_BEARER_TOKEN`, `KMFX_PREVIEW_USER_EMAIL`, `KMFX_PREVIEW_USER_ID` y `KMFX_PREVIEW_ALLOW_FULL_SNAPSHOT`;
 - no promocionar el proyecto legacy actual como beta Next sin revisar framework/root directory/build command.
 
 Inventario Vercel actual:
 
-- el equipo Vercel solo muestra el proyecto `kmfx-edge`;
-- no existe todavia un proyecto beta separado para `apps/web-next`;
-- no se debe ejecutar deploy desde la raiz enlazada actual porque comparte superficie con legacy;
-- el proyecto beta recomendado debe crearse con root directory `apps/web-next`, framework Next.js y variables server-only de preview/live.
+- `apps/web-next` esta enlazado localmente a `kmfx-edge-next-beta`;
+- proyecto beta: `prj_XGqZvqB8OwYkRat3kC3cLCyHQ6d9`;
+- root directory: `apps/web-next`;
+- framework: Next.js;
+- build command: `npm run build`;
+- install command: `npm ci`;
+- deploy beta creado: `dpl_HNibFtpUZCyBHuP3t8qGvWGouqnB`;
+- URL tecnica Vercel: `https://kmfx-edge-next-beta.vercel.app`;
+- dominio previsto: `https://beta.kmfxedge.com`.
+
+Estado de acceso:
+
+- Vercel mantiene proteccion SSO sobre dominios `vercel.app`; una smoke externa contra esa URL devuelve `401`, esperado mientras la proteccion este activa;
+- `beta.kmfxedge.com` esta asignado al proyecto beta, pero aun no resuelve hasta crear el registro DNS;
+- no activar datos live publicos en Vercel sin decidir primero el gate de acceso beta.
+
+Registro DNS pendiente en Cloudflare:
+
+```text
+Type: A
+Name: beta
+Content: 76.76.21.21
+Proxy status: DNS only
+```
 
 Variables minimas para el proyecto beta:
 
@@ -238,6 +258,13 @@ Preflight operativo:
 python3 scripts/next_beta_preflight.py --scope platform
 python3 scripts/next_beta_preflight.py --scope full
 ```
+
+Estado actual:
+
+- `--scope platform` queda `ready`;
+- `--scope full` queda bloqueado por `snapshot_has_no_ready_account` cuando no hay bearer preview/identidad en la sesion;
+- el aviso `root_vercel_project_is_legacy_surface_do_not_cutover_next_here` es intencionado y recuerda que la raiz sigue ligada a legacy;
+- WebRequest de IC Markets sigue siendo el bloqueo operativo para cerrar multi-cuenta fresca, pero no bloquea plataforma ni beta con una sola cuenta lista.
 
 Con `RENDER_API_KEY` disponible en la sesion, el preflight lee las variables preview desde Render sin imprimir secretos y comprueba backend, Worker, snapshot summary, scripts de Next y el enlace Vercel local.
 

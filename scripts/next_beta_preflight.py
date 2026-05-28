@@ -232,15 +232,39 @@ def local_next_checks() -> dict[str, Any]:
 
 
 def vercel_local_check() -> dict[str, Any]:
-    project_path = ROOT / ".vercel" / "project.json"
-    if not project_path.exists():
-        return {"linked": False}
-    payload = json.loads(project_path.read_text(encoding="utf-8"))
+    root_project_path = ROOT / ".vercel" / "project.json"
+    web_next_project_path = WEB_NEXT / ".vercel" / "project.json"
+
+    def load_project(path: Path) -> dict[str, Any]:
+        if not path.exists():
+            return {"linked": False}
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return {
+            "linked": True,
+            "projectName": payload.get("projectName"),
+            "projectId": payload.get("projectId"),
+        }
+
+    root_project = load_project(root_project_path)
+    web_next_project = load_project(web_next_project_path)
+    warnings: list[str] = []
+    blockers: list[str] = []
+
+    if root_project.get("linked"):
+        warnings.append("root_vercel_project_is_legacy_surface_do_not_cutover_next_here")
+    if not web_next_project.get("linked"):
+        blockers.append("apps_web_next_vercel_project_not_linked")
+    elif web_next_project.get("projectName") != "kmfx-edge-next-beta":
+        blockers.append("apps_web_next_vercel_project_is_not_beta")
+
     return {
-        "linked": True,
-        "projectName": payload.get("projectName"),
-        "projectId": payload.get("projectId"),
-        "warning": "root_vercel_project_is_legacy_surface_do_not_cutover_next_here",
+        "linked": bool(web_next_project.get("linked")),
+        "projectName": web_next_project.get("projectName"),
+        "projectId": web_next_project.get("projectId"),
+        "rootProjectName": root_project.get("projectName"),
+        "rootProjectId": root_project.get("projectId"),
+        "warnings": warnings,
+        "blockers": blockers,
     }
 
 
@@ -303,8 +327,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         warnings.append("snapshot_not_ready_ignored_in_platform_scope")
     if snapshot["stale"]:
         warnings.append(f"snapshot_has_stale_accounts:{snapshot['stale']}")
-    if vercel.get("warning"):
-        warnings.append(str(vercel["warning"]))
+    warnings.extend(str(item) for item in vercel.get("warnings", []))
+    blockers.extend(str(item) for item in vercel.get("blockers", []))
     if git["ahead"]:
         warnings.append("local_branch_ahead_of_origin")
     if git["dirty_entries"]:
@@ -345,7 +369,11 @@ def print_human(report: dict[str, Any]) -> None:
         )
     )
     print(f"Next local: exists={report['local_next']['exists']} scripts={report['local_next']['scripts']}")
-    print(f"Vercel local: linked={report['vercel'].get('linked')} project={report['vercel'].get('projectName')}")
+    print(
+        "Vercel local: linked={linked} project={projectName} root_project={rootProjectName}".format(
+            **report["vercel"]
+        )
+    )
     print(f"Git: branch={report['git']['branch']} ahead={report['git']['ahead']} dirty_entries={report['git']['dirty_entries']}")
     if report["warnings"]:
         print("Avisos:")
