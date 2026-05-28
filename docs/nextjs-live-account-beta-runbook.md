@@ -304,6 +304,12 @@ Con WebRequest de IC Markets pendiente, se continuo la validacion sin depender d
 
 Estado: V1 local sigue verde. Los bloqueos vivos antes de beta externa son operativos, no visuales: deploy Worker CORS, proyecto Vercel beta separado, snapshot preview con bearer disponible y confirmacion WebRequest IC/segunda cuenta.
 
+## Nota De Versionado Next 2026-05-28
+
+`apps/web-next` queda versionada en Git para poder crear un proyecto beta reproducible desde repositorio. Se incluyeron fuente, tests, fixtures controladas, scripts QA, `package-lock.json` y assets publicos; se excluyeron `node_modules`, `.next`, `.playwright-cli`, `output`, coverage, `.env*`, `next-env.d.ts` y `*.tsbuildinfo`.
+
+Impacto: el siguiente despliegue beta ya no depende de una copia local no rastreada. El proyecto Vercel beta debe apuntar a `apps/web-next` como root directory.
+
 ## Evidencia Minima
 
 Registrar sin datos sensibles:
