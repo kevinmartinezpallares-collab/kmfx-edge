@@ -274,7 +274,7 @@ function companyLogoUrl(account: AccountRow) {
   if (source.includes("darwin") && source.includes("zero")) {
     return "/brand-logos/darwinex-zero.webp";
   }
-  if (source.includes("darwin")) return "/brand-logos/darwinex.svg";
+  if (source.includes("darwin")) return "/brand-logos/darwinex.png";
   if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
   if (source.includes("funding pips")) {
     return "/brand-logos/the-funding-pips.jpeg";
@@ -284,7 +284,7 @@ function companyLogoUrl(account: AccountRow) {
     return "/brand-logos/the5ers.png";
   }
   if (source.includes("ic markets") || source.includes("icmarkets")) {
-    return "/brand-logos/ic-markets.svg";
+    return "/brand-logos/ic-markets.png";
   }
   if (source.includes("pepperstone")) {
     return "/brand-logos/pepperstone.svg";
@@ -308,13 +308,20 @@ function AccountLogoImage({
 }) {
   if (src.startsWith("/")) {
     return (
-      <Image
-        src={src}
-        alt={alt}
-        width={size}
-        height={size}
-        className={cn("size-full object-contain", className)}
-      />
+      <span
+        className={cn(
+          "flex size-full items-center justify-center overflow-hidden rounded-full",
+          className,
+        )}
+      >
+        <Image
+          src={src}
+          alt={alt}
+          width={size}
+          height={size}
+          className="size-full rounded-full object-contain"
+        />
+      </span>
     );
   }
 

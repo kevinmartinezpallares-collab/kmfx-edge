@@ -243,7 +243,7 @@ function getAccountLogoUrl(
   if (source.includes("darwin") && source.includes("zero")) {
     return "/brand-logos/darwinex-zero.webp";
   }
-  if (source.includes("darwin")) return "/brand-logos/darwinex.svg";
+  if (source.includes("darwin")) return "/brand-logos/darwinex.png";
   if (source.includes("orion")) return "/brand-logos/orion-funded.jpeg";
   if (source.includes("funding pips")) return "/brand-logos/the-funding-pips.jpeg";
   if (source.includes("wsf")) return "/brand-logos/wsf.png";
@@ -251,7 +251,7 @@ function getAccountLogoUrl(
     return "/brand-logos/the5ers.png";
   }
   if (source.includes("ic markets") || source.includes("icmarkets")) {
-    return "/brand-logos/ic-markets.svg";
+    return "/brand-logos/ic-markets.png";
   }
   if (source.includes("pepperstone")) return "/brand-logos/pepperstone.svg";
 
