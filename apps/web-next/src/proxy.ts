@@ -43,11 +43,6 @@ function isAuthRoute(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/auth/");
 }
 
-function isDownloadRoute(pathname: string) {
-  const connectorPath = `/${["KMFX", "Connector.ex5"].join("")}`;
-  return pathname.startsWith("/downloads/") || pathname === connectorPath;
-}
-
 export async function proxy(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith("/debug") &&
@@ -66,10 +61,6 @@ export async function proxy(request: NextRequest) {
 
   const session = await updateSupabaseSession(request);
   const pathname = request.nextUrl.pathname;
-
-  if (isDownloadRoute(pathname)) {
-    return session.response;
-  }
 
   if (!session.configured) {
     return session.response;
