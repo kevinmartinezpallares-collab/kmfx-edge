@@ -45,6 +45,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 
 When `KMFX_NEXT_AUTH_MODE=supabase` is active, live snapshots use the authenticated user's Supabase JWT and disable process-level snapshot caching to avoid cross-user data reuse.
 
+Billing routes for the student beta live under `/api/kmfx/billing/*`. They proxy to the existing backend with the authenticated Supabase JWT; Next does not call Stripe directly and must not store billing secrets.
+
 ## Vercel Beta Setup
 
 Create a separate Vercel project for beta. Use `apps/web-next` as the root directory and `beta.kmfxedge.com` as the beta domain. Do not deploy this app over the existing legacy `kmfx-edge` production project.
