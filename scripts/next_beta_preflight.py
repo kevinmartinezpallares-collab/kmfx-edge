@@ -41,13 +41,14 @@ def request_json_with_headers(
     headers: dict[str, str] | None = None,
     method: str = "GET",
     timeout: int = 20,
+    body: bytes | None = None,
 ) -> tuple[int, Any, dict[str, str]]:
     request_headers = {
         "Accept": "application/json",
         "User-Agent": "KMFX-Next-Beta-Preflight/1.0",
         **(headers or {}),
     }
-    request = urllib.request.Request(url, headers=request_headers, method=method)
+    request = urllib.request.Request(url, data=body, headers=request_headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read()
@@ -67,6 +68,25 @@ def request_json_with_headers(
 def request_json(url: str, *, headers: dict[str, str] | None = None, timeout: int = 20) -> tuple[int, Any]:
     status, payload, _headers = request_json_with_headers(url, headers=headers, timeout=timeout)
     return status, payload
+
+
+def request_json_payload(
+    url: str,
+    payload: dict[str, Any],
+    *,
+    headers: dict[str, str] | None = None,
+    method: str = "POST",
+    timeout: int = 20,
+) -> tuple[int, Any, dict[str, str]]:
+    request_headers = {"Content-Type": "application/json", **(headers or {})}
+    body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return request_json_with_headers(
+        url,
+        headers=request_headers,
+        method=method,
+        timeout=timeout,
+        body=body,
+    )
 
 
 def render_env(service_id: str, key: str) -> str:
@@ -215,6 +235,121 @@ def browser_surface_audit(api_base_url: str, worker_base_url: str) -> dict[str, 
     }
 
 
+def payload_has_sensitive_account_key(payload: Any) -> bool:
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            normalized_key = str(key).lower().replace("-", "_")
+            if normalized_key in {"connection_key", "kmfx_key", "account_key"} and value:
+                return True
+            if normalized_key == "key" and isinstance(value, str) and value.strip():
+                return True
+            if payload_has_sensitive_account_key(value):
+                return True
+    if isinstance(payload, list):
+        return any(payload_has_sensitive_account_key(item) for item in payload)
+    return False
+
+
+def student_surface_audit(api_base_url: str) -> dict[str, Any]:
+    base_url = api_base_url.rstrip("/")
+    snapshot_status, snapshot_payload, _snapshot_headers = request_json_with_headers(
+        f"{base_url}/api/accounts/snapshot?view=summary",
+        timeout=20,
+    )
+    snapshot_accounts = snapshot_payload.get("accounts") if isinstance(snapshot_payload, dict) else None
+    snapshot_closed = (
+        snapshot_status == 200
+        and isinstance(snapshot_payload, dict)
+        and snapshot_payload.get("auth_required") is True
+        and snapshot_accounts == []
+    )
+
+    checkout_status, checkout_payload, _checkout_headers = request_json_payload(
+        f"{base_url}/api/billing/checkout",
+        {},
+        timeout=20,
+    )
+    checkout_open = (
+        200 <= checkout_status < 300
+        and isinstance(checkout_payload, dict)
+        and bool(checkout_payload.get("checkout_url") or checkout_payload.get("url"))
+    )
+    checkout_requires_auth = checkout_status == 401 and (
+        isinstance(checkout_payload, dict) and checkout_payload.get("reason") == "auth_required"
+    )
+
+    portal_status, portal_payload, _portal_headers = request_json_payload(
+        f"{base_url}/api/billing/portal",
+        {},
+        timeout=20,
+    )
+    portal_open = (
+        200 <= portal_status < 300
+        and isinstance(portal_payload, dict)
+        and bool(portal_payload.get("portal_url") or portal_payload.get("url"))
+    )
+    portal_requires_auth = portal_status == 401 and (
+        isinstance(portal_payload, dict) and portal_payload.get("reason") == "auth_required"
+    )
+
+    link_status, link_payload, _link_headers = request_json_payload(
+        f"{base_url}/api/accounts/link",
+        {"alias": "KMFX preflight unauth"},
+        timeout=20,
+    )
+    link_open = (
+        200 <= link_status < 300
+        and isinstance(link_payload, dict)
+        and link_payload.get("ok") is True
+        and (bool(link_payload.get("account") or link_payload.get("account_id")) or payload_has_sensitive_account_key(link_payload))
+    )
+    link_requires_auth = link_status == 401 and (
+        isinstance(link_payload, dict) and link_payload.get("reason") == "auth_required"
+    )
+
+    fake_account_id = "preflight-no-auth-account"
+    key_status, key_payload, _key_headers = request_json_with_headers(
+        f"{base_url}/api/accounts/{urllib.parse.quote(fake_account_id, safe='')}/connection-key",
+        timeout=20,
+    )
+    connection_key_open = 200 <= key_status < 300 and payload_has_sensitive_account_key(key_payload)
+    connection_key_requires_auth = key_status == 401 and (
+        isinstance(key_payload, dict) and key_payload.get("reason") == "auth_required"
+    )
+
+    student_auth_confirmed = env_value("KMFX_STUDENT_BETA_AUTH_READY") in {"1", "true", "TRUE", "yes", "YES"}
+    student_billing_confirmed = env_value("KMFX_STUDENT_BETA_BILLING_VERIFIED") in {"1", "true", "TRUE", "yes", "YES"}
+    student_launcher_confirmed = env_value("KMFX_STUDENT_BETA_LAUNCHER_VERIFIED") in {"1", "true", "TRUE", "yes", "YES"}
+    student_reconciliation_confirmed = env_value("KMFX_STUDENT_BETA_RECONCILIATION_VERIFIED") in {
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    }
+
+    return {
+        "snapshot_closed_without_auth": snapshot_closed,
+        "snapshot_status": snapshot_status,
+        "checkout_requires_auth": checkout_requires_auth,
+        "checkout_status": checkout_status,
+        "checkout_open_without_auth": checkout_open,
+        "portal_requires_auth": portal_requires_auth,
+        "portal_status": portal_status,
+        "portal_open_without_auth": portal_open,
+        "account_link_requires_auth": link_requires_auth,
+        "account_link_status": link_status,
+        "account_link_open_without_auth": link_open,
+        "connection_key_requires_auth": connection_key_requires_auth,
+        "connection_key_status": key_status,
+        "connection_key_open_without_auth": connection_key_open,
+        "auth_confirmed": student_auth_confirmed,
+        "billing_confirmed": student_billing_confirmed,
+        "launcher_confirmed": student_launcher_confirmed,
+        "reconciliation_confirmed": student_reconciliation_confirmed,
+    }
+
+
 def local_next_checks() -> dict[str, Any]:
     package_json_path = WEB_NEXT / "package.json"
     result = {
@@ -300,6 +435,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     worker_health = health_check(worker_base_url)
     snapshot = snapshot_audit(api_base_url, headers)
     surface = browser_surface_audit(api_base_url, worker_base_url)
+    student = student_surface_audit(api_base_url) if scope == "student" else {}
     local_next = local_next_checks()
     vercel = vercel_local_check()
     git = git_summary()
@@ -325,6 +461,35 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("snapshot_has_no_ready_account")
     elif scope == "platform" and not snapshot["ok"]:
         warnings.append("snapshot_not_ready_ignored_in_platform_scope")
+    elif scope == "student" and not snapshot["ok"]:
+        warnings.append("snapshot_not_ready_ignored_until_student_auth_scope_has_user")
+    if scope == "student":
+        if not student.get("snapshot_closed_without_auth"):
+            blockers.append("student_snapshot_without_auth_not_closed")
+        if not student.get("checkout_requires_auth"):
+            blockers.append("student_billing_checkout_auth_contract_failed")
+        if student.get("checkout_open_without_auth"):
+            blockers.append("student_billing_checkout_open_without_auth")
+        if not student.get("portal_requires_auth"):
+            blockers.append("student_billing_portal_auth_contract_failed")
+        if student.get("portal_open_without_auth"):
+            blockers.append("student_billing_portal_open_without_auth")
+        if not student.get("account_link_requires_auth"):
+            blockers.append("student_account_link_auth_contract_failed")
+        if student.get("account_link_open_without_auth"):
+            blockers.append("student_account_link_open_without_auth")
+        if not student.get("connection_key_requires_auth"):
+            blockers.append("student_connection_key_auth_contract_failed")
+        if student.get("connection_key_open_without_auth"):
+            blockers.append("student_connection_key_open_without_auth")
+        if not student.get("auth_confirmed"):
+            blockers.append("student_auth_user_isolation_not_confirmed")
+        if not student.get("billing_confirmed"):
+            blockers.append("student_billing_live_rehearsal_not_confirmed")
+        if not student.get("launcher_confirmed"):
+            blockers.append("student_launcher_flow_not_confirmed")
+        if not student.get("reconciliation_confirmed"):
+            blockers.append("student_mt5_reconciliation_not_confirmed")
     if snapshot["stale"]:
         warnings.append(f"snapshot_has_stale_accounts:{snapshot['stale']}")
     warnings.extend(str(item) for item in vercel.get("warnings", []))
@@ -342,6 +507,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "render": render_health,
         "worker": worker_health,
         "surface": surface,
+        "student": student,
         "snapshot": snapshot,
         "local_next": local_next,
         "vercel": vercel,
@@ -362,6 +528,18 @@ def print_human(report: dict[str, Any]) -> None:
             **surface
         )
     )
+    if report.get("student"):
+        student = report["student"]
+        print(
+            "Student gates: snapshot_closed={snapshot_closed_without_auth}, checkout_auth={checkout_requires_auth}, portal_auth={portal_requires_auth}, account_link_auth={account_link_requires_auth}, key_auth={connection_key_requires_auth}".format(
+                **student
+            )
+        )
+        print(
+            "Student confirmations: auth={auth_confirmed}, billing={billing_confirmed}, launcher={launcher_confirmed}, reconciliation={reconciliation_confirmed}".format(
+                **student
+            )
+        )
     snapshot = report["snapshot"]
     print(
         "Snapshot: accounts={accounts}, ready={ready}, stale={stale}, missing_payload={missing_payload}, auth_required={auth_required}".format(
@@ -390,7 +568,7 @@ def main() -> int:
     parser.add_argument("--render-service-id", default="")
     parser.add_argument("--api-base-url", default="")
     parser.add_argument("--worker-base-url", default="")
-    parser.add_argument("--scope", choices=("full", "platform"), default="full")
+    parser.add_argument("--scope", choices=("full", "platform", "student"), default="full")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     report = build_report(args)

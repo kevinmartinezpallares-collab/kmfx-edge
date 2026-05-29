@@ -1,10 +1,10 @@
-# KMFX Edge Next.js Migration Status - 2026-05-28
+# KMFX Edge Next.js Migration Status - 2026-05-29
 
-Estado: checkpoint operativo tras publicar la plataforma beta separada.
+Estado: checkpoint operativo tras publicar la plataforma beta separada y abrir gate especifico para beta de alumnos.
 
 ## Resumen
 
-La V1 visual y funcional local queda cerrada para prueba read-only. La app Next ya esta versionada, tiene CI propio, build verde y gates de rutas V1. WebRequest de IC Markets no debe bloquear el resto del roadmap: solo afecta a la confirmacion multi-cuenta/frescura live.
+La V1 visual y funcional local queda cerrada para prueba read-only. La app Next ya esta versionada, tiene CI propio, build verde y gates de rutas V1. La siguiente etapa ya no debe tratarse como beta visual: para invitar alumnos hace falta validar usuario normal, billing, launcher y reconciliacion MT5 real.
 
 ## Beta Externa
 
@@ -25,11 +25,15 @@ Listo:
 - `python3 scripts/next_beta_preflight.py --scope platform` queda `ready`.
 - `python3 scripts/next_beta_preflight.py --scope full` queda `ready` con bearer preview: 2 cuentas, 1 fresca y 1 stale.
 - `qa:live:integrity` queda `ready` con ventana ampliada de 300 minutos; con ventana estricta de 60 minutos solo bloquea IC Markets por stale.
+- `python3 scripts/next_beta_preflight.py --scope student` comprueba que snapshot, checkout, portal, link de cuenta y lectura de KMFXKey queden cerrados sin autenticacion. En la ultima pasada los contratos tecnicos estaban cerrados, pero el scope queda bloqueado hasta confirmar auth de usuario normal, rehearsal billing, launcher y reconciliacion MT5.
 
 Pendiente antes de invitar usuarios:
 
-- configurar DNS de `beta.kmfxedge.com` en Cloudflare con `A beta 76.76.21.21`; el token OAuth actual solo tiene `zone:read` y devuelve `403` al leer/escribir DNS;
-- confirmar WebRequest de IC Markets para cerrar multi-cuenta fresca;
+- ejecutar auditoria como usuario normal con email no admin.
+- confirmar compra/plan o rehearsal controlado de billing y Customer Portal.
+- validar Launcher macOS/Windows desde descarga beta y cuenta nueva.
+- reconciliar MT5 contra Next sin desviacion en numero de operaciones, balance/equity y PnL.
+- confirmar WebRequest de todas las cuentas usadas en la prueba multi-cuenta.
 
 ## Roadmap Por Fase
 
@@ -43,7 +47,7 @@ Pendiente antes de invitar usuarios:
 - Fase 7, Wave 2 secundaria: implementada parcialmente, pero rutas avanzadas quedan como `Proximamente` en V1.
 - Fase 8, superficies sensibles: pospuesta para chats dedicados; no abrir RiskGuard, Review, Playbooks, Prop Firms, Mercado ni Ejecucion hasta cerrar producto y seguridad por seccion.
 - Fase 9, producto diferencial V2: contratos preparados; pendiente funding cockpit real, portfolio policy real, evaluation engine, persistencia/editor y export EA seguro.
-- Fase 10, QA integral: local V1 verde y plataforma beta separada lista con live protegido; pendiente DNS, QA accesibilidad/performance y paridad contra cuentas reales.
+- Fase 10, QA integral: local V1 verde y plataforma beta separada lista con live protegido; pendiente gate `student`, QA accesibilidad/performance y paridad contra cuentas reales.
 - Fase 11, cutover: pendiente. Debe empezar con subdominio beta, no con `kmfxedge.com`.
 
 ## No Reabrir Ahora
@@ -58,8 +62,8 @@ Pendiente antes de invitar usuarios:
 
 ## Proximo Paso Recomendado
 
-1. Crear el registro DNS de `beta.kmfxedge.com` con un token Cloudflare que tenga `Zone DNS Edit`.
-2. Confirmar WebRequest IC Markets y/o usar Darwinex como cuenta unica fresca.
-3. Repetir preflight `--scope full` tras el WebRequest de IC.
-4. Ejecutar QA beta final en `beta.kmfxedge.com`.
-5. Invitar primer grupo beta read-only.
+1. Ejecutar `python3 scripts/next_beta_preflight.py --scope student` y mantenerlo como bloqueo de alumnos hasta cerrar las confirmaciones.
+2. Hacer auditoria de usuario normal: login, plan, no-admin, alta de cuenta y descarga Launcher.
+3. Reconciliar Darwinex, IC Markets y cualquier tercera cuenta contra MT5 con conteo exacto de operaciones.
+4. Repetir QA beta final en `beta.kmfxedge.com`.
+5. Invitar primer grupo beta solo cuando el scope `student` quede `ready`.
