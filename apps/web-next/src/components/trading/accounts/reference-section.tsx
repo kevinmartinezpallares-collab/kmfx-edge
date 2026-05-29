@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { WorkspaceState } from "@/lib/contracts/workspace-state";
+import { resolveConnectionAccess } from "@/lib/billing/connection-access";
 import { getAccountsOverview } from "@/lib/domain/accounts-selectors";
 import { formatCurrency } from "@/lib/formatters/numbers";
 
@@ -52,6 +53,13 @@ export function AccountsReferenceSection({
     message: "",
     status: "idle",
   });
+  const [connectionAccess, setConnectionAccess] = React.useState<{
+    message: string;
+    status: "idle" | "pending" | "ready" | "blocked" | "error";
+  }>({
+    message: "",
+    status: "idle",
+  });
   const accountsOverview = getAccountsOverview(workspace);
   const accountRows = accountsOverview.rows;
   const connectedCount = accountRows.filter(
@@ -65,8 +73,71 @@ export function AccountsReferenceSection({
     accountRows[0]?.lastSyncLabel ??
     "Sin datos";
   const linkPending = linkState.status === "pending";
+  const connectionReady = connectionAccess.status === "ready";
+
+  React.useEffect(() => {
+    if (!isAddAccountOpen) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function checkConnectionAccess() {
+      setConnectionAccess({
+        message: "Comprobando plan activo...",
+        status: "pending",
+      });
+
+      try {
+        const response = await fetch("/api/kmfx/billing/status", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => ({}));
+
+        if (response.status === 401 || payload?.auth_required) {
+          router.push("/login?next=/accounts");
+          return;
+        }
+
+        const access = resolveConnectionAccess(response.ok ? payload : { ok: false });
+
+        setConnectionAccess({
+          message: access.message,
+          status: access.allowed ? "ready" : "blocked",
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setConnectionAccess({
+          message: "No se pudo comprobar el plan ahora. Inténtalo de nuevo.",
+          status: "error",
+        });
+      }
+    }
+
+    void checkConnectionAccess();
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAddAccountOpen, router]);
 
   async function prepareLauncherAccount() {
+    if (connectionAccess.status !== "ready") {
+      setLinkState({
+        accountId: "",
+        connectionKey: "",
+        message:
+          connectionAccess.message ||
+          "Activa primero la suscripción para añadir cuentas MT5.",
+        status: "error",
+      });
+      return;
+    }
+
     setLinkState({
       accountId: "",
       connectionKey: "",
@@ -222,7 +293,7 @@ export function AccountsReferenceSection({
               ].map((option) => (
                 <button
                   className="flex min-h-32 flex-col justify-between rounded-xl border border-border/70 bg-background/45 p-4 text-left transition-colors hover:bg-muted/55 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
-                  disabled={!option.enabled || linkPending}
+                  disabled={!option.enabled || linkPending || !connectionReady}
                   key={option.title}
                   onClick={() => {
                     if (option.enabled) void prepareLauncherAccount();
@@ -248,12 +319,15 @@ export function AccountsReferenceSection({
             >
               <p
                 className={
-                  linkState.status === "error"
+                  linkState.status === "error" ||
+                  connectionAccess.status === "blocked" ||
+                  connectionAccess.status === "error"
                     ? "text-sm text-destructive"
                     : "text-sm text-muted-foreground"
                 }
               >
                 {linkState.message ||
+                  connectionAccess.message ||
                   "Conectar MT5 crea una cuenta pendiente y una KMFX Key para el EA."}
               </p>
               {linkState.connectionKey ? (
@@ -294,14 +368,26 @@ export function AccountsReferenceSection({
                     label: "EA",
                   },
                 ].map((download) => (
-                  <a
-                    className={buttonVariants({ size: "sm", variant: "outline" })}
-                    href={download.href}
-                    key={download.href}
-                  >
-                    <Download data-icon="inline-start" />
-                    Descargar {download.label}
-                  </a>
+                  connectionReady ? (
+                    <a
+                      className={buttonVariants({ size: "sm", variant: "outline" })}
+                      href={download.href}
+                      key={download.href}
+                    >
+                      <Download data-icon="inline-start" />
+                      Descargar {download.label}
+                    </a>
+                  ) : (
+                    <button
+                      className={buttonVariants({ size: "sm", variant: "outline" })}
+                      disabled
+                      key={download.href}
+                      type="button"
+                    >
+                      <Download data-icon="inline-start" />
+                      Descargar {download.label}
+                    </button>
+                  )
                 ))}
               </div>
             </div>
@@ -320,7 +406,7 @@ export function AccountsReferenceSection({
                 Cerrar
               </Button>
               <Button
-                disabled={linkPending}
+                disabled={linkPending || !connectionReady}
                 type="button"
                 onClick={() => void prepareLauncherAccount()}
               >
