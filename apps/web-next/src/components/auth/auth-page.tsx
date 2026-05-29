@@ -31,6 +31,26 @@ import {
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { hasSupabasePublicConfig } from "@/lib/supabase/config";
 
+declare global {
+  interface Window {
+    turnstile?: {
+      remove?: (widgetId: string) => void;
+      render: (
+        container: HTMLElement,
+        options: {
+          action?: string;
+          callback?: (token: string) => void;
+          "error-callback"?: () => void;
+          "expired-callback"?: () => void;
+          sitekey: string;
+          theme?: "auto" | "dark" | "light";
+        },
+      ) => string;
+      reset?: (widgetId: string) => void;
+    };
+  }
+}
+
 const accessHighlights = [
   {
     icon: ChartNoAxesCombinedIcon,
@@ -59,10 +79,91 @@ export function AuthPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [captchaToken, setCaptchaToken] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "loading">("idle");
   const [message, setMessage] = React.useState("");
+  const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = React.useRef<string | null>(null);
   const nextPath = searchParams.get("next") || "/dashboard";
   const authConfigured = hasSupabasePublicConfig();
+  const turnstileSiteKey =
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ||
+    "0x4AAAAAACxJdw3wjMn7Jm0K";
+
+  const resetTurnstile = React.useCallback(() => {
+    setCaptchaToken("");
+    const widgetId = turnstileWidgetIdRef.current;
+    if (widgetId && window.turnstile?.reset) {
+      window.turnstile.reset(widgetId);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!authConfigured || !turnstileSiteKey || !turnstileContainerRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    const renderTurnstile = () => {
+      if (
+        cancelled ||
+        !turnstileContainerRef.current ||
+        !window.turnstile?.render ||
+        turnstileWidgetIdRef.current
+      ) {
+        return;
+      }
+
+      const theme =
+        document.documentElement.getAttribute("data-theme") === "dark"
+          ? "dark"
+          : "light";
+
+      turnstileWidgetIdRef.current = window.turnstile.render(
+        turnstileContainerRef.current,
+        {
+          action: "signin",
+          callback: (token) => setCaptchaToken(token || ""),
+          "error-callback": () => {
+            setCaptchaToken("");
+            setMessage("No hemos podido validar la protección anti-bots.");
+          },
+          "expired-callback": () => {
+            setCaptchaToken("");
+            setMessage("La verificación ha caducado. Vuelve a intentarlo.");
+          },
+          sitekey: turnstileSiteKey,
+          theme,
+        },
+      );
+    };
+
+    if (window.turnstile?.render) {
+      renderTurnstile();
+    } else {
+      const existingScript = document.getElementById("kmfx-turnstile-script");
+      if (existingScript) {
+        existingScript.addEventListener("load", renderTurnstile, { once: true });
+      } else {
+        const script = document.createElement("script");
+        script.async = true;
+        script.defer = true;
+        script.id = "kmfx-turnstile-script";
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+        script.addEventListener("load", renderTurnstile, { once: true });
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      const widgetId = turnstileWidgetIdRef.current;
+      if (widgetId && window.turnstile?.remove) {
+        window.turnstile.remove(widgetId);
+      }
+      turnstileWidgetIdRef.current = null;
+    };
+  }, [authConfigured, turnstileSiteKey]);
 
   async function signInWithPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,17 +174,24 @@ export function AuthPage() {
       return;
     }
 
+    if (turnstileSiteKey && !captchaToken) {
+      setMessage("Completa la verificación para continuar.");
+      return;
+    }
+
     setStatus("loading");
 
     try {
       const supabase = createBrowserSupabaseClient();
       const { error } = await supabase.auth.signInWithPassword({
         email,
+        options: captchaToken ? { captchaToken } : undefined,
         password,
       });
 
       if (error) {
         setMessage("Email o contraseña incorrectos.");
+        resetTurnstile();
         return;
       }
 
@@ -280,6 +388,13 @@ export function AuthPage() {
                 <AlertCircleIcon className="size-4" />
                 {message}
               </p>
+            ) : null}
+
+            {authConfigured && turnstileSiteKey ? (
+              <div
+                ref={turnstileContainerRef}
+                className="min-h-[65px] overflow-hidden rounded-xl"
+              />
             ) : null}
 
             <Button
