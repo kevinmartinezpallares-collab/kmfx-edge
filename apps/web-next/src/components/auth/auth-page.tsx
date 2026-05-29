@@ -74,9 +74,12 @@ const accessHighlights = [
   },
 ];
 
+type AuthMode = "sign-in" | "sign-up";
+
 export function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [authMode, setAuthMode] = React.useState<AuthMode>("sign-in");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [captchaToken, setCaptchaToken] = React.useState("");
@@ -122,7 +125,7 @@ export function AuthPage() {
       turnstileWidgetIdRef.current = window.turnstile.render(
         turnstileContainerRef.current,
         {
-          action: "signin",
+          action: authMode === "sign-up" ? "signup" : "signin",
           callback: (token) => setCaptchaToken(token || ""),
           "error-callback": () => {
             setCaptchaToken("");
@@ -163,9 +166,9 @@ export function AuthPage() {
       }
       turnstileWidgetIdRef.current = null;
     };
-  }, [authConfigured, turnstileSiteKey]);
+  }, [authConfigured, authMode, turnstileSiteKey]);
 
-  async function signInWithPassword(event: React.FormEvent<HTMLFormElement>) {
+  async function handlePasswordAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
 
@@ -183,14 +186,34 @@ export function AuthPage() {
 
     try {
       const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        options: captchaToken ? { captchaToken } : undefined,
-        password,
-      });
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      const { data, error } =
+        authMode === "sign-up"
+          ? await supabase.auth.signUp({
+              email,
+              options: captchaToken
+                ? { captchaToken, emailRedirectTo }
+                : { emailRedirectTo },
+              password,
+            })
+          : await supabase.auth.signInWithPassword({
+              email,
+              options: captchaToken ? { captchaToken } : undefined,
+              password,
+            });
 
       if (error) {
-        setMessage("Email o contraseña incorrectos.");
+        setMessage(
+          authMode === "sign-up"
+            ? "No se pudo crear la cuenta. Revisa el email, la contraseña o si ya existe."
+            : "Email o contraseña incorrectos.",
+        );
+        resetTurnstile();
+        return;
+      }
+
+      if (authMode === "sign-up" && !data.session) {
+        setMessage("Cuenta creada. Revisa tu email para confirmar el acceso.");
         resetTurnstile();
         return;
       }
@@ -231,6 +254,8 @@ export function AuthPage() {
       setStatus("idle");
     }
   }
+
+  const messageIsSuccess = message.startsWith("Cuenta creada.");
 
   return (
     <main className="relative min-h-svh overflow-hidden bg-background text-foreground lg:grid lg:grid-cols-[1.05fr_0.95fr]">
@@ -301,9 +326,13 @@ export function AuthPage() {
               sizes="48px"
             />
             <div className="flex flex-col gap-2">
-              <h2 className="text-3xl font-semibold tracking-tight">Inicia sesión</h2>
+              <h2 className="text-3xl font-semibold tracking-tight">
+                {authMode === "sign-up" ? "Crea tu cuenta" : "Inicia sesión"}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Accede a tu panel de trading y gestión de cuentas.
+                {authMode === "sign-up"
+                  ? "Regístrate con un email nuevo para probar la beta."
+                  : "Accede a tu panel de trading y gestión de cuentas."}
               </p>
             </div>
           </div>
@@ -340,7 +369,34 @@ export function AuthPage() {
 
           <AuthDivider>o</AuthDivider>
 
-          <form className="flex flex-col gap-5" onSubmit={signInWithPassword}>
+          <div
+            aria-label="Modo de acceso"
+            className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/30 p-1"
+            role="tablist"
+          >
+            {[
+              { label: "Entrar", mode: "sign-in" as const },
+              { label: "Crear cuenta", mode: "sign-up" as const },
+            ].map((option) => (
+              <button
+                aria-selected={authMode === option.mode}
+                className="h-9 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
+                disabled={status === "loading"}
+                key={option.mode}
+                onClick={() => {
+                  setAuthMode(option.mode);
+                  setMessage("");
+                  resetTurnstile();
+                }}
+                role="tab"
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <form className="flex flex-col gap-5" onSubmit={handlePasswordAuth}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -360,7 +416,9 @@ export function AuthPage() {
                   />
                 </InputGroup>
                 <FieldDescription>
-                  Usaremos este email para validar el acceso a tu cuenta.
+                  {authMode === "sign-up"
+                    ? "Usaremos este email para crear tu acceso de beta."
+                    : "Usaremos este email para validar el acceso a tu cuenta."}
                 </FieldDescription>
               </Field>
               <Field>
@@ -370,7 +428,7 @@ export function AuthPage() {
                     <LockKeyholeIcon className="size-4" />
                   </InputGroupAddon>
                   <InputGroupInput
-                    autoComplete="current-password"
+                    autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
                     disabled={status === "loading"}
                     id="password"
                     onChange={(event) => setPassword(event.target.value)}
@@ -384,7 +442,13 @@ export function AuthPage() {
             </FieldGroup>
 
             {message ? (
-              <p className="flex items-center gap-2 text-sm text-destructive">
+              <p
+                className={
+                  messageIsSuccess
+                    ? "flex items-center gap-2 text-sm text-emerald-500"
+                    : "flex items-center gap-2 text-sm text-destructive"
+                }
+              >
                 <AlertCircleIcon className="size-4" />
                 {message}
               </p>
@@ -402,7 +466,11 @@ export function AuthPage() {
               disabled={status === "loading"}
               type="submit"
             >
-              {status === "loading" ? "Validando..." : "Continuar con email"}
+              {status === "loading"
+                ? "Validando..."
+                : authMode === "sign-up"
+                  ? "Crear cuenta con email"
+                  : "Continuar con email"}
               <ChevronRightIcon data-icon="inline-end" />
             </Button>
           </form>
