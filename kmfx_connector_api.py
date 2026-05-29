@@ -4520,6 +4520,8 @@ def build_live_accounts_snapshot(
         persisted_payload = ensure_dict(persisted_entry.get("dashboard_payload"))
         cached_trades = cached_payload.get("trades") if isinstance(cached_payload.get("trades"), list) else []
         cached_history = cached_payload.get("history") if isinstance(cached_payload.get("history"), list) else []
+        if not (cached_trades or cached_history):
+            return False
         persisted_trades = persisted_payload.get("trades") if isinstance(persisted_payload.get("trades"), list) else []
         persisted_history = persisted_payload.get("history") if isinstance(persisted_payload.get("history"), list) else []
         if (persisted_trades or persisted_history) and not (cached_trades or cached_history):
