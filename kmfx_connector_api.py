@@ -3500,6 +3500,25 @@ def stripe_update_subscription(
     )
 
 
+def stripe_resume_subscription(
+    subscription_id: str,
+    *,
+    idempotency_key: str = "",
+) -> dict[str, Any]:
+    normalized_subscription_id = safe_str(subscription_id)
+    if not normalized_subscription_id:
+        raise RuntimeError("stripe_subscription_id_missing")
+    return stripe_api_request(
+        "POST",
+        f"/subscriptions/{urllib.parse.quote(normalized_subscription_id)}/resume",
+        {
+            "billing_cycle_anchor": "now",
+            "proration_behavior": "none",
+        },
+        idempotency_key=idempotency_key,
+    )
+
+
 def first_subscription_item(subscription: dict[str, Any]) -> dict[str, Any]:
     items = ensure_dict(subscription.get("items")).get("data")
     if not isinstance(items, list) or not items:
@@ -8632,11 +8651,18 @@ async def billing_subscription_action(request: Request) -> JSONResponse:
         subscription_id = safe_str(existing_subscription.get("stripe_subscription_id"))
         if not subscription_id:
             return billing_json_response({"ok": False, "reason": "subscription_not_found", "error": "subscription_not_found"}, status_code=404)
-        updated_subscription = stripe_update_subscription(
-            subscription_id,
-            {"cancel_at_period_end": action == "cancel"},
-            idempotency_key=stripe_idempotency_key("kmfx_subscription_action", user_id, subscription_id, action),
-        )
+        existing_status = safe_str(existing_subscription.get("status")).lower()
+        if action == "resume" and existing_status == "paused":
+            updated_subscription = stripe_resume_subscription(
+                subscription_id,
+                idempotency_key=stripe_idempotency_key("kmfx_subscription_action", user_id, subscription_id, action),
+            )
+        else:
+            updated_subscription = stripe_update_subscription(
+                subscription_id,
+                {"cancel_at_period_end": action == "cancel"},
+                idempotency_key=stripe_idempotency_key("kmfx_subscription_action", user_id, subscription_id, action),
+            )
         sync_billing_subscription(updated_subscription, user_id=user_id, email=email)
         updated_row = stripe_subscription_to_billing_row(updated_subscription, user_id=user_id)
     except RuntimeError as exc:

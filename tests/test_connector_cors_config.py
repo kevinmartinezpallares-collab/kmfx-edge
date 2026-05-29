@@ -2730,6 +2730,87 @@ class ConnectorCorsConfigTests(unittest.TestCase):
             event_id="manual_subscription_action_resume",
         )
 
+    def test_billing_subscription_action_resumes_paused_subscription_with_stripe_resume_endpoint(self) -> None:
+        user_id = "58585858-5858-4585-8585-585858585858"
+        request = self._request(headers={"authorization": "Bearer verified-token"}, json_body={"action": "resume"})
+        resumed_subscription = {
+            "id": "sub_paused_manage_sub",
+            "customer": "cus_manage_sub",
+            "status": "active",
+            "cancel_at_period_end": False,
+            "current_period_end": 1780000000,
+            "metadata": {
+                "kmfx_user_id": "user-123",
+                "kmfx_plan": "unlimited",
+            },
+            "items": {
+                "data": [
+                    {
+                        "price": {
+                            "id": "price_unlimited_monthly",
+                            "lookup_key": "kmfx_unlimited_monthly",
+                            "product": "prod_unlimited",
+                        }
+                    }
+                ]
+            },
+        }
+        synced_row = {
+            "user_id": "user-123",
+            "plan_key": "unlimited",
+            "status": "active",
+            "current_period_end": "2026-06-01T00:00:00Z",
+            "trial_end": "",
+            "cancel_at_period_end": False,
+        }
+        with patch.object(
+            connector_api,
+            "_resolve_verified_bearer_claims",
+            return_value={
+                "sub": user_id,
+                "email": "user@example.com",
+                "app_metadata": {"plan": "unlimited", "billing_status": "paused"},
+                "user_metadata": {},
+            },
+        ), patch.object(
+            connector_api,
+            "ensure_billing_customer",
+            return_value="cus_manage_sub",
+        ), patch.object(
+            connector_api,
+            "existing_kmfx_subscription_for_checkout",
+            return_value={
+                "stripe_subscription_id": "sub_paused_manage_sub",
+                "stripe_customer_id": "cus_manage_sub",
+                "plan_key": "unlimited",
+                "status": "paused",
+            },
+        ), patch.object(
+            connector_api,
+            "stripe_resume_subscription",
+            return_value=resumed_subscription,
+        ) as resume_mock, patch.object(
+            connector_api,
+            "stripe_update_subscription",
+        ) as update_mock, patch.object(
+            connector_api,
+            "sync_billing_subscription",
+            return_value=synced_row,
+        ), patch.object(
+            connector_api,
+            "send_subscription_reactivated_email",
+            return_value={"sent": True},
+        ):
+            response = asyncio.run(connector_api.billing_subscription_action(request))
+
+        body = json.loads(response.body.decode("utf-8"))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("resume", body["action"])
+        self.assertEqual("active", body["billing"]["status"])
+        resume_mock.assert_called_once()
+        self.assertEqual("sub_paused_manage_sub", resume_mock.call_args.args[0])
+        update_mock.assert_not_called()
+
     def test_purchase_confirmation_email_includes_dashboard_onboarding_and_billing_guidance(self) -> None:
         message = connector_api.build_purchase_confirmation_email(
             email="buyer@example.com",
